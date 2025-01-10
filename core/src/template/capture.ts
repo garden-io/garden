@@ -10,8 +10,8 @@ import type { ConfigContext } from "../config/template-contexts/base.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
 import { deepMap } from "../util/objects.js"
 import { visitAll, type TemplateExpressionGenerator } from "./analysis.js"
-import { deepEvaluate } from "./evaluate.js"
-import type { EvaluateTemplateArgs, ParsedTemplate, ResolvedTemplate } from "./types.js"
+import { evaluate } from "./evaluate.js"
+import type { EvaluateTemplateArgs, ParsedTemplate, ResolvedTemplate, TemplateEvaluationResult } from "./types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "./types.js"
 
 export function capture(template: ParsedTemplate, context: ConfigContext): ParsedTemplate {
@@ -30,10 +30,22 @@ export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
     this.context = context
   }
 
-  override evaluate(args: EvaluateTemplateArgs): ResolvedTemplate {
+  override evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult {
     const context = new LayeredContext(this.context, args.context)
 
-    return deepEvaluate(this.wrapped, { ...args, context })
+    const { resolved, partial } = evaluate(this.wrapped, { ...args, context })
+
+    if (partial) {
+      return {
+        partial: true,
+        resolved: deepMap(resolved, (v) => capture(v, context)),
+      }
+    }
+
+    return {
+      partial: false,
+      resolved,
+    }
   }
 
   override toJSON(): ResolvedTemplate {

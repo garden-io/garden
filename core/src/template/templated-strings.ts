@@ -46,7 +46,10 @@ class ParsedTemplateString extends UnresolvedTemplateValue {
     super()
   }
 
-  override evaluate(args: EvaluateTemplateArgs): ResolvedTemplate {
+  override evaluate(args: EvaluateTemplateArgs): {
+    partial: false
+    resolved: ResolvedTemplate
+  } {
     const res = this.rootNode.evaluate({ ...args, yamlSource: this.source })
     if (typeof res === "symbol") {
       throw new InternalError({
@@ -54,7 +57,10 @@ class ParsedTemplateString extends UnresolvedTemplateValue {
           "ParsedTemplateString: template expression evaluated to symbol. ContextLookupExpression should have thrown.",
       })
     }
-    return res
+    return {
+      partial: false,
+      resolved: res,
+    }
   }
 
   public override toJSON(): string {
@@ -161,31 +167,16 @@ export function resolveTemplateString({
     source,
   })
 
-  // string does not contain
   if (typeof parsed === "string") {
     return parsed
   }
 
-  const result = parsed.evaluate({
+  const { resolved } = parsed.evaluate({
     context,
     opts: contextOpts,
   })
 
-  if (typeof result !== "symbol") {
-    return result
-  }
-
-  throw new InternalError({
-    message: `template expression returned symbol ${String(result)}. ast.ContextLookupExpression should have thrown an error.`,
-  })
-
-  // Requested partial evaluation and the template expression cannot be evaluated yet. We may be able to do it later.
-
-  // TODO: Parse all template expressions after reading the YAML config and only re-evaluate ast.TemplateExpression instances in
-  // resolveTemplateStrings; Otherwise we'll inevitably have a bug where garden will resolve template expressions that might be
-  // contained in expression evaluation results e.g. if an environment variable contains template string, we don't want to
-  // evaluate the template string in there.
-  // See also https://github.com/garden-io/garden/issues/5825
+  return resolved
 }
 
 /**

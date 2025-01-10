@@ -58,33 +58,47 @@ export type EvaluateTemplateArgs = {
   readonly opts: Readonly<ContextResolveOpts>
 }
 
-export abstract class UnresolvedTemplateValue {
-  private objectSpreadTrap: true = true
-
-  constructor() {
-    if (!this.objectSpreadTrap) {
-      throw new InternalError({
-        message:
-          "Do not remove the spread trap, it exists to make our code more robust by detecting spreading unresolved template values.",
-      })
+export type TemplateEvaluationResult =
+  | {
+      partial: false
+      resolved: ResolvedTemplate
+    }
+  | {
+      partial: true
+      resolved: ParsedTemplate
     }
 
-    const proxy = new Proxy(this, {
-      get: (target, key) => {
-        const value = target[key]
-        if (typeof key !== "symbol" && value === undefined) {
-          throw new InternalError({
-            message: `Unpermitted indexed access (key: '${key}') of unresolved template value. Consider evaluating template values first.`,
-          })
-        }
-        return value
-      },
+const accessDetector = new Proxy(
+  {},
+  {
+    get: (target, key) => {
+      if (typeof key !== "symbol") {
+        throw new InternalError({
+          message: `Unpermitted indexed access (key: '${key}') of unresolved template value. Consider evaluating template values first.`,
+        })
+      }
+      return target[key]
+    },
+  }
+)
+
+export abstract class UnresolvedTemplateValue {
+  constructor() {
+    // The spread trap exists to make our code more robust by detecting spreading unresolved template values.
+    Object.defineProperty(this, "objectSpreadTrap", {
+      enumerable: true,
+      configurable: false,
+      get: () =>
+        // trigger "unpermitted indexed access" error
+        accessDetector["objectSpreadTrap"],
     })
-    return proxy
   }
 
-  public abstract evaluate(args: EvaluateTemplateArgs): ResolvedTemplate
-  public abstract toJSON(): ResolvedTemplate
+  public abstract evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult
+  public abstract toJSON(): CollectionOrValue<TemplatePrimitive>
 
   public abstract visitAll(): TemplateExpressionGenerator
 }
+
+// NOTE: this will make sure we throw an error if this value is accidentally treated as resolved.
+Object.setPrototypeOf(UnresolvedTemplateValue.prototype, accessDetector)

@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { InternalError } from "../exceptions.js"
-import { deepMap } from "../util/objects.js"
-import type { EvaluateTemplateArgs, ParsedTemplateValue, ResolvedTemplate, TemplatePrimitive } from "./types.js"
-import { UnresolvedTemplateValue, type ParsedTemplate } from "./types.js"
+import { deepMap, isArray, isPlainObject } from "../util/objects.js"
+import type { EvaluateTemplateArgs, ResolvedTemplate, TemplateEvaluationResult, TemplatePrimitive } from "./types.js"
+import { isTemplatePrimitive, UnresolvedTemplateValue, type ParsedTemplate } from "./types.js"
 
 type Evaluate<T extends ParsedTemplate> = T extends UnresolvedTemplateValue
   ? ResolvedTemplate
@@ -30,27 +29,34 @@ export function deepEvaluate<Input extends ParsedTemplate>(
   return deepMap(collection, (v) => {
     if (v instanceof UnresolvedTemplateValue) {
       const evaluated = evaluate(v, args)
-      return evaluated
+      if (evaluated.partial) {
+        return deepEvaluate(evaluated.resolved, args)
+      }
+      return evaluated.resolved
     }
     return v
   }) as Evaluate<Input>
 }
 
-export function evaluate<Args extends EvaluateTemplateArgs, Input extends ParsedTemplateValue>(
-  value: Input,
-  args: Args
-): Evaluate<Input> {
-  if (!(value instanceof UnresolvedTemplateValue)) {
-    return value as Evaluate<Input>
+export function evaluate(value: ParsedTemplate, args: EvaluateTemplateArgs): TemplateEvaluationResult {
+  if (value instanceof UnresolvedTemplateValue) {
+    return value.evaluate(args)
   }
 
-  const result = value.evaluate(args)
-
-  if (typeof result === "symbol") {
-    throw new InternalError({
-      message: `Evaluation was non-optional, but template expression returned symbol ${String(result)}. ast.ContextLookupExpression should have thrown an error.`,
-    })
+  if (
+    isTemplatePrimitive(value) ||
+    (isArray(value) && value.length === 0) ||
+    (isPlainObject(value) && Object.keys(value).length === 0)
+  ) {
+    return {
+      partial: false,
+      // template primitives, empty array or empty object do not need to be resolved
+      resolved: value as ResolvedTemplate,
+    }
   }
 
-  return result as Evaluate<Input>
+  return {
+    partial: true,
+    resolved: value,
+  }
 }

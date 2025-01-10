@@ -15,10 +15,10 @@ import { styles } from "../../logger/styles.js"
 import { Profile } from "../../util/profiling.js"
 import type { Collection } from "../../util/objects.js"
 import { deepMap, isPlainObject, type CollectionOrValue } from "../../util/objects.js"
-import type { ResolvedTemplate, TemplatePrimitive } from "../../template/types.js"
+import type { ParsedTemplate, ResolvedTemplate, TemplatePrimitive } from "../../template/types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "../../template/types.js"
 import pick from "lodash-es/pick.js"
-import { evaluate } from "../../template/evaluate.js"
+import { deepEvaluate, evaluate } from "../../template/evaluate.js"
 import merge from "lodash-es/merge.js"
 
 export type ContextKeySegment = string | number
@@ -113,17 +113,17 @@ export abstract class ConfigContext {
     const path = key.join(".")
 
     // if the key has previously been resolved, return it directly
-    const resolved = this._resolvedValues[path]
+    const alreadyResolved = this._resolvedValues[path]
 
-    if (resolved) {
-      return { resolved }
+    if (alreadyResolved) {
+      return { resolved: alreadyResolved }
     }
 
     // keep track of which resolvers have been called, in order to detect circular references
     let getAvailableKeys: (() => string[]) | undefined = undefined
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let value: CollectionOrValue<TemplatePrimitive | ConfigContext> = this._startingPoint
+    let value: CollectionOrValue<ParsedTemplate | TemplatePrimitive | ConfigContext> = this._startingPoint
       ? this[this._startingPoint]
       : this
 
@@ -143,12 +143,6 @@ export abstract class ConfigContext {
       // throw new ContextResolveError({
       //   message: `Circular reference detected when resolving key ${path} (${Array.from(opts.keyStack || []).join(" -> ")})`,
       // })
-    }
-
-    if (value instanceof UnresolvedTemplateValue) {
-      opts.keyStack.add(nodePath.join("."))
-      opts.contextStack.add(value)
-      value = evaluate(value, { context: getRootContext(), opts })
     }
 
     let nextKey = key[0]
@@ -172,7 +166,7 @@ export abstract class ConfigContext {
       const getStackEntry = () => renderKeyPath(capturedNestedNodePath)
       getAvailableKeys = undefined
 
-      const parent: CollectionOrValue<TemplatePrimitive | ConfigContext> = value
+      const parent: CollectionOrValue<ParsedTemplate | TemplatePrimitive | ConfigContext> = value
       if (isTemplatePrimitive(parent)) {
         throw new ContextResolveError({
           message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof parent}.`,
@@ -206,7 +200,8 @@ export abstract class ConfigContext {
       if (value instanceof UnresolvedTemplateValue) {
         opts.keyStack.add(getStackEntry())
         opts.contextStack.add(value)
-        value = evaluate(value, { context: getRootContext(), opts })
+        const { resolved } = evaluate(value, { context: getRootContext(), opts })
+        value = resolved
       }
 
       if (value === undefined) {
@@ -250,7 +245,7 @@ export abstract class ConfigContext {
         if (v instanceof ConfigContext) {
           return v.resolve({ key: [], nodePath: nodePath.concat(key, keyPath), opts }).resolved
         }
-        return evaluate(v, { context: getRootContext(), opts })
+        return deepEvaluate(v, { context: getRootContext(), opts })
       })
     }
 

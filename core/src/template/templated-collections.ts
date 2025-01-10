@@ -13,7 +13,7 @@ import { InternalError } from "../exceptions.js"
 import { deepMap, isArray, isPlainObject, type CollectionOrValue } from "../util/objects.js"
 import { naturalList } from "../util/string.js"
 import { isTruthy } from "./ast.js"
-import type { EvaluateTemplateArgs, ParsedTemplate, ResolvedTemplate } from "./types.js"
+import type { EvaluateTemplateArgs, ParsedTemplate, ResolvedTemplate, TemplateEvaluationResult } from "./types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue, type TemplatePrimitive } from "./types.js"
 import isBoolean from "lodash-es/isBoolean.js"
 import {
@@ -27,11 +27,12 @@ import {
   objectSpreadKey,
 } from "../config/constants.js"
 import mapValues from "lodash-es/mapValues.js"
-import { deepEvaluate } from "./evaluate.js"
+import { deepEvaluate, evaluate } from "./evaluate.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
 import { parseTemplateString } from "./templated-strings.js"
 import { TemplateError } from "./errors.js"
 import { visitAll, type TemplateExpressionGenerator } from "./analysis.js"
+import { capture } from "./capture.js"
 
 export function pushYamlPath(part: ObjectPath[0], configSource: ConfigSource): ConfigSource {
   return {
@@ -245,20 +246,19 @@ export class ConcatLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
-  override evaluate(args: EvaluateTemplateArgs): ResolvedTemplate[] {
-    const output: ResolvedTemplate[] = []
+  override evaluate(args: EvaluateTemplateArgs): {
+    partial: true
+    resolved: ParsedTemplate[]
+  } {
+    const output: ParsedTemplate[] = []
 
     let concatYaml: (ConcatOperator | ParsedTemplate)[]
 
     // NOTE(steffen): We need to support a construct where $concat inside a $forEach expression results in a flat list.
     if (this.yaml instanceof ForEachLazyValue) {
-      const res = this.yaml.evaluate(args)
+      const { resolved } = this.yaml.evaluate(args)
 
-      // if (typeof res === "symbol") {
-      //   return res
-      // }
-
-      concatYaml = res
+      concatYaml = resolved
     } else {
       concatYaml = this.yaml
     }
@@ -266,22 +266,12 @@ export class ConcatLazyValue extends StructuralTemplateOperator {
     for (const v of concatYaml) {
       if (!this.isConcatOperator(v)) {
         // it's not a concat operator, it's a list element.
-        const evaluated = deepEvaluate(v, args)
-
-        // if (typeof evaluated === "symbol") {
-        //   return evaluated
-        // }
-
-        output.push(evaluated)
+        output.push(v)
         continue
       }
 
       // handle concat operator
-      const toConcatenate = deepEvaluate(v[arrayConcatKey], args)
-
-      // if (typeof toConcatenate === "symbol") {
-      //   return toConcatenate
-      // }
+      const { resolved: toConcatenate } = evaluate(v[arrayConcatKey], args)
 
       if (isArray(toConcatenate)) {
         output.push(...toConcatenate)
@@ -293,8 +283,10 @@ export class ConcatLazyValue extends StructuralTemplateOperator {
       }
     }
 
-    // input tracking is already being taken care of as we just concatenate arrays
-    return output
+    return {
+      partial: true,
+      resolved: output,
+    }
   }
 
   isConcatOperator(v: ConcatOperator | ParsedTemplate): v is ConcatOperator {
@@ -331,12 +323,11 @@ export class ForEachLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
-  override evaluate(args: EvaluateTemplateArgs): ResolvedTemplate[] {
-    const collectionValue = deepEvaluate(this.yaml[arrayForEachKey], args)
-
-    // if (typeof collectionValue === "symbol") {
-    //   return collectionValue
-    // }
+  override evaluate(args: EvaluateTemplateArgs): {
+    partial: true
+    resolved: ParsedTemplate[]
+  } {
+    const { resolved: collectionValue } = evaluate(this.yaml[arrayForEachKey], args)
 
     if (!isArray(collectionValue) && !isPlainObject(collectionValue)) {
       throw new TemplateError({
@@ -347,7 +338,7 @@ export class ForEachLazyValue extends StructuralTemplateOperator {
 
     const filterExpression = this.yaml[arrayForEachFilterKey]
 
-    const resolveOutput: ResolvedTemplate[] = []
+    const resolveOutput: ParsedTemplate[] = []
 
     for (const i of Object.keys(collectionValue)) {
       // put the TemplateValue in the context, not the primitive value, so we have input tracking
@@ -358,11 +349,7 @@ export class ForEachLazyValue extends StructuralTemplateOperator {
 
       // Check $filter clause output, if applicable
       if (filterExpression !== undefined) {
-        const filterResult = deepEvaluate(filterExpression, { ...args, context: loopContext })
-
-        // if (typeof filterResult === "symbol") {
-        //   return filterResult
-        // }
+        const { resolved: filterResult } = evaluate(filterExpression, { ...args, context: loopContext })
 
         if (isBoolean(filterResult)) {
           if (!filterResult) {
@@ -376,16 +363,15 @@ export class ForEachLazyValue extends StructuralTemplateOperator {
         }
       }
 
-      const returnResult = deepEvaluate(this.yaml[arrayForEachReturnKey], { ...args, context: loopContext })
-
-      // if (typeof returnResult === "symbol") {
-      //   return returnResult
-      // }
+      const returnResult = capture(this.yaml[arrayForEachReturnKey], loopContext)
 
       resolveOutput.push(returnResult)
     }
 
-    return resolveOutput
+    return {
+      partial: true,
+      resolved: resolveOutput,
+    }
   }
 }
 
@@ -401,23 +387,22 @@ export class ObjectSpreadLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
-  override evaluate(args: EvaluateTemplateArgs): Record<string, ResolvedTemplate> {
-    let output: Record<string, ResolvedTemplate> = {}
+  override evaluate(args: EvaluateTemplateArgs): {
+    partial: true
+    resolved: Record<string, ParsedTemplate>
+  } {
+    let output: Record<string, ParsedTemplate> = {}
 
     // Resolve $merge keys, depth-first, leaves-first
     for (const [k, v] of Object.entries(this.yaml)) {
-      const resolved = deepEvaluate(v, args)
-
-      // if (typeof resolved === "symbol") {
-      //   return resolved
-      // }
-
       if (k !== objectSpreadKey) {
-        output[k] = resolved
+        output[k] = v
         continue
       }
 
       k satisfies typeof objectSpreadKey
+
+      const { resolved } = evaluate(v, args)
 
       if (!isPlainObject(resolved)) {
         throw new TemplateError({
@@ -429,7 +414,10 @@ export class ObjectSpreadLazyValue extends StructuralTemplateOperator {
       output = { ...output, ...resolved }
     }
 
-    return output
+    return {
+      partial: true,
+      resolved: output,
+    }
   }
 }
 
@@ -448,7 +436,7 @@ export class ConditionalLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
-  override evaluate(args: EvaluateTemplateArgs): ResolvedTemplate {
+  override evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult {
     const conditionalValue = deepEvaluate(this.yaml[conditionalKey], args)
 
     // if (typeof conditionalValue === "symbol") {
@@ -464,8 +452,9 @@ export class ConditionalLazyValue extends StructuralTemplateOperator {
 
     const branch = isTruthy(conditionalValue) ? this.yaml[conditionalThenKey] : this.yaml[conditionalElseKey]
 
-    const evaluated = deepEvaluate(branch, args)
-
-    return evaluated
+    return {
+      partial: true,
+      resolved: branch,
+    }
   }
 }
