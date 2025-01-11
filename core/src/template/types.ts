@@ -74,7 +74,15 @@ const accessDetector = new Proxy(
     get: (target, key) => {
       if (typeof key !== "symbol") {
         throw new InternalError({
-          message: `Unpermitted indexed access (key: '${key}') of unresolved template value. Consider evaluating template values first.`,
+          message: `Unpermitted indexed access (get key: '${key}') of unresolved template value. Consider evaluating template values first.`,
+        })
+      }
+      return target[key]
+    },
+    set: (target, key) => {
+      if (typeof key !== "symbol") {
+        throw new InternalError({
+          message: `Unpermitted indexed access (set key: '${key}') of unresolved template value. Consider evaluating template values first.`,
         })
       }
       return target[key]
