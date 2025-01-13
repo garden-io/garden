@@ -408,13 +408,8 @@ export class Garden {
       cache: vcsCache,
     })
 
-    // Use the legacy build sync mode if
-    // A) GARDEN_LEGACY_BUILD_STAGE=true is set or
-    // B) if running Windows and GARDEN_EXPERIMENTAL_BUILD_STAGE != true (until #2299 is properly fixed)
     const legacyBuildSync =
-      params.opts.legacyBuildSync === undefined
-        ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE || (platform() === "win32" && !gardenEnv.GARDEN_EXPERIMENTAL_BUILD_STAGE)
-        : params.opts.legacyBuildSync
+      params.opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : params.opts.legacyBuildSync
 
     const buildDirCls = legacyBuildSync ? BuildStagingRsync : BuildStaging
     if (legacyBuildSync) {
