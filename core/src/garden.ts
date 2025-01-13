@@ -117,7 +117,7 @@ import {
   RemoteSourceConfigContext,
   TemplatableConfigContext,
 } from "./config/template-contexts/project.js"
-import type { CloudProject, GardenCloudApiFactory } from "./cloud/api.js"
+import type { GardenCloudApiFactory } from "./cloud/api.js"
 import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
@@ -168,10 +168,12 @@ import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
 import {
   getCloudDistributionName,
+  getCloudDomain,
   getCloudLogSectionName,
   getGardenCloudDomain,
   isGardenCommunityEdition,
 } from "./cloud/util.js"
+import { GrowCloudApi } from "./cloud/grow/api.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -204,6 +206,7 @@ export interface GardenParams {
   vcsInfo: VcsInfo
   projectId?: string
   cloudApi?: GardenCloudApi
+  cloudApiV2?: GrowCloudApi
   cloudDomain: string
   dotIgnoreFile: string
   proxy: ProxyConfig
@@ -281,7 +284,6 @@ export class Garden {
   private readonly solver: GraphSolver
   private asyncLock: AsyncLock
   public readonly projectId?: string
-  public readonly cloudDomain: string
   public sessionId: string
   public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
@@ -292,7 +294,10 @@ export class Garden {
   public readonly configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
+
+  public readonly cloudDomain: string
   public cloudApi?: GardenCloudApi
+  public cloudApiV2?: GrowCloudApi
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -343,7 +348,6 @@ export class Garden {
 
   constructor(params: GardenParams) {
     this.projectId = params.projectId
-    this.cloudDomain = params.cloudDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
     this.resolvedDefaultNamespace = params.resolvedDefaultNamespace
@@ -380,7 +384,9 @@ export class Garden {
     this.state = { configsScanned: false, needsReload: false }
     this.nestedSessions = new Map()
 
+    this.cloudDomain = params.cloudDomain
     this.cloudApi = params.cloudApi
+    this.cloudApiV2 = params.cloudApiV2
 
     this.asyncLock = new AsyncLock()
 
@@ -1973,24 +1979,32 @@ function getCloudApiFactory(opts: GardenOpts) {
   return GardenCloudApi.factory
 }
 
-async function initCloudApi({
-  globalConfigStore,
-  projectConfig,
-  cloudApiFactory,
-  log,
-}: {
-  globalConfigStore: GlobalConfigStore
-  projectConfig: ProjectConfig | undefined
+type InitCloudApiParams = {
   cloudApiFactory: GardenCloudApiFactory
+  cloudDomain: string
+  globalConfigStore: GlobalConfigStore
   log: Log
-}): Promise<GardenCloudApi | undefined> {
-  const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
-  const distroName = getCloudDistributionName(cloudDomain)
+  projectConfig: ProjectConfig | undefined
+  skipCloudConnect: boolean
+}
+
+async function initCloudApi({
+  cloudApiFactory,
+  cloudDomain,
+  globalConfigStore,
+  log,
+  projectConfig,
+  skipCloudConnect,
+}: InitCloudApiParams): Promise<GardenCloudApi | undefined> {
+  if (gardenEnv.USE_GARDEN_CLOUD_V2 || skipCloudConnect) {
+    return undefined
+  }
 
   try {
     return await cloudApiFactory({ log, cloudDomain, globalConfigStore })
   } catch (err) {
     if (err instanceof CloudApiTokenRefreshError) {
+      const distroName = getCloudDistributionName(cloudDomain)
       log.warn(dedent`
             The current ${distroName} session is not valid or it's expired.
             Command results for this command run will not be available in ${distroName}.
@@ -2009,6 +2023,16 @@ async function initCloudApi({
       throw err
     }
   }
+}
+
+type InitCloudApiParamsV2 = Pick<InitCloudApiParams, "cloudDomain" | "globalConfigStore" | "log">
+
+async function initCloudApiV2({
+  cloudDomain,
+  globalConfigStore,
+  log,
+}: InitCloudApiParamsV2): Promise<GrowCloudApi | undefined> {
+  return gardenEnv.USE_GARDEN_CLOUD_V2 ? await GrowCloudApi.factory({ cloudDomain, globalConfigStore, log }) : undefined
 }
 
 export const resolveGardenParams = profileAsync(async function _resolveGardenParams(
@@ -2043,31 +2067,32 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const projectApiVersion = config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApiFactory = getCloudApiFactory(opts)
-    const cloudApi: GardenCloudApi | undefined = opts.skipCloudConnect
-      ? undefined
-      : await initCloudApi({
-          globalConfigStore,
-          log,
-          projectConfig: config,
-          cloudApiFactory,
-        })
-    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+    const skipCloudConnect = opts.skipCloudConnect || false
+
+    const cloudDomain = getCloudDomain(config.domain)
+    const cloudApi = await initCloudApi({
+      cloudApiFactory,
+      cloudDomain,
+      globalConfigStore,
+      log,
+      projectConfig: config,
+      skipCloudConnect,
+    })
     const loggedIn = !!cloudApi
 
-    const { secrets, cloudProject } = opts.skipCloudConnect
-      ? {
-          secrets: {},
-          cloudProject: null,
-        }
-      : await prepareCloud({
-          cloudApi,
-          config,
-          log,
-          projectRoot,
-          projectName,
-          environmentName,
-          commandName: opts.commandInfo.name,
-        })
+    // Use this to interact with Cloud Backend V2
+    const cloudApiV2 = await initCloudApiV2({ cloudDomain, globalConfigStore, log })
+
+    const { secrets, cloudProject } = await initCloudProject({
+      cloudApi,
+      config,
+      log,
+      projectRoot,
+      projectName,
+      environmentName,
+      commandName: opts.commandInfo.name,
+      skipCloudConnect,
+    })
 
     config = resolveProjectConfig({
       log,
@@ -2136,11 +2161,13 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       artifactsPath,
       vcsInfo,
       sessionId,
+      cloudDomain,
+      cloudApi,
+      cloudApiV2,
       // If the user is logged in and a cloud project exists we use that ID
       // but fallback to the one set in the config (even if the user isn't logged in).
       // Same applies for domains.
       projectId: cloudProject?.id || config.id,
-      cloudDomain,
       projectConfig: config,
       projectRoot,
       projectName,
@@ -2168,7 +2195,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       moduleIncludePatterns: (config.scan || {}).include,
       username: _username,
       forceRefresh: opts.forceRefresh,
-      cloudApi,
       cache: treeCache,
       projectApiVersion,
     }
@@ -2181,7 +2207,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
  * It's arguably a bit awkward that the function does both but this makes it easier
  * to group together the relevant logs.
  */
-async function prepareCloud({
+async function initCloudProject({
   cloudApi,
   config,
   log,
@@ -2189,6 +2215,7 @@ async function prepareCloud({
   projectName,
   environmentName,
   commandName,
+  skipCloudConnect,
 }: {
   cloudApi: GardenCloudApi | undefined
   config: ProjectConfig
@@ -2197,7 +2224,15 @@ async function prepareCloud({
   projectName: string
   environmentName: string
   commandName: string
+  skipCloudConnect: boolean
 }) {
+  if (gardenEnv.USE_GARDEN_CLOUD_V2 || skipCloudConnect) {
+    return {
+      secrets: {},
+      cloudProject: undefined,
+    }
+  }
+
   const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
   const isCommunityEdition = isGardenCommunityEdition(cloudDomain)
   const distroName = getCloudDistributionName(cloudDomain)
@@ -2205,51 +2240,55 @@ async function prepareCloud({
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
   const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
 
-  let secrets: StringMap = {}
-  let cloudProject: CloudProject | null = null
-  // If true, then user is logged in and we fetch the remote project and secrets (if applicable)
-  if (cloudApi) {
-    cloudLog.info(`Connecting project...`)
-
-    cloudProject = await getCloudProject({
-      cloudApi,
-      config,
-      log: cloudLog,
-      projectName,
-      projectRoot,
-      isCommunityEdition,
-    })
-
-    // Fetch Secrets. Not supported on the community edition.
-    if (cloudProject && !isCommunityEdition) {
-      try {
-        secrets = await wrapActiveSpan(
-          "getSecrets",
-          async () =>
-            await cloudApi.getSecrets({
-              log: cloudLog,
-              projectId: cloudProject!.id,
-              environmentName,
-            })
-        )
-        cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
-      } catch (err) {
-        cloudLog.error(`Fetching secrets failed with error: ${err}`)
-      }
-    }
-
-    cloudLog.success("Ready")
-  } else {
+  if (!cloudApi) {
     const msg = `You are not logged in. To use ${distroName}, log in with the ${styles.command(
       "garden login"
     )} command.`
+
     if (isCommunityEdition) {
       cloudLog.info(msg)
       cloudLog.info(`Learn more at: ${makeDocsLinkStyled("using-garden/dashboard")}`)
     } else {
       cloudLog.warn(msg)
     }
+
+    return {
+      secrets: {},
+      cloudProject: undefined,
+    }
   }
+
+  cloudLog.info(`Connecting project...`)
+
+  const cloudProject = await getCloudProject({
+    cloudApi,
+    config,
+    log: cloudLog,
+    projectName,
+    projectRoot,
+    isCommunityEdition,
+  })
+
+  // Fetch Secrets. Not supported on the community edition.
+  let secrets: StringMap = {}
+  if (cloudProject && !isCommunityEdition) {
+    try {
+      secrets = await wrapActiveSpan(
+        "getSecrets",
+        async () =>
+          await cloudApi.getSecrets({
+            log: cloudLog,
+            projectId: cloudProject!.id,
+            environmentName,
+          })
+      )
+      cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
+    } catch (err) {
+      cloudLog.error(`Fetching secrets failed with error: ${err}`)
+    }
+  }
+
+  cloudLog.success("Ready")
 
   return { cloudProject, secrets }
 }

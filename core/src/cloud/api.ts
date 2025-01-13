@@ -809,6 +809,7 @@ type UnsupportedRegisterCloudBuilderBuildResponse = {
 type RegisterCloudBuilderBuildResponse =
   | RegisterCloudBuilderBuildResponseV2
   | UnsupportedRegisterCloudBuilderBuildResponse
+export type RegisterCloudBuilderBuildResponseData = RegisterCloudBuilderBuildResponse["data"]
 
 export type CloudBuilderAvailableV2 = {
   available: true
@@ -821,7 +822,7 @@ export type CloudBuilderAvailableV2 = {
     }[]
     clientCertificatePem: string
     // only defined if the request did not include a "mtlsClientPublicKeyPEM"
-    privateKeyPem: string | undefined
+    privateKeyPem?: string
   }
 }
 export type CloudBuilderNotAvailableV2 = {
