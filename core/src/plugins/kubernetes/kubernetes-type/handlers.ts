@@ -15,7 +15,7 @@ import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync.js"
 import { apply, deleteObjectsBySelector } from "../kubectl.js"
 import { streamK8sLogs } from "../logs.js"
-import { getActionNamespace, getActionNamespaceStatus } from "../namespace.js"
+import { deleteNamespaces, getActionNamespace, getActionNamespaceStatus } from "../namespace.js"
 import { getForwardablePorts, killPortForwards } from "../port-forward.js"
 import { getK8sIngresses } from "../status/ingress.js"
 import type { ResourceStatus } from "../status/status.js"
@@ -28,13 +28,7 @@ import {
 } from "../status/status.js"
 import type { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types.js"
 import type { ManifestMetadata, ParsedMetadataManifestData } from "./common.js"
-import {
-  convertServiceResource,
-  gardenNamespaceAnnotationValue,
-  getManifests,
-  getMetadataManifest,
-  parseMetadataResource,
-} from "./common.js"
+import { convertServiceResource, getManifests, getMetadataManifest, parseMetadataResource } from "./common.js"
 import type { KubernetesModule } from "./module-config.js"
 import { configureKubernetesModule } from "./module-config.js"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode.js"
@@ -493,20 +487,7 @@ export const deleteKubernetesDeploy: DeployActionHandler<"delete", KubernetesDep
   const [namespaceManifests, otherManifests] = partition(manifests, (m) => m.kind === "Namespace")
 
   if (namespaceManifests.length > 0) {
-    await Promise.all(
-      namespaceManifests.map((ns) => {
-        const selector = `${gardenAnnotationKey("service")}=${gardenNamespaceAnnotationValue(ns.metadata.name)}`
-        return deleteObjectsBySelector({
-          log,
-          ctx,
-          provider,
-          namespace,
-          selector,
-          objectTypes: ["Namespace"],
-          includeUninitialized: false,
-        })
-      })
-    )
+    await deleteNamespaces({ namespaces: namespaceManifests.map((ns) => ns.metadata.name), api, ctx, log })
   }
   if (otherManifests.length > 0) {
     await deleteObjectsBySelector({

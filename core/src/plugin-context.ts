@@ -155,6 +155,14 @@ export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventTyp
     this.garden.events.onKey("_exit", this.abortHandler, garden.sessionId)
     this.garden.events.onKey("_restart", this.abortHandler, garden.sessionId)
 
+    // Always pipe `namespaceStatus` events to the main event bus, since we need this to happen both during provider
+    // resolution (where `prepareEnvironment` is called, see `ResolveProviderTask`) and inside action handlers.
+    //
+    // Note: If any other plugin events without action-specific metadata are needed, they should be added here.
+    this.on("namespaceStatus", (status: NamespaceStatus) => {
+      this.garden.events.emit("namespaceStatus", status)
+    })
+
     this.on("abort", () => {
       this.aborted = true
     })

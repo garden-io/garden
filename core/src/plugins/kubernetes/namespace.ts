@@ -148,6 +148,7 @@ export async function ensureNamespace(
       nsCache.set(providerUid, cache)
     }
   })
+  ctx.events.emit("namespaceStatus", { pluginName: ctx.provider.name, namespaceName: namespace.name, state: "ready" })
 
   return result
 }
@@ -303,7 +304,21 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
   }
 }
 
-export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?: Log) {
+/**
+ * Note: When possible, always use this helper to delete k8s namespaces, since that ensures that namespace status
+ * events are emitted and the provider namespace cache is cleared.
+ */
+export async function deleteNamespaces({
+  namespaces,
+  api,
+  ctx,
+  log,
+}: {
+  namespaces: string[]
+  api: KubeApi
+  ctx: KubernetesPluginContext
+  log?: Log
+}) {
   for (const ns of namespaces) {
     try {
       await api.core.deleteNamespace({ name: ns })
@@ -337,6 +352,13 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
         message: `Timed out waiting for namespace ${namespaces.join(", ")} delete to complete`,
       })
     }
+  }
+  if (namespaces.length > 0) {
+    for (const ns of namespaces) {
+      ctx.events.emit("namespaceStatus", { pluginName: ctx.provider.name, namespaceName: ns, state: "missing" })
+    }
+    // Since we've deleted one or more namespaces, we invalidate the NS cache for this provider instance.
+    clearNamespaceCache(ctx.provider)
   }
 }
 
