@@ -17,6 +17,7 @@ import { CloudApiError } from "../../exceptions.js"
 import { clearAuthToken, saveAuthToken } from "../auth.js"
 import { getCloudDistributionName } from "../util.js"
 import dedent from "dedent"
+import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
 
 export function isTokenExpired(token: ClientAuthToken) {
   const now = new Date()
@@ -63,6 +64,32 @@ export async function isTokenValid({
   return valid
 }
 
+function getStatusCode(err: TRPCClientError<InferrableClientTypes>): number | undefined {
+  if (err.data && err.data.httpStatus) {
+    return err.data.httpStatus
+  }
+
+  const cause = err.cause
+  if (cause instanceof TRPCClientError) {
+    if (cause.data && cause.data.httpStatus) {
+      return cause.data.httpStatus
+    }
+  }
+
+  if (cause === undefined) {
+    return undefined
+  }
+
+  const nestedCause = cause.cause
+  if (nestedCause instanceof TRPCClientError) {
+    if (nestedCause.data && nestedCause.data.httpStatus) {
+      return nestedCause.data.httpStatus
+    }
+  }
+
+  return undefined
+}
+
 export async function refreshAuthTokenAndWriteToConfigStore(
   log: Log,
   globalConfigStore: GlobalConfigStore,
@@ -87,7 +114,8 @@ export async function refreshAuthTokenAndWriteToConfigStore(
     }
 
     log.debug({ msg: `Failed to refresh the token.` })
-    if (err.message.toLowerCase().includes("invalid refresh token")) {
+    const statusCode = getStatusCode(err)
+    if (statusCode === 401) {
       await clearAuthToken(log, globalConfigStore, cloudDomain)
       log.info("Invalid refresh token was removed from the configuration store.")
     }
