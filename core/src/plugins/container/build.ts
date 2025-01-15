@@ -25,11 +25,18 @@ import {
 import type { Writable } from "stream"
 import type { ActionLog } from "../../logger/log-entry.js"
 import type { PluginContext } from "../../plugin-context.js"
-import { cloudBuilder } from "./cloudbuilder.js"
+import { cloudBuilder, sendBuildReport } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
 import type { CloudBuilderAvailableV2 } from "../../cloud/api.js"
-import type { SpawnOutput } from "../../util/util.js"
+import { spawn, type SpawnOutput } from "../../util/util.js"
 import { isSecret, type Secret } from "../../util/secrets.js"
+import { tmpdir } from "os"
+import { join } from "path"
+import { mkdtemp, readFile } from "fs/promises"
+import type { DockerBuildReport } from "../../cloud/grow/trpc.js"
+import type { ActionRuntime } from "../../plugin/base.js"
+import { formatDuration, intervalToDuration } from "date-fns"
+import { gardenEnv } from "../../constants.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -92,25 +99,30 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     level: "verbose" as const,
   }
 
+  // TODO: use go tool to transform rawjson logs into human readable logs
+  const dockerLogs: DockerBuildReport["dockerLogs"] = []
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
+    dockerLogs.push(JSON.parse(line.toString()))
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
   const timeout = action.getConfig("timeout")
 
-  let res: SpawnOutput
-
+  let res: { buildResult: SpawnOutput; timeSaved: number }
   const availability = await cloudBuilder.getAvailability(ctx, action)
+  const runtime = cloudBuilder.getActionRuntime(ctx, availability)
   if (availability.available) {
-    res = await buildContainerInCloudBuilder({ action, availability, outputStream, timeout, log, ctx })
+    res = await buildContainerInCloudBuilder({ action, availability, outputStream, timeout, log, ctx, dockerLogs })
   } else {
-    res = await buildContainerLocally({
+    res = await buildxBuildContainer({
       action,
       outputStream,
       timeout,
       log,
       ctx,
+      runtime,
+      dockerLogs,
     })
   }
 
@@ -119,9 +131,9 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     outputs,
     detail: {
       fresh: true,
-      buildLog: res.all || "",
+      buildLog: res.buildResult.all || "",
       outputs,
-      runtime: cloudBuilder.getActionRuntime(ctx, availability),
+      runtime,
       details: {
         identifier,
       },
@@ -129,13 +141,15 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   }
 }
 
-async function buildContainerLocally({
+async function buildxBuildContainer({
   action,
   outputStream,
   timeout,
   log,
   ctx,
   extraDockerOpts = [],
+  runtime,
+  dockerLogs,
 }: {
   action: Resolved<ContainerBuildAction>
   outputStream: Writable
@@ -143,7 +157,9 @@ async function buildContainerLocally({
   log: ActionLog
   ctx: PluginContext<ContainerProviderConfig>
   extraDockerOpts?: string[]
-}) {
+  runtime: ActionRuntime
+  dockerLogs: DockerBuildReport["dockerLogs"]
+}): Promise<{ buildResult: SpawnOutput; timeSaved: number }> {
   const spec = action.getSpec()
   const outputs = action.getOutputs()
   const buildPath = action.getBuildPath()
@@ -152,10 +168,17 @@ async function buildContainerLocally({
 
   const dockerfilePath = joinWithPosix(buildPath, spec.dockerfile)
 
-  const dockerFlags = [...getDockerBuildFlags(action, ctx.provider.config), ...extraDockerOpts]
+  const tmpDir = await mkdtemp(join(tmpdir(), `garden-build-${action.uid.slice(0, 5)}`))
+  const metadataFile = join(tmpDir, "metadata-file.json")
+
+  const internalDockerFlags = ["--progress", "rawjson", "--metadata-file", metadataFile]
+
+  const dockerFlags = [...getDockerBuildFlags(action, ctx.provider.config), ...extraDockerOpts, ...internalDockerFlags]
 
   const { secretArgs, secretEnvVars } = getDockerSecrets(action.getSpec())
   dockerFlags.push(...secretArgs)
+  const buildxEnvVars = { BUILDX_METADATA_PROVENANCE: "max", BUILDX_METADATA_WARNINGS: "1" }
+  const dockerEnvVars = { ...secretEnvVars, ...buildxEnvVars }
 
   // If there already is a --tag flag, another plugin like the Kubernetes plugin already decided how to tag the image.
   // In this case, we don't want to add another local tag.
@@ -168,10 +191,10 @@ async function buildContainerLocally({
       dockerFlags.push(...["--tag", outputs.deploymentImageId])
     }
   }
-
+  const startedAt = new Date()
   const cmdOpts = ["buildx", "build", ...dockerFlags, "--file", dockerfilePath]
   try {
-    return await containerHelpers.dockerCli({
+    const res = await containerHelpers.dockerCli({
       cwd: buildPath,
       args: [...cmdOpts, buildPath],
       log,
@@ -179,8 +202,47 @@ async function buildContainerLocally({
       stderr: outputStream,
       timeout,
       ctx,
-      env: secretEnvVars,
+      env: dockerEnvVars,
     })
+
+    if (gardenEnv.USE_GARDEN_CLOUD_V2) {
+      try {
+        const dockerMetadata = await getDockerMetadata(metadataFile)
+        const { client, server } = await containerHelpers.getDockerVersion()
+
+        const builderName = getBuilderName(dockerMetadata)
+        const driver = await getBuildxDriver(builderName, log, ctx)
+        const output = await sendBuildReport(
+          {
+            runtime: cloudBuilder.transformRuntime(runtime),
+            status: res.code === 0 ? "success" : "failure",
+            startedAt,
+            completedAt: new Date(),
+            runtimeMetadata: {
+              docker: {
+                clientVersion: client || "unknown",
+                serverVersion: server || "unknown",
+              },
+              builder: {
+                implicitName: builderName,
+                isDefault: false, //TODO
+                driver,
+              },
+            },
+            platforms: await getPlatforms(cmdOpts),
+            dockerLogs,
+            dockerMetadata,
+          },
+          ctx
+        )
+        return { buildResult: res, timeSaved: output?.timeSaved || 0 }
+      } catch (e: unknown) {
+        throw toGardenError({
+          message: `Failed to send build report: ${e}`,
+        })
+      }
+    }
+    return { buildResult: res, timeSaved: 0 }
   } catch (e) {
     const error = toGardenError(e)
     if (error.message.includes("docker exporter does not currently support exporting manifest lists")) {
@@ -214,9 +276,6 @@ async function buildContainerLocally({
   }
 }
 
-const BUILDKIT_LAYER_REGEX = /^#[0-9]+ \[[^ ]+ +[0-9]+\/[0-9]+\] [^F][^R][^O][^M]/
-const BUILDKIT_LAYER_CACHED_REGEX = /^#[0-9]+ CACHED/
-
 async function buildContainerInCloudBuilder(params: {
   action: Resolved<ContainerBuildAction>
   availability: CloudBuilderAvailableV2
@@ -224,21 +283,9 @@ async function buildContainerInCloudBuilder(params: {
   timeout: number
   log: ActionLog
   ctx: PluginContext<ContainerProviderConfig>
+  dockerLogs: DockerBuildReport["dockerLogs"]
 }) {
-  const cloudBuilderStats = {
-    totalLayers: 0,
-    layersCached: 0,
-  }
-
-  // get basic buildkit stats
-  params.outputStream.on("data", (line: Buffer) => {
-    const logLine = line.toString()
-    if (BUILDKIT_LAYER_REGEX.test(logLine)) {
-      cloudBuilderStats.totalLayers++
-    } else if (BUILDKIT_LAYER_CACHED_REGEX.test(logLine)) {
-      cloudBuilderStats.layersCached++
-    }
-  })
+  const runtime = cloudBuilder.getActionRuntime(params.ctx, params.availability)
 
   const res = await cloudBuilder.withBuilder(params.ctx, params.availability, async (builderName) => {
     const extraDockerOpts = ["--builder", builderName]
@@ -250,17 +297,44 @@ async function buildContainerInCloudBuilder(params: {
       extraDockerOpts.push("--load")
     }
 
-    return await buildContainerLocally({ ...params, extraDockerOpts })
+    return await buildxBuildContainer({ ...params, extraDockerOpts, runtime, dockerLogs: params.dockerLogs })
   })
 
   const log = params.ctx.log.createLog({
     name: `build.${params.action.name}`,
   })
-  log.success(
-    `${styles.bold("Accelerated by Garden Cloud Builder")} (${cloudBuilderStats.layersCached}/${cloudBuilderStats.totalLayers} layers cached)`
-  )
-
+  if (res.timeSaved > 0) {
+    log.success(`${styles.bold("Accelerated by Garden Cloud Builder - saved", formatDurationMs(res.timeSaved))}`)
+  }
   return res
+}
+
+function formatDurationMs(durationMs: number) {
+  if (durationMs < 1000) {
+    return `${durationMs} ms`
+  }
+  const duration = intervalToDuration({
+    start: new Date(0, 0, 0, 0, 0, 0, 0),
+    end: new Date(0, 0, 0, 0, 0, 0, durationMs),
+  })
+  return formatDuration(duration, { format: ["hours", "minutes", "seconds"] })
+}
+
+async function getDockerMetadata(filePath: string) {
+  try {
+    return JSON.parse(await readFile(filePath, { encoding: "utf-8" }))
+  } catch (e: unknown) {
+    throw toGardenError({
+      message: `Failed to read docker metadata file: ${e}`,
+    })
+  }
+}
+
+function getBuilderName(dockerMetadata: DockerBuildReport["dockerMetadata"]) {
+  if (typeof dockerMetadata?.["buildx.build.ref"] === "string") {
+    return dockerMetadata["buildx.build.ref"].split("/")[0]
+  }
+  return "unknown"
 }
 
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
@@ -302,6 +376,32 @@ export function getDockerSecrets(actionSpec: ContainerBuildActionSpec): {
     secretArgs: args,
     secretEnvVars: env,
   }
+}
+
+async function getBuildxDriver(builderName: string, log: ActionLog, ctx: PluginContext): Promise<string> {
+  if (builderName === "unknown") {
+    return "unknown"
+  }
+  if (builderName.startsWith("garden-cloud-builder")) {
+    return "remote"
+  }
+  const parsedBuilderInfo: { Name: string; Driver: string }[] = []
+  const outputStream = split2()
+  outputStream.on("data", (line: Buffer) => {
+    try {
+      parsedBuilderInfo.push(JSON.parse(line.toString()))
+    } catch (e) {
+      log.debug(`Failed to parse buildx builder info: ${e}`)
+    }
+  })
+  await containerHelpers.dockerCli({
+    cwd: ".",
+    stdout: outputStream,
+    log,
+    ctx,
+    args: ["buildx", "ls", "--format", "json"],
+  })
+  return parsedBuilderInfo.find((builder) => builder.Name === builderName)?.Driver || "unknown"
 }
 
 export function getDockerBuildFlags(
@@ -353,4 +453,50 @@ export function getDockerBuildArgs(version: string, specBuildArgs: PrimitiveMap)
       }
     })
     .filter((x): x is string => !!x)
+}
+
+// Map of architecture names to Docker platform names
+// see https://github.com/BretFisher/multi-platform-docker-build
+const architectureMap: Record<string, string> = {
+  "x86_64": "amd64",
+  "x86-64": "amd64",
+  "aarch64": "arm64",
+  "armhf": "arm",
+  "armel": "arm/v6",
+  "i386": "386",
+}
+
+async function getPlatforms(cmdOpts: string[]): Promise<string[]> {
+  const platforms: string[] = []
+  for (let i = 0; i < cmdOpts.length; i++) {
+    if (cmdOpts[i] === "--platform") {
+      const platform = cmdOpts[i + 1]
+      if (platform === undefined) {
+        throw new ConfigurationError({
+          message: "Missing platform after --platform flag",
+        })
+      }
+      platforms.push(platform)
+    }
+  }
+  // no platforms specified, defaults to docker server's platform
+  if (platforms.length === 0) {
+    const osTypeResult = await spawn("docker", ["system", "info", "--format", "{{.OSType}}"])
+    const osType = osTypeResult.stdout.trim()
+    const archResult = await spawn("docker", ["system", "info", "--format", "{{.Architecture}}"])
+    let arch = archResult.stdout.trim()
+
+    // docker system info does not always return the same architecure name as used for the platform flag
+    // see https://github.com/BretFisher/multi-platform-docker-build
+    if (!Object.values(architectureMap).includes(arch)) {
+      arch = architectureMap[arch] || ""
+    }
+    if (arch === "") {
+      throw new ConfigurationError({
+        message: `Unsupported architecture ${arch}`,
+      })
+    }
+    platforms.push(`${osType}/${arch}`)
+  }
+  return platforms
 }
