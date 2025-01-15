@@ -22,7 +22,7 @@ import {
   joiVariablesDescription,
 } from "./common.js"
 import { validateConfig, validateWithPath } from "./validation.js"
-import { deepEvaluate } from "../template/evaluate.js"
+import { deepEvaluate, evaluate } from "../template/evaluate.js"
 import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project.js"
 import { findByName, getNames } from "../util/util.js"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions.js"
@@ -485,6 +485,18 @@ export function resolveProjectConfig({
   const { environments = [], name, sources = [], providers = [] } = config
 
   let globalConfig: any
+  const context = new ProjectConfigContext({
+    projectName: name,
+    projectRoot: config.path,
+    artifactsPath,
+    vcsInfo,
+    username,
+    loggedIn,
+    enterpriseDomain,
+    secrets,
+    commandInfo,
+  })
+
   try {
     globalConfig = deepEvaluate(
       {
@@ -495,17 +507,7 @@ export function resolveProjectConfig({
         sources: [],
       },
       {
-        context: new ProjectConfigContext({
-          projectName: name,
-          projectRoot: config.path,
-          artifactsPath,
-          vcsInfo,
-          username,
-          loggedIn,
-          enterpriseDomain,
-          secrets,
-          commandInfo,
-        }),
+        context,
         opts: {},
       }
     )
@@ -523,7 +525,7 @@ export function resolveProjectConfig({
       name,
       defaultEnvironment: defaultEnvironmentName,
       // environments, providers and sources are validated later
-      environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-inital-load", variables: {} }],
+      environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-initial-load", variables: {} }],
       providers: [],
       sources: [],
     },
@@ -631,19 +633,20 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   const source = { yamlDoc: projectConfig.internal.yamlDoc, path: ["environments", index] }
 
   // Resolve template strings in the environment config, except providers
+  const context = new EnvironmentConfigContext({
+    projectName,
+    projectRoot,
+    artifactsPath,
+    vcsInfo,
+    username,
+    variables: projectVariables,
+    loggedIn,
+    enterpriseDomain,
+    secrets,
+    commandInfo,
+  })
   const config = deepEvaluate(environmentConfig as unknown as ParsedTemplate, {
-    context: new EnvironmentConfigContext({
-      projectName,
-      projectRoot,
-      artifactsPath,
-      vcsInfo,
-      username,
-      variables: projectVariables,
-      loggedIn,
-      enterpriseDomain,
-      secrets,
-      commandInfo,
-    }),
+    context,
     opts: {},
   })
 
@@ -659,9 +662,20 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   namespace = getNamespace(environmentConfig, namespace)
 
   const fixedProviders = fixedPlugins.map((name) => ({ name }))
+  // Resolve the necessary data in providers
+  const previewProviders = projectConfig.providers.map((p) => {
+    const { resolved } = evaluate(p, { context, opts: {} })
+    const config = resolved as GenericProviderConfig
+    // We need these values to create a provider graph,
+    // the remaining provider configs will be evaluated in the ResolveProviderTask.
+    const name = deepEvaluate(config.name, { context, opts: {} })
+    const dependencies = deepEvaluate(config.dependencies, { context, opts: {} })
+    const environments = deepEvaluate(config.environments, { context, opts: {} })
+    return { ...config, name, dependencies, environments }
+  })
   const allProviders = [
     ...fixedProviders,
-    ...projectConfig.providers.filter((p) => !p.environments || p.environments.includes(environment)),
+    ...previewProviders.filter((p) => !p.environments || p.environments.includes(environment)),
   ]
 
   const mergedProviders: { [name: string]: GenericProviderConfig } = {}
