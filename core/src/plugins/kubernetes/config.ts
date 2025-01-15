@@ -419,7 +419,6 @@ export const utilImageRegistryDomainSpec = joi.string().default(defaultUtilImage
   `)
 
 const validBuildModes = ["local-docker", "kaniko", "cluster-buildkit"] as const
-type ValidBuildMode = (typeof validBuildModes)[number]
 const buildModeSchema = () =>
   joi
     .string()
@@ -747,23 +746,7 @@ export const configSchema = () =>
     .keys({
       name: joiProviderName("kubernetes"),
       context: k8sContextSchema().required(),
-      deploymentRegistry: joi.alternatives().conditional("buildMode", {
-        switch: [
-          {
-            is: "kaniko" satisfies ValidBuildMode,
-            then: deploymentRegistrySchema().required(),
-          },
-          {
-            is: "cluster-buildkit" satisfies ValidBuildMode,
-            then: deploymentRegistrySchema().required(),
-          },
-          {
-            is: "local-docker" satisfies ValidBuildMode,
-            then: deploymentRegistrySchema(),
-            otherwise: deploymentRegistrySchema(),
-          },
-        ],
-      }),
+      deploymentRegistry: deploymentRegistrySchema(),
       ingressClass: joi.string().description(dedent`
         The ingress class or ingressClassName to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation or \`spec.ingressClassName\` field depending on the kubernetes version)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.
