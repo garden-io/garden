@@ -95,7 +95,8 @@ interface KubernetesStorage {
   builder: KubernetesStorageSpec
 }
 
-export type ContainerBuildMode = "local-docker" | "kaniko" | "cluster-buildkit"
+const containerBuildModes = ["local-docker", "kaniko", "cluster-buildkit"] as const
+export type ContainerBuildMode = (typeof containerBuildModes)[number]
 
 /**
  * To be removed in 0.14
@@ -418,11 +419,10 @@ export const utilImageRegistryDomainSpec = joi.string().default(defaultUtilImage
     Otherwise the utility images are pulled directly from Docker Hub by default.
   `)
 
-const validBuildModes = ["local-docker", "kaniko", "cluster-buildkit"] as const
 const buildModeSchema = () =>
   joi
     .string()
-    .valid(...validBuildModes)
+    .valid(...containerBuildModes)
     .default("local-docker")
     .description(
       dedent`
