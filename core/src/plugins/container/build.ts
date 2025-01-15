@@ -385,23 +385,26 @@ async function getBuildxDriver(builderName: string, log: ActionLog, ctx: PluginC
   if (builderName.startsWith("garden-cloud-builder")) {
     return "remote"
   }
-  const parsedBuilderInfo: { Name: string; Driver: string }[] = []
-  const outputStream = split2()
-  outputStream.on("data", (line: Buffer) => {
-    try {
+
+  try {
+    const parsedBuilderInfo: { Name: string; Driver: string }[] = []
+    const outputStream = split2()
+    outputStream.on("data", (line: Buffer) => {
       parsedBuilderInfo.push(JSON.parse(line.toString()))
-    } catch (e) {
-      log.debug(`Failed to parse buildx builder info: ${e}`)
-    }
-  })
-  await containerHelpers.dockerCli({
-    cwd: ".",
-    stdout: outputStream,
-    log,
-    ctx,
-    args: ["buildx", "ls", "--format", "json"],
-  })
-  return parsedBuilderInfo.find((builder) => builder.Name === builderName)?.Driver || "unknown"
+    })
+    await containerHelpers.dockerCli({
+      cwd: ".",
+      stdout: outputStream,
+      log,
+      ctx,
+      args: ["buildx", "ls", "--format", "json"],
+    })
+    return parsedBuilderInfo.find((builder) => builder.Name === builderName)?.Driver || "unknown"
+  } catch (e) {
+    throw toGardenError({
+      message: `Failed to get buildx driver info: ${e}`,
+    })
+  }
 }
 
 export function getDockerBuildFlags(
