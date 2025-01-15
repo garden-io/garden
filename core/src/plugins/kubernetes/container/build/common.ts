@@ -13,7 +13,7 @@ import type { KubernetesConfig, KubernetesPluginContext, KubernetesProvider } fr
 import { PodRunner, PodRunnerError, PodRunnerTimeoutError } from "../../run.js"
 import type { PluginContext } from "../../../../plugin-context.js"
 import { hashString, sleep } from "../../../../util/util.js"
-import { InternalError, RuntimeError } from "../../../../exceptions.js"
+import { ConfigurationError, RuntimeError } from "../../../../exceptions.js"
 import type { Log } from "../../../../logger/log-entry.js"
 import { prepareDockerAuth } from "../../init.js"
 import { prepareSecrets } from "../../secrets.js"
@@ -187,8 +187,8 @@ export async function skopeoBuildStatus({
   const deploymentRegistry = provider.config.deploymentRegistry
 
   if (!deploymentRegistry) {
-    // This is validated in the provider configure handler, so this is an internal error if it happens
-    throw new InternalError({
+    // TODO: try to use conditional joi validation instead
+    throw new ConfigurationError({
       message: `Expected configured deploymentRegistry for remote build`,
     })
   }
