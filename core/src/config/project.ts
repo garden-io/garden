@@ -546,6 +546,15 @@ export function resolveProjectConfig({
   return config
 }
 
+export class UnresolvedProviderConfig {
+  constructor(
+    public readonly name: string,
+    public readonly dependencies: string[],
+    public readonly environments: string[],
+    public readonly unresolvedConfig: ParsedTemplate
+  ) {}
+}
+
 /**
  * Given an environment name, pulls the relevant environment-specific configuration from the specified project
  * config, and merges values appropriately. Also resolves template strings in the picked environment.
@@ -661,9 +670,8 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
 
   namespace = getNamespace(environmentConfig, namespace)
 
-  const fixedProviders = fixedPlugins.map((name) => ({ name }))
   // Resolve the necessary data in providers
-  const previewProviders = projectConfig.providers.map((p) => {
+  const unresolvedProviders = projectConfig.providers.map((p) => {
     const { resolved } = evaluate(p, { context, opts: {} })
     const config = resolved as GenericProviderConfig
     // We need these values to create a provider graph,
@@ -671,11 +679,15 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     const name = deepEvaluate(config.name, { context, opts: {} })
     const dependencies = deepEvaluate(config.dependencies, { context, opts: {} })
     const environments = deepEvaluate(config.environments, { context, opts: {} })
-    return { ...config, name, dependencies, environments }
+    return new UnresolvedProviderConfig(name, dependencies || [], environments || [], p)
+  })
+
+  const fixedProviders = fixedPlugins.map((name) => {
+    return new UnresolvedProviderConfig(name, [], [], { name })
   })
   const allProviders = [
     ...fixedProviders,
-    ...previewProviders.filter((p) => !p.environments || p.environments.includes(environment)),
+    ...unresolvedProviders.filter((p) => !p.environments || p.environments.includes(environment)),
   ]
 
   const mergedProviders: { [name: string]: GenericProviderConfig } = {}
