@@ -12,7 +12,6 @@ import {
   prepareNamespaces,
   deleteNamespaces,
   getNamespaceStatus,
-  clearNamespaceCache,
   getSystemNamespace,
 } from "./namespace.js"
 import type { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config.js"
@@ -40,6 +39,7 @@ import { getIngressApiVersion, supportedIngressApiVersions } from "./container/i
 import type { Log } from "../../logger/log-entry.js"
 import { ingressControllerInstall, ingressControllerReady } from "./nginx/ingress-controller.js"
 import { styles } from "../../logger/styles.js"
+import { isTruthy } from "../../util/util.js"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -164,8 +164,6 @@ export async function prepareEnvironment(
     await ingressControllerInstall(k8sCtx, log)
   }
 
-  const nsStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider })
-  ctx.events.emit("namespaceStatus", nsStatus)
   return { status: { ready: true, outputs: status.outputs } }
 }
 
@@ -199,7 +197,7 @@ export async function cleanupEnvironment({
           }
         })
       )
-    ).filter(Boolean)
+    ).filter(isTruthy)
 
   if (namespacesToDelete.length === 0) {
     return {}
@@ -212,18 +210,13 @@ export async function cleanupEnvironment({
     nsDescription = `namespaces ${namespacesToDelete[0]} and ${namespacesToDelete[1]}`
   }
 
-  const entry = log
+  const k8sLog = log
     .createLog({
       name: "kubernetes",
     })
     .info(`Deleting ${nsDescription} (this may take a while)`)
 
-  await deleteNamespaces(<string[]>namespacesToDelete, api, entry)
-
-  // Since we've deleted one or more namespaces, we invalidate the NS cache for this provider instance.
-  clearNamespaceCache(provider)
-
-  ctx.events.emit("namespaceStatus", { namespaceName: namespace, state: "missing", pluginName: provider.name })
+  await deleteNamespaces({ namespaces: namespacesToDelete, ctx, api, log: k8sLog })
 
   return {}
 }

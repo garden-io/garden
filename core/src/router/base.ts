@@ -39,7 +39,6 @@ import { getNames } from "../util/util.js"
 import { defaultProvider } from "../config/provider.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
-import type { NamespaceStatus } from "../types/namespace.js"
 import { TemplatableConfigContext } from "../config/template-contexts/project.js"
 import type { ParamsBase } from "../plugin/handlers/base/base.js"
 import { Profile } from "../util/profiling.js"
@@ -74,11 +73,7 @@ export abstract class BaseRouter {
     events: PluginEventBroker | undefined
   ): Promise<PluginActionParamsBase> {
     const provider = await this.garden.resolveProvider({ log, name: handler.pluginName })
-
     const ctx = await this.garden.getPluginContext({ provider, templateContext, events })
-
-    // Forward plugin events that don't need any action-specific metadata (currently just `namespaceStatus` events).
-    ctx.events.on("namespaceStatus", (status: NamespaceStatus) => this.garden.events.emit("namespaceStatus", status))
 
     return {
       ctx,

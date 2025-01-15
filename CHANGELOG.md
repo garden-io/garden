@@ -1,4 +1,16 @@
 
+<a name="0.13.49"></a>
+## [0.13.49](https://github.com/garden-io/garden/compare/0.13.48...0.13.49) (2025-01-14)
+
+### Bug Fixes
+
+* use non-legacy build staging file sync on Windows by default ([#6758](https://github.com/garden-io/garden/issues/6758)) ([4c83cd388](https://github.com/garden-io/garden/commit/4c83cd388))
+* **core:** emit namespaceStatus events during provider init ([#6759](https://github.com/garden-io/garden/issues/6759)) ([c704a356e](https://github.com/garden-io/garden/commit/c704a356e))
+
+### Improvements
+
+* **core:** print project name with init log ([#6756](https://github.com/garden-io/garden/issues/6756)) ([67123d158](https://github.com/garden-io/garden/commit/67123d158))
+
 <a name="0.13.48"></a>
 ## [0.13.48](https://github.com/garden-io/garden/compare/0.13.47...0.13.48) (2025-01-09)
 

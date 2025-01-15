@@ -47,9 +47,9 @@ describe("Kubernetes Namespace helpers", () => {
   })
 
   describe("getNamespaceStatus", () => {
-    it("should return the namespace status and emit a namespace status event on the plugin event broker", async () => {
+    it("should return the namespace status and emit a namespace status event", async () => {
       let namespaceStatusFromEvent: NamespaceStatus | null = null
-      const expecteedNamespaceName = "container-default"
+      const expectedNamespaceName = "container-default"
       ctx.events.once("namespaceStatus", (s) => (namespaceStatusFromEvent = s))
       const status = await getNamespaceStatus({
         log,
@@ -58,14 +58,16 @@ describe("Kubernetes Namespace helpers", () => {
         skipCreate: true,
       })
       expect(namespaceStatusFromEvent).to.exist
-      expect(namespaceStatusFromEvent!.namespaceName).to.eql(expecteedNamespaceName)
+      expect(namespaceStatusFromEvent!.namespaceName).to.eql(expectedNamespaceName)
       expect(status).to.exist
-      expect(status.namespaceName).to.eql(expecteedNamespaceName)
+      expect(status.namespaceName).to.eql(expectedNamespaceName)
     })
   })
 
   describe("ensureNamespace", () => {
-    it("should create the namespace if it doesn't exist, with configured annotations and labels", async () => {
+    it("should create the namespace if it doesn't exist, with configured annotations and labels and emit a namespace status event", async () => {
+      let namespaceStatusFromEvent: NamespaceStatus | null = null
+      ctx.events.once("namespaceStatus", (s) => (namespaceStatusFromEvent = s))
       const namespace = {
         name: namespaceName,
         annotations: { foo: "bar" },
@@ -86,6 +88,9 @@ describe("Kubernetes Namespace helpers", () => {
 
       expect(result.created).to.be.true
       expect(result.patched).to.be.false
+
+      expect(namespaceStatusFromEvent).to.exist
+      expect(namespaceStatusFromEvent!.namespaceName).to.eql(namespaceName)
     })
 
     it("should add configured annotations if any are missing", async () => {

@@ -7,8 +7,6 @@
  */
 
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
-import fsExtra from "fs-extra"
-const { emptyDir, ensureDir, mkdirp, pathExists, remove } = fsExtra
 import { ConfigurationError, InternalError, isErrnoException } from "../exceptions.js"
 import { normalizeRelativePath, joinWithPosix } from "../util/fs.js"
 import type { Log } from "../logger/log-entry.js"
@@ -21,6 +19,9 @@ import { difference } from "lodash-es"
 import { unlink } from "fs"
 import type { BuildAction, BuildActionConfig } from "../actions/build.js"
 import type { ModuleConfig } from "../config/module.js"
+import fsExtra from "fs-extra"
+
+const { emptyDir, ensureDir, mkdirp, pathExists, remove } = fsExtra
 
 const fileSyncConcurrencyLimit = 100
 

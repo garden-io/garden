@@ -12,10 +12,9 @@ import { expect } from "chai"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
 
-import { getDataDir, makeTestGarden } from "../../../../helpers.js"
+import { getDataDir, makeTestGarden, type TestGarden } from "../../../../helpers.js"
 import { getEnvironmentStatus, prepareEnvironment } from "../../../../../src/plugins/kubernetes/init.js"
 import type { PrepareEnvironmentParams } from "../../../../../src/plugin/handlers/Provider/prepareEnvironment.js"
-import type { Garden } from "../../../../../src/index.js"
 
 async function ensureNamespaceDoesNotExist(api: KubeApi, namespaceName: string) {
   if (!(await namespaceExists(api, namespaceName))) {
@@ -40,7 +39,7 @@ describe("kubernetes provider handlers", () => {
   let log: Log
   let ctx: KubernetesPluginContext
   let api: KubeApi
-  let garden: Garden
+  let garden: TestGarden
   const namespaceName = "kubernetes-provider-handler-test"
 
   before(async () => {
@@ -68,7 +67,8 @@ describe("kubernetes provider handlers", () => {
       expect(namespaceStatus).to.be.false
     })
 
-    it("should prepare the environment with the prepareEnvironment handler", async () => {
+    it("should prepare the environment with the prepareEnvironment handler and emit a namespaceStatus event", async () => {
+      garden.events.eventLog = []
       const status = await getEnvironmentStatus({ ctx, log })
       const params: PrepareEnvironmentParams = {
         ctx,
@@ -80,6 +80,9 @@ describe("kubernetes provider handlers", () => {
       expect(envStatus.status.ready).to.be.true
       const namespaceStatus = await namespaceExists(api, namespaceName)
       expect(namespaceStatus).to.be.true
+      const namespaceStatusEvent = garden.events.eventLog.find((e) => e.name === "namespaceStatus")
+      expect(namespaceStatusEvent).to.exist
+      expect(namespaceStatusEvent?.payload.namespaceName).to.equal(namespaceName)
     })
   })
 })

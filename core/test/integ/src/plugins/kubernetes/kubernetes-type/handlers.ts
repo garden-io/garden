@@ -221,6 +221,18 @@ describe("kubernetes-type handlers", () => {
       expect(remoteResources[0].kind).to.equal("Deployment")
     })
 
+    it("emits a namespaceStatus event for the app namespace", async () => {
+      const { deployParams } = await prepareActionDeployParams("module-simple", {})
+      garden.events.eventLog = []
+
+      await getKubernetesDeployStatus(deployParams)
+
+      const nsStatusEvent = garden.events.eventLog.find((e) => e.name === "namespaceStatus")
+
+      expect(nsStatusEvent).to.exist
+      expect(nsStatusEvent!.payload.namespaceName).to.eql("kubernetes-type-test-default")
+    })
+
     it("should return missing status when metadata ConfigMap is missing", async () => {
       const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
 
@@ -352,6 +364,18 @@ describe("kubernetes-type handlers", () => {
       expect(remoteResources.length).to.equal(1)
       expect(remoteResources[0].kind).to.equal("Deployment")
       expect(remoteResources[0].metadata?.name).to.equal("busybox-deployment")
+    })
+
+    it("emits a namespaceStatus event for the app namespace", async () => {
+      const { deployParams } = await prepareActionDeployParams("module-simple", {})
+      garden.events.eventLog = []
+
+      await kubernetesDeploy(deployParams)
+
+      const nsStatusEvent = garden.events.eventLog.find((e) => e.name === "namespaceStatus")
+
+      expect(nsStatusEvent).to.exist
+      expect(nsStatusEvent!.payload.namespaceName).to.eql("kubernetes-type-test-default")
     })
 
     it("should successfully deploy when serviceResource doesn't have a containerModule", async () => {
@@ -644,6 +668,7 @@ describe("kubernetes-type handlers", () => {
         action: ns2Graph.getDeploy("namespace-resource"),
         force: false,
       })
+      garden.events.eventLog = []
 
       // This should only delete kubernetes-type-ns-2.
       await garden.processTasks({ tasks: [deleteDeployTask], throwOnError: true })
@@ -651,6 +676,11 @@ describe("kubernetes-type handlers", () => {
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.not.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Resource!, log), "ns2resource").to.not.exist
+
+      const nsStatusEvent = garden.events.eventLog.find(
+        (e) => e.name === "namespaceStatus" && e.payload.namespaceName === "kubernetes-type-ns-2"
+      )
+      expect(nsStatusEvent).to.exist
     })
 
     it("deletes all resources including a metadata ConfigMap describing what was last deployed", async () => {
