@@ -26,11 +26,6 @@ import type { ConfigContextType } from "./template-contexts/base.js"
 import { z } from "zod"
 import {
   gitUrlRegex,
-  objectSpreadKey,
-  arrayConcatKey,
-  arrayForEachKey,
-  arrayForEachFilterKey,
-  arrayForEachReturnKey,
   identifierRegex,
   joiIdentifierDescription,
   userIdentifierRegex,

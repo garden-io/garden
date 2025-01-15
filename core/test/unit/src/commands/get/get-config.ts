@@ -701,7 +701,7 @@ describe("GetConfigCommand", () => {
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })
 
-      expect(res.result!.providers).to.eql(garden.getRawProviderConfigs())
+      expect(res.result!.providers).to.eql(garden.getUnresolvedProviderConfigs())
     })
 
     it("should not resolve providers", async () => {

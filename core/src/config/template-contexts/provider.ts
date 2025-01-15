@@ -7,10 +7,9 @@
  */
 
 import { mapValues } from "lodash-es"
-import type { DeepPrimitiveMap, PrimitiveMap } from "../common.js"
+import type { PrimitiveMap } from "../common.js"
 import { joiIdentifierMap, joiPrimitive } from "../common.js"
-import type { Provider, ProviderMap } from "../provider.js"
-import type { GenericProviderConfig } from "../provider.js"
+import type { BaseProviderConfig, Provider, ProviderMap } from "../provider.js"
 import type { Garden } from "../../garden.js"
 import { joi } from "../common.js"
 import { deline } from "../../util/string.js"
@@ -34,7 +33,7 @@ class ProviderContext extends ConfigContext {
       .example({ clusterHostname: "my-cluster.example.com" })
       .meta({ keyPlaceholder: "<config-key>" })
   )
-  public config: GenericProviderConfig
+  public config: BaseProviderConfig
 
   @schema(
     joiIdentifierMap(

@@ -42,7 +42,7 @@ import type { ProviderActionName } from "../../../src/plugin/plugin.js"
 import { createGardenPlugin } from "../../../src/plugin/plugin.js"
 import type { ConfigureProviderParams } from "../../../src/plugin/handlers/Provider/configureProvider.js"
 import type { ProjectConfig } from "../../../src/config/project.js"
-import { defaultNamespace } from "../../../src/config/project.js"
+import { defaultNamespace, UnresolvedProviderConfig } from "../../../src/config/project.js"
 import type { ModuleConfig } from "../../../src/config/module.js"
 import { baseModuleSpecSchema } from "../../../src/config/module.js"
 import {
@@ -1162,7 +1162,7 @@ describe("Garden", () => {
       }
       const garden = await makeTestGardenA([testPluginDupe])
 
-      garden["providerConfigs"].push({ name: "test-plugin-dupe" })
+      garden["providerConfigs"].push(new UnresolvedProviderConfig("test-plugin-dupe", [], { name: "test-plugin-dupe" }))
 
       await expectError(() => garden.getAllPlugins(), {
         contains: "Module type 'test' is declared in multiple plugins: test-plugin, test-plugin-dupe.",

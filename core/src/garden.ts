@@ -20,7 +20,13 @@ import { TreeCache } from "./cache.js"
 import { getBuiltinPlugins } from "./plugins/plugins.js"
 import type { GardenModule, ModuleConfigMap, ModuleTypeMap } from "./types/module.js"
 import { getModuleCacheContext } from "./types/module.js"
-import type { SourceConfig, ProjectConfig, OutputSpec, ProxyConfig } from "./config/project.js"
+import type {
+  SourceConfig,
+  ProjectConfig,
+  OutputSpec,
+  ProxyConfig,
+  UnresolvedProviderConfig,
+} from "./config/project.js"
 import {
   resolveProjectConfig,
   pickEnvironment,
@@ -82,7 +88,7 @@ import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
 import { Watcher } from "./watch.js"
 import { findConfigPathsInPath, getWorkingCopyId, fixedProjectExcludes, defaultDotIgnoreFile } from "./util/fs.js"
-import type { Provider, GenericProviderConfig, ProviderMap } from "./config/provider.js"
+import type { Provider, ProviderMap, BaseProviderConfig } from "./config/provider.js"
 import { getAllProviderDependencyNames, defaultProvider } from "./config/provider.js"
 import { ResolveProviderTask } from "./tasks/resolve-provider.js"
 import { ActionRouter } from "./router/router.js"
@@ -226,7 +232,7 @@ export interface GardenParams {
   projectName: string
   projectRoot: string
   projectSources?: SourceConfig[]
-  providerConfigs: GenericProviderConfig[]
+  providerConfigs: UnresolvedProviderConfig[]
   variables: ConfigContext
   variableOverrides: DeepPrimitiveMap
   secrets: StringMap
@@ -319,7 +325,7 @@ export class Garden {
   public readonly vcsInfo: VcsInfo
   public readonly opts: GardenOpts
   private readonly projectConfig: ProjectConfig
-  private readonly providerConfigs: GenericProviderConfig[]
+  private readonly providerConfigs: UnresolvedProviderConfig[]
   public readonly workingCopyId: string
   public readonly dotIgnoreFile: string
   public readonly proxy: ProxyConfig
@@ -467,7 +473,7 @@ export class Garden {
     // Since we don't have the ability to hook into the post provider init stage from within the provider plugin
     // especially because it's the absence of said provider that needs to trigger this case,
     // there isn't really a cleaner way around this for now.
-    const providerConfigs = this.getRawProviderConfigs()
+    const providerConfigs = this.getUnresolvedProviderConfigs()
 
     const hasOtelCollectorProvider = providerConfigs.some((providerConfig) => {
       return providerConfig.name === "otel-collector"
@@ -691,7 +697,7 @@ export class Garden {
       }
 
       this.log.silly(() => `Loading plugins`)
-      const rawConfigs = this.getRawProviderConfigs()
+      const rawConfigs = this.getUnresolvedProviderConfigs()
 
       this.loadedPlugins = await loadAndResolvePlugins(this.log, this.projectRoot, this.registeredPlugins, rawConfigs)
 
@@ -707,7 +713,7 @@ export class Garden {
   @pMemoizeDecorator()
   async getConfiguredPlugins() {
     const plugins = await this.getAllPlugins()
-    const configNames = keyBy(this.getRawProviderConfigs(), "name")
+    const configNames = keyBy(this.getUnresolvedProviderConfigs(), "name")
     return plugins.filter((p) => configNames[p.name])
   }
 
@@ -747,20 +753,20 @@ export class Garden {
     return this.actionTypeBases[kind][type] || []
   }
 
-  getRawProviderConfigs({ names, allowMissing = false }: { names?: string[]; allowMissing?: boolean } = {}) {
+  getUnresolvedProviderConfigs({ names, allowMissing = false }: { names?: string[]; allowMissing?: boolean } = {}) {
     return names
       ? findByNames({ names, entries: this.providerConfigs, description: "provider", allowMissing })
       : this.providerConfigs
   }
 
-  async resolveProvider(params: ResolveProviderParams): Promise<Provider> {
+  async resolveProvider<T extends BaseProviderConfig>(params: ResolveProviderParams): Promise<Provider<T>> {
     const { name, log, statusOnly } = params
     if (name === "_default") {
-      return defaultProvider
+      return defaultProvider as Provider<T>
     }
 
     if (this.resolvedProviders[name]) {
-      return cloneDeep(this.resolvedProviders[name])
+      return cloneDeep(this.resolvedProviders[name]) as Provider<T>
     }
 
     this.log.silly(() => `Resolving provider ${name}`)
@@ -778,7 +784,7 @@ export class Garden {
       })
     }
 
-    return provider
+    return provider as Provider<T>
   }
 
   @OtelTraced({
@@ -791,7 +797,7 @@ export class Garden {
     let providerNames = names
 
     await this.asyncLock.acquire("resolve-providers", async () => {
-      const rawConfigs = this.getRawProviderConfigs({ names })
+      const rawConfigs = this.getUnresolvedProviderConfigs({ names })
       if (!providerNames) {
         providerNames = getNames(rawConfigs)
       }
@@ -840,7 +846,7 @@ export class Garden {
 
         for (const dep of getAllProviderDependencyNames(
           plugin!,
-          config!,
+          config,
           new RemoteSourceConfigContext(this, this.variables)
         )) {
           validationGraph.addNode(dep)
@@ -980,7 +986,7 @@ export class Garden {
     const plugins = keyBy(loadedPlugins, "name")
 
     // We only pass configured plugins to the router (others won't have the required configuration to call handlers)
-    const configuredPlugins = this.getRawProviderConfigs().map((c) => plugins[c.name])
+    const configuredPlugins = this.getUnresolvedProviderConfigs().map((c) => plugins[c.name])
 
     return new ActionRouter(this, configuredPlugins, loadedPlugins, moduleTypes)
   }
@@ -1779,7 +1785,7 @@ export class Garden {
     resolveProviders?: boolean
     resolveWorkflows?: boolean
   }): Promise<ConfigDump> {
-    let providers: (Provider | GenericProviderConfig)[] = []
+    let providers: (ParsedTemplate | Provider)[] = []
     let moduleConfigs: ModuleConfig[]
     let workflowConfigs: WorkflowConfig[]
     let actionConfigs: ActionConfigMap = {
@@ -1794,7 +1800,7 @@ export class Garden {
     if (resolveProviders) {
       providers = Object.values(await this.resolveProviders({ log }))
     } else {
-      providers = this.getRawProviderConfigs()
+      providers = this.getUnresolvedProviderConfigs().map((p) => p.unresolvedConfig)
     }
 
     if (!graph && resolveGraph) {
@@ -1816,7 +1822,6 @@ export class Garden {
         workflowConfigs = await this.getRawWorkflowConfigs()
       }
     } else {
-      providers = this.getRawProviderConfigs()
       moduleConfigs = await this.getRawModuleConfigs()
       workflowConfigs = await this.getRawWorkflowConfigs()
       actionConfigs = this.actionConfigs
@@ -1830,9 +1835,10 @@ export class Garden {
 
     return {
       environmentName: this.environmentName,
+      allProviderNames: this.getUnresolvedProviderConfigs().map((p) => p.name),
       allEnvironmentNames,
       namespace: this.namespace,
-      providers: providers.map(omitInternal),
+      providers: providers.map((p) => (typeof p === "object" && p !== null ? omitInternal(p) : p)),
       variables: this.variables.resolve({ key: [], nodePath: [], opts: {} }).resolved,
       actionConfigs: filteredActionConfigs,
       moduleConfigs: moduleConfigs.map(omitInternal),
@@ -2411,8 +2417,9 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
 export interface ConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
+  allProviderNames: string[]
   namespace: string
-  providers: OmitInternalConfig<Provider | GenericProviderConfig>[]
+  providers: (OmitInternalConfig<Provider> | ParsedTemplate)[]
   variables: DeepPrimitiveMap
   actionConfigs: ActionConfigMapForDump
   moduleConfigs: OmitInternalConfig<ModuleConfig>[]

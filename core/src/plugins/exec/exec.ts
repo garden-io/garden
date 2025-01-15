@@ -10,15 +10,13 @@ import { joi } from "../../config/common.js"
 import { dedent } from "../../util/string.js"
 import { runScript } from "../../util/util.js"
 import { ChildProcessError, RuntimeError } from "../../exceptions.js"
-import type { GenericProviderConfig, Provider } from "../../config/provider.js"
+import type { BaseProviderConfig, Provider } from "../../config/provider.js"
 import { configureExecModule, execModuleSpecSchema } from "./moduleConfig.js"
 import { convertExecModule } from "./convert.js"
 import { sdk } from "../../plugin/sdk.js"
 
-export type ExecProviderConfig = GenericProviderConfig
-
-export type ExecProvider = Provider<ExecProviderConfig>
-export interface ExecProviderOutputs {
+export type ExecProvider = Provider<ExecProviderOutputs>
+export interface ExecProviderOutputs extends BaseProviderConfig {
   initScript: {
     log: string
   }

@@ -12,10 +12,10 @@ import type { EnvironmentStatus } from "./getEnvironmentStatus.js"
 import { dedent } from "../../../util/string.js"
 import { joi } from "../../../config/common.js"
 import { environmentStatusSchema } from "../../../config/status.js"
-import type { GenericProviderConfig } from "../../../config/provider.js"
+import type { BaseProviderConfig } from "../../../config/provider.js"
 
 export interface PrepareEnvironmentParams<
-  C extends GenericProviderConfig = any,
+  C extends BaseProviderConfig = any,
   T extends EnvironmentStatus = EnvironmentStatus,
 > extends PluginActionParamsBase<C> {
   status: T

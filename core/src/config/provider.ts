@@ -31,6 +31,8 @@ import { uuidv4 } from "../util/random.js"
 import { s } from "./zod.js"
 import { getContextLookupReferences, visitAll } from "../template/analysis.js"
 import type { ConfigContext } from "./template-contexts/base.js"
+import type { ParsedTemplate } from "../template/types.js"
+import type { UnresolvedProviderConfig } from "./project.js"
 
 // TODO: dedupe from the joi schema below
 export const baseProviderConfigSchemaZod = s.object({
@@ -56,10 +58,7 @@ export interface BaseProviderConfig {
   name: string
   dependencies?: string[]
   environments?: string[]
-}
-
-export interface GenericProviderConfig extends BaseProviderConfig {
-  [key: string]: any
+  path?: string
 }
 
 const providerFixedFieldsSchema = memoize(() =>
@@ -117,7 +116,7 @@ export const providerSchema = createSchema({
 })
 
 export interface ProviderMap {
-  [name: string]: Provider<GenericProviderConfig>
+  [name: string]: Provider<BaseProviderConfig>
 }
 
 export const defaultProviders = [{ name: "container" }]
@@ -143,7 +142,7 @@ export function providerFromConfig({
   status,
 }: {
   plugin: GardenPluginSpec
-  config: GenericProviderConfig
+  config: BaseProviderConfig
   dependencies: ProviderMap
   moduleConfigs: ModuleConfig[]
   status: EnvironmentStatus
@@ -167,7 +166,7 @@ export function providerFromConfig({
  */
 export function getAllProviderDependencyNames(
   plugin: GardenPluginSpec,
-  config: GenericProviderConfig,
+  config: UnresolvedProviderConfig,
   context: ConfigContext
 ) {
   return uniq([
@@ -180,12 +179,12 @@ export function getAllProviderDependencyNames(
 /**
  * Given a provider config, return implicit dependencies based on template strings.
  */
-export function getProviderTemplateReferences(config: GenericProviderConfig, context: ConfigContext) {
+export function getProviderTemplateReferences(config: UnresolvedProviderConfig, context: ConfigContext) {
   const deps: string[] = []
 
   const generator = getContextLookupReferences(
     visitAll({
-      value: config,
+      value: config.unresolvedConfig,
     }),
     context
   )

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { apply } from "json-merge-patch"
 import { dedent, deline, naturalList } from "../util/string.js"
 import type { DeepPrimitiveMap, Primitive, PrimitiveMap } from "./common.js"
 import {
@@ -21,14 +20,13 @@ import {
   joiVariables,
   joiVariablesDescription,
 } from "./common.js"
+import type { ConfigSource } from "./validation.js"
 import { validateConfig, validateWithPath } from "./validation.js"
 import { deepEvaluate, evaluate } from "../template/evaluate.js"
 import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project.js"
 import { findByName, getNames } from "../util/util.js"
-import { ConfigurationError, ParameterError, ValidationError } from "../exceptions.js"
-import cloneDeep from "fast-copy"
+import { ConfigurationError, InternalError, ParameterError, ValidationError } from "../exceptions.js"
 import { memoize } from "lodash-es"
-import type { GenericProviderConfig } from "./provider.js"
 import { providerConfigBaseSchema } from "./provider.js"
 import type { GitScanMode } from "../constants.js"
 import { DOCS_BASE_URL, GardenApiVersion, defaultGitScanMode, gitScanModes } from "../constants.js"
@@ -45,6 +43,8 @@ import type { ParsedTemplate } from "../template/types.js"
 import { LayeredContext } from "./template-contexts/base.js"
 import type { ConfigContext } from "./template-contexts/base.js"
 import { GenericContext } from "./template-contexts/base.js"
+import { LazyMergePatch } from "../template/lazy-merge.js"
+import { isArray, isPlainObject } from "../util/objects.js"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -220,7 +220,7 @@ export interface ProjectConfig extends BaseGardenResource {
   environments: EnvironmentConfig[]
   scan?: ProjectScan
   outputs?: OutputSpec[]
-  providers: GenericProviderConfig[]
+  providers: ParsedTemplate[]
   sources?: SourceConfig[]
   varfile?: string
   variables: DeepPrimitiveMap
@@ -550,8 +550,9 @@ export class UnresolvedProviderConfig {
   constructor(
     public readonly name: string,
     public readonly dependencies: string[],
-    public readonly environments: string[],
-    public readonly unresolvedConfig: ParsedTemplate
+    public readonly unresolvedConfig: ParsedTemplate,
+    // TODO: source mapping for better error messages
+    public readonly source?: ConfigSource
   ) {}
 }
 
@@ -670,35 +671,67 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
 
   namespace = getNamespace(environmentConfig, namespace)
 
-  // Resolve the necessary data in providers
-  const unresolvedProviders = projectConfig.providers.map((p) => {
-    const { resolved } = evaluate(p, { context, opts: {} })
-    const config = resolved as GenericProviderConfig
-    // We need these values to create a provider graph,
-    // the remaining provider configs will be evaluated in the ResolveProviderTask.
-    const name = deepEvaluate(config.name, { context, opts: {} })
-    const dependencies = deepEvaluate(config.dependencies, { context, opts: {} })
-    const environments = deepEvaluate(config.environments, { context, opts: {} })
-    return new UnresolvedProviderConfig(name, dependencies || [], environments || [], p)
-  })
-
-  const fixedProviders = fixedPlugins.map((name) => {
-    return new UnresolvedProviderConfig(name, [], [], { name })
-  })
+  const fixedProviders = fixedPlugins.map((name) => ({ name }))
   const allProviders = [
     ...fixedProviders,
-    ...unresolvedProviders.filter((p) => !p.environments || p.environments.includes(environment)),
+    ...projectConfig.providers.filter((p) => {
+      const { resolved } = evaluate(p, { context, opts: {} })
+      if (!isPlainObject(resolved)) {
+        throw new ConfigurationError({
+          message: `expected provider config to be an object, actually got ${typeof resolved}`,
+        })
+      }
+      const envs = deepEvaluate(resolved.environments, { context, opts: {} }) as string[] | undefined
+
+      return !envs || envs.includes(environment)
+    }),
   ]
 
-  const mergedProviders: { [name: string]: GenericProviderConfig } = {}
+  const rawProviderConfigs: { [name: string]: ParsedTemplate[] } = {}
 
-  for (const provider of allProviders) {
-    if (!!mergedProviders[provider.name]) {
-      // Merge using a JSON Merge Patch (see https://tools.ietf.org/html/rfc7396)
-      apply(mergedProviders[provider.name], provider)
-    } else {
-      mergedProviders[provider.name] = cloneDeep(provider)
+  for (const p of allProviders) {
+    const { resolved } = evaluate(p, { context, opts: {} })
+    if (!isPlainObject(resolved)) {
+      throw new ConfigurationError({
+        message: `expected provider config to be an object, actually got ${typeof resolved}`,
+      })
     }
+
+    const name = deepEvaluate(resolved.name, { context, opts: {} })
+
+    if (typeof name !== "string") {
+      throw new ConfigurationError({
+        message: `expected provider name to be a string, actually got ${typeof resolved}`,
+      })
+    }
+
+    if (!!rawProviderConfigs[name]) {
+      rawProviderConfigs[name].push(p as ParsedTemplate)
+    } else {
+      rawProviderConfigs[name] = [p as ParsedTemplate]
+    }
+  }
+
+  const mergedProviders: { [name: string]: UnresolvedProviderConfig } = {}
+
+  for (const name in rawProviderConfigs) {
+    const unresolvedConfig = new LazyMergePatch(rawProviderConfigs[name])
+    const { resolved: preview } = evaluate(unresolvedConfig, { context, opts: {} })
+
+    if (!isPlainObject(preview)) {
+      throw new InternalError({
+        message: `Provider config evaluated to ${typeof preview}, expected object.`,
+      })
+    }
+
+    const dependencies = deepEvaluate(preview["dependencies"], { context, opts: {} }) as string[] | undefined
+    if (!(dependencies === undefined || (isArray(dependencies) && dependencies.every((d) => typeof d === "string")))) {
+      throw new InternalError({
+        message: `Dependencies in provider config to ${typeof dependencies}, expected string array.`,
+      })
+    }
+
+    mergedProviders[name] = new UnresolvedProviderConfig(name, dependencies || [], unresolvedConfig)
   }
 
   const envVarfileVars = await loadVarfile({

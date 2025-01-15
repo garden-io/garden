@@ -439,10 +439,6 @@ export class ConditionalLazyValue extends StructuralTemplateOperator {
   override evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult {
     const conditionalValue = deepEvaluate(this.yaml[conditionalKey], args)
 
-    // if (typeof conditionalValue === "symbol") {
-    //   return conditionalValue
-    // }
-
     if (typeof conditionalValue !== "boolean") {
       throw new TemplateError({
         message: `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof conditionalValue})`,
@@ -452,9 +448,6 @@ export class ConditionalLazyValue extends StructuralTemplateOperator {
 
     const branch = isTruthy(conditionalValue) ? this.yaml[conditionalThenKey] : this.yaml[conditionalElseKey]
 
-    return {
-      partial: true,
-      resolved: branch,
-    }
+    return evaluate(branch, args)
   }
 }

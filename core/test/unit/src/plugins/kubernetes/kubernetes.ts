@@ -19,6 +19,8 @@ import {
   defaultSystemNamespace,
   defaultUtilImageRegistryDomain,
 } from "../../../../../src/plugins/kubernetes/constants.js"
+import { UnresolvedProviderConfig } from "../../../../../src/config/project.js"
+import type { ParsedTemplate } from "../../../../../src/template/types.js"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
@@ -62,7 +64,11 @@ describe("kubernetes configureProvider", () => {
       ctx: await garden.getPluginContext({
         provider: providerFromConfig({
           plugin: gardenPlugin(),
-          config,
+          config: new UnresolvedProviderConfig(
+            config.name,
+            config.dependencies || [],
+            config as unknown as ParsedTemplate
+          ),
           dependencies: {},
           moduleConfigs: [],
           status: { ready: false, outputs: {} },

@@ -16,7 +16,6 @@ import { baseActionConfigSchema } from "../../../actions/base.js"
 import { ActionTypeHandlerSpec } from "./base.js"
 import { pluginContextSchema } from "../../../plugin-context.js"
 import { noTemplateFields } from "../../../config/base.js"
-import { actionConfigSchema } from "../../../actions/helpers.js"
 
 interface ConfigureActionConfigParams<T extends BaseActionConfig> extends PluginActionContextParams {
   log: Log

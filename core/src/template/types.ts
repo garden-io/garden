@@ -8,7 +8,7 @@
 
 import type { Primitive } from "utility-types"
 import { isPrimitive } from "utility-types"
-import type { CollectionOrValue } from "../util/objects.js"
+import type { Collection, CollectionOrValue } from "../util/objects.js"
 import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 import type { TemplateExpressionGenerator } from "./analysis.js"
 import { InternalError } from "../exceptions.js"
@@ -65,7 +65,7 @@ export type TemplateEvaluationResult =
     }
   | {
       partial: true
-      resolved: ParsedTemplate
+      resolved: Collection<ParsedTemplateValue>
     }
 
 const accessDetector = new Proxy(

@@ -8,17 +8,27 @@
 
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
+import type { Collection } from "../util/objects.js"
 import { deepMap } from "../util/objects.js"
 import { visitAll, type TemplateExpressionGenerator } from "./analysis.js"
 import { evaluate } from "./evaluate.js"
-import type { EvaluateTemplateArgs, ParsedTemplate, ResolvedTemplate, TemplateEvaluationResult } from "./types.js"
+import type {
+  EvaluateTemplateArgs,
+  ParsedTemplate,
+  ResolvedTemplate,
+  TemplateEvaluationResult,
+  TemplatePrimitive,
+} from "./types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "./types.js"
 
-export function capture(template: ParsedTemplate, context: ConfigContext): ParsedTemplate {
+type CaptureResult<Input extends ParsedTemplate> = Input extends TemplatePrimitive
+  ? Input
+  : CapturedContextTemplateValue
+export function capture<Input extends ParsedTemplate>(template: Input, context: ConfigContext): CaptureResult<Input> {
   if (isTemplatePrimitive(template)) {
-    return template
+    return template as CaptureResult<Input>
   }
-  return new CapturedContextTemplateValue(template, context)
+  return new CapturedContextTemplateValue(template, context) as CaptureResult<Input>
 }
 
 export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
@@ -33,18 +43,15 @@ export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
   override evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult {
     const context = new LayeredContext(this.context, args.context)
 
-    const { resolved, partial } = evaluate(this.wrapped, { ...args, context })
+    const result = evaluate(this.wrapped, { ...args, context })
 
-    if (partial) {
-      return {
-        partial: true,
-        resolved: deepMap(resolved, (v) => capture(v, context)),
-      }
+    if (!result.partial) {
+      return result
     }
 
     return {
-      partial: false,
-      resolved,
+      partial: true,
+      resolved: deepMap(result.resolved, (v) => capture(v, context)) as Collection<ParsedTemplate>,
     }
   }
 

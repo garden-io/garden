@@ -9,7 +9,7 @@
 import type { Garden } from "./garden.js"
 import type { SourceConfig } from "./config/project.js"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema } from "./config/project.js"
-import type { Provider, GenericProviderConfig } from "./config/provider.js"
+import type { Provider, BaseProviderConfig } from "./config/provider.js"
 import { providerSchema } from "./config/provider.js"
 import { deline } from "./util/string.js"
 import { joi, joiVariables, joiStringMap, joiIdentifier, createSchema } from "./config/common.js"
@@ -50,7 +50,7 @@ export interface CommandInfo {
 
 type ResolveTemplateStringsOpts = Omit<ContextResolveOpts, "contextStack" | "keyStack" | "stack">
 
-export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
+export interface PluginContext<C extends BaseProviderConfig = BaseProviderConfig> extends WrappedFromGarden {
   command: CommandInfo
   log: Log
   events: PluginEventBroker

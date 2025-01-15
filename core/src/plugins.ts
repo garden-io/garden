@@ -15,7 +15,6 @@ import type {
   GardenPluginReference,
 } from "./plugin/plugin.js"
 import { pluginSchema, pluginNodeModuleSchema } from "./plugin/plugin.js"
-import type { GenericProviderConfig } from "./config/provider.js"
 import { CircularDependenciesError, ConfigurationError, PluginError, RuntimeError } from "./exceptions.js"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy } from "lodash-es"
 import type { Dictionary, MaybeUndefined } from "./util/util.js"
@@ -38,12 +37,13 @@ import type {
 } from "./plugin/action-types.js"
 import type { ObjectSchema } from "@hapi/joi"
 import { GardenSdkPlugin } from "./plugin/sdk.js"
+import type { UnresolvedProviderConfig } from "./config/project.js"
 
 export async function loadAndResolvePlugins(
   log: Log,
   projectRoot: string,
   registeredPlugins: RegisterPluginParam[],
-  configs: GenericProviderConfig[]
+  configs: UnresolvedProviderConfig[]
 ) {
   const loadedPlugins = await Promise.all(registeredPlugins.map((p) => loadPlugin(log, projectRoot, p)))
   const pluginsByName = keyBy(loadedPlugins, "name")
@@ -54,7 +54,7 @@ export async function loadAndResolvePlugins(
 export function resolvePlugins(
   log: Log,
   loadedPlugins: Dictionary<GardenPluginSpec>,
-  configs: GenericProviderConfig[]
+  configs: UnresolvedProviderConfig[]
 ): GardenPluginSpec[] {
   const initializedPlugins: PluginMap = {}
   const validatePlugin = (name: string) => {
@@ -266,7 +266,7 @@ export function getDependencyOrder(loadedPlugins: PluginMap): string[] {
 function resolvePlugin(
   plugin: GardenPluginSpec,
   loadedPlugins: PluginMap,
-  configs: GenericProviderConfig[]
+  configs: UnresolvedProviderConfig[]
 ): GardenPluginSpec {
   if (!plugin.base) {
     return plugin
@@ -539,7 +539,7 @@ function resolveActionTypeDefinitions<K extends ActionKind>({
   kind,
 }: {
   resolvedPlugins: PluginMap
-  configs: GenericProviderConfig[]
+  configs: UnresolvedProviderConfig[]
   kind: K
 }): PluginMap {
   // Collect module type declarations
@@ -776,7 +776,7 @@ interface ModuleDefinitionMap {
 }
 
 // TODO: deduplicate from action resolution above
-function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericProviderConfig[]): PluginMap {
+function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: UnresolvedProviderConfig[]): PluginMap {
   // Collect module type declarations
   const graph = new DependencyGraph()
   const moduleDefinitionMap: { [moduleType: string]: { plugin: GardenPluginSpec; spec: ModuleTypeDefinition }[] } = {}
