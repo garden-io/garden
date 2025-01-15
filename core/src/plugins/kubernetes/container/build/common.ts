@@ -187,9 +187,10 @@ export async function skopeoBuildStatus({
   const deploymentRegistry = provider.config.deploymentRegistry
 
   if (!deploymentRegistry) {
-    // TODO: try to use conditional joi validation instead
+    // This is validated in the provider configure handler.
+    // Fallback to a configuration error instead of a crash if the validation is broken.
     throw new ConfigurationError({
-      message: `Expected configured deploymentRegistry for remote build`,
+      message: `The deploymentRegistry must be configured in provider for remote builds`,
     })
   }
 

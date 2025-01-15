@@ -418,21 +418,26 @@ export const utilImageRegistryDomainSpec = joi.string().default(defaultUtilImage
     Otherwise the utility images are pulled directly from Docker Hub by default.
   `)
 
+const validBuildModes = ["local-docker", "kaniko", "cluster-buildkit"] as const
+type ValidBuildMode = (typeof validBuildModes)[number]
+const buildModeSchema = () =>
+  joi
+    .string()
+    .valid(...validBuildModes)
+    .default("local-docker")
+    .description(
+      dedent`
+  Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
+
+  For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](${DOCS_BASE_URL}/kubernetes-plugins/guides/in-cluster-building).
+  `
+    )
+
 export const kubernetesConfigBase = () =>
   providerConfigBaseSchema()
     .keys({
       utilImageRegistryDomain: utilImageRegistryDomainSpec,
-      buildMode: joi
-        .string()
-        .valid("local-docker", "kaniko", "cluster-buildkit")
-        .default("local-docker")
-        .description(
-          dedent`
-        Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
-
-        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](${DOCS_BASE_URL}/kubernetes-plugins/guides/in-cluster-building).
-        `
-        ),
+      buildMode: buildModeSchema(),
       clusterBuildkit: joi
         .object()
         .keys({
@@ -728,18 +733,37 @@ export const namespaceSchema = () =>
 
 const kubectlPathExample = "${local.env.GARDEN_KUBECTL_PATH}?"
 
+const deploymentRegistrySchema = () =>
+  containerRegistryConfigSchema().description(
+    dedent`
+The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
+
+Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
+`
+  )
+
 export const configSchema = () =>
   kubernetesConfigBase()
     .keys({
       name: joiProviderName("kubernetes"),
       context: k8sContextSchema().required(),
-      deploymentRegistry: containerRegistryConfigSchema().description(
-        dedent`
-      The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
-
-      Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
-    `
-      ),
+      deploymentRegistry: joi.alternatives().conditional("buildMode", {
+        switch: [
+          {
+            is: "kaniko" satisfies ValidBuildMode,
+            then: deploymentRegistrySchema().required(),
+          },
+          {
+            is: "cluster-buildkit" satisfies ValidBuildMode,
+            then: deploymentRegistrySchema().required(),
+          },
+          {
+            is: "local-docker" satisfies ValidBuildMode,
+            then: deploymentRegistrySchema(),
+            otherwise: deploymentRegistrySchema(),
+          },
+        ],
+      }),
       ingressClass: joi.string().description(dedent`
         The ingress class or ingressClassName to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation or \`spec.ingressClassName\` field depending on the kubernetes version)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.
