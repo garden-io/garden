@@ -26,7 +26,6 @@ import type { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } fr
 import { prepareEnvVars, makePodName, renderWorkloadEvents, sanitizeVolumesForPodRunner } from "./util.js"
 import { dedent, deline, randomString } from "../../util/string.js"
 import type { ArtifactSpec } from "../../config/validation.js"
-import { prepareSecrets } from "./secrets.js"
 import { configureVolumes } from "./container/deployment.js"
 import type { PluginContext, PluginEventBroker, PluginEventLogContext } from "../../plugin-context.js"
 import type { ResourceStatus } from "./status/status.js"
@@ -169,11 +168,9 @@ export async function runAndCopy({
   podSpec = await prepareRunPodSpec({
     podSpec,
     getArtifacts,
-    log,
     action,
     args,
     command,
-    api,
     provider,
     envVars,
     resources,
@@ -181,7 +178,6 @@ export async function runAndCopy({
     mainContainerName,
     image,
     container,
-    namespace,
     volumes,
     privileged,
     addCapabilities,
@@ -246,9 +242,7 @@ export async function runAndCopy({
 export async function prepareRunPodSpec({
   podSpec,
   getArtifacts,
-  api,
   provider,
-  log,
   action,
   args,
   command,
@@ -258,7 +252,6 @@ export async function prepareRunPodSpec({
   mainContainerName,
   image,
   container,
-  namespace,
   volumes,
   privileged,
   addCapabilities,
@@ -266,11 +259,9 @@ export async function prepareRunPodSpec({
 }: {
   podSpec?: V1PodSpec
   getArtifacts: boolean
-  log: Log
   action: SupportedRuntimeAction
   args: string[]
   command: string[] | undefined
-  api: KubeApi
   provider: KubernetesProvider
   envVars: ContainerEnvVars
   resources?: ContainerResourcesSpec
@@ -278,7 +269,6 @@ export async function prepareRunPodSpec({
   mainContainerName: string
   image: string
   container?: V1Container
-  namespace: string
   volumes?: ContainerVolumeSpec[]
   privileged?: boolean
   addCapabilities?: string[]
@@ -307,13 +297,12 @@ export async function prepareRunPodSpec({
     },
   ]
 
-  const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
-  await prepareSecrets({ api, namespace, secrets: provider.config.copySecrets, log })
-
   const preparedPodSpec = {
     ...pick(podSpec || {}, runPodSpecIncludeFields),
     containers,
-    imagePullSecrets,
+    // The provider secret has form { name: string, namespace: string } but the imagePullSecret field on the PodSpec
+    // must have form { name: string }
+    imagePullSecrets: provider.config.imagePullSecrets.map((s) => ({ name: s.name })),
   }
 
   // This logic is only relevant for `container` Runs and Tests, which need to support mounting `persistentvolumeclaim`

@@ -152,7 +152,6 @@ describe("util", () => {
         })
 
         const resource = await createWorkloadManifest({
-          api,
           provider,
           action,
           ctx,

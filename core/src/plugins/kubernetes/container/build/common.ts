@@ -16,7 +16,6 @@ import { hashString, sleep } from "../../../../util/util.js"
 import { InternalError, RuntimeError } from "../../../../exceptions.js"
 import type { Log } from "../../../../logger/log-entry.js"
 import { prepareDockerAuth } from "../../init.js"
-import { prepareSecrets } from "../../secrets.js"
 import { Mutagen } from "../../../../mutagen.js"
 import { deline, randomString } from "../../../../util/string.js"
 import type { V1Container, V1Service } from "@kubernetes/client-node"
@@ -416,10 +415,10 @@ export async function ensureUtilDeployment({
       namespace,
     })
 
-    const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
+    const imagePullSecretNames = provider.config.imagePullSecrets.map((s) => s.name)
 
     // Check status of the util deployment
-    const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets)
+    const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecretNames)
     const status = await compareDeployedResources({
       ctx: ctx as KubernetesPluginContext,
       api,
@@ -639,15 +638,14 @@ export function getUtilContainer(authSecretName: string, provider: KubernetesPro
   }
 }
 
-export function getUtilManifests(
-  provider: KubernetesProvider,
-  authSecretName: string,
-  imagePullSecrets: { name: string }[]
-) {
+export function getUtilManifests(provider: KubernetesProvider, authSecretName: string, imagePullSecretNames: string[]) {
   const kanikoTolerations = [
     ...(provider.config.kaniko?.util?.tolerations || provider.config.kaniko?.tolerations || []),
     builderToleration,
   ]
+  const imagePullSecrets = imagePullSecretNames.map((name) => ({
+    name,
+  }))
   const kanikoAnnotations = provider.config.kaniko?.util?.annotations || provider.config.kaniko?.annotations
   const utilContainer = getUtilContainer(authSecretName, provider)
   const deployment: KubernetesDeployment = {

@@ -125,7 +125,6 @@ describe("kubernetes", () => {
         const resources = [
           await createWorkloadManifest({
             ctx,
-            api,
             provider,
             action: resolvedDeployAction,
             namespace,
@@ -200,7 +199,6 @@ describe("kubernetes", () => {
         const resources = [
           await createWorkloadManifest({
             ctx,
-            api,
             provider,
             action: resolvedDeployAction,
             namespace,

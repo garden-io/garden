@@ -42,7 +42,6 @@ import type { Log } from "../../../../../src/logger/log-entry.js"
 import { sleep } from "../../../../../src/util/util.js"
 import { buildHelmModules, getHelmTestGarden } from "./helm/common.js"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common.js"
-import { getActionNamespace } from "../../../../../src/plugins/kubernetes/namespace.js"
 import type { GardenModule } from "../../../../../src/types/module.js"
 import type { V1Container, V1Pod, V1PodSpec, V1Volume } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util.js"
@@ -569,7 +568,6 @@ describe("kubernetes Pod runner functions", () => {
     let helmGarden: Garden
     let helmProvider: KubernetesProvider
     let helmCtx: KubernetesPluginContext
-    let helmApi: KubeApi
     let helmLog: Log
     let helmGraph: ConfigGraph
     let helmModule: GardenModule
@@ -579,7 +577,6 @@ describe("kubernetes Pod runner functions", () => {
     let helmResourceSpec: ServiceResourceSpec
     let helmTarget: KubernetesWorkload | KubernetesPod
     let helmContainer: V1Container
-    let helmNamespace: string
     let helmAction: Resolved<HelmDeployAction>
     let apiImageBuildAction: Resolved<ContainerBuildAction>
     const resources: ContainerResourcesSpec = {
@@ -601,7 +598,6 @@ describe("kubernetes Pod runner functions", () => {
       helmCtx = <KubernetesPluginContext>(
         await helmGarden.getPluginContext({ provider: helmProvider, templateContext: undefined, events: undefined })
       )
-      helmApi = await KubeApi.factory(helmGarden.log, helmCtx, helmProvider)
       helmLog = helmGarden.log
       helmGraph = await helmGarden.getConfigGraph({ log: helmLog, emit: false })
       await buildHelmModules(helmGarden, helmGraph)
@@ -627,12 +623,6 @@ describe("kubernetes Pod runner functions", () => {
       })
       helmBaseModule = getBaseModule(helmModule)
       helmResourceSpec = getServiceResourceSpec(helmModule, helmBaseModule) as ServiceResourceSpec
-      helmNamespace = await getActionNamespace({
-        ctx: helmCtx,
-        log: helmLog,
-        action: helmAction,
-        provider: helmCtx.provider,
-      })
     })
 
     beforeEach(async () => {
@@ -655,9 +645,7 @@ describe("kubernetes Pod runner functions", () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: undefined, // <------
         getArtifacts: false,
-        api: helmApi,
         provider: helmProvider,
-        log: helmLog,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
         envVars: {},
@@ -665,7 +653,6 @@ describe("kubernetes Pod runner functions", () => {
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
-        namespace: helmNamespace,
         volumes: [],
         action: helmAction,
       })
@@ -706,9 +693,7 @@ describe("kubernetes Pod runner functions", () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: undefined, // <------
         getArtifacts: false,
-        api: helmApi,
         provider: helmProvider,
-        log: helmLog,
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
@@ -718,7 +703,6 @@ describe("kubernetes Pod runner functions", () => {
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
-        namespace: helmNamespace,
         volumes: [],
       })
 
@@ -759,9 +743,7 @@ describe("kubernetes Pod runner functions", () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec, // <------
         getArtifacts: false,
-        api: helmApi,
         provider: helmProvider,
-        log: helmLog,
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
@@ -771,7 +753,6 @@ describe("kubernetes Pod runner functions", () => {
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
-        namespace: helmNamespace,
         volumes: [],
       })
 
@@ -844,9 +825,7 @@ describe("kubernetes Pod runner functions", () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: podSpecWithVolumes,
         getArtifacts: false,
-        api: helmApi,
         provider: helmProvider,
-        log: helmLog,
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
@@ -856,7 +835,6 @@ describe("kubernetes Pod runner functions", () => {
         mainContainerName: "main",
         image: "foo",
         container: helmContainerWithVolumeMounts,
-        namespace: helmNamespace,
         // Note: We're not passing the `volumes` param here, since that's for `container` Runs/Tests.
         // This test case is intended for `kubernetes-pod` Runs and Tests.
       })
@@ -890,9 +868,7 @@ describe("kubernetes Pod runner functions", () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: podSpecWithPersistentVolume,
         getArtifacts: false,
-        api: helmApi,
         provider: helmProvider,
-        log: helmLog,
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
@@ -902,7 +878,6 @@ describe("kubernetes Pod runner functions", () => {
         mainContainerName: "main",
         image: "foo",
         container: helmContainerWithVolumeMounts,
-        namespace: helmNamespace,
         // Note: We're not passing the `volumes` param here, since that's for `container` Runs/Tests.
         // This test case is intended for `kubernetes-pod` Runs and Tests.
       })
@@ -936,9 +911,7 @@ describe("kubernetes Pod runner functions", () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: podSpecWithConfigMap,
         getArtifacts: false,
-        api: helmApi,
         provider: helmProvider,
-        log: helmLog,
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
@@ -948,7 +921,6 @@ describe("kubernetes Pod runner functions", () => {
         mainContainerName: "main",
         image: "foo",
         container: helmContainerWithVolumeMounts,
-        namespace: helmNamespace,
         // Note: We're not passing the `volumes` param here, since that's for `container` Runs/Tests.
         // This test case is intended for `kubernetes-pod` Runs and Tests.
       })
@@ -959,9 +931,7 @@ describe("kubernetes Pod runner functions", () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: undefined,
         getArtifacts: false,
-        api: helmApi,
         provider: helmProvider,
-        log: helmLog,
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
@@ -971,7 +941,6 @@ describe("kubernetes Pod runner functions", () => {
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
-        namespace: helmNamespace,
         volumes: [],
         privileged: true, // <----
         addCapabilities: ["SYS_TIME"], // <----
@@ -1043,9 +1012,7 @@ describe("kubernetes Pod runner functions", () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec, // <------
         getArtifacts: false,
-        api: helmApi,
         provider: helmProvider,
-        log: helmLog,
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
@@ -1054,7 +1021,6 @@ describe("kubernetes Pod runner functions", () => {
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
-        namespace: helmNamespace,
         volumes: [],
       })
 
@@ -1119,9 +1085,7 @@ describe("kubernetes Pod runner functions", () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: podSpecWithProbes, // <------
         getArtifacts: false,
-        api: helmApi,
         provider: helmProvider,
-        log: helmLog,
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
@@ -1130,7 +1094,6 @@ describe("kubernetes Pod runner functions", () => {
         mainContainerName: "main",
         image: "foo",
         container: helmContainer,
-        namespace: helmNamespace,
         volumes: [],
       })
 

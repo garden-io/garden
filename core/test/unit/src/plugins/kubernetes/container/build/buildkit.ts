@@ -42,7 +42,7 @@ describe("buildkit build", () => {
     })
 
     it("should return a Kubernetes Deployment manifest for buildkit in-cluster-builder", () => {
-      const result = getBuildkitDeployment(provider, "authSecretName", [{ name: "imagePullSecretName" }])
+      const result = getBuildkitDeployment(provider, "authSecretName", ["imagePullSecretName"])
       expect(result.kind).eql("Deployment")
       expect(result.metadata).eql({
         annotations: undefined,
@@ -185,7 +185,7 @@ describe("buildkit build", () => {
           buildkitAnnotation: "is-there",
         },
       }
-      const result = getBuildkitDeployment(provider, "authSecretName", [{ name: "imagePullSecretName" }])
+      const result = getBuildkitDeployment(provider, "authSecretName", ["imagePullSecretName"])
       expect(result.metadata.annotations).eql(provider.config.clusterBuildkit.annotations)
       expect(result.spec.template.metadata?.annotations).eql(provider.config.clusterBuildkit.annotations)
     })
@@ -199,9 +199,7 @@ describe("buildkit build", () => {
         },
       }
 
-      const result = getBuildkitDeployment(providerWithCustomRegistry, "authSecretName", [
-        { name: "imagePullSecretName" },
-      ])
+      const result = getBuildkitDeployment(providerWithCustomRegistry, "authSecretName", ["imagePullSecretName"])
 
       expect(result.spec.template.spec?.containers[0].image).to.eql(
         getBuildkitImagePath("https://my-custom-registry-mirror.io")

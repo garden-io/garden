@@ -39,11 +39,11 @@ export async function readSecret(api: KubeApi, secretRef: ProviderSecretRef) {
  * Make sure the specified secret exists in the target namespace, copying it if necessary.
  */
 export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, targetNamespace: string, log: Log) {
-  const secret = await readSecret(api, secretRef)
-
   if (secretRef.namespace === targetNamespace) {
     return
   }
+
+  const secret = await readSecret(api, secretRef)
 
   // Make sure we don't copy generated attributes
   secret.metadata = {
@@ -55,10 +55,9 @@ export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, t
 }
 
 /**
- * Prepare references to the secrets given by the array of ProviderSecretRefs passed in.
- * These secrets will be copied to the given namespace if needed.
+ * Ensures the list of secrets exists in the target namespace
  */
-export async function prepareSecrets({
+export async function ensureSecrets({
   api,
   namespace,
   secrets,

@@ -10,9 +10,8 @@ import { intersection, cloneDeep } from "lodash-es"
 
 import { KubeApi, KubernetesError } from "./api.js"
 import type { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config.js"
-import { DeploymentError, TimeoutError } from "../../exceptions.js"
+import { TimeoutError } from "../../exceptions.js"
 import { getPackageVersion, sleep } from "../../util/util.js"
-import type { GetEnvironmentStatusParams } from "../../plugin/handlers/Provider/getEnvironmentStatus.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import type { Log } from "../../logger/log-entry.js"
 import { gardenAnnotationKey } from "../../util/string.js"
@@ -273,35 +272,6 @@ export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
 
 export function clearNamespaceCache(provider: KubernetesProvider) {
   nsCache.delete(provider.uid)
-}
-
-/**
- * Used by both the remote and local plugin
- */
-export async function prepareNamespace({ ctx, log }: GetEnvironmentStatusParams) {
-  const k8sCtx = <KubernetesPluginContext>ctx
-
-  try {
-    const api = await KubeApi.factory(log, ctx, ctx.provider as KubernetesProvider)
-    await api.request({ path: "/version", log })
-  } catch (err) {
-    if (!(err instanceof KubernetesError)) {
-      throw err
-    }
-    log.silly(() => `Full Kubernetes connect error: ${err.stack}`)
-
-    throw new DeploymentError({
-      message: dedent`
-        Unable to connect to Kubernetes cluster. Got error: ${err.message}`,
-      wrappedErrors: [err],
-    })
-  }
-
-  const ns = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
-
-  return {
-    "app-namespace": ns,
-  }
 }
 
 /**

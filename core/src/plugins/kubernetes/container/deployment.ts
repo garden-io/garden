@@ -29,7 +29,6 @@ import { prepareEnvVars } from "../util.js"
 import { deline, gardenAnnotationKey } from "../../../util/string.js"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward.js"
-import { prepareSecrets } from "../secrets.js"
 import { configureSyncMode, convertContainerSyncSpec } from "../sync.js"
 import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util.js"
 import { configureLocalMode, convertContainerLocalModeSpec, startServiceInLocalMode } from "../local-mode.js"
@@ -189,7 +188,6 @@ export async function createContainerManifests({
   const ingresses = await createIngressResources(api, provider, namespace, action, log)
   const workload = await createWorkloadManifest({
     ctx: k8sCtx,
-    api,
     provider,
     action,
     imageId,
@@ -212,7 +210,6 @@ export async function createContainerManifests({
 
 interface CreateDeploymentParams {
   ctx: KubernetesPluginContext
-  api: KubeApi
   provider: KubernetesProvider
   action: Resolved<ContainerDeployAction>
   namespace: string
@@ -228,7 +225,6 @@ const getDefaultWorkloadTarget = (w: KubernetesResource<V1Deployment | V1DaemonS
 
 export async function createWorkloadManifest({
   ctx,
-  api,
   provider,
   action,
   imageId,
@@ -390,11 +386,12 @@ export async function createWorkloadManifest({
   }
 
   if (provider.config.imagePullSecrets?.length > 0) {
-    // add any configured imagePullSecrets.
-    const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
-    workload.spec.template.spec!.imagePullSecrets = imagePullSecrets
+    // Add any configured imagePullSecrets. Note that the provider secret has form { name: string, namespace: string }
+    // but the imagePullSecret field on the PodSpec must have form { name: string }
+    workload.spec.template.spec!.imagePullSecrets = provider.config.imagePullSecrets.map((secret) => ({
+      name: secret.name,
+    }))
   }
-  await prepareSecrets({ api, namespace, secrets: provider.config.copySecrets, log })
 
   // this is important for status checks to work correctly, because how K8s normalizes resources
   if (!container.ports!.length) {

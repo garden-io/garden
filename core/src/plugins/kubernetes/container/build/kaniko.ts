@@ -19,7 +19,6 @@ import type { KubernetesProvider, KubernetesPluginContext } from "../../config.j
 import { BuildError, ConfigurationError } from "../../../../exceptions.js"
 import { PodRunner } from "../../run.js"
 import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace.js"
-import { prepareSecrets } from "../../secrets.js"
 import { dedent } from "../../../../util/string.js"
 import type { RunResult } from "../../../../plugin/base.js"
 import type { PluginContext } from "../../../../plugin-context.js"
@@ -279,7 +278,7 @@ export function getKanikoBuilderPodManifest({
   kanikoNamespace,
   authSecretName,
   syncArgs,
-  imagePullSecrets,
+  imagePullSecretNames,
   sourceUrl,
   podName,
   kanikoCommand,
@@ -288,15 +287,16 @@ export function getKanikoBuilderPodManifest({
   kanikoNamespace: string
   authSecretName: string
   syncArgs: string[]
-  imagePullSecrets: {
-    name: string
-  }[]
+  imagePullSecretNames: string[]
   sourceUrl: string
   podName: string
   kanikoCommand: string[]
 }) {
   const kanikoImage = provider.config.kaniko?.image || defaultKanikoImageName
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
+  const imagePullSecrets = imagePullSecretNames.map((name) => ({
+    name,
+  }))
 
   const spec: V1PodSpec = {
     shareProcessNamespace: true,
@@ -420,13 +420,8 @@ async function runKaniko({
 
   const utilHostname = `${utilDeploymentName}.${utilNamespace}.svc.cluster.local`
   const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${action.name}/`
-  const imagePullSecrets = await prepareSecrets({
-    api,
-    namespace: kanikoNamespace,
-    secrets: provider.config.imagePullSecrets,
-    log,
-  })
 
+  const imagePullSecretNames = provider.config.imagePullSecrets.map((s) => s.name)
   const syncArgs = [...commonSyncArgs, sourceUrl, contextPath]
 
   const pod = getKanikoBuilderPodManifest({
@@ -434,7 +429,7 @@ async function runKaniko({
     podName,
     sourceUrl,
     syncArgs,
-    imagePullSecrets,
+    imagePullSecretNames,
     kanikoCommand,
     kanikoNamespace,
     authSecretName,

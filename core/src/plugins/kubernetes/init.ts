@@ -9,10 +9,10 @@
 import { KubeApi, KubernetesError } from "./api.js"
 import {
   getAppNamespace,
-  prepareNamespace,
   deleteNamespaces,
   getSystemNamespace,
   namespaceExists,
+  getNamespaceStatus,
 } from "./namespace.js"
 import type { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config.js"
 import type {
@@ -29,8 +29,8 @@ import type {
 } from "../../plugin/handlers/Provider/cleanupEnvironment.js"
 import { millicpuToString, megabytesToString } from "./util.js"
 import { deline, dedent, gardenAnnotationKey } from "../../util/string.js"
-import { ConfigurationError } from "../../exceptions.js"
-import { readSecret } from "./secrets.js"
+import { ConfigurationError, DeploymentError } from "../../exceptions.js"
+import { ensureSecrets, readSecret } from "./secrets.js"
 import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants.js"
 import type { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
 import type { KubernetesResource } from "./types.js"
@@ -135,9 +135,7 @@ export async function getIngressMisconfigurationWarnings(
 }
 
 /**
- * Deploys system services (if any) and creates the default app namespace.
- *
- * TODO @eysi: Ensure secrets here
+ * Deploys system services (if any) and ensures namespace and secrets.
  */
 export async function prepareEnvironment(
   params: PrepareEnvironmentParams<KubernetesConfig>
@@ -146,10 +144,27 @@ export async function prepareEnvironment(
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const config = provider.config
-  const api = await KubeApi.factory(log, ctx, provider)
+
+  let api: KubeApi
+  try {
+    api = await KubeApi.factory(log, ctx, ctx.provider as KubernetesProvider)
+    await api.request({ path: "/version", log })
+  } catch (err) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    log.silly(() => `Full Kubernetes connect error: ${err.stack}`)
+
+    throw new DeploymentError({
+      message: dedent`
+        Unable to connect to Kubernetes cluster. Got error: ${err.message}`,
+      wrappedErrors: [err],
+    })
+  }
+
+  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
   // create default app namespace if it doesn't exist
-  const nsStatus = await prepareNamespace({ ctx, log })
   // make sure that the system namespace exists
   await getSystemNamespace(ctx, ctx.provider, log)
 
@@ -168,11 +183,14 @@ export async function prepareEnvironment(
     ingressWarnings.forEach((w) => log.warn(w))
   }
 
+  const secrets = [...provider.config.copySecrets, ...provider.config.imagePullSecrets]
+  await ensureSecrets({ api, namespace: namespaceStatus.namespaceName, secrets, log })
+
   return {
     status: {
       ready: true,
       outputs: {
-        "app-namespace": nsStatus["app-namespace"].namespaceName,
+        "app-namespace": namespaceStatus.namespaceName,
         "default-hostname": provider.config.defaultHostname || null,
       },
     },

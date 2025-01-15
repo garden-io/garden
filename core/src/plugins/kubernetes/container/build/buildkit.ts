@@ -39,7 +39,6 @@ import type { ContainerBuildAction, ContainerModuleOutputs } from "../../../cont
 import { getDockerBuildArgs, getDockerSecrets } from "../../../container/build.js"
 import type { Resolved } from "../../../../actions/types.js"
 import { PodRunner } from "../../run.js"
-import { prepareSecrets } from "../../secrets.js"
 import { getRunningDeploymentPod } from "../../util.js"
 import { defaultDockerfileName } from "../../../container/config.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
@@ -212,10 +211,10 @@ export async function ensureBuildkit({
       namespace,
     })
 
-    const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
+    const imagePullSecretNames = provider.config.imagePullSecrets.map((s) => s.name)
 
     // Check status of the buildkit deployment
-    const manifest = getBuildkitDeployment(provider, authSecret.metadata.name, imagePullSecrets)
+    const manifest = getBuildkitDeployment(provider, authSecret.metadata.name, imagePullSecretNames)
     const status = await compareDeployedResources({
       ctx: ctx as KubernetesPluginContext,
       api,
@@ -435,9 +434,12 @@ export const getSupportedCacheMode = (
 export function getBuildkitDeployment(
   provider: KubernetesProvider,
   authSecretName: string,
-  imagePullSecrets: { name: string }[]
+  imagePullSecretNames: string[]
 ) {
   const tolerations = [...(provider.config.clusterBuildkit?.tolerations || []), builderToleration]
+  const imagePullSecrets = imagePullSecretNames.map((name) => ({
+    name,
+  }))
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",

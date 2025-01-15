@@ -85,7 +85,7 @@ describe("kaniko build", () => {
           kanikoNamespace: "namespace",
           authSecretName: "authSecret",
           syncArgs: ["arg1", "arg2"],
-          imagePullSecrets: [],
+          imagePullSecretNames: [],
           sourceUrl: "sourceURL",
         })
       ).eql({
@@ -208,7 +208,7 @@ describe("kaniko build", () => {
         kanikoNamespace: "namespace",
         authSecretName: "authSecret",
         syncArgs: ["arg1", "arg2"],
-        imagePullSecrets: [],
+        imagePullSecretNames: [],
         sourceUrl: "sourceURL",
       })
 

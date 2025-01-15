@@ -331,7 +331,6 @@ describe("kubernetes container deployment handlers", () => {
 
       const resource = await createWorkloadManifest({
         ctx,
-        api,
         provider,
         action,
         imageId,
@@ -406,7 +405,6 @@ describe("kubernetes container deployment handlers", () => {
 
       const resource = await createWorkloadManifest({
         ctx,
-        api,
         provider,
         action,
         imageId: getDeployedImageId(action),
@@ -431,7 +429,6 @@ describe("kubernetes container deployment handlers", () => {
 
       const resource = await createWorkloadManifest({
         ctx,
-        api,
         provider,
         action,
         imageId: getDeployedImageId(action),
@@ -455,7 +452,6 @@ describe("kubernetes container deployment handlers", () => {
 
       const resource = await createWorkloadManifest({
         ctx,
-        api,
         provider,
         action,
         imageId: getDeployedImageId(action),
@@ -480,7 +476,6 @@ describe("kubernetes container deployment handlers", () => {
 
       const resource = await createWorkloadManifest({
         ctx,
-        api,
         provider,
         action,
         imageId: getDeployedImageId(action),
@@ -523,7 +518,6 @@ describe("kubernetes container deployment handlers", () => {
 
       const resource = await createWorkloadManifest({
         ctx,
-        api,
         provider,
         action,
         imageId: getDeployedImageId(action),
@@ -569,7 +563,6 @@ describe("kubernetes container deployment handlers", () => {
 
       const resource = await createWorkloadManifest({
         ctx,
-        api,
         provider: _provider,
         action,
         imageId: getDeployedImageId(action),
@@ -607,7 +600,6 @@ describe("kubernetes container deployment handlers", () => {
 
       const resource = await createWorkloadManifest({
         ctx,
-        api,
         provider: _provider,
         action,
         imageId: getDeployedImageId(action),
@@ -627,7 +619,6 @@ describe("kubernetes container deployment handlers", () => {
 
       const resource = await createWorkloadManifest({
         ctx,
-        api,
         provider,
         action,
         imageId: getDeployedImageId(action),
@@ -648,7 +639,6 @@ describe("kubernetes container deployment handlers", () => {
 
       const resource = await createWorkloadManifest({
         ctx,
-        api,
         provider,
         action,
         imageId: getDeployedImageId(action),
@@ -680,7 +670,6 @@ describe("kubernetes container deployment handlers", () => {
         () =>
           createWorkloadManifest({
             ctx,
-            api,
             provider,
             action,
             imageId: getDeployedImageId(action),
@@ -1019,7 +1008,6 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name
       const deploymentManifest = await createWorkloadManifest({
         ctx,
-        api,
         provider,
         action,
         imageId: getDeployedImageId(action),
