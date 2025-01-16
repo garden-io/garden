@@ -411,6 +411,9 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       return cachedStatus
     }
 
+    // TODO: Remove this condition in 0.14 since we no longer check provider statuses when
+    // before preparing environments. Instead we should simply set provider statuses to `"unknown"` (or similar)
+    // in commands like `garden get status` since returning actual provider statuses doesn't really serve any purpose.
     if (statusOnly) {
       // TODO: avoid calling the handler manually (currently doing it to override the plugin context)
       const getStatusHandler = await actions.provider["getPluginHandler"]({
