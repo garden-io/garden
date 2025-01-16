@@ -67,7 +67,13 @@ async function prepareEnvironment(
   const { ctx, log } = params
   const provider = ctx.provider
 
-  const result = await _prepareEnvironmentBase(params)
+  // This should be set in the configureProvider handler but we need the
+  // plugin context to get the cluster type
+  if (!provider.config.clusterType) {
+    provider.config.clusterType = await getClusterType(ctx, log)
+  }
+
+  const prepareEnvResult = await _prepareEnvironmentBase(params)
 
   if (provider.config.clusterType === "minikube") {
     await setMinikubeDockerEnv()
@@ -76,7 +82,7 @@ async function prepareEnvironment(
     await configureMicrok8sAddons(log, microk8sAddons)
   }
 
-  return result
+  return prepareEnvResult
 }
 
 async function getClusterType(ctx: KubernetesPluginContext, log: Log): Promise<LocalKubernetesClusterType> {

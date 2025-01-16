@@ -69,11 +69,9 @@ describe("kubernetes provider handlers", () => {
 
     it("should prepare the environment with the prepareEnvironment handler and emit a namespaceStatus event", async () => {
       garden.events.eventLog = []
-      const status = await getEnvironmentStatus({ ctx, log })
       const params: PrepareEnvironmentParams = {
         ctx,
         log: garden.log,
-        status,
         force: false,
       }
       const envStatus = await prepareEnvironment(params)

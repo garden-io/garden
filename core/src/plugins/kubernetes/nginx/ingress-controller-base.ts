@@ -11,7 +11,10 @@ import type { KubernetesPluginContext } from "../config.js"
 import type { DeployState } from "../../../types/service.js"
 
 export abstract class GardenIngressComponent {
-  abstract install(ctx: KubernetesPluginContext, log: Log): Promise<void>
+  /**
+   * Install ingress controller if not ready. Idempotent.
+   */
+  abstract ensure(ctx: KubernetesPluginContext, log: Log): Promise<void>
 
   abstract getStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState>
 
