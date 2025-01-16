@@ -23,6 +23,25 @@ import { throwOnMissingSecretKeys } from "../../../src/config/secrets.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 import { deepEvaluate } from "../../../src/template/evaluate.js"
 
+describe("template string access protection", () => {
+  it("should crash when an unresolved value is accidentally treated as resolved", () => {
+    const parsed = parseTemplateCollection({ value: { foo: "${bar}" } as const, source: { path: [] } })
+    expect(() => parsed.foo!["a"]).to.throw()
+  })
+
+  it("should not crash when an unresolved value is correctly evaluated", () => {
+    const parsed = parseTemplateCollection({ value: { foo: "${bar}" } as const, source: { path: [] } })
+    const evaluated = deepEvaluate(parsed, { context: new GenericContext({ bar: "baz" }), opts: {} })
+    expect(evaluated).to.eql({ foo: "baz" })
+  })
+
+  it("should crash when an unresolved value is accidentally used in a spread operator", () => {
+    const parsed = parseTemplateCollection({ value: { foo: "${bar}" } as const, source: { path: [] } })
+    const foo = parsed.foo as any
+    expect(() => ({ ...foo })).to.throw()
+  })
+})
+
 describe("parse and evaluate template strings", () => {
   it("should return a non-templated string unchanged", () => {
     const res = resolveTemplateString({ string: "somestring", context: new GenericContext({}) })
