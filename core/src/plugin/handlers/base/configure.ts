@@ -16,6 +16,7 @@ import { baseActionConfigSchema } from "../../../actions/base.js"
 import { ActionTypeHandlerSpec } from "./base.js"
 import { pluginContextSchema } from "../../../plugin-context.js"
 import { noTemplateFields } from "../../../config/base.js"
+import { actionConfigSchema } from "../../../actions/helpers.js"
 
 interface ConfigureActionConfigParams<T extends BaseActionConfig> extends PluginActionContextParams {
   log: Log
@@ -57,7 +58,7 @@ export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig
 
   resultSchema = () =>
     joi.object().keys({
-      config: joi.any().required(),
+      config: actionConfigSchema().required(),
       supportedModes: joi
         .object()
         .keys({

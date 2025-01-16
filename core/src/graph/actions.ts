@@ -71,6 +71,7 @@ import { CapturedContext } from "../config/template-contexts/base.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import type { ParsedTemplate } from "../template/types.js"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
+import { validateWithPath } from "../config/validation.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -510,7 +511,9 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   let variables = await mergeVariables({
     basePath: effectiveConfigFileLocation,
-    variables: new GenericContext(config.variables || {}),
+    variables: new GenericContext(capture(config.variables,
+      // TODO: What's the correct context here?
+      garden.getProjectConfigContext()) || {}),
     varfiles: config.varfiles,
     log,
   })
@@ -814,18 +817,25 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     )
     const { spec = {} } = config
 
-    // TODO-0.13.1: better error messages when something goes wrong here
     config = {
       ...config,
-      ...resolvedBuiltin,
+      // Validate fully resolved keys (the above + those that don't allow any templating)
+      ...validateWithPath({
+        config: {
+          ...resolvedBuiltin,
+          variables: {},
+          spec: {},
+        },
+        schema: getActionSchema(config.kind),
+        configType: describeActionConfig(config),
+        name: config.name,
+        path: config.internal.basePath,
+        projectRoot: garden.projectRoot,
+        source: { yamlDoc: config.internal.yamlDoc, path: [] },
+      }),
       spec,
+      variables: config.variables,
     }
-
-    // Apparently no need to capture, as later contexts will be a superset
-    // TODO: verify
-    // for (const k in omit(config, builtinConfigKeys.concat("internal")) as Record<string, ParsedTemplate>) {
-    //   config[k] = capture(config[k], builtinFieldContext)
-    // }
   }
 
   resolveTemplates()

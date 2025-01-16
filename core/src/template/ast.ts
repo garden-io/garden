@@ -7,13 +7,8 @@
  */
 
 import { isArray, isNumber, isString } from "lodash-es"
-import {
-  CONTEXT_RESOLVE_KEY_NOT_FOUND,
-  renderKeyPath,
-  type ConfigContext,
-  type ContextResolveOpts,
-} from "../config/template-contexts/base.js"
-import { GardenError, InternalError } from "../exceptions.js"
+import { CONTEXT_RESOLVE_KEY_NOT_FOUND, renderKeyPath } from "../config/template-contexts/base.js"
+import { InternalError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions/index.js"
 import type { EvaluateTemplateArgs } from "./types.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
@@ -706,7 +701,14 @@ export class ContextLookupExpression extends TemplateExpression {
       keyPath.push(evaluated)
     }
 
-    const { resolved, getUnavailableReason } = this.resolveContext(context, keyPath, opts, yamlSource)
+    const { resolved, getUnavailableReason } = context.resolve({
+      key: keyPath,
+      nodePath: [],
+      // TODO: freeze opts object instead of using shallow copy
+      opts: {
+        ...opts,
+      },
+    })
 
     // if ((opts.allowPartial || opts.allowPartialContext) && resolved === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
     //   return resolved
@@ -727,33 +729,6 @@ export class ContextLookupExpression extends TemplateExpression {
     }
 
     return resolved
-  }
-
-  private resolveContext(
-    context: ConfigContext,
-    keyPath: (string | number)[],
-    opts: ContextResolveOpts,
-    yamlSource: ConfigSource
-  ) {
-    try {
-      return context.resolve({
-        key: keyPath,
-        nodePath: [],
-        // TODO: freeze opts object instead of using shallow copy
-        opts: {
-          ...opts,
-        },
-      })
-    } catch (e) {
-      // TODO: improve error handling for template strings nested inside contexts
-      // if (e instanceof TemplateStringError) {
-      //   throw e
-      // }
-      if (e instanceof GardenError) {
-        throw new TemplateStringError({ message: e.message, loc: this.loc, yamlSource })
-      }
-      throw e
-    }
   }
 }
 

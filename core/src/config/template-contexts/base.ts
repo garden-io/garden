@@ -45,10 +45,15 @@ export interface ContextResolveParams {
   rootContext?: ConfigContext
 }
 
-export interface ContextResolveOutput {
-  getUnavailableReason?: () => string
-  resolved: any
-}
+export type ContextResolveOutput =
+  | {
+      resolved: ResolvedTemplate
+      getUnavailableReason?: undefined
+    }
+  | {
+      resolved: typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+      getUnavailableReason: () => string
+    }
 
 export function schema(joiSchema: Joi.Schema) {
   return (target: any, propName: string) => {
@@ -149,7 +154,7 @@ export abstract class ConfigContext {
     let nestedNodePath = nodePath
     let getUnavailableReason: (() => string) | undefined = undefined
 
-    if (key.length === 0) {
+    if (key.length === 0 && !(value instanceof UnresolvedTemplateValue)) {
       value = pick(
         value,
         Object.keys(value as Collection<unknown>).filter((k) => !k.startsWith("_"))
@@ -166,6 +171,32 @@ export abstract class ConfigContext {
       const getStackEntry = () => renderKeyPath(capturedNestedNodePath)
       getAvailableKeys = undefined
 
+      // handle nested contexts
+      if (value instanceof ConfigContext) {
+        const remainder = getRemainder()
+        const stackEntry = getStackEntry()
+        opts.keyStack.add(stackEntry)
+        opts.contextStack.add(value)
+        // NOTE: we resolve even if remainder.length is zero to make sure all unresolved template values have been resolved.
+        const res = value.resolve({ key: remainder, nodePath: nestedNodePath, opts, rootContext })
+        if (res.resolved === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+          throw new InternalError({
+            message: "unhandled resolve key not found",
+          })
+        }
+        value = res.resolved
+        getUnavailableReason = res.getUnavailableReason
+        break
+      }
+
+      // handle templated strings in context variables
+      if (value instanceof UnresolvedTemplateValue) {
+        opts.keyStack.add(getStackEntry())
+        opts.contextStack.add(value)
+        const { resolved } = evaluate(value, { context: getRootContext(), opts })
+        value = resolved
+      }
+
       const parent: CollectionOrValue<ParsedTemplate | TemplatePrimitive | ConfigContext> = value
       if (isTemplatePrimitive(parent)) {
         throw new ContextResolveError({
@@ -181,27 +212,6 @@ export abstract class ConfigContext {
           return Object.keys(parent).filter((k) => !k.startsWith("_"))
         }
         value = parent[nextKey]
-      }
-
-      // handle nested contexts
-      if (value instanceof ConfigContext) {
-        const remainder = getRemainder()
-        const stackEntry = getStackEntry()
-        opts.keyStack.add(stackEntry)
-        opts.contextStack.add(value)
-        // NOTE: we resolve even if remainder.length is zero to make sure all unresolved template values have been resolved.
-        const res = value.resolve({ key: remainder, nodePath: nestedNodePath, opts, rootContext })
-        value = res.resolved
-        getUnavailableReason = res.getUnavailableReason
-        break
-      }
-
-      // handle templated strings in context variables
-      if (value instanceof UnresolvedTemplateValue) {
-        opts.keyStack.add(getStackEntry())
-        opts.contextStack.add(value)
-        const { resolved } = evaluate(value, { context: getRootContext(), opts })
-        value = resolved
       }
 
       if (value === undefined) {
@@ -243,7 +253,13 @@ export abstract class ConfigContext {
     if (!isTemplatePrimitive(value)) {
       value = deepMap(value, (v, keyPath) => {
         if (v instanceof ConfigContext) {
-          return v.resolve({ key: [], nodePath: nodePath.concat(key, keyPath), opts }).resolved
+          const { resolved } = v.resolve({ key: [], nodePath: nodePath.concat(key, keyPath), opts })
+          if (resolved === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+            throw new InternalError({
+              message: "Unhandled context resolve key not found",
+            })
+          }
+          return resolved
         }
         return deepEvaluate(v, { context: getRootContext(), opts })
       })
@@ -252,7 +268,7 @@ export abstract class ConfigContext {
     // Cache result
     this._resolvedValues[path] = value
 
-    return { resolved: value }
+    return { resolved: value as ResolvedTemplate }
   }
 }
 

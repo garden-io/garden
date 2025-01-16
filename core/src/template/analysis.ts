@@ -128,3 +128,35 @@ export function* getContextLookupReferences(
     }
   }
 }
+
+export function someReferences({
+  value,
+  context,
+  onlyEssential = false,
+  matcher,
+}: {
+  value: UnresolvedTemplateValue
+  context: ConfigContext
+  /**
+   * If true, the returned template expression generator will only yield template expressions that
+   * will be evaluated when calling `evaluate`.
+   *
+   * If `evaluate` returns `partial: true`, and `onlyEssential` is set to true, then the unresolved
+   * expressions returned by evaluate will not be emitted by the returned generator.
+   *
+   * @default false
+   */
+  onlyEssential?: boolean
+  matcher: (ref: ContextLookupReferenceFinding) => boolean
+}) {
+  const generator = getContextLookupReferences(value.visitAll({ onlyEssential }), context)
+
+  for (const ref of generator) {
+    const isMatch = matcher(ref)
+    if (isMatch) {
+      return true
+    }
+  }
+
+  return false
+}

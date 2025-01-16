@@ -175,7 +175,7 @@ import {
 } from "./cloud/util.js"
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
-import type { ParsedTemplate } from "./template/types.js"
+import { isTemplatePrimitive, UnresolvedTemplateValue, type ParsedTemplate } from "./template/types.js"
 import { LayeredContext } from "./config/template-contexts/base.js"
 
 const defaultLocalAddress = "localhost"
@@ -1838,8 +1838,10 @@ export class Garden {
       allProviderNames: this.getUnresolvedProviderConfigs().map((p) => p.name),
       allEnvironmentNames,
       namespace: this.namespace,
-      providers: providers.map((p) => (typeof p === "object" && p !== null ? omitInternal(p) : p)),
-      variables: this.variables.resolve({ key: [], nodePath: [], opts: {} }).resolved,
+      providers: providers.map((p) =>
+        !(p instanceof UnresolvedTemplateValue || isTemplatePrimitive(p)) ? omitInternal(p) : p
+      ),
+      variables: this.variables.resolve({ key: [], nodePath: [], opts: {} }).resolved as any,
       actionConfigs: filteredActionConfigs,
       moduleConfigs: moduleConfigs.map(omitInternal),
       workflowConfigs: sortBy(workflowConfigs.map(omitInternal), "name"),
