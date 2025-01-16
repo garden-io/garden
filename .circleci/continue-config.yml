@@ -509,7 +509,7 @@ jobs:
       - configure_git
       - restore_cache:
           keys:
-            - test-framework-tool-cache-v1
+            - test-framework-tool-cache-v1-{{ checksum "package.json" }}
       - run:
           name: Unit test framework components
           command: |
@@ -769,7 +769,7 @@ jobs:
       # Restore plugins tool cache
       - restore_cache:
           keys:
-            - test-plugins-tool-cache-v1
+            - test-plugins-tool-cache-v1-{{ checksum "package.json" }}
 
       # Run tests
       - run:
