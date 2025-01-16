@@ -39,7 +39,7 @@ export function* visitAll({ value }: { value: ParsedTemplate }): TemplateExpress
       })
     }
   } else if (value instanceof UnresolvedTemplateValue) {
-    yield* value.visitAll()
+    yield* value.visitAll({})
   }
 }
 

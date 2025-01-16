@@ -27,7 +27,7 @@ import {
   objectSpreadKey,
 } from "../config/constants.js"
 import mapValues from "lodash-es/mapValues.js"
-import { deepEvaluate, evaluate } from "./evaluate.js"
+import { evaluate } from "./evaluate.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
 import { parseTemplateString } from "./templated-strings.js"
 import { TemplateError } from "./errors.js"
@@ -222,10 +222,6 @@ abstract class StructuralTemplateOperator extends UnresolvedTemplateValue {
     super()
   }
 
-  override *visitAll(): TemplateExpressionGenerator {
-    yield* visitAll({ value: this.template })
-  }
-
   override toJSON(): ResolvedTemplate {
     return deepMap(this.template, (v) => {
       if (!(v instanceof UnresolvedTemplateValue)) {
@@ -244,6 +240,14 @@ export class ConcatLazyValue extends StructuralTemplateOperator {
     private readonly yaml: (ConcatOperator | ParsedTemplate)[] | ForEachLazyValue
   ) {
     super(source, yaml)
+  }
+
+  override *visitAll({ onlyEssential = false }): TemplateExpressionGenerator {
+    if (!onlyEssential) {
+      yield* visitAll({ value: this.yaml })
+    } else if (this.yaml[arrayConcatKey] instanceof UnresolvedTemplateValue) {
+      yield* this.yaml[arrayConcatKey].visitAll({ onlyEssential })
+    }
   }
 
   override evaluate(args: EvaluateTemplateArgs): {
@@ -323,6 +327,19 @@ export class ForEachLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
+  public override *visitAll({ onlyEssential = false }): TemplateExpressionGenerator {
+    if (!onlyEssential) {
+      return yield* visitAll({ value: this.yaml })
+    }
+
+    // let's assume that the array must be fully resolved for now
+    yield* visitAll({ value: this.yaml[arrayForEachKey] })
+
+    if (this.yaml[arrayForEachFilterKey] instanceof UnresolvedTemplateValue) {
+      yield* this.yaml[arrayForEachFilterKey].visitAll({ onlyEssential })
+    }
+  }
+
   override evaluate(args: EvaluateTemplateArgs): {
     partial: true
     resolved: ParsedTemplate[]
@@ -387,6 +404,14 @@ export class ObjectSpreadLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
+  public override *visitAll({ onlyEssential = false }): TemplateExpressionGenerator {
+    if (!onlyEssential) {
+      yield* visitAll({ value: this.yaml })
+    } else if (this.yaml[objectSpreadKey] instanceof UnresolvedTemplateValue) {
+      yield* this.yaml[objectSpreadKey].visitAll({ onlyEssential })
+    }
+  }
+
   override evaluate(args: EvaluateTemplateArgs): {
     partial: true
     resolved: Record<string, ParsedTemplate>
@@ -436,8 +461,26 @@ export class ConditionalLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
+  public override *visitAll({ onlyEssential = false }): TemplateExpressionGenerator {
+    if (!onlyEssential) {
+      return yield* visitAll({ value: this.yaml })
+    }
+
+    if (this.yaml[conditionalKey] instanceof UnresolvedTemplateValue) {
+      yield* this.yaml[conditionalKey].visitAll({ onlyEssential })
+    }
+
+    if (this.yaml[conditionalThenKey] instanceof UnresolvedTemplateValue) {
+      yield* this.yaml[conditionalThenKey].visitAll({ onlyEssential })
+    }
+
+    if (this.yaml[conditionalElseKey] instanceof UnresolvedTemplateValue) {
+      yield* this.yaml[conditionalElseKey].visitAll({ onlyEssential })
+    }
+  }
+
   override evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult {
-    const conditionalValue = deepEvaluate(this.yaml[conditionalKey], args)
+    const conditionalValue = evaluate(this.yaml[conditionalKey], args)
 
     if (typeof conditionalValue !== "boolean") {
       throw new TemplateError({

@@ -225,13 +225,13 @@ export function isNotFound(
   return v === CONTEXT_RESOLVE_KEY_NOT_FOUND
 }
 
-export function isTruthy(v: CollectionOrValue<TemplatePrimitive>): boolean {
+export function isTruthy(v: TemplatePrimitive | Collection<unknown>): boolean {
   if (isTemplatePrimitive(v)) {
     return !!v
   }
 
   // collections are truthy, regardless wether they are empty or not.
-  v satisfies Collection<TemplatePrimitive>
+  v satisfies Collection<unknown>
   return true
 }
 

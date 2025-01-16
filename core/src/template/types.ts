@@ -105,7 +105,18 @@ export abstract class UnresolvedTemplateValue {
   public abstract evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult
   public abstract toJSON(): CollectionOrValue<TemplatePrimitive>
 
-  public abstract visitAll(): TemplateExpressionGenerator
+  public abstract visitAll(opts: {
+    /**
+     * If true, the returned template expression generator will only yield template expressions that
+     * will be evaluated when calling `evaluate`.
+     *
+     * If `evaluate` returns `partial: true`, and `onlyEssential` is set to true, then the unresolved
+     * expressions returned by evaluate will not be emitted by the returned generator.
+     *
+     * @default false
+     */
+    onlyEssential?: boolean
+  }): TemplateExpressionGenerator
 }
 
 // NOTE: this will make sure we throw an error if this value is accidentally treated as resolved.

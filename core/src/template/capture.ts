@@ -64,7 +64,13 @@ export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
     })
   }
 
-  override *visitAll(): TemplateExpressionGenerator {
-    yield* visitAll({ value: this.wrapped })
+  override *visitAll({ onlyEssential = false }): TemplateExpressionGenerator {
+    if (this.wrapped instanceof UnresolvedTemplateValue) {
+      this.wrapped.visitAll({ onlyEssential })
+    } else if (!onlyEssential) {
+      // wrapped is either a primitive or a collection.
+      // Thus, we only visit all if onlyEssential is false.
+      yield* visitAll({ value: this.wrapped })
+    }
   }
 }
