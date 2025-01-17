@@ -150,6 +150,8 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
 
   abstract getDescription(): string
 
+  abstract needsStatus: boolean
+
   abstract getStatus(params: TaskProcessParams): null | Promise<O | null>
 
   abstract process(params: TaskProcessParams): Promise<O>

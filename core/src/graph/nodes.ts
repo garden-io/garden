@@ -218,7 +218,7 @@ export class RequestTaskNode<TaskType extends Task = Task> extends TaskNode<Task
   readonly executionType: NodeType = "request"
 
   override get concurrencyLimit() {
-    return gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
+    return 1
   }
 
   override get concurrencyGroupKey() {
@@ -246,7 +246,7 @@ export class RequestTaskNode<TaskType extends Task = Task> extends TaskNode<Task
   }
 
   getDependencies(): TaskNode[] {
-    if (this.statusOnly) {
+    if (this.statusOnly && this.task.needsStatus) {
       return [this.getNode("status", this.task)]
     } else {
       return [this.getNode("process", this.task)]
@@ -288,15 +288,15 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
 
   getDependencies() {
     const statusTask = this.getNode("status", this.task)
-    const statusResult = this.getDependencyResult(statusTask) as GraphResult<any>
+    const statusResult = this.getDependencyResult(statusTask)
 
-    if (statusResult === undefined) {
+    if (statusResult === undefined && this.task.needsStatus) {
       // Status is still missing
       return [statusTask]
     }
 
     // Either forcing, or status is not ready
-    const processDeps = this.task.getProcessDependencies({ status: statusResult.result })
+    const processDeps = this.task.getProcessDependencies({ status: statusResult?.result ?? null })
     return processDeps.map((task) => this.getNode("process", task))
   }
 
@@ -305,15 +305,15 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
 
     const statusTask = this.getNode("status", this.task)
     // TODO: make this more type-safe
-    const statusResult = this.getDependencyResult(statusTask) as GraphResultFromTask<T>
+    const statusResult = this.getDependencyResult(statusTask)
 
-    if (statusResult === undefined) {
+    if (statusResult === undefined && this.task.needsStatus) {
       throw new InternalError({
         message: `Attempted to execute ${this.describe()} before resolving status.`,
       })
     }
 
-    const status = statusResult.result
+    const status = statusResult?.result ?? null
 
     if (!this.task.force && status?.state === "ready") {
       return status
