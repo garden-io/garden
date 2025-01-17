@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Initialize variables
+aws_profile=""
+file_path=""
+
+# Loop through arguments
+# We expect a profile name and a file path as arguments
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        --profile)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                aws_profile="$2"
+                shift 2
+            else
+                echo "Error: --profile requires a value." >&2
+                exit 1
+            fi
+            ;;
+        --file)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                file_path="$2"
+                shift 2
+            else
+                echo "Error: --file requires a value." >&2
+                exit 1
+            fi
+            ;;
+        *)
+            echo "Invalid argument: $1" >&2
+            echo "Usage: $0 --profile <profile-name> --file <file-path>"
+            exit 1
+            ;;
+    esac
+done
+
+# Ensure both options are provided
+if [[ -z "$aws_profile" || -z "$file_path" ]]; then
+    echo "Both --profile and --file options must be provided."
+    echo "Usage: $0 --profile <profile-name> --file <file-path>"
+    exit 1
+fi
+
+
+s3_bucket=ib-signing-for-garden # s3 bucket name
+file_name=$(basename $file_path) # extract filename from full path
+file_folder=$(dirname $file_path) # extract folder from full path
+
+# Upload file to S3
+echo Starting upload of $file_path to signing bucket
+
+aws s3 cp $file_path s3://$s3_bucket/ --profile $aws_profile
+
+# Check if signed file exists
+check_for_signed_file=1
+while (( check_for_signed_file == 1 )); do
+  echo "Checking if file signed/$file_name exists"
+  file_present=$(aws s3api head-object --bucket $s3_bucket --key "signed/$file_name" --profile $aws_profile > /dev/null 2>&1; echo $?)
+
+  if [ $file_present == 0 ]; then
+    check_for_signed_file=0
+  else
+    sleep 1s
+  fi
+
+done
+
+echo "File successfully signed. Downloading signed file."
+aws s3 cp s3://$s3_bucket/signed/$file_name $file_folder/ --profile $aws_profile
+
+echo "Signed file downloaded to $file_folder/$file_name"

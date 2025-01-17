@@ -5,6 +5,7 @@ orbs:
   win: circleci/windows@5.0.0
   rok8s-scripts: fairwinds/rok8s-scripts@14.1.0
   macos: circleci/macos@2.5.2
+  aws-cli: circleci/aws-cli@5.1.2
 
 parameters:
   run-test-dockerhub:
@@ -456,6 +457,40 @@ jobs:
           targets: "linux-amd64 linux-arm64 alpine-amd64 windows-amd64"
           cargocommand: cross
           context: vm-ubuntu
+      - fail_fast
+
+  sign-windows-binary:
+    machine:
+      <<: *ubuntu-vm-runner
+    resource_class: medium
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
+        default: ""
+    steps:
+      - checkout
+      - *attach-workspace
+      - aws-cli/setup:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+          profile_name: windows-code-signing-ib # Referenced in the script
+      - run:
+          name: Prepare binary for signing
+          command: |
+            unzip dist/garden-<<parameters.version>>-windows-amd64.zip -d dist/
+            mv dist/windows-amd64/garden.exe dist/windows-amd64/garden-<<parameters.version>>-windows-amd64.exe
+      - run:
+          name: Run script to sign Windows binaries
+          command: |
+            ./scripts/sign-windows-binary.sh --file dist/windows-amd64/garden-<<parameters.version>>-windows-amd64.exe --profile windows-code-signing-ib
+      - run:
+          name: Prepare the windows binary zip and cleanup
+          command: |
+            mv dist/windows-amd64/garden-<<parameters.version>>-windows-amd64.exe dist/windows-amd64/garden.exe
+            rm dist/garden-<<parameters.version>>-windows-amd64.zip
+            zip -r dist/garden-<<parameters.version>>-windows-amd64.zip dist/windows-amd64
+            rm -rf dist/windows-amd64
       - fail_fast
 
   lint:
@@ -1429,6 +1464,9 @@ workflows:
       - build-dist-linux-windows:
           <<: *only-tags
           requires: [build]
+      - sign-windows-binary:
+          <<: *only-tags
+          requires: [build-dist-linux-windows]
       - dockerhub-release:
           <<: *only-tags
           context: docker
