@@ -844,7 +844,15 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
   resolveTemplates()
 
-  const configureActionResult = await router.configureAction({ config, log })
+  // hack: because variables are partially resolved & that doesn't play well with joi, we do not provide them to the configure handler.
+  const configureActionResult = await router.configureAction({
+    config: {
+      ...config,
+      variables: {},
+    },
+    log,
+  })
+  configureActionResult.config.variables = config.variables
 
   const { config: updatedConfig } = configureActionResult
 
