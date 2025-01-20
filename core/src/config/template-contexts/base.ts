@@ -171,6 +171,27 @@ export abstract class ConfigContext {
       const getStackEntry = () => renderKeyPath(capturedNestedNodePath)
       getAvailableKeys = undefined
 
+      const parent: CollectionOrValue<ParsedTemplate | TemplatePrimitive | ConfigContext> = value
+      if (isTemplatePrimitive(parent)) {
+        throw new ContextResolveError({
+          message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof parent}.`,
+        })
+      } else if (typeof nextKey === "string" && nextKey.startsWith("_")) {
+        value = undefined
+      } else if (parent instanceof Map) {
+        getAvailableKeys = () => Array.from(parent.keys())
+        value = parent.get(nextKey)
+      } else {
+        getAvailableKeys = () => {
+          return Object.keys(parent).filter((k) => !k.startsWith("_"))
+        }
+        value = parent[nextKey]
+      }
+
+      if (value === undefined) {
+        break
+      }
+
       // handle nested contexts
       if (value instanceof ConfigContext) {
         const remainder = getRemainder()
@@ -195,27 +216,6 @@ export abstract class ConfigContext {
         opts.contextStack.add(value)
         const { resolved } = evaluate(value, { context: getRootContext(), opts })
         value = resolved
-      }
-
-      const parent: CollectionOrValue<ParsedTemplate | TemplatePrimitive | ConfigContext> = value
-      if (isTemplatePrimitive(parent)) {
-        throw new ContextResolveError({
-          message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof parent}.`,
-        })
-      } else if (typeof nextKey === "string" && nextKey.startsWith("_")) {
-        value = undefined
-      } else if (parent instanceof Map) {
-        getAvailableKeys = () => Array.from(parent.keys())
-        value = parent.get(nextKey)
-      } else {
-        getAvailableKeys = () => {
-          return Object.keys(parent).filter((k) => !k.startsWith("_"))
-        }
-        value = parent[nextKey]
-      }
-
-      if (value === undefined) {
-        break
       }
     }
 
@@ -381,6 +381,7 @@ export function renderKeyPath(key: ContextKeySegment[]): string {
       }, stringSegments[0])
   )
 }
+
 export class CapturedContext extends ConfigContext {
   constructor(
     private readonly wrapped: ConfigContext,
@@ -399,10 +400,12 @@ export class CapturedContext extends ConfigContext {
 
 export class LayeredContext extends ConfigContext {
   private readonly contexts: ConfigContext[]
+
   constructor(...contexts: ConfigContext[]) {
     super()
     this.contexts = contexts
   }
+
   override resolve(args: ContextResolveParams): ContextResolveOutput {
     const items: ResolvedTemplate[] = []
 
