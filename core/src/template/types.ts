@@ -9,6 +9,7 @@
 import type { Primitive } from "utility-types"
 import { isPrimitive } from "utility-types"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
+import { deepMap } from "../util/objects.js"
 import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 import type { TemplateExpressionGenerator } from "./analysis.js"
 import { InternalError } from "../exceptions.js"
@@ -126,3 +127,12 @@ export abstract class UnresolvedTemplateValue {
 
 // NOTE: this will make sure we throw an error if this value is accidentally treated as resolved.
 Object.setPrototypeOf(UnresolvedTemplateValue.prototype, accessDetector)
+
+export function serialiseUnresolvedTemplates(arg: unknown): unknown {
+  return deepMap(arg, (v) => {
+    if (v instanceof UnresolvedTemplateValue) {
+      return v.toJSON()
+    }
+    return v
+  })
+}
