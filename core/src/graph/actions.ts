@@ -511,9 +511,13 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   let variables = await mergeVariables({
     basePath: effectiveConfigFileLocation,
-    variables: new GenericContext(capture(config.variables,
-      // TODO: What's the correct context here?
-      garden.getProjectConfigContext()) || {}),
+    variables: new GenericContext(
+      capture(
+        config.variables,
+        // TODO: What's the correct context here?
+        garden.getProjectConfigContext()
+      ) || {}
+    ),
     varfiles: config.varfiles,
     log,
   })
