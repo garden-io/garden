@@ -14,26 +14,26 @@ import nock from "nock"
 import { dirname, join, resolve } from "node:path"
 import { Garden } from "../../../src/garden.js"
 import {
+  createProjectConfig,
   expectError,
+  expectFuzzyMatch,
+  getDataDir,
+  getEmptyPluginActionDefinitions,
+  makeExtModuleSourcesGarden,
+  makeExtProjectSourcesGarden,
+  makeModuleConfig,
+  makeTempGarden,
   makeTestGarden,
   makeTestGardenA,
   projectRootA,
-  getDataDir,
-  testModuleVersion,
-  TestGarden,
-  testPlugin,
-  makeExtProjectSourcesGarden,
-  makeExtModuleSourcesGarden,
-  testGitUrlHash,
   resetLocalConfig,
+  TestGarden,
   testGitUrl,
-  expectFuzzyMatch,
-  createProjectConfig,
-  makeModuleConfig,
-  makeTempGarden,
-  getEmptyPluginActionDefinitions,
+  testGitUrlHash,
+  testModuleVersion,
+  testPlugin,
 } from "../../helpers.js"
-import { getNames, findByName, exec } from "../../../src/util/util.js"
+import { exec, findByName, getNames } from "../../../src/util/util.js"
 import type { LinkedSource } from "../../../src/config-store/local.js"
 import type { ModuleVersion, TreeVersion } from "../../../src/vcs/vcs.js"
 import { getModuleVersionString } from "../../../src/vcs/vcs.js"
@@ -52,14 +52,12 @@ import {
   gardenEnv,
 } from "../../../src/constants.js"
 import { providerConfigBaseSchema } from "../../../src/config/provider.js"
-import { keyBy, set, mapValues, omit, cloneDeep } from "lodash-es"
+import { cloneDeep, keyBy, mapValues, omit, set } from "lodash-es"
 import { joi } from "../../../src/config/common.js"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs.js"
 import fsExtra from "fs-extra"
-
-const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 import { dedent, deline, randomString, wordWrap } from "../../../src/util/string.js"
-import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util.js"
+import { addLinkedSources, getLinkedSources } from "../../../src/util/ext-source-util.js"
 import { dump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs.js"
 import type { ActionRouter } from "../../../src/router/router.js"
@@ -71,7 +69,7 @@ import { add } from "date-fns"
 import stripAnsi from "strip-ansi"
 import { GardenCloudApi } from "../../../src/cloud/api.js"
 import { GlobalConfigStore } from "../../../src/config-store/global.js"
-import { LogLevel, getRootLogger } from "../../../src/logger/logger.js"
+import { getRootLogger, LogLevel } from "../../../src/logger/logger.js"
 import { uuidv4 } from "../../../src/util/random.js"
 import { fileURLToPath } from "node:url"
 import { resolveMsg } from "../../../src/logger/log-entry.js"
@@ -80,6 +78,9 @@ import type { RunActionConfig } from "../../../src/actions/run.js"
 import type { ProjectResult } from "@garden-io/platform-api-types"
 import { ProjectStatus } from "@garden-io/platform-api-types"
 import { getCloudDistributionName } from "../../../src/cloud/util.js"
+import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
+
+const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -3014,15 +3015,15 @@ describe("Garden", () => {
       const deploy = configs.Deploy["foo-test"]
       const test = configs.Test["foo-test"]
 
-      const internal = {
+      const expectedInternal = {
         basePath: garden.projectRoot,
         configFilePath: join(garden.projectRoot, "actions.garden.yml"),
         parentName: "foo",
         templateName: "combo",
         inputs: {
           name: "test",
-          envName: "${environment.name}", // <- should be resolved to itself
-          providerKey: "${providers.test-plugin.outputs.testKey}", // <- should be resolved to itself
+          envName: "${environment.name}",
+          providerKey: "${providers.test-plugin.outputs.testKey}",
         },
       }
 
@@ -3031,15 +3032,19 @@ describe("Garden", () => {
       expect(test).to.exist
 
       expect(build.type).to.equal("test")
-      expect(build.spec.command).to.include(internal.inputs.name) // <- should be resolved
-      expect(omit(build.internal, "yamlDoc")).to.eql(internal)
+      expect(serialiseUnresolvedTemplates(build.spec.command)).to.eql(["echo", "echo-prefix", "${inputs.name}"])
+      expect(serialiseUnresolvedTemplates(omit(build.internal, "yamlDoc"))).to.eql(expectedInternal)
 
-      expect(deploy["build"]).to.equal(`${internal.parentName}-${internal.inputs.name}`) // <- should be resolved
-      expect(omit(deploy.internal, "yamlDoc")).to.eql(internal)
+      expect(serialiseUnresolvedTemplates(deploy["build"])).to.equal("${parent.name}-${inputs.name}")
+      expect(serialiseUnresolvedTemplates(omit(deploy.internal, "yamlDoc"))).to.eql(expectedInternal)
 
-      expect(test.dependencies).to.eql([`build.${internal.parentName}-${internal.inputs.name}`]) // <- should be resolved
-      expect(test.spec.command).to.eql(["echo", internal.inputs.envName, internal.inputs.providerKey]) // <- should be resolved
-      expect(omit(test.internal, "yamlDoc")).to.eql(internal)
+      expect(serialiseUnresolvedTemplates(test.dependencies)).to.eql(["build.${parent.name}-${inputs.name}"])
+      expect(serialiseUnresolvedTemplates(test.spec.command)).to.eql([
+        "echo",
+        "${inputs.envName}",
+        "${inputs.providerKey}",
+      ])
+      expect(serialiseUnresolvedTemplates(omit(test.internal, "yamlDoc"))).to.eql(expectedInternal)
     })
 
     it("should resolve disabled flag in actions and allow two actions with same key if one is disabled", async () => {
