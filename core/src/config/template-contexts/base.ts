@@ -51,7 +51,7 @@ export type ContextResolveOutput =
       getUnavailableReason?: undefined
     }
   | {
-      resolved: typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+      resolved: ContextResolveKeyNotFound
       getUnavailableReason: () => string
     }
 
@@ -76,6 +76,7 @@ export class ContextResolveError extends GardenError {
 }
 
 export const CONTEXT_RESOLVE_KEY_NOT_FOUND: unique symbol = Symbol.for("ContextResolveKeyNotFound")
+export type ContextResolveKeyNotFound = typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
 
 // Note: we're using classes here to be able to use decorators to describe each context node and key
 @Profile()
