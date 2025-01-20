@@ -79,6 +79,8 @@ import type { ProjectResult } from "@garden-io/platform-api-types"
 import { ProjectStatus } from "@garden-io/platform-api-types"
 import { getCloudDistributionName } from "../../../src/cloud/util.js"
 import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
+import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
+import { GenericContext, LayeredContext } from "../../../src/config/template-contexts/base.js"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -2912,17 +2914,20 @@ describe("Garden", () => {
         await exec("git", ["add", "."], { cwd: repoPath })
         await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
 
-        garden.variables["sourceBranch"] = "main"
+        garden.variables = new LayeredContext(garden.variables, new GenericContext({ var: { sourceBranch: "main" } }))
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const _garden = garden as any
-        _garden["projectSources"] = [
-          {
-            name: "source-a",
-            // Use a couple of template strings in the repo path
-            repositoryUrl: "file://" + _tmpDir.path + "/${project.name}#${var.sourceBranch}",
-          },
-        ]
+        _garden["projectSources"] = parseTemplateCollection({
+          value: [
+            {
+              name: "source-a",
+              // Use a couple of template strings in the repo path
+              repositoryUrl: "file://" + _tmpDir.path + "/${project.name}#${var.sourceBranch}",
+            },
+          ],
+          source: { path: [] },
+        })
 
         await garden.scanAndAddConfigs()
 
@@ -3103,24 +3108,24 @@ describe("Garden", () => {
         type: "exec",
         name: runNameA,
         spec: {
-          command: ["echo", runNameA],
+          command: ["echo", "${item.value}"],
         },
         internal,
       }
-      expect(omit(runA, "internal")).to.eql(omit(expectedRunA, "internal"))
-      expect(omit(runA.internal, "yamlDoc")).to.eql(expectedRunA.internal)
+      expect(serialiseUnresolvedTemplates(omit(runA, "internal"))).to.eql(omit(expectedRunA, "internal"))
+      expect(serialiseUnresolvedTemplates(omit(runA.internal, "yamlDoc"))).to.eql(expectedRunA.internal)
 
       const expectedRunB: Partial<RunActionConfig> = {
         kind: "Run",
         type: "exec",
         name: runNameB,
         spec: {
-          command: ["echo", runNameB],
+          command: ["echo", "${item.value}"],
         },
         internal,
       }
-      expect(omit(runB, "internal")).to.eql(omit(expectedRunB, "internal"))
-      expect(omit(runB.internal, "yamlDoc")).to.eql(expectedRunB.internal)
+      expect(serialiseUnresolvedTemplates(omit(runB, "internal"))).to.eql(omit(expectedRunB, "internal"))
+      expect(serialiseUnresolvedTemplates(omit(runB.internal, "yamlDoc"))).to.eql(expectedRunB.internal)
     })
 
     it("should resolve a workflow from a template", async () => {
@@ -3136,13 +3141,13 @@ describe("Garden", () => {
         templateName: "workflows",
         inputs: {
           name: "test",
-          envName: "${environment.name}", // <- should be resolved to itself
+          envName: "${environment.name}",
         },
       }
 
       expect(workflow).to.exist
-      expect(workflow.steps).to.eql([{ script: `echo "${internal.inputs.envName}"` }]) // <- should be resolved
-      expect(omit(workflow.internal, "yamlDoc")).to.eql(internal)
+      expect(serialiseUnresolvedTemplates(workflow.steps)).to.eql([{ script: 'echo "${inputs.envName}"' }])
+      expect(serialiseUnresolvedTemplates(omit(workflow.internal, "yamlDoc"))).to.eql(internal)
     })
 
     it("should throw on duplicate config template names", async () => {
@@ -3174,7 +3179,7 @@ describe("Garden", () => {
     })
 
     // TODO-0.14: remove this and core/test/data/test-projects/project-include-exclude-old-syntax directory
-    it("should respect the modules.include and modules.exclude fields, if specified", async () => {
+    it("should respect the modules.include and modules.exclude fields, if specified (old syntax)", async () => {
       const projectRoot = getDataDir("test-projects", "project-include-exclude-old-syntax")
       const garden = await makeTestGarden(projectRoot)
       const modules = await garden.resolveModules({ log: garden.log })
