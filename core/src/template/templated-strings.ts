@@ -67,6 +67,10 @@ class ParsedTemplateString extends UnresolvedTemplateValue {
     return this.rootNode.rawText
   }
 
+  override toString(): string {
+    return `UnresolvedTemplateValue(${this.rootNode.rawText})`
+  }
+
   public override *visitAll(): TemplateExpressionGenerator {
     yield* this.rootNode.visitAll(this.source)
   }

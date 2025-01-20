@@ -91,7 +91,7 @@ const accessDetector = new Proxy(
 )
 
 export abstract class UnresolvedTemplateValue {
-  constructor() {
+  protected constructor() {
     // The spread trap exists to make our code more robust by detecting spreading unresolved template values.
     Object.defineProperty(this, "objectSpreadTrap", {
       enumerable: true,
@@ -103,6 +103,7 @@ export abstract class UnresolvedTemplateValue {
   }
 
   public abstract evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult
+
   public abstract toJSON(): CollectionOrValue<TemplatePrimitive>
 
   public abstract visitAll(opts: {
@@ -117,6 +118,10 @@ export abstract class UnresolvedTemplateValue {
      */
     onlyEssential?: boolean
   }): TemplateExpressionGenerator
+
+  public toString(): string {
+    return `UnresolvedTemplateValue(${this.constructor.name})`
+  }
 }
 
 // NOTE: this will make sure we throw an error if this value is accidentally treated as resolved.
