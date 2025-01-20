@@ -247,10 +247,6 @@ export class ParameterError extends GardenError {
   type = "parameter"
 }
 
-export class NotImplementedError extends GardenError {
-  type = "not-implemented"
-}
-
 export class DeploymentError extends GardenError {
   type = "deployment"
 }
@@ -423,6 +419,8 @@ export class InternalError extends GardenError {
     return styles.error(`${styles.bold(header)}\n\n${body}\n\n${styles.primary(bugReportInformation)}`)
   }
 }
+
+export class NotImplementedError extends InternalError {}
 
 export function toGardenError(err: Error | GardenError | string | any): GardenError {
   if (err instanceof GardenError) {

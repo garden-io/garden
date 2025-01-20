@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import type { ConfigContext } from "../../../../../src/config/template-contexts/base.js"
 import type { TestGarden } from "../../../../helpers.js"
 import { expectError, makeTestGardenA } from "../../../../helpers.js"
 import {
@@ -17,13 +16,6 @@ import {
 import type { WorkflowConfig } from "../../../../../src/config/workflow.js"
 import { defaultWorkflowResources } from "../../../../../src/config/workflow.js"
 import { GardenApiVersion } from "../../../../../src/constants.js"
-
-type TestValue = string | ConfigContext | TestValues | TestValueFunction
-type TestValueFunction = () => TestValue | Promise<TestValue>
-
-interface TestValues {
-  [key: string]: TestValue
-}
 
 describe("WorkflowConfigContext", () => {
   let garden: TestGarden
@@ -37,41 +29,41 @@ describe("WorkflowConfigContext", () => {
 
   it("should resolve local env variables", async () => {
     process.env.TEST_VARIABLE = "foo"
-    expect(c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.eql({
+    expect(c.resolve({ key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
       resolved: "foo",
     })
     delete process.env.TEST_VARIABLE
   })
 
   it("should resolve the local arch", async () => {
-    expect(c.resolve({ key: ["local", "arch"], nodePath: [], opts: {} })).to.eql({
+    expect(c.resolve({ key: ["local", "arch"], opts: {} })).to.eql({
       resolved: process.arch,
     })
   })
 
   it("should resolve the local platform", async () => {
-    expect(c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
+    expect(c.resolve({ key: ["local", "platform"], opts: {} })).to.eql({
       resolved: process.platform,
     })
   })
 
   it("should resolve the environment config", async () => {
-    expect(c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({
+    expect(c.resolve({ key: ["environment", "name"], opts: {} })).to.eql({
       resolved: garden.environmentName,
     })
   })
 
   it("should resolve a project variable", async () => {
-    expect(c.resolve({ key: ["variables", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
+    expect(c.resolve({ key: ["variables", "some"], opts: {} })).to.eql({ resolved: "variable" })
   })
 
   it("should resolve a project variable under the var alias", async () => {
-    expect(c.resolve({ key: ["var", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
+    expect(c.resolve({ key: ["var", "some"], opts: {} })).to.eql({ resolved: "variable" })
   })
 
   context("secrets", () => {
     it("should resolve a secret", async () => {
-      expect(c.resolve({ key: ["secrets", "someSecret"], nodePath: [], opts: {} })).to.eql({
+      expect(c.resolve({ key: ["secrets", "someSecret"], opts: {} })).to.eql({
         resolved: "someSecretValue",
       })
     })
@@ -112,9 +104,10 @@ describe("WorkflowStepConfigContext", () => {
       },
       stepName: "step-2",
     })
-    expect(c.resolve({ key: ["steps", "step-1", "outputs", "some"], nodePath: [], opts: {} }).resolved).to.equal(
-      "value"
-    )
+    expect(c.resolve({ key: ["steps", "step-1", "outputs", "some"], opts: {} })).to.equal({
+      found: true,
+      resolved: "value",
+    })
   })
 
   it("should successfully resolve the log from a prior resolved step", () => {
@@ -131,7 +124,10 @@ describe("WorkflowStepConfigContext", () => {
       },
       stepName: "step-2",
     })
-    expect(c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }).resolved).to.equal("bla")
+    expect(c.resolve({ key: ["steps", "step-1", "log"], opts: {} })).to.equal({
+      found: true,
+      resolved: "bla",
+    })
   })
 
   it("should throw error when attempting to reference a following step", () => {
@@ -142,7 +138,7 @@ describe("WorkflowStepConfigContext", () => {
       resolvedSteps: {},
       stepName: "step-1",
     })
-    void expectError(() => c.resolve({ key: ["steps", "step-2", "log"], nodePath: [], opts: {} }), {
+    void expectError(() => c.resolve({ key: ["steps", "step-2", "log"], opts: {} }), {
       contains:
         "Step step-2 is referenced in a template for step step-1, but step step-2 is later in the execution order. Only previous steps in the workflow can be referenced.",
     })
@@ -156,7 +152,7 @@ describe("WorkflowStepConfigContext", () => {
       resolvedSteps: {},
       stepName: "step-1",
     })
-    void expectError(() => c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }), {
+    void expectError(() => c.resolve({ key: ["steps", "step-1", "log"], opts: {} }), {
       contains: "Step step-1 references itself in a template. Only previous steps in the workflow can be referenced.",
     })
   })

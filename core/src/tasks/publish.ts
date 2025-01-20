@@ -12,7 +12,7 @@ import { BaseActionTask } from "../tasks/base.js"
 import { resolveTemplateString } from "../template/templated-strings.js"
 import { joi } from "../config/common.js"
 import { versionStringPrefix } from "../vcs/vcs.js"
-import { ConfigContext, schema } from "../config/template-contexts/base.js"
+import { ContextWithSchema, schema } from "../config/template-contexts/base.js"
 import type { PublishActionResult } from "../plugin/handlers/Build/publish.js"
 import type { BuildAction } from "../actions/build.js"
 import type { ActionSpecContextParams } from "../config/template-contexts/actions.js"
@@ -144,7 +144,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
   }
 }
 
-class BuildSelfContext extends ConfigContext {
+class BuildSelfContext extends ContextWithSchema {
   @schema(joi.string().description("The name of the build being tagged."))
   public name: string
 
@@ -154,8 +154,8 @@ class BuildSelfContext extends ConfigContext {
   @schema(joi.string().description("The version hash of the build being tagged (minus the 'v-' prefix)."))
   public hash: string
 
-  constructor(parent: ConfigContext, build: BuildAction) {
-    super(parent)
+  constructor(build: BuildAction) {
+    super()
     this.name = build.name
     this.version = build.versionString()
     this.hash = this.version.slice(versionStringPrefix.length)
@@ -171,6 +171,6 @@ class BuildTagContext extends ActionSpecContext {
 
   constructor(params: ActionSpecContextParams & { action: BuildAction }) {
     super(params)
-    this.build = this.module = new BuildSelfContext(this, params.action)
+    this.build = this.module = new BuildSelfContext(params.action)
   }
 }

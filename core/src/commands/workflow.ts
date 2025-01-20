@@ -88,7 +88,6 @@ export class WorkflowCommand extends Command<Args, {}> {
     await registerAndSetUid(garden, log, workflow)
     garden.events.emit("workflowRunning", {})
     const templateContext = new WorkflowConfigContext(garden, garden.variables)
-    const yamlDoc = workflow.internal.yamlDoc
     const files = deepEvaluate((workflow.files || []) as unknown as ParsedTemplate[], {
       context: templateContext,
       opts: {},

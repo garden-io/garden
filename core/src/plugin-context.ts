@@ -14,7 +14,7 @@ import { providerSchema } from "./config/provider.js"
 import { deline } from "./util/string.js"
 import { joi, joiVariables, joiStringMap, joiIdentifier, createSchema } from "./config/common.js"
 import type { PluginTool } from "./util/ext-tools.js"
-import type { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base.js"
+import type { ContextWithSchema, ContextResolveOpts } from "./config/template-contexts/base.js"
 import { resolveTemplateString } from "./template/templated-strings.js"
 import type { Log } from "./logger/log-entry.js"
 import { logEntrySchema } from "./plugin/base.js"
@@ -207,7 +207,7 @@ export async function createPluginContext({
   garden: Garden
   provider: Provider
   command: CommandInfo
-  templateContext: ConfigContext
+  templateContext: ContextWithSchema
   events: PluginEventBroker | undefined
 }): Promise<PluginContext> {
   return {

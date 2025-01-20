@@ -7,19 +7,18 @@
  */
 
 import type Joi from "@hapi/joi"
-import { ConfigurationError, GardenError, InternalError } from "../../exceptions.js"
+import { ConfigurationError, InternalError } from "../../exceptions.js"
 import type { CustomObjectSchema } from "../common.js"
 import { joi, joiIdentifier } from "../common.js"
-import { naturalList } from "../../util/string.js"
-import { styles } from "../../logger/styles.js"
 import { Profile } from "../../util/profiling.js"
-import type { Collection } from "../../util/objects.js"
-import { deepMap, isPlainObject, type CollectionOrValue } from "../../util/objects.js"
-import type { ParsedTemplate, ResolvedTemplate, TemplatePrimitive } from "../../template/types.js"
+import { deepMap, type Collection, type CollectionOrValue } from "../../util/objects.js"
+import type { ParsedTemplate, ParsedTemplateValue, ResolvedTemplate, TemplatePrimitive } from "../../template/types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "../../template/types.js"
-import pick from "lodash-es/pick.js"
-import { deepEvaluate, evaluate } from "../../template/evaluate.js"
 import merge from "lodash-es/merge.js"
+import omitBy from "lodash-es/omitBy.js"
+import { flatten, isEqual, uniq } from "lodash-es"
+import { isMap } from "util/types"
+import { deline } from "../../util/string.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -30,30 +29,55 @@ export interface ContextResolveOpts {
   // TODO(0.14): Remove legacyAllowPartial
   legacyAllowPartial?: boolean
 
-  // a list of values for detecting circular references
-  contextStack?: Set<unknown>
-  keyStack?: Set<string>
+  // for detecting circular references
+  stack?: string[]
 
   // TODO: remove
   unescape?: boolean
 }
 
 export interface ContextResolveParams {
+  /**
+   * Key path to look up in the context.
+   */
   key: ContextKey
-  nodePath: ContextKey
+
+  /**
+   * Context lookup options (Deprecated; These mostly affect template string evaluation)
+   */
   opts: ContextResolveOpts
+
+  /**
+   * The context to be used when evaluating encountered instances of `UnresolvedTemplateValue`.
+   */
   rootContext?: ConfigContext
+}
+
+export type ContextResolveOutputNotFound = {
+  found: false
+  /**
+   * @example
+   * {
+   *  reason: "key_not_found",
+   *  key: "foo"
+   *  keyPath: ["var"], // var does not have a key foo
+   * }
+   */
+  explanation: {
+    reason: "key_not_found" | "not_indexable"
+    key: string | number
+    keyPath: (string | number)[]
+    availableKeys?: (string | number)[]
+  }
 }
 
 export type ContextResolveOutput =
   | {
+      found: true
       resolved: ResolvedTemplate
-      getUnavailableReason?: undefined
+      partial?: Collection<ConfigContext | ParsedTemplate> | TemplatePrimitive
     }
-  | {
-      resolved: typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-      getUnavailableReason: () => string
-    }
+  | ContextResolveOutputNotFound
 
 export function schema(joiSchema: Joi.Schema) {
   return (target: any, propName: string) => {
@@ -62,213 +86,86 @@ export function schema(joiSchema: Joi.Schema) {
 }
 
 export interface ConfigContextType {
-  new (...params: any[]): ConfigContext
+  new (...params: any[]): ContextWithSchema
 
   getSchema(): CustomObjectSchema
 }
 
-/**
- * This error is thrown for a "final" errors, i.e. ones that cannot be ignored.
- * For key not found errors that could be resolvable we still can return a special symbol.
- */
-export class ContextResolveError extends GardenError {
-  type = "context-resolve"
-}
+let globalConfigContextCounter: number = 0
 
-export const CONTEXT_RESOLVE_KEY_NOT_FOUND: unique symbol = Symbol.for("ContextResolveKeyNotFound")
-
-// Note: we're using classes here to be able to use decorators to describe each context node and key
-@Profile()
 export abstract class ConfigContext {
-  private readonly _rootContext?: ConfigContext
-  private readonly _resolvedValues: { [path: string]: any }
-  private readonly _startingPoint?: string
+  private readonly _cache: Map<string, ContextResolveOutput>
+  private readonly _id: number
 
-  constructor(rootContext?: ConfigContext, startingPoint?: string) {
-    if (rootContext) {
-      this._rootContext = rootContext
-    }
-    if (startingPoint) {
-      this._startingPoint = startingPoint
-    }
-    this._resolvedValues = {}
+  constructor() {
+    this._id = globalConfigContextCounter++
+    this._cache = new Map()
   }
 
-  static getSchema() {
-    const schemas = (<any>this)._schemas
-    return joi.object().keys(schemas).required()
+  private detectCircularReference({ key, opts }: ContextResolveParams) {
+    const keyStr = `${this.constructor.name}(${this._id})-${renderKeyPath(key)}`
+    if (opts.stack?.includes(keyStr)) {
+      throw new ConfigurationError({
+        message: `Circular reference detected: ${opts.stack.map((s) => s.split("-")[1]).join(" -> ")}`,
+      })
+    }
+    return keyStr
+  }
+
+  protected abstract resolveImpl(params: ContextResolveParams): ContextResolveOutput
+
+  public resolve(params: ContextResolveParams): ContextResolveOutput {
+    const key = this.detectCircularReference(params)
+    if (!params.opts.stack) {
+      params.opts.stack = [key]
+    } else {
+      params.opts.stack.push(key)
+    }
+
+    try {
+      let res = this._cache.get(key)
+      if (res) {
+        return res
+      }
+      res = this.resolveImpl(params)
+      if (res.found) {
+        this._cache.set(key, res)
+      }
+      return res
+    } finally {
+      params.opts.stack.pop()
+    }
   }
 
   /**
    * Override this method to add more context to error messages thrown in the `resolve` method when a missing key is
    * referenced.
    */
-  getMissingKeyErrorFooter(_key: ContextKeySegment, _path: ContextKeySegment[]): string {
+  protected getMissingKeyErrorFooter(_key: ContextKeySegment, _path: ContextKeySegment[]): string {
     return ""
   }
+}
 
-  resolve({ key, nodePath, opts, rootContext }: ContextResolveParams): ContextResolveOutput {
-    const getRootContext = () => {
-      if (rootContext && this._rootContext) {
-        return new LayeredContext(rootContext, this._rootContext)
-      }
-      return rootContext || this._rootContext || this
-    }
+// Note: we're using classes here to be able to use decorators to describe each context node and key
+@Profile()
+export abstract class ContextWithSchema extends ConfigContext {
+  static getSchema() {
+    const schemas = (<any>this)._schemas
+    return joi.object().keys(schemas).required()
+  }
 
-    const path = key.join(".")
+  private get startingPoint() {
+    // Make sure we filter keys that start with underscore
+    return
+  }
 
-    // if the key has previously been resolved, return it directly
-    const alreadyResolved = this._resolvedValues[path]
-
-    if (alreadyResolved) {
-      return { resolved: alreadyResolved }
-    }
-
-    // keep track of which resolvers have been called, in order to detect circular references
-    let getAvailableKeys: (() => string[]) | undefined = undefined
-
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let value: CollectionOrValue<ParsedTemplate | TemplatePrimitive | ConfigContext> = this._startingPoint
-      ? this[this._startingPoint]
-      : this
-
-    if (!isPlainObject(value) && !(value instanceof ConfigContext) && !(value instanceof UnresolvedTemplateValue)) {
-      throw new InternalError({
-        message: `Invalid config context root: ${typeof value}`,
-      })
-    }
-
-    // TODO: freeze opts object instead of using shallow copy
-    opts.keyStack = new Set(opts.keyStack || [])
-    opts.contextStack = new Set(opts.contextStack || [])
-
-    if (opts.contextStack.has(value)) {
-      // TODO: fix circular ref detection
-      // Circular dependency error is critical, throwing here.
-      // throw new ContextResolveError({
-      //   message: `Circular reference detected when resolving key ${path} (${Array.from(opts.keyStack || []).join(" -> ")})`,
-      // })
-    }
-
-    let nextKey = key[0]
-    let nestedNodePath = nodePath
-    let getUnavailableReason: (() => string) | undefined = undefined
-
-    if (key.length === 0 && !(value instanceof UnresolvedTemplateValue)) {
-      value = pick(
-        value,
-        Object.keys(value as Collection<unknown>).filter((k) => !k.startsWith("_"))
-      ) as Record<string, CollectionOrValue<TemplatePrimitive | ConfigContext>>
-    }
-
-    for (let p = 0; p < key.length; p++) {
-      nextKey = key[p]
-
-      nestedNodePath = nodePath.concat(key.slice(0, p + 1))
-      const getRemainder = () => key.slice(p + 1)
-
-      const capturedNestedNodePath = nestedNodePath
-      const getStackEntry = () => renderKeyPath(capturedNestedNodePath)
-      getAvailableKeys = undefined
-
-      // handle nested contexts
-      if (value instanceof ConfigContext) {
-        const remainder = getRemainder()
-        const stackEntry = getStackEntry()
-        opts.keyStack.add(stackEntry)
-        opts.contextStack.add(value)
-        // NOTE: we resolve even if remainder.length is zero to make sure all unresolved template values have been resolved.
-        const res = value.resolve({ key: remainder, nodePath: nestedNodePath, opts, rootContext })
-        if (res.resolved === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-          throw new InternalError({
-            message: "unhandled resolve key not found",
-          })
-        }
-        value = res.resolved
-        getUnavailableReason = res.getUnavailableReason
-        break
-      }
-
-      // handle templated strings in context variables
-      if (value instanceof UnresolvedTemplateValue) {
-        opts.keyStack.add(getStackEntry())
-        opts.contextStack.add(value)
-        const { resolved } = evaluate(value, { context: getRootContext(), opts })
-        value = resolved
-      }
-
-      const parent: CollectionOrValue<ParsedTemplate | TemplatePrimitive | ConfigContext> = value
-      if (isTemplatePrimitive(parent)) {
-        throw new ContextResolveError({
-          message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof parent}.`,
-        })
-      } else if (typeof nextKey === "string" && nextKey.startsWith("_")) {
-        value = undefined
-      } else if (parent instanceof Map) {
-        getAvailableKeys = () => Array.from(parent.keys())
-        value = parent.get(nextKey)
-      } else {
-        getAvailableKeys = () => {
-          return Object.keys(parent).filter((k) => !k.startsWith("_"))
-        }
-        value = parent[nextKey]
-      }
-
-      if (value === undefined) {
-        break
-      }
-    }
-
-    if (value === undefined || typeof value === "symbol") {
-      if (getUnavailableReason === undefined) {
-        getUnavailableReason = () => {
-          let message = styles.error(`Could not find key ${styles.highlight(String(nextKey))}`)
-          if (nestedNodePath.length > 1) {
-            message += styles.error(" under ") + styles.highlight(renderKeyPath(nestedNodePath.slice(0, -1)))
-          }
-          message += styles.error(".")
-
-          if (getAvailableKeys) {
-            const availableKeys = getAvailableKeys()
-            const availableStr = availableKeys.length
-              ? naturalList(availableKeys.sort().map((k) => styles.highlight(k)))
-              : "(none)"
-            message += styles.error(" Available keys: " + availableStr + ".")
-          }
-          const messageFooter = this.getMissingKeyErrorFooter(nextKey, nestedNodePath.slice(0, -1))
-          if (messageFooter) {
-            message += `\n\n${messageFooter}`
-          }
-          return message
-        }
-      }
-
-      if (typeof value === "symbol") {
-        return { resolved: value, getUnavailableReason }
-      }
-
-      return { resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND, getUnavailableReason }
-    }
-
-    if (!isTemplatePrimitive(value)) {
-      value = deepMap(value, (v, keyPath) => {
-        if (v instanceof ConfigContext) {
-          const { resolved } = v.resolve({ key: [], nodePath: nodePath.concat(key, keyPath), opts })
-          if (resolved === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-            throw new InternalError({
-              message: "Unhandled context resolve key not found",
-            })
-          }
-          return resolved
-        }
-        return deepEvaluate(v, { context: getRootContext(), opts })
-      })
-    }
-
-    // Cache result
-    this._resolvedValues[path] = value
-
-    return { resolved: value as ResolvedTemplate }
+  protected override resolveImpl(params: ContextResolveParams): ContextResolveOutput {
+    return traverseContext(
+      omitBy(this, (key) => typeof key === "string" && key.startsWith("_")) as CollectionOrValue<
+        ParsedTemplate | ConfigContext
+      >,
+      { ...params, rootContext: params.rootContext || this }
+    )
   }
 }
 
@@ -276,27 +173,27 @@ export abstract class ConfigContext {
  * A generic context that just wraps an object.
  */
 export class GenericContext extends ConfigContext {
-  constructor(private readonly data: any) {
+  constructor(protected readonly data: ParsedTemplate | Collection<ParsedTemplate | ConfigContext>) {
     if (data === undefined) {
       throw new InternalError({
         message: "Generic context may not be undefined.",
       })
     }
-    if (data instanceof ConfigContext) {
+    if (data instanceof ContextWithSchema) {
       throw new InternalError({
         message:
           "Generic context is useless when instantiated with just another context as parameter. Use the other context directly instead.",
       })
     }
-    super(undefined, "data")
+    super()
   }
 
-  static override getSchema() {
-    return joi.object()
+  protected override resolveImpl(params: ContextResolveParams): ContextResolveOutput {
+    return traverseContext(this.data, { ...params, rootContext: params.rootContext || this })
   }
 }
 
-export class EnvironmentContext extends ConfigContext {
+export class EnvironmentContext extends ContextWithSchema {
   @schema(
     joi
       .string()
@@ -318,8 +215,8 @@ export class EnvironmentContext extends ConfigContext {
   @schema(joi.string().description("The currently active namespace (if any).").example("my-namespace"))
   public namespace: string
 
-  constructor(root: ConfigContext, name: string, fullName: string, namespace?: string) {
-    super(root)
+  constructor(name: string, fullName: string, namespace?: string) {
+    super()
     this.name = name
     this.fullName = fullName
     this.namespace = namespace || ""
@@ -334,27 +231,27 @@ export class ErrorContext extends ConfigContext {
     super()
   }
 
-  override resolve({}): ContextResolveOutput {
+  protected override resolveImpl({}): ContextResolveOutput {
     throw new ConfigurationError({ message: this.message })
   }
 }
 
-export class ParentContext extends ConfigContext {
+export class ParentContext extends ContextWithSchema {
   @schema(joiIdentifier().description(`The name of the parent config.`))
   public name: string
 
-  constructor(root: ConfigContext, name: string) {
-    super(root)
+  constructor(name: string) {
+    super()
     this.name = name
   }
 }
 
-export class TemplateContext extends ConfigContext {
+export class TemplateContext extends ContextWithSchema {
   @schema(joiIdentifier().description(`The name of the template.`))
   public name: string
 
-  constructor(root: ConfigContext, name: string) {
-    super(root)
+  constructor(name: string) {
+    super()
     this.name = name
   }
 }
@@ -386,12 +283,17 @@ export class CapturedContext extends ConfigContext {
     private readonly wrapped: ConfigContext,
     private readonly rootContext: ConfigContext
   ) {
-    super(rootContext)
+    super()
   }
 
-  override resolve(params: ContextResolveParams): ContextResolveOutput {
+  override resolveImpl(params: ContextResolveParams): ContextResolveOutput {
     return this.wrapped.resolve({
       ...params,
+      opts: {
+        ...params.opts,
+        // to avoid circular dep errors
+        stack: params.opts.stack?.slice(0, -1),
+      },
       rootContext: params.rootContext ? new LayeredContext(this.rootContext, params.rootContext) : this.rootContext,
     })
   }
@@ -403,29 +305,191 @@ export class LayeredContext extends ConfigContext {
     super()
     this.contexts = contexts
   }
-  override resolve(args: ContextResolveParams): ContextResolveOutput {
-    const items: ResolvedTemplate[] = []
+  override resolveImpl(args: ContextResolveParams): ContextResolveOutput {
+    const items: ContextResolveOutput[] = []
 
-    for (const [i, context] of this.contexts.entries()) {
-      const resolved = context.resolve(args)
-      if (resolved.resolved !== CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    for (const context of this.contexts) {
+      const resolved = context.resolve({
+        ...args,
+        opts: {
+          ...args.opts,
+          // to avoid circular dependency errors
+          stack: args.opts.stack?.slice(0, -1),
+        },
+      })
+      if (resolved.found) {
         if (isTemplatePrimitive(resolved.resolved)) {
           return resolved
         }
-        items.push(resolved.resolved)
-      } else if (items.length === 0 && i === this.contexts.length - 1) {
-        return resolved
+      }
+
+      items.push(resolved)
+    }
+
+    // if it could not be found in any context, aggregate error information from all contexts
+    if (items.every((res) => !res.found)) {
+      // find deepest key path (most specific error)
+      let deepestKeyPath: (number | string)[] = []
+      for (const res of items) {
+        if (res.explanation.keyPath.length > deepestKeyPath.length) {
+          deepestKeyPath = res.explanation.keyPath
+        }
+      }
+
+      // identify all errors with the same key path
+      const all = items.filter((res) => isEqual(res.explanation.keyPath, deepestKeyPath))
+      const lastError = all[all.length - 1]
+
+      return {
+        ...lastError,
+        explanation: {
+          ...lastError.explanation,
+          availableKeys: uniq(flatten(all.map((res) => res.explanation.availableKeys || []))),
+        },
       }
     }
 
     const returnValue = {}
 
     for (const i of items) {
-      merge(returnValue, { resolved: i })
+      if (!i.found) {
+        continue
+      }
+
+      merge(returnValue, { resolved: i.resolved })
     }
 
     return {
+      found: true,
       resolved: returnValue["resolved"],
     }
   }
+}
+
+function traverseContext(
+  value: CollectionOrValue<ConfigContext | ParsedTemplateValue>,
+  params: ContextResolveParams & { rootContext: ConfigContext }
+): ContextResolveOutput {
+  const rootContext = params.rootContext
+  if (value instanceof UnresolvedTemplateValue) {
+    const evaluated = value.evaluate({ context: rootContext, opts: params.opts })
+    return traverseContext(evaluated.resolved, params)
+  }
+
+  if (value instanceof ConfigContext) {
+    const evaluated = value.resolve(params)
+    return evaluated
+  }
+
+  const keyPath = params.key
+  if (keyPath.length > 0) {
+    const nextKey = params.key[0]
+
+    if (isTemplatePrimitive(value)) {
+      return {
+        found: false,
+        explanation: {
+          reason: "not_indexable",
+          key: nextKey,
+          keyPath: [],
+        },
+      }
+    }
+
+    const remainder = params.key.slice(1)
+
+    let nextValue: CollectionOrValue<ConfigContext | ParsedTemplateValue>
+    if (isMap(value)) {
+      nextValue = value.get(nextKey) as CollectionOrValue<ConfigContext | ParsedTemplateValue>
+    } else {
+      nextValue = value[nextKey]
+    }
+
+    if (nextValue === undefined) {
+      return {
+        found: false,
+        explanation: {
+          reason: "key_not_found",
+          key: nextKey,
+          keyPath: [],
+          availableKeys: isMap(value) ? (value.keys() as any).toArray() : Object.keys(value),
+        },
+      }
+    }
+
+    const result = traverseContext(nextValue, {
+      ...params,
+      key: remainder,
+    })
+
+    if (result.found) {
+      return result
+    }
+
+    return prependKeyPath(result, [nextKey])
+  }
+
+  // handles the case when keyPath.length === 0 (here, we need to eagerly resolve everything)
+  const notFoundValues: ContextResolveOutputNotFound[] = []
+  const resolved = deepMap(value, (v, _, deepMapKeyPath) => {
+    const innerParams = {
+      ...params,
+      // we ask nested values to be fully resolved recursively
+      key: [],
+    }
+    if (v instanceof UnresolvedTemplateValue || v instanceof ConfigContext) {
+      const res = traverseContext(v, innerParams)
+
+      if (res.found) {
+        return res.resolved
+      }
+
+      notFoundValues.push(prependKeyPath(res, params.key.concat(deepMapKeyPath)))
+
+      return undefined
+    }
+
+    return v
+  })
+
+  if (notFoundValues.length > 0) {
+    return notFoundValues[0]
+  }
+
+  return {
+    found: true,
+    resolved,
+  }
+}
+
+function prependKeyPath(
+  res: ContextResolveOutputNotFound,
+  keyPathToPrepend: (string | number)[]
+): ContextResolveOutputNotFound {
+  return {
+    ...res,
+    explanation: {
+      ...res.explanation,
+      keyPath: [...keyPathToPrepend, ...res.explanation.keyPath],
+    },
+  }
+}
+
+export function getUnavailableReason(result: ContextResolveOutput): string {
+  if (result.found) {
+    throw new InternalError({
+      message: "called getUnavailableReason on key where found=true",
+    })
+  }
+
+  if (result.explanation.reason === "not_indexable") {
+    return `Cannot lookup key ${result.explanation.key} on primitive value ${renderKeyPath(result.explanation.keyPath)}.`
+  }
+
+  const available = result.explanation.availableKeys
+
+  return deline`
+    Could not find key ${result.explanation.key}${result.explanation.keyPath.length > 0 ? ` under ${renderKeyPath(result.explanation.keyPath)}` : ""}.
+    ${available?.length ? `Available keys: ${available.join(", ")}.` : ""}
+  `
 }

@@ -14,10 +14,11 @@ import type { Garden } from "../../garden.js"
 import { joi } from "../common.js"
 import { deline } from "../../util/string.js"
 import { getProviderUrl } from "../../docs/common.js"
-import { ConfigContext, schema } from "./base.js"
+import type { ConfigContext } from "./base.js"
+import { ContextWithSchema, schema } from "./base.js"
 import { WorkflowConfigContext } from "./workflow.js"
 
-class ProviderContext extends ConfigContext {
+class ProviderContext extends ContextWithSchema {
   @schema(
     joi
       .object()
@@ -49,8 +50,8 @@ class ProviderContext extends ConfigContext {
   )
   public outputs: PrimitiveMap
 
-  constructor(root: ConfigContext, provider: Provider) {
-    super(root)
+  constructor(provider: Provider) {
+    super()
     this.config = provider.config
     this.outputs = provider.status.outputs
   }
@@ -67,6 +68,6 @@ export class ProviderConfigContext extends WorkflowConfigContext {
   constructor(garden: Garden, resolvedProviders: ProviderMap, variables: ConfigContext) {
     super(garden, variables)
 
-    this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(this, p))))
+    this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(p))))
   }
 }

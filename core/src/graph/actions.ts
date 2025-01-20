@@ -56,7 +56,7 @@ import { MutableConfigGraph } from "./config-graph.js"
 import type { ModuleGraph } from "./modules.js"
 import { isTruthy, type MaybeUndefined } from "../util/util.js"
 import { minimatch } from "minimatch"
-import type { ConfigContext } from "../config/template-contexts/base.js"
+import type { ContextWithSchema } from "../config/template-contexts/base.js"
 import { GenericContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
 import { relative } from "path"
@@ -511,9 +511,13 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   let variables = await mergeVariables({
     basePath: effectiveConfigFileLocation,
-    variables: new GenericContext(capture(config.variables,
-      // TODO: What's the correct context here?
-      garden.getProjectConfigContext()) || {}),
+    variables: new GenericContext(
+      capture(
+        config.variables,
+        // TODO: What's the correct context here?
+        garden.getProjectConfigContext()
+      ) || {}
+    ),
     varfiles: config.varfiles,
     log,
   })
@@ -942,7 +946,7 @@ function dependenciesFromActionConfig({
   config: ActionConfig
   configsByKey: ActionConfigsByKey
   definition: MaybeUndefined<ActionTypeDefinition<any>>
-  templateContext: ConfigContext
+  templateContext: ContextWithSchema
   actionTypes: ActionDefinitionMap
 }) {
   const description = describeActionConfig(config)

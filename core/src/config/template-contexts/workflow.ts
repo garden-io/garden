@@ -12,7 +12,7 @@ import type { Garden } from "../../garden.js"
 import { joi } from "../common.js"
 import { dedent } from "../../util/string.js"
 import { RemoteSourceConfigContext, TemplatableConfigContext } from "./project.js"
-import { schema, ConfigContext, ErrorContext } from "./base.js"
+import { schema, ContextWithSchema, ErrorContext } from "./base.js"
 import type { WorkflowConfig } from "../workflow.js"
 
 /**
@@ -20,7 +20,7 @@ import type { WorkflowConfig } from "../workflow.js"
  */
 export class WorkflowConfigContext extends RemoteSourceConfigContext {}
 
-class WorkflowStepContext extends ConfigContext {
+class WorkflowStepContext extends ContextWithSchema {
   @schema(joi.string().description("The full output log from the step."))
   public log: string
 
@@ -39,8 +39,8 @@ class WorkflowStepContext extends ConfigContext {
   )
   public outputs: DeepPrimitiveMap
 
-  constructor(root: ConfigContext, stepResult: WorkflowStepResult) {
-    super(root)
+  constructor(stepResult: WorkflowStepResult) {
+    super()
     this.log = stepResult.log
     this.outputs = stepResult.outputs
   }
@@ -100,7 +100,7 @@ export class WorkflowStepConfigContext extends TemplatableConfigContext {
     )
 
     for (const [name, result] of Object.entries(resolvedSteps)) {
-      this.steps.set(name, new WorkflowStepContext(this, result))
+      this.steps.set(name, new WorkflowStepContext(result))
     }
   }
 }

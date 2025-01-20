@@ -11,8 +11,8 @@ import type { PrimitiveMap, DeepPrimitiveMap } from "../common.js"
 import { joiIdentifierMap, joiStringMap, joiPrimitive, joiVariables } from "../common.js"
 import { joi } from "../common.js"
 import { deline, dedent } from "../../util/string.js"
-import type { ContextKeySegment } from "./base.js"
-import { schema, ConfigContext, EnvironmentContext, ParentContext, TemplateContext } from "./base.js"
+import type { ConfigContext, ContextKeySegment } from "./base.js"
+import { schema, ContextWithSchema, EnvironmentContext, ParentContext, TemplateContext } from "./base.js"
 import type { CommandInfo } from "../../plugin-context.js"
 import type { Garden } from "../../garden.js"
 import type { VcsInfo } from "../../vcs/vcs.js"
@@ -20,7 +20,7 @@ import type { ActionConfig } from "../../actions/types.js"
 import type { WorkflowConfig } from "../workflow.js"
 import { styles } from "../../logger/styles.js"
 
-class LocalContext extends ConfigContext {
+class LocalContext extends ContextWithSchema {
   @schema(
     joi
       .string()
@@ -83,8 +83,8 @@ class LocalContext extends ConfigContext {
   )
   public usernameLowerCase?: string
 
-  constructor(root: ConfigContext, artifactsPath: string, projectRoot: string, username?: string) {
-    super(root)
+  constructor(artifactsPath: string, projectRoot: string, username?: string) {
+    super()
     this.artifactsPath = artifactsPath
     this.arch = process.arch
     this.env = process.env
@@ -95,17 +95,17 @@ class LocalContext extends ConfigContext {
   }
 }
 
-class ProjectContext extends ConfigContext {
+class ProjectContext extends ContextWithSchema {
   @schema(joi.string().description("The name of the Garden project.").example("my-project"))
   public name: string
 
-  constructor(root: ConfigContext, name: string) {
-    super(root)
+  constructor(name: string) {
+    super()
     this.name = name
   }
 }
 
-class DatetimeContext extends ConfigContext {
+class DatetimeContext extends ContextWithSchema {
   @schema(
     joi
       .string()
@@ -130,8 +130,8 @@ class DatetimeContext extends ConfigContext {
   )
   public timestamp: number
 
-  constructor(root: ConfigContext) {
-    super(root)
+  constructor() {
+    super()
     const now = new Date()
 
     this.now = now.toISOString()
@@ -140,7 +140,7 @@ class DatetimeContext extends ConfigContext {
   }
 }
 
-class VcsContext extends ConfigContext {
+class VcsContext extends ContextWithSchema {
   @schema(
     joi
       .string()
@@ -189,15 +189,15 @@ class VcsContext extends ConfigContext {
   )
   public originUrl: string
 
-  constructor(root: ConfigContext, info: VcsInfo) {
-    super(root)
+  constructor(info: VcsInfo) {
+    super()
     this.branch = info.branch
     this.commitHash = info.commitHash
     this.originUrl = info.originUrl
   }
 }
 
-class CommandContext extends ConfigContext {
+class CommandContext extends ContextWithSchema {
   @schema(
     joi
       .string()
@@ -225,8 +225,8 @@ class CommandContext extends ConfigContext {
   )
   public params: DeepPrimitiveMap
 
-  constructor(root: ConfigContext, commandInfo: CommandInfo) {
-    super(root)
+  constructor(commandInfo: CommandInfo) {
+    super()
     this.name = commandInfo.name
     this.params = { ...commandInfo.args, ...commandInfo.opts }
   }
@@ -244,7 +244,7 @@ export interface DefaultEnvironmentContextParams {
 /**
  * This context is available for template strings in the `defaultEnvironment` field in project configs.
  */
-export class DefaultEnvironmentContext extends ConfigContext {
+export class DefaultEnvironmentContext extends ContextWithSchema {
   @schema(
     LocalContext.getSchema().description(
       "Context variables that are specific to the currently running environment/machine."
@@ -273,11 +273,11 @@ export class DefaultEnvironmentContext extends ConfigContext {
     commandInfo,
   }: DefaultEnvironmentContextParams) {
     super()
-    this.local = new LocalContext(this, artifactsPath, projectRoot, username)
-    this.datetime = new DatetimeContext(this)
-    this.git = new VcsContext(this, vcsInfo)
-    this.project = new ProjectContext(this, projectName)
-    this.command = new CommandContext(this, commandInfo)
+    this.local = new LocalContext(artifactsPath, projectRoot, username)
+    this.datetime = new DatetimeContext()
+    this.git = new VcsContext(vcsInfo)
+    this.project = new ProjectContext(projectName)
+    this.command = new CommandContext(commandInfo)
   }
 }
 
@@ -411,7 +411,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
     })
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
-    this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
+    this.environment = new EnvironmentContext(garden.environmentName, fullEnvName, garden.namespace)
     this.variables = this.var = variables
   }
 }
@@ -441,7 +441,7 @@ export class TemplatableConfigContext extends RemoteSourceConfigContext {
   constructor(garden: Garden, config: ActionConfig | WorkflowConfig) {
     super(garden, garden.variables)
     this.inputs = config.internal.inputs || {}
-    this.parent = config.internal.parentName ? new ParentContext(this, config.internal.parentName) : undefined
-    this.template = config.internal.templateName ? new TemplateContext(this, config.internal.templateName) : undefined
+    this.parent = config.internal.parentName ? new ParentContext(config.internal.parentName) : undefined
+    this.template = config.internal.templateName ? new TemplateContext(config.internal.templateName) : undefined
   }
 }

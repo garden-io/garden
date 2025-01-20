@@ -7,7 +7,7 @@
  */
 
 import { isArray, isNumber, isString } from "lodash-es"
-import { CONTEXT_RESOLVE_KEY_NOT_FOUND, renderKeyPath } from "../config/template-contexts/base.js"
+import { getUnavailableReason } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions/index.js"
 import type { EvaluateTemplateArgs } from "./types.js"
@@ -701,34 +701,29 @@ export class ContextLookupExpression extends TemplateExpression {
       keyPath.push(evaluated)
     }
 
-    const { resolved, getUnavailableReason } = context.resolve({
+    const result = context.resolve({
       key: keyPath,
-      nodePath: [],
       // TODO: freeze opts object instead of using shallow copy
       opts: {
         ...opts,
       },
     })
 
-    // if ((opts.allowPartial || opts.allowPartialContext) && resolved === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
-    //   return resolved
-    // }
-
-    // if we encounter a key not found symbol, it's an error unless the optional flag is true, which is used by
+    // if we encounter a key that could not be found, it's an error unless the optional flag is true, which is used by
     // logical operators and expressions, as well as the optional suffix in FormatStringExpression.
-    if (typeof resolved === "symbol") {
+    if (!result.found) {
       if (optional) {
         return CONTEXT_RESOLVE_KEY_NOT_FOUND
       }
 
       throw new TemplateStringError({
-        message: getUnavailableReason?.() || `Could not find key ${renderKeyPath(keyPath)}`,
+        message: getUnavailableReason(result),
         loc: this.loc,
         yamlSource,
       })
     }
 
-    return resolved
+    return result.resolved
   }
 }
 
@@ -859,3 +854,4 @@ export class TernaryExpression extends TemplateExpression {
     return evaluationResult
   }
 }
+export const CONTEXT_RESOLVE_KEY_NOT_FOUND: unique symbol = Symbol.for("ContextResolveKeyNotFound")

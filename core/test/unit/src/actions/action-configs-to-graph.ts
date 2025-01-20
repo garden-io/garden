@@ -543,10 +543,11 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(
-      vars.resolve({ key: [], nodePath: [], opts: {}, rootContext: garden.getProjectConfigContext() }).resolved
-    ).to.eql({
-      projectName: garden.projectName,
+    expect(vars.resolve({ key: [], opts: {} })).to.eql({
+      found: true,
+      resolved: {
+        projectName: garden.projectName,
+      },
     })
   })
 
@@ -581,9 +582,12 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(
-      vars.resolve({ key: [], nodePath: [], opts: {}, rootContext: garden.getProjectConfigContext() }).resolved
-    ).to.eql({ projectName: "${project.name}" })
+    expect(vars.resolve({ key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+      found: true,
+      resolved: {
+        projectName: "${project.name}",
+      },
+    })
   })
 
   it("loads optional varfiles for the action", async () => {
@@ -617,9 +621,10 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(
-      vars.resolve({ key: [], nodePath: [], opts: {}, rootContext: garden.getProjectConfigContext() }).resolved
-    ).to.eql({ projectName: "${project.name}" })
+    expect(vars.resolve({ key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+      found: true,
+      resolved: { projectName: "${project.name}" },
+    })
   })
 
   it("correctly merges varfile with variables", async () => {
@@ -658,9 +663,10 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(
-      vars.resolve({ key: [], nodePath: [], opts: {}, rootContext: garden.getProjectConfigContext() }).resolved
-    ).to.eql({ foo: "FOO", bar: "BAR", baz: "baz" })
+    expect(vars.resolve({ key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+      found: true,
+      resolved: { foo: "FOO", bar: "BAR", baz: "baz" },
+    })
   })
 
   it("correctly merges varfile with variables when some variables are overridden with --var cli flag", async () => {
@@ -715,14 +721,15 @@ describe("actionConfigsToGraph", () => {
       const action = graph.getBuild("foo")
       const vars = action["variables"]
 
-      expect(
-        vars.resolve({ key: [], nodePath: [], opts: {}, rootContext: garden.getProjectConfigContext() }).resolved
-      ).to.eql({
-        foo: "NEW_FOO",
-        bar: "BAR",
-        baz: "baz",
-        nested: {
-          key1: "NEW_KEY_1_VALUE",
+      expect(vars.resolve({ key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+        found: true,
+        resolved: {
+          foo: "NEW_FOO",
+          bar: "BAR",
+          baz: "baz",
+          nested: {
+            key1: "NEW_KEY_1_VALUE",
+          },
         },
       })
     } finally {

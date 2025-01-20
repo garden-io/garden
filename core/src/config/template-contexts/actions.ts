@@ -14,7 +14,8 @@ import { dedent, deline } from "../../util/string.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "../common.js"
 import { joi, joiIdentifier, joiIdentifierMap, joiPrimitive, joiVariables } from "../common.js"
 import type { ProviderMap } from "../provider.js"
-import { ConfigContext, ErrorContext, GenericContext, ParentContext, schema, TemplateContext } from "./base.js"
+import type { ConfigContext } from "./base.js"
+import { ContextWithSchema, ErrorContext, GenericContext, ParentContext, schema, TemplateContext } from "./base.js"
 import { exampleVersion, OutputConfigContext } from "./module.js"
 import { TemplatableConfigContext } from "./project.js"
 import { DOCS_BASE_URL } from "../../constants.js"
@@ -43,15 +44,15 @@ const actionModeSchema = joi
   )
   .example("sync")
 
-class ActionConfigThisContext extends ConfigContext {
+class ActionConfigThisContext extends ContextWithSchema {
   @schema(actionNameSchema)
   public name: string
 
   @schema(actionModeSchema)
   public mode: ActionMode
 
-  constructor(root: ConfigContext, { name, mode }: ActionConfigThisContextParams) {
-    super(root)
+  constructor({ name, mode }: ActionConfigThisContextParams) {
+    super()
     this.name = name
     this.mode = mode
   }
@@ -75,13 +76,12 @@ export class ActionConfigContext extends TemplatableConfigContext {
   constructor({ garden, config, thisContextParams, variables }: ActionConfigContextParams) {
     const mergedVariables = mergeVariables({ garden, variables })
     super(garden, config)
-    this.this = new ActionConfigThisContext(this, thisContextParams)
+    this.this = new ActionConfigThisContext(thisContextParams)
     this.variables = this.var = mergedVariables
   }
 }
 
 interface ActionReferenceContextParams {
-  root: ConfigContext
   name: string
   disabled: boolean
   buildPath: string
@@ -90,7 +90,7 @@ interface ActionReferenceContextParams {
   variables: ConfigContext
 }
 
-export class ActionReferenceContext extends ConfigContext {
+export class ActionReferenceContext extends ContextWithSchema {
   @schema(actionNameSchema)
   public name: string
 
@@ -121,8 +121,8 @@ export class ActionReferenceContext extends ConfigContext {
   @schema(joiVariables().required().description("The variables configured on the action.").example({ foo: "bar" }))
   public var: ConfigContext
 
-  constructor({ root, name, disabled, buildPath, sourcePath, mode, variables }: ActionReferenceContextParams) {
-    super(root)
+  constructor({ name, disabled, buildPath, sourcePath, mode, variables }: ActionReferenceContextParams) {
+    super()
     this.name = name
     this.disabled = disabled
     this.buildPath = buildPath
@@ -171,7 +171,7 @@ const _actionResultContextSchema = joiIdentifierMap(ActionResultContext.getSchem
 const actionResultContextSchema = (kind: string) =>
   _actionResultContextSchema.description(`Information about a ${kind} action dependency, including its outputs.`)
 
-class ActionReferencesContext extends ConfigContext {
+class ActionReferencesContext extends ContextWithSchema {
   @schema(actionResultContextSchema("Build"))
   public build: Map<string, ActionResultContext>
 
@@ -190,8 +190,8 @@ class ActionReferencesContext extends ConfigContext {
   @schema(_actionResultContextSchema.description("Alias for `run`."))
   public tasks: Map<string, ActionResultContext>
 
-  constructor(root: ConfigContext, actions: (ResolvedAction | ExecutedAction)[]) {
-    super(root)
+  constructor(actions: (ResolvedAction | ExecutedAction)[]) {
+    super()
 
     this.build = new Map()
     this.deploy = new Map()
@@ -205,7 +205,6 @@ class ActionReferencesContext extends ConfigContext {
       this[action.kind.toLowerCase()].set(
         action.name,
         new ActionResultContext({
-          root: this,
           name: action.name,
           outputs: action.getOutputs(),
           version: action.versionString(),
@@ -287,7 +286,7 @@ export class ActionSpecContext extends OutputConfigContext {
     const parentName = internal?.parentName
     const templateName = internal?.templateName
 
-    this.actions = new ActionReferencesContext(this, [...resolvedDependencies, ...executedDependencies])
+    this.actions = new ActionReferencesContext([...resolvedDependencies, ...executedDependencies])
 
     // Throw specific error when attempting to resolve self
     this.actions[action.kind.toLowerCase()].set(
@@ -296,15 +295,14 @@ export class ActionSpecContext extends OutputConfigContext {
     )
 
     if (parentName && templateName) {
-      this.parent = new ParentContext(this, parentName)
-      this.template = new TemplateContext(this, templateName)
+      this.parent = new ParentContext(parentName)
+      this.template = new TemplateContext(templateName)
     }
     this.inputs = inputs
 
     this.runtime = this.actions
 
     this.this = new ActionReferenceContext({
-      root: this,
       disabled: action.isDisabled(),
       buildPath,
       name,

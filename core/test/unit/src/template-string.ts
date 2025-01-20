@@ -1735,7 +1735,7 @@ describe("parse and evaluate template strings", () => {
           errorMessage,
         }: {
           template: string
-          GenericContextVars?: object
+          GenericContextVars?: GenericContext["data"]
           errorMessage: string
         }) {
           void expectError(

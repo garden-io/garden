@@ -31,7 +31,6 @@ import { uuidv4 } from "../util/random.js"
 import { s } from "./zod.js"
 import { getContextLookupReferences, visitAll } from "../template/analysis.js"
 import type { ConfigContext } from "./template-contexts/base.js"
-import type { ParsedTemplate } from "../template/types.js"
 import type { UnresolvedProviderConfig } from "./project.js"
 
 // TODO: dedupe from the joi schema below

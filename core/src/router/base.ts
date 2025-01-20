@@ -18,7 +18,7 @@ import type {
 } from "../plugin/base.js"
 import type { GardenPluginSpec, ActionHandler, PluginMap } from "../plugin/plugin.js"
 import type { PluginContext, PluginEventBroker } from "../plugin-context.js"
-import type { ConfigContext } from "../config/template-contexts/base.js"
+import type { ContextWithSchema } from "../config/template-contexts/base.js"
 import type { BaseAction } from "../actions/base.js"
 import type { ActionKind, BaseActionConfig, Resolved } from "../actions/types.js"
 import type {
@@ -70,7 +70,7 @@ export abstract class BaseRouter {
   protected async commonParams(
     handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>,
     log: Log,
-    templateContext: ConfigContext | undefined,
+    templateContext: ContextWithSchema | undefined,
     events: PluginEventBroker | undefined
   ): Promise<PluginActionParamsBase> {
     const provider = await this.garden.resolveProvider({ log, name: handler.pluginName })

@@ -122,7 +122,8 @@ import type { CloudProject, GardenCloudApiFactory } from "./cloud/api.js"
 import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
-import { CONTEXT_RESOLVE_KEY_NOT_FOUND, GenericContext, type ConfigContext } from "./config/template-contexts/base.js"
+import type { ConfigContext } from "./config/template-contexts/base.js"
+import { GenericContext, getUnavailableReason, type ContextWithSchema } from "./config/template-contexts/base.js"
 import { validateSchema, validateWithPath } from "./config/validation.js"
 import { pMemoizeDecorator } from "./lib/p-memoize.js"
 import { ModuleGraph } from "./graph/modules.js"
@@ -575,7 +576,7 @@ export class Garden {
     events,
   }: {
     provider: Provider
-    templateContext: ConfigContext | undefined
+    templateContext: ContextWithSchema | undefined
     events: PluginEventBroker | undefined
   }) {
     return createPluginContext({
@@ -1833,6 +1834,13 @@ export class Garden {
       mapValues(actionConfigs, (configsForKind) => mapValues(configsForKind, omitInternal))
     )
 
+    const variableResolveResult = this.variables.resolve({ key: [], opts: {} })
+    if (!variableResolveResult.found) {
+      throw new ConfigurationError({
+        message: `Could not resolve variables: ${getUnavailableReason(variableResolveResult)}`,
+      })
+    }
+
     return {
       environmentName: this.environmentName,
       allProviderNames: this.getUnresolvedProviderConfigs().map((p) => p.name),
@@ -1841,7 +1849,7 @@ export class Garden {
       providers: providers.map((p) =>
         !(p instanceof UnresolvedTemplateValue || isTemplatePrimitive(p)) ? omitInternal(p) : p
       ),
-      variables: this.variables.resolve({ key: [], nodePath: [], opts: {} }).resolved as any,
+      variables: variableResolveResult.resolved as any,
       actionConfigs: filteredActionConfigs,
       moduleConfigs: moduleConfigs.map(omitInternal),
       workflowConfigs: sortBy(workflowConfigs.map(omitInternal), "name"),
@@ -2357,7 +2365,8 @@ async function getCloudProject({
 export function overrideVariables(variables: ConfigContext, overrides: DeepPrimitiveMap): LayeredContext {
   const transformedOverrides = {}
   for (const key in overrides) {
-    if (variables.resolve({ key: [key], nodePath: [], opts: {} }).resolved !== CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    const res = variables.resolve({ key: [key], opts: {} })
+    if (res.found) {
       // if the original key itself is a string with a dot, then override that
       transformedOverrides[key] = overrides[key]
     } else {

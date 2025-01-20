@@ -14,7 +14,8 @@ import { joi } from "../common.js"
 import { deline } from "../../util/string.js"
 import { getModuleTypeUrl } from "../../docs/common.js"
 import type { GardenModule } from "../../types/module.js"
-import { ConfigContext, schema, ErrorContext, ParentContext, TemplateContext } from "./base.js"
+import type { ConfigContext } from "./base.js"
+import { ContextWithSchema, schema, ErrorContext, ParentContext, TemplateContext } from "./base.js"
 import { ProviderConfigContext } from "./provider.js"
 import type { GraphResultFromTask, GraphResults } from "../../graph/results.js"
 import type { DeployTask } from "../../tasks/deploy.js"
@@ -25,13 +26,12 @@ import { styles } from "../../logger/styles.js"
 export const exampleVersion = "v-17ad4cb3fd"
 
 export interface ModuleThisContextParams {
-  root: ConfigContext
   buildPath: string
   name: string
   path: string
 }
 
-class ModuleThisContext extends ConfigContext {
+class ModuleThisContext extends ContextWithSchema {
   @schema(
     joi
       .string()
@@ -53,8 +53,8 @@ class ModuleThisContext extends ConfigContext {
   )
   public path: string
 
-  constructor({ root, buildPath, name, path }: ModuleThisContextParams) {
-    super(root)
+  constructor({ buildPath, name, path }: ModuleThisContextParams) {
+    super()
     this.buildPath = buildPath
     this.name = name
     this.path = path
@@ -88,15 +88,15 @@ export class ModuleReferenceContext extends ModuleThisContext {
   @schema(joi.string().required().description("The current version of the module.").example(exampleVersion))
   public version: string
 
-  constructor(root: ConfigContext, module: GardenModule) {
-    super({ root, buildPath: module.buildPath, name: module.name, path: module.path })
+  constructor(module: GardenModule) {
+    super({ buildPath: module.buildPath, name: module.name, path: module.path })
     this.outputs = module.outputs
     this.var = module.variables
     this.version = module.version.versionString
   }
 }
 
-export class ServiceRuntimeContext extends ConfigContext {
+export class ServiceRuntimeContext extends ContextWithSchema {
   @schema(
     joiIdentifierMap(
       joiPrimitive().description(
@@ -116,8 +116,8 @@ export class ServiceRuntimeContext extends ConfigContext {
   @schema(joi.string().required().description("The current version of the service.").example(exampleVersion))
   public version: string
 
-  constructor(root: ConfigContext, outputs: PrimitiveMap, version: string) {
-    super(root)
+  constructor(outputs: PrimitiveMap, version: string) {
+    super()
     this.outputs = outputs
     this.version = version
   }
@@ -143,14 +143,14 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
   @schema(joi.string().required().description("The current version of the task.").example(exampleVersion))
   public override version: string
 
-  constructor(root: ConfigContext, outputs: PrimitiveMap, version: string) {
-    super(root, outputs, version)
+  constructor(outputs: PrimitiveMap, version: string) {
+    super(outputs, version)
     this.outputs = outputs
     this.version = version
   }
 }
 
-class RuntimeConfigContext extends ConfigContext {
+class RuntimeConfigContext extends ContextWithSchema {
   @schema(
     joiIdentifierMap(ServiceRuntimeContext.getSchema())
       .required()
@@ -167,8 +167,8 @@ class RuntimeConfigContext extends ConfigContext {
   )
   public tasks: Map<string, TaskRuntimeContext>
 
-  constructor(root: ConfigContext, graphResults?: GraphResults) {
-    super(root)
+  constructor(graphResults?: GraphResults) {
+    super()
 
     this.services = new Map()
     this.tasks = new Map()
@@ -177,13 +177,10 @@ class RuntimeConfigContext extends ConfigContext {
       for (const result of Object.values(graphResults.getMap())) {
         if (result?.task.type === "deploy" && result.result) {
           const r = (<GraphResultFromTask<DeployTask>>result).result!
-          this.services.set(
-            result.name,
-            new ServiceRuntimeContext(this, result.outputs, r.executedAction.versionString())
-          )
+          this.services.set(result.name, new ServiceRuntimeContext(result.outputs, r.executedAction.versionString()))
         } else if (result?.task.type === "run") {
           const r = (<GraphResultFromTask<RunTask>>result).result!
-          this.tasks.set(result.name, new TaskRuntimeContext(this, result.outputs, r.executedAction.versionString()))
+          this.tasks.set(result.name, new TaskRuntimeContext(result.outputs, r.executedAction.versionString()))
         }
       }
     }
@@ -223,10 +220,10 @@ export class OutputConfigContext extends ProviderConfigContext {
     super(garden, resolvedProviders, variables)
 
     this.modules = new Map(
-      modules.map((config) => <[string, ModuleReferenceContext]>[config.name, new ModuleReferenceContext(this, config)])
+      modules.map((config) => <[string, ModuleReferenceContext]>[config.name, new ModuleReferenceContext(config)])
     )
 
-    this.runtime = new RuntimeConfigContext(this, graphResults)
+    this.runtime = new RuntimeConfigContext(graphResults)
   }
 }
 
@@ -280,11 +277,11 @@ export class ModuleConfigContext extends OutputConfigContext {
     this.modules.set(name, new ErrorContext(`Config ${styles.highlight.bold(name)} cannot reference itself.`))
 
     if (parentName && templateName) {
-      this.parent = new ParentContext(this, parentName)
-      this.template = new TemplateContext(this, templateName)
+      this.parent = new ParentContext(parentName)
+      this.template = new TemplateContext(templateName)
     }
     this.inputs = inputs || {}
 
-    this.this = new ModuleThisContext({ root: this, buildPath, name, path })
+    this.this = new ModuleThisContext({ buildPath, name, path })
   }
 }
