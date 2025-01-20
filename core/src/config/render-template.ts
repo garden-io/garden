@@ -267,6 +267,10 @@ async function renderConfigs({
           opts: {},
         }) as string
       } catch (error) {
+        if (!(error instanceof GardenError)) {
+          throw error
+        }
+
         throw new ConfigurationError({
           message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
         })
