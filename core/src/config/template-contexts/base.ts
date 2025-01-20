@@ -12,7 +12,7 @@ import type { CustomObjectSchema } from "../common.js"
 import { joi, joiIdentifier } from "../common.js"
 import { Profile } from "../../util/profiling.js"
 import { deepMap, type Collection, type CollectionOrValue } from "../../util/objects.js"
-import type { ParsedTemplate, ParsedTemplateValue, ResolvedTemplate, TemplatePrimitive } from "../../template/types.js"
+import type { ParsedTemplate, ParsedTemplateValue, ResolvedTemplate } from "../../template/types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "../../template/types.js"
 import merge from "lodash-es/merge.js"
 import omitBy from "lodash-es/omitBy.js"
@@ -75,7 +75,6 @@ export type ContextResolveOutput =
   | {
       found: true
       resolved: ResolvedTemplate
-      partial?: Collection<ConfigContext | ParsedTemplate> | TemplatePrimitive
     }
   | ContextResolveOutputNotFound
 
@@ -93,6 +92,8 @@ export interface ConfigContextType {
 
 let globalConfigContextCounter: number = 0
 
+// Note: we're using classes here to be able to use decorators to describe each context node and key
+@Profile()
 export abstract class ConfigContext {
   private readonly _cache: Map<string, ContextResolveOutput>
   private readonly _id: number
@@ -152,11 +153,6 @@ export abstract class ContextWithSchema extends ConfigContext {
   static getSchema() {
     const schemas = (<any>this)._schemas
     return joi.object().keys(schemas).required()
-  }
-
-  private get startingPoint() {
-    // Make sure we filter keys that start with underscore
-    return
   }
 
   protected override resolveImpl(params: ContextResolveParams): ContextResolveOutput {
@@ -278,6 +274,7 @@ export function renderKeyPath(key: ContextKeySegment[]): string {
       }, stringSegments[0])
   )
 }
+
 export class CapturedContext extends ConfigContext {
   constructor(
     private readonly wrapped: ConfigContext,
@@ -301,6 +298,7 @@ export class CapturedContext extends ConfigContext {
 
 export class LayeredContext extends ConfigContext {
   private readonly contexts: ConfigContext[]
+
   constructor(...contexts: ConfigContext[]) {
     super()
     this.contexts = contexts

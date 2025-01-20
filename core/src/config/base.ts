@@ -395,11 +395,11 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
       log,
       "Project configuration field `modules` is deprecated in 0.13 and will be removed in 0.14. Please use the `scan` field instead."
     )
-    const scanConfig = projectSpec.scan || {}
+    let scanConfig = projectSpec.scan || {}
     for (const key of ["include", "exclude"]) {
       if (projectSpec["modules"][key]) {
         if (!scanConfig[key]) {
-          scanConfig[key] = projectSpec["modules"][key]
+          scanConfig = { ...scanConfig, [key]: projectSpec["modules"][key] }
         } else {
           log.warn(
             `Project-level \`${key}\` is set both in \`modules.${key}\` and \`scan.${key}\`. The value from \`scan.${key}\` will be used (and the value from \`modules.${key}\` will not have any effect).`

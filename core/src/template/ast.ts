@@ -27,8 +27,10 @@ type ASTEvaluateArgs = EvaluateTemplateArgs & {
   readonly optional?: boolean
 }
 
-export type ASTEvaluationResult<T> = T | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-// | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER
+export const CONTEXT_RESOLVE_KEY_NOT_FOUND: unique symbol = Symbol.for("ContextResolveKeyNotFound")
+export type ContextResolveKeyNotFound = typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+
+export type ASTEvaluationResult<T> = T | ContextResolveKeyNotFound
 
 export type TemplateStringSource = {
   rawTemplateString: string
@@ -173,14 +175,14 @@ export abstract class UnaryExpression extends TemplateExpression {
   }
 
   abstract transform(
-    value: CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-  ): TemplatePrimitive | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    value: CollectionOrValue<TemplatePrimitive> | ContextResolveKeyNotFound
+  ): TemplatePrimitive | ContextResolveKeyNotFound
 }
 
 export class TypeofExpression extends UnaryExpression {
   override transform(
-    value: CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-  ): string | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+    value: CollectionOrValue<TemplatePrimitive> | ContextResolveKeyNotFound
+  ): string | ContextResolveKeyNotFound {
     if (isNotFound(value)) {
       return "undefined"
     }
@@ -190,8 +192,8 @@ export class TypeofExpression extends UnaryExpression {
 
 export class NotExpression extends UnaryExpression {
   override transform(
-    value: CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-  ): boolean | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+    value: CollectionOrValue<TemplatePrimitive> | ContextResolveKeyNotFound
+  ): boolean | ContextResolveKeyNotFound {
     if (isNotFound(value)) {
       return true
     }
@@ -215,8 +217,8 @@ export function isNotFound(
   v:
     | CollectionOrValue<TemplatePrimitive>
     // CONTEXT_RESOLVE_KEY_AVAILABLE_LATER is not included here on purpose, because it must always be handled separately by returning early.
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-): v is typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+    | ContextResolveKeyNotFound
+): v is ContextResolveKeyNotFound {
   return v === CONTEXT_RESOLVE_KEY_NOT_FOUND
 }
 
@@ -854,4 +856,3 @@ export class TernaryExpression extends TemplateExpression {
     return evaluationResult
   }
 }
-export const CONTEXT_RESOLVE_KEY_NOT_FOUND: unique symbol = Symbol.for("ContextResolveKeyNotFound")

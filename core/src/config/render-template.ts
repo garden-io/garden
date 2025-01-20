@@ -19,7 +19,7 @@ import {
 import { maybeTemplateString } from "../template/templated-strings.js"
 import { validateWithPath } from "./validation.js"
 import type { Garden } from "../garden.js"
-import { ConfigurationError, GardenError } from "../exceptions.js"
+import { ConfigurationError, GardenError, InternalError } from "../exceptions.js"
 import { resolve, posix } from "path"
 import fsExtra from "fs-extra"
 
@@ -35,8 +35,9 @@ import { RenderTemplateConfigContext } from "./template-contexts/render.js"
 import type { Log } from "../logger/log-entry.js"
 import { GardenApiVersion } from "../constants.js"
 import { capture } from "../template/capture.js"
-import { deepEvaluate } from "../template/evaluate.js"
+import { deepEvaluate, evaluate } from "../template/evaluate.js"
 import type { ParsedTemplate } from "../template/types.js"
+import { isArray } from "../util/objects.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -141,7 +142,6 @@ export async function renderConfigTemplate({
     return { resolved, modules: [], configs: [] }
   }
 
-  // Validate the module spec
   resolved = validateWithPath({
     config: resolved,
     configType,
@@ -254,10 +254,22 @@ async function renderConfigs({
   renderConfig: RenderTemplateConfig
 }): Promise<TemplatableConfig[]> {
   const templateDescription = `${configTemplateKind} '${template.name}'`
-  const templateConfigs = template.configs || []
+  const templateConfigs = evaluate((template.configs || []) as unknown as ParsedTemplate, {
+    context,
+    opts: {},
+  }).resolved
+
+  if (!isArray(templateConfigs)) {
+    throw new InternalError({ message: "Expected templateConfigs to be an array" })
+  }
 
   return Promise.all(
-    templateConfigs.map(async (m) => {
+    templateConfigs.map(async (c) => {
+      const m = evaluate(c, {
+        context,
+        opts: {},
+      }).resolved as any
+
       // Resolve just the name, which must be immediately resolvable
       let resolvedName = m.name
 
@@ -267,6 +279,10 @@ async function renderConfigs({
           opts: {},
         }) as string
       } catch (error) {
+        if (!(error instanceof GardenError)) {
+          throw error
+        }
+
         throw new ConfigurationError({
           message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
         })
