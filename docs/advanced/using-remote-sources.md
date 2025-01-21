@@ -96,6 +96,8 @@ source:
 ...
 ```
 
+You can use the `source.path` option together with the `source.repository` option to override the directory inside the git repository.
+
 As with remote sources, the URL must point to a specific branch or tag.
 
 Use this when you want to configure the action within your main project but import the source from another repository.

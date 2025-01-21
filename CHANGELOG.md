@@ -1,4 +1,33 @@
 
+<a name="0.13.49"></a>
+## [0.13.49](https://github.com/garden-io/garden/compare/0.13.48...0.13.49) (2025-01-14)
+
+### Bug Fixes
+
+* use non-legacy build staging file sync on Windows by default ([#6758](https://github.com/garden-io/garden/issues/6758)) ([4c83cd388](https://github.com/garden-io/garden/commit/4c83cd388))
+* **core:** emit namespaceStatus events during provider init ([#6759](https://github.com/garden-io/garden/issues/6759)) ([c704a356e](https://github.com/garden-io/garden/commit/c704a356e))
+
+### Improvements
+
+* **core:** print project name with init log ([#6756](https://github.com/garden-io/garden/issues/6756)) ([67123d158](https://github.com/garden-io/garden/commit/67123d158))
+
+<a name="0.13.48"></a>
+## [0.13.48](https://github.com/garden-io/garden/compare/0.13.47...0.13.48) (2025-01-09)
+
+### Bug Fixes
+
+* resolve parts of template strings, even if another part cannot be resolved yet. ([#6751](https://github.com/garden-io/garden/issues/6751)) ([aabebbd03](https://github.com/garden-io/garden/commit/aabebbd03))
+
+### Features
+
+* allow overriding `source.path` in remote actions (when using `source.repository`) ([#6750](https://github.com/garden-io/garden/issues/6750)) ([20a4ba3b8](https://github.com/garden-io/garden/commit/20a4ba3b8))
+* **pulumi:** enable new varfile schema for modules ([#6735](https://github.com/garden-io/garden/issues/6735)) ([bf74500a9](https://github.com/garden-io/garden/commit/bf74500a9))
+* **pulumi:** add new pulumi varfile schema that allows specifying other top-level keys ([#6729](https://github.com/garden-io/garden/issues/6729)) ([f014cb666](https://github.com/garden-io/garden/commit/f014cb666))
+
+### Performance Improvements
+
+* optimise solver graph evaluation loop ([#6728](https://github.com/garden-io/garden/issues/6728)) ([bd6c6ba0d](https://github.com/garden-io/garden/commit/bd6c6ba0d))
+
 <a name="0.13.47"></a>
 ## [0.13.47](https://github.com/garden-io/garden/compare/0.13.46...0.13.47) (2024-12-12)
 

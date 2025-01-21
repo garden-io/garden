@@ -9,11 +9,10 @@
 import { KubeApi, KubernetesError } from "./api.js"
 import {
   getAppNamespace,
-  prepareNamespaces,
+  prepareNamespace,
   deleteNamespaces,
-  getNamespaceStatus,
-  clearNamespaceCache,
   getSystemNamespace,
+  namespaceExists,
 } from "./namespace.js"
 import type { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config.js"
 import type {
@@ -38,8 +37,9 @@ import type { KubernetesResource } from "./types.js"
 import type { PrimitiveMap } from "../../config/common.js"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress.js"
 import type { Log } from "../../logger/log-entry.js"
-import { ingressControllerInstall, ingressControllerReady } from "./nginx/ingress-controller.js"
+import { ensureIngressController, ingressControllerReady } from "./nginx/ingress-controller.js"
 import { styles } from "../../logger/styles.js"
+import { isTruthy } from "../../util/util.js"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -61,9 +61,9 @@ interface KubernetesEnvironmentDetail {
 export type KubernetesEnvironmentStatus = EnvironmentStatus<KubernetesProviderOutputs, KubernetesEnvironmentDetail>
 
 /**
- * Checks system service statuses (if provider has system services)
+ * Checks if namespace and secrets exist and whether ingress is ready (if applicable).
  *
- * Returns ready === true if all the above are ready.
+ * TODO @eysi: Check secret statuses
  */
 export async function getEnvironmentStatus({
   ctx,
@@ -72,8 +72,9 @@ export async function getEnvironmentStatus({
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-
-  const namespace = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider, skipCreate: true })
+  // TODO @eysi: Avoid casting (the namespace is ensured though when the provider config is resolved)
+  const namespaceName = provider.config.namespace!.name
+  const namespaceReady = await namespaceExists(api, ctx, namespaceName)
 
   const detail: KubernetesEnvironmentDetail = {
     systemReady: true,
@@ -82,31 +83,21 @@ export async function getEnvironmentStatus({
   }
 
   const result: KubernetesEnvironmentStatus = {
-    ready: namespace.state === "ready",
+    ready: namespaceReady,
     detail,
     outputs: {
-      "app-namespace": namespace.namespaceName,
+      "app-namespace": namespaceName,
       "default-hostname": provider.config.defaultHostname || null,
     },
   }
 
   if (provider.config.setupIngressController === "nginx") {
     const ingressControllerReadiness = await ingressControllerReady(ctx, log)
-    result.ready = ingressControllerReadiness && namespace.state === "ready"
+    result.ready = ingressControllerReadiness && namespaceReady
     detail.systemReady = ingressControllerReadiness
     log.info(
       `${styles.highlight("nginx")} Ingress Controller ${ingressControllerReadiness ? "is ready" : "is not ready"}`
     )
-  } else {
-    // We only need to warn about missing ingress classes if we're not using garden installed nginx
-    const ingressApiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
-    const ingressWarnings = await getIngressMisconfigurationWarnings(
-      provider.config.ingressClass,
-      ingressApiVersion,
-      log,
-      api
-    )
-    ingressWarnings.forEach((w) => log.warn(w))
   }
 
   return result
@@ -145,28 +136,47 @@ export async function getIngressMisconfigurationWarnings(
 
 /**
  * Deploys system services (if any) and creates the default app namespace.
+ *
+ * TODO @eysi: Ensure secrets here
  */
 export async function prepareEnvironment(
-  params: PrepareEnvironmentParams<KubernetesConfig, KubernetesEnvironmentStatus>
+  params: PrepareEnvironmentParams<KubernetesConfig>
 ): Promise<PrepareEnvironmentResult> {
-  const { ctx, log, status } = params
+  const { ctx, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const config = provider.config
+  const api = await KubeApi.factory(log, ctx, provider)
+
   // create default app namespace if it doesn't exist
-  await prepareNamespaces({ ctx, log })
+  const nsStatus = await prepareNamespace({ ctx, log })
   // make sure that the system namespace exists
   await getSystemNamespace(ctx, ctx.provider, log)
 
   // TODO-0.13/TODO-0.14: remove this option for remote kubernetes clusters?
   if (config.setupIngressController === "nginx") {
-    // Install nginx ingress controller
-    await ingressControllerInstall(k8sCtx, log)
+    await ensureIngressController(k8sCtx, log)
+  } else {
+    // We only need to warn about missing ingress classes if we're not using Garden installed nginx
+    const ingressApiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
+    const ingressWarnings = await getIngressMisconfigurationWarnings(
+      provider.config.ingressClass,
+      ingressApiVersion,
+      log,
+      api
+    )
+    ingressWarnings.forEach((w) => log.warn(w))
   }
 
-  const nsStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider })
-  ctx.events.emit("namespaceStatus", nsStatus)
-  return { status: { ready: true, outputs: status.outputs } }
+  return {
+    status: {
+      ready: true,
+      outputs: {
+        "app-namespace": nsStatus["app-namespace"].namespaceName,
+        "default-hostname": provider.config.defaultHostname || null,
+      },
+    },
+  }
 }
 
 export async function cleanupEnvironment({
@@ -199,7 +209,7 @@ export async function cleanupEnvironment({
           }
         })
       )
-    ).filter(Boolean)
+    ).filter(isTruthy)
 
   if (namespacesToDelete.length === 0) {
     return {}
@@ -212,18 +222,13 @@ export async function cleanupEnvironment({
     nsDescription = `namespaces ${namespacesToDelete[0]} and ${namespacesToDelete[1]}`
   }
 
-  const entry = log
+  const k8sLog = log
     .createLog({
       name: "kubernetes",
     })
     .info(`Deleting ${nsDescription} (this may take a while)`)
 
-  await deleteNamespaces(<string[]>namespacesToDelete, api, entry)
-
-  // Since we've deleted one or more namespaces, we invalidate the NS cache for this provider instance.
-  clearNamespaceCache(provider)
-
-  ctx.events.emit("namespaceStatus", { namespaceName: namespace, state: "missing", pluginName: provider.name })
+  await deleteNamespaces({ namespaces: namespacesToDelete, ctx, api, log: k8sLog })
 
   return {}
 }

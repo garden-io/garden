@@ -78,6 +78,7 @@ import type { RunActionConfig } from "../../../src/actions/run.js"
 import type { ProjectResult } from "@garden-io/platform-api-types"
 import { ProjectStatus } from "@garden-io/platform-api-types"
 import { getCloudDistributionName } from "../../../src/cloud/util.js"
+import { resolveAction } from "../../../src/graph/actions.js"
 import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 import { GenericContext, LayeredContext } from "../../../src/config/template-contexts/base.js"
@@ -2500,10 +2501,12 @@ describe("Garden", () => {
       const testA = createGardenPlugin({
         name: "test-a",
         handlers: {
-          getEnvironmentStatus: async () => {
+          prepareEnvironment: async () => {
             return {
-              ready: true,
-              outputs: { foo: "bar" },
+              status: {
+                ready: true,
+                outputs: { foo: "bar" },
+              },
             }
           },
         },
@@ -3148,6 +3151,38 @@ describe("Garden", () => {
       expect(workflow).to.exist
       expect(serialiseUnresolvedTemplates(workflow.steps)).to.eql([{ script: 'echo "${inputs.envName}"' }])
       expect(serialiseUnresolvedTemplates(omit(workflow.internal, "yamlDoc"))).to.eql(internal)
+    })
+
+    it("should not fail when input is used together with an unresolvable variable in the same template string", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-templates-partial"))
+      await garden.scanAndAddConfigs()
+
+      const log = garden.log
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const resolved = await resolveAction({
+        garden,
+        graph,
+        log,
+        action: graph.getActionByRef({
+          kind: "Build",
+          name: "foo-test-dt",
+        }),
+      })
+
+      expect(resolved).to.exist
+      expect(resolved.getVariables()).to.deep.eq({
+        myDir: "../../../test",
+        syncTargets: [
+          {
+            source: "../../../foo",
+          },
+          {
+            source: "../../../bar",
+          },
+        ],
+      })
     })
 
     it("should throw on duplicate config template names", async () => {

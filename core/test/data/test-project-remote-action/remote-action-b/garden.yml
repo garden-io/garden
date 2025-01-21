@@ -1,0 +1,11 @@
+kind: Build
+name: remote-action-b
+type: exec
+spec:
+  # This command tests presence of Worker.java
+  # and in turn, if the action is running in the right subdirectory (src/main/java/worker)
+  command: [ls, Worker.java]
+source:
+  path: src/main/java/worker
+  repository:
+    url: https://github.com/garden-io/garden-example-remote-module-jworker.git#8f6da155581a567ffa28c410174d43d74eb4cb9b
