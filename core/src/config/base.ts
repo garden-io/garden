@@ -36,6 +36,8 @@ import { profileAsync } from "../util/profiling.js"
 import { readFile } from "fs/promises"
 import { LRUCache } from "lru-cache"
 import { parseTemplateCollection } from "../template/templated-collections.js"
+import { evaluate } from "../template/evaluate.js"
+import { GenericContext } from "./template-contexts/base.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -456,18 +458,9 @@ export function prepareProjectResource(log: Log, spec: any): ProjectConfig {
 }
 
 export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleConfig {
-  // We allow specifying modules by name only as a shorthand:
-  //   dependencies:
-  //   - foo-module
-  //   - name: foo-module // same as the above
-  // Empty strings and nulls are omitted from the array.
-  let dependencies: BuildDependencyConfig[] = spec.build?.dependencies || []
+  spec.build = evaluate(spec.build, { context: new GenericContext({}), opts: {} }).resolved
 
-  if (spec.build && spec.build.dependencies && isArray(spec.build.dependencies)) {
-    // We call `prepareBuildDependencies` on `spec.build.dependencies` again in `resolveModuleConfig` to ensure that
-    // any dependency configs whose module names resolved to null get filtered out.
-    dependencies = prepareBuildDependencies(spec.build.dependencies)
-  }
+  const dependencies: BuildDependencyConfig[] = spec.build?.dependencies || []
 
   const cleanedSpec = {
     ...omit(spec, baseModuleSchemaKeys()),
