@@ -24,7 +24,7 @@ const nginxKindMainResource = {
 }
 
 export class KindGardenIngressController extends GardenIngressComponent {
-  override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+  override async ensure(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const status = await this.getStatus(ctx, log)
     if (status === "ready") {
       return

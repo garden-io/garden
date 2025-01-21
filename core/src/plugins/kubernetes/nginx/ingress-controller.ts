@@ -18,7 +18,7 @@ import { GardenIngressComponent } from "./ingress-controller-base.js"
 import type { DeployState } from "../../../types/service.js"
 
 class NoOpGardenIngressController extends GardenIngressComponent {
-  override install(_ctx: KubernetesPluginContext, _log: Log): Promise<void> {
+  override ensure(_ctx: KubernetesPluginContext, _log: Log): Promise<void> {
     return Promise.resolve(undefined)
   }
 
@@ -61,8 +61,8 @@ export async function ingressControllerReady(ctx: KubernetesPluginContext, log: 
   return await getGardenIngressController(ctx).ready(ctx, log)
 }
 
-export async function ingressControllerInstall(ctx: KubernetesPluginContext, log: Log) {
-  await getGardenIngressController(ctx).install(ctx, log)
+export async function ensureIngressController(ctx: KubernetesPluginContext, log: Log) {
+  await getGardenIngressController(ctx).ensure(ctx, log)
 }
 
 export async function ingressControllerUninstall(ctx: KubernetesPluginContext, log: Log) {
