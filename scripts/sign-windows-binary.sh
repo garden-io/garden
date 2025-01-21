@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e -o pipefail
 # Initialize variables
 aws_profile=""
 file_path=""
