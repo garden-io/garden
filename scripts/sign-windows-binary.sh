@@ -55,7 +55,6 @@ s3_bucket=ib-signing-for-garden # s3 bucket name
 file_name=$(basename $file_path) # extract filename from full path
 file_folder=$(dirname $file_path) # extract folder from full path
 
-
 # Rename file based on the version
 # We want to make sure the file name is unique before uploading it to the signing bucket, in order to avoid
 # downloading an old file with the same name.
@@ -66,8 +65,6 @@ else
   file_name="garden-$version.exe"
   mv $file_path "$file_folder/$file_name"
 fi
-
-
 
 # Upload file to S3
 echo Starting upload of $file_path to signing bucket

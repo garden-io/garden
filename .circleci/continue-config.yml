@@ -476,20 +476,19 @@ jobs:
           aws_secret_access_key: $GARDEN_CODE_SIGNING_AWS_SECRET_ACCESS_KEY
           profile_name: windows-code-signing-ib
       - run:
-          name: Prepare binary for signing
+          name: Unzip binary for signing
           command: |
             unzip dist/garden-<<parameters.version>>-windows-amd64.zip -d dist/
-            mv dist/windows-amd64/garden.exe dist/windows-amd64/garden-<<parameters.version>>-windows-amd64.exe
       - run:
           name: Run script to sign Windows binaries
           command: |
-            ./scripts/sign-windows-binary.sh --file dist/windows-amd64/garden-<<parameters.version>>-windows-amd64.exe --profile windows-code-signing-ib
+            ./scripts/sign-windows-binary.sh --version <<parameter.version>> --file dist/windows-amd64/garden.exe --profile windows-code-signing-ib
       - run:
           name: Prepare the windows binary zip and cleanup
           command: |
-            mv dist/windows-amd64/garden-<<parameters.version>>-windows-amd64.exe dist/windows-amd64/garden.exe
             rm dist/garden-<<parameters.version>>-windows-amd64.zip
             zip -r dist/garden-<<parameters.version>>-windows-amd64.zip dist/windows-amd64
+            sha256sum dist/garden-<<parameters.version>>-windows-amd64.zip | cut -d ' ' -f1 > dist/garden-<<parameters.version>>-windows-amd64.zip.sha256
             rm -rf dist/windows-amd64
       - fail_fast
 
@@ -1440,11 +1439,15 @@ workflows:
           name: build-dist-linux-windows-edge
           version: edge-bonsai
           requires: [build-edge]
-
+      - sign-windows-binary:
+          <<: *only-main
+          context: garden-core-code-signing
+          requires: [build-dist-linux-windows]
+          version: edge-bonsai
       - github-edge-prerelease:
           <<: *only-main
           version: edge-bonsai
-          requires: [build-dist-macos-edge, build-dist-linux-windows-edge]
+          requires: [build-dist-macos-edge, build-dist-linux-windows-edge, sign-windows-binary]
 
       - dockerhub-release:
           <<: *only-main
@@ -1466,11 +1469,13 @@ workflows:
           requires: [build]
       - sign-windows-binary:
           <<: *only-tags
+          context: garden-core-code-signing
           requires: [build-dist-linux-windows]
+          version: ${CIRCLE_TAG}
       - dockerhub-release:
           <<: *only-tags
           context: docker
           requires: [build-dist-macos, build-dist-linux-windows]
       - github-release-tag:
           <<: *only-tags
-          requires: [build-dist-macos, build-dist-linux-windows]
+          requires: [build-dist-macos, build-dist-linux-windows, sign-windows-binary]
