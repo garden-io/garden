@@ -307,8 +307,8 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   private _enterpriseDomain: string | undefined
   private _loggedIn: boolean
 
-  override getMissingKeyErrorFooter({ nodePath }: ContextResolveParams): string {
-    if (nodePath[0] !== "secrets") {
+  override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
+    if (key[0] !== "secrets") {
       return ""
     }
 

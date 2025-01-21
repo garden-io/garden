@@ -145,7 +145,14 @@ export abstract class ConfigContext {
         found: false,
         explanation: {
           ...res.explanation,
-          getFooterMessage: () => this.getMissingKeyErrorFooter(params),
+          getFooterMessage: () => {
+            const previousMsg = res.explanation.getFooterMessage?.()
+            const msg = this.getMissingKeyErrorFooter(params)
+            if (previousMsg) {
+              return `${previousMsg}\n${msg}`
+            }
+            return msg
+          },
         },
       }
     } finally {
@@ -504,10 +511,16 @@ export function getUnavailableReason(result: ContextResolveOutput): string {
 
   const available = result.explanation.getAvailableKeys()
 
-  return (
-    deline`
+  const message = deline`
     Could not find key ${result.explanation.key}${result.explanation.keyPath.length > 0 ? ` under ${renderKeyPath(result.explanation.keyPath)}` : ""}.
     ${available?.length ? `Available keys: ${available.join(", ")}.` : ""}
-  ` + result.explanation.getFooterMessage?.() || ""
-  )
+  `
+
+  const footer = result.explanation.getFooterMessage?.()
+
+  if (footer) {
+    return `${message}\n\n${footer}`
+  }
+
+  return message
 }

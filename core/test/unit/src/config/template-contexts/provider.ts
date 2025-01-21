@@ -15,15 +15,27 @@ describe("ProviderConfigContext", () => {
     const garden = await makeTestGarden(projectRootA, { environmentString: "local" })
     const c = new ProviderConfigContext(garden, await garden.resolveProviders({ log: garden.log }), garden.variables)
 
-    expect(c.resolve({ nodePath: [], key: ["environment", "name"], opts: {} })).to.eql({ resolved: "local" })
+    expect(c.resolve({ nodePath: [], key: ["environment", "name"], opts: {} })).to.eql({
+      found: true,
+      resolved: "local",
+    })
   })
 
   it("should set environment.namespace and environment.fullName to properly if namespace is set", async () => {
     const garden = await makeTestGarden(projectRootA, { environmentString: "foo.local" })
     const c = new ProviderConfigContext(garden, await garden.resolveProviders({ log: garden.log }), garden.variables)
 
-    expect(c.resolve({ nodePath: [], key: ["environment", "name"], opts: {} })).to.eql({ resolved: "local" })
-    expect(c.resolve({ nodePath: [], key: ["environment", "namespace"], opts: {} })).to.eql({ resolved: "foo" })
-    expect(c.resolve({ nodePath: [], key: ["environment", "fullName"], opts: {} })).to.eql({ resolved: "foo.local" })
+    expect(c.resolve({ nodePath: [], key: ["environment", "name"], opts: {} })).to.eql({
+      found: true,
+      resolved: "local",
+    })
+    expect(c.resolve({ nodePath: [], key: ["environment", "namespace"], opts: {} })).to.eql({
+      found: true,
+      resolved: "foo",
+    })
+    expect(c.resolve({ nodePath: [], key: ["environment", "fullName"], opts: {} })).to.eql({
+      found: true,
+      resolved: "foo.local",
+    })
   })
 })

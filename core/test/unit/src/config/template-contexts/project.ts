@@ -148,9 +148,8 @@ describe("ProjectConfigContext", () => {
 
       const result = c.resolve({ nodePath: [], key: ["secrets", "bar"], opts: {} })
 
-      expect(stripAnsi(getUnavailableReason(result))).to.match(
-        /Please log in via the garden login command to use Garden with secrets/
-      )
+      const msg = getUnavailableReason(result)
+      expect(stripAnsi(msg)).to.match(/Please log in via the garden login command to use Garden with secrets/)
     })
 
     context("when logged in", () => {

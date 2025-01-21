@@ -30,6 +30,7 @@ describe("WorkflowConfigContext", () => {
   it("should resolve local env variables", async () => {
     process.env.TEST_VARIABLE = "foo"
     expect(c.resolve({ nodePath: [], key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
+      found: true,
       resolved: "foo",
     })
     delete process.env.TEST_VARIABLE
@@ -37,33 +38,43 @@ describe("WorkflowConfigContext", () => {
 
   it("should resolve the local arch", async () => {
     expect(c.resolve({ nodePath: [], key: ["local", "arch"], opts: {} })).to.eql({
+      found: true,
       resolved: process.arch,
     })
   })
 
   it("should resolve the local platform", async () => {
     expect(c.resolve({ nodePath: [], key: ["local", "platform"], opts: {} })).to.eql({
+      found: true,
       resolved: process.platform,
     })
   })
 
   it("should resolve the environment config", async () => {
     expect(c.resolve({ nodePath: [], key: ["environment", "name"], opts: {} })).to.eql({
+      found: true,
       resolved: garden.environmentName,
     })
   })
 
   it("should resolve a project variable", async () => {
-    expect(c.resolve({ nodePath: [], key: ["variables", "some"], opts: {} })).to.eql({ resolved: "variable" })
+    expect(c.resolve({ nodePath: [], key: ["variables", "some"], opts: {} })).to.eql({
+      found: true,
+      resolved: "variable",
+    })
   })
 
   it("should resolve a project variable under the var alias", async () => {
-    expect(c.resolve({ nodePath: [], key: ["var", "some"], opts: {} })).to.eql({ resolved: "variable" })
+    expect(c.resolve({ nodePath: [], key: ["var", "some"], opts: {} })).to.eql({
+      found: true,
+      resolved: "variable",
+    })
   })
 
   context("secrets", () => {
     it("should resolve a secret", async () => {
       expect(c.resolve({ nodePath: [], key: ["secrets", "someSecret"], opts: {} })).to.eql({
+        found: true,
         resolved: "someSecretValue",
       })
     })
@@ -104,7 +115,7 @@ describe("WorkflowStepConfigContext", () => {
       },
       stepName: "step-2",
     })
-    expect(c.resolve({ nodePath: [], key: ["steps", "step-1", "outputs", "some"], opts: {} })).to.equal({
+    expect(c.resolve({ nodePath: [], key: ["steps", "step-1", "outputs", "some"], opts: {} })).to.deep.eq({
       found: true,
       resolved: "value",
     })
@@ -124,7 +135,7 @@ describe("WorkflowStepConfigContext", () => {
       },
       stepName: "step-2",
     })
-    expect(c.resolve({ nodePath: [], key: ["steps", "step-1", "log"], opts: {} })).to.equal({
+    expect(c.resolve({ nodePath: [], key: ["steps", "step-1", "log"], opts: {} })).to.deep.equal({
       found: true,
       resolved: "bla",
     })
