@@ -474,6 +474,8 @@ jobs:
       - aws-cli/setup:
           aws_access_key_id: $GARDEN_CODE_SIGNING_AWS_ACCESS_KEY_ID
           aws_secret_access_key: $GARDEN_CODE_SIGNING_AWS_SECRET_ACCESS_KEY
+          configure_profile_region: true
+          region: eu-central-1
           profile_name: windows-code-signing-ib
       - run:
           name: Run script to sign Windows binaries
