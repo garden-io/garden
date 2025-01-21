@@ -4,7 +4,7 @@ ARG VARIANT=root
 
 # NOTE: This is not the node version Garden itself will run in. Garden binaries have node "built in" and the version installed on the system does not matter.
 # The main reason we base these images off of the Node image is for Azure DevOps Support.
-FROM node:23.6.0-bookworm-slim@sha256:bde350c38a1090c74566da2547da84727495efa663a0e6e314d31c49a89abd73 as garden-bookworm-base-root
+FROM node:23.6.0-bookworm-slim@sha256:66a57ce3fb719590aed5a22776e4de507ab4c0f445e89a761fc6847573103df3 as garden-bookworm-base-root
 
 FROM garden-bookworm-base-root as garden-base-root
 # system dependencies
