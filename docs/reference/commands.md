@@ -1432,6 +1432,9 @@ stderr:
 ```yaml
 allEnvironmentNames:
 
+# A list of all plugins available to be used in the provider configuration.
+allAvailablePlugins:
+
 # The name of the environment.
 environmentName:
 
