@@ -38,7 +38,7 @@ import { uuidv4 } from "../../../../src/util/random.js"
 import type { Garden } from "../../../../src/garden.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
-import { NotImplementedError } from "../../../../src/exceptions.js"
+import { RuntimeError } from "../../../../src/exceptions.js"
 import dedent from "dedent"
 import { deepResolveContext } from "../../../../src/config/template-contexts/base.js"
 
@@ -1084,7 +1084,7 @@ describe("cli", () => {
           override printHeader() {}
 
           async action({}): Promise<CommandResult> {
-            throw new NotImplementedError({ message: "Error message" })
+            throw new RuntimeError({ message: "Error message" })
           }
         }
 
@@ -1126,7 +1126,7 @@ describe("cli", () => {
         expect(firstEightLines).to.eql(dedent`
           Encountered an unexpected Garden error. This is likely a bug 🍂
 
-          You can help by reporting this on GitHub: https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=Crash%3A%20Cannot%20read%20property%20foo%20of%20undefined.
+          You can help by reporting this on GitHub: https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=Crash%3A%20TypeError%3A%20Cannot%20read%20property%20foo%20of%20undefined.
 
           Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
 
@@ -1169,7 +1169,7 @@ describe("cli", () => {
           errors: [
             {
               type: "crash",
-              message: "Some unexpected error that leads to a crash",
+              message: "Error: Some unexpected error that leads to a crash",
               stack: "stack",
             },
           ],
