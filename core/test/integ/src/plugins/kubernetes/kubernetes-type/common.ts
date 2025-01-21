@@ -66,7 +66,7 @@ describe("getManifests", () => {
 
     it("crashes with yaml syntax error if an if block references variable that does not exist", async () => {
       action = await garden.resolveAction<KubernetesDeployAction>({
-        action: cloneDeep(graph.getDeploy("legacypartial-ifblock-doesnotexist")),
+        action: graph.getDeploy("legacypartial-ifblock-doesnotexist"),
         log: garden.log,
         graph,
       })
@@ -78,7 +78,7 @@ describe("getManifests", () => {
 
     it("should not crash due to indentation with if block statement", async () => {
       action = await garden.resolveAction<KubernetesDeployAction>({
-        action: cloneDeep(graph.getDeploy("legacypartial-ifblock-indentation")),
+        action: graph.getDeploy("legacypartial-ifblock-indentation"),
         log: garden.log,
         graph,
       })
@@ -89,7 +89,7 @@ describe("getManifests", () => {
 
     it("partially resolves the consequent branch of ${if true} block", async () => {
       action = await garden.resolveAction<KubernetesDeployAction>({
-        action: cloneDeep(graph.getDeploy("legacypartial-ifblock-true")),
+        action: graph.getDeploy("legacypartial-ifblock-true"),
         log: garden.log,
         graph,
       })
@@ -101,7 +101,7 @@ describe("getManifests", () => {
 
     it("partially resolves the alternate branch of ${if false} block", async () => {
       action = await garden.resolveAction<KubernetesDeployAction>({
-        action: cloneDeep(graph.getDeploy("legacypartial-ifblock-false")),
+        action: graph.getDeploy("legacypartial-ifblock-false"),
         log: garden.log,
         graph,
       })
@@ -131,7 +131,7 @@ describe("getManifests", () => {
 
     it("finds duplicates in manifests declared inline", async () => {
       action = await garden.resolveAction<KubernetesDeployAction>({
-        action: cloneDeep(graph.getDeploy("duplicates-inline")),
+        action: graph.getDeploy("duplicates-inline"),
         log: garden.log,
         graph,
       })
@@ -151,7 +151,7 @@ describe("getManifests", () => {
 
     it("finds duplicates between manifests declared both inline and using kustomize", async () => {
       action = await garden.resolveAction<KubernetesDeployAction>({
-        action: cloneDeep(graph.getDeploy("duplicates-inline-kustomize")),
+        action: graph.getDeploy("duplicates-inline-kustomize"),
         log: garden.log,
         graph,
       })
@@ -174,7 +174,7 @@ describe("getManifests", () => {
 
     it("finds duplicates between manifests declared both inline and in files", async () => {
       action = await garden.resolveAction<KubernetesDeployAction>({
-        action: cloneDeep(graph.getDeploy("duplicates-files-inline")),
+        action: graph.getDeploy("duplicates-files-inline"),
         log: garden.log,
         graph,
       })
@@ -197,7 +197,7 @@ describe("getManifests", () => {
 
     it("finds duplicates between manifests declared both using kustomize and in files", async () => {
       action = await garden.resolveAction<KubernetesDeployAction>({
-        action: cloneDeep(graph.getDeploy("duplicates-files-kustomize")),
+        action: graph.getDeploy("duplicates-files-kustomize"),
         log: garden.log,
         graph,
       })
@@ -240,7 +240,7 @@ describe("getManifests", () => {
     beforeEach(async () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       action = await garden.resolveAction<KubernetesDeployAction>({
-        action: cloneDeep(graph.getDeploy("hello-world")),
+        action: graph.getDeploy("hello-world"),
         log: garden.log,
         graph,
       })
@@ -319,7 +319,7 @@ describe("getManifests", () => {
 
     it("should support regular files paths", async () => {
       const executedAction = await garden.executeAction<KubernetesDeployAction>({
-        action: cloneDeep(graph.getDeploy("with-build-action")),
+        action: graph.getDeploy("with-build-action"),
         log: garden.log,
         graph,
       })
@@ -340,7 +340,7 @@ describe("getManifests", () => {
     })
 
     it("should support both regular paths and glob patterns with deduplication", async () => {
-      const action = cloneDeep(graph.getDeploy("with-build-action"))
+      const action = graph.getDeploy("with-build-action")
       // Append a valid filename that results to the default glob pattern '*.yaml'.
       action["_config"]["spec"]["files"].push("deployment.yaml")
       const executedAction = await garden.resolveAction<KubernetesDeployAction>({
@@ -365,7 +365,7 @@ describe("getManifests", () => {
     })
 
     it("should throw on missing regular path", async () => {
-      const action = cloneDeep(graph.getDeploy("with-build-action"))
+      const action = graph.getDeploy("with-build-action")
       action["_config"]["spec"]["files"].push("missing-file.yaml")
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
         action,
@@ -389,7 +389,7 @@ describe("getManifests", () => {
     })
 
     it("should throw when no files found from glob pattens", async () => {
-      const action = cloneDeep(graph.getDeploy("with-build-action"))
+      const action = graph.getDeploy("with-build-action")
       // Rewrite the whole files array to have a glob pattern that results to an empty list of files.
       action["_config"]["spec"]["files"] = ["./**/manifests/*.yaml"]
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
@@ -429,7 +429,7 @@ describe("getManifests", () => {
     })
 
     it("should apply patches to a manifest", async () => {
-      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      const action = graph.getDeploy("deploy-action")
       action["_config"]["spec"]["patchResources"] = [
         {
           name: "busybox-deployment",
@@ -486,7 +486,7 @@ describe("getManifests", () => {
       expect(manifests[0].spec.replicas).to.eql(3)
     })
     it("should handle multiple patches", async () => {
-      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      const action = graph.getDeploy("deploy-action")
       action["_config"]["spec"]["patchResources"] = [
         {
           name: "busybox-deployment",
@@ -519,7 +519,7 @@ describe("getManifests", () => {
       expect(manifests[1].data.hello).to.eql("patched-world")
     })
     it("should store patched version in metadata ConfigMap", async () => {
-      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      const action = graph.getDeploy("deploy-action")
       action["_config"]["spec"]["patchResources"] = [
         {
           name: "busybox-deployment",
@@ -567,7 +567,7 @@ describe("getManifests", () => {
       })
     })
     it("should apply patches to file and inline manifests", async () => {
-      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      const action = graph.getDeploy("deploy-action")
       action["_config"]["spec"]["manifests"] = [
         {
           apiVersion: "v1",
@@ -622,7 +622,7 @@ describe("getManifests", () => {
       expect(manifests[2].data.hello).to.eql("patched-world")
     })
     it("should apply patches BEFORE post processing manifests", async () => {
-      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      const action = graph.getDeploy("deploy-action")
       action["_config"]["spec"]["patchResources"] = [
         {
           name: "busybox-deployment",
@@ -657,7 +657,7 @@ describe("getManifests", () => {
       })
     })
     it("should allow the user to configure the merge patch strategy", async () => {
-      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      const action = graph.getDeploy("deploy-action")
       action["_config"]["spec"]["patchResources"] = [
         {
           name: "busybox-deployment",
@@ -705,7 +705,7 @@ describe("getManifests", () => {
     })
     it("should log a warning if patches don't match manifests", async () => {
       garden.log.root["entries"].length = 0
-      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      const action = graph.getDeploy("deploy-action")
       action["_config"]["spec"]["patchResources"] = [
         {
           name: "non-existent-resource",
