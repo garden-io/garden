@@ -524,3 +524,14 @@ export function getUnavailableReason(result: ContextResolveOutput): string {
 
   return message
 }
+
+export function deepResolveContext(description: string, context: ConfigContext, rootContext?: ConfigContext) {
+  const res = context.resolve({ nodePath: [], key: [], opts: {}, rootContext })
+  if (!res.found) {
+    throw new ConfigurationError({
+      message: `Could not resolve ${description}: ${getUnavailableReason(res)}`,
+    })
+  }
+
+  return res.resolved
+}

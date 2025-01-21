@@ -40,6 +40,7 @@ import { makeDummyGarden } from "../../../../src/garden.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
 import { NotImplementedError } from "../../../../src/exceptions.js"
 import dedent from "dedent"
+import { deepResolveContext } from "../../../../src/config/template-contexts/base.js"
 
 /**
  * Helper functions for removing/resetting the global logger config which is set when
@@ -962,7 +963,7 @@ describe("cli", () => {
         override printHeader() {}
 
         async action({ garden }: { garden: Garden }) {
-          return { result: { variables: garden.variables } }
+          return { result: { variables: deepResolveContext("project variables", garden.variables) } }
         }
       }
 

@@ -123,7 +123,7 @@ import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
 import type { ConfigContext } from "./config/template-contexts/base.js"
-import { GenericContext, getUnavailableReason, type ContextWithSchema } from "./config/template-contexts/base.js"
+import { deepResolveContext, GenericContext, type ContextWithSchema } from "./config/template-contexts/base.js"
 import { validateSchema, validateWithPath } from "./config/validation.js"
 import { pMemoizeDecorator } from "./lib/p-memoize.js"
 import { ModuleGraph } from "./graph/modules.js"
@@ -178,6 +178,7 @@ import {
 import { GrowCloudApi } from "./cloud/grow/api.js"
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
+import type { ResolvedTemplate } from "./template/types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue, type ParsedTemplate } from "./template/types.js"
 import { LayeredContext } from "./config/template-contexts/base.js"
 
@@ -1835,13 +1836,6 @@ export class Garden {
       mapValues(actionConfigs, (configsForKind) => mapValues(configsForKind, omitInternal))
     )
 
-    const variableResolveResult = this.variables.resolve({ nodePath: [], key: [], opts: {} })
-    if (!variableResolveResult.found) {
-      throw new ConfigurationError({
-        message: `Could not resolve variables: ${getUnavailableReason(variableResolveResult)}`,
-      })
-    }
-
     return {
       environmentName: this.environmentName,
       allProviderNames: this.getUnresolvedProviderConfigs().map((p) => p.name),
@@ -1850,7 +1844,7 @@ export class Garden {
       providers: providers.map((p) =>
         !(p instanceof UnresolvedTemplateValue || isTemplatePrimitive(p)) ? omitInternal(p) : p
       ),
-      variables: variableResolveResult.resolved as any,
+      variables: deepResolveContext("project variables", this.variables),
       actionConfigs: filteredActionConfigs,
       moduleConfigs: moduleConfigs.map(omitInternal),
       workflowConfigs: sortBy(workflowConfigs.map(omitInternal), "name"),
@@ -2465,7 +2459,7 @@ export interface ConfigDump {
   allProviderNames: string[]
   namespace: string
   providers: (OmitInternalConfig<Provider> | ParsedTemplate)[]
-  variables: DeepPrimitiveMap
+  variables: ResolvedTemplate
   actionConfigs: ActionConfigMapForDump
   moduleConfigs: OmitInternalConfig<ModuleConfig>[]
   workflowConfigs: OmitInternalConfig<WorkflowConfig>[]
