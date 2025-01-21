@@ -39,7 +39,7 @@ import { baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./bas
 import type { Log } from "../logger/log-entry.js"
 import { renderDivider } from "../logger/util.js"
 import { styles } from "../logger/styles.js"
-import type { ParsedTemplate } from "../template/types.js"
+import { serialiseUnresolvedTemplates, type ParsedTemplate } from "../template/types.js"
 import { LayeredContext } from "./template-contexts/base.js"
 import type { ConfigContext } from "./template-contexts/base.js"
 import { GenericContext } from "./template-contexts/base.js"
@@ -482,7 +482,7 @@ export function resolveProjectConfig({
   commandInfo: CommandInfo
 }): ProjectConfig {
   // Resolve template strings for non-environment-specific fields (apart from `sources`).
-  const { environments = [], name, sources = [], providers = [] } = config
+  const { environments = [], name, sources = [], providers = [], outputs = [] } = config
 
   let globalConfig: any
   const context = new ProjectConfigContext({
@@ -528,6 +528,8 @@ export function resolveProjectConfig({
       environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-initial-load", variables: {} }],
       providers: [],
       sources: [],
+      // this makes sure that the output declaration shape is valid
+      outputs: serialiseUnresolvedTemplates(outputs),
     },
     schema: projectSchema(),
     projectRoot: config.path,
@@ -539,6 +541,7 @@ export function resolveProjectConfig({
     environments,
     providers,
     sources,
+    outputs,
   }
 
   config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
