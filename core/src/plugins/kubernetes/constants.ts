@@ -93,4 +93,4 @@ export const defaultKanikoImageName: DockerImageWithDigest =
 export const defaultGardenIngressControllerImage: DockerImageWithDigest =
   "registry.k8s.io/ingress-nginx/controller:v1.12.0@sha256:e6b8de175acda6ca913891f0f727bca4527e797d52688cbe9fec9040d6f6b6fa"
 export const defaultGardenIngressControllerKubeWebhookCertGenImage: DockerImageWithDigest =
-  "k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1@sha256:64d8c73dca984af206adf9d6d7e46aa550362b1d7a01f3a0a91b20cc67868660"
+  "registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.1@sha256:0de05718b59dc33b57ddfb4d8ad5f637cefd13eafdec0e1579d782b3483c27c3"
