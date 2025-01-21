@@ -1,4 +1,4 @@
-FROM ruby:2.5
+FROM ruby:3
 
 ENV PORT=8084
 EXPOSE ${PORT}

@@ -16,7 +16,7 @@ import { getDefaultGardenIngressControllerDefaultBackendImagePath } from "../con
 import { GardenIngressComponent } from "./ingress-controller-base.js"
 
 export class GardenDefaultBackend extends GardenIngressComponent {
-  override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+  override async ensure(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const { deployment, service } = defaultBackendGetManifests(ctx)
     const status = await this.getStatus(ctx, log)
     if (status === "ready") {

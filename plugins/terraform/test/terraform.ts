@@ -275,9 +275,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         expect(
           garden.log.root
             .getLogEntries()
-            .filter((l) =>
-              resolveMsg(l)?.match(/Provider not ready. Current command only checks status, not preparing environment/)
-            ).length
+            .filter((l) => resolveMsg(l)?.match(/Provider is not ready \(only checking status\)/)).length
         ).to.be.greaterThan(0)
       })
 

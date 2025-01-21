@@ -33,7 +33,6 @@ export const clusterInit: PluginCommand = {
         ctx,
         log,
         force: true,
-        status,
       })
     }
 

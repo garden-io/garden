@@ -278,7 +278,7 @@ export function clearNamespaceCache(provider: KubernetesProvider) {
 /**
  * Used by both the remote and local plugin
  */
-export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams) {
+export async function prepareNamespace({ ctx, log }: GetEnvironmentStatusParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
 
   try {
