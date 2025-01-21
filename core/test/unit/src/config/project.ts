@@ -22,10 +22,14 @@ import {
 } from "../../../../src/config/project.js"
 import { createProjectConfig, expectError } from "../../../helpers.js"
 import fsExtra from "fs-extra"
-const { realpath, writeFile } = fsExtra
 import { dedent } from "../../../../src/util/string.js"
 import { resolve, join } from "path"
 import { getRootLogger } from "../../../../src/logger/logger.js"
+import { deepEvaluate } from "../../../../src/template/evaluate.js"
+import { GenericContext } from "../../../../src/config/template-contexts/base.js"
+import { omit } from "lodash-es"
+
+const { realpath, writeFile } = fsExtra
 
 const enterpriseDomain = "https://garden.mydomain.com"
 const commandInfo = { name: "test", args: {}, opts: {} }
@@ -538,31 +542,35 @@ describe("pickEnvironment", () => {
       ],
     })
 
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "default",
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
+    const env = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      vcsInfo,
+      username,
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
+    })
+
+    expect(omit(env, "providers")).to.eql({
       environmentName: "default",
       defaultNamespace: "default",
       namespace: "default",
-      providers: [
-        { name: "exec" },
-        { name: "container", newKey: "foo", dependencies: [] },
-        { name: "templated" },
-        { name: "my-provider", b: "b" },
-      ],
       production: false,
       variables: {},
     })
+
+    const resolvedProviders = env.providers.map((p) =>
+      deepEvaluate(p.unresolvedConfig, { context: new GenericContext({}), opts: {} })
+    )
+    expect(resolvedProviders).to.eql([
+      { name: "exec" },
+      { name: "container", newKey: "foo", dependencies: [] },
+      { name: "templated" },
+      { name: "my-provider", b: "b" },
+    ])
   })
 
   it("should correctly merge project and environment variables", async () => {
