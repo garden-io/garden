@@ -79,7 +79,7 @@ while (( check_for_signed_file == 1 )); do
   if [ $file_present == 0 ]; then
     check_for_signed_file=0
   else
-    sleep 1s
+    sleep 1
   fi
 
 done
