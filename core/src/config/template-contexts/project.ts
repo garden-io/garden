@@ -11,7 +11,7 @@ import type { PrimitiveMap, DeepPrimitiveMap } from "../common.js"
 import { joiIdentifierMap, joiStringMap, joiPrimitive, joiVariables } from "../common.js"
 import { joi } from "../common.js"
 import { deline, dedent } from "../../util/string.js"
-import type { ConfigContext, ContextKeySegment } from "./base.js"
+import type { ConfigContext, ContextKeySegment, ContextResolveParams } from "./base.js"
 import { schema, ContextWithSchema, EnvironmentContext, ParentContext, TemplateContext } from "./base.js"
 import type { CommandInfo } from "../../plugin-context.js"
 import type { Garden } from "../../garden.js"
@@ -307,8 +307,8 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   private _enterpriseDomain: string | undefined
   private _loggedIn: boolean
 
-  override getMissingKeyErrorFooter(_key: ContextKeySegment, path: ContextKeySegment[]): string {
-    if (last(path) !== "secrets") {
+  override getMissingKeyErrorFooter({ nodePath }: ContextResolveParams): string {
+    if (nodePath[0] !== "secrets") {
       return ""
     }
 

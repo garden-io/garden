@@ -1834,7 +1834,7 @@ export class Garden {
       mapValues(actionConfigs, (configsForKind) => mapValues(configsForKind, omitInternal))
     )
 
-    const variableResolveResult = this.variables.resolve({ key: [], opts: {} })
+    const variableResolveResult = this.variables.resolve({ nodePath: [], key: [], opts: {} })
     if (!variableResolveResult.found) {
       throw new ConfigurationError({
         message: `Could not resolve variables: ${getUnavailableReason(variableResolveResult)}`,
@@ -2365,7 +2365,7 @@ async function getCloudProject({
 export function overrideVariables(variables: ConfigContext, overrides: DeepPrimitiveMap): LayeredContext {
   const transformedOverrides = {}
   for (const key in overrides) {
-    const res = variables.resolve({ key: [key], opts: {} })
+    const res = variables.resolve({ nodePath: [], key: [key], opts: {} })
     if (res.found) {
       // if the original key itself is a string with a dot, then override that
       transformedOverrides[key] = overrides[key]

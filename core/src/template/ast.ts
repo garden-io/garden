@@ -7,7 +7,7 @@
  */
 
 import { isArray, isNumber, isString } from "lodash-es"
-import { getUnavailableReason } from "../config/template-contexts/base.js"
+import { ContextResolveError, getUnavailableReason } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions/index.js"
 import type { EvaluateTemplateArgs } from "./types.js"
@@ -688,32 +688,23 @@ export class ContextLookupExpression extends TemplateExpression {
     super()
   }
 
-  override evaluate({
-    context,
-    opts,
-    optional,
-    yamlSource,
-  }: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
+  override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const keyPath: (string | number)[] = []
     for (const k of this.keyPath) {
-      const evaluated = k.evaluate({ context, opts, optional, yamlSource })
+      const evaluated = k.evaluate(args)
       if (typeof evaluated === "symbol") {
         return evaluated
       }
       keyPath.push(evaluated)
     }
 
-    const result = context.resolve({
-      key: keyPath,
-      // TODO: freeze opts object instead of using shallow copy
-      opts: {
-        ...opts,
-      },
-    })
+    const result = this.lookup(keyPath, args)
 
     // if we encounter a key that could not be found, it's an error unless the optional flag is true, which is used by
     // logical operators and expressions, as well as the optional suffix in FormatStringExpression.
     if (!result.found) {
+      const { optional, yamlSource } = args
+
       if (optional) {
         return CONTEXT_RESOLVE_KEY_NOT_FOUND
       }
@@ -726,6 +717,29 @@ export class ContextLookupExpression extends TemplateExpression {
     }
 
     return result.resolved
+  }
+
+  private lookup(keyPath: (string | number)[], { context, opts, yamlSource }: ASTEvaluateArgs) {
+    try {
+      return context.resolve({
+        nodePath: [],
+        key: keyPath,
+        // TODO: freeze opts object instead of using shallow copy
+        opts: {
+          ...opts,
+        },
+      })
+    } catch (e) {
+      if (e instanceof ContextResolveError) {
+        throw new TemplateStringError({
+          message: e.message,
+          loc: this.loc,
+          yamlSource,
+          wrappedErrors: [e],
+        })
+      }
+      throw e
+    }
   }
 }
 

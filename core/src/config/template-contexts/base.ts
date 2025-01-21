@@ -7,7 +7,7 @@
  */
 
 import type Joi from "@hapi/joi"
-import { ConfigurationError, InternalError } from "../../exceptions.js"
+import { ConfigurationError, GardenError, InternalError } from "../../exceptions.js"
 import type { CustomObjectSchema } from "../common.js"
 import { joi, joiIdentifier } from "../common.js"
 import { Profile } from "../../util/profiling.js"
@@ -19,6 +19,7 @@ import omitBy from "lodash-es/omitBy.js"
 import { flatten, isEqual, uniq } from "lodash-es"
 import { isMap } from "util/types"
 import { deline } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -41,6 +42,11 @@ export interface ContextResolveParams {
    * Key path to look up in the context.
    */
   key: ContextKey
+
+  /**
+   * If the context was nested in another context, the key path that led to the inner context.
+   */
+  nodePath: ContextKey
 
   /**
    * Context lookup options (Deprecated; These mostly affect template string evaluation)
@@ -67,7 +73,8 @@ export type ContextResolveOutputNotFound = {
     reason: "key_not_found" | "not_indexable"
     key: string | number
     keyPath: (string | number)[]
-    availableKeys?: (string | number)[]
+    getAvailableKeys: () => (string | number)[]
+    getFooterMessage?: () => string
   }
 }
 
@@ -103,11 +110,12 @@ export abstract class ConfigContext {
     this._cache = new Map()
   }
 
-  private detectCircularReference({ key, opts }: ContextResolveParams) {
-    const keyStr = `${this.constructor.name}(${this._id})-${renderKeyPath(key)}`
+  private detectCircularReference({ nodePath, key, opts }: ContextResolveParams) {
+    const plainKey = renderKeyPath(key)
+    const keyStr = `${this.constructor.name}(${this._id})-${plainKey}`
     if (opts.stack?.includes(keyStr)) {
-      throw new ConfigurationError({
-        message: `Circular reference detected: ${opts.stack.map((s) => s.split("-")[1]).join(" -> ")}`,
+      throw new ContextCircularlyReferencesItself({
+        message: `Circular reference detected when resolving key ${styles.highlight(renderKeyPath([...nodePath, ...key]))}`,
       })
     }
     return keyStr
@@ -131,8 +139,15 @@ export abstract class ConfigContext {
       res = this.resolveImpl(params)
       if (res.found) {
         this._cache.set(key, res)
+        return res
       }
-      return res
+      return {
+        found: false,
+        explanation: {
+          ...res.explanation,
+          getFooterMessage: () => this.getMissingKeyErrorFooter(params),
+        },
+      }
     } finally {
       params.opts.stack.pop()
     }
@@ -142,7 +157,7 @@ export abstract class ConfigContext {
    * Override this method to add more context to error messages thrown in the `resolve` method when a missing key is
    * referenced.
    */
-  protected getMissingKeyErrorFooter(_key: ContextKeySegment, _path: ContextKeySegment[]): string {
+  protected getMissingKeyErrorFooter(_params: ContextResolveParams): string {
     return ""
   }
 }
@@ -342,7 +357,7 @@ export class LayeredContext extends ConfigContext {
         ...lastError,
         explanation: {
           ...lastError.explanation,
-          availableKeys: uniq(flatten(all.map((res) => res.explanation.availableKeys || []))),
+          getAvailableKeys: () => uniq(flatten(all.map((res) => res.explanation.getAvailableKeys()))),
         },
       }
     }
@@ -364,6 +379,20 @@ export class LayeredContext extends ConfigContext {
   }
 }
 
+export abstract class ContextResolveError extends GardenError {
+  type = "context-resolve"
+}
+
+/**
+ * Occurs when looking up a key in a context turns out to be circular.
+ */
+export class ContextCircularlyReferencesItself extends ContextResolveError {}
+
+/**
+ * Occurs when attempting to look up a key on non-primitive values.
+ */
+export class ContextLookupNotIndexable extends ContextResolveError {}
+
 function traverseContext(
   value: CollectionOrValue<ConfigContext | ParsedTemplateValue>,
   params: ContextResolveParams & { rootContext: ConfigContext }
@@ -376,6 +405,7 @@ function traverseContext(
 
   if (value instanceof ConfigContext) {
     const evaluated = value.resolve(params)
+    // no need to recurse, as the nested context took care of recursing if needed
     return evaluated
   }
 
@@ -384,23 +414,21 @@ function traverseContext(
     const nextKey = params.key[0]
 
     if (isTemplatePrimitive(value)) {
-      return {
-        found: false,
-        explanation: {
-          reason: "not_indexable",
-          key: nextKey,
-          keyPath: [],
-        },
-      }
+      throw new ContextLookupNotIndexable({
+        message: `Attempting to look up key ${nextKey} on primitive value ${renderKeyPath([...params.nodePath, ...params.key])}`,
+      })
     }
 
     const remainder = params.key.slice(1)
 
     let nextValue: CollectionOrValue<ConfigContext | ParsedTemplateValue>
+    let getAvailableKeys: () => (string | number)[]
     if (isMap(value)) {
       nextValue = value.get(nextKey) as CollectionOrValue<ConfigContext | ParsedTemplateValue>
+      getAvailableKeys = () => Array.from(value.keys()).filter((k) => typeof k === "string" || typeof k === "number")
     } else {
       nextValue = value[nextKey]
+      getAvailableKeys = () => Object.keys(value)
     }
 
     if (nextValue === undefined) {
@@ -409,40 +437,47 @@ function traverseContext(
         explanation: {
           reason: "key_not_found",
           key: nextKey,
-          keyPath: [],
-          availableKeys: isMap(value) ? (value.keys() as any).toArray() : Object.keys(value),
+          keyPath: params.nodePath,
+          getAvailableKeys,
         },
       }
     }
 
-    const result = traverseContext(nextValue, {
+    const nodePath = [...params.nodePath, nextKey]
+    return traverseContext(nextValue, {
       ...params,
+      nodePath,
       key: remainder,
     })
-
-    if (result.found) {
-      return result
-    }
-
-    return prependKeyPath(result, [nextKey])
   }
 
-  // handles the case when keyPath.length === 0 (here, we need to eagerly resolve everything)
+  // from now on we handle the case when keyPath.length === 0
+
+  if (isTemplatePrimitive(value)) {
+    return {
+      found: true,
+      resolved: value,
+    }
+  }
+
   const notFoundValues: ContextResolveOutputNotFound[] = []
+
+  // we are handling the case here, where the user looks up a collection of context keys, e.g. ${YAMLEncode(var)}
   const resolved = deepMap(value, (v, _, deepMapKeyPath) => {
-    const innerParams = {
+    const innerTraverseParams = {
       ...params,
+      nodePath: [...params.nodePath, ...deepMapKeyPath],
       // we ask nested values to be fully resolved recursively
       key: [],
     }
     if (v instanceof UnresolvedTemplateValue || v instanceof ConfigContext) {
-      const res = traverseContext(v, innerParams)
+      const res = traverseContext(v, innerTraverseParams)
 
       if (res.found) {
         return res.resolved
       }
 
-      notFoundValues.push(prependKeyPath(res, params.key.concat(deepMapKeyPath)))
+      notFoundValues.push(res)
 
       return undefined
     }
@@ -460,19 +495,6 @@ function traverseContext(
   }
 }
 
-function prependKeyPath(
-  res: ContextResolveOutputNotFound,
-  keyPathToPrepend: (string | number)[]
-): ContextResolveOutputNotFound {
-  return {
-    ...res,
-    explanation: {
-      ...res.explanation,
-      keyPath: [...keyPathToPrepend, ...res.explanation.keyPath],
-    },
-  }
-}
-
 export function getUnavailableReason(result: ContextResolveOutput): string {
   if (result.found) {
     throw new InternalError({
@@ -480,14 +502,12 @@ export function getUnavailableReason(result: ContextResolveOutput): string {
     })
   }
 
-  if (result.explanation.reason === "not_indexable") {
-    return `Cannot lookup key ${result.explanation.key} on primitive value ${renderKeyPath(result.explanation.keyPath)}.`
-  }
+  const available = result.explanation.getAvailableKeys()
 
-  const available = result.explanation.availableKeys
-
-  return deline`
+  return (
+    deline`
     Could not find key ${result.explanation.key}${result.explanation.keyPath.length > 0 ? ` under ${renderKeyPath(result.explanation.keyPath)}` : ""}.
     ${available?.length ? `Available keys: ${available.join(", ")}.` : ""}
-  `
+  ` + result.explanation.getFooterMessage?.() || ""
+  )
 }

@@ -45,83 +45,103 @@ describe("ModuleConfigContext", () => {
 
   it("should resolve local env variables", async () => {
     process.env.TEST_VARIABLE = "foo"
-    expect(c.resolve({ key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
+      found: true,
       resolved: "foo",
     })
     delete process.env.TEST_VARIABLE
   })
 
   it("should resolve the local arch", async () => {
-    expect(c.resolve({ key: ["local", "arch"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["local", "arch"], opts: {} })).to.eql({
+      found: true,
       resolved: process.arch,
     })
   })
 
   it("should resolve the local platform", async () => {
-    expect(c.resolve({ key: ["local", "platform"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["local", "platform"], opts: {} })).to.eql({
+      found: true,
       resolved: process.platform,
     })
   })
 
   it("should resolve the environment config", async () => {
-    expect(c.resolve({ key: ["environment", "name"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["environment", "name"], opts: {} })).to.eql({
+      found: true,
       resolved: garden.environmentName,
     })
   })
 
   it("should resolve the current git branch", () => {
-    expect(c.resolve({ key: ["git", "branch"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["git", "branch"], opts: {} })).to.eql({
+      found: true,
       resolved: garden.vcsInfo.branch,
     })
   })
 
   it("should resolve the path of a module", async () => {
     const path = join(garden.projectRoot, "module-a")
-    expect(c.resolve({ key: ["modules", "module-a", "path"], opts: {} })).to.eql({ resolved: path })
+    expect(c.resolve({ nodePath: [], key: ["modules", "module-a", "path"], opts: {} })).to.eql({
+      found: true,
+      resolved: path,
+    })
   })
 
   it("should should resolve the version of a module", async () => {
     const { versionString } = graph.getModule("module-a").version
-    expect(c.resolve({ key: ["modules", "module-a", "version"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["modules", "module-a", "version"], opts: {} })).to.eql({
+      found: true,
       resolved: versionString,
     })
   })
 
   it("should resolve the outputs of a module", async () => {
-    expect(c.resolve({ key: ["modules", "module-a", "outputs", "foo"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["modules", "module-a", "outputs", "foo"], opts: {} })).to.eql({
+      found: true,
       resolved: "bar",
     })
   })
 
   it("should resolve this.buildPath", async () => {
-    expect(c.resolve({ key: ["this", "buildPath"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["this", "buildPath"], opts: {} })).to.eql({
+      found: true,
       resolved: module.buildPath,
     })
   })
 
   it("should resolve this.path", async () => {
-    expect(c.resolve({ key: ["this", "path"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["this", "path"], opts: {} })).to.eql({
+      found: true,
       resolved: module.path,
     })
   })
 
   it("should resolve this.name", async () => {
-    expect(c.resolve({ key: ["this", "name"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["this", "name"], opts: {} })).to.eql({
+      found: true,
       resolved: module.name,
     })
   })
 
   it("should resolve a project variable", async () => {
-    expect(c.resolve({ key: ["variables", "some"], opts: {} })).to.eql({ resolved: "variable" })
+    expect(c.resolve({ nodePath: [], key: ["variables", "some"], opts: {} })).to.eql({
+      found: true,
+      resolved: "variable",
+    })
   })
 
   it("should resolve a project variable under the var alias", async () => {
-    expect(c.resolve({ key: ["var", "some"], opts: {} })).to.eql({ resolved: "variable" })
+    expect(c.resolve({ nodePath: [], key: ["var", "some"], opts: {} })).to.eql({
+      found: true,
+      resolved: "variable",
+    })
   })
 
   context("secrets", () => {
     it("should resolve a secret", async () => {
-      expect(c.resolve({ key: ["secrets", "someSecret"], opts: {} })).to.eql({
+      expect(c.resolve({ nodePath: [], key: ["secrets", "someSecret"], opts: {} })).to.eql({
+        found: true,
         resolved: "someSecretValue",
       })
     })
@@ -140,41 +160,52 @@ describe("WorkflowConfigContext", () => {
 
   it("should resolve local env variables", async () => {
     process.env.TEST_VARIABLE = "foo"
-    expect(c.resolve({ key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
+      found: true,
       resolved: "foo",
     })
     delete process.env.TEST_VARIABLE
   })
 
   it("should resolve the local platform", async () => {
-    expect(c.resolve({ key: ["local", "platform"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["local", "platform"], opts: {} })).to.eql({
+      found: true,
       resolved: process.platform,
     })
   })
 
   it("should resolve the current git branch", () => {
-    expect(c.resolve({ key: ["git", "branch"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["git", "branch"], opts: {} })).to.eql({
+      found: true,
       resolved: garden.vcsInfo.branch,
     })
   })
 
   it("should resolve the environment config", async () => {
-    expect(c.resolve({ key: ["environment", "name"], opts: {} })).to.eql({
+    expect(c.resolve({ nodePath: [], key: ["environment", "name"], opts: {} })).to.eql({
+      found: true,
       resolved: garden.environmentName,
     })
   })
 
   it("should resolve a project variable", async () => {
-    expect(c.resolve({ key: ["variables", "some"], opts: {} })).to.eql({ resolved: "variable" })
+    expect(c.resolve({ nodePath: [], key: ["variables", "some"], opts: {} })).to.eql({
+      found: true,
+      resolved: "variable",
+    })
   })
 
   it("should resolve a project variable under the var alias", async () => {
-    expect(c.resolve({ key: ["var", "some"], opts: {} })).to.eql({ resolved: "variable" })
+    expect(c.resolve({ nodePath: [], key: ["var", "some"], opts: {} })).to.eql({
+      found: true,
+      resolved: "variable",
+    })
   })
 
   context("secrets", () => {
     it("should resolve a secret", async () => {
-      expect(c.resolve({ key: ["secrets", "someSecret"], opts: {} })).to.eql({
+      expect(c.resolve({ nodePath: [], key: ["secrets", "someSecret"], opts: {} })).to.eql({
+        found: true,
         resolved: "someSecretValue",
       })
     })

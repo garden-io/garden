@@ -543,7 +543,7 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(vars.resolve({ key: [], opts: {} })).to.eql({
+    expect(vars.resolve({ nodePath: [], key: [], opts: {} })).to.eql({
       found: true,
       resolved: {
         projectName: garden.projectName,
@@ -582,7 +582,7 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(vars.resolve({ key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+    expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
       found: true,
       resolved: {
         projectName: "${project.name}",
@@ -621,7 +621,7 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(vars.resolve({ key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+    expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
       found: true,
       resolved: { projectName: "${project.name}" },
     })
@@ -663,7 +663,7 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(vars.resolve({ key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+    expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
       found: true,
       resolved: { foo: "FOO", bar: "BAR", baz: "baz" },
     })
@@ -721,7 +721,7 @@ describe("actionConfigsToGraph", () => {
       const action = graph.getBuild("foo")
       const vars = action["variables"]
 
-      expect(vars.resolve({ key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+      expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
         found: true,
         resolved: {
           foo: "NEW_FOO",

@@ -52,7 +52,7 @@ describe("ConfigContext", () => {
   describe("resolve", () => {
     // just a shorthand to aid in testing
     function resolveKey(c: ConfigContext, key: ContextKey, opts = {}) {
-      return c.resolve({ key, opts })
+      return c.resolve({ nodePath: [], key, opts })
     }
 
     it("should resolve simple keys", async () => {
@@ -85,8 +85,7 @@ describe("ConfigContext", () => {
 
     it("should throw when looking for nested value on primitive", async () => {
       const c = new GenericContext({ basic: "value" })
-      const result = resolveKey(c, ["basic", "nested"])
-      expect(stripAnsi(getUnavailableReason(result))).to.equal("Cannot lookup key nested on primitive value basic.")
+      await expectError(() => resolveKey(c, ["basic", "nested"]), "context-resolve")
     })
 
     it("should resolve nested keys", async () => {
@@ -125,16 +124,24 @@ describe("ConfigContext", () => {
     })
 
     it("should detect a circular reference from a nested context", async () => {
-      class NestedContext extends ContextWithSchema {
+      class NestedContextOne extends ContextWithSchema {
         override resolve({ opts, rootContext }: ContextResolveParams) {
-          return c.resolve({ key: ["nested", "bla"], opts, rootContext })
+          return c.resolve({ nodePath: [], key: ["nestedOne", "bla"], opts, rootContext })
         }
       }
 
-      const c = new GenericContext({
-        nested: new NestedContext(),
+      const nestedTwo = new TestContext({})
+      nestedTwo.addValues({
+        bla: nestedTwo,
       })
-      await expectError(() => resolveKey(c, ["nested", "bla"]), "crash")
+
+      const c = new GenericContext({
+        nestedOne: new NestedContextOne(),
+        nestedTwo,
+      })
+
+      await expectError(() => resolveKey(c, ["nestedOne", "bla"]), "context-resolve")
+      await expectError(() => resolveKey(c, ["nestedTwo", "bla"]), "context-resolve")
     })
 
     it("should return helpful message when unable to resolve nested key in map", async () => {
@@ -230,7 +237,9 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested = new GenericContext({ key: "${nested.key}" })
+      const nested = new GenericContext(
+        parseTemplateCollection({ value: { key: "${nested.key}" }, source: { path: [] } })
+      )
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
@@ -239,8 +248,9 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nested: any = new GenericContext({ key: "${nested.foo}", foo: "${nested.key}" })
+      const nested = new GenericContext(
+        parseTemplateCollection({ value: { key: "${nested.foo}", foo: "${nested.key}" }, source: { path: [] } })
+      )
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
@@ -249,8 +259,9 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nested: any = new GenericContext({ key: "${nested.foo}", foo: "${'${nested.key}'}" })
+      const nested = new GenericContext(
+        parseTemplateCollection({ value: { key: "${nested.foo}", foo: "${'${nested.key}'}" }, source: { path: [] } })
+      )
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
@@ -259,11 +270,13 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested = new GenericContext({ key: "${'${nested.key}'}" })
+      const nested = new GenericContext(
+        parseTemplateCollection({ value: { key: "${'${nested.key}'}" }, source: { path: [] } })
+      )
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), {
         contains:
-          "Invalid template string (${nested.key}): Circular reference detected when resolving key nested.key (nested -> nested.key)",
+          "Invalid template string (${nested.key}) at path key: Circular reference detected when resolving key nested.key",
       })
     })
   })
