@@ -482,7 +482,7 @@ jobs:
       - run:
           name: Run script to sign Windows binaries
           command: |
-            ./scripts/sign-windows-binary.sh --version <<parameter.version>> --file dist/windows-amd64/garden.exe --profile windows-code-signing-ib
+            ./scripts/sign-windows-binary.sh --version <<parameters.version>> --file dist/windows-amd64/garden.exe --profile windows-code-signing-ib
       - run:
           name: Prepare the windows binary zip and cleanup
           command: |
