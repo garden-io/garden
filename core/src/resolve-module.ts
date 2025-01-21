@@ -540,7 +540,7 @@ export class ModuleResolver {
 
     // Try resolving template strings if possible
     let buildDeps: string[] = []
-    const resolvedDeps = capture(
+    const resolvedDeps = partiallyEvaluateModule(
       rawConfig.build.dependencies as unknown as ParsedTemplate,
       configContext
     ) as unknown as BuildDependencyConfig

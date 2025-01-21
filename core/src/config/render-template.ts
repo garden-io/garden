@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ModuleConfig } from "./module.js"
+import { coreModuleSpecKeys, type ModuleConfig } from "./module.js"
 import { dedent, deline, naturalList } from "../util/string.js"
 import type { BaseGardenResource, RenderTemplateKind } from "./base.js"
 import {
@@ -36,8 +36,8 @@ import type { Log } from "../logger/log-entry.js"
 import { GardenApiVersion } from "../constants.js"
 import { capture } from "../template/capture.js"
 import { deepEvaluate, evaluate } from "../template/evaluate.js"
-import type { ParsedTemplate } from "../template/types.js"
-import { isArray } from "../util/objects.js"
+import { UnresolvedTemplateValue, type ParsedTemplate } from "../template/types.js"
+import { isArray, isPlainObject } from "../util/objects.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -193,28 +193,42 @@ async function renderModules({
   renderConfig: RenderTemplateConfig
 }): Promise<ModuleConfig[]> {
   return Promise.all(
-    (template.modules || []).map(async (m) => {
+    (template.modules || []).map(async (m, index) => {
       // Run a partial template resolution with the parent+template info
-      const spec = capture(m as unknown as ParsedTemplate, context) as unknown as ModuleConfig
+      const spec = evaluate(capture(m as unknown as ParsedTemplate, context), {
+        context,
+        opts: {},
+      }).resolved
+
+      if (!isPlainObject(spec)) {
+        throw new ConfigurationError({
+          message: `${configTemplateKind} ${template.name} returned an invalid module at index ${index}: Must be or resolve to a plain object`,
+        })
+      }
+
       const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
       let moduleConfig: ModuleConfig
 
       try {
-        moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
+        const resolvedSpec = { ...spec }
+        for (const key of coreModuleSpecKeys()) {
+          resolvedSpec[key] = deepEvaluate(resolvedSpec[key], { context, opts: {} })
+        }
+        moduleConfig = prepareModuleResource(resolvedSpec, renderConfigPath, garden.projectRoot)
       } catch (error) {
         if (!(error instanceof GardenError)) {
           throw error
         }
         let msg = error.message
 
-        if (spec.name && spec.name.includes && spec.name.includes("${")) {
+        if (coreModuleSpecKeys().some((k) => spec[k] instanceof UnresolvedTemplateValue)) {
           msg +=
-            ". Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
+            ". Note that if a template string is used for the name, kind, type or apiVersion of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
         }
 
         throw new ConfigurationError({
-          message: `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${renderConfig.name}: ${msg}`,
+          message: `${configTemplateKind} ${template.name}: invalid module at index ${index} for templated module ${renderConfig.name}: ${msg}`,
         })
       }
 
@@ -224,11 +238,11 @@ async function renderModules({
         sourcePath: f.sourcePath && resolve(template.internal.basePath, ...f.sourcePath.split(posix.sep)),
       }))
 
-      // If a path is set, resolve the path and ensure that directory exists
-      if (spec.path) {
-        moduleConfig.path = resolve(renderConfig.internal.basePath, ...spec.path.split(posix.sep))
-        await ensureDir(moduleConfig.path)
-      }
+      // // If a path is set, resolve the path and ensure that directory exists
+      // if (spec.path) {
+      //   moduleConfig.path = resolve(renderConfig.internal.basePath, ...spec.path.split(posix.sep))
+      //   await ensureDir(moduleConfig.path)
+      // }
 
       // Attach metadata
       moduleConfig.parentName = renderConfig.name
