@@ -21,6 +21,7 @@ import type { WorkflowConfig } from "../../../../../src/config/workflow.js"
 import { defaultWorkflowResources } from "../../../../../src/config/workflow.js"
 import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig.js"
 import type { ModuleConfig } from "../../../../../src/config/module.js"
+import { serialiseUnresolvedTemplates } from "../../../../../src/template/types.js"
 
 describe("GetConfigCommand", () => {
   const command = new GetConfigCommand()
@@ -701,7 +702,10 @@ describe("GetConfigCommand", () => {
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })
 
-      expect(res.result!.providers).to.eql(garden.getUnresolvedProviderConfigs())
+      const unresolvedProviderConfigs = garden
+        .getUnresolvedProviderConfigs()
+        .map((c) => serialiseUnresolvedTemplates(c.unresolvedConfig))
+      expect(res.result!.providers).to.eql(unresolvedProviderConfigs)
     })
 
     it("should not resolve providers", async () => {

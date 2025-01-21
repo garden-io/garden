@@ -25,7 +25,7 @@ const pluginArgs = {
     help: "The name of the plugin, whose command you wish to run.",
     required: false,
     getSuggestions: ({ configDump }) => {
-      return configDump.allProviderNames
+      return configDump.allAvailablePlugins
     },
   }),
   command: new StringOption({

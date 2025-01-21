@@ -179,7 +179,7 @@ import { GrowCloudApi } from "./cloud/grow/api.js"
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
-import { isTemplatePrimitive, UnresolvedTemplateValue, type ParsedTemplate } from "./template/types.js"
+import { serialiseUnresolvedTemplates, type ParsedTemplate } from "./template/types.js"
 import { LayeredContext } from "./config/template-contexts/base.js"
 
 const defaultLocalAddress = "localhost"
@@ -1788,7 +1788,7 @@ export class Garden {
     resolveProviders?: boolean
     resolveWorkflows?: boolean
   }): Promise<ConfigDump> {
-    let providers: (ParsedTemplate | Provider)[] = []
+    let providers: (unknown | OmitInternalConfig<Provider>)[] = []
     let moduleConfigs: ModuleConfig[]
     let workflowConfigs: WorkflowConfig[]
     let actionConfigs: ActionConfigMap = {
@@ -1801,9 +1801,9 @@ export class Garden {
     await this.scanAndAddConfigs()
 
     if (resolveProviders) {
-      providers = Object.values(await this.resolveProviders({ log }))
+      providers = Object.values(await this.resolveProviders({ log })).map((c) => omitInternal(c))
     } else {
-      providers = this.getUnresolvedProviderConfigs().map((p) => p.unresolvedConfig)
+      providers = this.getUnresolvedProviderConfigs().map((p) => serialiseUnresolvedTemplates(p.unresolvedConfig))
     }
 
     if (!graph && resolveGraph) {
@@ -1838,12 +1838,10 @@ export class Garden {
 
     return {
       environmentName: this.environmentName,
-      allProviderNames: this.getUnresolvedProviderConfigs().map((p) => p.name),
+      allAvailablePlugins: this.getUnresolvedProviderConfigs().map((p) => p.name),
       allEnvironmentNames,
       namespace: this.namespace,
-      providers: providers.map((p) =>
-        !(p instanceof UnresolvedTemplateValue || isTemplatePrimitive(p)) ? omitInternal(p) : p
-      ),
+      providers,
       variables: deepResolveContext("project variables", this.variables),
       actionConfigs: filteredActionConfigs,
       moduleConfigs: moduleConfigs.map(omitInternal),
@@ -2456,9 +2454,9 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
 export interface ConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
-  allProviderNames: string[]
+  allAvailablePlugins: string[]
   namespace: string
-  providers: (OmitInternalConfig<Provider> | ParsedTemplate)[]
+  providers: (OmitInternalConfig<Provider> | unknown)[]
   variables: ResolvedTemplate
   actionConfigs: ActionConfigMapForDump
   moduleConfigs: OmitInternalConfig<ModuleConfig>[]
