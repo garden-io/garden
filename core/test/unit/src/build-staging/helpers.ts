@@ -540,7 +540,7 @@ describe("build staging helpers", () => {
 
       it("throws if a path to a non-symlink (e.g. directory) is given", async () => {
         return expectError(() => resolveSymlink({ path: tmpPath }), {
-          contains: `Error reading symlink: EINVAL: invalid argument, readlink '${tmpPath}'`,
+          contains: ["Error reading symlink", `EINVAL: invalid argument, readlink '${tmpPath}'`],
         })
       })
 
