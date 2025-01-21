@@ -476,10 +476,6 @@ jobs:
           aws_secret_access_key: $GARDEN_CODE_SIGNING_AWS_SECRET_ACCESS_KEY
           profile_name: windows-code-signing-ib
       - run:
-          name: Unzip binary for signing
-          command: |
-            unzip dist/garden-<<parameters.version>>-windows-amd64.zip -d dist/
-      - run:
           name: Run script to sign Windows binaries
           command: |
             ./scripts/sign-windows-binary.sh --version <<parameters.version>> --file dist/windows-amd64/garden.exe --profile windows-code-signing-ib
