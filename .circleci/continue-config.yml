@@ -1439,15 +1439,18 @@ workflows:
           name: build-dist-linux-windows-edge
           version: edge-bonsai
           requires: [build-edge]
+
       - sign-windows-binary:
           <<: *only-main
+          name: sign-windows-binary-edge
           context: garden-core-code-signing
-          requires: [build-dist-linux-windows]
+          requires: [build-dist-linux-windows-edge]
           version: edge-bonsai
+
       - github-edge-prerelease:
           <<: *only-main
           version: edge-bonsai
-          requires: [build-dist-macos-edge, build-dist-linux-windows-edge, sign-windows-binary]
+          requires: [build-dist-macos-edge, build-dist-linux-windows-edge, sign-windows-binary-edge]
 
       - dockerhub-release:
           <<: *only-main
@@ -1461,21 +1464,26 @@ workflows:
     jobs:
       - build:
           <<: *only-tags
+
       - build-dist-macos:
           <<: *only-tags
           requires: [build]
+
       - build-dist-linux-windows:
           <<: *only-tags
           requires: [build]
+
       - sign-windows-binary:
           <<: *only-tags
           context: garden-core-code-signing
           requires: [build-dist-linux-windows]
           version: ${CIRCLE_TAG}
+
       - dockerhub-release:
           <<: *only-tags
           context: docker
           requires: [build-dist-macos, build-dist-linux-windows]
+
       - github-release-tag:
           <<: *only-tags
           requires: [build-dist-macos, build-dist-linux-windows, sign-windows-binary]
