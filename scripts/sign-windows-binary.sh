@@ -71,13 +71,12 @@ echo Starting upload of $file_path to signing bucket
 aws s3 cp $file_folder/$file_name s3://$s3_bucket/ --profile $aws_profile
 
 # Check if signed file exists
-check_for_signed_file=1
-while (( check_for_signed_file == 1 )); do
+while true; do
   echo "Checking if file signed/$file_name exists"
   file_present=$(aws s3api head-object --bucket $s3_bucket --key "signed/$file_name" --profile $aws_profile > /dev/null 2>&1; echo $?)
 
   if [ $file_present == 0 ]; then
-    check_for_signed_file=0
+    break
   else
     sleep 1
   fi
