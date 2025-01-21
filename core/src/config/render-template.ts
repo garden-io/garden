@@ -202,7 +202,7 @@ async function renderModules({
 
       if (!isPlainObject(spec)) {
         throw new ConfigurationError({
-          message: `${configTemplateKind} ${template.name} returned an invalid module at index ${index}: Must be or resolve to a plain object`,
+          message: `${configTemplateKind} ${template.name}: invalid module at index ${index}: Must be or resolve to a plain object`,
         })
       }
 
@@ -217,7 +217,7 @@ async function renderModules({
         }
         moduleConfig = prepareModuleResource(resolvedSpec, renderConfigPath, garden.projectRoot)
       } catch (error) {
-        if (!(error instanceof GardenError)) {
+        if (!(error instanceof GardenError) || error.type === "crash") {
           throw error
         }
         let msg = error.message
