@@ -455,7 +455,7 @@ describe("loadConfigResources", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         build: {
-          dependencies: [{ name: "module-from-project-config", copy: [] }],
+          dependencies: ["module-from-project-config"],
           timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
         local: undefined,
@@ -464,7 +464,7 @@ describe("loadConfigResources", () => {
         spec: {
           build: {
             command: ["echo", "A1"],
-            dependencies: [{ name: "module-from-project-config", copy: [] }],
+            dependencies: ["module-from-project-config"],
           },
           services: [{ name: "service-a1" }],
           tests: [{ name: "unit", command: ["echo", "OK"] }],
