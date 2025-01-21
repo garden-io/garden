@@ -210,7 +210,8 @@ export function parseTemplateCollection<Input extends CollectionOrValue<Template
   }
 
   const res = inner()
-  Object.freeze(res)
+  // TODO: freeze for safety
+  //Object.freeze(res)
   return res
 }
 
