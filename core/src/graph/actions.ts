@@ -668,15 +668,17 @@ export async function executeAction<T extends Action>({
   return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }
 
+// Returns non-templatable keys, and keys that can be resolved using ActionConfigContext.
 const getBuiltinConfigContextKeys = memoize(() => {
   const keys: string[] = []
 
-  // TODO: why are type and name missing here?
   for (const schema of [buildActionConfigSchema(), baseRuntimeActionConfigSchema(), baseActionConfigSchema()]) {
     const configKeys = schema.describe().keys
 
     for (const [k, v] of Object.entries(configKeys)) {
-      if ((<JoiDescription>v).metas?.find((m) => m.templateContext === ActionConfigContext)) {
+      if (
+        (<JoiDescription>v).metas?.find((m) => m.templateContext === ActionConfigContext || m.templateContext === null)
+      ) {
         keys.push(k)
       }
     }
@@ -812,13 +814,10 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   function resolveTemplates() {
     // Fully resolve built-in fields that only support `ActionConfigContext`.
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
-    const resolvedBuiltin = deepEvaluate(
-      pick(config, builtinConfigKeys.concat("type", "name")) as Record<string, ParsedTemplate>,
-      {
-        context: builtinFieldContext,
-        opts: {},
-      }
-    )
+    const resolvedBuiltin = deepEvaluate(pick(config, builtinConfigKeys) as Record<string, ParsedTemplate>, {
+      context: builtinFieldContext,
+      opts: {},
+    })
     const { spec = {} } = config
 
     config = {
