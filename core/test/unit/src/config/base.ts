@@ -27,6 +27,8 @@ import { ConfigurationError } from "../../../../src/exceptions.js"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings.js"
 import { omit } from "lodash-es"
 import { dedent } from "../../../../src/util/string.js"
+import { omitInternal } from "../../../../src/garden.js"
+import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -256,11 +258,11 @@ describe("loadConfigResources", () => {
 
   it("should load and parse a module config", async () => {
     const configPath = resolve(modulePathA, "garden.yml")
-    const parsed = await loadConfigResources(log, projectPathA, configPath)
+    const configResources = await loadConfigResources(log, projectPathA, configPath)
+    expect(configResources.length).to.equal(1)
 
-    expect(parsed.length).to.equal(1)
-
-    expect(omit(parsed[0], "internal")).to.eql({
+    const configResource = serialiseUnresolvedTemplates(omitInternal(configResources[0]))
+    expect(configResource).to.eql({
       apiVersion: GardenApiVersion.v0,
       kind: "Module",
       name: "module-a",
@@ -317,12 +319,11 @@ describe("loadConfigResources", () => {
   it("should load and parse a module template", async () => {
     const projectPath = getDataDir("test-projects", "module-templates")
     const configFilePath = resolve(projectPath, "templates.garden.yml")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsed: any = await loadConfigResources(log, projectPath, configFilePath)
+    const configResources = await loadConfigResources(log, projectPath, configFilePath)
+    expect(configResources.length).to.equal(1)
 
-    expect(parsed.length).to.equal(1)
-
-    expect(omit(parsed[0], "internal")).to.eql({
+    const configResource = serialiseUnresolvedTemplates(omitInternal(configResources[0]))
+    expect(configResource).to.eql({
       kind: configTemplateKind,
       name: "combo",
 

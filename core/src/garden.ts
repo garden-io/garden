@@ -1875,7 +1875,7 @@ export class Garden {
   }
 }
 
-function omitInternal<T extends object>(obj: T): OmitInternalConfig<T> {
+export function omitInternal<T extends object>(obj: T): OmitInternalConfig<T> {
   return omit(obj, "internal")
 }
 
