@@ -26,6 +26,7 @@ import { joi } from "../../../../src/config/common.js"
 import type { ProjectConfig } from "../../../../src/config/project.js"
 import { join } from "path"
 import fsExtra from "fs-extra"
+
 const { remove, readFile, pathExists } = fsExtra
 import { dedent } from "../../../../src/util/string.js"
 import { resolveMsg, type LogEntry } from "../../../../src/logger/log-entry.js"
@@ -34,6 +35,7 @@ import { defaultWorkflowResources } from "../../../../src/config/workflow.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
 import { WorkflowScriptError } from "../../../../src/exceptions.js"
 import { GenericContext } from "../../../../src/config/template-contexts/base.js"
+import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new WorkflowCommand()
@@ -53,6 +55,8 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should run a workflow", async () => {
+    const parsedDeployArg = parseTemplateCollection({ value: "${var.foo}", source: { path: [] } }) as string
+
     garden.setWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
@@ -67,7 +71,7 @@ describe("RunWorkflowCommand", () => {
           { command: ["deploy"], description: "deploy services" },
           { command: ["get", "outputs"] },
           { command: ["test"] },
-          { command: ["deploy", "${var.foo}"] }, // <-- the second (null) element should get filtered out
+          { command: ["deploy", parsedDeployArg] }, // <-- the second (null) element should get filtered out
           { command: ["test", "module-a-unit"] },
           { command: ["run", "task-a"] },
           { command: ["cleanup", "service", "service-a"] },
@@ -981,6 +985,11 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should resolve references to previous steps when running a command step", async () => {
+    const parsedCommand = parseTemplateCollection({
+      value: ["run", "${steps.step-1.outputs.taskName}"],
+      source: { path: [] },
+    })
+
     garden.setWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
@@ -992,7 +1001,7 @@ describe("RunWorkflowCommand", () => {
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
-        steps: [{ command: ["get", "outputs"] }, { command: ["run", "${steps.step-1.outputs.taskName}"] }],
+        steps: [{ command: ["get", "outputs"] }, { command: parsedCommand }],
       },
     ])
 
@@ -1007,6 +1016,11 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should resolve references to previous steps when running a script step", async () => {
+    const parsedScript = parseTemplateCollection({
+      value: "echo ${steps.step-1.outputs.taskName}",
+      source: { path: [] },
+    }) as string
+
     garden.setWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
@@ -1018,7 +1032,7 @@ describe("RunWorkflowCommand", () => {
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
-        steps: [{ command: ["get", "outputs"] }, { script: "echo ${steps.step-1.outputs.taskName}" }],
+        steps: [{ command: ["get", "outputs"] }, { script: parsedScript }],
       },
     ])
 
