@@ -7,8 +7,6 @@
  */
 
 import { execa } from "execa"
-import { apply as jsonMerge } from "json-merge-patch"
-import cloneDeep from "fast-copy"
 import { keyBy, mapValues, flatten } from "lodash-es"
 import { parseCliArgs, prepareMinimistOpts } from "../cli/helpers.js"
 import type { Parameter, ParameterObject } from "../cli/params.js"

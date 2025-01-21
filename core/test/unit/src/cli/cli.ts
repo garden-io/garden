@@ -35,7 +35,8 @@ import fsExtra from "fs-extra"
 
 const { mkdirp } = fsExtra
 import { uuidv4 } from "../../../../src/util/random.js"
-import { Garden, makeDummyGarden } from "../../../../src/garden.js"
+import type { Garden } from "../../../../src/garden.js"
+import { makeDummyGarden } from "../../../../src/garden.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
 import { NotImplementedError } from "../../../../src/exceptions.js"
 import dedent from "dedent"
