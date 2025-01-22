@@ -16,6 +16,7 @@ import { isTruthy } from "./ast.js"
 import type { EvaluateTemplateArgs, ParsedTemplate, ResolvedTemplate, TemplateEvaluationResult } from "./types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue, type TemplatePrimitive } from "./types.js"
 import isBoolean from "lodash-es/isBoolean.js"
+import mapValues from "lodash-es/mapValues.js"
 import {
   arrayConcatKey,
   arrayForEachFilterKey,
@@ -26,7 +27,6 @@ import {
   conditionalThenKey,
   objectSpreadKey,
 } from "../config/constants.js"
-import mapValues from "lodash-es/mapValues.js"
 import { evaluate } from "./evaluate.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
 import { parseTemplateString } from "./templated-strings.js"
@@ -40,6 +40,7 @@ export function pushYamlPath(part: ObjectPath[0], configSource: ConfigSource): C
     path: [...configSource.path, part],
   }
 }
+
 type MaybeTplString = `${string}\${${string}`
 type Parse<T extends CollectionOrValue<TemplatePrimitive>> = T extends MaybeTplString
   ? ParsedTemplate
@@ -117,10 +118,25 @@ export function parseTemplateCollection<Input extends CollectionOrValue<Template
           source: pushYamlPath(arrayForEachKey, source),
         })
 
-        const parsedReturnExpression = parseTemplateCollection({
-          value: value[arrayForEachReturnKey],
-          source: pushYamlPath(arrayForEachReturnKey, source),
-        })
+        let parsedReturnExpression: ParsedTemplate
+        let shouldFlatten: boolean
+
+        // We need to support a construct, where `$forEach: $return: $concat:` results in a flat array
+        if (isPlainObject(value[arrayForEachReturnKey]) && value[arrayForEachReturnKey][arrayConcatKey] !== undefined) {
+          shouldFlatten = true
+
+          parsedReturnExpression = parseTemplateCollection({
+            value: value[arrayForEachReturnKey]?.[arrayConcatKey],
+            source: pushYamlPath(arrayForEachReturnKey, pushYamlPath(arrayConcatKey, source)),
+          })
+        } else {
+          shouldFlatten = false
+
+          parsedReturnExpression = parseTemplateCollection({
+            value: value[arrayForEachReturnKey],
+            source: pushYamlPath(arrayForEachReturnKey, source),
+          })
+        }
 
         const parsedFilterExpression =
           value[arrayForEachFilterKey] === undefined
@@ -136,7 +152,7 @@ export function parseTemplateCollection<Input extends CollectionOrValue<Template
           [arrayForEachFilterKey]: parsedFilterExpression,
         })
 
-        if (parsedReturnExpression?.[arrayConcatKey] !== undefined) {
+        if (shouldFlatten) {
           return new ConcatLazyValue(source, forEach) as Parse<Input>
         } else {
           return forEach as Parse<Input>
@@ -255,20 +271,17 @@ export class ConcatLazyValue extends StructuralTemplateOperator {
     partial: true
     resolved: ParsedTemplate[]
   } {
-    const output: ParsedTemplate[] = []
-
-    let concatYaml: (ConcatOperator | ParsedTemplate)[]
-
-    // NOTE(steffen): We need to support a construct where $concat inside a $forEach expression results in a flat list.
+    let collectionValue: (ConcatOperator | ParsedTemplate)[]
     if (this.yaml instanceof ForEachLazyValue) {
       const { resolved } = this.yaml.evaluate(args)
-
-      concatYaml = resolved
+      // This is to handle the special case when forEach lazy value returns $concat
+      collectionValue = resolved.map((element) => ({ [arrayConcatKey]: element }))
     } else {
-      concatYaml = this.yaml
+      collectionValue = this.yaml
     }
 
-    for (const v of concatYaml) {
+    const output: ParsedTemplate[] = []
+    for (const v of collectionValue) {
       if (!this.isConcatOperator(v)) {
         // it's not a concat operator, it's a list element.
         output.push(v)
@@ -321,6 +334,7 @@ type ForEachClause = {
 
 export class ForEachLazyValue extends StructuralTemplateOperator {
   static allowedForEachKeys = [arrayForEachKey, arrayForEachReturnKey, arrayForEachFilterKey]
+
   constructor(
     source: ConfigSource,
     private readonly yaml: ForEachClause
@@ -397,6 +411,7 @@ export type ObjectSpreadOperation = {
   [objectSpreadKey]: ParsedTemplate
   [staticKeys: string]: ParsedTemplate
 }
+
 export class ObjectSpreadLazyValue extends StructuralTemplateOperator {
   constructor(
     source: ConfigSource,
@@ -452,6 +467,7 @@ export type ConditionalClause = {
   [conditionalThenKey]: ParsedTemplate
   [conditionalElseKey]?: ParsedTemplate
 }
+
 export class ConditionalLazyValue extends StructuralTemplateOperator {
   static allowedConditionalKeys = [conditionalKey, conditionalThenKey, conditionalElseKey]
 
@@ -481,16 +497,16 @@ export class ConditionalLazyValue extends StructuralTemplateOperator {
   }
 
   override evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult {
-    const conditionalValue = evaluate(this.yaml[conditionalKey], args)
+    const { resolved } = evaluate(this.yaml[conditionalKey], args)
 
-    if (typeof conditionalValue !== "boolean") {
+    if (typeof resolved !== "boolean") {
       throw new TemplateError({
-        message: `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof conditionalValue})`,
+        message: `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof resolved})`,
         source: pushYamlPath(conditionalKey, this.source),
       })
     }
 
-    const branch = isTruthy(conditionalValue) ? this.yaml[conditionalThenKey] : this.yaml[conditionalElseKey]
+    const branch = isTruthy(resolved) ? this.yaml[conditionalThenKey] : this.yaml[conditionalElseKey]
 
     return evaluate(branch, args)
   }
