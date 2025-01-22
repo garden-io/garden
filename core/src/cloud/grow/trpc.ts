@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { TRPCClientError, TRPCClientErrorBase, TRPCLink } from "@trpc/client"
+import type { CreateTRPCClient, TRPCClientError, TRPCClientErrorBase, TRPCLink } from "@trpc/client"
 import { createTRPCClient, httpLink, loggerLink } from "@trpc/client"
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import { observable } from "@trpc/server/observable"
@@ -78,7 +78,7 @@ function cloudApiUrl(hostUrl: string): string {
   return new URL("/api", hostUrl).href
 }
 
-export type TrpcConfigParams = { hostUrl: string; tokenGetter?: () => string }
+export type TrpcConfigParams = { hostUrl: string; tokenGetter: (() => string) | undefined }
 
 function getTrpcConfig({ hostUrl, tokenGetter }: TrpcConfigParams) {
   return {
@@ -112,7 +112,10 @@ export function getAuthenticatedApiClient(trpcConfigParams: TrpcConfigParams) {
 }
 
 export function getNonAuthenticatedApiClient(trpcConfigParams: Omit<TrpcConfigParams, "tokenGetter">) {
-  return createTRPCClient<AppRouter>(getTrpcConfig(trpcConfigParams))
+  return createTRPCClient<AppRouter>(getTrpcConfig({ ...trpcConfigParams, tokenGetter: undefined }))
 }
 
-export type ApiClient = ReturnType<typeof createTRPCClient<AppRouter>>
+export type ApiClient = CreateTRPCClient<AppRouter>
+export type GrowCloudBuilderRegisterBuildResponse = Awaited<
+  ReturnType<ApiClient["cloudBuilder"]["registerBuild"]["mutate"]>
+>

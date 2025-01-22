@@ -32,6 +32,7 @@ export type WrappedFromGarden = Pick<
   | "gardenDirPath"
   | "workingCopyId"
   | "cloudApi"
+  | "cloudApiV2"
   | "projectId"
   // TODO: remove this from the interface
   | "environmentName"
@@ -99,6 +100,7 @@ export const pluginContextSchema = createSchema({
     tools: joiStringMap(joi.object()),
     workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     cloudApi: joi.any().optional(),
+    cloudApiV2: joi.any().optional(),
   }),
   options: { presence: "required" },
 })
@@ -154,6 +156,14 @@ export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventTyp
     // Always respond to exit and restart events
     this.garden.events.onKey("_exit", this.abortHandler, garden.sessionId)
     this.garden.events.onKey("_restart", this.abortHandler, garden.sessionId)
+
+    // Always pipe `namespaceStatus` events to the main event bus, since we need this to happen both during provider
+    // resolution (where `prepareEnvironment` is called, see `ResolveProviderTask`) and inside action handlers.
+    //
+    // Note: If any other plugin events without action-specific metadata are needed, they should be added here.
+    this.on("namespaceStatus", (status: NamespaceStatus) => {
+      this.garden.events.emit("namespaceStatus", status)
+    })
 
     this.on("abort", () => {
       this.aborted = true
@@ -226,6 +236,7 @@ export async function createPluginContext({
     tools: await garden.getTools(),
     workingCopyId: garden.workingCopyId,
     cloudApi: garden.cloudApi,
+    cloudApiV2: garden.cloudApiV2,
     projectId: garden.projectId,
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-pulumi",
-  "version": "0.13.48",
+  "version": "0.13.49",
   "description": "Pulumi plugin for Garden",
   "type": "module",
   "main": "build/src/index.js",
@@ -20,10 +20,10 @@
     "@types/chai": "^5.0.1",
     "@types/hapi__joi": "^17.1.14",
     "@types/json-merge-patch": "1.0.0",
-    "@types/mocha": "^10.0.7",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22",
     "chai": "^5.1.2",
-    "mocha": "^10.6.0",
+    "mocha": "^11.0.1",
     "strip-ansi": "^7.1.0"
   },
   "scripts": {

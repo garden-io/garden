@@ -372,11 +372,5 @@ GARDEN_ENABLE_NEW_SYNC=false garden deploy --sync
 If experience any lingering Mutagen processes, you can use the following command to find and kill them:
 
 ```sh
-ps -ef | grep mutagen
-```
-
-If any Mutagen processes are found, you can terminate them using the `kill` command:
-
-```sh
-kill -9 <process-uid>
+kill -9 $(pgrep mutagen)
 ```

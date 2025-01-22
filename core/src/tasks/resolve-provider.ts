@@ -31,7 +31,6 @@ import { stableStringify } from "../util/string.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { LogLevel } from "../logger/logger.js"
 import type { Log } from "../logger/log-entry.js"
-import { styles } from "../logger/styles.js"
 import type { ObjectPath } from "../config/base.js"
 import fsExtra from "fs-extra"
 import { RemoteSourceConfigContext } from "../config/template-contexts/project.js"
@@ -412,43 +411,44 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       return cachedStatus
     }
 
-    // TODO: avoid calling the handler manually (currently doing it to override the plugin context)
-    const handler = await actions.provider["getPluginHandler"]({
-      handlerType: "getEnvironmentStatus",
-      pluginName,
-      defaultHandler: async () => defaultEnvironmentStatus,
-    })
-
-    let status = await handler!({ ctx, log: providerLog })
-
-    if (!statusOnly && (this.forceInit || !status.ready)) {
-      const statusMsg = status.ready
-        ? `${styles.highlight("Ready")}, will ${styles.highlight("force re-initialize")}`
-        : `${styles.highlight("Not ready")}, will initialize`
-      providerLog.info(statusMsg)
-      // TODO: avoid calling the handler manually
-      const prepareHandler = await actions.provider["getPluginHandler"]({
-        handlerType: "prepareEnvironment",
+    // TODO: Remove this condition in 0.14 since we no longer check provider statuses when
+    // before preparing environments. Instead we should simply set provider statuses to `"unknown"` (or similar)
+    // in commands like `garden get status` since returning actual provider statuses doesn't really serve any purpose.
+    if (statusOnly) {
+      // TODO: avoid calling the handler manually (currently doing it to override the plugin context)
+      const getStatusHandler = await actions.provider["getPluginHandler"]({
+        handlerType: "getEnvironmentStatus",
         pluginName,
-        defaultHandler: async () => ({ status }),
+        defaultHandler: async () => defaultEnvironmentStatus,
       })
 
-      const result = await prepareHandler!({ ctx, log: providerLog, force: this.forceInit, status })
+      const envStatus = await getStatusHandler!({ ctx, log: providerLog })
+      if (envStatus.ready) {
+        providerLog.success(`Provider is ready`)
+      } else {
+        providerLog.warn(`Provider is not ready (only checking status)`)
+      }
 
-      status = result.status
+      return envStatus
     }
 
-    if (!status.ready && !statusOnly) {
+    providerLog.info(`Preparing environment`)
+    // TODO: avoid calling the handler manually
+    const prepareHandler = await actions.provider["getPluginHandler"]({
+      handlerType: "prepareEnvironment",
+      pluginName,
+      defaultHandler: async () => ({ status: { ready: true, outputs: {} } }),
+    })
+
+    const result = await prepareHandler!({ ctx, log: providerLog, force: this.forceInit })
+    const status = result.status
+    if (!status.ready) {
       providerLog.error("Failed initializing provider")
       throw new PluginError({
         message: `Provider ${pluginName} reports status as not ready and could not prepare the configured environment.`,
       })
     }
 
-    if (!status.ready && statusOnly) {
-      providerLog.success("Provider not ready. Current command only checks status, not preparing environment")
-      return status
-    }
     providerLog.success("Provider ready")
 
     if (!status.disableCache) {

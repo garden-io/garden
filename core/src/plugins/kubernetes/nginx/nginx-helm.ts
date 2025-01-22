@@ -31,7 +31,7 @@ type _HelmValue = number | string | boolean | object | null | undefined
 export abstract class HelmGardenIngressController extends GardenIngressComponent {
   private readonly defaultBackend = new GardenDefaultBackend()
 
-  override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+  override async ensure(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const ingressControllerReady = await this.ready(ctx, log)
     if (ingressControllerReady) {
       return
@@ -66,7 +66,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
     ]
 
     log.info(`Installing ${styles.highlight("nginx")} in ${styles.highlight(namespace)} namespace...`)
-    await this.defaultBackend.install(ctx, log)
+    await this.defaultBackend.ensure(ctx, log)
     await helm({ ctx, namespace, log, args, emitLogEvents: false })
 
     const nginxHelmMainResource = getNginxHelmMainResource(values)
