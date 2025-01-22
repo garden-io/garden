@@ -1266,25 +1266,32 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
       },
     },
     (value) => {
-      if (value instanceof ForEachLazyValue) {
-        return !someReferences({
+      if (
+        value instanceof ForEachLazyValue &&
+        someReferences({
           value,
           context,
           // if forEach expression has runtime references, we can't resolve it at all due to item context missing after converting the module to action
           // as the captured context is lost when calling `toJSON` on the unresolved template value
           onlyEssential: false,
-          matcher: (ref) => ref[0] !== "runtime",
+          matcher: (ref) => ref.keyPath[0] === "runtime",
         })
+      ) {
+        return false // do not evaluate runtime references
+      } else if (
+        someReferences({
+          value,
+          context,
+          // in other cases, we only skip evaluation when the runtime references is essential
+          // meaning, we evaluate everything we can evaluate.
+          onlyEssential: true,
+          matcher: (ref) => ref.keyPath[0] === "runtime",
+        })
+      ) {
+        return false // do not evaluate runtime references
       }
 
-      return !someReferences({
-        value,
-        context,
-        // in other cases, we only skip evaluation when the runtime references is essential
-        // meaning, we evaluate everything we can evaluate.
-        onlyEssential: true,
-        matcher: (ref) => ref[0] !== "runtime",
-      })
+      return true
     }
   )
 
