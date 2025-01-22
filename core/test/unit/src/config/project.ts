@@ -221,12 +221,10 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-a",
-          dependencies: [],
           someKey: "${local.env.TEST_ENV_VAR_A}",
         },
         {
           name: "provider-b",
-          dependencies: [],
           environments: ["default"],
           someKey: "${local.env.TEST_ENV_VAR_B}",
         },
@@ -331,7 +329,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: defaultEnvironmentName,
       environments: [{ defaultNamespace: null, name: "first-env", variables: {} }],
       outputs: [],
-      providers: [{ name: "some-provider", dependencies: [] }],
+      providers: [{ name: "some-provider" }],
       variables: {},
     })
 
@@ -422,20 +420,19 @@ describe("resolveProjectConfig", () => {
       variables: {},
     })
 
-    expect(
-      resolveProjectConfig({
-        log,
-        defaultEnvironmentName: defaultEnvironment,
-        config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
+    const resolvedConfig = resolveProjectConfig({
+      log,
+      defaultEnvironmentName: defaultEnvironment,
+      config,
+      artifactsPath: "/tmp",
+      vcsInfo,
+      username: "some-user",
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
+    })
+    expect(resolvedConfig).to.eql({
       ...config,
       internal: {
         basePath: "/foo",
@@ -454,16 +451,13 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-a",
-          dependencies: [],
         },
         {
           name: "provider-b",
           environments: ["default"],
-          dependencies: [],
         },
         {
           name: "provider-c",
-          dependencies: [],
         },
       ],
       sources: [],

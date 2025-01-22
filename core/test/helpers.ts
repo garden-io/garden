@@ -116,7 +116,7 @@ export const getDefaultProjectConfig = (): ProjectConfig =>
     defaultEnvironment,
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
-    providers: [{ name: "test-plugin", dependencies: [] }],
+    providers: [{ name: "test-plugin" }],
     variables: {},
   })
 
