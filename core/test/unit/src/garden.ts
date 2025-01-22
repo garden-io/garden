@@ -81,7 +81,8 @@ import { getCloudDistributionName } from "../../../src/cloud/util.js"
 import { resolveAction } from "../../../src/graph/actions.js"
 import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
-import { GenericContext, LayeredContext } from "../../../src/config/template-contexts/base.js"
+import { deepResolveContext, GenericContext, LayeredContext } from "../../../src/config/template-contexts/base.js"
+import { ResolvedBuildAction } from "../../../src/actions/build.js"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -2949,7 +2950,7 @@ describe("Garden", () => {
       const configB = (await garden.getRawModuleConfigs(["foo-test-b"]))[0]
 
       // note that module config versions should default to v0 (previous version)
-      expect(omitUndefined(configA)).to.eql({
+      expect(serialiseUnresolvedTemplates(omitUndefined(configA))).to.eql({
         apiVersion: GardenApiVersion.v0,
         kind: "Module",
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
@@ -2981,7 +2982,7 @@ describe("Garden", () => {
           value: "${providers.test-plugin.outputs.testKey}",
         },
       })
-      expect(omitUndefined(configB)).to.eql({
+      expect(serialiseUnresolvedTemplates(omitUndefined(configB))).to.eql({
         apiVersion: GardenApiVersion.v0,
         kind: "Module",
         build: { dependencies: [{ name: "foo-test-a", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
@@ -3170,9 +3171,10 @@ describe("Garden", () => {
           name: "foo-test-dt",
         }),
       })
-
       expect(resolved).to.exist
-      expect(resolved.getVariables()).to.deep.eq({
+
+      const variables = deepResolveContext("resolved action variables", resolved.getVariables())
+      expect(variables).to.deep.eq({
         myDir: "../../../test",
         syncTargets: [
           {
