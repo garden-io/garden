@@ -8,7 +8,7 @@
 import type { PluginContext } from "../../plugin-context.js"
 import type { Resolved } from "../../actions/types.js"
 import type { ContainerBuildAction } from "./config.js"
-import { ConfigurationError, InternalError, isErrnoException, toGardenError } from "../../exceptions.js"
+import { ConfigurationError, InternalError, isErrnoException } from "../../exceptions.js"
 import type { ContainerProvider, ContainerProviderConfig } from "./container.js"
 import dedent from "dedent"
 import { styles } from "../../logger/styles.js"
@@ -108,18 +108,6 @@ function makeVersionMismatchWarning({ isInClusterBuildingConfigured }: CloudBuil
     Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
 
     Run ${styles.command("garden self-update")} to update Garden to the latest version.`
-}
-
-export async function sendBuildReport(dockerBuildReport: DockerBuildReport, ctx: PluginContext) {
-  try {
-    const growCloudApi = ctx.cloudApiV2 as GrowCloudApi
-    return await growCloudApi.api.dockerBuild.create.mutate(dockerBuildReport)
-  } catch (err) {
-    throw toGardenError({
-      message: `Failed to send Docker build report ${err instanceof TRPCClientError ? err.message : ""}`,
-      cause: err,
-    })
-  }
 }
 
 type CloudApi = GardenCloudApi | GrowCloudApi

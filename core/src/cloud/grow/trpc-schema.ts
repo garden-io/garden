@@ -258,6 +258,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             startedAt: Date
             completedAt: Date
             status: "success" | "failure"
+            imageTags: string[]
             platforms: string[]
             runtime: {
               actual: "buildx" | "cloud-builder" | "garden-k8s-kaniko" | "garden-k8s-buildkit"
