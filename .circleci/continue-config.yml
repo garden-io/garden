@@ -487,7 +487,10 @@ jobs:
             rm dist/garden-<<parameters.version>>-windows-amd64.zip
             zip -r dist/garden-<<parameters.version>>-windows-amd64.zip dist/windows-amd64
             sha256sum dist/garden-<<parameters.version>>-windows-amd64.zip | cut -d ' ' -f1 > dist/garden-<<parameters.version>>-windows-amd64.zip.sha256
-            rm -rf dist/windows-amd64
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - dist/
       - fail_fast
 
   lint:
