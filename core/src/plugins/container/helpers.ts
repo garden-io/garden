@@ -107,9 +107,12 @@ const helpers = {
       parsedImage = helpers.parseImageId(explicitPublishId)
     } else {
       const explicitImage = action.getSpec("localId")
-      const localImageName = this.getLocalImageName(action.name, explicitImage)
+      // If localId is explicitly set we use that as the image name
+      // Otherwise we use the actions deploymentImageName output, which includes the registry
+      // if that is specificed in the kubernetes provider.
+      const publishImageName = this.getLocalImageName(action.getOutput("deployment-image-name"), explicitImage)
 
-      parsedImage = helpers.parseImageId(localImageName)
+      parsedImage = helpers.parseImageId(publishImageName)
     }
 
     if (!publishTag) {
