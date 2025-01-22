@@ -1273,7 +1273,7 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
           // if forEach expression has runtime references, we can't resolve it at all due to item context missing after converting the module to action
           // as the captured context is lost when calling `toJSON` on the unresolved template value
           onlyEssential: false,
-          matcher: (ref) => ref[0] === "runtime",
+          matcher: (ref) => ref[0] !== "runtime",
         })
       }
 
@@ -1283,7 +1283,7 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
         // in other cases, we only skip evaluation when the runtime references is essential
         // meaning, we evaluate everything we can evaluate.
         onlyEssential: true,
-        matcher: (ref) => ref[0] === "runtime",
+        matcher: (ref) => ref[0] !== "runtime",
       })
     }
   )
