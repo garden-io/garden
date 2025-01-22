@@ -2961,7 +2961,7 @@ describe("Garden", () => {
         serviceConfigs: [],
         spec: {
           build: {
-            command: ["${providers.test-plugin.outputs.testKey}"],
+            command: ["${inputs.value}"],
             dependencies: [],
           },
         },
