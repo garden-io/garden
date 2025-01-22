@@ -22,7 +22,7 @@ import {
   utilContainerName,
   utilDeploymentName,
 } from "./container/build/common.js"
-import { loadToLocalK8s } from "./container/build/local.js"
+import { kubernetesContainerHelpers } from "./container/build/local.js"
 import { containerHandlers } from "./container/handlers.js"
 import { getNamespaceStatus } from "./namespace.js"
 import { PodRunner } from "./run.js"
@@ -53,7 +53,7 @@ export const k8sJibContainerBuildExtension = (): BuildActionExtension<ContainerB
 
         if (spec.dockerBuild) {
           // We may need to explicitly load the image into the cluster if it's built in the docker daemon directly
-          await loadToLocalK8s(params)
+          await kubernetesContainerHelpers.loadToLocalK8s(params)
         }
         return result
       } else if (k8sCtx.provider.config.jib?.pushViaCluster) {
