@@ -29,6 +29,7 @@ import { deepEvaluate } from "../../../../src/template/evaluate.js"
 import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 import { omit } from "lodash-es"
 import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
+import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 
 const { realpath, writeFile } = fsExtra
 
@@ -190,20 +191,22 @@ describe("resolveProjectConfig", () => {
     process.env.TEST_ENV_VAR_B = "boo"
 
     expect(
-      resolveProjectConfig({
-        log,
-        defaultEnvironmentName: defaultEnvironment,
-        config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
+      serialiseUnresolvedTemplates(
+        resolveProjectConfig({
+          log,
+          defaultEnvironmentName: defaultEnvironment,
+          config,
+          artifactsPath: "/tmp",
+          vcsInfo,
+          username: "some-user",
+          loggedIn: true,
+          enterpriseDomain,
+          secrets: {},
+          commandInfo,
+        })
+      )
     ).to.eql({
-      ...config,
+      ...(serialiseUnresolvedTemplates(config) as DeepPrimitiveMap),
       dotIgnoreFiles: [],
       environments: [
         {
