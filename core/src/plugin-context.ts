@@ -94,11 +94,12 @@ export const pluginContextSchema = createSchema({
     projectRoot: joi.string().description("The absolute path of the project root."),
     projectSources: projectSourcesSchema(),
     provider: providerSchema().description("The provider being used for this context.").id("ctxProviderSchema"),
-    resolveTemplateStrings: joi
+    legacyResolveTemplateString: joi
       .function()
       .description(
-        "Helper function to resolve template strings, given the same templating context as was used to render the configuration before calling the handler. Accepts any data type, and returns the same data type back with all template strings resolved."
+        "Helper function to resolve a template string in a legacy way, given the same templating context as was used to render the configuration before calling the handler. Accepts any data type, and returns the same data type back with all template strings resolved."
       ),
+    deepEvaluate: joi.function().description("Helper function to deeply resolve parsed template strings."),
     sessionId: joi.string().description("The unique ID of the currently active session."),
     tools: joiStringMap(joi.object()),
     workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
