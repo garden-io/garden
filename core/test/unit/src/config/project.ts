@@ -26,7 +26,7 @@ import { dedent } from "../../../../src/util/string.js"
 import { resolve, join } from "path"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { deepEvaluate } from "../../../../src/template/evaluate.js"
-import { GenericContext } from "../../../../src/config/template-contexts/base.js"
+import { deepResolveContext, GenericContext } from "../../../../src/config/template-contexts/base.js"
 import { omit } from "lodash-es"
 import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
@@ -560,13 +560,14 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(omit(env, "providers")).to.eql({
+    expect(omit(env, "providers", "variables")).to.eql({
       environmentName: "default",
       defaultNamespace: "default",
       namespace: "default",
       production: false,
-      variables: {},
     })
+    const variables = deepResolveContext("resolved env variables", env.variables)
+    expect(variables).to.eql({})
 
     const resolvedProviders = env.providers.map((p) =>
       deepEvaluate(p.unresolvedConfig, { context: new GenericContext({}), opts: {} })
@@ -622,7 +623,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "project value A",
       b: "env value B",
       c: "env value C",
@@ -672,7 +674,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "a",
       b: "B",
       c: "c",
@@ -717,7 +720,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "a",
       b: "B",
       c: "c",
@@ -762,7 +766,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "a",
       b: "B",
       c: "c",
@@ -808,7 +813,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "a",
       b: "B",
       c: "c",
@@ -864,7 +870,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "new-value",
       b: { some: "value", additional: "value" },
       c: ["some", "values"],
@@ -921,7 +928,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "new-value",
       b: { some: "value", additional: "value" },
       c: ["some", "values"],
@@ -950,7 +958,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       local: username,
       secret: "banana",
     })
@@ -999,7 +1008,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       foo: "value",
     })
   })
@@ -1056,7 +1066,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "a",
       b: "B",
       c: "C",
