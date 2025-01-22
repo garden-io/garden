@@ -28,6 +28,7 @@ import { getRootLogger } from "../../../../src/logger/logger.js"
 import { deepEvaluate } from "../../../../src/template/evaluate.js"
 import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 import { omit } from "lodash-es"
+import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
 
 const { realpath, writeFile } = fsExtra
 
@@ -113,18 +114,20 @@ describe("resolveProjectConfig", () => {
     process.env.TEST_ENV_VAR = "foo"
 
     expect(
-      resolveProjectConfig({
-        log,
-        defaultEnvironmentName: defaultEnvironment,
-        config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: { foo: "banana" },
-        commandInfo,
-      })
+      serialiseUnresolvedTemplates(
+        resolveProjectConfig({
+          log,
+          defaultEnvironmentName: defaultEnvironment,
+          config,
+          artifactsPath: "/tmp",
+          vcsInfo,
+          username: "some-user",
+          loggedIn: true,
+          enterpriseDomain,
+          secrets: { foo: "banana" },
+          commandInfo,
+        })
+      )
     ).to.eql({
       ...config,
       dotIgnoreFiles: [],
