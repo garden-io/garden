@@ -14,6 +14,8 @@ import type { ObjectWithName } from "../util/util.js"
 import type { StringMap } from "./common.js"
 import type { ConfigContext, ContextKeySegment } from "./template-contexts/base.js"
 import difference from "lodash-es/difference.js"
+import { ConfigurationError } from "../exceptions.js"
+import { flatten, uniq } from "lodash-es"
 
 /**
  * Gathers secret references in configs and throws an error if one or more referenced secrets isn't present (or has
@@ -67,10 +69,7 @@ export function throwOnMissingSecretKeys(
   if (log) {
     log.silly(() => errMsg)
   }
-  // throw new ConfigurationError(errMsg, {
-  //   loadedSecretKeys: loadedKeys,
-  //   missingSecretKeys: uniq(flatten(allMissing.map(([_key, missing]) => missing))),
-  // })
+  throw new ConfigurationError({ message: errMsg })
 }
 
 /**
