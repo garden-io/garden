@@ -31,9 +31,10 @@ import { containerHelpers, minDockerVersion } from "../../../../../src/plugins/c
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants.js"
 import type { KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
+import { kubernetesContainerHelpers } from "../../../../../src/plugins/kubernetes/container/build/local.js"
 
 describe("plugins.container", () => {
-  const projectRoot = getDataDir("test-project-container")
+  const projectRoot = getDataDir("test-project-container-kubernetes")
 
   const baseConfig: BuildActionConfig<"container", ContainerBuildActionSpec> = {
     name: "test",
@@ -71,6 +72,7 @@ describe("plugins.container", () => {
 
   async function getTestBuild(cfg: BuildActionConfig): Promise<Executed<ContainerBuildAction>> {
     sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
+    sinon.replace(kubernetesContainerHelpers, "loadToLocalK8s", async () => undefined)
 
     dockerCli = sinon.stub(containerHelpers, "dockerCli")
     dockerCli.returns(
