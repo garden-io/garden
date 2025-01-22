@@ -940,7 +940,7 @@ describe("parse and evaluate template strings", () => {
     void expectError(
       () => resolveTemplateString({ string: "${foo[bar]}", context: new GenericContext({ foo: 123, bar: "baz" }) }),
       {
-        contains: 'Invalid template string (${foo[bar]}): Attempted to look up key baz on primitive value foo.baz.',
+        contains: "Invalid template string (${foo[bar]}): Attempted to look up key baz on primitive value foo.baz.",
       }
     )
   })
@@ -2296,10 +2296,7 @@ context("$concat", () => {
         },
       }
 
-      const context = new GenericContext({ foo: 1 })
-      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
-
-      void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
+      void expectError(() => parseTemplateCollection({ source: { path: [] }, value: obj }), {
         contains: "Missing $then field next to $if field",
       })
     })
@@ -2313,10 +2310,7 @@ context("$concat", () => {
         },
       }
 
-      const context = new GenericContext({ foo: 1 })
-      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
-
-      void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
+      void expectError(() => parseTemplateCollection({ source: { path: [] }, value: obj }), {
         contains: 'Found one or more unexpected keys on $if object: "foo"',
       })
     })
