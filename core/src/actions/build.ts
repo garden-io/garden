@@ -31,6 +31,7 @@ import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants.js"
 import { createBuildTask } from "../tasks/build.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
+import { ResolvedTemplate } from "../template/types.js"
 
 export interface BuildCopyFrom {
   build: string
@@ -246,6 +247,10 @@ export class ResolvedBuildAction<
 
   getOutputs() {
     return this._staticOutputs
+  }
+
+  getResolvedVariables(): Record<string, ResolvedTemplate> {
+    return this.params.resolvedVariables
   }
 }
 

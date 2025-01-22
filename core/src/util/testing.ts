@@ -33,7 +33,7 @@ import type { VcsHandler } from "../vcs/vcs.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
 import type { GraphResults } from "../graph/results.js"
 import { expect } from "chai"
-import type { ActionConfig, ActionConfigMap, ActionKind, ActionStatus } from "../actions/types.js"
+import type { ActionConfig, ActionConfigMap, ActionKind, ActionStatus, BaseActionConfig } from "../actions/types.js"
 import type { WrappedActionRouterHandlers } from "../router/base.js"
 import type {
   BuiltinArgs,
@@ -48,6 +48,7 @@ import fsExtra, { exists } from "fs-extra"
 
 const { mkdirp, remove } = fsExtra
 import { GlobalConfigStore } from "../config-store/global.js"
+import type { CollectionOrValue } from "./objects.js"
 import { isPromise } from "./objects.js"
 import type { ConfigTemplateConfig } from "../config/config-template.js"
 import type { PluginToolSpec, ToolBuildSpec } from "../plugin/tools.js"
@@ -58,6 +59,8 @@ import { createHash } from "node:crypto"
 import { pipeline } from "node:stream/promises"
 import type { GardenCloudApiFactory } from "../cloud/api.js"
 import type { ConfigContext } from "../config/template-contexts/base.js"
+import { parseTemplateCollection } from "../template/templated-collections.js"
+import type { TemplatePrimitive } from "../template/types.js"
 
 export class TestError extends GardenError {
   type = "_test"
@@ -113,10 +116,10 @@ const moduleConfigDefaults: ModuleConfig = {
   type: "test",
 }
 
-export function moduleConfigWithDefaults(partial: PartialModuleConfig) {
+export function moduleConfigWithDefaults(partial: PartialModuleConfig): ModuleConfig {
   const defaults = cloneDeep(moduleConfigDefaults)
 
-  return {
+  const config: ModuleConfig = {
     ...defaults,
     ...partial,
     build: {
@@ -124,6 +127,11 @@ export function moduleConfigWithDefaults(partial: PartialModuleConfig) {
       ...(partial.build || {}),
     },
   }
+
+  return parseTemplateCollection({
+    value: config as unknown as CollectionOrValue<TemplatePrimitive>,
+    source: { path: [] },
+  }) as unknown as ModuleConfig
 }
 
 /**
@@ -329,7 +337,7 @@ export class TestGarden extends Garden {
       Test: {},
     }
     actionConfigs.forEach((ac) => {
-      this.addActionConfig({
+      const merged: BaseActionConfig = {
         spec: {},
         ...ac,
         // TODO: consider making `timeout` mandatory in `PartialActionConfig`.
@@ -339,7 +347,13 @@ export class TestGarden extends Garden {
           basePath: this.projectRoot,
           ...ac.internal,
         },
-      })
+      }
+      this.addActionConfig(
+        parseTemplateCollection({
+          value: merged as unknown as CollectionOrValue<TemplatePrimitive>,
+          source: { path: [] },
+        }) as unknown as ActionConfig
+      )
     })
   }
 

@@ -82,7 +82,6 @@ import { resolveAction } from "../../../src/graph/actions.js"
 import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 import { deepResolveContext, GenericContext, LayeredContext } from "../../../src/config/template-contexts/base.js"
-import { ResolvedBuildAction } from "../../../src/actions/build.js"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -404,7 +403,11 @@ describe("Garden", () => {
       garden.variableOverrides["d"] = "from-cli-var"
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const runAction = graph.getRun("run-a")
-      expect({ ...garden.variables, ...runAction.getVariables() }).to.eql({
+      const resolvedVariables = deepResolveContext(
+        "Garden and run-a action variables",
+        new LayeredContext(garden.variables, runAction.getVariablesContext())
+      )
+      expect(resolvedVariables).to.eql({
         a: "from-project-varfile",
         b: "from-action-vars",
         c: "from-action-varfile",
@@ -418,7 +421,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(projectRoot)
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const runAction = graph.getRun("run-a")
-      const runActionVariables = deepResolveContext("Run action variables", runAction.getVariables())
+      const runActionVariables = deepResolveContext("Run action variables", runAction.getVariablesContext())
       expect(runActionVariables).to.eql({})
     })
 
@@ -3179,7 +3182,7 @@ describe("Garden", () => {
       })
       expect(resolved).to.exist
 
-      const variables = deepResolveContext("resolved action variables", resolved.getVariables())
+      const variables = deepResolveContext("resolved action variables", resolved.getVariablesContext())
       expect(variables).to.deep.eq({
         myDir: "../../../test",
         syncTargets: [

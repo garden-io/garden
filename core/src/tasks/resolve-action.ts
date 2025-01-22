@@ -26,9 +26,10 @@ import { ResolvedConfigGraph } from "../graph/config-graph.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import type { ConfigContext } from "../config/template-contexts/base.js"
-import { GenericContext } from "../config/template-contexts/base.js"
+import { deepResolveContext, GenericContext } from "../config/template-contexts/base.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
 import { CapturedContext } from "../config/template-contexts/base.js"
+import { isPlainObject } from "../util/objects.js"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -186,6 +187,13 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       new GenericContext(this.garden.variableOverrides)
     )
 
+    const resolvedVariables = deepResolveContext("action variables", variables)
+    if (!isPlainObject(resolvedVariables)) {
+      throw new InternalError({
+        message: `Action variables for ${action.describe()} evaluated to ${typeof resolvedVariables}, expected a plain object.`,
+      })
+    }
+
     // Resolve spec
     let spec = deepEvaluate(action.getConfig().spec || {}, {
       context: new ActionSpecContext({
@@ -218,6 +226,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       executedDependencies,
       resolvedDependencies,
       variables,
+      resolvedVariables,
       inputs,
       spec,
       staticOutputs: {},

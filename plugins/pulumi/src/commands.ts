@@ -206,7 +206,7 @@ const makePluginContextForDeploy = async (
     resolvedDependencies: action.getResolvedDependencies(),
     executedDependencies: action.getExecutedDependencies(),
     inputs: action.getInternal().inputs || {},
-    variables: action.getVariables(),
+    variables: action.getVariablesContext(),
   })
   const ctxForDeploy = await garden.getPluginContext({ provider, templateContext, events: ctx.events })
   return ctxForDeploy

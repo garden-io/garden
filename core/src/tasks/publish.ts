@@ -110,7 +110,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         resolvedDependencies: action.getResolvedDependencies(),
         executedDependencies: action.getExecutedDependencies(),
         inputs: action.getInternal().inputs || {},
-        variables: action.getVariables(),
+        variables: action.getVariablesContext(),
       })
 
       // Resolve template string and make sure the result is a string

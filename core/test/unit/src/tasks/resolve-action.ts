@@ -22,6 +22,7 @@ import {
   getAllTaskResults,
   getDefaultProjectConfig,
 } from "../../../helpers.js"
+import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 
 describe("ResolveActionTask", () => {
   let garden: TestGarden
@@ -188,7 +189,7 @@ describe("ResolveActionTask", () => {
       const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
-      const variables = resolved.getVariables()
+      const variables = resolved.getResolvedVariables()
 
       expect(variables).to.eql({ foo: garden.projectName })
     })
@@ -236,7 +237,7 @@ describe("ResolveActionTask", () => {
       const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
-      const variables = resolved.getVariables()
+      const variables = resolved.getResolvedVariables()
 
       expect(variables).to.eql({
         a: 100,

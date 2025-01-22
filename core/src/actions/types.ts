@@ -22,6 +22,7 @@ import type { BaseGardenResource, GardenResourceInternalFields } from "../config
 import type { LinkedSource } from "../config-store/local.js"
 import type { GardenApiVersion } from "../constants.js"
 import type { ConfigContext } from "../config/template-contexts/base.js"
+import { ResolvedTemplate } from "../template/types.js"
 
 // TODO: split this file
 
@@ -183,6 +184,7 @@ export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs e
   staticOutputs: StaticOutputs
   inputs: DeepPrimitiveMap
   variables: ConfigContext
+  resolvedVariables: Record<string, ResolvedTemplate>
 }
 
 export type ResolvedActionWrapperParams<

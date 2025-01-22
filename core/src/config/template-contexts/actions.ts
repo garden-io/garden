@@ -212,7 +212,7 @@ class ActionReferencesContext extends ContextWithSchema {
           buildPath: action.getBuildPath(),
           sourcePath: action.sourcePath(),
           mode: action.mode(),
-          variables: action.getVariables(),
+          variables: action.getVariablesContext(),
         })
       )
     }

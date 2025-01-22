@@ -67,6 +67,7 @@ import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { styles } from "../logger/styles.js"
 import { dirname } from "node:path"
 import type { ConfigContext } from "../config/template-contexts/base.js"
+import type { ResolvedTemplate } from "../template/types.js"
 
 // TODO: split this file
 
@@ -583,7 +584,7 @@ export abstract class BaseAction<
     }
   }
 
-  getVariables(): ConfigContext {
+  getVariablesContext(): ConfigContext {
     return this.variables
   }
 
@@ -735,7 +736,9 @@ export interface ResolvedActionExtension<
 
   getOutputs(): StaticOutputs
 
-  getVariables(): ConfigContext
+  getVariablesContext(): ConfigContext
+
+  getResolvedVariables(): Record<string, ResolvedTemplate>
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
@@ -815,6 +818,10 @@ export abstract class ResolvedRuntimeAction<
 
   getOutputs() {
     return this._staticOutputs
+  }
+
+  getResolvedVariables(): Record<string, ResolvedTemplate> {
+    return this.params.resolvedVariables
   }
 }
 

@@ -299,7 +299,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           resolvedDependencies: action.getResolvedDependencies(),
           executedDependencies: action.getExecutedDependencies(),
           inputs: action.getInternal().inputs || {},
-          variables: action.getVariables(),
+          variables: action.getVariablesContext(),
         })
       : new ActionConfigContext({
           garden: this.garden,
@@ -308,7 +308,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
             mode: action.mode(),
             name: action.name,
           },
-          variables: action.getVariables(),
+          variables: action.getVariablesContext(),
         })
 
     const handlerParams = {
