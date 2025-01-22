@@ -940,7 +940,7 @@ describe("parse and evaluate template strings", () => {
     void expectError(
       () => resolveTemplateString({ string: "${foo[bar]}", context: new GenericContext({ foo: 123, bar: "baz" }) }),
       {
-        contains: 'Invalid template string (${foo[bar]}): Attempted to look up key "baz" on a number.',
+        contains: 'Invalid template string (${foo[bar]}): Attempted to look up key baz on primitive value foo.baz.',
       }
     )
   })
@@ -1027,7 +1027,7 @@ describe("parse and evaluate template strings", () => {
         }),
       {
         contains:
-          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar, baz and foo.",
+          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: foo, bar, baz.",
       }
     )
   })
@@ -1041,7 +1041,7 @@ describe("parse and evaluate template strings", () => {
         }),
       {
         contains:
-          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar and foo.",
+          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: foo, bar.",
       }
     )
   })

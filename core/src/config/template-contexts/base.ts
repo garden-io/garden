@@ -422,7 +422,7 @@ function traverseContext(
 
     if (isTemplatePrimitive(value)) {
       throw new ContextLookupNotIndexable({
-        message: `Attempting to look up key ${nextKey} on primitive value ${renderKeyPath([...params.nodePath, ...params.key])}`,
+        message: `Attempted to look up key ${nextKey} on primitive value ${renderKeyPath([...params.nodePath, ...params.key])}.`,
       })
     }
 
