@@ -8,7 +8,7 @@
 
 import { isArray, isString, keyBy, partition, uniq } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
-import { mayContainTemplateString, resolveTemplateString } from "./template/templated-strings.js"
+import { resolveTemplateString } from "./template/templated-strings.js"
 import { GenericContext } from "./config/template-contexts/base.js"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden.js"
@@ -60,10 +60,11 @@ import { getModuleTemplateReferences } from "./config/references.js"
 import { capture } from "./template/capture.js"
 import { LayeredContext } from "./config/template-contexts/base.js"
 import { UnresolvedTemplateValue, type ParsedTemplate } from "./template/types.js"
-import { conditionallyDeepEvaluate, deepEvaluate } from "./template/evaluate.js"
+import { conditionallyDeepEvaluate, deepEvaluate, evaluate } from "./template/evaluate.js"
 import { someReferences } from "./template/analysis.js"
 import { ForEachLazyValue } from "./template/templated-collections.js"
-import { deepMap } from "./util/objects.js"
+import { deepMap, isPlainObject } from "./util/objects.js"
+import { LazyMergePatch } from "./template/lazy-merge.js"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -540,16 +541,15 @@ export class ModuleResolver {
 
     // Try resolving template strings if possible
     let buildDeps: string[] = []
-    const resolvedDeps = partiallyEvaluateModule(
-      rawConfig.build.dependencies as unknown as ParsedTemplate,
-      configContext
-    ) as unknown as BuildDependencyConfig
-
+    const resolvedDeps = evaluate(rawConfig.build.dependencies as unknown as ParsedTemplate, {
+      context: configContext,
+      opts: {},
+    })
     // The build.dependencies field may not resolve at all, in which case we can't extract any deps from there
     if (isArray(resolvedDeps)) {
       buildDeps = resolvedDeps
         // We only collect fully-resolved references here
-        .filter((d) => !mayContainTemplateString(d) && (isString(d) || d.name))
+        .filter((d) => isString(d) || (isPlainObject(d) && isString(d.name)))
         .map((d) => (isString(d) ? d : d.name))
     }
 
@@ -615,7 +615,7 @@ export class ModuleResolver {
     // so we also need to pass inputs here along with the available variables.
     const context = new ModuleConfigContext({
       ...templateContextParams,
-      variables: new LayeredContext(garden.variables, moduleVariables),
+      variables: new LayeredContext(garden.variables, new GenericContext(moduleVariables)),
       inputs,
     })
 
@@ -637,7 +637,10 @@ export class ModuleResolver {
     }
 
     let config: ModuleConfig = partiallyEvaluateModule(
-      unresolvedConfig as unknown as ParsedTemplate,
+      {
+        ...unresolvedConfig,
+        variables: moduleVariables,
+      } as unknown as ParsedTemplate,
       context
     ) as unknown as ModuleConfig
 
@@ -887,7 +890,7 @@ export class ModuleResolver {
    *
    *   garden.variableOverrides > module varfile > config.variables
    */
-  private async mergeVariables(config: ModuleConfig, context: ModuleConfigContext): Promise<LayeredContext> {
+  private async mergeVariables(config: ModuleConfig, context: ModuleConfigContext): Promise<LazyMergePatch> {
     let varfileVars: DeepPrimitiveMap = {}
     if (config.varfile) {
       const varfilePath = deepEvaluate(config.varfile, {
@@ -908,11 +911,7 @@ export class ModuleResolver {
 
     const moduleVariables = capture(config.variables || {}, context)
 
-    return new LayeredContext(
-      new GenericContext(moduleVariables),
-      new GenericContext(varfileVars),
-      new GenericContext(this.garden.variableOverrides)
-    )
+    return new LazyMergePatch([moduleVariables, varfileVars, this.garden.variableOverrides])
   }
 }
 
