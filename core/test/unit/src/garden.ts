@@ -204,7 +204,8 @@ describe("Garden", () => {
         },
       })
 
-      expect(garden.variables).to.eql({
+      const variables = deepResolveContext("Garden variables", garden.variables)
+      expect(variables).to.eql({
         some: "variable",
       })
     })
@@ -252,7 +253,8 @@ describe("Garden", () => {
         },
       })
 
-      expect(garden.variables).to.eql({
+      const variables = deepResolveContext("Garden variables", garden.variables)
+      expect(variables).to.eql({
         "some": "banana",
         "service-a-build-command": "OK",
       })
@@ -375,7 +377,8 @@ describe("Garden", () => {
     it("should load default varfiles if they exist", async () => {
       const projectRoot = getDataDir("test-projects", "varfiles")
       const garden = await makeTestGarden(projectRoot, {})
-      expect(garden.variables).to.eql({
+      const variables = deepResolveContext("Garden variables", garden.variables)
+      expect(variables).to.eql({
         a: "a",
         b: "B",
         c: "c",
@@ -385,7 +388,8 @@ describe("Garden", () => {
     it("should load custom varfiles if specified", async () => {
       const projectRoot = getDataDir("test-projects", "varfiles-custom")
       const garden = await makeTestGarden(projectRoot, {})
-      expect(garden.variables).to.eql({
+      const variables = deepResolveContext("Garden variables", garden.variables)
+      expect(variables).to.eql({
         a: "a",
         b: "B",
         c: "c",
@@ -414,7 +418,8 @@ describe("Garden", () => {
       const garden = await makeTestGarden(projectRoot)
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const runAction = graph.getRun("run-a")
-      expect(runAction.getVariables()).to.eql({})
+      const runActionVariables = deepResolveContext("Run action variables", runAction.getVariables())
+      expect(runActionVariables).to.eql({})
     })
 
     it("should throw if project root is not in a git repo root", async () => {
@@ -495,7 +500,8 @@ describe("Garden", () => {
         variableOverrides: { "foo": "override", "nested.nestedKey2": "somevalue2new", "key.withdot": "somevalue3new" },
       })
 
-      expect(garden.variables).to.eql({
+      const variables = deepResolveContext("Garden variables", garden.variables)
+      expect(variables).to.eql({
         "foo": "override",
         "bar": "something",
         "nested": {
