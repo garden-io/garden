@@ -325,6 +325,7 @@ export class LayeredContext extends ConfigContext {
     super()
     this.contexts = contexts
   }
+
   override resolveImpl(args: ContextResolveParams): ContextResolveOutput {
     const items: ContextResolveOutput[] = []
 
@@ -513,7 +514,7 @@ export function getUnavailableReason(result: ContextResolveOutput): string {
 
   const message = deline`
     Could not find key ${result.explanation.key}${result.explanation.keyPath.length > 0 ? ` under ${renderKeyPath(result.explanation.keyPath)}` : ""}.
-    ${available?.length ? `Available keys: ${available.join(", ")}.` : ""}
+    ${`Available keys: ${available?.length ? available.join(", ") : "(none)"}.`}
   `
 
   const footer = result.explanation.getFooterMessage?.()
