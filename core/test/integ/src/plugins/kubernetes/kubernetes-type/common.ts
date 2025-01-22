@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import cloneDeep from "fast-copy"
 
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import type { PluginContext } from "../../../../../../src/plugin-context.js"
