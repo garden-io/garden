@@ -4381,10 +4381,10 @@ describe("Garden", () => {
       }
 
       expect(build.type).to.equal("test")
-      expect(omit(build.getInternal(), "yamlDoc")).to.eql(internal)
+      expect(serialiseUnresolvedTemplates(omit(build.getInternal(), "yamlDoc"))).to.eql(internal)
 
       expect(deploy.getBuildAction()?.name).to.equal("foo-test") // <- should be resolved
-      expect(omit(deploy.getInternal(), "yamlDoc")).to.eql(internal)
+      expect(serialiseUnresolvedTemplates(omit(deploy.getInternal(), "yamlDoc"))).to.eql(internal)
 
       expect(test.getDependencies().map((a) => a.key())).to.eql(["build.foo-test"]) // <- should be resolved
       expect(omit(test.getInternal(), "yamlDoc")).to.eql(internal)
