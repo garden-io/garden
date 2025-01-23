@@ -1564,18 +1564,6 @@ export class Garden {
     }
 
     const context = new TemplatableConfigContext(this, config)
-    // Hack: deny variables contexts here, because those have not been fully resolved yet.
-    const deniedContexts = ["var", "variables"]
-    for (const deniedContext of deniedContexts) {
-      Object.defineProperty(context, deniedContext, {
-        get: () => {
-          throw new ConfigurationError({
-            message: `If you have duplicate action names, the ${styles.accent("`disabled`")} flag cannot depend on the ${styles.accent(`\`${deniedContext}\``)} context.`,
-          })
-        },
-      })
-    }
-
     const resolved = deepEvaluate(disabledFlag, { context, opts: {} })
 
     return !!resolved
