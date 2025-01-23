@@ -213,7 +213,6 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     }
 
     let resolvedConfig = validateConfig(evaluatedConfig)
-    resolvedConfig.path = this.garden.projectRoot
 
     let moduleConfigs: ModuleConfig[] = []
 
@@ -227,7 +226,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     const pluginsByName = keyBy(plugins, "name")
     const plugin = pluginsByName[providerName]
 
-    const configureProviderOutput = await actions.provider.configureProvider({
+    const configureOutput = await actions.provider.configureProvider({
       ctx: await this.garden.getPluginContext({
         provider: providerFromConfig({
           plugin,
@@ -251,10 +250,11 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     })
 
     this.log.silly(() => `Validating ${providerName} config returned from configureProvider handler`)
-    resolvedConfig = validateConfig(configureProviderOutput.config)
+    resolvedConfig = validateConfig(configureOutput.config)
+    resolvedConfig.path = this.garden.projectRoot
 
-    if (configureProviderOutput.moduleConfigs) {
-      moduleConfigs = configureProviderOutput.moduleConfigs
+    if (configureOutput.moduleConfigs) {
+      moduleConfigs = configureOutput.moduleConfigs
     }
 
     // Validating the output config against the base plugins. This is important to make sure base handlers are
