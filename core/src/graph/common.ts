@@ -176,7 +176,6 @@ export const mergeVariables = profileAsync(async function mergeVariables({
   return new LayeredContext(
     variables || new GenericContext({}),
     // Merge different varfiles, later files taking precedence over prior files in the list.
-    // TODO-0.13.0: should this be a JSON merge?
     ...varsByFile.map((vars) => new GenericContext(vars))
   )
 })

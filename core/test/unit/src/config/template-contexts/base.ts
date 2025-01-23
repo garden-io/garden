@@ -8,17 +8,17 @@
 
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
-import type {
+import {
   ConfigContext,
   ContextKey,
+  ContextResolveOutputNotFound,
   ContextResolveParams,
-} from "../../../../../src/config/template-contexts/base.js"
-import {
+  ContextWithSchema,
   GenericContext,
   getUnavailableReason,
   LayeredContext,
+  schema,
 } from "../../../../../src/config/template-contexts/base.js"
-import { ContextWithSchema, schema } from "../../../../../src/config/template-contexts/base.js"
 import { expectError } from "../../../../helpers.js"
 import { joi } from "../../../../../src/config/common.js"
 import { parseTemplateString } from "../../../../../src/template/templated-strings.js"
@@ -338,6 +338,53 @@ describe("LayeredContext", () => {
       opts: {},
     })
 
-    expect(res).to.eq("foo-bar")
+    expect(res).to.eql("foo-bar")
+  })
+
+  it("takes the precedence from right to left when merging primitives", () => {
+    const layeredContext = new LayeredContext(
+      new GenericContext({
+        foo: "foo",
+      }),
+      new GenericContext({
+        foo: "overriddenFoo",
+      })
+    )
+
+    const res = layeredContext.resolve({ key: ["foo"], nodePath: [], opts: {} })
+    expect(res).to.eql({ found: true, resolved: "overriddenFoo" })
+  })
+
+  it("takes the precedence from right to left when merging objects", () => {
+    const layeredContext = new LayeredContext(
+      new GenericContext({
+        foo: "foo",
+      }),
+      new GenericContext({
+        foo: "overriddenFoo",
+      })
+    )
+
+    const res = layeredContext.resolve({ key: [], nodePath: [], opts: {} })
+    expect(res).to.eql({ found: true, resolved: { foo: "overriddenFoo" } })
+  })
+
+  it("show the available keys if attempt to resolve a non-existing key", () => {
+    const layeredContext = new LayeredContext(
+      new GenericContext({
+        foo: "foo",
+      }),
+      new GenericContext({
+        bar: "bar",
+      })
+    )
+
+    const res = layeredContext.resolve({ key: ["baz"], nodePath: [], opts: {} })
+    expect(res.found).to.eql(false)
+
+    const explanation = (res as ContextResolveOutputNotFound).explanation
+    expect(explanation.key).to.eql("baz")
+    expect(explanation.reason).to.eql("key_not_found")
+    expect(explanation.getAvailableKeys().sort()).to.eql(["bar", "foo"])
   })
 })

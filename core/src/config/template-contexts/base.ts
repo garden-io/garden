@@ -311,9 +311,9 @@ export class LayeredContext extends ConfigContext {
   }
 
   override resolveImpl(args: ContextResolveParams): ContextResolveOutput {
-    const items: ContextResolveOutput[] = []
+    const layeredItems: ContextResolveOutput[] = []
 
-    for (const context of this.contexts) {
+    for (const context of this.contexts.toReversed()) {
       const resolved = context.resolve({
         ...args,
         opts: {
@@ -328,21 +328,21 @@ export class LayeredContext extends ConfigContext {
         }
       }
 
-      items.push(resolved)
+      layeredItems.push(resolved)
     }
 
     // if it could not be found in any context, aggregate error information from all contexts
-    if (items.every((res) => !res.found)) {
+    if (layeredItems.every((res) => !res.found)) {
       // find deepest key path (most specific error)
       let deepestKeyPath: (number | string)[] = []
-      for (const res of items) {
+      for (const res of layeredItems) {
         if (res.explanation.keyPath.length > deepestKeyPath.length) {
           deepestKeyPath = res.explanation.keyPath
         }
       }
 
       // identify all errors with the same key path
-      const all = items.filter((res) => isEqual(res.explanation.keyPath, deepestKeyPath))
+      const all = layeredItems.filter((res) => isEqual(res.explanation.keyPath, deepestKeyPath))
       const lastError = all[all.length - 1]
 
       return {
@@ -356,7 +356,9 @@ export class LayeredContext extends ConfigContext {
 
     const returnValue = {}
 
-    for (const i of items) {
+    // Here we need to reverse the layers again, because we apply merge function
+    // that merges the right operand into the left one.
+    for (const i of layeredItems.toReversed()) {
       if (!i.found) {
         continue
       }

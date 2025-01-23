@@ -115,7 +115,7 @@ export class CustomCommandWrapper extends Command {
     // Render the command variables
     const variablesContext = new CustomCommandContext({ ...garden, args, opts, rest })
     const commandVariables = new GenericContext(capture(this.spec.variables, variablesContext))
-    const variables = new LayeredContext(commandVariables, garden.variables)
+    const variables = new LayeredContext(garden.variables, commandVariables)
 
     // Make a new template context with the resolved variables
     const commandContext = new CustomCommandContext({ ...garden, args, opts, variables, rest })
