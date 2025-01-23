@@ -137,7 +137,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
         default: name,
       })
 
-      name = answer.name
+      name = answer
 
       log.info("")
     }
