@@ -196,7 +196,7 @@ async function renderModules({
   return Promise.all(
     (template.modules || []).map(async (m, index) => {
       // Run a partial template resolution with the parent+template info
-      const spec = evaluate(capture(m as unknown as ParsedTemplate, context), {
+      const spec = evaluate(m as unknown as ParsedTemplate, {
         context,
         opts: {},
       }).resolved
