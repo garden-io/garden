@@ -38,36 +38,42 @@ describe("DefaultEnvironmentContext", () => {
 
   it("should resolve the current git branch", () => {
     expect(c.resolve({ nodePath: [], key: ["git", "branch"], opts: {} })).to.eql({
+      found: true,
       resolved: garden.vcsInfo.branch,
     })
   })
 
   it("should resolve the current git commit hash", () => {
     expect(c.resolve({ nodePath: [], key: ["git", "commitHash"], opts: {} })).to.eql({
+      found: true,
       resolved: garden.vcsInfo.commitHash,
     })
   })
 
   it("should resolve the current git origin URL", () => {
     expect(c.resolve({ nodePath: [], key: ["git", "originUrl"], opts: {} })).to.eql({
+      found: true,
       resolved: garden.vcsInfo.originUrl,
     })
   })
 
   it("should resolve datetime.now to ISO datetime string", () => {
     expect(c.resolve({ nodePath: [], key: ["datetime", "now"], opts: {} })).to.eql({
+      found: true,
       resolved: now.toISOString(),
     })
   })
 
   it("should resolve datetime.today to ISO datetime string", () => {
     expect(c.resolve({ nodePath: [], key: ["datetime", "today"], opts: {} })).to.eql({
+      found: true,
       resolved: now.toISOString().slice(0, 10),
     })
   })
 
   it("should resolve datetime.timestamp to Unix timestamp in seconds", () => {
     expect(c.resolve({ nodePath: [], key: ["datetime", "timestamp"], opts: {} })).to.eql({
+      found: true,
       resolved: Math.round(now.getTime() / 1000),
     })
   })
