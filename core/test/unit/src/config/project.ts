@@ -570,9 +570,13 @@ describe("pickEnvironment", () => {
     )
     expect(resolvedProviders).to.eql([
       { name: "exec" },
-      { name: "container", newKey: "foo", dependencies: [] },
+      { name: "container", newKey: "foo" },
       { name: "templated" },
-      { name: "my-provider", b: "b" },
+      {
+        name: "my-provider",
+        a: undefined, // setting a to undefined is semantically equivalent to removing it in this context
+        b: "b",
+      },
     ])
   })
 

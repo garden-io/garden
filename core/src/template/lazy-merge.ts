@@ -25,6 +25,12 @@ export class LazyMergePatch extends UnresolvedTemplateValue {
       const { resolved } = evaluate(item, args)
 
       if (isTemplatePrimitive(resolved)) {
+        if (resolved === null && item !== this.items[0]) {
+          return {
+            partial: false,
+            resolved: undefined, // null values are supposed to remove the key
+          }
+        }
         return {
           partial: false,
           resolved,
@@ -55,11 +61,7 @@ export class LazyMergePatch extends UnresolvedTemplateValue {
 
     for (const k of keys) {
       const items = toBeMerged.filter((o) => k in o).map((o) => o[k])
-      if (items.length === 1) {
-        returnValue[k] = items[0]
-      } else {
-        returnValue[k] = new LazyMergePatch(items)
-      }
+      returnValue[k] = new LazyMergePatch(items)
     }
 
     return {
