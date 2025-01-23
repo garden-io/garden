@@ -120,7 +120,9 @@ export async function resolveConfigTemplate(
   if (inputsJsonSchema.properties) {
     for (const k in inputsJsonSchema.properties) {
       const d = inputsJsonSchema.properties[k].default
-      defaultValues[k] = d
+      if (d !== undefined) {
+        defaultValues[k] = d
+      }
     }
   }
 

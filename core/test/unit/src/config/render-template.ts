@@ -22,6 +22,7 @@ import { configTemplateKind, renderTemplateKind } from "../../../../src/config/b
 import type { RenderTemplateConfig } from "../../../../src/config/render-template.js"
 import { renderConfigTemplate } from "../../../../src/config/render-template.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
+import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 
 describe("config templates", () => {
   let garden: TestGarden
@@ -50,10 +51,13 @@ describe("config templates", () => {
     })
 
     it("resolves template strings for fields other than modules and files", async () => {
-      const config: ConfigTemplateResource = {
-        ...defaults,
-        inputsSchemaPath: "${project.name}.json",
-      }
+      const config: ConfigTemplateResource = parseTemplateCollection({
+        value: {
+          ...defaults,
+          inputsSchemaPath: "${project.name}.json",
+        },
+        source: { path: [] },
+      })
       const resolved = await resolveConfigTemplate(garden, config)
       expect(resolved.inputsSchemaPath).to.eql("module-templates.json")
       expect(resolved.inputsSchemaDefaults).to.eql({
@@ -98,6 +102,7 @@ describe("config templates", () => {
       expect((<any>resolved.inputsSchema)._rules[0].args.jsonSchema.schema).to.eql({
         type: "object",
         additionalProperties: true,
+        required: [],
       })
     })
 
