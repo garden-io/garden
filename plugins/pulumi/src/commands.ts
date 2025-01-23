@@ -46,8 +46,8 @@ import { ActionSpecContext } from "@garden-io/core/build/src/config/template-con
 import type { ProviderMap } from "@garden-io/core/build/src/config/provider.js"
 import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import { isTruthy } from "@garden-io/core/build/src/util/util.js"
-import { InputContext } from "@garden-io/core/src/config/template-contexts/input.js"
-import { TemplatableConfigContext } from "@garden-io/core/src/config/template-contexts/templatable.js"
+import { InputContext } from "@garden-io/core/build/src/config/template-contexts/input.js"
+import { TemplatableConfigContext } from "@garden-io/core/build/src/config/template-contexts/templatable.js"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
