@@ -58,7 +58,7 @@ import got from "got"
 import { createHash } from "node:crypto"
 import { pipeline } from "node:stream/promises"
 import type { GardenCloudApiFactory } from "../cloud/api.js"
-import type { ConfigContext } from "../config/template-contexts/base.js"
+import { type ConfigContext } from "../config/template-contexts/base.js"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import type { TemplatePrimitive } from "../template/types.js"
 

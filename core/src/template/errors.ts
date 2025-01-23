@@ -13,6 +13,7 @@ import type { GardenErrorParams } from "../exceptions.js"
 import { GardenError } from "../exceptions.js"
 import { styles } from "../logger/styles.js"
 import type { Location } from "./ast.js"
+import type { ContextResolveOutputNotFound } from "../config/template-contexts/base.js"
 
 export class TemplateError extends GardenError {
   type = "template"
@@ -34,8 +35,11 @@ export class TemplateStringError extends GardenError {
 
   loc: Location
   originalMessage: string
+  lookupResult?: ContextResolveOutputNotFound
 
-  constructor(params: GardenErrorParams & { loc: Location; yamlSource: ConfigSource }) {
+  constructor(
+    params: GardenErrorParams & { loc: Location; yamlSource: ConfigSource; lookupResult?: ContextResolveOutputNotFound }
+  ) {
     let enriched: string = params.message
     try {
       // TODO: Use Location information from parser to point to the specific part
@@ -57,5 +61,6 @@ export class TemplateStringError extends GardenError {
     super({ ...params, message: enriched })
     this.loc = params.loc
     this.originalMessage = params.message
+    this.lookupResult = params.lookupResult
   }
 }

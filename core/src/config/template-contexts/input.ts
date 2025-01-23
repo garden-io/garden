@@ -11,11 +11,11 @@ import { describeConfig } from "../../vcs/vcs.js"
 import type { ActionConfig } from "../../actions/types.js"
 import type { WorkflowConfig } from "../workflow.js"
 import { InternalError } from "../../exceptions.js"
-import { describeActionConfig } from "../../actions/base.js"
 import type { ConfigTemplateConfig } from "../config-template.js"
 import type { ParsedTemplate } from "../../template/types.js"
 import type { RenderTemplateConfig } from "../render-template.js"
 import type { ModuleConfig } from "../module.js"
+import { describeActionConfig } from "../../actions/base.js"
 
 export class InputContext extends LayeredContext {
   public static forAction(garden: Garden, config: ActionConfig | WorkflowConfig): InputContext {

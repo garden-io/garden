@@ -314,14 +314,7 @@ export class LayeredContext extends ConfigContext {
     const layeredItems: ContextResolveOutput[] = []
 
     for (const context of this.contexts.toReversed()) {
-      const resolved = context.resolve({
-        ...args,
-        opts: {
-          ...args.opts,
-          // to avoid circular dependency errors
-          stack: args.opts.stack?.slice(0, -1),
-        },
-      })
+      const resolved = context.resolve(args)
       if (resolved.found) {
         if (isTemplatePrimitive(resolved.resolved)) {
           return resolved

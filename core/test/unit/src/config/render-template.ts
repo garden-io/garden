@@ -25,6 +25,7 @@ import type { Log } from "../../../../src/logger/log-entry.js"
 import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 import { serialiseUnresolvedTemplates, UnresolvedTemplateValue } from "../../../../src/template/types.js"
 import { deepEvaluate } from "../../../../src/template/evaluate.js"
+import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 
 describe("config templates", () => {
   let garden: TestGarden
@@ -341,12 +342,17 @@ describe("config templates", () => {
       const _templates = {
         test: {
           ...template,
-          modules: [
-            {
-              type: "test",
-              name: "${inputs.foo}",
+          ...parseTemplateCollection({
+            value: {
+              modules: [
+                {
+                  type: "test",
+                  name: "${inputs.foo}",
+                },
+              ],
             },
-          ],
+            source: { path: [] },
+          }),
         },
       }
       const config: RenderTemplateConfig = {
@@ -434,22 +440,28 @@ describe("config templates", () => {
     })
 
     it("resolves project variable references in input fields", async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const _templates: any = {
+      const _templates = {
         test: {
           ...template,
-          modules: [
-            {
-              type: "test",
-              name: "${inputs.name}-test",
+          ...parseTemplateCollection({
+            value: {
+              modules: [
+                {
+                  type: "test",
+                  name: "${inputs.name}-test",
+                },
+              ],
             },
-          ],
+            source: { path: [] },
+          }),
         },
       }
 
       const config: RenderTemplateConfig = cloneDeep(defaults)
-      config.inputs = { name: "${var.test}" }
-      garden.variables["test"] = "test-value"
+      config.inputs = parseTemplateCollection({ value: { name: "${var.test}" }, source: { path: [] } })
+      garden.variables = new GenericContext({
+        test: "test-value",
+      })
 
       const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
 
@@ -485,24 +497,33 @@ describe("config templates", () => {
       const _templates: any = {
         test: {
           ...template,
-          modules: [
-            {
-              type: "test",
-              name: "${inputs.name}-test",
+          ...parseTemplateCollection({
+            value: {
+              modules: [
+                {
+                  type: "test",
+                  name: "${inputs.name}-module",
+                },
+              ],
             },
-          ],
+            source: { path: [] },
+          }),
         },
       }
 
       const config: RenderTemplateConfig = cloneDeep(defaults)
-      config.inputs = { name: "module-${modules.foo.version}" }
+      config.inputs = parseTemplateCollection({
+        value: { name: "module-${modules.foo.version}" },
+        source: { path: [] },
+      })
 
       await expectError(() => renderConfigTemplate({ garden, log, config, templates: _templates }), {
         contains: [
-          "ConfigTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test",
-          "Error validating module (modules.garden.yml)",
-          'name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/.',
-          "Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.",
+          "ConfigTemplate test returned an invalid module (named ${inputs.name}-module) for templated module test",
+          "failed to evaluate template expression at inputs.name",
+          "invalid template string (module-${modules.foo.version}) at path name",
+          "could not find key modules. available keys:",
+          "Note that if a template string is used for the name, kind, type or apiversion of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.",
         ],
       })
     })

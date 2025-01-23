@@ -9,10 +9,10 @@
 import { joiVariables } from "../common.js"
 import { ParentContext, schema, TemplateContext } from "./base.js"
 import type { InputContext } from "./input.js"
-import type { ProjectConfigContextParams } from "./project.js"
-import { ProjectConfigContext } from "./project.js"
+import type { EnvironmentConfigContextParams } from "./project.js"
+import { EnvironmentConfigContext } from "./project.js"
 
-export class RenderTemplateConfigContext extends ProjectConfigContext {
+export class RenderTemplateConfigContext extends EnvironmentConfigContext {
   @schema(ParentContext.getSchema().description(`Information about the templated config being resolved.`))
   public parent: ParentContext
 
@@ -26,7 +26,9 @@ export class RenderTemplateConfigContext extends ProjectConfigContext {
   )
   public inputs: InputContext
 
-  constructor(params: { parentName: string; templateName: string; inputs: InputContext } & ProjectConfigContextParams) {
+  constructor(
+    params: { parentName: string; templateName: string; inputs: InputContext } & EnvironmentConfigContextParams
+  ) {
     super(params)
     this.parent = new ParentContext(params.parentName)
     this.template = new TemplateContext(params.templateName)

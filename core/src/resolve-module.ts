@@ -894,7 +894,7 @@ export class ModuleResolver {
       })
     }
 
-    const moduleVariables = capture(config.variables || {}, context)
+    const moduleVariables = config.variables || {}
 
     return new LazyMergePatch([moduleVariables, varfileVars, this.garden.variableOverrides])
   }

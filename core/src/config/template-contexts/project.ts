@@ -343,7 +343,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   }
 }
 
-interface EnvironmentConfigContextParams extends ProjectConfigContextParams {
+export interface EnvironmentConfigContextParams extends ProjectConfigContextParams {
   variables: ConfigContext
 }
 

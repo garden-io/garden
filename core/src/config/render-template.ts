@@ -25,7 +25,7 @@ import fsExtra from "fs-extra"
 
 const { ensureDir } = fsExtra
 import type { TemplatedModuleConfig } from "../plugins/templated.js"
-import { omit } from "lodash-es"
+import { isString, omit } from "lodash-es"
 import { EnvironmentConfigContext } from "./template-contexts/project.js"
 import type { ConfigTemplateConfig, TemplatableConfig } from "./config-template.js"
 import { templatableKinds, templateNoTemplateFields } from "./config-template.js"
@@ -34,9 +34,8 @@ import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { RenderTemplateConfigContext } from "./template-contexts/render.js"
 import type { Log } from "../logger/log-entry.js"
 import { GardenApiVersion } from "../constants.js"
-import { capture } from "../template/capture.js"
 import { deepEvaluate, evaluate } from "../template/evaluate.js"
-import { UnresolvedTemplateValue, type ParsedTemplate } from "../template/types.js"
+import { serialiseUnresolvedTemplates, UnresolvedTemplateValue, type ParsedTemplate } from "../template/types.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { InputContext } from "./template-contexts/input.js"
 
@@ -211,8 +210,8 @@ async function renderModules({
 
       let moduleConfig: ModuleConfig
 
+      const resolvedSpec = { ...spec }
       try {
-        const resolvedSpec = { ...spec }
         for (const key of coreModuleSpecKeys()) {
           resolvedSpec[key] = deepEvaluate(resolvedSpec[key], { context, opts: {} })
         }
@@ -225,11 +224,14 @@ async function renderModules({
 
         if (coreModuleSpecKeys().some((k) => spec[k] instanceof UnresolvedTemplateValue)) {
           msg +=
-            ". Note that if a template string is used for the name, kind, type or apiVersion of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
+            "\n\nNote that if a template string is used for the name, kind, type or apiVersion of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
         }
 
         throw new ConfigurationError({
-          message: `${configTemplateKind} ${template.name}: invalid module at index ${index} for templated module ${renderConfig.name}: ${msg}`,
+          message: `${configTemplateKind} ${template.name} returned an invalid module (named ${
+            // We use serializeUnresolvedTemplates here because the error message is clearer for the user with a plain unresolved template string
+            serialiseUnresolvedTemplates(resolvedSpec.name)
+          }) for templated module ${renderConfig.name}: ${msg}`,
         })
       }
 
@@ -239,11 +241,11 @@ async function renderModules({
         sourcePath: f.sourcePath && resolve(template.internal.basePath, ...f.sourcePath.split(posix.sep)),
       }))
 
-      // // If a path is set, resolve the path and ensure that directory exists
-      // if (spec.path) {
-      //   moduleConfig.path = resolve(renderConfig.internal.basePath, ...spec.path.split(posix.sep))
-      //   await ensureDir(moduleConfig.path)
-      // }
+      // If a path is set, resolve the path and ensure that directory exists
+      if (resolvedSpec.path && isString(resolvedSpec.path)) {
+        moduleConfig.path = resolve(renderConfig.internal.basePath, ...resolvedSpec.path.split(posix.sep))
+        await ensureDir(moduleConfig.path)
+      }
 
       // Attach metadata
       moduleConfig.parentName = renderConfig.name

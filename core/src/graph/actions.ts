@@ -66,7 +66,6 @@ import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
 import { isUnresolvableValue } from "../template/analysis.js"
 import { getActionTemplateReferences } from "../config/references.js"
-import { capture } from "../template/capture.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import type { ParsedTemplate } from "../template/types.js"
 import { validateWithPath } from "../config/validation.js"
@@ -509,13 +508,7 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   let variables = await mergeVariables({
     basePath: effectiveConfigFileLocation,
-    variables: new GenericContext(
-      capture(
-        config.variables,
-        // TODO: What's the correct context here?
-        garden.getProjectConfigContext()
-      ) || {}
-    ),
+    variables: new GenericContext(config.variables || {}),
     varfiles: config.varfiles,
     log,
   })

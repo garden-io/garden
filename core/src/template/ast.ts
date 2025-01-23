@@ -7,7 +7,7 @@
  */
 
 import { isArray, isNumber, isString } from "lodash-es"
-import { ContextResolveError, getUnavailableReason } from "../config/template-contexts/base.js"
+import { ContextResolveError, getUnavailableReason, renderKeyPath } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions/index.js"
 import type { EvaluateTemplateArgs } from "./types.js"
@@ -16,6 +16,7 @@ import type { Collection, CollectionOrValue } from "../util/objects.js"
 import { type ConfigSource, validateSchema } from "../config/validation.js"
 import type { TemplateExpressionGenerator } from "./analysis.js"
 import { TemplateStringError } from "./errors.js"
+import { styles } from "../logger/styles.js"
 
 type ASTEvaluateArgs = EvaluateTemplateArgs & {
   yamlSource: ConfigSource
@@ -713,6 +714,7 @@ export class ContextLookupExpression extends TemplateExpression {
         message: getUnavailableReason(result),
         loc: this.loc,
         yamlSource,
+        lookupResult: result,
       })
     }
 
@@ -733,6 +735,14 @@ export class ContextLookupExpression extends TemplateExpression {
       if (e instanceof ContextResolveError) {
         throw new TemplateStringError({
           message: e.message,
+          loc: this.loc,
+          yamlSource,
+          wrappedErrors: [e],
+        })
+      }
+      if (e instanceof TemplateStringError) {
+        throw new TemplateStringError({
+          message: `Failed to evaluate template expression at ${styles.highlight(renderKeyPath(keyPath))}: ${e.message}`,
           loc: this.loc,
           yamlSource,
           wrappedErrors: [e],
