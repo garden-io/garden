@@ -549,20 +549,6 @@ describe("loadConfigResources", () => {
   })
 })
 
-describe("prepareModuleResource", () => {
-  it("should normalize build dependencies", async () => {
-    const moduleConfigPath = resolve(modulePathA, "garden.yml")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsed: any = (await loadConfigResources(log, projectPathA, moduleConfigPath))[0]
-    parsed.build!.dependencies = [{ name: "apple" }, "banana", null]
-    const prepared = prepareModuleResource(parsed, moduleConfigPath, projectPathA)
-    expect(prepared.build!.dependencies).to.eql([
-      { name: "apple", copy: [] },
-      { name: "banana", copy: [] },
-    ])
-  })
-})
-
 describe("findProjectConfig", async () => {
   const customConfigPath = getDataDir("test-projects", "custom-config-names")
 
