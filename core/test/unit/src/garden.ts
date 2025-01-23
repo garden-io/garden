@@ -2199,7 +2199,6 @@ describe("Garden", () => {
             expect(config).to.eql({
               name: "test",
               dependencies: [],
-              path: projectConfig.path,
               foo: "bar",
             })
             return { config: { ...config, foo: "bla" } }
