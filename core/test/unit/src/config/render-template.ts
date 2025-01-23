@@ -23,6 +23,8 @@ import type { RenderTemplateConfig } from "../../../../src/config/render-templat
 import { renderConfigTemplate } from "../../../../src/config/render-template.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
+import { serialiseUnresolvedTemplates, UnresolvedTemplateValue } from "../../../../src/template/types.js"
+import { deepEvaluate } from "../../../../src/template/evaluate.js"
 
 describe("config templates", () => {
   let garden: TestGarden
@@ -176,29 +178,43 @@ describe("config templates", () => {
     it("resolves template strings on the templated module config", async () => {
       const config: RenderTemplateConfig = {
         ...defaults,
-        inputs: {
-          foo: "${project.name}",
-        },
+        ...parseTemplateCollection({
+          value: {
+            inputs: {
+              foo: "${project.name}",
+            },
+          },
+          source: { path: [] },
+        }),
       }
       const { resolved } = await renderConfigTemplate({ garden, log, config, templates })
-      expect(resolved.inputs?.foo).to.equal("module-templates")
+      expect(resolved.inputs?.foo).to.be.instanceOf(UnresolvedTemplateValue)
+      const evaluated = deepEvaluate(resolved.inputs, { context: garden.getProjectConfigContext(), opts: {} })
+      expect(evaluated).to.be.eql({
+        foo: "module-templates",
+      })
     })
 
-    it("resolves all parent, template and input template strings, ignoring others", async () => {
+    it("resolves core fields like name, but leaves others unresolved, like dependencies and image", async () => {
       const _templates = {
         test: {
           ...template,
-          modules: [
-            {
-              type: "test",
-              name: "${parent.name}-${template.name}-${inputs.foo}",
-              build: {
-                dependencies: [{ name: "${parent.name}-${template.name}-foo", copy: [] }],
-                timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-              },
-              image: "${modules.foo.outputs.bar || inputs.foo}",
+          ...parseTemplateCollection({
+            value: {
+              modules: [
+                {
+                  type: "test",
+                  name: "${parent.name}-${template.name}-${inputs.foo}",
+                  build: {
+                    dependencies: [{ name: "${parent.name}-${template.name}-foo", copy: [] }],
+                    timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+                  },
+                  image: "${modules.foo.outputs.bar || inputs.foo}",
+                },
+              ],
             },
-          ],
+            source: { path: [] },
+          }),
         },
       }
       const config: RenderTemplateConfig = {
@@ -212,8 +228,10 @@ describe("config templates", () => {
       const module = resolved.modules[0]
 
       expect(module.name).to.equal("test-test-bar")
-      expect(module.build.dependencies).to.eql([{ name: "test-test-foo", copy: [] }])
-      expect(module.spec.image).to.equal("${modules.foo.outputs.bar || inputs.foo}")
+      expect(serialiseUnresolvedTemplates(module.build.dependencies)).to.eql([
+        { name: "${parent.name}-${template.name}-foo", copy: [] },
+      ])
+      expect(serialiseUnresolvedTemplates(module.spec.image)).to.equal("${modules.foo.outputs.bar || inputs.foo}")
     })
 
     it("throws if config is invalid", async () => {
