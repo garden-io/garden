@@ -39,9 +39,10 @@ import { getNames } from "../util/util.js"
 import { defaultProvider } from "../config/provider.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
-import { TemplatableConfigContext } from "../config/template-contexts/project.js"
+import { TemplatableConfigContext } from "../config/template-contexts/templatable.js"
 import type { ParamsBase } from "../plugin/handlers/base/base.js"
 import { Profile } from "../util/profiling.js"
+import { InputContext } from "../config/template-contexts/input.js"
 
 export type CommonParams = keyof PluginActionContextParams
 
@@ -298,7 +299,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           modules: graph.getModules(),
           resolvedDependencies: action.getResolvedDependencies(),
           executedDependencies: action.getExecutedDependencies(),
-          inputs: action.getInternal().inputs || {},
+          inputs: new InputContext(action.getInternal().inputs),
           variables: action.getVariablesContext(),
         })
       : new ActionConfigContext({

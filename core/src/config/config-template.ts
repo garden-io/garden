@@ -25,6 +25,8 @@ import { actionKinds } from "../actions/types.js"
 import type { WorkflowConfig } from "./workflow.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import type { ParsedTemplate } from "../template/types.js"
+import type { JSONSchemaType } from "ajv"
+import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 
 const inputTemplatePattern = "${inputs.*}"
 const parentNameTemplate = "${parent.name}"
@@ -53,6 +55,7 @@ export interface ConfigTemplateResource extends BaseGardenResource {
 
 export interface ConfigTemplateConfig extends ConfigTemplateResource {
   inputsSchema: CustomObjectSchema
+  inputsSchemaDefaults: DeepPrimitiveMap
 }
 
 export async function resolveConfigTemplate(
@@ -84,9 +87,10 @@ export async function resolveConfigTemplate(
 
   // Read and validate the JSON schema, if specified
   // -> default to any object
-  let inputsJsonSchema = {
+  let inputsJsonSchema: JSONSchemaType<DeepPrimitiveMap> = {
     type: "object",
     additionalProperties: true,
+    required: [],
   }
 
   const configDir = configPath ? dirname(configPath) : resource.internal.basePath
@@ -110,10 +114,21 @@ export async function resolveConfigTemplate(
     }
   }
 
+  const defaultValues = {}
+
+  // this does not cover all the edge cases, consider using something like https://www.npmjs.com/package/json-schema-default
+  if (inputsJsonSchema.properties) {
+    for (const k in inputsJsonSchema.properties) {
+      const d = inputsJsonSchema.properties[k].default
+      defaultValues[k] = d
+    }
+  }
+
   // Add the module templates back and return
   return {
     ...validated,
     inputsSchema: joi.object().jsonSchema(inputsJsonSchema),
+    inputsSchemaDefaults: defaultValues,
     modules: resource.modules,
     configs: resource.configs,
   }

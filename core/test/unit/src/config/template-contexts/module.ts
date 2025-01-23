@@ -15,6 +15,7 @@ import { ModuleConfigContext } from "../../../../../src/config/template-contexts
 import { WorkflowConfigContext } from "../../../../../src/config/template-contexts/workflow.js"
 import type { GardenModule } from "../../../../../src/types/module.js"
 import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
+import { InputContext } from "../../../../../src/config/template-contexts/input.js"
 
 describe("ModuleConfigContext", () => {
   let garden: TestGarden
@@ -38,7 +39,7 @@ describe("ModuleConfigContext", () => {
       name: module.name,
       path: module.path,
       parentName: module.parentName,
-      inputs: module.inputs,
+      inputs: InputContext.forModule(garden, module),
       templateName: module.templateName,
     })
   })

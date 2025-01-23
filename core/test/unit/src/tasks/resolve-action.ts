@@ -22,7 +22,6 @@ import {
   getAllTaskResults,
   getDefaultProjectConfig,
 } from "../../../helpers.js"
-import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 
 describe("ResolveActionTask", () => {
   let garden: TestGarden
@@ -467,6 +466,7 @@ describe("ResolveActionTask", () => {
           kind: configTemplateKind,
           name: "template",
           inputsSchema: joi.object(),
+          inputsSchemaDefaults: {},
           internal: {
             basePath: garden.projectRoot,
           },

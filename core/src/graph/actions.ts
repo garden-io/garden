@@ -40,7 +40,7 @@ import type { ActionReference, JoiDescription } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
-import { ConfigurationError, GardenError, InternalError, PluginError } from "../exceptions.js"
+import { ConfigurationError, GardenError, PluginError } from "../exceptions.js"
 import { type Garden, overrideVariables } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ActionTypeDefinition } from "../plugin/action-types.js"
@@ -67,10 +67,8 @@ import { styles } from "../logger/styles.js"
 import { isUnresolvableValue } from "../template/analysis.js"
 import { getActionTemplateReferences } from "../config/references.js"
 import { capture } from "../template/capture.js"
-import { CapturedContext } from "../config/template-contexts/base.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import type { ParsedTemplate } from "../template/types.js"
-import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { validateWithPath } from "../config/validation.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
@@ -737,7 +735,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   actionTypes: ActionDefinitionMap
 }): Promise<PreprocessActionResult> {
   const description = describeActionConfig(config)
-  const templateName = config.internal.templateName
 
   // in pre-processing, only use varfiles that are not template strings
   const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(getVarfileData(f).path))
@@ -748,58 +745,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     log,
   })
 
-  const resolvedVariables = new CapturedContext(
-    variables,
-    new ActionConfigContext({
-      garden,
-      config: { ...config, internal: { ...config.internal, inputs: {} } },
-      thisContextParams: {
-        mode,
-        name: config.name,
-      },
-      variables,
-    })
-  )
-
-  if (templateName) {
-    // Partially resolve inputs
-    config.internal.inputs = capture(
-      config.internal.inputs || {},
-      new ActionConfigContext({
-        garden,
-        config: { ...config, internal: { ...config.internal, inputs: {} } },
-        thisContextParams: {
-          mode,
-          name: config.name,
-        },
-        variables: resolvedVariables,
-      })
-    ) as unknown as DeepPrimitiveMap
-
-    const template = garden.configTemplates[templateName]
-
-    // Note: This shouldn't happen in normal user flows
-    if (!template) {
-      throw new InternalError({
-        message: `${description} references template '${templateName}' which cannot be found. Available templates: ${
-          naturalList(Object.keys(garden.configTemplates)) || "(none)"
-        }`,
-      })
-    }
-
-    // Validate inputs schema
-    // TODO: schema validation on partially resolved inputs does not make sense
-    // do we validate the schema on fully resolved inputs somewhere?
-    // config.internal.inputs = validateWithPath({
-    //   config: partiallyResolvedInputs,
-    //   configType: `inputs for ${description}`,
-    //   path: config.internal.basePath,
-    //   schema: template.inputsSchema,
-    //   projectRoot: garden.projectRoot,
-    //   source: undefined,
-    // })
-  }
-
   const builtinConfigKeys = getBuiltinConfigContextKeys()
   const builtinFieldContext = new ActionConfigContext({
     garden,
@@ -808,7 +753,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       mode,
       name: config.name,
     },
-    variables: resolvedVariables,
+    variables,
   })
 
   function resolveTemplates() {

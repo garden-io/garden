@@ -15,7 +15,6 @@ import type { StringMap } from "./common.js"
 import type { ConfigContext, ContextKeySegment } from "./template-contexts/base.js"
 import difference from "lodash-es/difference.js"
 import { ConfigurationError } from "../exceptions.js"
-import { flatten, uniq } from "lodash-es"
 
 /**
  * Gathers secret references in configs and throws an error if one or more referenced secrets isn't present (or has

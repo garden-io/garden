@@ -16,10 +16,11 @@ import type { ParsedTemplate, ParsedTemplateValue, ResolvedTemplate } from "../.
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "../../template/types.js"
 import merge from "lodash-es/merge.js"
 import omitBy from "lodash-es/omitBy.js"
-import { flatten, isEqual, uniq } from "lodash-es"
+import { flatten, isEqual, isString, uniq } from "lodash-es"
 import { isMap } from "util/types"
 import { deline } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
+import type { ContextLookupReferenceFinding } from "../../template/analysis.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -177,6 +178,10 @@ export abstract class ContextWithSchema extends ConfigContext {
     return joi.object().keys(schemas).required()
   }
 
+  public hasReferenceRoot(ref: ContextLookupReferenceFinding): boolean {
+    return isString(ref.keyPath[0]) && this[ref.keyPath[0]] !== undefined
+  }
+
   protected override resolveImpl(params: ContextResolveParams): ContextResolveOutput {
     return traverseContext(
       omitBy(this, (key) => typeof key === "string" && key.startsWith("_")) as CollectionOrValue<
@@ -295,27 +300,6 @@ export function renderKeyPath(key: ContextKeySegment[]): string {
         }
       }, stringSegments[0])
   )
-}
-
-export class CapturedContext extends ConfigContext {
-  constructor(
-    private readonly wrapped: ConfigContext,
-    private readonly rootContext: ConfigContext
-  ) {
-    super()
-  }
-
-  override resolveImpl(params: ContextResolveParams): ContextResolveOutput {
-    return this.wrapped.resolve({
-      ...params,
-      opts: {
-        ...params.opts,
-        // to avoid circular dep errors
-        stack: params.opts.stack?.slice(0, -1),
-      },
-      rootContext: params.rootContext ? new LayeredContext(this.rootContext, params.rootContext) : this.rootContext,
-    })
-  }
 }
 
 export class LayeredContext extends ConfigContext {

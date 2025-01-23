@@ -22,7 +22,7 @@ import type { BaseGardenResource, GardenResourceInternalFields } from "../config
 import type { LinkedSource } from "../config-store/local.js"
 import type { GardenApiVersion } from "../constants.js"
 import type { ConfigContext } from "../config/template-contexts/base.js"
-import { ResolvedTemplate } from "../template/types.js"
+import type { ResolvedTemplate } from "../template/types.js"
 
 // TODO: split this file
 

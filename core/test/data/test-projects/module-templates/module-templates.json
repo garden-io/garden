@@ -6,6 +6,10 @@
     },
     "value": {
       "type": "string"
+    },
+    "test": {
+      "type": "string",
+      "default": "hello"
     }
   }
 }

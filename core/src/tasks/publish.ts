@@ -18,6 +18,7 @@ import type { BuildAction } from "../actions/build.js"
 import type { ActionSpecContextParams } from "../config/template-contexts/actions.js"
 import { ActionSpecContext } from "../config/template-contexts/actions.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { InputContext } from "../config/template-contexts/input.js"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   /**
@@ -109,7 +110,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         modules: this.graph.getModules(),
         resolvedDependencies: action.getResolvedDependencies(),
         executedDependencies: action.getExecutedDependencies(),
-        inputs: action.getInternal().inputs || {},
+        inputs: new InputContext(action.getInternal().inputs),
         variables: action.getVariablesContext(),
       })
 

@@ -65,6 +65,7 @@ import { someReferences } from "./template/analysis.js"
 import { ForEachLazyValue } from "./template/templated-collections.js"
 import { deepMap, isPlainObject } from "./util/objects.js"
 import { LazyMergePatch } from "./template/lazy-merge.js"
+import { InputContext } from "./config/template-contexts/input.js"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -520,16 +521,10 @@ export class ModuleResolver {
       buildPath,
       parentName: rawConfig.parentName,
       templateName: rawConfig.templateName,
-      inputs: {},
+      inputs: InputContext.forModule(this.garden, rawConfig),
       modules: [],
       graphResults: this.graphResults,
     }
-
-    // Template inputs are commonly used in module deps, so we need to resolve them first
-    contextParams.inputs = this.resolveInputs(
-      rawConfig,
-      new ModuleConfigContext(contextParams)
-    ) as unknown as DeepPrimitiveMap
 
     const configContext = new ModuleConfigContext(contextParams)
 
@@ -571,16 +566,6 @@ export class ModuleResolver {
     return getLinkedSources(this.garden, "module")
   }
 
-  private resolveInputs(config: ModuleConfig, configContext: ModuleConfigContext) {
-    const inputs = config.inputs || {}
-
-    if (!config.templateName) {
-      return inputs
-    }
-
-    return capture(inputs, configContext)
-  }
-
   /**
    * Resolves and validates a single module configuration.
    */
@@ -588,8 +573,6 @@ export class ModuleResolver {
     const garden = this.garden
 
     const buildPath = this.garden.buildStaging.getBuildPath(unresolvedConfig)
-
-    const inputs = unresolvedConfig.inputs || {}
 
     const templateContextParams: ModuleConfigContextParams = {
       garden,
@@ -601,7 +584,7 @@ export class ModuleResolver {
       buildPath,
       parentName: unresolvedConfig.parentName,
       templateName: unresolvedConfig.templateName,
-      inputs,
+      inputs: InputContext.forModule(garden, unresolvedConfig),
       graphResults: this.graphResults,
     }
 
@@ -616,7 +599,6 @@ export class ModuleResolver {
     const context = new ModuleConfigContext({
       ...templateContextParams,
       variables: new LayeredContext(garden.variables, new GenericContext(moduleVariables)),
-      inputs,
     })
 
     const moduleTypeDefinitions = await garden.getModuleTypes()
@@ -766,7 +748,7 @@ export class ModuleResolver {
       buildPath,
       parentName: resolvedConfig.parentName,
       templateName: resolvedConfig.templateName,
-      inputs: resolvedConfig.inputs,
+      inputs: InputContext.forModule(this.garden, resolvedConfig),
       modules: dependencies,
       graphResults: this.graphResults,
     })
@@ -1252,6 +1234,38 @@ function getTestNames(config: ModuleConfig) {
  * This function can be deleted together with `conditionallyDeepEvaluate` and the `unescape` option at that point.
  */
 function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, context: ModuleConfigContext) {
+  /**
+   * Returns true if the unresolved template value can be resolved at this point and false otherwise.
+   */
+  const shouldEvaluate = (value: UnresolvedTemplateValue) => {
+    if (
+      value instanceof ForEachLazyValue &&
+      someReferences({
+        value,
+        context,
+        // if forEach expression has runtime references, we can't resolve it at all due to item context missing after converting the module to action
+        // as the captured context is lost when calling `toJSON` on the unresolved template value
+        onlyEssential: false,
+        matcher: (ref) => ref.keyPath[0] === "runtime",
+      })
+    ) {
+      return false // do not evaluate runtime references
+    } else if (
+      someReferences({
+        value,
+        context,
+        // in other cases, we only skip evaluation when the runtime references is essential
+        // meaning, we evaluate everything we can evaluate.
+        onlyEssential: true,
+        matcher: (ref) => ref.keyPath[0] === "runtime",
+      })
+    ) {
+      return false // do not evaluate runtime references
+    }
+
+    return true
+  }
+
   const partial = conditionallyDeepEvaluate(
     config,
     {
@@ -1264,34 +1278,7 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
         unescape: false,
       },
     },
-    (value) => {
-      if (
-        value instanceof ForEachLazyValue &&
-        someReferences({
-          value,
-          context,
-          // if forEach expression has runtime references, we can't resolve it at all due to item context missing after converting the module to action
-          // as the captured context is lost when calling `toJSON` on the unresolved template value
-          onlyEssential: false,
-          matcher: (ref) => ref.keyPath[0] === "runtime",
-        })
-      ) {
-        return false // do not evaluate runtime references
-      } else if (
-        someReferences({
-          value,
-          context,
-          // in other cases, we only skip evaluation when the runtime references is essential
-          // meaning, we evaluate everything we can evaluate.
-          onlyEssential: true,
-          matcher: (ref) => ref.keyPath[0] === "runtime",
-        })
-      ) {
-        return false // do not evaluate runtime references
-      }
-
-      return true
-    }
+    shouldEvaluate
   )
 
   return deepMap(partial, (v) => {

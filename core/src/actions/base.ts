@@ -68,6 +68,7 @@ import { styles } from "../logger/styles.js"
 import { dirname } from "node:path"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import type { ResolvedTemplate } from "../template/types.js"
+import type { WorkflowConfig } from "../config/workflow.js"
 
 // TODO: split this file
 
@@ -905,7 +906,10 @@ export function getSourceAbsPath(basePath: string, sourceRelPath: string) {
   return joinWithPosix(basePath, sourceRelPath)
 }
 
-export function describeActionConfig(config: ActionConfig) {
+export function describeActionConfig(config: ActionConfig | WorkflowConfig) {
+  if (config.kind === "Workflow") {
+    return `${config.kind} ${config.name}`
+  }
   const d = `${config.type} ${config.kind} ${config.name}`
   if (config.internal?.moduleName) {
     return d + ` (from module ${config.internal?.moduleName})`

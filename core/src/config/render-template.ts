@@ -38,6 +38,7 @@ import { capture } from "../template/capture.js"
 import { deepEvaluate, evaluate } from "../template/evaluate.js"
 import { UnresolvedTemplateValue, type ParsedTemplate } from "../template/types.js"
 import { isArray, isPlainObject } from "../util/objects.js"
+import { InputContext } from "./template-contexts/input.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -132,7 +133,7 @@ export async function renderConfigTemplate({
   })
   let resolved: RenderTemplateConfig = {
     ...(resolvedWithoutInputs as unknown as RenderTemplateConfig),
-    inputs: capture(config.inputs || {}, templateContext) as unknown as DeepPrimitiveMap,
+    inputs: config.inputs,
   }
 
   const configType = "Render " + resolved.name
@@ -170,7 +171,7 @@ export async function renderConfigTemplate({
     enterpriseDomain,
     parentName: resolved.name,
     templateName: template.name,
-    inputs: config.inputs || {},
+    inputs: InputContext.forRenderTemplate(config, template),
   })
 
   // TODO: remove in 0.14
@@ -355,8 +356,8 @@ async function renderConfigs({
       // Attach metadata
       resource.internal.parentName = renderConfig.name
       resource.internal.templateName = template.name
-      resource.internal.inputs = renderConfig.inputs
 
+      resource.internal.inputs = renderConfig.inputs
       return resource
     })
   )

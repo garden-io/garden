@@ -56,6 +56,9 @@ describe("config templates", () => {
       }
       const resolved = await resolveConfigTemplate(garden, config)
       expect(resolved.inputsSchemaPath).to.eql("module-templates.json")
+      expect(resolved.inputsSchemaDefaults).to.eql({
+        test: "hello",
+      })
     })
 
     it("ignores template strings in modules", async () => {
@@ -147,6 +150,7 @@ describe("config templates", () => {
         inputsSchema: joi.object().keys({
           foo: joi.string(),
         }),
+        inputsSchemaDefaults: {},
         modules: [],
       }
       templates.test = template

@@ -12,12 +12,10 @@ import { joiIdentifierMap, joiStringMap, joiPrimitive, joiVariables } from "../c
 import { joi } from "../common.js"
 import { deline, dedent } from "../../util/string.js"
 import type { ConfigContext, ContextResolveParams } from "./base.js"
-import { schema, ContextWithSchema, EnvironmentContext, ParentContext, TemplateContext } from "./base.js"
+import { schema, ContextWithSchema, EnvironmentContext } from "./base.js"
 import type { CommandInfo } from "../../plugin-context.js"
 import type { Garden } from "../../garden.js"
-import type { VcsInfo } from "../../vcs/vcs.js"
-import type { ActionConfig } from "../../actions/types.js"
-import type { WorkflowConfig } from "../workflow.js"
+import { type VcsInfo } from "../../vcs/vcs.js"
 import { styles } from "../../logger/styles.js"
 
 class LocalContext extends ContextWithSchema {
@@ -413,35 +411,5 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
     this.environment = new EnvironmentContext(garden.environmentName, fullEnvName, garden.namespace)
     this.variables = this.var = variables
-  }
-}
-
-export class TemplatableConfigContext extends RemoteSourceConfigContext {
-  @schema(
-    joiVariables().description(`The inputs provided to the config through a template, if applicable.`).meta({
-      keyPlaceholder: "<input-key>",
-    })
-  )
-  public inputs: DeepPrimitiveMap
-
-  @schema(
-    ParentContext.getSchema().description(
-      `Information about the config parent, if any (usually a template, if applicable).`
-    )
-  )
-  public parent?: ParentContext
-
-  @schema(
-    TemplateContext.getSchema().description(
-      `Information about the template used when generating the config, if applicable.`
-    )
-  )
-  public template?: TemplateContext
-
-  constructor(garden: Garden, config: ActionConfig | WorkflowConfig) {
-    super(garden, garden.variables)
-    this.inputs = config.internal.inputs || {}
-    this.parent = config.internal.parentName ? new ParentContext(config.internal.parentName) : undefined
-    this.template = config.internal.templateName ? new TemplateContext(config.internal.templateName) : undefined
   }
 }

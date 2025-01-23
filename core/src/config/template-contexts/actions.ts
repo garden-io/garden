@@ -11,16 +11,17 @@ import type { ActionMode } from "../../actions/types.js"
 import type { Garden } from "../../garden.js"
 import type { GardenModule } from "../../types/module.js"
 import { dedent, deline } from "../../util/string.js"
-import type { DeepPrimitiveMap, PrimitiveMap } from "../common.js"
+import type { PrimitiveMap } from "../common.js"
 import { joi, joiIdentifier, joiIdentifierMap, joiPrimitive, joiVariables } from "../common.js"
 import type { ProviderMap } from "../provider.js"
 import type { ConfigContext } from "./base.js"
 import { ContextWithSchema, ErrorContext, GenericContext, ParentContext, schema, TemplateContext } from "./base.js"
 import { exampleVersion, OutputConfigContext } from "./module.js"
-import { TemplatableConfigContext } from "./project.js"
+import { TemplatableConfigContext } from "./templatable.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import { LayeredContext } from "./base.js"
+import { InputContext } from "./input.js"
 
 function mergeVariables({ garden, variables }: { garden: Garden; variables: ConfigContext }): LayeredContext {
   return new LayeredContext(garden.variables, variables, new GenericContext(garden.variableOverrides))
@@ -227,7 +228,7 @@ export interface ActionSpecContextParams {
   resolvedDependencies: ResolvedAction[]
   executedDependencies: ExecutedAction[]
   variables: ConfigContext
-  inputs: DeepPrimitiveMap
+  inputs: InputContext
 }
 
 /**
@@ -249,7 +250,7 @@ export class ActionSpecContext extends OutputConfigContext {
       keyPlaceholder: "<input-key>",
     })
   )
-  public inputs: DeepPrimitiveMap
+  public inputs: InputContext
 
   @schema(
     ParentContext.getSchema().description(

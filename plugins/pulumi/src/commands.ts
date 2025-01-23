@@ -38,7 +38,6 @@ const { copy, emptyDir, writeJSON } = fsExtra
 import { join } from "path"
 import { isBuildAction } from "@garden-io/core/build/src/actions/build.js"
 import { isDeployAction } from "@garden-io/core/build/src/actions/deploy.js"
-import { TemplatableConfigContext } from "@garden-io/core/build/src/config/template-contexts/project.js"
 import type { ActionTaskProcessParams, BaseTask, ValidResultType } from "@garden-io/core/build/src/tasks/base.js"
 import { deletePulumiDeploy } from "./handlers.js"
 import type { ActionLog, Log } from "@garden-io/core/build/src/logger/log-entry.js"
@@ -47,6 +46,8 @@ import { ActionSpecContext } from "@garden-io/core/build/src/config/template-con
 import type { ProviderMap } from "@garden-io/core/build/src/config/provider.js"
 import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import { isTruthy } from "@garden-io/core/build/src/util/util.js"
+import { InputContext } from "@garden-io/core/src/config/template-contexts/input.js"
+import { TemplatableConfigContext } from "@garden-io/core/src/config/template-contexts/templatable.js"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
@@ -205,7 +206,7 @@ const makePluginContextForDeploy = async (
     modules: graph.getModules(),
     resolvedDependencies: action.getResolvedDependencies(),
     executedDependencies: action.getExecutedDependencies(),
-    inputs: action.getInternal().inputs || {},
+    inputs: new InputContext(action.getInternal().inputs),
     variables: action.getVariablesContext(),
   })
   const ctxForDeploy = await garden.getPluginContext({ provider, templateContext, events: ctx.events })

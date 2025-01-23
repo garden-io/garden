@@ -22,6 +22,7 @@ import type { DeployTask } from "../../tasks/deploy.js"
 import type { RunTask } from "../../tasks/run.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
+import { InputContext } from "./input.js"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
@@ -237,7 +238,7 @@ export interface ModuleConfigContextParams extends OutputConfigContextParams {
   // Template attributes
   parentName: string | undefined
   templateName: string | undefined
-  inputs: DeepPrimitiveMap | undefined
+  inputs: InputContext
 }
 
 /**
@@ -249,7 +250,7 @@ export class ModuleConfigContext extends OutputConfigContext {
       keyPlaceholder: "<input-key>",
     })
   )
-  public inputs: DeepPrimitiveMap
+  public inputs: InputContext
 
   @schema(
     ParentContext.getSchema().description(
@@ -280,7 +281,7 @@ export class ModuleConfigContext extends OutputConfigContext {
       this.parent = new ParentContext(parentName)
       this.template = new TemplateContext(templateName)
     }
-    this.inputs = inputs || {}
+    this.inputs = inputs
 
     this.this = new ModuleThisContext({ buildPath, name, path })
   }

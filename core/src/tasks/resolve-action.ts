@@ -28,8 +28,10 @@ import { deepEvaluate } from "../template/evaluate.js"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import { deepResolveContext, GenericContext } from "../config/template-contexts/base.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
-import { CapturedContext } from "../config/template-contexts/base.js"
 import { isPlainObject } from "../util/objects.js"
+import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
+import { describeActionConfig } from "../actions/base.js"
+import { InputContext } from "../config/template-contexts/input.js"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -123,7 +125,45 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       }
     }
 
-    // Resolve template inputs
+    let resolvedInputs: DeepPrimitiveMap = deepEvaluate(config.internal.inputs || {}, {
+      context: new ActionSpecContext({
+        garden: this.garden,
+        resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
+        action,
+        modules: this.graph.getModules(),
+        resolvedDependencies,
+        executedDependencies,
+        variables: new GenericContext({}),
+        inputs: new InputContext({}),
+      }),
+      opts: {},
+    })
+
+    const templateName = config.internal.templateName
+    if (templateName) {
+      const template = this.garden.configTemplates[templateName]
+      if (!template) {
+        throw new InternalError({
+          message: `Could not find template name ${templateName} for ${describeActionConfig(config)}`,
+        })
+      }
+      // we must apply the input schema on partially evaluated inputs for backwards compatibility
+      resolvedInputs = validateWithPath<DeepPrimitiveMap>({
+        config: resolvedInputs,
+        configType: `inputs for action ${config.name}`,
+        path: this.action.effectiveConfigFileLocation(),
+        schema: template.inputsSchema,
+        projectRoot: this.garden.projectRoot,
+        source: undefined,
+      })
+    }
+
+    const inputs = new InputContext(
+      resolvedInputs,
+      // defaults are already applied on the inputs
+      undefined
+    )
+
     const inputsContext = new ActionSpecContext({
       garden: this.garden,
       resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
@@ -132,12 +172,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       resolvedDependencies,
       executedDependencies,
       variables: new GenericContext({}),
-      inputs: {},
-    })
-
-    const inputs = deepEvaluate(config.internal.inputs || {}, {
-      context: inputsContext,
-      opts: {},
+      inputs,
     })
 
     // Resolve variables
@@ -147,15 +182,12 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     if (groupName) {
       const group = this.graph.getGroup(groupName)
 
-      groupVariables = new CapturedContext(
-        await mergeVariables({
-          basePath: group.path,
-          variables: new GenericContext(group.variables || {}),
-          varfiles: group.varfiles,
-          log: this.garden.log,
-        }),
-        inputsContext
-      )
+      groupVariables = await mergeVariables({
+        basePath: group.path,
+        variables: new GenericContext(group.variables || {}),
+        varfiles: group.varfiles,
+        log: this.garden.log,
+      })
     }
 
     const basePath = action.effectiveConfigFileLocation()
@@ -166,28 +198,13 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       varfiles: config.varfiles,
       log: this.garden.log,
     })
-
-    const actionVariables = new CapturedContext(
-      mergedActionVariables,
-      new ActionSpecContext({
-        garden: this.garden,
-        resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
-        action,
-        modules: this.graph.getModules(),
-        resolvedDependencies,
-        executedDependencies,
-        variables: groupVariables,
-        inputs,
-      })
-    )
-
     const variables = new LayeredContext(
       groupVariables,
-      actionVariables,
+      mergedActionVariables,
       new GenericContext(this.garden.variableOverrides)
     )
 
-    const resolvedVariables = deepResolveContext("action variables", variables)
+    const resolvedVariables = deepResolveContext("action variables", variables, inputsContext)
     if (!isPlainObject(resolvedVariables)) {
       throw new InternalError({
         message: `Action variables for ${action.describe()} evaluated to ${typeof resolvedVariables}, expected a plain object.`,
@@ -203,7 +220,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         modules: this.graph.getModules(),
         resolvedDependencies,
         executedDependencies,
-        variables,
+        variables: new GenericContext(resolvedVariables),
         inputs,
       }),
       opts: {},
@@ -227,7 +244,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       resolvedDependencies,
       variables,
       resolvedVariables,
-      inputs,
+      inputs: resolvedInputs,
       spec,
       staticOutputs: {},
     }) as Resolved<T>
