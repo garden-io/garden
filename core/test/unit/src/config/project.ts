@@ -285,18 +285,20 @@ describe("resolveProjectConfig", () => {
     process.env.TEST_ENV_VAR = "foo"
 
     expect(
-      resolveProjectConfig({
-        log,
-        defaultEnvironmentName: defaultEnvironment,
-        config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
+      serialiseUnresolvedTemplates(
+        resolveProjectConfig({
+          log,
+          defaultEnvironmentName: defaultEnvironment,
+          config,
+          artifactsPath: "/tmp",
+          vcsInfo,
+          username: "some-user",
+          loggedIn: true,
+          enterpriseDomain,
+          secrets: {},
+          commandInfo,
+        })
+      )
     ).to.eql({
       ...config,
       dotIgnoreFiles: [],

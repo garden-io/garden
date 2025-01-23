@@ -688,7 +688,7 @@ describe("GetConfigCommand", () => {
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })
 
-      expect(res.result?.moduleConfigs).to.deep.equal(rawConfigs)
+      expect(serialiseUnresolvedTemplates(res.result?.moduleConfigs)).to.deep.equal(rawConfigs)
     })
 
     it("should return raw provider configs instead of fully resolved providers", async () => {
