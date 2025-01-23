@@ -49,7 +49,8 @@ export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig
     joi.object().keys({
       ctx: pluginContextSchema().required(),
       log: logEntrySchema(),
-      config: baseActionConfigSchema()
+      config: joi
+        .any() // we control the handler calls, so we don't need joi to validate the parameters
         .required()
         .description(
           "The config for the action, with all built-in fields fully resolved, and the `spec` field partially resolved (excluding references to other actions)."
@@ -58,7 +59,7 @@ export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig
 
   resultSchema = () =>
     joi.object().keys({
-      config: actionConfigSchema().required(),
+      config: joi.any().required(), // We will validate the action config again in preprocess action config, this is a performance optimisation
       supportedModes: joi
         .object()
         .keys({

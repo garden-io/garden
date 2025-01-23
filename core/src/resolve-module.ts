@@ -535,17 +535,20 @@ export class ModuleResolver {
     rawConfig["_templateDeps"] = templateDeps
 
     // Try resolving template strings if possible
-    let buildDeps: string[] = []
-    const resolvedDeps = evaluate(rawConfig.build.dependencies as unknown as ParsedTemplate, {
+    const buildDeps: string[] = []
+    const { resolved } = evaluate(rawConfig.build.dependencies as unknown as ParsedTemplate, {
       context: configContext,
       opts: {},
     })
     // The build.dependencies field may not resolve at all, in which case we can't extract any deps from there
-    if (isArray(resolvedDeps)) {
-      buildDeps = resolvedDeps
-        // We only collect fully-resolved references here
-        .filter((d) => isString(d) || (isPlainObject(d) && isString(d.name)))
-        .map((d) => (isString(d) ? d : d.name))
+    if (isArray(resolved)) {
+      for (const d of resolved) {
+        if (isString(d)) {
+          buildDeps.push(d)
+        } else if (isPlainObject(d) && isString(d.name)) {
+          buildDeps.push(d.name)
+        }
+      }
     }
 
     const deps = uniq([...templateDeps, ...buildDeps])

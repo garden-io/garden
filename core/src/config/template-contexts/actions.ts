@@ -21,7 +21,7 @@ import { TemplatableConfigContext } from "./templatable.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import { LayeredContext } from "./base.js"
-import { InputContext } from "./input.js"
+import type { InputContext } from "./input.js"
 
 function mergeVariables({ garden, variables }: { garden: Garden; variables: ConfigContext }): LayeredContext {
   return new LayeredContext(garden.variables, variables, new GenericContext(garden.variableOverrides))
