@@ -2993,7 +2993,7 @@ describe("Garden", () => {
       expect(serialiseUnresolvedTemplates(omitUndefined(configB))).to.eql({
         apiVersion: GardenApiVersion.v0,
         kind: "Module",
-        build: { dependencies: [{ name: "foo-test-a", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        build: { dependencies: ["${parent.name}-${inputs.name}-a"], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         include: [],
         configPath: resolve(garden.projectRoot, "modules.garden.yml"),
         name: "foo-test-b",
@@ -3001,7 +3001,7 @@ describe("Garden", () => {
         serviceConfigs: [],
         spec: {
           build: {
-            dependencies: [{ name: "foo-test-a", copy: [] }],
+            dependencies: ["${parent.name}-${inputs.name}-a"],
           },
         },
         testConfigs: [],
