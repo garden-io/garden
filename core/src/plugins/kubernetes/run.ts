@@ -583,7 +583,7 @@ async function runWithArtifacts({
         stdout,
         stderr,
         // Anything above two minutes for this would be unusual
-        timeoutSec: 120,
+        timeoutSec: 600,
         buffer: true,
       })
     } catch (err) {
