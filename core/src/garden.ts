@@ -123,7 +123,12 @@ import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
 import type { ConfigContext } from "./config/template-contexts/base.js"
-import { deepResolveContext, GenericContext, type ContextWithSchema } from "./config/template-contexts/base.js"
+import {
+  deepResolveContext,
+  ErrorContext,
+  GenericContext,
+  type ContextWithSchema,
+} from "./config/template-contexts/base.js"
 import { validateSchema, validateWithPath } from "./config/validation.js"
 import { pMemoizeDecorator } from "./lib/p-memoize.js"
 import { ModuleGraph } from "./graph/modules.js"
@@ -1568,11 +1573,9 @@ export class Garden {
     const deniedContexts = ["var", "variables"]
     for (const deniedContext of deniedContexts) {
       Object.defineProperty(context, deniedContext, {
-        get: () => {
-          throw new ConfigurationError({
-            message: `If you have duplicate action names, the ${styles.accent("`disabled`")} flag cannot depend on the ${styles.accent(`\`${deniedContext}\``)} context.`,
-          })
-        },
+        value: new ErrorContext(
+          `If you have duplicate action names, the ${styles.accent("`disabled`")} flag cannot depend on the ${styles.accent(`\`${deniedContext}\``)} context.`
+        ),
       })
     }
 
