@@ -65,7 +65,6 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   // -> No templating is allowed on these.
   internal: GardenResourceInternalFields & {
     groupName?: string
-    resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
     treeVersion?: TreeVersion // Set during module resolution to avoid duplicate scanning for Build actions
     // For forwards-compatibility, applied on actions returned from module conversion handlers
     remoteClonePath?: string
