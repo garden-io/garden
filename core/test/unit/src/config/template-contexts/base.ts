@@ -8,11 +8,13 @@
 
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
-import {
+import type {
   ConfigContext,
   ContextKey,
   ContextResolveOutputNotFound,
   ContextResolveParams,
+} from "../../../../../src/config/template-contexts/base.js"
+import {
   ContextWithSchema,
   GenericContext,
   getUnavailableReason,

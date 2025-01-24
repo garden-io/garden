@@ -12,11 +12,9 @@ import { logEntrySchema } from "../../../plugin/base.js"
 import { joi } from "../../../config/common.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { ActionModes, BaseActionConfig } from "../../../actions/types.js"
-import { baseActionConfigSchema } from "../../../actions/base.js"
 import { ActionTypeHandlerSpec } from "./base.js"
 import { pluginContextSchema } from "../../../plugin-context.js"
 import { noTemplateFields } from "../../../config/base.js"
-import { actionConfigSchema } from "../../../actions/helpers.js"
 
 interface ConfigureActionConfigParams<T extends BaseActionConfig> extends PluginActionContextParams {
   log: Log

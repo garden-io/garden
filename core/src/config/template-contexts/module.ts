@@ -22,7 +22,7 @@ import type { DeployTask } from "../../tasks/deploy.js"
 import type { RunTask } from "../../tasks/run.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
-import { InputContext } from "./input.js"
+import type { InputContext } from "./input.js"
 
 export const exampleVersion = "v-17ad4cb3fd"
 

@@ -10,7 +10,6 @@ import { expect } from "chai"
 import {
   loadConfigResources,
   findProjectConfig,
-  prepareModuleResource,
   prepareProjectResource,
   noTemplateFields,
   validateRawConfig,
