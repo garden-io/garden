@@ -9,7 +9,7 @@
 import { isArray, isString, keyBy, partition, uniq } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
 import { isUnresolved, resolveTemplateString } from "./template/templated-strings.js"
-import { GenericContext } from "./config/template-contexts/base.js"
+import { GenericContext, LayeredContext } from "./config/template-contexts/base.js"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden.js"
 import type { GardenError } from "./exceptions.js"
@@ -33,8 +33,6 @@ import { allowUnknown } from "./config/common.js"
 import type { ProviderMap } from "./config/provider.js"
 import { DependencyGraph } from "./graph/common.js"
 import fsExtra from "fs-extra"
-
-const { mkdirp, readFile } = fsExtra
 import type { Log } from "./logger/log-entry.js"
 import type { ModuleConfigContextParams } from "./config/template-contexts/module.js"
 import { ModuleConfigContext } from "./config/template-contexts/module.js"
@@ -57,14 +55,15 @@ import { actionReferenceToString } from "./actions/base.js"
 import type { DepGraph } from "dependency-graph"
 import { minimatch } from "minimatch"
 import { getModuleTemplateReferences } from "./config/references.js"
-import { LayeredContext } from "./config/template-contexts/base.js"
-import { UnresolvedTemplateValue, type ParsedTemplate } from "./template/types.js"
+import { type ParsedTemplate, UnresolvedTemplateValue } from "./template/types.js"
 import { conditionallyDeepEvaluate, deepEvaluate, evaluate } from "./template/evaluate.js"
 import { someReferences } from "./template/analysis.js"
 import { ForEachLazyValue, parseTemplateCollection } from "./template/templated-collections.js"
 import { deepMap, isPlainObject } from "./util/objects.js"
 import { LazyMergePatch } from "./template/lazy-merge.js"
 import { InputContext } from "./config/template-contexts/input.js"
+
+const { mkdirp, readFile } = fsExtra
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -628,6 +627,20 @@ export class ModuleResolver {
       context
     ) as unknown as ModuleConfig
 
+    // Validate inputs if those are already resolved
+    const templateName = config.templateName
+    if (templateName && !isUnresolved(config.inputs)) {
+      const template = this.garden.configTemplates[templateName]
+      config.inputs = validateWithPath<DeepPrimitiveMap>({
+        config: config.inputs,
+        configType: `inputs for module ${config.name}`,
+        path: config.configPath || config.path,
+        schema: template.inputsSchema,
+        projectRoot: garden.projectRoot,
+        source: undefined,
+      })
+    }
+
     // We allow specifying modules by name only as a shorthand:
     //
     // dependencies:
@@ -644,16 +657,16 @@ export class ModuleResolver {
       config.spec.build.dependencies = prepareBuildDependencies(config.spec.build.dependencies)
     }
 
-    // Validate the module-type specific spec if the inputs are already resolved
-    if (description.schema && !isUnresolved(config.inputs)) {
+    // Validate the module-type specific spec
+    if (description.schema) {
       config = {
         ...config,
         spec: validateWithPath({
           config: config.spec,
-          configType: `spec for module`,
+          configType: "Module",
           schema: description.schema,
           name: config.name,
-          path: config.configPath || config.path,
+          path: config.path,
           projectRoot: garden.projectRoot,
           source: undefined,
         }),
