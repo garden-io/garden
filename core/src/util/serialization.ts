@@ -10,6 +10,7 @@ import { mapValues } from "lodash-es"
 import fsExtra from "fs-extra"
 import type { DumpOptions } from "js-yaml"
 import { dump, load } from "js-yaml"
+import { UnresolvedTemplateValue } from "../template/types.js"
 
 const { readFile, writeFile } = fsExtra
 
@@ -24,7 +25,15 @@ export function safeDumpYaml(data: any, opts: Omit<DumpOptions, "replacer"> = {}
   return dump(data, {
     ...opts,
     skipInvalid: true,
-    replacer: (_, v) => (typeof v === "object" && typeof v?.["toJSON"] === "function" ? v["toJSON"]() : v),
+    replacer: (_, v) => {
+      if (v instanceof UnresolvedTemplateValue) {
+        // serialize unresolved template values to JSON
+        return v.toJSON()
+      }
+
+      // return the original value otherwise
+      return v
+    },
   })
 }
 
