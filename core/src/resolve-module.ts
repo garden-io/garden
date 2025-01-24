@@ -57,12 +57,11 @@ import { actionReferenceToString } from "./actions/base.js"
 import type { DepGraph } from "dependency-graph"
 import { minimatch } from "minimatch"
 import { getModuleTemplateReferences } from "./config/references.js"
-import { capture } from "./template/capture.js"
 import { LayeredContext } from "./config/template-contexts/base.js"
 import { UnresolvedTemplateValue, type ParsedTemplate } from "./template/types.js"
 import { conditionallyDeepEvaluate, deepEvaluate, evaluate } from "./template/evaluate.js"
 import { someReferences } from "./template/analysis.js"
-import { ForEachLazyValue } from "./template/templated-collections.js"
+import { ForEachLazyValue, parseTemplateCollection } from "./template/templated-collections.js"
 import { deepMap, isPlainObject } from "./util/objects.js"
 import { LazyMergePatch } from "./template/lazy-merge.js"
 import { InputContext } from "./config/template-contexts/input.js"
@@ -1014,6 +1013,21 @@ export const convertModules = profileAsync(async function convertModules(
 
       const totalReturned = (result.actions?.length || 0) + (result.group?.actions.length || 0)
 
+      log.debug(`Rehydrating templates in ${module.name}...`)
+      for (const a of result.actions || []) {
+        for (const k in a) {
+          a[k] = parseTemplateCollection({ value: a[k], source: { path: [k] } })
+        }
+      }
+      for (const a of result.group?.actions || []) {
+        for (const k in a) {
+          a[k] = parseTemplateCollection({ value: a[k], source: { path: [k] } })
+        }
+      }
+      for (const k in module) {
+        module[k] = parseTemplateCollection({ value: module[k], source: { path: [k] } })
+      }
+
       log.debug(`Module ${module.name} converted to ${totalReturned} action(s)`)
 
       if (result.group) {
@@ -1131,9 +1145,6 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   if (!action.internal.basePath) {
     action.internal.basePath = module.basePath || module.path
   }
-
-  // Converted actions are fully resolved upfront
-  action.internal.resolved = true
 
   // Enforce some inheritance from module
   action.internal.moduleName = module.name
