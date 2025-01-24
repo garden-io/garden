@@ -1013,7 +1013,7 @@ export const convertModules = profileAsync(async function convertModules(
 
       const totalReturned = (result.actions?.length || 0) + (result.group?.actions.length || 0)
 
-      log.debug(`Rehydrating templates in ${module.name}...`)
+      log.debug(`Rehydrating templates for ${totalReturned} action(s) in ${module.name}...`)
       for (const a of result.actions || []) {
         for (const k in a) {
           a[k] = parseTemplateCollection({ value: a[k], source: { path: [k] } })
@@ -1023,9 +1023,6 @@ export const convertModules = profileAsync(async function convertModules(
         for (const k in a) {
           a[k] = parseTemplateCollection({ value: a[k], source: { path: [k] } })
         }
-      }
-      for (const k in module) {
-        module[k] = parseTemplateCollection({ value: module[k], source: { path: [k] } })
       }
 
       log.debug(`Module ${module.name} converted to ${totalReturned} action(s)`)
