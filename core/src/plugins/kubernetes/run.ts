@@ -587,7 +587,11 @@ async function runWithArtifacts({
         buffer: true,
       })
     } catch (err) {
-      // TODO: fall back to copying `arc` (https://github.com/mholt/archiver) or similar into the container and
+      if (!(err instanceof PodRunnerWorkloadError)) {
+        throw err
+      }
+
+      // TODO: fall back to copying `arc` (https://github.com/mholt/archiver) or similar into the container and
       // using that (tar is not statically compiled so we can't copy that directly). Keeping this snippet around
       // for that:
       // await runner.exec({
@@ -601,9 +605,10 @@ async function runWithArtifacts({
       // })
       throw new ConfigurationError({
         message: deline`
-        ${description} specifies artifacts to export, but the image doesn't
-        contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
-        be installed in the image.`,
+      ${description} specifies artifacts to export, but the image doesn't
+      contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
+      be installed in the image.`,
+        wrappedErrors: [err],
       })
     }
 
