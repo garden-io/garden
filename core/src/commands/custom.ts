@@ -30,7 +30,7 @@ import type { Log } from "../logger/log-entry.js"
 import { getTracePropagationEnvVars } from "../util/open-telemetry/propagation.js"
 import { styles } from "../logger/styles.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import { GenericContext, LayeredContext } from "../config/template-contexts/base.js"
+import { VariablesContext } from "../config/template-contexts/variables.js"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -113,11 +113,16 @@ export class CustomCommandWrapper extends Command {
 
     // Render the command variables
 
-    const commandVariables = new GenericContext(this.spec.variables)
-    const variables = new LayeredContext(garden.variables, commandVariables)
+    const variableContext = new CustomCommandContext({ ...garden, args, opts, variables: garden.variables, rest })
 
     // Make a new template context with the resolved variables
-    const commandContext = new CustomCommandContext({ ...garden, args, opts, variables, rest })
+    const commandContext = new CustomCommandContext({
+      ...garden,
+      args,
+      opts,
+      variables: VariablesContext.forCustomCommand(garden, this.spec, variableContext),
+      rest,
+    })
 
     const result: CustomCommandResult = {}
     const errors: GardenError[] = []

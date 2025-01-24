@@ -14,7 +14,6 @@ import { joi } from "../common.js"
 import { deline } from "../../util/string.js"
 import { getModuleTypeUrl } from "../../docs/common.js"
 import type { GardenModule } from "../../types/module.js"
-import type { ConfigContext } from "./base.js"
 import { ContextWithSchema, schema, ErrorContext, ParentContext, TemplateContext } from "./base.js"
 import { ProviderConfigContext } from "./provider.js"
 import type { GraphResultFromTask, GraphResults } from "../../graph/results.js"
@@ -23,6 +22,7 @@ import type { RunTask } from "../../tasks/run.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import type { InputContext } from "./input.js"
+import type { VariablesContext } from "./variables.js"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
@@ -191,7 +191,7 @@ class RuntimeConfigContext extends ContextWithSchema {
 export interface OutputConfigContextParams {
   garden: Garden
   resolvedProviders: ProviderMap
-  variables: ConfigContext
+  variables: VariablesContext
   modules: GardenModule[]
   // We only supply this when resolving configuration in dependency order.
   // Otherwise we pass `${runtime.*} template strings through for later resolution.

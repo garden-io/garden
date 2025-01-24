@@ -15,17 +15,13 @@ import type { PrimitiveMap } from "../common.js"
 import { joi, joiIdentifier, joiIdentifierMap, joiPrimitive, joiVariables } from "../common.js"
 import type { ProviderMap } from "../provider.js"
 import type { ConfigContext } from "./base.js"
-import { ContextWithSchema, ErrorContext, GenericContext, ParentContext, schema, TemplateContext } from "./base.js"
+import { ContextWithSchema, ErrorContext, ParentContext, schema, TemplateContext } from "./base.js"
 import { exampleVersion, OutputConfigContext } from "./module.js"
 import { TemplatableConfigContext } from "./templatable.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
-import { LayeredContext } from "./base.js"
 import type { InputContext } from "./input.js"
-
-function mergeVariables({ garden, variables }: { garden: Garden; variables: ConfigContext }): LayeredContext {
-  return new LayeredContext(garden.variables, variables, new GenericContext(garden.variableOverrides))
-}
+import type { VariablesContext } from "./variables.js"
 
 type ActionConfigThisContextParams = Pick<ActionReferenceContextParams, "name" | "mode">
 
@@ -63,7 +59,7 @@ interface ActionConfigContextParams {
   garden: Garden
   config: ActionConfig
   thisContextParams: ActionConfigThisContextParams
-  variables: ConfigContext
+  variables: VariablesContext
 }
 
 /**
@@ -75,10 +71,9 @@ export class ActionConfigContext extends TemplatableConfigContext {
   public this: ActionConfigThisContext
 
   constructor({ garden, config, thisContextParams, variables }: ActionConfigContextParams) {
-    const mergedVariables = mergeVariables({ garden, variables })
     super(garden, config)
     this.this = new ActionConfigThisContext(thisContextParams)
-    this.variables = this.var = mergedVariables
+    this.variables = this.var = variables
   }
 }
 
@@ -88,7 +83,7 @@ interface ActionReferenceContextParams {
   buildPath: string
   sourcePath: string
   mode: ActionMode
-  variables: ConfigContext
+  variables: VariablesContext
 }
 
 export class ActionReferenceContext extends ContextWithSchema {
@@ -227,7 +222,7 @@ export interface ActionSpecContextParams {
   action: Action
   resolvedDependencies: ResolvedAction[]
   executedDependencies: ExecutedAction[]
-  variables: ConfigContext
+  variables: VariablesContext
   inputs: InputContext
 }
 
@@ -270,15 +265,12 @@ export class ActionSpecContext extends OutputConfigContext {
   public this: ActionReferenceContext
 
   constructor(params: ActionSpecContextParams) {
-    const { action, garden, variables, inputs, resolvedDependencies, executedDependencies } = params
+    const { action, variables, inputs, resolvedDependencies, executedDependencies } = params
 
     const internal = action.getInternal()
-
-    const mergedVariables = mergeVariables({ garden, variables })
-
     super({
       ...params,
-      variables: mergedVariables,
+      variables,
     })
 
     const name = action.name
@@ -309,7 +301,7 @@ export class ActionSpecContext extends OutputConfigContext {
       name,
       sourcePath,
       mode: action.mode(),
-      variables: mergedVariables,
+      variables,
     })
   }
 }

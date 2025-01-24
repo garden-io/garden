@@ -299,6 +299,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           modules: graph.getModules(),
           resolvedDependencies: action.getResolvedDependencies(),
           executedDependencies: action.getExecutedDependencies(),
+          // inputs are fully resolved now
           inputs: new InputContext(action.getInternal().inputs),
           variables: action.getVariablesContext(),
         })

@@ -20,18 +20,17 @@ import type {
 import { ActionSpecContext } from "../config/template-contexts/actions.js"
 import { InternalError } from "../exceptions.js"
 import { validateWithPath } from "../config/validation.js"
-import { mergeVariables } from "../graph/common.js"
 import { actionToResolved } from "../actions/helpers.js"
 import { ResolvedConfigGraph } from "../graph/config-graph.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import type { ConfigContext } from "../config/template-contexts/base.js"
-import { deepResolveContext, GenericContext } from "../config/template-contexts/base.js"
-import { LayeredContext } from "../config/template-contexts/base.js"
+import { deepResolveContext } from "../config/template-contexts/base.js"
 import { isPlainObject } from "../util/objects.js"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { describeActionConfig } from "../actions/base.js"
 import { InputContext } from "../config/template-contexts/input.js"
+import { VariablesContext } from "../config/template-contexts/variables.js"
+import type { GroupConfig } from "../config/group.js"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -133,8 +132,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         modules: this.graph.getModules(),
         resolvedDependencies,
         executedDependencies,
-        variables: new GenericContext({}),
-        inputs: new InputContext({}),
+        variables: this.garden.variables, // inputs cannot access action variables
+        inputs: new InputContext({}), // inputs cannot reference themselves
       }),
       opts: {},
     })
@@ -171,38 +170,19 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       modules: this.graph.getModules(),
       resolvedDependencies,
       executedDependencies,
-      variables: new GenericContext({}),
+      variables: this.garden.variables,
       inputs,
     })
 
     // Resolve variables
-    let groupVariables: ConfigContext = new GenericContext({})
     const groupName = action.groupName()
 
+    let group: GroupConfig | undefined
     if (groupName) {
-      const group = this.graph.getGroup(groupName)
-
-      groupVariables = await mergeVariables({
-        basePath: group.path,
-        variables: new GenericContext(group.variables || {}),
-        varfiles: group.varfiles,
-        log: this.garden.log,
-      })
+      group = this.graph.getGroup(groupName)
     }
 
-    const basePath = action.effectiveConfigFileLocation()
-
-    const mergedActionVariables = await mergeVariables({
-      basePath,
-      variables: new GenericContext(config.variables || {}),
-      varfiles: config.varfiles,
-      log: this.garden.log,
-    })
-    const variables = new LayeredContext(
-      groupVariables,
-      mergedActionVariables,
-      new GenericContext(this.garden.variableOverrides)
-    )
+    const variables = await VariablesContext.forAction(this.garden, config, inputsContext, group)
 
     const resolvedVariables = deepResolveContext("action variables", variables, inputsContext)
     if (!isPlainObject(resolvedVariables)) {
@@ -220,7 +200,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         modules: this.graph.getModules(),
         resolvedDependencies,
         executedDependencies,
-        variables: new GenericContext(resolvedVariables),
+        variables,
         inputs,
       }),
       opts: {},

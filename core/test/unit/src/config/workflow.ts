@@ -23,9 +23,9 @@ import { defaultNamespace } from "../../../../src/config/project.js"
 import { join } from "path"
 import { GardenApiVersion } from "../../../../src/constants.js"
 import { omit } from "lodash-es"
-import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
+import { VariablesContext } from "../../../../src/config/template-contexts/variables.js"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
@@ -50,8 +50,8 @@ describe("resolveWorkflowConfig", () => {
 
   before(async () => {
     garden = await makeTestGardenA()
-    garden["secrets"] = { foo: "bar", bar: "baz", baz: "banana" }
-    garden["variables"] = new GenericContext({ foo: "baz", skip: false })
+    garden.secrets = { foo: "bar", bar: "baz", baz: "banana" }
+    garden.variables = VariablesContext.forTest(garden, { foo: "baz", skip: false })
   })
 
   it("should pass through a canonical workflow config", async () => {

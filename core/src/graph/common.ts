@@ -11,16 +11,11 @@ import { flatten, uniq } from "lodash-es"
 import { get, isEqual, join, set, uniqWith } from "lodash-es"
 import { CircularDependenciesError } from "../exceptions.js"
 import type { GraphNodes, ConfigGraphNode } from "./config-graph.js"
-import { Profile, profileAsync } from "../util/profiling.js"
+import { Profile } from "../util/profiling.js"
 import type { ModuleDependencyGraphNode, ModuleDependencyGraphNodeKind, ModuleGraphNodes } from "./modules.js"
 import type { ActionKind } from "../plugin/action-types.js"
-import { loadVarfile } from "../config/base.js"
-import type { Varfile } from "../config/common.js"
 import type { Task } from "../tasks/base.js"
-import type { Log, LogMetadata, TaskLogStatus } from "../logger/log-entry.js"
-import { LayeredContext } from "../config/template-contexts/base.js"
-import type { ConfigContext } from "../config/template-contexts/base.js"
-import { GenericContext } from "../config/template-contexts/base.js"
+import type { LogMetadata, TaskLogStatus } from "../logger/log-entry.js"
 
 // Shared type used by ConfigGraph and TaskGraph to facilitate circular dependency detection
 export type DependencyGraphNode = {
@@ -142,43 +137,6 @@ interface CycleGraph {
     }
   }
 }
-
-export const getVarfileData = (varfile: Varfile) => {
-  const path = typeof varfile === "string" ? varfile : varfile.path
-  const optional = typeof varfile === "string" ? false : varfile.optional
-  return { path, optional }
-}
-
-export const mergeVariables = profileAsync(async function mergeVariables({
-  basePath,
-  variables,
-  varfiles,
-  log,
-}: {
-  basePath: string
-  variables?: ConfigContext
-  varfiles?: Varfile[]
-  log: Log
-}) {
-  const varsByFile = await Promise.all(
-    (varfiles || []).map((varfile) => {
-      const { path, optional } = getVarfileData(varfile)
-      return loadVarfile({
-        configRoot: basePath,
-        path,
-        defaultPath: undefined,
-        optional,
-        log,
-      })
-    })
-  )
-
-  return new LayeredContext(
-    variables || new GenericContext({}),
-    // Merge different varfiles, later files taking precedence over prior files in the list.
-    ...varsByFile.map((vars) => new GenericContext(vars))
-  )
-})
 
 /**
  * Implements a variation on the Floyd-Warshall algorithm to compute minimal cycles.

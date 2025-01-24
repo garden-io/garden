@@ -81,7 +81,8 @@ import { getCloudDistributionName } from "../../../src/cloud/util.js"
 import { resolveAction } from "../../../src/graph/actions.js"
 import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
-import { deepResolveContext, GenericContext, LayeredContext } from "../../../src/config/template-contexts/base.js"
+import { deepResolveContext, LayeredContext } from "../../../src/config/template-contexts/base.js"
+import { VariablesContext } from "../../../src/config/template-contexts/variables.js"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -2926,7 +2927,7 @@ describe("Garden", () => {
         await exec("git", ["add", "."], { cwd: repoPath })
         await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
 
-        garden.variables = new GenericContext({ sourceBranch: "main" })
+        garden.variables = VariablesContext.forTest(garden, { sourceBranch: "main" })
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const _garden = garden as any
@@ -5370,9 +5371,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-55de0aac5c"
-      const moduleBVersionString = "v-daeabf68fe"
-      const moduleCVersionString = "v-5e9ddea45e"
+      const moduleAVersionString = "v-0caa1284cd"
+      const moduleBVersionString = "v-18fd5b86c0"
+      const moduleCVersionString = "v-c8700eabbf"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
@@ -5384,9 +5385,18 @@ describe("Garden", () => {
         const moduleA = graph.getModule("module-a")
         const moduleB = graph.getModule("module-b")
         const moduleC = graph.getModule("module-c")
-        expect(moduleA.version.versionString).to.equal(moduleAVersionString)
-        expect(moduleB.version.versionString).to.equal(moduleBVersionString)
-        expect(moduleC.version.versionString).to.equal(moduleCVersionString)
+        expect(moduleA.version.versionString).to.equal(
+          moduleAVersionString,
+          "Code changes have affected module version calculation of module-a."
+        )
+        expect(moduleB.version.versionString).to.equal(
+          moduleBVersionString,
+          "Code changes have affected module version calculation of module-b."
+        )
+        expect(moduleC.version.versionString).to.equal(
+          moduleCVersionString,
+          "Code changes have affected module version calculation of module-c."
+        )
 
         delete process.env.TEST_ENV_VAR
       })
@@ -5401,9 +5411,18 @@ describe("Garden", () => {
         const moduleA = graph.getModule("module-a")
         const moduleB = graph.getModule("module-b")
         const moduleC = graph.getModule("module-c")
-        expect(moduleA.version.versionString).to.equal(moduleAVersionString)
-        expect(moduleB.version.versionString).to.equal(moduleBVersionString)
-        expect(moduleC.version.versionString).to.equal(moduleCVersionString)
+        expect(moduleA.version.versionString).to.equal(
+          moduleAVersionString,
+          "Code changes have affected module version calculation of module-a in different projects."
+        )
+        expect(moduleB.version.versionString).to.equal(
+          moduleBVersionString,
+          "Code changes have affected module version calculation of module-b in different projects."
+        )
+        expect(moduleC.version.versionString).to.equal(
+          moduleCVersionString,
+          "Code changes have affected module version calculation of module-c in different projects."
+        )
 
         delete process.env.MODULE_A_TEST_ENV_VAR
       })

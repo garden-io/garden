@@ -34,8 +34,8 @@ import type { WorkflowConfig, WorkflowStepSpec } from "../../../../src/config/wo
 import { defaultWorkflowResources } from "../../../../src/config/workflow.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
 import { WorkflowScriptError } from "../../../../src/exceptions.js"
-import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
+import { VariablesContext } from "../../../../src/config/template-contexts/variables.js"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new WorkflowCommand()
@@ -84,7 +84,7 @@ describe("RunWorkflowCommand", () => {
 
     garden.setWorkflowConfigs(parsedWorkflowConfigs)
 
-    garden.variables = new GenericContext({ foo: null })
+    garden.variables = VariablesContext.forTest(garden, { foo: null })
 
     const result = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 

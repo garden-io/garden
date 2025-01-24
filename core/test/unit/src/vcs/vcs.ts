@@ -39,7 +39,7 @@ import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util
 import type { BaseActionConfig } from "../../../../src/actions/types.js"
 import { TreeCache } from "../../../../src/cache.js"
 import { getHashedFilterParams } from "../../../../src/vcs/git-repo.js"
-import { GenericContext } from "../../../../src/config/template-contexts/base.js"
+import { VariablesContext } from "../../../../src/config/template-contexts/variables.js"
 
 const { readFile, writeFile } = fsExtra
 
@@ -274,7 +274,7 @@ describe("getModuleVersionString", () => {
     templateGarden["cacheKey"] = "" // Disable caching of the config graph
     const before = await templateGarden.resolveModule("module-a")
 
-    templateGarden.variables = new GenericContext({ "echo-string": "something-else" })
+    templateGarden.variables = VariablesContext.forTest(templateGarden, { "echo-string": "something-else" })
 
     const after = await templateGarden.resolveModule("module-a")
 
@@ -326,7 +326,7 @@ describe("getModuleVersionString", () => {
     const garden = await makeTestGarden(projectRoot, { noCache: true })
     const module = await garden.resolveModule("module-a")
 
-    const fixedVersionString = "v-55de0aac5c"
+    const fixedVersionString = "v-0caa1284cd"
     expect(module.version.versionString).to.eql(fixedVersionString)
 
     delete process.env.TEST_ENV_VAR

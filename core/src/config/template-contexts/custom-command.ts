@@ -12,6 +12,7 @@ import type { DefaultEnvironmentContextParams } from "./project.js"
 import { DefaultEnvironmentContext } from "./project.js"
 import type { ConfigContext } from "./base.js"
 import { schema } from "./base.js"
+import type { VariablesContext } from "./variables.js"
 
 interface ArgsSchema {
   [name: string]: string | number | string[]
@@ -30,7 +31,7 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
       .description("A map of all variables defined in the command configuration.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: ConfigContext
+  public variables: VariablesContext
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
   public var: ConfigContext
@@ -70,7 +71,7 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
     params: DefaultEnvironmentContextParams & {
       args: ArgsSchema
       opts: OptsSchema
-      variables: ConfigContext
+      variables: VariablesContext
       rest: string[]
     }
   ) {

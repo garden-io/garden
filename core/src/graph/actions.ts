@@ -35,29 +35,27 @@ import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../ac
 import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy.js"
 import { isRunActionConfig, RunAction, runActionConfigSchema } from "../actions/run.js"
 import { isTestActionConfig, TestAction, testActionConfigSchema } from "../actions/test.js"
-import { getEffectiveConfigFileLocation, noTemplateFields } from "../config/base.js"
+import { noTemplateFields } from "../config/base.js"
 import type { ActionReference, JoiDescription } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
 import { ConfigurationError, GardenError, PluginError } from "../exceptions.js"
-import { type Garden, overrideVariables } from "../garden.js"
+import { type Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ActionTypeDefinition } from "../plugin/action-types.js"
 import type { ActionDefinitionMap } from "../plugins.js"
 import { getActionTypeBases } from "../plugins.js"
 import type { ActionRouter } from "../router/router.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
-import { isUnresolved } from "../template/templated-strings.js"
 import { dedent, deline, naturalList } from "../util/string.js"
-import { DependencyGraph, getVarfileData, mergeVariables } from "./common.js"
+import { DependencyGraph } from "./common.js"
 import type { ConfigGraph } from "./config-graph.js"
 import { MutableConfigGraph } from "./config-graph.js"
 import type { ModuleGraph } from "./modules.js"
 import { isTruthy, type MaybeUndefined } from "../util/util.js"
 import { minimatch } from "minimatch"
 import type { ContextWithSchema } from "../config/template-contexts/base.js"
-import { GenericContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
 import { relative } from "path"
 import { profileAsync } from "../util/profiling.js"
@@ -67,8 +65,9 @@ import { styles } from "../logger/styles.js"
 import { isUnresolvableValue } from "../template/analysis.js"
 import { getActionTemplateReferences } from "../config/references.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import { UnresolvedTemplateValue, type ParsedTemplate } from "../template/types.js"
+import { type ParsedTemplate } from "../template/types.js"
 import { validateWithPath } from "../config/validation.js"
+import { VariablesContext } from "../config/template-contexts/variables.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -504,19 +503,17 @@ export const processActionConfig = profileAsync(async function processActionConf
     config.internal.treeVersion ||
     (await garden.vcs.getTreeVersion({ log, projectName: garden.projectName, config, scanRoot }))
 
-  const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
-
-  let variables = await mergeVariables({
-    basePath: effectiveConfigFileLocation,
-    variables: new GenericContext(config.variables || {}),
-    varfiles: config.varfiles,
-    log,
+  const variablesContext = new ActionConfigContext({
+    garden,
+    config,
+    thisContextParams: {
+      mode,
+      name: config.name,
+    },
+    variables: garden.variables,
   })
 
-  // override the variables if there's any matching variables in variable overrides
-  // passed via --var cli flag. variables passed via --var cli flag have highest precedence
-  const variableOverrides = garden.variableOverrides || {}
-  variables = overrideVariables(variables, variableOverrides)
+  const variables = await VariablesContext.forAction(garden, config, variablesContext)
 
   const params: ActionWrapperParams<any> = {
     baseBuildDirectory: garden.buildStaging.buildDirPath,
@@ -729,18 +726,20 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 }): Promise<PreprocessActionResult> {
   const description = describeActionConfig(config)
 
-  // in pre-processing, only use varfiles that are not template strings
-  const resolvedVarFiles = config.varfiles?.filter(
-    (f) => !(f instanceof UnresolvedTemplateValue) && isUnresolved(getVarfileData(f).path)
-  )
-  const variables = await mergeVariables({
-    basePath: config.internal.basePath,
-    variables: new GenericContext(config.variables || {}),
-    varfiles: resolvedVarFiles,
-    log,
+  // context for resolving variables (with project & environment level vars)
+  const variableContext = new ActionConfigContext({
+    garden,
+    config,
+    thisContextParams: {
+      mode,
+      name: config.name,
+    },
+    variables: garden.variables,
   })
 
   const builtinConfigKeys = getBuiltinConfigContextKeys()
+
+  // action context (may be missing some varfiles at this point)
   const builtinFieldContext = new ActionConfigContext({
     garden,
     config,
@@ -748,7 +747,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       mode,
       name: config.name,
     },
-    variables,
+    variables: await VariablesContext.forAction(garden, config, variableContext),
   })
 
   function resolveTemplates() {

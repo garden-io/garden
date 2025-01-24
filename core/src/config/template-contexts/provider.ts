@@ -14,9 +14,9 @@ import type { Garden } from "../../garden.js"
 import { joi } from "../common.js"
 import { deline } from "../../util/string.js"
 import { getProviderUrl } from "../../docs/common.js"
-import type { ConfigContext } from "./base.js"
 import { ContextWithSchema, schema } from "./base.js"
 import { WorkflowConfigContext } from "./workflow.js"
+import type { VariablesContext } from "./variables.js"
 
 class ProviderContext extends ContextWithSchema {
   @schema(
@@ -65,7 +65,7 @@ export class ProviderConfigContext extends WorkflowConfigContext {
   )
   public providers: Map<string, ProviderContext>
 
-  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: ConfigContext) {
+  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: VariablesContext) {
     super(garden, variables)
 
     this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(p))))

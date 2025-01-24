@@ -9,7 +9,6 @@
 import { isArray, isString, keyBy, partition, uniq } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
 import { isUnresolved, resolveTemplateString } from "./template/templated-strings.js"
-import { GenericContext, LayeredContext } from "./config/template-contexts/base.js"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden.js"
 import type { GardenError } from "./exceptions.js"
@@ -37,7 +36,7 @@ import type { Log } from "./logger/log-entry.js"
 import type { ModuleConfigContextParams } from "./config/template-contexts/module.js"
 import { ModuleConfigContext } from "./config/template-contexts/module.js"
 import { pathToCacheContext } from "./cache.js"
-import { loadVarfile, prepareBuildDependencies } from "./config/base.js"
+import { prepareBuildDependencies } from "./config/base.js"
 import type { ModuleTypeDefinition } from "./plugin/plugin.js"
 import { serviceFromConfig } from "./types/service.js"
 import { taskFromConfig } from "./types/task.js"
@@ -56,12 +55,12 @@ import type { DepGraph } from "dependency-graph"
 import { minimatch } from "minimatch"
 import { getModuleTemplateReferences } from "./config/references.js"
 import { type ParsedTemplate, UnresolvedTemplateValue } from "./template/types.js"
-import { conditionallyDeepEvaluate, deepEvaluate, evaluate } from "./template/evaluate.js"
+import { conditionallyDeepEvaluate, evaluate } from "./template/evaluate.js"
 import { someReferences } from "./template/analysis.js"
 import { ForEachLazyValue, parseTemplateCollection } from "./template/templated-collections.js"
 import { deepMap, isPlainObject } from "./util/objects.js"
-import { LazyMergePatch } from "./template/lazy-merge.js"
 import { InputContext } from "./config/template-contexts/input.js"
+import { VariablesContext } from "./config/template-contexts/variables.js"
 
 const { mkdirp, readFile } = fsExtra
 
@@ -122,7 +121,7 @@ export class ModuleResolver {
 
     const minimalRoots = await this.garden.vcs.getMinimalRoots(this.log, allPaths)
 
-    const resolvedConfigs: ModuleConfigMap = {}
+    const resolveResults: Record<string, { config: ModuleConfig; context: ModuleConfigContext }> = {}
     const resolvedModules: ModuleMap = {}
     const errors: { [moduleName: string]: GardenError } = {}
 
@@ -137,21 +136,21 @@ export class ModuleResolver {
       inFlight.add(moduleKey)
 
       // Resolve configuration, unless previously resolved.
-      let resolvedConfig = resolvedConfigs[moduleKey]
+      let resolveResult = resolveResults[moduleKey]
       let foundNewDependency = false
 
       const dependencyNames = fullGraph.dependenciesOf(moduleKey)
       const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n]).filter(Boolean)
 
       try {
-        if (!resolvedConfig) {
+        if (!resolveResult) {
           const rawConfig = this.rawConfigsByKey[moduleKey]
 
           this.log.silly(() => `ModuleResolver: Resolve config ${moduleKey}`)
-          resolvedConfig = resolvedConfigs[moduleKey] = await this.resolveModuleConfig(rawConfig, resolvedDependencies)
+          resolveResult = resolveResults[moduleKey] = await this.resolveModuleConfig(rawConfig, resolvedDependencies)
 
           // Check if any new build dependencies were added by the configure handler
-          for (const dep of resolvedConfig.build.dependencies) {
+          for (const dep of resolveResult.config.build.dependencies) {
             const depKey = dep.name
 
             if (!dependencyNames.includes(depKey)) {
@@ -181,15 +180,16 @@ export class ModuleResolver {
         // dependencies.
         if (!foundNewDependency) {
           const shouldResolve =
-            forceResolve || this.shouldResolveInline({ config: resolvedConfig, actionsFilter, fullGraph })
+            forceResolve || this.shouldResolveInline({ config: resolveResult.config, actionsFilter, fullGraph })
 
           if (shouldResolve) {
-            const buildPath = this.garden.buildStaging.getBuildPath(resolvedConfig)
+            const buildPath = this.garden.buildStaging.getBuildPath(resolveResult.config)
             resolvedModules[moduleKey] = await this.resolveModule({
-              resolvedConfig,
+              resolvedConfig: resolveResult.config,
+              variables: resolveResult.context.variables,
               buildPath,
               dependencies: resolvedDependencies,
-              repoRoot: minimalRoots[resolvedConfig.path],
+              repoRoot: minimalRoots[resolveResult.config.path],
             })
           } else {
             this.log.debug(() => `ModuleResolver: Module ${moduleKey} skipped`)
@@ -208,6 +208,11 @@ export class ModuleResolver {
 
     const processLeaves = async (forceResolve: boolean) => {
       if (Object.keys(errors).length > 0) {
+        for (const err of Object.values(errors)) {
+          if (err instanceof InternalError) {
+            throw err
+          }
+        }
         const errorStr = Object.entries(errors)
           .map(([name, err]) => `${styles.highlight.bold(name)}: ${err.message}`)
           .join("\n")
@@ -272,7 +277,7 @@ export class ModuleResolver {
       const taskNames = new Set<string>()
 
       // Add runtime dependencies to the module dependency graph
-      for (const config of Object.values(resolvedConfigs)) {
+      for (const { config } of Object.values(resolveResults)) {
         for (const service of config.serviceConfigs) {
           const key = `deploy.${service.name}`
           runtimeGraph.addNode(key)
@@ -301,7 +306,7 @@ export class ModuleResolver {
         }
       }
 
-      for (const config of Object.values(resolvedConfigs)) {
+      for (const { config } of Object.values(resolveResults)) {
         for (const service of config.serviceConfigs) {
           const key = `deploy.${service.name}`
           for (const dep of service.dependencies || []) {
@@ -330,8 +335,8 @@ export class ModuleResolver {
         // Note: Module names in the graph don't have the build. prefix
         const moduleDepNames = deps.filter((d) => !d.includes("."))
         for (const name of moduleDepNames) {
-          if (!resolvedModules[name] && resolvedConfigs[name]) {
-            needResolve[name] = resolvedConfigs[name]
+          if (!resolvedModules[name] && resolveResults[name]) {
+            needResolve[name] = resolveResults[name].config
           }
         }
       }
@@ -348,7 +353,7 @@ export class ModuleResolver {
     const skipped = new Set<string>()
 
     if (actionsFilter && mayNeedAdditionalResolution) {
-      for (const config of Object.values(resolvedConfigs)) {
+      for (const { config } of Object.values(resolveResults)) {
         if (!resolvedModules[config.name]) {
           skipped.add(`build.${config.name}`)
           for (const s of config.serviceConfigs) {
@@ -396,7 +401,7 @@ export class ModuleResolver {
       delete config["_templateDeps"]
     }
 
-    return { skipped, resolvedModules: Object.values(resolvedModules), resolvedConfigs: Object.values(resolvedConfigs) }
+    return { skipped, resolvedModules: Object.values(resolvedModules), resolvedConfigs: Object.values(resolveResults) }
   }
 
   private addModulesToGraph(graph: DepGraph<string>, configs: ModuleConfig[]) {
@@ -570,7 +575,10 @@ export class ModuleResolver {
   /**
    * Resolves and validates a single module configuration.
    */
-  async resolveModuleConfig(unresolvedConfig: ModuleConfig, dependencies: GardenModule[]): Promise<ModuleConfig> {
+  async resolveModuleConfig(
+    unresolvedConfig: ModuleConfig,
+    dependencies: GardenModule[]
+  ): Promise<{ config: ModuleConfig; context: ModuleConfigContext }> {
     const garden = this.garden
 
     const buildPath = this.garden.buildStaging.getBuildPath(unresolvedConfig)
@@ -591,15 +599,9 @@ export class ModuleResolver {
 
     const contextWithoutVariables = new ModuleConfigContext(templateContextParams)
 
-    // Resolve the variables field before resolving everything else (overriding with module varfiles if present)
-    const moduleVariables = await this.mergeVariables(unresolvedConfig, contextWithoutVariables)
-
-    // And finally fully resolve the config.
-    // Template strings in the spec can have references to inputs,
-    // so we also need to pass inputs here along with the available variables.
     const context = new ModuleConfigContext({
       ...templateContextParams,
-      variables: new LayeredContext(garden.variables, new GenericContext(moduleVariables)),
+      variables: await VariablesContext.forModule(this.garden, unresolvedConfig, contextWithoutVariables),
     })
 
     const moduleTypeDefinitions = await garden.getModuleTypes()
@@ -620,10 +622,7 @@ export class ModuleResolver {
     }
 
     let config: ModuleConfig = partiallyEvaluateModule(
-      {
-        ...unresolvedConfig,
-        variables: moduleVariables,
-      } as unknown as ParsedTemplate,
+      unresolvedConfig as unknown as ParsedTemplate,
       context
     ) as unknown as ModuleConfig
 
@@ -724,7 +723,7 @@ export class ModuleResolver {
 
     delete config["_templateDeps"]
 
-    return config
+    return { config, context }
   }
 
   /**
@@ -742,11 +741,13 @@ export class ModuleResolver {
 
   private async resolveModule({
     resolvedConfig,
+    variables,
     buildPath,
     dependencies,
     repoRoot,
   }: {
     resolvedConfig: ModuleConfig
+    variables: VariablesContext
     buildPath: string
     dependencies: GardenModule[]
     repoRoot: string
@@ -757,7 +758,7 @@ export class ModuleResolver {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
-      variables: new LayeredContext(this.garden.variables, new GenericContext(resolvedConfig.variables || {})),
+      variables,
       name: resolvedConfig.name,
       path: resolvedConfig.path,
       buildPath,
@@ -880,35 +881,6 @@ export class ModuleResolver {
     this.log.debug(() => `ModuleResolver: Module ${resolvedConfig.name} resolved`)
 
     return module
-  }
-
-  /**
-   * Merges module variables with the following precedence order:
-   *
-   *   garden.variableOverrides > module varfile > config.variables
-   */
-  private async mergeVariables(config: ModuleConfig, context: ModuleConfigContext): Promise<LazyMergePatch> {
-    let varfileVars: DeepPrimitiveMap = {}
-    if (config.varfile) {
-      const varfilePath = deepEvaluate(config.varfile, {
-        context,
-        opts: {},
-      })
-      if (typeof varfilePath !== "string") {
-        throw new ConfigurationError({
-          message: `Expected varfile template expression in module configuration ${config.name} to resolve to string, actually got ${typeof varfilePath}`,
-        })
-      }
-      varfileVars = await loadVarfile({
-        configRoot: config.path,
-        path: varfilePath,
-        defaultPath: undefined,
-      })
-    }
-
-    const moduleVariables = config.variables || {}
-
-    return new LazyMergePatch([moduleVariables, varfileVars, this.garden.variableOverrides])
   }
 }
 

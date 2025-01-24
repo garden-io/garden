@@ -58,9 +58,9 @@ import got from "got"
 import { createHash } from "node:crypto"
 import { pipeline } from "node:stream/promises"
 import type { GardenCloudApiFactory } from "../cloud/api.js"
-import { type ConfigContext } from "../config/template-contexts/base.js"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import type { TemplatePrimitive } from "../template/types.js"
+import type { VariablesContext } from "../config/template-contexts/variables.js"
 
 export class TestError extends GardenError {
   type = "_test"
@@ -197,7 +197,7 @@ export class TestGarden extends Garden {
   public declare configTemplates: { [name: string]: ConfigTemplateConfig }
   public declare vcs: VcsHandler
   public declare secrets: StringMap
-  public declare variables: ConfigContext
+  public declare variables: VariablesContext
   private repoRoot!: string
   public cacheKey!: string
   public clearConfigsOnScan = false

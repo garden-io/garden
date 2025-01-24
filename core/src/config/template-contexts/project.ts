@@ -17,6 +17,7 @@ import type { CommandInfo } from "../../plugin-context.js"
 import type { Garden } from "../../garden.js"
 import { type VcsInfo } from "../../vcs/vcs.js"
 import { styles } from "../../logger/styles.js"
+import type { VariablesContext } from "./variables.js"
 
 class LocalContext extends ContextWithSchema {
   @schema(
@@ -344,7 +345,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
 }
 
 export interface EnvironmentConfigContextParams extends ProjectConfigContextParams {
-  variables: ConfigContext
+  variables: VariablesContext
 }
 
 /**
@@ -356,7 +357,7 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
       .description("A map of all variables defined in the project configuration.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: ConfigContext
+  public variables: VariablesContext
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
   public var: ConfigContext
@@ -392,9 +393,9 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       )
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public override variables: ConfigContext
+  public override variables: VariablesContext
 
-  constructor(garden: Garden, variables: ConfigContext) {
+  constructor(garden: Garden, variables: VariablesContext) {
     super({
       projectName: garden.projectName,
       projectRoot: garden.projectRoot,

@@ -53,7 +53,7 @@ describe("ModuleResolver", () => {
     expect(module.build.dependencies[0].name).to.equal("test-project-a")
   })
 
-  it("sets the relevant variables in module config from variable overrides", async () => {
+  it("variable overrides should only affect template evaluation, and not alter the module config itself", async () => {
     const garden = await makeTestGardenA([], {
       variableOverrides: {
         foo: "override",
@@ -67,6 +67,9 @@ describe("ModuleResolver", () => {
         type: "test",
         path: join(garden.projectRoot, "module-a"),
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        spec: {
+          command: ["echo", "${var.foo}"],
+        },
         variables: {
           foo: "somevalue",
         },
@@ -75,8 +78,12 @@ describe("ModuleResolver", () => {
 
     const module = await garden.resolveModule("test-project-a")
     expect(module.variables).to.eql({
-      bar: "no-override", // irrelevant overrides will appear in the variables of every module, but that doesn't hurt.
-      foo: "override",
+      // the variables section of the module config should not change
+      foo: "somevalue",
+    })
+    expect(module.spec).to.eql({
+      // --> ${var.foo} should evaluate to "override"
+      command: ["echo", "override"],
     })
   })
 

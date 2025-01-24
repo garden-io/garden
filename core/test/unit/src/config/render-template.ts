@@ -17,7 +17,6 @@ import { joi } from "../../../../src/config/common.js"
 import fsExtra from "fs-extra"
 const { pathExists, remove } = fsExtra
 import cloneDeep from "fast-copy"
-
 import { configTemplateKind, renderTemplateKind } from "../../../../src/config/base.js"
 import type { RenderTemplateConfig } from "../../../../src/config/render-template.js"
 import { renderConfigTemplate } from "../../../../src/config/render-template.js"
@@ -25,7 +24,7 @@ import type { Log } from "../../../../src/logger/log-entry.js"
 import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 import { serialiseUnresolvedTemplates, UnresolvedTemplateValue } from "../../../../src/template/types.js"
 import { deepEvaluate } from "../../../../src/template/evaluate.js"
-import { GenericContext } from "../../../../src/config/template-contexts/base.js"
+import { VariablesContext } from "../../../../src/config/template-contexts/variables.js"
 
 describe("config templates", () => {
   let garden: TestGarden
@@ -459,7 +458,7 @@ describe("config templates", () => {
 
       const config: RenderTemplateConfig = cloneDeep(defaults)
       config.inputs = parseTemplateCollection({ value: { name: "${var.test}" }, source: { path: [] } })
-      garden.variables = new GenericContext({
+      garden.variables = VariablesContext.forTest(garden, {
         test: "test-value",
       })
 

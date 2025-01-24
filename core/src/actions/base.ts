@@ -69,6 +69,7 @@ import { dirname } from "node:path"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import type { ResolvedTemplate } from "../template/types.js"
 import type { WorkflowConfig } from "../config/workflow.js"
+import type { VariablesContext } from "../config/template-contexts/variables.js"
 
 // TODO: split this file
 
@@ -372,7 +373,7 @@ export abstract class BaseAction<
   protected readonly projectRoot: string
   protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
-  protected readonly variables: ConfigContext
+  protected readonly variables: VariablesContext
 
   constructor(protected readonly params: ActionWrapperParams<C>) {
     this.kind = params.config.kind
@@ -585,7 +586,7 @@ export abstract class BaseAction<
     }
   }
 
-  getVariablesContext(): ConfigContext {
+  getVariablesContext(): VariablesContext {
     return this.variables
   }
 
@@ -955,8 +956,18 @@ export function actionIsDisabled(config: ActionConfig, environmentName: string):
  *   see {@link VcsHandler.getTreeVersion} and {@link VcsHandler.getFiles}.
  * - The description field is just informational, shouldn't affect execution.
  * - The disabled flag is not relevant to the config version, since it only affects execution.
+ * - The variables and varfiles are only relevant if they have an effect on a relevant piece of configuration and thus can be omitted.
  */
-const nonVersionedActionConfigKeys = ["internal", "source", "include", "exclude", "description", "disabled"] as const
+const nonVersionedActionConfigKeys = [
+  "internal",
+  "source",
+  "include",
+  "exclude",
+  "description",
+  "disabled",
+  "variables",
+  "varfiles",
+] as const
 export type NonVersionedActionConfigKey = keyof Pick<BaseActionConfig, (typeof nonVersionedActionConfigKeys)[number]>
 
 export function getActionConfigVersion<C extends BaseActionConfig>(config: C) {

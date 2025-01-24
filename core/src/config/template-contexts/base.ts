@@ -111,6 +111,10 @@ export abstract class ConfigContext {
     this._cache = new Map()
   }
 
+  protected clearCache() {
+    this._cache.clear()
+  }
+
   private detectCircularReference({ nodePath, key, opts }: ContextResolveParams) {
     const plainKey = renderKeyPath(key)
     const keyStr = `${this.constructor.name}(${this._id})-${plainKey}`
@@ -303,17 +307,17 @@ export function renderKeyPath(key: ContextKeySegment[]): string {
 }
 
 export class LayeredContext extends ConfigContext {
-  private readonly contexts: ConfigContext[]
+  protected readonly layers: ConfigContext[]
 
-  constructor(...contexts: ConfigContext[]) {
+  constructor(...layers: ConfigContext[]) {
     super()
-    this.contexts = contexts
+    this.layers = layers
   }
 
   override resolveImpl(args: ContextResolveParams): ContextResolveOutput {
     const layeredItems: ContextResolveOutput[] = []
 
-    for (const context of this.contexts.toReversed()) {
+    for (const context of this.layers.toReversed()) {
       const resolved = context.resolve(args)
       if (resolved.found) {
         if (isTemplatePrimitive(resolved.resolved)) {

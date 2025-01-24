@@ -41,7 +41,7 @@ export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
   }
 
   override evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult {
-    const context = new LayeredContext(this.context, args.context)
+    const context = new LayeredContext(args.context, this.context)
 
     const result = evaluate(this.wrapped, { ...args, context })
 

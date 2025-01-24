@@ -23,7 +23,8 @@ import {
 import type { ConfigSource } from "./validation.js"
 import { validateConfig, validateWithPath } from "./validation.js"
 import { deepEvaluate, evaluate } from "../template/evaluate.js"
-import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project.js"
+import type { ProjectConfigContext } from "./template-contexts/project.js"
+import { EnvironmentConfigContext } from "./template-contexts/project.js"
 import { findByName, getNames } from "../util/util.js"
 import { ConfigurationError, InternalError, ParameterError, ValidationError } from "../exceptions.js"
 import { memoize } from "lodash-es"
@@ -35,18 +36,17 @@ import type { CommandInfo } from "../plugin-context.js"
 import type { VcsInfo } from "../vcs/vcs.js"
 import { profileAsync } from "../util/profiling.js"
 import type { BaseGardenResource } from "./base.js"
-import { baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./base.js"
+import { baseInternalFieldsSchema, varfileDescription } from "./base.js"
 import type { Log } from "../logger/log-entry.js"
 import { renderDivider } from "../logger/util.js"
 import { styles } from "../logger/styles.js"
 import { serialiseUnresolvedTemplates, type ParsedTemplate } from "../template/types.js"
-import { LayeredContext } from "./template-contexts/base.js"
-import type { ConfigContext } from "./template-contexts/base.js"
-import { GenericContext } from "./template-contexts/base.js"
+import { deepResolveContext } from "./template-contexts/base.js"
 import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
+import { VariablesContext } from "./template-contexts/variables.js"
 
-export const defaultVarfilePath = "garden.env"
+export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
 
 export const defaultEnvironment = "default"
@@ -410,7 +410,7 @@ export const projectSchema = createSchema({
     sources: projectSourcesSchema(),
     varfile: joi
       .posixPath()
-      .default(defaultVarfilePath)
+      .default(defaultProjectVarfilePath)
       .description(
         dedent`
       Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
@@ -462,40 +462,17 @@ export function resolveProjectConfig({
   log,
   defaultEnvironmentName,
   config,
-  artifactsPath,
-  vcsInfo,
-  username,
-  loggedIn,
-  enterpriseDomain,
-  secrets,
-  commandInfo,
+  context,
 }: {
   log: Log
   defaultEnvironmentName: string
   config: ProjectConfig
-  artifactsPath: string
-  vcsInfo: VcsInfo
-  username: string
-  loggedIn: boolean
-  enterpriseDomain: string | undefined
-  secrets: PrimitiveMap
-  commandInfo: CommandInfo
+  context: ProjectConfigContext
 }): ProjectConfig {
   // Resolve template strings for non-environment-specific fields (apart from `sources`).
   const { environments = [], name, sources = [], providers = [], outputs = [] } = config
 
   let globalConfig: any
-  const context = new ProjectConfigContext({
-    projectName: name,
-    projectRoot: config.path,
-    artifactsPath,
-    vcsInfo,
-    username,
-    loggedIn,
-    enterpriseDomain,
-    secrets,
-    commandInfo,
-  })
 
   try {
     globalConfig = deepEvaluate(
@@ -587,6 +564,7 @@ export class UnresolvedProviderConfig {
  */
 export const pickEnvironment = profileAsync(async function _pickEnvironment({
   projectConfig,
+  variableOverrides,
   envString,
   artifactsPath,
   vcsInfo,
@@ -595,7 +573,10 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   enterpriseDomain,
   secrets,
   commandInfo,
+  projectContext,
 }: {
+  projectContext: ProjectConfigContext
+  variableOverrides: DeepPrimitiveMap
   projectConfig: ProjectConfig
   envString: string
   artifactsPath: string
@@ -632,17 +613,6 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     })
   }
 
-  // TODO: parse template strings in varfiles?
-  const projectVarfileVars = await loadVarfile({
-    configRoot: projectConfig.path,
-    path: projectConfig.varfile,
-    defaultPath: defaultVarfilePath,
-  })
-  const projectVariables: LayeredContext = new LayeredContext(
-    new GenericContext(projectConfig.variables),
-    new GenericContext(projectVarfileVars)
-  )
-
   const source = { yamlDoc: projectConfig.internal.yamlDoc, path: ["environments", index] }
 
   // Resolve template strings in the environment config, except providers
@@ -652,12 +622,16 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     artifactsPath,
     vcsInfo,
     username,
-    variables: projectVariables,
+    variables: await VariablesContext.forProject(projectConfig, variableOverrides, projectContext),
     loggedIn,
     enterpriseDomain,
     secrets,
     commandInfo,
   })
+
+  // resolve project variables incl. varfiles
+  deepResolveContext("project", context.variables)
+
   const config = deepEvaluate(environmentConfig as unknown as ParsedTemplate, {
     context,
     opts: {},
@@ -737,17 +711,16 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     mergedProviders[name] = new UnresolvedProviderConfig(name, dependencies || [], unresolvedConfig)
   }
 
-  const envVarfileVars = await loadVarfile({
-    configRoot: projectConfig.path,
-    path: environmentConfig.varfile,
-    defaultPath: defaultEnvVarfilePath(environment),
-  })
-
-  const variables: ConfigContext = new LayeredContext(
-    projectVariables,
-    new GenericContext(environmentConfig.variables),
-    new GenericContext(envVarfileVars)
+  const variables = await VariablesContext.forEnvironment(
+    environment,
+    projectConfig,
+    environmentConfig,
+    variableOverrides,
+    context
   )
+
+  // resolve project and environment-level variables incl. varfiles
+  deepResolveContext("project environment", context.variables)
 
   return {
     environmentName: environment,
