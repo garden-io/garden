@@ -53,9 +53,13 @@ export class InputContext extends LayeredContext {
 
   constructor(inputs: ParsedTemplate, template?: ConfigTemplateConfig) {
     if (template) {
-      super(new GenericContext(template.inputsSchemaDefaults), new GenericContext(inputs || {}))
+      super(
+        "unresolved inputs (with best-effort schema defaults)",
+        new GenericContext(template.inputsSchemaDefaults),
+        new GenericContext(inputs || {})
+      )
     } else {
-      super(new GenericContext(inputs || {}))
+      super("fully resolved inputs", new GenericContext(inputs || {}))
     }
   }
 }

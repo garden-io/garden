@@ -738,7 +738,7 @@ export interface ResolvedActionExtension<
 
   getOutputs(): StaticOutputs
 
-  getVariablesContext(): ConfigContext
+  getVariablesContext(): VariablesContext
 
   getResolvedVariables(): Record<string, ResolvedTemplate>
 }

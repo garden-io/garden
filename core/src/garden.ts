@@ -1686,7 +1686,8 @@ export class Garden {
     const context = new RemoteSourceConfigContext(this, this.variables)
     const source = { yamlDoc: this.projectConfig.internal.yamlDoc, path: ["sources"] }
     const resolved = validateSchema<SourceConfig[]>(
-      deepEvaluate(this.projectSources as unknown as ParsedTemplate, { context, opts: {} }),
+      // @ts-expect-error todo: correct types for unresolved configs
+      deepEvaluate(this.projectSources, { context, opts: {} }),
       projectSourcesSchema(),
       {
         context: "remote source",

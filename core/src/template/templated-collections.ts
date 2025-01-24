@@ -377,7 +377,7 @@ export class ForEachLazyValue extends StructuralTemplateOperator {
       const contextForIndex = new GenericContext({
         item: { key: i, value: collectionValue[i] },
       })
-      const loopContext = new LayeredContext(args.context, contextForIndex)
+      const loopContext = new LayeredContext("item ($forEach)", args.context, contextForIndex)
 
       // Check $filter clause output, if applicable
       if (filterExpression !== undefined) {

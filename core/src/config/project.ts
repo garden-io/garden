@@ -632,7 +632,8 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   // resolve project variables incl. varfiles
   deepResolveContext("project", context.variables)
 
-  const config = deepEvaluate(environmentConfig as unknown as ParsedTemplate, {
+  // @ts-expect-error todo: correct types for unresolved configs
+  const config = deepEvaluate(environmentConfig, {
     context,
     opts: {},
   })

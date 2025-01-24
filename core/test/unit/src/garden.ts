@@ -81,7 +81,7 @@ import { getCloudDistributionName } from "../../../src/cloud/util.js"
 import { resolveAction } from "../../../src/graph/actions.js"
 import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
-import { deepResolveContext, LayeredContext } from "../../../src/config/template-contexts/base.js"
+import { deepResolveContext } from "../../../src/config/template-contexts/base.js"
 import { VariablesContext } from "../../../src/config/template-contexts/variables.js"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
@@ -404,10 +404,7 @@ describe("Garden", () => {
       garden.variableOverrides["d"] = "from-cli-var"
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const runAction = graph.getRun("run-a")
-      const resolvedVariables = deepResolveContext(
-        "Garden and run-a action variables",
-        new LayeredContext(garden.variables, runAction.getVariablesContext())
-      )
+      const resolvedVariables = deepResolveContext("Garden and run-a action variables", runAction.getVariablesContext())
       expect(resolvedVariables).to.eql({
         a: "from-project-varfile",
         b: "from-action-vars",
@@ -3182,7 +3179,7 @@ describe("Garden", () => {
       })
       expect(resolved).to.exist
 
-      const variables = deepResolveContext("resolved action variables", resolved.getVariablesContext())
+      const variables = resolved.getResolvedVariables()
       expect(variables).to.deep.eq({
         myDir: "../../../test",
         syncTargets: [
@@ -3193,6 +3190,9 @@ describe("Garden", () => {
             source: "../../../bar",
           },
         ],
+        sync_targets: {
+          test: ["foo", "bar"],
+        },
       })
     })
 

@@ -35,7 +35,7 @@ export class VariablesContext extends LayeredContext {
    * The constructor is private, use the static factory methods (below) instead.
    */
   private constructor(
-    public readonly description: string,
+    description: string,
     {
       context,
       variablePrecedence,
@@ -63,7 +63,7 @@ export class VariablesContext extends LayeredContext {
       )
     }
 
-    super(...layers)
+    super(description, ...layers)
 
     if (variableOverrides && !isEmpty(variableOverrides)) {
       this.applyOverrides(variableOverrides, context)

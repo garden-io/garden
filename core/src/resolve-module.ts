@@ -57,7 +57,7 @@ import { getModuleTemplateReferences } from "./config/references.js"
 import { type ParsedTemplate, UnresolvedTemplateValue } from "./template/types.js"
 import { conditionallyDeepEvaluate, evaluate } from "./template/evaluate.js"
 import { someReferences } from "./template/analysis.js"
-import { ForEachLazyValue, parseTemplateCollection } from "./template/templated-collections.js"
+import { parseTemplateCollection } from "./template/templated-collections.js"
 import { deepMap, isPlainObject } from "./util/objects.js"
 import { InputContext } from "./config/template-contexts/input.js"
 import { VariablesContext } from "./config/template-contexts/variables.js"
@@ -539,7 +539,8 @@ export class ModuleResolver {
 
     // Try resolving template strings if possible
     const buildDeps: string[] = []
-    const { resolved } = evaluate(rawConfig.build.dependencies as unknown as ParsedTemplate, {
+    // @ts-expect-error todo: correct types for unresolved configs
+    const { resolved } = evaluate(rawConfig.build.dependencies, {
       context: configContext,
       opts: {},
     })
@@ -621,10 +622,8 @@ export class ModuleResolver {
       })
     }
 
-    let config: ModuleConfig = partiallyEvaluateModule(
-      unresolvedConfig as unknown as ParsedTemplate,
-      context
-    ) as unknown as ModuleConfig
+    // @ts-expect-error todo: correct types for unresolved configs
+    let config: ModuleConfig = partiallyEvaluateModule(unresolvedConfig, context)
 
     // Validate inputs if those are already resolved
     const templateName = config.templateName
@@ -1231,27 +1230,13 @@ function getTestNames(config: ModuleConfig) {
  */
 function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, context: ModuleConfigContext) {
   /**
-   * Returns true if the unresolved template value can be resolved at this point and false otherwise.
+   * Returns false if the unresolved template value contains runtime references, in order to skip resolving it at this point.
    */
-  const shouldEvaluate = (value: UnresolvedTemplateValue) => {
+  const skipRuntimeReferences = (value: UnresolvedTemplateValue) => {
     if (
-      value instanceof ForEachLazyValue &&
       someReferences({
         value,
         context,
-        // if forEach expression has runtime references, we can't resolve it at all due to item context missing after converting the module to action
-        // as the captured context is lost when calling `toJSON` on the unresolved template value
-        onlyEssential: false,
-        matcher: (ref) => ref.keyPath[0] === "runtime",
-      })
-    ) {
-      return false // do not evaluate runtime references
-    } else if (
-      someReferences({
-        value,
-        context,
-        // in other cases, we only skip evaluation when the runtime references is essential
-        // meaning, we evaluate everything we can evaluate.
         onlyEssential: true,
         matcher: (ref) => ref.keyPath[0] === "runtime",
       })
@@ -1262,7 +1247,7 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
     return true
   }
 
-  const partial = conditionallyDeepEvaluate(
+  const interim = conditionallyDeepEvaluate(
     config,
     {
       context,
@@ -1274,9 +1259,50 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
         unescape: false,
       },
     },
-    shouldEvaluate
+    skipRuntimeReferences
   )
 
+  /**
+   * Returns true if the unresolved template value contains "item" references
+   *
+   * If runtime references are used together with item references, the item references need to be resolved
+   * in a second pass using "legacyAllowPartial".
+   *
+   * We don't use "legacyAllowPartial" for the first pass so that the user receives appropriate error messages
+   * if a key cannot be resolved.
+   */
+  const findItemReferences = (value: UnresolvedTemplateValue) => {
+    if (
+      someReferences({
+        value,
+        context,
+        onlyEssential: true,
+        matcher: (ref) => ref.keyPath[0] === "item",
+      })
+    ) {
+      return true // we want to evaluate item references
+    }
+
+    return false
+  }
+
+  const partial = conditionallyDeepEvaluate(
+    interim,
+    {
+      context,
+      opts: {
+        // in the second pass, we eliminate lurking item references
+        // this can happen if the item context ($forEach) has been used together with runtime in the same template string
+        legacyAllowPartial: true,
+        // we also do not unescape here, as the template strings will unfortunately be parsed again later.
+        unescape: false,
+      },
+    },
+    findItemReferences
+  )
+
+  // any leftover unresolved template values are now turned back into the raw form
+  // this was necessary because we apply module schemas on the partially resolved config
   return deepMap(partial, (v) => {
     if (v instanceof UnresolvedTemplateValue) {
       return v.toJSON()

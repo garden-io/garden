@@ -128,10 +128,8 @@ export function moduleConfigWithDefaults(partial: PartialModuleConfig): ModuleCo
     },
   }
 
-  return parseTemplateCollection({
-    value: config as unknown as CollectionOrValue<TemplatePrimitive>,
-    source: { path: [] },
-  }) as unknown as ModuleConfig
+  // @ts-expect-error todo: correct types for unresolved configs
+  return parseTemplateCollection({ value: config, source: { path: [] } })
 }
 
 /**
@@ -349,10 +347,8 @@ export class TestGarden extends Garden {
         },
       }
       this.addActionConfig(
-        parseTemplateCollection({
-          value: merged as unknown as CollectionOrValue<TemplatePrimitive>,
-          source: { path: [] },
-        }) as unknown as ActionConfig
+        // @ts-expect-error todo: correct types for unresolved configs
+        parseTemplateCollection({ value: merged, source: { path: [] } })
       )
     })
   }

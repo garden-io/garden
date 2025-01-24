@@ -88,7 +88,9 @@ export class WorkflowCommand extends Command<Args, {}> {
     await registerAndSetUid(garden, log, workflow)
     garden.events.emit("workflowRunning", {})
     const templateContext = new WorkflowConfigContext(garden, garden.variables)
-    const files = deepEvaluate((workflow.files || []) as unknown as ParsedTemplate[], {
+
+    // @ts-expect-error todo: correct types for unresolved configs
+    const files: WorkflowFileSpec[] = deepEvaluate(workflow.files || [], {
       context: templateContext,
       opts: {},
     })

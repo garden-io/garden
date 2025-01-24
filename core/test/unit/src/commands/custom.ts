@@ -136,11 +136,11 @@ describe("CustomCommandWrapper", () => {
           ],
           variables: {},
           exec: {
-            command: ["echo", "${join(args.$rest, ' ')}"],
+            command: ["echo", "${join(args.$rest, ' ')}" as string],
           },
-        },
+        } as const,
         source: { path: [] },
-      }) as unknown as CommandResource
+      })
     )
 
     const { result } = await cmd.action({

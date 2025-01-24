@@ -323,6 +323,7 @@ describe("ConfigContext", () => {
 describe("LayeredContext", () => {
   it("allows you to merge multiple contexts", () => {
     const variables = new LayeredContext(
+      "test",
       new GenericContext({
         foo: "foo",
       }),
@@ -345,6 +346,7 @@ describe("LayeredContext", () => {
 
   it("takes the precedence from right to left when merging primitives", () => {
     const layeredContext = new LayeredContext(
+      "test",
       new GenericContext({
         foo: "foo",
       }),
@@ -359,6 +361,7 @@ describe("LayeredContext", () => {
 
   it("takes the precedence from right to left when merging objects", () => {
     const layeredContext = new LayeredContext(
+      "test",
       new GenericContext({
         foo: "foo",
       }),
@@ -373,6 +376,7 @@ describe("LayeredContext", () => {
 
   it("show the available keys if attempt to resolve a non-existing key", () => {
     const layeredContext = new LayeredContext(
+      "test",
       new GenericContext({
         foo: "foo",
       }),

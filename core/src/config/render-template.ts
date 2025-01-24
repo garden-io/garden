@@ -126,12 +126,14 @@ export async function renderConfigTemplate({
   const enterpriseDomain = garden.cloudApi?.domain
   const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, enterpriseDomain })
 
-  const resolvedWithoutInputs = deepEvaluate(omit(config, "inputs") as unknown as ParsedTemplate, {
+  // @ts-expect-error todo: correct types for unresolved configs
+  const resolvedWithoutInputs: RenderTemplateConfig = deepEvaluate(omit(config, "inputs"), {
     context: templateContext,
     opts: {},
   })
+
   let resolved: RenderTemplateConfig = {
-    ...(resolvedWithoutInputs as unknown as RenderTemplateConfig),
+    ...resolvedWithoutInputs,
     inputs: config.inputs,
   }
 
@@ -194,8 +196,8 @@ async function renderModules({
 }): Promise<ModuleConfig[]> {
   return Promise.all(
     (template.modules || []).map(async (m, index) => {
-      // Run a partial template resolution with the parent+template info
-      const spec = evaluate(m as unknown as ParsedTemplate, {
+      // @ts-expect-error todo: correct types for unresolved configs
+      const spec = evaluate(m, {
         context,
         opts: {},
       }).resolved
@@ -271,7 +273,8 @@ async function renderConfigs({
   renderConfig: RenderTemplateConfig
 }): Promise<TemplatableConfig[]> {
   const templateDescription = `${configTemplateKind} '${template.name}'`
-  const templateConfigs = evaluate((template.configs || []) as unknown as ParsedTemplate, {
+  // @ts-expect-error todo: correct types for unresolved configs
+  const templateConfigs = evaluate(template.configs || [], {
     context,
     opts: {},
   }).resolved

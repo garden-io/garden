@@ -67,7 +67,8 @@ describe("kubernetes configureProvider", () => {
           config: new UnresolvedProviderConfig(
             config.name,
             config.dependencies || [],
-            config as unknown as ParsedTemplate
+            // @ts-expect-error todo: correct types for unresolved configs
+            config
           ),
           dependencies: {},
           moduleConfigs: [],

@@ -122,10 +122,12 @@ export const getDefaultProjectConfig = (): ProjectConfig =>
 
 export const createProjectConfig = (partialCustomConfig: Partial<ProjectConfig>): ProjectConfig => {
   const baseConfig = getDefaultProjectConfig()
+  // @ts-expect-error todo: correct types for unresolved configs
   return parseTemplateCollection({
-    value: merge(baseConfig, partialCustomConfig) as unknown as CollectionOrValue<TemplatePrimitive>,
+    // @ts-expect-error todo: correct types for unresolved configs
+    value: merge(baseConfig, partialCustomConfig),
     source: { path: [] },
-  }) as unknown as ProjectConfig
+  })
 }
 
 export const defaultModuleConfig: ModuleConfig = {

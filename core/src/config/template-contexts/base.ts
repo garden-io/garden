@@ -106,9 +106,12 @@ export abstract class ConfigContext {
   private readonly _cache: Map<string, ContextResolveOutput>
   private readonly _id: number
 
-  constructor(private readonly _description?: string) {
+  constructor(public readonly _description?: string) {
     this._id = globalConfigContextCounter++
     this._cache = new Map()
+    if (!_description) {
+      this._description = ""
+    }
   }
 
   public toSanitizedValue() {
@@ -313,8 +316,8 @@ export function renderKeyPath(key: ContextKeySegment[]): string {
 export class LayeredContext extends ConfigContext {
   protected readonly layers: ConfigContext[]
 
-  constructor(...layers: ConfigContext[]) {
-    super()
+  constructor(description: string, ...layers: ConfigContext[]) {
+    super(description)
     this.layers = layers
   }
 

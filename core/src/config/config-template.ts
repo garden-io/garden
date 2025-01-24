@@ -71,15 +71,18 @@ export async function resolveConfigTemplate(
   const loggedIn = garden.isLoggedIn()
   const enterpriseDomain = garden.cloudApi?.domain
   const context = new ProjectConfigContext({ ...garden, loggedIn, enterpriseDomain })
-  const resolved = deepEvaluate(partial as unknown as ParsedTemplate, {
+
+  // @ts-expect-error todo: correct types for unresolved configs
+  const resolved: BaseGardenResource = deepEvaluate(partial, {
     context,
     opts: {},
   })
+
   const configPath = resource.internal.configFilePath
 
   // Validate the partial config
   const validated = validateConfig<ConfigTemplateResource>({
-    config: resolved as unknown as BaseGardenResource,
+    config: resolved,
     schema: configTemplateSchema(),
     projectRoot: garden.projectRoot,
     yamlDocBasePath: [],

@@ -361,10 +361,11 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   }
 
   let resolvedPartialConfig: WorkflowConfig = {
-    ...(deepEvaluate(partialConfig as unknown as Record<string, ParsedTemplate>, {
+    // @ts-expect-error todo: correct types for unresolved configs
+    ...deepEvaluate(partialConfig, {
       context,
       opts: {},
-    }) as unknown as WorkflowConfig),
+    }),
     internal: config.internal,
     name: config.name,
   }

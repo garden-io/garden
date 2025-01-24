@@ -68,8 +68,8 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   const allRefs = [...needProviders, ...needModules, ...needActions]
 
   if (allRefs.length === 0) {
-    // No need to resolve any entities
-    return deepEvaluate(garden.rawOutputs as unknown as Record<string, ParsedTemplate>[], {
+    // @ts-expect-error todo: correct types for unresolved configs
+    return deepEvaluate(garden.rawOutputs, {
       context: new OutputConfigContext({
         garden,
         resolvedProviders: {},
@@ -77,7 +77,7 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
         modules: [],
       }),
       opts: {},
-    }) as unknown as OutputSpec[]
+    })
   }
 
   // Make sure all referenced services and tasks are ready and collect their outputs for the runtime context
@@ -105,8 +105,9 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   const configContext = await garden.getOutputConfigContext(log, modules, results)
 
-  return deepEvaluate(garden.rawOutputs as unknown as Record<string, ParsedTemplate>[], {
+  // @ts-expect-error todo: correct types for unresolved configs
+  return deepEvaluate(garden.rawOutputs, {
     context: configContext,
     opts: {},
-  }) as unknown as OutputSpec[]
+  })
 }
