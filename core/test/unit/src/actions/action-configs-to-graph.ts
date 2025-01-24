@@ -23,6 +23,7 @@ import {
 import { getRemoteSourceLocalPath } from "../../../../src/util/ext-source-util.js"
 import { clearVarfileCache } from "../../../../src/config/base.js"
 import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
+import { deepResolveContext } from "../../../../src/config/template-contexts/base.js"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory
@@ -542,12 +543,10 @@ describe("actionConfigsToGraph", () => {
 
     const action = graph.getBuild("foo")
     const vars = action["variables"]
+    const resolved = deepResolveContext("action variables", vars, garden.getProjectConfigContext())
 
-    expect(vars.resolve({ nodePath: [], key: [], opts: {} })).to.eql({
-      found: true,
-      resolved: {
-        projectName: garden.projectName,
-      },
+    expect(resolved).to.eql({
+      projectName: garden.projectName,
     })
   })
 
