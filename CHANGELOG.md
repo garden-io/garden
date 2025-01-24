@@ -5,14 +5,14 @@
 ### Bug Fixes
 
 * when using create project, the project name is undefined ([#6797](https://github.com/garden-io/garden/issues/6797)) ([39a6345f5](https://github.com/garden-io/garden/commit/39a6345f5))
-* persist workspace after signing binaries ([#6794](https://github.com/garden-io/garden/issues/6794)) ([cbb10d24b](https://github.com/garden-io/garden/commit/cbb10d24b))
-* remove dollar from aws-cli/setup job for code-signing ([#6793](https://github.com/garden-io/garden/issues/6793)) ([6a4fd0168](https://github.com/garden-io/garden/commit/6a4fd0168))
-* specify default region when trying to code-sign binary ([#6788](https://github.com/garden-io/garden/issues/6788)) ([08031494b](https://github.com/garden-io/garden/commit/08031494b))
-* remove unzip step from code-signing workflow ([#6787](https://github.com/garden-io/garden/issues/6787)) ([d252db258](https://github.com/garden-io/garden/commit/d252db258))
 * do not crash on missing `deploymentRegistry` for in-cluster builds ([#6768](https://github.com/garden-io/garden/issues/6768)) ([c55486ddd](https://github.com/garden-io/garden/commit/c55486ddd))
 * **container:** respect deployment registry in publishId if not explicitly set ([#6690](https://github.com/garden-io/garden/issues/6690)) ([0c8ec05d4](https://github.com/garden-io/garden/commit/0c8ec05d4))
 * **k8s:** do not throw if paused resource is missing ([#6799](https://github.com/garden-io/garden/issues/6799)) ([62b77ed67](https://github.com/garden-io/garden/commit/62b77ed67))
 * **k8s:** ensure image pull secret is always created for K8s Deploy ([#6795](https://github.com/garden-io/garden/issues/6795)) ([6898536d8](https://github.com/garden-io/garden/commit/6898536d8))
+
+### Improvements
+
+* improvement(framework): always run prepareEnvironment handler [#6706](https://github.com/garden-io/garden/issues/6706) ([0c18a0e97](https://github.com/garden-io/garden/commit/0c18a0e97))
 
 <a name="0.13.49"></a>
 ## [0.13.49](https://github.com/garden-io/garden/compare/0.13.48...0.13.49) (2025-01-14)
