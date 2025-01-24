@@ -4383,8 +4383,9 @@ describe("Garden", () => {
         templateName: "combo",
         inputs: {
           name: "test",
-          envName: "local", // <- should be resolved
-          providerKey: "${providers.test-plugin.outputs.testKey}", // <- not resolvable now
+          // these need to be resolved later
+          envName: "${environment.name}",
+          providerKey: "${providers.test-plugin.outputs.testKey}",
         },
       }
 
@@ -4395,7 +4396,7 @@ describe("Garden", () => {
       expect(serialiseUnresolvedTemplates(omit(deploy.getInternal(), "yamlDoc"))).to.eql(internal)
 
       expect(test.getDependencies().map((a) => a.key())).to.eql(["build.foo-test"]) // <- should be resolved
-      expect(omit(test.getInternal(), "yamlDoc")).to.eql(internal)
+      expect(serialiseUnresolvedTemplates(omit(test.getInternal(), "yamlDoc"))).to.eql(internal)
     })
 
     it("throws with helpful message if action type doesn't exist", async () => {
