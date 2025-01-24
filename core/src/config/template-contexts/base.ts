@@ -106,9 +106,13 @@ export abstract class ConfigContext {
   private readonly _cache: Map<string, ContextResolveOutput>
   private readonly _id: number
 
-  constructor() {
+  constructor(private readonly _description?: string) {
     this._id = globalConfigContextCounter++
     this._cache = new Map()
+  }
+
+  public toSanitizedValue() {
+    return `<${this.constructor.name}(${this._description})>`
   }
 
   protected clearCache() {

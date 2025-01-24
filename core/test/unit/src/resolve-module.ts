@@ -68,7 +68,9 @@ describe("ModuleResolver", () => {
         path: join(garden.projectRoot, "module-a"),
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         spec: {
-          command: ["echo", "${var.foo}"],
+          build: {
+            command: ["echo", "${var.foo}"],
+          },
         },
         variables: {
           foo: "somevalue",
@@ -81,10 +83,10 @@ describe("ModuleResolver", () => {
       // the variables section of the module config should not change
       foo: "somevalue",
     })
-    expect(module.spec).to.eql({
+    expect(module.spec.build.command).to.eql(
       // --> ${var.foo} should evaluate to "override"
-      command: ["echo", "override"],
-    })
+      ["echo", "override"]
+    )
   })
 
   it("handles a module template reference in a build dependency name", async () => {

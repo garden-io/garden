@@ -108,6 +108,13 @@ export abstract class UnresolvedTemplateValue {
 
   public abstract toJSON(): CollectionOrValue<TemplatePrimitive>
 
+  /**
+   * @see sanitizeValue
+   */
+  public toSanitizedValue() {
+    return this.toJSON()
+  }
+
   public abstract visitAll(opts: {
     /**
      * If true, the returned template expression generator will only yield template expressions that

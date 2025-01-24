@@ -32,6 +32,11 @@ export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
 
   if (value === null || value === undefined) {
     return value
+  } else if (value instanceof Error) {
+    return {
+      message: value.message,
+      stack: value.stack,
+    }
   } else if (Buffer.isBuffer(value)) {
     return "<Buffer>"
     // This is hacky but fairly reliably identifies a Joi schema object
