@@ -39,6 +39,7 @@ import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util
 import type { BaseActionConfig } from "../../../../src/actions/types.js"
 import { TreeCache } from "../../../../src/cache.js"
 import { getHashedFilterParams } from "../../../../src/vcs/git-repo.js"
+import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 
 const { readFile, writeFile } = fsExtra
 
@@ -273,7 +274,7 @@ describe("getModuleVersionString", () => {
     templateGarden["cacheKey"] = "" // Disable caching of the config graph
     const before = await templateGarden.resolveModule("module-a")
 
-    templateGarden.variables["echo-string"] = "something-else"
+    templateGarden.variables = new GenericContext({ "echo-string": "something-else" })
 
     const after = await templateGarden.resolveModule("module-a")
 
