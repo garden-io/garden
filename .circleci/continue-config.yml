@@ -272,8 +272,11 @@ commands:
           when: always
       - run:
           name: Delete namespaces older than 1 hour
-          # hack: find namespaces that contain '-ci' and their age ends with h or d, e.g. 1d5h or 24h
-          command: kubectl get ns | grep -E '(d|h)$' | grep -- '-testing' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          # hack: find namespaces that contain '-testing' and their age ends with:
+          # 1) h or d, e.g. 1d5h or 24h
+          # 2) m and has some h, e.g. 3h30m
+          # 3) m and is longer than 100 mins
+          command: kubectl get ns | grep -E -e '(d|h)$' -e '(\d+h\d+m)$' -e '(\d{3}m)$' | grep -- '-testing' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
           when: always
 
   install_rust:
