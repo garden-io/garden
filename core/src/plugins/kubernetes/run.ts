@@ -587,29 +587,17 @@ async function runWithArtifacts({
         buffer: true,
       })
     } catch (err) {
-      if (!(err instanceof PodRunnerWorkloadError)) {
+      if (err instanceof PodRunnerWorkloadError && err.details.exitCode === 127) {
+        throw new ConfigurationError({
+          message: deline`
+        ${description} specifies artifacts to export, but the image doesn't
+        contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
+        be installed in the image.`,
+          wrappedErrors: [err],
+        })
+      } else {
         throw err
       }
-
-      // TODO: fall back to copying `arc` (https://github.com/mholt/archiver) or similar into the container and
-      // using that (tar is not statically compiled so we can't copy that directly). Keeping this snippet around
-      // for that:
-      // await runner.exec({
-      //   command: ["/bin/sh", "-c", `mkdir -p /.garden/bin/ && sed -n 'w /.garden/bin/arc' && chmod +x /.garden/bin/arc`],
-      //   container: containerName,
-      //   ignoreError: false,
-      //   input: <binary>,
-      //   log,
-      //   stdout,
-      //   stderr,
-      // })
-      throw new ConfigurationError({
-        message: deline`
-      ${description} specifies artifacts to export, but the image doesn't
-      contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
-      be installed in the image.`,
-        wrappedErrors: [err],
-      })
     }
 
     try {
