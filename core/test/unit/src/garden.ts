@@ -2926,7 +2926,7 @@ describe("Garden", () => {
         await exec("git", ["add", "."], { cwd: repoPath })
         await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
 
-        garden.variables = new LayeredContext(garden.variables, new GenericContext({ var: { sourceBranch: "main" } }))
+        garden.variables = new GenericContext({ sourceBranch: "main" })
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const _garden = garden as any
