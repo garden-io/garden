@@ -63,6 +63,7 @@ function* astVisitAll(e: TemplateExpression, source: ConfigSource): TemplateExpr
     if (propertyValue instanceof TemplateExpression) {
       yield* astVisitAll(propertyValue, source)
       yield {
+        type: "template-expression",
         value: propertyValue,
         yamlSource: source,
       }
@@ -71,6 +72,7 @@ function* astVisitAll(e: TemplateExpression, source: ConfigSource): TemplateExpr
         if (item instanceof TemplateExpression) {
           yield* astVisitAll(item, source)
           yield {
+            type: "template-expression",
             value: item,
             yamlSource: source,
           }

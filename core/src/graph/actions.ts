@@ -48,7 +48,7 @@ import type { ActionDefinitionMap } from "../plugins.js"
 import { getActionTypeBases } from "../plugins.js"
 import type { ActionRouter } from "../router/router.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
-import { maybeTemplateString } from "../template/templated-strings.js"
+import { isUnresolved } from "../template/templated-strings.js"
 import { dedent, deline, naturalList } from "../util/string.js"
 import { DependencyGraph, getVarfileData, mergeVariables } from "./common.js"
 import type { ConfigGraph } from "./config-graph.js"
@@ -67,7 +67,7 @@ import { styles } from "../logger/styles.js"
 import { isUnresolvableValue } from "../template/analysis.js"
 import { getActionTemplateReferences } from "../config/references.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import type { ParsedTemplate } from "../template/types.js"
+import { UnresolvedTemplateValue, type ParsedTemplate } from "../template/types.js"
 import { validateWithPath } from "../config/validation.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
@@ -730,7 +730,9 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   const description = describeActionConfig(config)
 
   // in pre-processing, only use varfiles that are not template strings
-  const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(getVarfileData(f).path))
+  const resolvedVarFiles = config.varfiles?.filter(
+    (f) => !(f instanceof UnresolvedTemplateValue) && isUnresolved(getVarfileData(f).path)
+  )
   const variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: new GenericContext(config.variables || {}),

@@ -9,17 +9,14 @@
 import type { GardenErrorParams } from "../exceptions.js"
 import { InternalError } from "../exceptions.js"
 import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
-import type { Primitive } from "../config/common.js"
-import { isPrimitive } from "../config/common.js"
 import type { CollectionOrValue } from "../util/objects.js"
-import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
-import type { EvaluateTemplateArgs, ResolvedTemplate } from "./types.js"
+import type { EvaluateTemplateArgs, ParsedTemplate, ResolvedTemplate } from "./types.js"
 import { UnresolvedTemplateValue, type TemplatePrimitive } from "./types.js"
 import * as ast from "./ast.js"
 import { LRUCache } from "lru-cache"
-import type { TemplateExpressionGenerator } from "./analysis.js"
+import { visitAll, type TemplateExpressionGenerator } from "./analysis.js"
 import { TemplateStringError } from "./errors.js"
 
 const escapePrefix = "$${"
@@ -87,7 +84,7 @@ export function parseTemplateString({
   source: ConfigSource
 }): ParsedTemplateString | string {
   // Just return immediately if this is definitely not a template string
-  if (!maybeTemplateString(rawTemplateString)) {
+  if (!rawTemplateString.includes("${")) {
     return rawTemplateString
   }
 
@@ -184,28 +181,12 @@ export function resolveTemplateString({
 }
 
 /**
- * Returns `true` if the given value is a string and looks to contain a template string.
+ * Returns `true` if the given value may be or contain instances of `UnresolvedTemplateValue`.
  */
-export function maybeTemplateString(value: Primitive) {
-  return !!value && typeof value === "string" && value.includes("${")
-}
-
-/**
- * Returns `true` if the given value or any value in a given object or array seems to contain a template string.
- */
-export function mayContainTemplateString(obj: any): boolean {
-  let out = false
-
-  if (isPrimitive(obj)) {
-    return maybeTemplateString(obj)
+export function isUnresolved(value: ParsedTemplate) {
+  const generator = visitAll({ value })
+  for (const _ of generator) {
+    return true
   }
-
-  // TODO: use visitAll instead.
-  deepMap(obj, (v) => {
-    if (maybeTemplateString(v)) {
-      out = true
-    }
-  })
-
-  return out
+  return false
 }

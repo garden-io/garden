@@ -16,7 +16,7 @@ import {
   prepareResource,
   renderTemplateKind,
 } from "./base.js"
-import { maybeTemplateString } from "../template/templated-strings.js"
+import { isUnresolved } from "../template/templated-strings.js"
 import { validateWithPath } from "./validation.js"
 import type { Garden } from "../garden.js"
 import { ConfigurationError, GardenError, InternalError } from "../exceptions.js"
@@ -307,7 +307,7 @@ async function renderConfigs({
 
       // TODO: validate this before?
       for (const field of templateNoTemplateFields) {
-        if (maybeTemplateString(m[field])) {
+        if (isUnresolved(m[field])) {
           throw new ConfigurationError({
             message: `${templateDescription} contains an invalid resource: Found a template string in '${field}' field (${m[field]}).`,
           })

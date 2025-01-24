@@ -17,10 +17,16 @@ import { GardenError, InternalError } from "../exceptions.js"
 import { type ConfigSource } from "../config/validation.js"
 
 export type TemplateExpressionGenerator = Generator<
-  {
-    value: TemplateExpression
-    yamlSource: ConfigSource
-  },
+  | {
+      type: "template-expression"
+      value: TemplateExpression
+      yamlSource: ConfigSource
+    }
+  | {
+      type: "unresolved-template"
+      value: UnresolvedTemplateValue
+      yamlSource: undefined
+    },
   void,
   undefined
 >
@@ -39,6 +45,11 @@ export function* visitAll({ value }: { value: ParsedTemplate }): TemplateExpress
       })
     }
   } else if (value instanceof UnresolvedTemplateValue) {
+    yield {
+      type: "unresolved-template",
+      value,
+      yamlSource: undefined,
+    }
     yield* value.visitAll({})
   }
 }
@@ -85,46 +96,60 @@ export function* getContextLookupReferences(
   generator: TemplateExpressionGenerator,
   context: ConfigContext
 ): Generator<ContextLookupReferenceFinding, void, undefined> {
-  for (const { value, yamlSource } of generator) {
-    if (value instanceof ContextLookupExpression) {
-      let isResolvable: boolean = true
-      const keyPath = value.keyPath.map((keyPathExpression) => {
-        const key = keyPathExpression.evaluate({
-          context,
-          opts: {},
-          optional: true,
-          yamlSource,
-        })
-        if (typeof key === "symbol") {
-          isResolvable = false
-          return new UnresolvableValue(
-            captureError(() =>
-              // this will throw an error, because the key could not be resolved
-              keyPathExpression.evaluate({
-                context,
-                opts: {},
-                optional: false,
-                yamlSource,
-              })
-            )
-          )
-        }
-        return key
+  for (const finding of generator) {
+    if (finding.type !== "template-expression") {
+      // we are only interested in template expressions here
+      continue
+    }
+
+    const { value, yamlSource } = finding
+
+    if (!(value instanceof ContextLookupExpression)) {
+      // we are only interested in ContextLookupExpression instances
+      continue
+    }
+
+    let isResolvable: boolean = true
+
+    const keyPath = value.keyPath.map((keyPathExpression) => {
+      const key = keyPathExpression.evaluate({
+        context,
+        opts: {},
+        optional: true,
+        yamlSource,
       })
 
-      if (keyPath.length > 0) {
-        yield isResolvable
-          ? {
-              type: "resolvable",
-              keyPath: keyPath as (string | number)[],
+      if (typeof key === "symbol") {
+        isResolvable = false
+
+        return new UnresolvableValue(
+          captureError(() =>
+            // this will throw an error, because the key could not be resolved
+            keyPathExpression.evaluate({
+              context,
+              opts: {},
+              optional: false,
               yamlSource,
-            }
-          : {
-              type: "unresolvable",
-              keyPath,
-              yamlSource,
-            }
+            })
+          )
+        )
       }
+
+      return key
+    })
+
+    if (keyPath.length > 0) {
+      yield isResolvable
+        ? {
+            type: "resolvable",
+            keyPath: keyPath as (string | number)[],
+            yamlSource,
+          }
+        : {
+            type: "unresolvable",
+            keyPath,
+            yamlSource,
+          }
     }
   }
 }

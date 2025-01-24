@@ -26,7 +26,7 @@ import { createSchema, joi } from "./common.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { ActionKind, BaseActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
-import { mayContainTemplateString } from "../template/templated-strings.js"
+import { isUnresolved } from "../template/templated-strings.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
@@ -277,25 +277,6 @@ export function prepareResource({
     })
   }
 
-  let kind = spec.kind
-
-  const basePath = dirname(configFilePath)
-
-  if (!allowInvalid) {
-    for (const field of noTemplateFields) {
-      if (spec[field] && mayContainTemplateString(spec[field])) {
-        throw new ConfigurationError({
-          message: `Resource in ${relPath} has a template string in field '${field}', which does not allow templating.`,
-        })
-      }
-    }
-    if (spec.internal !== undefined) {
-      throw new ConfigurationError({
-        message: `Found invalid key "internal" in config at ${relPath}`,
-      })
-    }
-  }
-
   if (parse) {
     for (const k in spec) {
       // TODO: should we do this here? would be good to do it as early as possible.
@@ -305,6 +286,25 @@ export function prepareResource({
           yamlDoc: doc,
           path: [k],
         },
+      })
+    }
+  }
+
+  let kind = spec.kind
+
+  const basePath = dirname(configFilePath)
+
+  if (!allowInvalid) {
+    for (const field of noTemplateFields) {
+      if (spec[field] && isUnresolved(spec[field])) {
+        throw new ConfigurationError({
+          message: `Resource in ${relPath} has a template string in field '${field}', which does not allow templating.`,
+        })
+      }
+    }
+    if (spec.internal !== undefined) {
+      throw new ConfigurationError({
+        message: `Found invalid key "internal" in config at ${relPath}`,
       })
     }
   }
