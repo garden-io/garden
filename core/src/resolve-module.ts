@@ -8,7 +8,7 @@
 
 import { isArray, isString, keyBy, partition, uniq } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
-import { resolveTemplateString } from "./template/templated-strings.js"
+import { isUnresolved, resolveTemplateString } from "./template/templated-strings.js"
 import { GenericContext } from "./config/template-contexts/base.js"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden.js"
@@ -644,16 +644,16 @@ export class ModuleResolver {
       config.spec.build.dependencies = prepareBuildDependencies(config.spec.build.dependencies)
     }
 
-    // Validate the module-type specific spec
-    if (description.schema) {
+    // Validate the module-type specific spec if the inputs are already resolved
+    if (description.schema && !isUnresolved(config.inputs)) {
       config = {
         ...config,
         spec: validateWithPath({
           config: config.spec,
-          configType: "Module",
+          configType: `spec for module`,
           schema: description.schema,
           name: config.name,
-          path: config.path,
+          path: config.configPath || config.path,
           projectRoot: garden.projectRoot,
           source: undefined,
         }),
