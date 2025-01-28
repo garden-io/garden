@@ -288,7 +288,7 @@ export async function skopeoBuildStatus({
       log.warn(`Failed to check if the image has already been built: Command "${skopeoCommand.join(
           " "
         )}" failed: ${err.message}`)
-      log.debug(err)
+      log.debug({ err })
 
       // If we fail to check the image status, we assume we need to rebuild it.
       return { state: "not-ready", outputs, detail: { runtime } }
