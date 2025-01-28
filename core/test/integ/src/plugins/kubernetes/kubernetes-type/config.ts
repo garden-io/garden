@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import cloneDeep from "fast-copy"
 
 import type { TestGarden } from "../../../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../../../helpers.js"
@@ -20,6 +19,8 @@ import {
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
 } from "../../../../../../src/constants.js"
+import { serialiseUnresolvedTemplates } from "../../../../../../src/template/types.js"
+import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
 
 describe("configureKubernetesModule", () => {
   let garden: TestGarden
@@ -28,16 +29,19 @@ describe("configureKubernetesModule", () => {
   before(async () => {
     garden = await getKubernetesTestGarden()
     await garden.resolveModules({ log: garden.log })
-    moduleConfigs = cloneDeep(garden.moduleConfigs)
+    moduleConfigs = { ...garden.moduleConfigs }
   })
 
   afterEach(() => {
-    garden.moduleConfigs = cloneDeep(moduleConfigs)
+    garden.moduleConfigs = { ...moduleConfigs }
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function patchModuleConfig(name: string, patch: any) {
-    apply(garden.moduleConfigs[name], patch)
+    const moduleConfig = serialiseUnresolvedTemplates(garden.moduleConfigs[name]) as ModuleConfig
+    apply(moduleConfig, patch)
+    // @ts-expect-error todo: correct types for unresolved configs
+    garden.moduleConfigs[name] = parseTemplateCollection({ value: moduleConfig, source: { path: [] } })
   }
 
   it("should validate a Kubernetes module", async () => {

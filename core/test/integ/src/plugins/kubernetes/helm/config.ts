@@ -27,26 +27,31 @@ import {
 } from "../../../../../../src/constants.js"
 import { ValidateCommand } from "../../../../../../src/commands/validate.js"
 import { defaultHelmAtomicFlag } from "../../../../../../src/plugins/kubernetes/helm/config.js"
+import { serialiseUnresolvedTemplates } from "../../../../../../src/template/types.js"
+import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
 
 describe("configureHelmModule", () => {
   let garden: TestGarden
   let ctx: PluginContext
-  let moduleConfigs: { [key: string]: ModuleConfig }
+  let originalModuleConfigs: { [key: string]: ModuleConfig }
 
   before(async () => {
     garden = await getHelmTestGarden()
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await garden.resolveModules({ log: garden.log })
-    moduleConfigs = cloneDeep(garden.moduleConfigs)
+    originalModuleConfigs = { ...garden.moduleConfigs }
   })
 
   afterEach(() => {
-    garden["moduleConfigs"] = cloneDeep(moduleConfigs)
+    garden.moduleConfigs = { ...originalModuleConfigs }
   })
 
   function patchModuleConfig(name: string, patch: any) {
-    apply(garden.moduleConfigs[name], patch)
+    const moduleConfig = serialiseUnresolvedTemplates(garden.moduleConfigs[name]) as ModuleConfig
+    apply(moduleConfig, patch)
+    // @ts-expect-error todo: correct types for unresolved configs
+    garden.moduleConfigs[name] = parseTemplateCollection({ value: moduleConfig, source: { path: [] } })
   }
 
   it("should validate a Helm module", async () => {
@@ -130,7 +135,7 @@ describe("configureHelmModule", () => {
       testConfigs: [],
       type: "helm",
       taskConfigs: [],
-      variables: {},
+      variables: undefined,
       varfile: undefined,
     })
   })
