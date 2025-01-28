@@ -10,13 +10,13 @@ import env from "env-var"
 import type { GlobalOptions, ParameterValues } from "../cli/params.js"
 import { globalOptions } from "../cli/params.js"
 import cloneDeep from "fast-copy"
-import { isEqual, keyBy, set, mapValues, round } from "lodash-es"
+import { isEqual, keyBy, mapValues, round, set } from "lodash-es"
 import type { GardenOpts, GardenParams, GetConfigGraphParams } from "../garden.js"
 import { Garden, resolveGardenParams } from "../garden.js"
 import type { StringMap } from "../config/common.js"
 import type { ModuleConfig } from "../config/module.js"
 import type { WorkflowConfig, WorkflowConfigMap } from "../config/workflow.js"
-import { resolveMsg, type Log, type LogEntry } from "../logger/log-entry.js"
+import { type Log, type LogEntry, resolveMsg } from "../logger/log-entry.js"
 import type { GardenModule, ModuleConfigMap } from "../types/module.js"
 import { findByName, getNames, hashString } from "./util.js"
 import { GardenError, InternalError, toGardenError } from "../exceptions.js"
@@ -25,8 +25,8 @@ import { EventBus } from "../events/events.js"
 import { dedent, naturalList } from "./string.js"
 import pathIsInside from "path-is-inside"
 import { basename, dirname, join, resolve } from "path"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants.js"
 import type { GitScanMode } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants.js"
 import { getRootLogger } from "../logger/logger.js"
 import stripAnsi from "strip-ansi"
 import type { VcsHandler } from "../vcs/vcs.js"
@@ -45,8 +45,6 @@ import type {
 } from "../commands/base.js"
 import { validateSchema } from "../config/validation.js"
 import fsExtra, { exists } from "fs-extra"
-
-const { mkdirp, remove } = fsExtra
 import { GlobalConfigStore } from "../config-store/global.js"
 import { isPromise } from "./objects.js"
 import type { ConfigTemplateConfig } from "../config/config-template.js"
@@ -59,6 +57,8 @@ import { pipeline } from "node:stream/promises"
 import type { GardenCloudApiFactory } from "../cloud/api.js"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
+
+const { mkdirp, remove } = fsExtra
 
 export class TestError extends GardenError {
   type = "_test"
@@ -472,11 +472,10 @@ export class TestGarden extends Garden {
 }
 
 export function expectFuzzyMatch(str: string, sample: string | string[], extraMessage?: string) {
-  const errorMessageNonAnsi = stripAnsi(str)
+  const actualErrorMsgLowercase = stripAnsi(str).toLowerCase()
   const samples = typeof sample === "string" ? [sample] : sample
   const samplesNonAnsi = samples.map(stripAnsi)
   for (const s of samplesNonAnsi) {
-    const actualErrorMsgLowercase = errorMessageNonAnsi.toLowerCase()
     const expectedErrorSample = s.toLowerCase()
 
     const assertionMessage = dedent`
