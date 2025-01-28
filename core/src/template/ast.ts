@@ -8,7 +8,7 @@
 
 import { isArray, isNumber, isString } from "lodash-es"
 import { ContextResolveError, getUnavailableReason, renderKeyPath } from "../config/template-contexts/base.js"
-import { InternalError } from "../exceptions.js"
+import { ConfigurationError, InternalError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions/index.js"
 import type { EvaluateTemplateArgs } from "./types.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
@@ -735,6 +735,15 @@ export class ContextLookupExpression extends TemplateExpression {
       })
     } catch (e) {
       if (e instanceof ContextResolveError) {
+        throw new TemplateStringError({
+          message: e.message,
+          loc: this.loc,
+          yamlSource,
+          wrappedErrors: [e],
+        })
+      }
+      // wrap configuration error into template string error for better ux
+      if (e instanceof ConfigurationError) {
         throw new TemplateStringError({
           message: e.message,
           loc: this.loc,
