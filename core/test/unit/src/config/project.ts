@@ -133,7 +133,7 @@ describe("resolveProjectConfig", () => {
             username: "some-user",
             loggedIn: true,
             enterpriseDomain,
-            secrets: {},
+            secrets: { foo: "banana" },
             commandInfo,
           }),
         })
