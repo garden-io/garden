@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/cli",
-  "version": "0.13.49",
+  "version": "0.13.50",
   "description": "Cloud native testing platform for testing and developing container applications on Kubernetes",
   "type": "module",
   "repository": {
@@ -33,7 +33,7 @@
     "@scg82/exit-hook": "^3.4.1",
     "chalk": "^5.3.0",
     "tar": "^6.2.1",
-    "undici": "^6.19.8",
+    "undici": "^6.21.1",
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
