@@ -34,7 +34,6 @@ import { getCustomCommands } from "./custom.js"
 import { getBuiltinCommands } from "./commands.js"
 import { styles } from "../logger/styles.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import type { ParsedTemplate } from "../template/types.js"
 
 const { ensureDir, writeFile } = fsExtra
 

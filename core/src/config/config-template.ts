@@ -24,7 +24,6 @@ import type { ActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
 import type { WorkflowConfig } from "./workflow.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import type { ParsedTemplate } from "../template/types.js"
 import type { JSONSchemaType } from "ajv"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 

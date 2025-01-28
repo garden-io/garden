@@ -178,7 +178,7 @@ import { GrowCloudApi } from "./cloud/grow/api.js"
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
-import { serialiseUnresolvedTemplates, type ParsedTemplate } from "./template/types.js"
+import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
 
 const defaultLocalAddress = "localhost"

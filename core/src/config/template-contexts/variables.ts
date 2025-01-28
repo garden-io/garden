@@ -245,6 +245,7 @@ async function loadVarfiles(garden: Garden, configRoot: string, varfiles: Varfil
 
   return varsByFile
 }
+
 function isEmpty(tpl: ParsedTemplate) {
   // filter empty variable contexts for making the debugging easier
   return !tpl || (isPlainObject(tpl) && Object.keys(tpl).length === 0)

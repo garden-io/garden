@@ -31,7 +31,6 @@ import type { BaseGardenResource, GardenResource } from "./base.js"
 import type { GardenApiVersion } from "../constants.js"
 import { DOCS_BASE_URL } from "../constants.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import type { ParsedTemplate } from "../template/types.js"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu

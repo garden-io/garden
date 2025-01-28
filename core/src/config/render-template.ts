@@ -35,7 +35,7 @@ import { RenderTemplateConfigContext } from "./template-contexts/render.js"
 import type { Log } from "../logger/log-entry.js"
 import { GardenApiVersion } from "../constants.js"
 import { deepEvaluate, evaluate } from "../template/evaluate.js"
-import { serialiseUnresolvedTemplates, UnresolvedTemplateValue, type ParsedTemplate } from "../template/types.js"
+import { serialiseUnresolvedTemplates, UnresolvedTemplateValue } from "../template/types.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { InputContext } from "./template-contexts/input.js"
 

@@ -20,7 +20,6 @@ import {
   defaultUtilImageRegistryDomain,
 } from "../../../../../src/plugins/kubernetes/constants.js"
 import { UnresolvedProviderConfig } from "../../../../../src/config/project.js"
-import type { ParsedTemplate } from "../../../../../src/template/types.js"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {

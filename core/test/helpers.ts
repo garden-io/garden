@@ -59,8 +59,6 @@ import { testPlugins } from "./helpers/test-plugin.js"
 import { testDataDir, testGitUrl } from "./helpers/constants.js"
 import { exec } from "../src/util/util.js"
 import { parseTemplateCollection } from "../src/template/templated-collections.js"
-import type { TemplatePrimitive } from "../src/template/types.js"
-import type { CollectionOrValue } from "../src/util/objects.js"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs.js"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing.js"

@@ -48,7 +48,6 @@ import fsExtra, { exists } from "fs-extra"
 
 const { mkdirp, remove } = fsExtra
 import { GlobalConfigStore } from "../config-store/global.js"
-import type { CollectionOrValue } from "./objects.js"
 import { isPromise } from "./objects.js"
 import type { ConfigTemplateConfig } from "../config/config-template.js"
 import type { PluginToolSpec, ToolBuildSpec } from "../plugin/tools.js"
@@ -59,7 +58,6 @@ import { createHash } from "node:crypto"
 import { pipeline } from "node:stream/promises"
 import type { GardenCloudApiFactory } from "../cloud/api.js"
 import { parseTemplateCollection } from "../template/templated-collections.js"
-import type { TemplatePrimitive } from "../template/types.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
 
 export class TestError extends GardenError {

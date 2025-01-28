@@ -17,7 +17,6 @@ import { isString } from "lodash-es"
 import type { ObjectWithName } from "./util/util.js"
 import { extractActionReference, extractRuntimeReference } from "./config/references.js"
 import { deepEvaluate } from "./template/evaluate.js"
-import type { ParsedTemplate } from "./template/types.js"
 
 /**
  * Resolves all declared project outputs. If necessary, this will resolve providers and modules, and ensure services
