@@ -3338,7 +3338,8 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          `module-a: Invalid template string (${key}) at path spec.build.command.0: config module-a cannot reference itself.`,
+          `command: [${key}]`,
+          `Config module-a cannot reference itself.`,
         ],
       })
     })
