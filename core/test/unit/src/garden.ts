@@ -3338,7 +3338,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          `command: [${key}]`,
+          `command: ["${key}"]`,
           `Config module-a cannot reference itself.`,
         ],
       })
