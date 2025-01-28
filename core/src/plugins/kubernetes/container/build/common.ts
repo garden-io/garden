@@ -285,12 +285,13 @@ export async function skopeoBuildStatus({
         return { state: "not-ready", outputs, detail: { runtime } }
       }
 
-      throw new RuntimeError({
-        message: `Unable to query registry for image status: Command "${skopeoCommand.join(
+      log.warn(`Failed to check if the image has already been built: Command "${skopeoCommand.join(
           " "
-        )}" failed: ${err.message}`,
-        wrappedErrors: [err],
-      })
+        )}" failed: ${err.message}`)
+      log.debug(err)
+
+      // If we fail to check the image status, we assume we need to rebuild it.
+      return { state: "not-ready", outputs, detail: { runtime } }
     }
 
     throw err
