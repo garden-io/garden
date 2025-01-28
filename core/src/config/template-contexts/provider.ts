@@ -48,7 +48,7 @@ class ProviderContext extends ContextWithSchema {
       .example({ "cluster-ip": "1.2.3.4" })
       .meta({ keyPlaceholder: "<output-key>" })
   )
-  public outputs: PrimitiveMap
+  public readonly outputs: PrimitiveMap
 
   constructor(provider: Provider) {
     super()
@@ -63,7 +63,7 @@ export class ProviderConfigContext extends WorkflowConfigContext {
       .description("Retrieve information about providers that are defined in the project.")
       .meta({ keyPlaceholder: "<provider-name>" })
   )
-  public providers: Map<string, ProviderContext>
+  public readonly providers: Map<string, ProviderContext>
 
   constructor(garden: Garden, resolvedProviders: ProviderMap, variables: VariablesContext) {
     super(garden, variables)

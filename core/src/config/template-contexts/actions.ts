@@ -43,10 +43,10 @@ const actionModeSchema = joi
 
 class ActionConfigThisContext extends ContextWithSchema {
   @schema(actionNameSchema)
-  public name: string
+  public readonly name: string
 
   @schema(actionModeSchema)
-  public mode: ActionMode
+  public readonly mode: ActionMode
 
   constructor({ name, mode }: ActionConfigThisContextParams) {
     super()
@@ -68,7 +68,7 @@ interface ActionConfigContextParams {
  */
 export class ActionConfigContext extends TemplatableConfigContext {
   @schema(ActionConfigThisContext.getSchema().description("Information about the action currently being resolved."))
-  public this: ActionConfigThisContext
+  public readonly this: ActionConfigThisContext
 
   constructor({ garden, config, thisContextParams, variables }: ActionConfigContextParams) {
     super(garden, config)
@@ -88,10 +88,10 @@ interface ActionReferenceContextParams {
 
 export class ActionReferenceContext extends ContextWithSchema {
   @schema(actionNameSchema)
-  public name: string
+  public readonly name: string
 
   @schema(joi.boolean().required().description("Whether the action is disabled.").example(true))
-  public disabled: boolean
+  public readonly disabled: boolean
 
   @schema(
     joi
@@ -100,7 +100,7 @@ export class ActionReferenceContext extends ContextWithSchema {
       .description("The local path to the action build directory.")
       .example("/my/project/.garden/build/my-action")
   )
-  public buildPath: string
+  public readonly buildPath: string
 
   @schema(
     joi
@@ -109,13 +109,13 @@ export class ActionReferenceContext extends ContextWithSchema {
       .description("The local path to the action source directory.")
       .example("/my/project/my-action")
   )
-  public sourcePath: string
+  public readonly sourcePath: string
 
   @schema(actionModeSchema)
-  public mode: ActionMode
+  public readonly mode: ActionMode
 
   @schema(joiVariables().required().description("The variables configured on the action.").example({ foo: "bar" }))
-  public var: ConfigContext
+  public readonly var: ConfigContext
 
   constructor({ name, disabled, buildPath, sourcePath, mode, variables }: ActionReferenceContextParams) {
     super()
@@ -148,10 +148,10 @@ class ActionResultContext extends ActionReferenceContext {
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
-  public outputs: PrimitiveMap
+  public readonly outputs: PrimitiveMap
 
   @schema(joi.string().required().description("The current version of the action.").example(exampleVersion))
-  public version: string
+  public readonly version: string
 
   constructor(params: ActionResultContextParams) {
     super(params)
@@ -169,22 +169,22 @@ const actionResultContextSchema = (kind: string) =>
 
 class ActionReferencesContext extends ContextWithSchema {
   @schema(actionResultContextSchema("Build"))
-  public build: Map<string, ActionResultContext>
+  public readonly build: Map<string, ActionResultContext>
 
   @schema(actionResultContextSchema("Deploy"))
-  public deploy: Map<string, ActionResultContext>
+  public readonly deploy: Map<string, ActionResultContext>
 
   @schema(actionResultContextSchema("Run"))
-  public run: Map<string, ActionResultContext>
+  public readonly run: Map<string, ActionResultContext>
 
   @schema(actionResultContextSchema("Test"))
-  public test: Map<string, ActionResultContext>
+  public readonly test: Map<string, ActionResultContext>
 
   @schema(_actionResultContextSchema.description("Alias for `deploy`."))
-  public services: Map<string, ActionResultContext>
+  public readonly services: Map<string, ActionResultContext>
 
   @schema(_actionResultContextSchema.description("Alias for `run`."))
-  public tasks: Map<string, ActionResultContext>
+  public readonly tasks: Map<string, ActionResultContext>
 
   constructor(actions: (ResolvedAction | ExecutedAction)[]) {
     super()
@@ -235,34 +235,34 @@ export class ActionSpecContext extends OutputConfigContext {
       "Runtime outputs and information from other actions (only resolved at runtime when executing actions)."
     )
   )
-  public actions: ActionReferencesContext
+  public readonly actions: ActionReferencesContext
 
   @schema(ActionReferencesContext.getSchema().description("Alias for `action`."))
-  public override runtime: ActionReferencesContext
+  public override readonly runtime: ActionReferencesContext
 
   @schema(
     joiVariables().description(`The inputs provided to the config through a template, if applicable.`).meta({
       keyPlaceholder: "<input-key>",
     })
   )
-  public inputs: InputContext
+  public readonly inputs: InputContext
 
   @schema(
     ParentContext.getSchema().description(
       `Information about the config parent, if any (usually a template, if applicable).`
     )
   )
-  public parent?: ParentContext
+  public readonly parent?: ParentContext
 
   @schema(
     TemplateContext.getSchema().description(
       `Information about the template used when generating the config, if applicable.`
     )
   )
-  public template?: TemplateContext
+  public readonly template?: TemplateContext
 
   @schema(ActionReferenceContext.getSchema().description("Information about the action currently being resolved."))
-  public this: ActionReferenceContext
+  public readonly this: ActionReferenceContext
 
   constructor(params: ActionSpecContextParams) {
     const { action, variables, inputs, resolvedDependencies, executedDependencies } = params

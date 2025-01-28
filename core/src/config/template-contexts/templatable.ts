@@ -19,21 +19,21 @@ export class TemplatableConfigContext extends RemoteSourceConfigContext {
       keyPlaceholder: "<input-key>",
     })
   )
-  public inputs: InputContext
+  public readonly inputs: InputContext
 
   @schema(
     ParentContext.getSchema().description(
       `Information about the config parent, if any (usually a template, if applicable).`
     )
   )
-  public parent?: ParentContext
+  public readonly parent?: ParentContext
 
   @schema(
     TemplateContext.getSchema().description(
       `Information about the template used when generating the config, if applicable.`
     )
   )
-  public template?: TemplateContext
+  public readonly template?: TemplateContext
 
   constructor(garden: Garden, config: ActionConfig | WorkflowConfig) {
     super(garden, garden.variables)

@@ -26,7 +26,7 @@ class LocalContext extends ContextWithSchema {
       .description("The absolute path to the directory where exported artifacts from test and task runs are stored.")
       .example("/home/me/my-project/.garden/artifacts")
   )
-  public artifactsPath: string
+  public readonly artifactsPath: string
 
   @schema(
     joiStringMap(joi.string().description("The environment variable value."))
@@ -35,7 +35,7 @@ class LocalContext extends ContextWithSchema {
       )
       .meta({ keyPlaceholder: "<env-var-name>" })
   )
-  public env: typeof process.env
+  public readonly env: typeof process.env
 
   @schema(
     joi
@@ -46,7 +46,7 @@ class LocalContext extends ContextWithSchema {
       )
       .example("x64")
   )
-  public arch: string
+  public readonly arch: string
   @schema(
     joi
       .string()
@@ -56,10 +56,10 @@ class LocalContext extends ContextWithSchema {
       )
       .example("linux")
   )
-  public platform: string
+  public readonly platform: string
 
   @schema(joi.string().description("The absolute path to the project root directory.").example("/home/me/my-project"))
-  public projectPath: string
+  public readonly projectPath: string
 
   @schema(
     joi
@@ -67,7 +67,7 @@ class LocalContext extends ContextWithSchema {
       .description("The current username (as resolved by https://github.com/sindresorhus/username).")
       .example("tenzing_norgay")
   )
-  public username?: string
+  public readonly username?: string
 
   @schema(
     joi
@@ -80,7 +80,7 @@ class LocalContext extends ContextWithSchema {
       )
       .example("tenzing_norgay")
   )
-  public usernameLowerCase?: string
+  public readonly usernameLowerCase?: string
 
   constructor(artifactsPath: string, projectRoot: string, username?: string) {
     super()
@@ -96,7 +96,7 @@ class LocalContext extends ContextWithSchema {
 
 class ProjectContext extends ContextWithSchema {
   @schema(joi.string().description("The name of the Garden project.").example("my-project"))
-  public name: string
+  public readonly name: string
 
   constructor(name: string) {
     super()
@@ -111,7 +111,7 @@ class DatetimeContext extends ContextWithSchema {
       .description("The current UTC date and time, at time of template resolution, in ISO-8601 format.")
       .example("2011-10-05T14:48:00.000Z")
   )
-  public now: string
+  public readonly now: string
 
   @schema(
     joi
@@ -119,7 +119,7 @@ class DatetimeContext extends ContextWithSchema {
       .description("The current UTC date, at time of template resolution, in ISO-8601 format.")
       .example("2011-10-05")
   )
-  public today: string
+  public readonly today: string
 
   @schema(
     joi
@@ -127,7 +127,7 @@ class DatetimeContext extends ContextWithSchema {
       .description("The current UTC Unix timestamp (in seconds), at time of template resolution.")
       .example(1642005235)
   )
-  public timestamp: number
+  public readonly timestamp: number
 
   constructor() {
     super()
@@ -156,7 +156,7 @@ class VcsContext extends ContextWithSchema {
       )
       .example("my-feature-branch")
   )
-  public branch: string
+  public readonly branch: string
 
   @schema(
     joi
@@ -172,7 +172,7 @@ class VcsContext extends ContextWithSchema {
       )
       .example("my-feature-branch")
   )
-  public commitHash: string
+  public readonly commitHash: string
 
   @schema(
     joi
@@ -186,7 +186,7 @@ class VcsContext extends ContextWithSchema {
       )
       .example("my-feature-branch")
   )
-  public originUrl: string
+  public readonly originUrl: string
 
   constructor(info: VcsInfo) {
     super()
@@ -209,7 +209,7 @@ class CommandContext extends ContextWithSchema {
       )
       .example("deploy")
   )
-  public name: string
+  public readonly name: string
 
   @schema(
     joiStringMap(joi.any())
@@ -222,7 +222,7 @@ class CommandContext extends ContextWithSchema {
       )
       .example({ force: true, dev: ["my-service"] })
   )
-  public params: DeepPrimitiveMap
+  public readonly params: DeepPrimitiveMap
 
   constructor(commandInfo: CommandInfo) {
     super()
@@ -249,19 +249,19 @@ export class DefaultEnvironmentContext extends ContextWithSchema {
       "Context variables that are specific to the currently running environment/machine."
     )
   )
-  public local: LocalContext
+  public readonly local: LocalContext
 
   @schema(CommandContext.getSchema().description("Information about the currently running command and its arguments."))
-  public command: CommandContext
+  public readonly command: CommandContext
 
   @schema(DatetimeContext.getSchema().description("Information about the date/time at template resolution time."))
-  public datetime: DatetimeContext
+  public readonly datetime: DatetimeContext
 
   @schema(ProjectContext.getSchema().description("Information about the Garden project."))
-  public project: ProjectContext
+  public readonly project: ProjectContext
 
   @schema(VcsContext.getSchema().description("Information about the current state of the project's Git repository."))
-  public git: VcsContext
+  public readonly git: VcsContext
 
   constructor({
     projectName,
@@ -302,9 +302,9 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
         keyPlaceholder: "<secret-name>",
       })
   )
-  public secrets: PrimitiveMap
-  private _enterpriseDomain: string | undefined
-  private _loggedIn: boolean
+  public readonly secrets: PrimitiveMap
+  private readonly _enterpriseDomain: string | undefined
+  private readonly _loggedIn: boolean
 
   override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
     if (key[0] !== "secrets") {
@@ -383,7 +383,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
   @schema(
     EnvironmentContext.getSchema().description("Information about the environment that Garden is running against.")
   )
-  public environment: EnvironmentContext
+  public readonly environment: EnvironmentContext
 
   // Overriding to update the description. Same schema as base.
   @schema(

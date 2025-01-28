@@ -235,7 +235,7 @@ export class EnvironmentContext extends ContextWithSchema {
       .description("The name of the environment Garden is running against, excluding the namespace.")
       .example("local")
   )
-  public name: string
+  public readonly name: string
 
   @schema(
     joi
@@ -244,10 +244,10 @@ export class EnvironmentContext extends ContextWithSchema {
       .description("The full name of the environment Garden is running against, including the namespace.")
       .example("my-namespace.local")
   )
-  public fullName: string
+  public readonly fullName: string
 
   @schema(joi.string().description("The currently active namespace (if any).").example("my-namespace"))
-  public namespace: string
+  public readonly namespace: string
 
   constructor(name: string, fullName: string, namespace?: string) {
     super()
@@ -261,7 +261,7 @@ export class EnvironmentContext extends ContextWithSchema {
  * Used to throw a specific error, e.g. when a module attempts to reference itself.
  */
 export class ErrorContext extends ConfigContext {
-  constructor(private message: string) {
+  constructor(private readonly message: string) {
     super()
   }
 
@@ -272,7 +272,7 @@ export class ErrorContext extends ConfigContext {
 
 export class ParentContext extends ContextWithSchema {
   @schema(joiIdentifier().description(`The name of the parent config.`))
-  public name: string
+  public readonly name: string
 
   constructor(name: string) {
     super()
@@ -282,7 +282,7 @@ export class ParentContext extends ContextWithSchema {
 
 export class TemplateContext extends ContextWithSchema {
   @schema(joiIdentifier().description(`The name of the template.`))
-  public name: string
+  public readonly name: string
 
   constructor(name: string) {
     super()

@@ -14,10 +14,10 @@ import { EnvironmentConfigContext } from "./project.js"
 
 export class RenderTemplateConfigContext extends EnvironmentConfigContext {
   @schema(ParentContext.getSchema().description(`Information about the templated config being resolved.`))
-  public parent: ParentContext
+  public readonly parent: ParentContext
 
   @schema(TemplateContext.getSchema().description(`Information about the template used when generating the config.`))
-  public template: TemplateContext
+  public readonly template: TemplateContext
 
   @schema(
     joiVariables().description(`The inputs provided when resolving the template.`).meta({

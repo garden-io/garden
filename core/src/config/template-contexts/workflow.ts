@@ -23,7 +23,7 @@ export class WorkflowConfigContext extends RemoteSourceConfigContext {}
 
 class WorkflowStepContext extends ContextWithSchema {
   @schema(joi.string().description("The full output log from the step."))
-  public log: string
+  public readonly log: string
 
   @schema(
     joiVariables()
@@ -38,7 +38,7 @@ class WorkflowStepContext extends ContextWithSchema {
       .example({ stdout: "my script output" })
       .meta({ keyPlaceholder: "<output-key>" })
   )
-  public outputs: DeepPrimitiveMap
+  public readonly outputs: DeepPrimitiveMap
 
   constructor(stepResult: WorkflowStepResult) {
     super()
@@ -65,7 +65,7 @@ export class WorkflowStepConfigContext extends TemplatableConfigContext {
       )
       .meta({ keyPlaceholder: "<step-name>" })
   )
-  public steps: Map<string, WorkflowStepContext | ErrorContext>
+  public readonly steps: Map<string, WorkflowStepContext | ErrorContext>
 
   constructor({
     allStepNames,

@@ -31,10 +31,10 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
       .description("A map of all variables defined in the command configuration.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: VariablesContext
+  public readonly variables: VariablesContext
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: ConfigContext
+  public readonly var: ConfigContext
 
   @schema(
     joi
@@ -55,7 +55,7 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
         "Map of all arguments, as defined in the Command spec. Also includes `$all`, `$rest` and `--` fields. See their description for details."
       )
   )
-  public args: ArgsSchema
+  public readonly args: ArgsSchema
 
   @schema(
     joi
@@ -65,7 +65,7 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
       .unknown(true)
       .description("Map of all options, as defined in the Command spec.")
   )
-  public opts: OptsSchema
+  public readonly opts: OptsSchema
 
   constructor(
     params: DefaultEnvironmentContextParams & {

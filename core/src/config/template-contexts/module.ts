@@ -40,10 +40,10 @@ class ModuleThisContext extends ContextWithSchema {
       .description("The build path of the module.")
       .example("/home/me/code/my-project/.garden/build/my-build")
   )
-  public buildPath: string
+  public readonly buildPath: string
 
   @schema(joiIdentifier().description(`The name of the module.`))
-  public name: string
+  public readonly name: string
 
   @schema(
     joi
@@ -77,17 +77,17 @@ export class ModuleReferenceContext extends ModuleThisContext {
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
-  public outputs: PrimitiveMap
+  public readonly outputs: PrimitiveMap
 
   @schema(
     joiVariables()
       .description("A map of all variables defined in the module.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public var: DeepPrimitiveMap
+  public readonly var: DeepPrimitiveMap
 
   @schema(joi.string().required().description("The current version of the module.").example(exampleVersion))
-  public version: string
+  public readonly version: string
 
   constructor(module: GardenModule) {
     super({ buildPath: module.buildPath, name: module.name, path: module.path })
@@ -112,10 +112,10 @@ export class ServiceRuntimeContext extends ContextWithSchema {
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
-  public outputs: PrimitiveMap
+  public readonly outputs: PrimitiveMap
 
   @schema(joi.string().required().description("The current version of the service.").example(exampleVersion))
-  public version: string
+  public readonly version: string
 
   constructor(outputs: PrimitiveMap, version: string) {
     super()
@@ -139,10 +139,10 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
-  public override outputs: PrimitiveMap
+  public override readonly outputs: PrimitiveMap
 
   @schema(joi.string().required().description("The current version of the task.").example(exampleVersion))
-  public override version: string
+  public override readonly version: string
 
   constructor(outputs: PrimitiveMap, version: string) {
     super(outputs, version)
@@ -158,7 +158,7 @@ class RuntimeConfigContext extends ContextWithSchema {
       .description("Runtime information from the services that the service/task being run depends on.")
       .meta({ keyPlaceholder: "<service-name>" })
   )
-  public services: Map<string, ServiceRuntimeContext>
+  public readonly services: Map<string, ServiceRuntimeContext>
 
   @schema(
     joiIdentifierMap(TaskRuntimeContext.getSchema())
@@ -166,7 +166,7 @@ class RuntimeConfigContext extends ContextWithSchema {
       .description("Runtime information from the tasks that the service/task being run depends on.")
       .meta({ keyPlaceholder: "<task-name>" })
   )
-  public tasks: Map<string, TaskRuntimeContext>
+  public readonly tasks: Map<string, TaskRuntimeContext>
 
   constructor(graphResults?: GraphResults) {
     super()
@@ -207,7 +207,7 @@ export class OutputConfigContext extends ProviderConfigContext {
       .description("Retrieve information about modules that are defined in the project.")
       .meta({ keyPlaceholder: "<module-name>" })
   )
-  public modules: Map<string, ModuleReferenceContext | ErrorContext>
+  public readonly modules: Map<string, ModuleReferenceContext | ErrorContext>
 
   @schema(
     RuntimeConfigContext.getSchema().description(
@@ -215,7 +215,7 @@ export class OutputConfigContext extends ProviderConfigContext {
         "(only resolved at runtime when deploying services and running tasks)."
     )
   )
-  public runtime: RuntimeConfigContext
+  public readonly runtime: RuntimeConfigContext
 
   constructor({ garden, resolvedProviders, variables, modules, graphResults }: OutputConfigContextParams) {
     super(garden, resolvedProviders, variables)
@@ -250,24 +250,24 @@ export class ModuleConfigContext extends OutputConfigContext {
       keyPlaceholder: "<input-key>",
     })
   )
-  public inputs: InputContext
+  public readonly inputs: InputContext
 
   @schema(
     ParentContext.getSchema().description(
       `Information about the config parent, if any (usually a template, if applicable).`
     )
   )
-  public parent?: ParentContext
+  public readonly parent?: ParentContext
 
   @schema(
     TemplateContext.getSchema().description(
       `Information about the template used when generating the config, if applicable.`
     )
   )
-  public template?: TemplateContext
+  public readonly template?: TemplateContext
 
   @schema(ModuleThisContext.getSchema().description("Information about the action/module currently being resolved."))
-  public this: ModuleThisContext
+  public readonly this: ModuleThisContext
 
   constructor(params: ModuleConfigContextParams) {
     super(params)

@@ -147,13 +147,13 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
 
 class BuildSelfContext extends ContextWithSchema {
   @schema(joi.string().description("The name of the build being tagged."))
-  public name: string
+  public readonly name: string
 
   @schema(joi.string().description("The version of the build being tagged (including the 'v-' prefix)."))
-  public version: string
+  public readonly version: string
 
   @schema(joi.string().description("The version hash of the build being tagged (minus the 'v-' prefix)."))
-  public hash: string
+  public readonly hash: string
 
   constructor(build: BuildAction) {
     super()
@@ -165,10 +165,10 @@ class BuildSelfContext extends ContextWithSchema {
 
 class BuildTagContext extends ActionSpecContext {
   @schema(BuildSelfContext.getSchema().description("Extended information about the build being tagged."))
-  public build: BuildSelfContext
+  public readonly build: BuildSelfContext
 
   @schema(BuildSelfContext.getSchema().description("Alias kept for compatibility."))
-  public module: BuildSelfContext
+  public readonly module: BuildSelfContext
 
   constructor(params: ActionSpecContextParams & { action: BuildAction }) {
     super(params)
