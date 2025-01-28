@@ -92,7 +92,6 @@ const accessDetector = new Proxy(
 )
 
 export abstract class UnresolvedTemplateValue {
-  private readonly then: undefined // the js engine sometimes accesses this key
   protected constructor() {
     // The spread trap exists to make our code more robust by detecting spreading unresolved template values.
     Object.defineProperty(this, "objectSpreadTrap", {
