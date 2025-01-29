@@ -1174,86 +1174,88 @@ describe("kubernetes Pod runner functions", () => {
   describe("runAndCopy", () => {
     const image = "busybox:1.31.1"
 
-    let tmpDir: tmp.DirectoryResult
+    context("artifacts are not specified", () => {
+      it("should run a basic action", async () => {
+        const action = await garden.resolveAction({ action: graph.getRun("echo-task"), log, graph })
 
-    beforeEach(async () => {
-      tmpDir = await tmp.dir({ unsafeCleanup: true })
-    })
+        const result = await runAndCopy({
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+          log: garden.log,
+          command: ["sh", "-c", "echo ok"],
+          args: [],
+          artifactsPath: "./",
+          interactive: false,
+          action,
+          namespace,
+          image,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
+        })
 
-    afterEach(async () => {
-      await tmpDir.cleanup()
-    })
-
-    it("should run a basic action", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun("echo-task"), log, graph })
-
-      const result = await runAndCopy({
-        ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-        log: garden.log,
-        command: ["sh", "-c", "echo ok"],
-        args: [],
-        artifactsPath: "./",
-        interactive: false,
-        action,
-        namespace,
-        image,
-        timeout: DEFAULT_RUN_TIMEOUT_SEC,
+        expect(result.log.trim()).to.equal("ok")
       })
 
-      expect(result.log.trim()).to.equal("ok")
-    })
+      it("should clean up the created container", async () => {
+        const action = await garden.resolveAction({ action: graph.getRun("echo-task"), log, graph })
+        const podName = makePodName("test", action.name)
 
-    it("should clean up the created container", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun("echo-task"), log, graph })
-      const podName = makePodName("test", action.name)
+        await runAndCopy({
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+          log: garden.log,
+          command: ["sh", "-c", "echo ok"],
+          args: [],
+          artifactsPath: "./",
+          interactive: false,
+          action,
+          namespace: provider.config.namespace!.name!,
+          podName,
+          image,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
+        })
 
-      await runAndCopy({
-        ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-        log: garden.log,
-        command: ["sh", "-c", "echo ok"],
-        args: [],
-        artifactsPath: "./",
-        interactive: false,
-        action,
-        namespace: provider.config.namespace!.name!,
-        podName,
-        image,
-        timeout: DEFAULT_RUN_TIMEOUT_SEC,
+        await expectError(
+          () => api.core.readNamespacedPod({ name: podName, namespace }),
+          (err) => {
+            expect(err).to.be.instanceOf(KubernetesError)
+            expect(err.responseStatusCode).to.equal(404)
+          }
+        )
       })
 
-      await expectError(
-        () => api.core.readNamespacedPod({ name: podName, namespace }),
-        (err) => {
-          expect(err).to.be.instanceOf(KubernetesError)
-          expect(err.responseStatusCode).to.equal(404)
-        }
-      )
-    })
+      it("should return with success=false when command exceeds timeout", async () => {
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
 
-    it("should return with success=false when command exceeds timeout", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
+        const timeout = 4
+        const result = await runAndCopy({
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+          log: garden.log,
+          command: ["sh", "-c", "echo banana && sleep 10"],
+          args: [],
+          artifactsPath: "./",
+          interactive: false,
+          action,
+          namespace,
+          image,
+          timeout,
+        })
 
-      const timeout = 4
-      const result = await runAndCopy({
-        ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-        log: garden.log,
-        command: ["sh", "-c", "echo banana && sleep 10"],
-        args: [],
-        artifactsPath: "./",
-        interactive: false,
-        action,
-        namespace,
-        image,
-        timeout,
+        // Note: Kubernetes doesn't always return the logs when commands time out.
+        expect(result.log.trim()).to.include(`Command timed out after ${timeout} seconds.`)
+        expect(result.success).to.be.false
       })
-
-      // Note: Kubernetes doesn't always return the logs when commands time out.
-      expect(result.log.trim()).to.include(`Command timed out after ${timeout} seconds.`)
-      expect(result.success).to.be.false
     })
 
     context("artifacts are specified", () => {
       const interactiveModeContexts = [{ interactive: false }, { interactive: true }]
+
+      let tmpDir: tmp.DirectoryResult
+
+      beforeEach(async () => {
+        tmpDir = await tmp.dir({ unsafeCleanup: true })
+      })
+
+      afterEach(async () => {
+        await tmpDir.cleanup()
+      })
 
       for (const interactiveModeContext of interactiveModeContexts) {
         const interactive = interactiveModeContext.interactive
