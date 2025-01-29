@@ -21,6 +21,7 @@ import {
 } from "../../../../../../src/constants.js"
 import { serialiseUnresolvedTemplates } from "../../../../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
+import { ActionConfig } from "../../../../../../src/actions/types.js"
 
 describe("configureKubernetesModule", () => {
   let garden: TestGarden
@@ -193,6 +194,17 @@ describe("configureKubernetesType", () => {
   it("should resolve fine with null values for manifests in spec.files", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const action = graph.getDeploy("config-map-list")
-    expect(action["_config"].spec.files).to.eql([null])
+    const config = serialiseUnresolvedTemplates(action["_config"]) as ActionConfig
+
+    // spec won't be resolved until resolveAction
+    expect(config.spec.files).to.eql(["${var.foo ? 'manifests.yaml' : null}"])
+
+    // include will be fully resolved in preprocessActionConfig, and null values will be filtered by sparseArray
+    expect(config.include).to.eql([])
+
+    // validation will remove null values from sparse arrays
+    const resolved = await garden.resolveAction({ action, graph, log: garden.log })
+    expect(resolved.getConfig().spec.files).to.eql([])
+    expect(resolved.getConfig().include).to.eql([])
   })
 })

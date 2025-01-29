@@ -323,20 +323,20 @@ export const triggerSchema = memoize(() => {
         \n
         `
       ),
-    branches: joi.array().items(joi.string()).unique().description(deline`
+    branches: joi.sparseArray().items(joi.string()).unique().description(deline`
         If specified, only run the workflow for branches matching one of these filters. These filters refer to the
         pull/merge request's head branch (e.g. \`my-feature-branch\`), not the base branch that the pull/merge request
         would be merged into if approved (e.g. \`main\`).
        `),
-    baseBranches: joi.array().items(joi.string()).unique().description(deline`
+    baseBranches: joi.sparseArray().items(joi.string()).unique().description(deline`
         If specified, only run the workflow for pull/merge requests whose base branch matches one of these filters.
       `),
-    ignoreBranches: joi.array().items(joi.string()).unique().description(deline`
+    ignoreBranches: joi.sparseArray().items(joi.string()).unique().description(deline`
         If specified, do not run the workflow for branches matching one of these filters. These filters refer to the
         pull/merge request's head branch (e.g. \`my-feature-branch\`), not the base branch that the pull/merge request
         would be merged into if approved (e.g. \`main\`).
       `),
-    ignoreBaseBranches: joi.array().items(joi.string()).unique().description(deline`
+    ignoreBaseBranches: joi.sparseArray().items(joi.string()).unique().description(deline`
         If specified, do not run the workflow for pull/merge requests whose base branch matches one of these filters.
       `),
   })

@@ -116,7 +116,7 @@ const actionSourceSpecSchema = createSchema({
   meta: { name: "action-source", advanced: true, templateContext: ActionConfigContext },
 })
 
-export const includeExcludeSchema = memoize(() => joi.array().items(joi.posixPath().allowGlobs().subPathOnly()))
+export const includeExcludeSchema = memoize(() => joi.sparseArray().items(joi.posixPath().allowGlobs().subPathOnly()))
 
 const varfileName = "my-action.${environment.name}.env"
 

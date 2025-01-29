@@ -68,7 +68,7 @@ export interface ContainerProviderConfig extends BaseProviderConfig {
 export const configSchema = () =>
   providerConfigBaseSchema()
     .keys({
-      dockerBuildExtraFlags: joi.array().items(joi.string()).description(dedent`
+      dockerBuildExtraFlags: joi.sparseArray().items(joi.string()).description(dedent`
           **Stability: Experimental**. Subject to breaking changes within minor releases.
 
           Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
