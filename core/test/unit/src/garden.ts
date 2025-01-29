@@ -3400,7 +3400,7 @@ describe("Garden", () => {
         }),
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",
@@ -3447,7 +3447,7 @@ describe("Garden", () => {
         }),
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",
@@ -3493,7 +3493,7 @@ describe("Garden", () => {
         }),
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",
@@ -3539,7 +3539,7 @@ describe("Garden", () => {
         }),
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",
@@ -3586,7 +3586,7 @@ describe("Garden", () => {
         }),
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",
@@ -3644,7 +3644,7 @@ describe("Garden", () => {
         }),
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",
@@ -3719,7 +3719,7 @@ describe("Garden", () => {
       })
 
       it("resolves referenced project variables", async () => {
-        garden.setModuleConfigs([
+        garden.setPartialModuleConfigs([
           {
             apiVersion: GardenApiVersion.v0,
             name: "module-a",
@@ -3743,7 +3743,7 @@ describe("Garden", () => {
       })
 
       it("resolves referenced module variables", async () => {
-        garden.setModuleConfigs([
+        garden.setPartialModuleConfigs([
           {
             apiVersion: GardenApiVersion.v0,
             name: "module-a",
@@ -3770,7 +3770,7 @@ describe("Garden", () => {
       })
 
       it("prefers module variables over project variables", async () => {
-        garden.setModuleConfigs([
+        garden.setPartialModuleConfigs([
           {
             apiVersion: GardenApiVersion.v0,
             name: "module-a",
@@ -3797,7 +3797,7 @@ describe("Garden", () => {
       })
 
       it("resolves project variables in module variables", async () => {
-        garden.setModuleConfigs([
+        garden.setPartialModuleConfigs([
           {
             apiVersion: GardenApiVersion.v0,
             name: "module-a",
@@ -3824,7 +3824,7 @@ describe("Garden", () => {
       })
 
       it("exposes module vars to other modules", async () => {
-        garden.setModuleConfigs([
+        garden.setPartialModuleConfigs([
           {
             apiVersion: GardenApiVersion.v0,
             name: "module-a",
@@ -3926,7 +3926,7 @@ describe("Garden", () => {
 
       const targetPath = "targetfile.log"
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",
@@ -3968,7 +3968,7 @@ describe("Garden", () => {
 
       const targetPath = "targetfile.log"
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",
@@ -4002,7 +4002,7 @@ describe("Garden", () => {
     it("throws helpful error is sourcePath doesn't contain globs and can't be found", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",
@@ -4052,7 +4052,7 @@ describe("Garden", () => {
         const targetPath = "targetfile.log"
         await writeFile(sourceFullPath, "hello ${project.name}")
 
-        garden.setModuleConfigs([
+        garden.setPartialModuleConfigs([
           {
             apiVersion: GardenApiVersion.v0,
             name: "module-a",
@@ -4111,7 +4111,7 @@ describe("Garden", () => {
         const targetPath = "targetfile.log"
         await writeFile(sourceFullPath, "hello ${project.name}")
 
-        garden.setModuleConfigs([
+        garden.setPartialModuleConfigs([
           {
             apiVersion: GardenApiVersion.v0,
             name: "module-a",
@@ -4295,7 +4295,7 @@ describe("Garden", () => {
         config: projectConfigFoo,
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "foo",
@@ -4344,7 +4344,7 @@ describe("Garden", () => {
         config: projectConfigFoo,
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "foo",
@@ -4411,7 +4411,7 @@ describe("Garden", () => {
         plugins: [testPlugin()],
       })
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "invalidtype",
@@ -4445,7 +4445,7 @@ describe("Garden", () => {
         plugins: [testPluginNoBuildAction],
       })
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -4475,7 +4475,7 @@ describe("Garden", () => {
         plugins: [testPlugin()],
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",
@@ -4597,7 +4597,7 @@ describe("Garden", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "foo",
@@ -4662,7 +4662,7 @@ describe("Garden", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "foo",
@@ -4747,7 +4747,7 @@ describe("Garden", () => {
           },
         })
 
-        garden.setModuleConfigs([
+        garden.setPartialModuleConfigs([
           {
             apiVersion: GardenApiVersion.v0,
             name: "foo",
@@ -4825,7 +4825,7 @@ describe("Garden", () => {
           },
         })
 
-        garden.setModuleConfigs([
+        garden.setPartialModuleConfigs([
           {
             apiVersion: GardenApiVersion.v0,
             name: "foo",
@@ -4989,7 +4989,7 @@ describe("Garden", () => {
         config: projectConfigFoo,
       })
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -5052,7 +5052,7 @@ describe("Garden", () => {
         config: projectConfigFoo,
       })
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",

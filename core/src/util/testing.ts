@@ -303,21 +303,28 @@ export class TestGarden extends Garden {
    * Public wrapper around this.addActionConfig()
    */
   addAction(config: ActionConfig) {
-    this.addActionConfig(config)
+    this.addRawActionConfig(config)
   }
 
   /**
    * Replace all module configs with the one provided.
    */
-  setModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
-    this.state.configsScanned = true
-    this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
+  setPartialModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
+    this.setRawModuleConfigs(moduleConfigs.map(moduleConfigWithDefaults))
   }
 
   /**
-   * Merge the provided module configs with the existing ones.
+   * Same as setModuleConfigs, but do not parse the module configs and apply defaults
    */
-  mergeModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
+  setRawModuleConfigs(parsedModuleConfigs: ModuleConfig[]) {
+    this.state.configsScanned = true
+    this.moduleConfigs = keyBy(parsedModuleConfigs, "name")
+  }
+
+  /**
+   * Same as setModuleConfigs, but keeps existing configs. Existing configs with the same name as added configs will be overridden.
+   */
+  overrideRawModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
     this.state.configsScanned = true
     this.moduleConfigs = {
       ...this.moduleConfigs,
@@ -325,7 +332,7 @@ export class TestGarden extends Garden {
     }
   }
 
-  setActionConfigs(actionConfigs: PartialActionConfig[]) {
+  setPartialActionConfigs(actionConfigs: PartialActionConfig[]) {
     this.actionConfigs = {
       Build: {},
       Deploy: {},
@@ -344,14 +351,14 @@ export class TestGarden extends Garden {
           ...ac.internal,
         },
       }
-      this.addActionConfig(
+      this.addRawActionConfig(
         // @ts-expect-error todo: correct types for unresolved configs
         parseTemplateCollection({ value: merged, source: { path: [] } })
       )
     })
   }
 
-  setWorkflowConfigs(workflowConfigs: WorkflowConfig[]) {
+  setRawWorkflowConfigs(workflowConfigs: WorkflowConfig[]) {
     this.workflowConfigs = keyBy(workflowConfigs, "name")
   }
 

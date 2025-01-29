@@ -60,7 +60,7 @@ describe("hadolint provider", () => {
       config: projectConfigFoo,
     })
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       // With Dockerfile
       {
         apiVersion: GardenApiVersion.v0,
@@ -125,7 +125,7 @@ describe("hadolint provider", () => {
       },
     })
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "foo",
@@ -158,7 +158,7 @@ describe("hadolint provider", () => {
         config: projectConfigFoo,
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "foo",
@@ -231,7 +231,7 @@ describe("hadolint provider", () => {
 
       const modulePath = getDataDir("hadolint", "ignore-dl3007")
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "foo",
@@ -298,7 +298,7 @@ describe("hadolint provider", () => {
         `
       )
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "foo",
@@ -359,7 +359,7 @@ describe("hadolint provider", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "foo",
@@ -410,7 +410,7 @@ describe("hadolint provider", () => {
         config: projectConfigFoo,
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "foo",
@@ -464,7 +464,7 @@ describe("hadolint provider", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "foo",

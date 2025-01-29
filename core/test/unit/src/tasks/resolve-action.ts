@@ -49,7 +49,7 @@ describe("ResolveActionTask", () => {
 
   describe("resolveStatusDependencies", () => {
     it("returns an empty list", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -65,7 +65,7 @@ describe("ResolveActionTask", () => {
 
   describe("resolveProcessDependencies", () => {
     it("returns nothing if no dependencies are defined or found", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -79,7 +79,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("returns execute task for dependency with needsExecutedOutputs=true", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -104,7 +104,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("returns resolve task for dependency with needsStaticOutputs=true", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -129,7 +129,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("returns resolve task for explicit dependency", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -155,7 +155,7 @@ describe("ResolveActionTask", () => {
 
   describe("process", () => {
     it("resolves an action", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -173,7 +173,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves action variables", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -194,7 +194,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves action mode", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Deploy",
           type: "test",
@@ -215,7 +215,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("correctly merges action and CLI variables", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -246,7 +246,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves static action references", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -278,7 +278,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("throws if spec is invalid after resolution", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -303,7 +303,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves static outputs", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -347,7 +347,7 @@ describe("ResolveActionTask", () => {
         },
       })
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -388,7 +388,7 @@ describe("ResolveActionTask", () => {
         },
       })
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -405,7 +405,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves action.* runtime references", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Run",
           type: "test",
@@ -433,7 +433,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves runtime.* references", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Run",
           type: "test",
@@ -473,7 +473,7 @@ describe("ResolveActionTask", () => {
         },
       }
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Deploy",
           type: "test",

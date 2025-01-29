@@ -85,7 +85,7 @@ describe("plugins.container", () => {
       })
     )
 
-    garden.setActionConfigs([cfg])
+    garden.setPartialActionConfigs([cfg])
     const graph = await garden.getConfigGraph({ emit: false, log })
     const build = graph.getBuild(cfg.name)
     const resolved = await garden.resolveAction({ action: build, graph, log })

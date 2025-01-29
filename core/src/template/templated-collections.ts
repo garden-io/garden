@@ -220,7 +220,7 @@ export function parseTemplateCollection<Input extends CollectionOrValue<Template
       }
     } else {
       throw new InternalError({
-        message: `Got unexpected value type: ${typeof value}`,
+        message: `Got unexpected value type: ${typeof value === "object" && value !== null ? value["constructor"]?.["name"] || "plain object" : typeof value}`,
       })
     }
   }

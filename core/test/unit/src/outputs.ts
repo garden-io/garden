@@ -113,7 +113,7 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         allowPublish: false,
@@ -185,7 +185,7 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setActionConfigs([
+    garden.setPartialActionConfigs([
       {
         name: "test",
         type: "test",
@@ -261,7 +261,7 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setActionConfigs([
+    garden.setPartialActionConfigs([
       {
         name: "test",
         type: "test",

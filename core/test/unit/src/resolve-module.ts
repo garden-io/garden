@@ -34,7 +34,7 @@ describe("ModuleResolver", () => {
   it("handles a project template reference in a build dependency name", async () => {
     const garden = await makeTestGardenA()
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         name: "test-project-a",
         type: "test",
@@ -61,7 +61,7 @@ describe("ModuleResolver", () => {
       },
     })
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         name: "test-project-a",
         type: "test",
@@ -92,7 +92,7 @@ describe("ModuleResolver", () => {
   it("handles a module template reference in a build dependency name", async () => {
     const garden = await makeTestGardenA()
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         name: "module-a",
         type: "test",
@@ -239,7 +239,7 @@ describe("convertModules", () => {
       const garden = await makeTestGarden(projectRootA, { plugins: [testPlugin] })
       const log = garden.log
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           name: "module-a",
           type: "test",

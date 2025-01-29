@@ -103,7 +103,7 @@ describe("GetConfigCommand", () => {
         steps: [{ command: ["run", "foo"] }],
       },
     ]
-    garden.setWorkflowConfigs(workflowConfigs)
+    garden.setRawWorkflowConfigs(workflowConfigs)
 
     const res = await command.action({
       garden,
@@ -121,7 +121,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         allowPublish: false,
@@ -188,7 +188,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         allowPublish: false,
@@ -246,7 +246,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         allowPublish: false,
@@ -302,7 +302,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         allowPublish: false,
@@ -367,7 +367,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           allowPublish: false,
@@ -432,7 +432,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           allowPublish: false,
@@ -492,7 +492,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           allowPublish: false,
@@ -567,7 +567,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           allowPublish: false,
@@ -679,7 +679,7 @@ describe("GetConfigCommand", () => {
         },
       ]
 
-      garden.setModuleConfigs(rawConfigs)
+      garden.setPartialModuleConfigs(rawConfigs)
 
       const res = await command.action({
         garden,

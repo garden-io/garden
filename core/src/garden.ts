@@ -912,7 +912,7 @@ export class Garden {
         for (const moduleConfig of provider.moduleConfigs) {
           // Make sure module and all nested entities are scoped to the plugin
           moduleConfig.plugin = provider.name
-          this.addModuleConfig(moduleConfig)
+          this.addRawModuleConfig(moduleConfig)
         }
       }
 
@@ -1507,8 +1507,8 @@ export class Garden {
       rawWorkflowConfigs.push(...workflowsFromTemplates)
 
       // Add all the configs
-      rawModuleConfigs.map((c) => this.addModuleConfig(c))
-      rawWorkflowConfigs.map((c) => this.addWorkflow(c))
+      rawModuleConfigs.map((c) => this.addRawModuleConfig(c))
+      rawWorkflowConfigs.map((c) => this.addRawWorkflow(c))
 
       let actionsCount = 0
 
@@ -1526,13 +1526,13 @@ export class Garden {
         }
 
         for (const config of actionConfigs) {
-          this.addActionConfig(config as unknown as BaseActionConfig)
+          this.addRawActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
         }
       }
 
       for (const config of actionsFromTemplates) {
-        this.addActionConfig(config)
+        this.addRawActionConfig(config)
         actionsCount++
       }
 
@@ -1581,7 +1581,7 @@ export class Garden {
   /**
    * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
-  protected addActionConfig(config: BaseActionConfig) {
+  protected addRawActionConfig(config: BaseActionConfig) {
     const parentTemplateName = config.internal.templateName
     this.log.silly(
       () =>
@@ -1619,7 +1619,7 @@ export class Garden {
   /**
    * Add a module config to the context, after validating and calling the appropriate configure plugin handler.
    */
-  private addModuleConfig(config: ModuleConfig) {
+  private addRawModuleConfig(config: ModuleConfig) {
     const key = config.name
     this.log.silly(() => `Adding module ${key}`)
     const existing = this.moduleConfigs[key]
@@ -1641,7 +1641,7 @@ export class Garden {
    * added workflows, and partially resolving it (i.e. without fully resolving step configs, which
    * is done just-in-time before a given step is run).
    */
-  private addWorkflow(config: WorkflowConfig) {
+  private addRawWorkflow(config: WorkflowConfig) {
     const key = config.name
     this.log.silly(() => `Adding workflow ${key}`)
 

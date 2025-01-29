@@ -68,7 +68,7 @@ describe("BuildTask", () => {
     })
     garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
-    garden.setActionConfigs([
+    garden.setPartialActionConfigs([
       {
         name: "test-build",
         type: "test",
