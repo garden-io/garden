@@ -13,21 +13,24 @@ import { ingressControllerReady } from "../../../../../src/plugins/kubernetes/ng
 import { uninstallGardenServices } from "../../../../../src/plugins/kubernetes/commands/uninstall-garden-services.js"
 import { prepareEnvironment } from "../../../../../src/plugins/kubernetes/init.js"
 import type { PrepareEnvironmentParams } from "../../../../../src/plugin/handlers/Provider/prepareEnvironment.js"
-import { getContainerTestGarden } from "./container/container.js"
 import type { Garden } from "../../../../../src/garden.js"
+import { getEmptyGardenWithLocalK8sProvider } from "../../../helpers.js"
+import { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 
 describe("It should manage ingress controller for respective cluster type", () => {
   let garden: Garden
+  let graph: ConfigGraph
   let ctx: KubernetesPluginContext
   let provider: KubernetesProvider
   let log: Log
 
   before(async () => {
-    await init()
+    garden = await getEmptyGardenWithLocalK8sProvider()
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
-  after(async () => {
-    await cleanup()
+  beforeEach(async () => {
+    await init()
   })
 
   afterEach(async () => {
@@ -41,12 +44,11 @@ describe("It should manage ingress controller for respective cluster type", () =
       ctx,
       log: garden.log,
       args: [],
-      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+      graph,
     })
   }
 
   const init = async () => {
-    ;({ garden } = await getContainerTestGarden())
     provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
