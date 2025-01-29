@@ -53,6 +53,7 @@ import type { HelmDeployAction } from "../../../../../src/plugins/kubernetes/hel
 import { executeAction } from "../../../../../src/graph/actions.js"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../../src/constants.js"
 import cloneDeep from "fast-copy"
+import { getEmptyGardenWithLocalK8sProvider } from "../../../helpers.js"
 
 describe("PodRunner", () => {
   let garden: TestGarden
@@ -63,9 +64,7 @@ describe("PodRunner", () => {
   let log: Log
 
   before(async () => {
-    // TODO: consider creating garden in tmpDir and setting the config programmatically
-    const projectRoot = getDataDir("test-projects", "pod-runner")
-    garden = await makeTestGarden(projectRoot)
+    garden = await getEmptyGardenWithLocalK8sProvider()
     provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     namespace = provider.config.namespace!.name!

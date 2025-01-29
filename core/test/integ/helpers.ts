@@ -12,6 +12,7 @@ import { base64, dedent } from "../../src/util/string.js"
 
 import { ArtifactRegistryClient } from "@google-cloud/artifact-registry"
 import { styles } from "../../src/logger/styles.js"
+import { getDataDir, makeTestGarden } from "../helpers.js"
 
 const targetProject = "garden-ci"
 const targetPrincipal = "gar-serviceaccount@garden-ci.iam.gserviceaccount.com"
@@ -163,4 +164,10 @@ export async function getGoogleADCImagePullSecret() {
       "europe-docker.pkg.dev": { auth },
     },
   }
+}
+
+export async function getEmptyGardenWithLocalK8sProvider() {
+  // TODO: consider creating garden in tmpDir and setting the config programmatically
+  const projectRoot = getDataDir("test-projects", "empty-project-local-kubernetes")
+  return await makeTestGarden(projectRoot)
 }
