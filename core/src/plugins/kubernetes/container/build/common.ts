@@ -290,7 +290,9 @@ export async function skopeoBuildStatus({
           " "
         )}" failed: ${err.message}`
       )
-      log.debug(() => `Error details: ${err}`)
+      log.debug({
+        error: err,
+      })
 
       // If we fail to check the image status, we assume we need to rebuild it.
       return { state: "not-ready", outputs, detail: { runtime } }
@@ -735,7 +737,7 @@ const baseUtilService: KubernetesResource<V1Service> = {
         name: "rsync",
         protocol: "TCP",
         port: utilRsyncPort,
-        targetPort: <any>utilRsyncPort,
+        targetPort: utilRsyncPort,
       },
     ],
     selector: {
