@@ -735,7 +735,7 @@ const baseUtilService: KubernetesResource<V1Service> = {
         name: "rsync",
         protocol: "TCP",
         port: utilRsyncPort,
-        targetPort: <any>utilRsyncPort,
+        targetPort: utilRsyncPort,
       },
     ],
     selector: {
