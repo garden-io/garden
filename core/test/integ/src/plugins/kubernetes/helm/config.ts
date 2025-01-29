@@ -8,7 +8,6 @@
 
 import { resolve } from "path"
 import { expect } from "chai"
-import cloneDeep from "fast-copy"
 import { omit } from "lodash-es"
 
 import type { TestGarden } from "../../../../../helpers.js"
