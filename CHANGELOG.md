@@ -1,4 +1,11 @@
 
+<a name="0.13.51"></a>
+## [0.13.51](https://github.com/garden-io/garden/compare/0.13.50...0.13.51) (2025-01-28)
+
+### Improvements
+
+* add better error handling when failing to archive test artifacts ([#6802](https://github.com/garden-io/garden/issues/6802)) ([589cb3926](https://github.com/garden-io/garden/commit/589cb3926))
+
 <a name="0.13.50"></a>
 ## [0.13.50](https://github.com/garden-io/garden/compare/0.13.49...0.13.50) (2025-01-24)
 
