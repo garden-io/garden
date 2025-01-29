@@ -8,7 +8,7 @@
 
 import * as td from "testdouble"
 import tmp from "tmp-promise"
-import { expectError, pruneEmpty } from "../../../../helpers.js"
+import { expectError, getDataDir, makeTestGarden, pruneEmpty, TestGarden } from "../../../../helpers.js"
 import fsExtra from "fs-extra"
 
 const { pathExists } = fsExtra
@@ -54,6 +54,516 @@ import { executeAction } from "../../../../../src/graph/actions.js"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../../src/constants.js"
 import cloneDeep from "fast-copy"
 
+describe("PodRunner", () => {
+  let garden: TestGarden
+  let ctx: PluginContext
+  let provider: KubernetesProvider
+  let namespace: string
+  let api: KubeApi
+  let log: Log
+
+  before(async () => {
+    // TODO: consider creating garden in tmpDir and setting the config programmatically
+    const projectRoot = getDataDir("test-projects", "pod-runner")
+    garden = await makeTestGarden(projectRoot)
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    namespace = provider.config.namespace!.name!
+    api = await KubeApi.factory(garden.log, ctx, provider)
+    log = garden.log
+  })
+
+  after(async () => {
+    garden.close()
+  })
+
+  let runner: PodRunner
+
+  afterEach(async () => {
+    if (runner) {
+      await runner.stop()
+    }
+  })
+
+  function makePod(command: string[], image = "busybox"): KubernetesPod {
+    return {
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        name: "runner-test-" + randomString(8),
+        namespace,
+      },
+      spec: {
+        containers: [
+          {
+            name: "main",
+            image,
+            command,
+          },
+        ],
+      },
+    }
+  }
+
+  describe("start", () => {
+    it("creates a Pod and waits for it to start", async () => {
+      const pod = makePod(["sh", "-c", "sleep 600"])
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      const res = await runner.start({ log })
+      expect(res.status.state).to.equal("ready")
+    })
+
+    it("throws if the Pod fails to start before timeout", async () => {
+      const badImage = randomString(16)
+      const pod = makePod(["foo"], badImage)
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      await expectError(() => runner.start({ log, timeoutSec: 2 }))
+    })
+  })
+
+  describe("exec", () => {
+    it("runs the specified command in the Pod", async () => {
+      const pod = makePod(["sh", "-c", "sleep 600"])
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      await runner.start({ log })
+
+      const res = await runner.exec({
+        log,
+        command: ["echo", "foo"],
+        buffer: true,
+      })
+
+      expect(res.log.trim()).to.equal("foo")
+    })
+
+    it("throws if execution times out", async () => {
+      const pod = makePod(["sh", "-c", "sleep 600"])
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      await runner.start({ log })
+      await expectError(
+        () => runner.exec({ log, command: ["sh", "-c", "sleep 100"], timeoutSec: 1, buffer: true }),
+        (err) => expect(err.message).to.equal("Command timed out after 1 seconds.")
+      )
+    })
+
+    it("throws if command returns non-zero exit code", async () => {
+      const pod = makePod(["sh", "-c", "sleep 600"])
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      await runner.start({ log })
+      await expectError(
+        () => runner.exec({ log, command: ["sh", "-c", "echo foo && exit 2"], buffer: true }),
+        (err) => {
+          expect(err.message).to.eql(dedent`
+              Failed with exit code 2.
+
+              Here are the logs until the error occurred:
+
+              foo`)
+        }
+      )
+    })
+  })
+
+  describe("getLogs", () => {
+    it("retrieves the logs from the Pod", async () => {
+      const pod = makePod(["sh", "-c", "echo foo && sleep 600"])
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      await runner.start({ log })
+      const logs = await runner.getLogs()
+      expect(logs).to.eql([
+        {
+          containerName: "main",
+          log: "foo\n",
+        },
+      ])
+    })
+
+    it("retrieves the logs from the Pod after it terminates", async () => {
+      const pod = makePod(["sh", "-c", "echo foo"])
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      await runner.start({ log })
+      await sleep(500)
+
+      const logs = await runner.getLogs()
+      expect(logs).to.eql([
+        {
+          containerName: "main",
+          log: "foo\n",
+        },
+      ])
+    })
+  })
+
+  describe("runAndWait", () => {
+    it("creates a Pod and waits for it to complete before returning the run result", async () => {
+      const pod = makePod(["sh", "-c", "echo foo"])
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
+
+      expect(res.log.trim()).to.equal("foo")
+      expect(res.success).to.be.true
+    })
+
+    it("returns success=false if Pod returns with non-zero exit code when throwOnExitCode is not set", async () => {
+      const pod = makePod(["sh", "-c", "echo foo && exit 1"])
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
+
+      expect(res.log.trim()).to.equal("foo")
+      expect(res.success).to.be.false
+    })
+
+    it("throws if Pod returns with non-zero exit code when throwOnExitCode=true", async () => {
+      const pod = makePod(["sh", "-c", "echo foo && exit 1"])
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      await expectError(
+        () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events, throwOnExitCode: true }),
+        (err) => {
+          expect(err.message).to.eql(dedent`
+            Failed with exit code 1.
+
+            Here are the logs until the error occurred:
+
+            foo
+            `)
+        }
+      )
+    })
+
+    it("throws if Pod is invalid", async () => {
+      runner = new PodRunner({
+        ctx,
+        pod: {
+          apiVersion: "v1",
+          kind: "Pod",
+          metadata: {
+            name: "!&/$/%#/",
+            namespace,
+          },
+          spec: {
+            containers: [
+              {
+                name: "main",
+                image: "busybox",
+                command: ["sh", "-c", "echo foo"],
+              },
+            ],
+          },
+        },
+        namespace,
+        api,
+        provider,
+      })
+
+      await expectError(
+        () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
+        (err) => expect(err.message).to.include("Failed to create Pod")
+      )
+    })
+
+    it("throws if Pod cannot start", async () => {
+      const badImage = randomString(16)
+      const pod = makePod(["sh", "-c", "echo foo"], badImage)
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      await expectError(
+        () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
+        (err) => expect(err.message).to.include("Failed to start Pod")
+      )
+    })
+
+    it("should throw if Pod OOMs with exit code 137", async () => {
+      const mockApi = await KubeApi.factory(garden.log, ctx, provider)
+      const core = td.replace(mockApi, "core")
+
+      const pod = makePod(["sh", "-c", "echo foo"])
+      pod.spec.containers[0].resources = {
+        limits: {
+          memory: "8Mi",
+        },
+      }
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api: mockApi,
+        provider,
+      })
+
+      // We mock the pod status result to fake an OOMKilled event.
+      // (I tried manually generating an OOM event which worked locally but not on Minkube in CI)
+      const readNamespacedPodStatusRes: Partial<KubernetesServerResource<V1Pod>> = {
+        apiVersion: "v1",
+        kind: "Pod",
+        metadata: {
+          name: runner.podName,
+          namespace: "container-default",
+        },
+        spec: {
+          containers: [
+            {
+              command: ["sh", "-c", "echo foo"],
+              image: "busybox",
+              imagePullPolicy: "Always",
+              name: "main",
+            },
+          ],
+        },
+        status: {
+          conditions: [
+            {
+              lastProbeTime: undefined,
+              lastTransitionTime: new Date(),
+              status: "True",
+              type: "PodScheduled",
+            },
+          ],
+          containerStatuses: [
+            {
+              image: "busybox:latest",
+              imageID: "docker-pullable://busybox@sha256:some-hash",
+              lastState: {},
+              name: "main",
+              ready: true,
+              restartCount: 0,
+              started: true,
+              state: {
+                terminated: {
+                  reason: "OOMKilled",
+                  exitCode: 137,
+                },
+              },
+            },
+          ],
+          phase: "Running",
+          startTime: new Date(),
+        },
+      }
+      td.when(
+        core.readNamespacedPodStatus({
+          name: runner.podName,
+          namespace,
+        })
+      ).thenResolve(readNamespacedPodStatusRes)
+
+      await expectError(
+        () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
+        (err) => {
+          expect(err.type).to.eql("pod-runner-oom")
+          expect(err.message).to.include("OOMKilled")
+        }
+      )
+    })
+
+    it("should throw if exit reason is OOMKilled, even if exit code is 0", async () => {
+      const mockApi = await KubeApi.factory(garden.log, ctx, provider)
+      const core = td.replace(mockApi, "core")
+
+      const pod = makePod(["sh", "-c", "echo foo"])
+      pod.spec.containers[0].resources = {
+        limits: {
+          memory: "8Mi",
+        },
+      }
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api: mockApi,
+        provider,
+      })
+
+      // Here we're specifically testing the case where the exit code is 0 but the exit reason
+      // is "OOMKilled" which is something we've seen happen "in the wild".
+      const readNamespacedPodStatusRes: Partial<KubernetesServerResource<V1Pod>> = {
+        apiVersion: "v1",
+        kind: "Pod",
+        metadata: {
+          name: runner.podName,
+          namespace: "container-default",
+        },
+        spec: {
+          containers: [
+            {
+              command: ["sh", "-c", "echo foo"],
+              image: "busybox",
+              imagePullPolicy: "Always",
+              name: "main",
+            },
+          ],
+        },
+        status: {
+          conditions: [
+            {
+              lastProbeTime: undefined,
+              lastTransitionTime: new Date(),
+              status: "True",
+              type: "PodScheduled",
+            },
+          ],
+          containerStatuses: [
+            {
+              image: "busybox:latest",
+              imageID: "docker-pullable://busybox@sha256:some-hash",
+              lastState: {},
+              name: "main",
+              ready: true,
+              restartCount: 0,
+              started: true,
+              state: {
+                terminated: {
+                  reason: "OOMKilled",
+                  exitCode: 0, // <-----
+                },
+              },
+            },
+          ],
+          phase: "Running",
+          startTime: new Date(),
+        },
+      }
+      td.when(
+        core.readNamespacedPodStatus({
+          name: runner.podName,
+          namespace,
+        })
+      ).thenResolve(readNamespacedPodStatusRes)
+
+      await expectError(
+        () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
+        (err) => {
+          expect(err.type).to.eql("pod-runner-oom")
+          expect(err.message).to.include("OOMKilled")
+        }
+      )
+    })
+
+    context("tty=true", () => {
+      it("attaches to the process stdio during execution", async () => {
+        const pod = makePod([
+          "/bin/sh",
+          "-c",
+          dedent`
+              for i in 1 2 3 4 5
+              do
+                echo "Log line $i"
+                sleep 1
+              done
+            `,
+        ])
+
+        runner = new PodRunner({
+          ctx,
+          pod,
+          namespace,
+          api,
+          provider,
+        })
+
+        const res = await runner.runAndWait({ log, remove: true, tty: true, events: ctx.events })
+
+        expect(res.log.trim().replace(/\r\n/g, "\n")).to.equal(dedent`
+            Log line 1
+            Log line 2
+            Log line 3
+            Log line 4
+            Log line 5
+          `)
+        expect(res.success).to.be.true
+      })
+    })
+  })
+})
+
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
   let cleanup: (() => void) | undefined
@@ -81,488 +591,6 @@ describe("kubernetes Pod runner functions", () => {
     if (cleanup) {
       cleanup()
     }
-  })
-
-  function makePod(command: string[], image = "busybox"): KubernetesPod {
-    return {
-      apiVersion: "v1",
-      kind: "Pod",
-      metadata: {
-        name: "runner-test-" + randomString(8),
-        namespace,
-      },
-      spec: {
-        containers: [
-          {
-            name: "main",
-            image,
-            command,
-          },
-        ],
-      },
-    }
-  }
-
-  describe("PodRunner", () => {
-    let runner: PodRunner
-
-    afterEach(async () => {
-      if (runner) {
-        await runner.stop()
-      }
-    })
-
-    describe("start", () => {
-      it("creates a Pod and waits for it to start", async () => {
-        const pod = makePod(["sh", "-c", "sleep 600"])
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        const res = await runner.start({ log })
-        expect(res.status.state).to.equal("ready")
-      })
-
-      it("throws if the Pod fails to start before timeout", async () => {
-        const badImage = randomString(16)
-        const pod = makePod(["foo"], badImage)
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        await expectError(() => runner.start({ log, timeoutSec: 2 }))
-      })
-    })
-
-    describe("exec", () => {
-      it("runs the specified command in the Pod", async () => {
-        const pod = makePod(["sh", "-c", "sleep 600"])
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        await runner.start({ log })
-
-        const res = await runner.exec({
-          log,
-          command: ["echo", "foo"],
-          buffer: true,
-        })
-
-        expect(res.log.trim()).to.equal("foo")
-      })
-
-      it("throws if execution times out", async () => {
-        const pod = makePod(["sh", "-c", "sleep 600"])
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        await runner.start({ log })
-        await expectError(
-          () => runner.exec({ log, command: ["sh", "-c", "sleep 100"], timeoutSec: 1, buffer: true }),
-          (err) => expect(err.message).to.equal("Command timed out after 1 seconds.")
-        )
-      })
-
-      it("throws if command returns non-zero exit code", async () => {
-        const pod = makePod(["sh", "-c", "sleep 600"])
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        await runner.start({ log })
-        await expectError(
-          () => runner.exec({ log, command: ["sh", "-c", "echo foo && exit 2"], buffer: true }),
-          (err) => {
-            expect(err.message).to.eql(dedent`
-              Failed with exit code 2.
-
-              Here are the logs until the error occurred:
-
-              foo`)
-          }
-        )
-      })
-    })
-
-    describe("getLogs", () => {
-      it("retrieves the logs from the Pod", async () => {
-        const pod = makePod(["sh", "-c", "echo foo && sleep 600"])
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        await runner.start({ log })
-        const logs = await runner.getLogs()
-        expect(logs).to.eql([
-          {
-            containerName: "main",
-            log: "foo\n",
-          },
-        ])
-      })
-
-      it("retrieves the logs from the Pod after it terminates", async () => {
-        const pod = makePod(["sh", "-c", "echo foo"])
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        await runner.start({ log })
-        await sleep(500)
-
-        const logs = await runner.getLogs()
-        expect(logs).to.eql([
-          {
-            containerName: "main",
-            log: "foo\n",
-          },
-        ])
-      })
-    })
-
-    describe("runAndWait", () => {
-      it("creates a Pod and waits for it to complete before returning the run result", async () => {
-        const pod = makePod(["sh", "-c", "echo foo"])
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
-
-        expect(res.log.trim()).to.equal("foo")
-        expect(res.success).to.be.true
-      })
-
-      it("returns success=false if Pod returns with non-zero exit code when throwOnExitCode is not set", async () => {
-        const pod = makePod(["sh", "-c", "echo foo && exit 1"])
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
-
-        expect(res.log.trim()).to.equal("foo")
-        expect(res.success).to.be.false
-      })
-
-      it("throws if Pod returns with non-zero exit code when throwOnExitCode=true", async () => {
-        const pod = makePod(["sh", "-c", "echo foo && exit 1"])
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events, throwOnExitCode: true }),
-          (err) => {
-            expect(err.message).to.eql(dedent`
-            Failed with exit code 1.
-
-            Here are the logs until the error occurred:
-
-            foo
-            `)
-          }
-        )
-      })
-
-      it("throws if Pod is invalid", async () => {
-        runner = new PodRunner({
-          ctx,
-          pod: {
-            apiVersion: "v1",
-            kind: "Pod",
-            metadata: {
-              name: "!&/$/%#/",
-              namespace,
-            },
-            spec: {
-              containers: [
-                {
-                  name: "main",
-                  image: "busybox",
-                  command: ["sh", "-c", "echo foo"],
-                },
-              ],
-            },
-          },
-          namespace,
-          api,
-          provider,
-        })
-
-        await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
-          (err) => expect(err.message).to.include("Failed to create Pod")
-        )
-      })
-
-      it("throws if Pod cannot start", async () => {
-        const badImage = randomString(16)
-        const pod = makePod(["sh", "-c", "echo foo"], badImage)
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
-          (err) => expect(err.message).to.include("Failed to start Pod")
-        )
-      })
-
-      it("should throw if Pod OOMs with exit code 137", async () => {
-        const mockApi = await KubeApi.factory(garden.log, ctx, provider)
-        const core = td.replace(mockApi, "core")
-
-        const pod = makePod(["sh", "-c", "echo foo"])
-        pod.spec.containers[0].resources = {
-          limits: {
-            memory: "8Mi",
-          },
-        }
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api: mockApi,
-          provider,
-        })
-
-        // We mock the pod status result to fake an OOMKilled event.
-        // (I tried manually generating an OOM event which worked locally but not on Minkube in CI)
-        const readNamespacedPodStatusRes: Partial<KubernetesServerResource<V1Pod>> = {
-          apiVersion: "v1",
-          kind: "Pod",
-          metadata: {
-            name: runner.podName,
-            namespace: "container-default",
-          },
-          spec: {
-            containers: [
-              {
-                command: ["sh", "-c", "echo foo"],
-                image: "busybox",
-                imagePullPolicy: "Always",
-                name: "main",
-              },
-            ],
-          },
-          status: {
-            conditions: [
-              {
-                lastProbeTime: undefined,
-                lastTransitionTime: new Date(),
-                status: "True",
-                type: "PodScheduled",
-              },
-            ],
-            containerStatuses: [
-              {
-                image: "busybox:latest",
-                imageID: "docker-pullable://busybox@sha256:some-hash",
-                lastState: {},
-                name: "main",
-                ready: true,
-                restartCount: 0,
-                started: true,
-                state: {
-                  terminated: {
-                    reason: "OOMKilled",
-                    exitCode: 137,
-                  },
-                },
-              },
-            ],
-            phase: "Running",
-            startTime: new Date(),
-          },
-        }
-        td.when(core.readNamespacedPodStatus({ name: runner.podName, namespace })).thenResolve(
-          readNamespacedPodStatusRes
-        )
-
-        await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
-          (err) => {
-            expect(err.type).to.eql("pod-runner-oom")
-            expect(err.message).to.include("OOMKilled")
-          }
-        )
-      })
-
-      it("should throw if exit reason is OOMKilled, even if exit code is 0", async () => {
-        const mockApi = await KubeApi.factory(garden.log, ctx, provider)
-        const core = td.replace(mockApi, "core")
-
-        const pod = makePod(["sh", "-c", "echo foo"])
-        pod.spec.containers[0].resources = {
-          limits: {
-            memory: "8Mi",
-          },
-        }
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api: mockApi,
-          provider,
-        })
-
-        // Here we're specifically testing the case where the exit code is 0 but the exit reason
-        // is "OOMKilled" which is something we've seen happen "in the wild".
-        const readNamespacedPodStatusRes: Partial<KubernetesServerResource<V1Pod>> = {
-          apiVersion: "v1",
-          kind: "Pod",
-          metadata: {
-            name: runner.podName,
-            namespace: "container-default",
-          },
-          spec: {
-            containers: [
-              {
-                command: ["sh", "-c", "echo foo"],
-                image: "busybox",
-                imagePullPolicy: "Always",
-                name: "main",
-              },
-            ],
-          },
-          status: {
-            conditions: [
-              {
-                lastProbeTime: undefined,
-                lastTransitionTime: new Date(),
-                status: "True",
-                type: "PodScheduled",
-              },
-            ],
-            containerStatuses: [
-              {
-                image: "busybox:latest",
-                imageID: "docker-pullable://busybox@sha256:some-hash",
-                lastState: {},
-                name: "main",
-                ready: true,
-                restartCount: 0,
-                started: true,
-                state: {
-                  terminated: {
-                    reason: "OOMKilled",
-                    exitCode: 0, // <-----
-                  },
-                },
-              },
-            ],
-            phase: "Running",
-            startTime: new Date(),
-          },
-        }
-        td.when(core.readNamespacedPodStatus({ name: runner.podName, namespace })).thenResolve(
-          readNamespacedPodStatusRes
-        )
-
-        await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
-          (err) => {
-            expect(err.type).to.eql("pod-runner-oom")
-            expect(err.message).to.include("OOMKilled")
-          }
-        )
-      })
-
-      context("tty=true", () => {
-        it("attaches to the process stdio during execution", async () => {
-          const pod = makePod([
-            "/bin/sh",
-            "-c",
-            dedent`
-              for i in 1 2 3 4 5
-              do
-                echo "Log line $i"
-                sleep 1
-              done
-            `,
-          ])
-
-          runner = new PodRunner({
-            ctx,
-            pod,
-            namespace,
-            api,
-            provider,
-          })
-
-          const res = await runner.runAndWait({ log, remove: true, tty: true, events: ctx.events })
-
-          expect(res.log.trim().replace(/\r\n/g, "\n")).to.equal(dedent`
-            Log line 1
-            Log line 2
-            Log line 3
-            Log line 4
-            Log line 5
-          `)
-          expect(res.success).to.be.true
-        })
-      })
-    })
   })
 
   describe("prepareRunPodSpec", () => {
