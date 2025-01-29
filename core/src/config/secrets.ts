@@ -15,6 +15,7 @@ import type { StringMap } from "./common.js"
 import type { ConfigContext, ContextKeySegment } from "./template-contexts/base.js"
 import difference from "lodash-es/difference.js"
 import { ConfigurationError } from "../exceptions.js"
+import { CONTEXT_RESOLVE_KEY_NOT_FOUND } from "../template/ast.js"
 
 /**
  * Gathers secret references in configs and throws an error if one or more referenced secrets isn't present (or has
@@ -80,7 +81,7 @@ export function detectMissingSecretKeys(
   context: ConfigContext,
   secrets: StringMap
 ): ContextKeySegment[] {
-  const referencedKeys: ContextKeySegment[] = []
+  const requiredKeys: ContextKeySegment[] = []
   const generator = getContextLookupReferences(
     visitAll({
       value: obj,
@@ -93,9 +94,22 @@ export function detectMissingSecretKeys(
       continue
     }
 
+    const isOptional =
+      // see if it evaluates to a default value when the secret is missing
+      finding.root.evaluate({
+        context,
+        opts: {},
+        optional: true,
+        yamlSource: finding.yamlSource,
+      }) !== CONTEXT_RESOLVE_KEY_NOT_FOUND
+
+    if (isOptional) {
+      continue
+    }
+
     const secretName = keyPath[1]
     if (isString(secretName)) {
-      referencedKeys.push(secretName)
+      requiredKeys.push(secretName)
     }
   }
 
@@ -106,6 +120,6 @@ export function detectMissingSecretKeys(
   const keysWithValues = Object.entries(secrets)
     .filter(([_key, value]) => value)
     .map(([key, _value]) => key)
-  const missingKeys = difference(referencedKeys, keysWithValues)
+  const missingKeys = difference(requiredKeys, keysWithValues)
   return missingKeys.sort()
 }

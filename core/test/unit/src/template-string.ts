@@ -22,6 +22,7 @@ import { getActionTemplateReferences } from "../../../src/config/references.js"
 import { throwOnMissingSecretKeys } from "../../../src/config/secrets.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 import { deepEvaluate } from "../../../src/template/evaluate.js"
+import pick from "lodash-es/pick.js"
 
 describe("template string access protection", () => {
   it("should crash when an unresolved value is accidentally treated as resolved", () => {
@@ -2608,7 +2609,7 @@ describe("getContextLookupReferences", () => {
         new GenericContext({})
       )
     )
-    const expected: ContextLookupReferenceFinding[] = [
+    const expected: Partial<ContextLookupReferenceFinding>[] = [
       {
         keyPath: ["my", "reference"],
         type: "resolvable",
@@ -2645,7 +2646,7 @@ describe("getContextLookupReferences", () => {
         },
       },
     ]
-    expect(result).to.eql(expected)
+    expect(result.map((r) => pick(r, "keyPath", "type", "yamlSource"))).to.eql(expected)
   })
 
   it("should handle keys with dots and unresolvable member expressions correctly", async () => {
@@ -2670,7 +2671,7 @@ describe("getContextLookupReferences", () => {
       )
     )
 
-    const expected: ContextLookupReferenceFinding[] = [
+    const expected: Partial<ContextLookupReferenceFinding>[] = [
       {
         type: "resolvable",
         keyPath: ["templated", "key.with.dots"],
@@ -2721,7 +2722,7 @@ describe("getContextLookupReferences", () => {
         },
       },
     ]
-    expect(foundKeys, `Unexpected found keys. JSON: ${JSON.stringify(foundKeys)}`).to.deep.equals(expected)
+    expect(foundKeys.map((r) => pick(r, "keyPath", "type", "yamlSource"))).to.eql(expected)
 
     const unresolvable1 = foundKeys[3].keyPath[1] as UnresolvableValue
     expect(unresolvable1).to.be.instanceOf(UnresolvableValue)
@@ -2977,6 +2978,22 @@ describe("throwOnMissingSecretKeys", () => {
           name: "foo",
           foo: "${banana.llama}",
           nested: { boo: "${moo}" },
+        },
+      ],
+      source: { path: [] },
+    } as const)
+
+    throwOnMissingSecretKeys(configs, new GenericContext({}), {}, "Module")
+    throwOnMissingSecretKeys(configs, new GenericContext({}), { someSecret: "123" }, "Module")
+  })
+
+  it("should not throw an error if secrets are optional in an expression", () => {
+    const configs = parseTemplateCollection({
+      value: [
+        {
+          name: "foo",
+          foo: "${secret.banana || 'default-banana'}",
+          nested: { boo: "${secret.moo ? 1 : 2}" },
         },
       ],
       source: { path: [] },

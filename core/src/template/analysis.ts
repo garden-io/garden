@@ -21,6 +21,8 @@ export type TemplateExpressionGenerator = Generator<
       type: "template-expression"
       value: TemplateExpression
       yamlSource: ConfigSource
+      parent: TemplateExpression
+      root: TemplateExpression
     }
   | {
       type: "unresolved-template"
@@ -64,17 +66,20 @@ export function isUnresolvableValue(
   return val instanceof UnresolvableValue
 }
 
-export type ContextLookupReferenceFinding =
+export type ContextLookupReferenceFinding = (
   | {
       type: "resolvable"
       keyPath: (string | number)[]
-      yamlSource: ConfigSource
     }
   | {
       type: "unresolvable"
       keyPath: (string | number | UnresolvableValue)[]
-      yamlSource: ConfigSource
     }
+) & {
+  yamlSource: ConfigSource
+  parent: TemplateExpression
+  root: TemplateExpression
+}
 
 function captureError(arg: () => void): () => GardenError {
   return () => {
@@ -102,7 +107,7 @@ export function* getContextLookupReferences(
       continue
     }
 
-    const { value, yamlSource } = finding
+    const { value, yamlSource, parent, root } = finding
 
     if (!(value instanceof ContextLookupExpression)) {
       // we are only interested in ContextLookupExpression instances
@@ -138,17 +143,22 @@ export function* getContextLookupReferences(
       return key
     })
 
+    const common = {
+      yamlSource,
+      parent,
+      root,
+    }
     if (keyPath.length > 0) {
       yield isResolvable
         ? {
             type: "resolvable",
             keyPath: keyPath as (string | number)[],
-            yamlSource,
+            ...common,
           }
         : {
             type: "unresolvable",
             keyPath,
-            yamlSource,
+            ...common,
           }
     }
   }

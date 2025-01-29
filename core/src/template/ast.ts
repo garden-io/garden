@@ -54,27 +54,36 @@ export type Location = {
   source: TemplateStringSource
 }
 
-function* astVisitAll(e: TemplateExpression, source: ConfigSource): TemplateExpressionGenerator {
+function* astVisitAll(
+  e: TemplateExpression,
+  source: ConfigSource,
+  root: TemplateExpression,
+  parent: TemplateExpression
+): TemplateExpressionGenerator {
   for (const key in e) {
     if (key === "loc") {
       continue
     }
     const propertyValue = e[key]
     if (propertyValue instanceof TemplateExpression) {
-      yield* astVisitAll(propertyValue, source)
+      yield* astVisitAll(propertyValue, source, root, propertyValue)
       yield {
         type: "template-expression",
         value: propertyValue,
         yamlSource: source,
+        root,
+        parent,
       }
     } else if (Array.isArray(propertyValue)) {
       for (const item of propertyValue) {
         if (item instanceof TemplateExpression) {
-          yield* astVisitAll(item, source)
+          yield* astVisitAll(item, source, root, item)
           yield {
             type: "template-expression",
             value: item,
             yamlSource: source,
+            root,
+            parent,
           }
         }
       }
@@ -87,7 +96,7 @@ export abstract class TemplateExpression {
   public abstract readonly loc: Location;
 
   *visitAll(source: ConfigSource): TemplateExpressionGenerator {
-    yield* astVisitAll(this, source)
+    yield* astVisitAll(this, source, this, this)
   }
 
   abstract evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>>
