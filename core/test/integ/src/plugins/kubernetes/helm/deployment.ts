@@ -669,6 +669,7 @@ describe("helmDeploy", () => {
       })
     })
 
+    // TODO: this tests fail if we use clean action setup like in the tests above
     context("waitForUnhealthyResources=true", () => {
       it("should include K8s events and Pod logs with errors", async () => {
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
