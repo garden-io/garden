@@ -547,12 +547,12 @@ export abstract class BaseAction<
     const dependencyVersions = fromPairs(depPairs)
 
     const configVersion = this.configVersion()
-    const versionString =
-      versionStringPrefix + hashStrings([configVersion, this._treeVersion.contentHash, ...flatten(sortedDeps)])
+    const sourceVersion = this._treeVersion.contentHash
+    const versionString = versionStringPrefix + hashStrings([configVersion, sourceVersion, ...flatten(sortedDeps)])
 
     return {
       configVersion,
-      sourceVersion: this._treeVersion.contentHash,
+      sourceVersion,
       versionString,
       dependencyVersions,
       files: this._treeVersion.files,
