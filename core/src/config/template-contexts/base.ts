@@ -316,9 +316,13 @@ export class TemplateContext extends ConfigContext {
   @schema(joiIdentifier().description(`The name of the template.`))
   public name: string
 
-  constructor(root: ConfigContext, name: string) {
-    super(root)
-    this.name = name
+  @schema(joi.string().description(`The absolute path to the directory containing the ConfigTemplate being rendered.`))
+  public path: string
+
+  constructor(params: { root: ConfigContext; name: string; path: string }) {
+    super(params.root)
+    this.name = params.name
+    this.path = params.path
   }
 }
 

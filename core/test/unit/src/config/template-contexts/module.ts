@@ -49,6 +49,7 @@ describe("ModuleConfigContext", () => {
       parentName: module.parentName,
       inputs: module.inputs,
       templateName: module.templateName,
+      templatePath: module.templatePath,
     })
   })
 

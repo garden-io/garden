@@ -440,8 +440,12 @@ export class TemplatableConfigContext extends RemoteSourceConfigContext {
 
   constructor(garden: Garden, config: ActionConfig | WorkflowConfig) {
     super(garden, garden.variables)
-    this.inputs = config.internal.inputs || {}
-    this.parent = config.internal.parentName ? new ParentContext(this, config.internal.parentName) : undefined
-    this.template = config.internal.templateName ? new TemplateContext(this, config.internal.templateName) : undefined
+    const { inputs, parentName, templateName, templatePath } = config.internal
+    this.inputs = inputs || {}
+    this.parent = parentName ? new ParentContext(this, parentName) : undefined
+    this.template =
+      templateName && templatePath
+        ? new TemplateContext({ root: this, name: templateName, path: templatePath })
+        : undefined
   }
 }
