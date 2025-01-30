@@ -69,6 +69,7 @@ import { dirname } from "node:path"
 import type { ResolvedTemplate } from "../template/types.js"
 import type { WorkflowConfig } from "../config/workflow.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
+import { deepMap } from "../util/objects.js"
 
 // TODO: split this file
 
@@ -600,7 +601,9 @@ export abstract class BaseAction<
   getConfig(): C
   getConfig<K extends keyof C>(key: K): C[K]
   getConfig(key?: keyof C["spec"]) {
-    return key ? this._config[key] : this._config
+    const res = key ? this._config[key] : this._config
+    // basically a clone that leaves unresolved template values intact as-is, as they are immutable.
+    return deepMap(res, (v) => v) as typeof res
   }
 
   /**
@@ -810,7 +813,9 @@ export abstract class ResolvedRuntimeAction<
   getSpec(): Config["spec"]
   getSpec<K extends keyof Config["spec"]>(key: K): Config["spec"][K]
   getSpec(key?: keyof Config["spec"]) {
-    return key ? this._config.spec[key] : this._config.spec
+    const res = key ? this._config.spec[key] : this._config.spec
+    // basically a clone that leaves unresolved template values intact as-is, as they are immutable.
+    return deepMap(res, (v) => v) as typeof res
   }
 
   getOutput<K extends keyof StaticOutputs>(key: K): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
