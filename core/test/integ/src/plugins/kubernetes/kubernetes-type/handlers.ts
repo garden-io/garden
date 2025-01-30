@@ -530,21 +530,76 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should return events and Pod logs if the Pod can't start", async () => {
-      const graph = await garden.getConfigGraph({
-        log: garden.log,
-        emit: false,
-      })
-      const action = graph.getDeploy("action-simple")
-
       const name = `nginx-${randomString(4)}`
-      action._config.spec["manifests"][0]["metadata"]["name"] = name
-      action._config.spec["manifests"][0]["spec"]["template"]["spec"]["containers"] = [
+      // copied from 'action-simple' disk-based config
+      const actionConfig = {
+        kind: "Deploy",
+        type: "kubernetes",
+        name,
+        internal: {
+          basePath: ".",
+        },
+        timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
+        spec: {
+          manifests: [
+            {
+              apiVersion: "apps/v1",
+              kind: "Deployment",
+              metadata: {
+                name: "nginx",
+                labels: {
+                  app: "nginx",
+                },
+              },
+              spec: {
+                replicas: 1,
+                selector: {
+                  matchLabels: {
+                    app: "nginx",
+                  },
+                },
+                template: {
+                  metadata: {
+                    labels: {
+                      app: "nginx",
+                    },
+                  },
+                  spec: {
+                    containers: [
+                      {
+                        name: "nginx",
+                        image: "nginx:1.14.2",
+                        ports: [
+                          {
+                            containerPort: 80,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      } as DeployActionConfig
+
+      actionConfig.spec["manifests"][0]["metadata"]["name"] = name
+      actionConfig.spec["manifests"][0]["spec"]["template"]["spec"]["containers"] = [
         {
           name: "busybox",
           image: "busybox:1.31.1",
           args: ["/bin/sh", "-c", "badcommand"],
         },
       ]
+
+      garden.addAction(actionConfig)
+
+      const graph = await garden.getConfigGraph({
+        log: garden.log,
+        emit: false,
+      })
+      const action = graph.getDeploy(name)
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
 
       await expectError(
@@ -643,7 +698,6 @@ describe("kubernetes-type handlers", () => {
         emit: false,
       })
       const action = graph.getDeploy(name)
-
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
 
       await expectError(
@@ -739,7 +793,6 @@ describe("kubernetes-type handlers", () => {
         emit: false,
       })
       const action = graph.getDeploy(name)
-
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
 
       await expectError(
