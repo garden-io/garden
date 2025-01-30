@@ -44,15 +44,124 @@ import type {
 import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace.js"
 import { convertModules } from "../../../../../src/resolve-module.js"
 import type { BuildAction } from "../../../../../src/actions/build.js"
-import type { DeployAction } from "../../../../../src/actions/deploy.js"
-import type { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config.js"
+import { ResolvedDeployAction } from "../../../../../src/actions/deploy.js"
+import type { HelmDeployAction, HelmDeployConfig } from "../../../../../src/plugins/kubernetes/helm/config.js"
+
+// TODO: Add more test cases
+describe("getWorkloadPods", () => {
+  let garden: TestGarden
+  let cleanup: (() => void) | undefined
+  let ctx: KubernetesPluginContext
+  let log: Log
+  let api: KubeApi
+
+  before(async () => {
+    ;({ garden, cleanup } = await getContainerTestGarden("local"))
+    log = garden.log
+    const provider = await garden.resolveProvider({ log, name: "local-kubernetes" })
+    ctx = (await garden.getPluginContext({
+      provider,
+      templateContext: undefined,
+      events: undefined,
+    })) as KubernetesPluginContext
+    api = await KubeApi.factory(log, ctx, ctx.provider)
+  })
+
+  after(async () => {
+    if (cleanup) {
+      cleanup()
+    }
+  })
+
+  it("should return workload pods", async () => {
+    try {
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const provider = (await garden.resolveProvider({
+        log: garden.log,
+        name: "local-kubernetes",
+      })) as Provider<KubernetesConfig>
+
+      const rawAction = graph.getDeploy("simple-service")
+      const action = await garden.resolveAction({
+        action: rawAction,
+        log: garden.log,
+        graph,
+      })
+
+      const deployTask = new DeployTask({
+        force: false,
+        forceBuild: false,
+        garden,
+        graph,
+        log: garden.log,
+        action,
+      })
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        action,
+        ctx,
+        imageId: action.getSpec().image,
+        namespace: provider.config.namespace!.name!,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
+        production: false,
+      })
+      await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+
+      const pods = await getWorkloadPods({ api, namespace: "container", resource })
+      const services = flatten(pods.map((pod) => pod.spec?.containers.map((container) => container.name)))
+      expect(services).to.eql(["simple-service"])
+    } finally {
+      garden.close()
+    }
+  })
+
+  it("should read a Pod from a namespace directly when given a Pod manifest", async () => {
+    try {
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const rawAction = graph.getDeploy("simple-service")
+      const action = await garden.resolveAction({
+        action: rawAction,
+        log: garden.log,
+        graph,
+      })
+
+      const deployTask = new DeployTask({
+        force: false,
+        forceBuild: false,
+        garden,
+        graph,
+        log: garden.log,
+        action,
+      })
+
+      const provider = (await garden.resolveProvider({
+        log: garden.log,
+        name: "local-kubernetes",
+      })) as Provider<KubernetesConfig>
+      await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+
+      const namespace = await getAppNamespace(ctx, log, provider)
+      const allPods = await api.core.listNamespacedPod({ namespace })
+
+      const pod = allPods.items[0]
+
+      const pods = await getWorkloadPods({ api, namespace, resource: pod })
+      expect(pods.length).to.equal(1)
+      expect(pods[0].kind).to.equal("Pod")
+      expect(pods[0].metadata.name).to.equal(pod.metadata.name)
+    } finally {
+      garden.close()
+    }
+  })
+})
 
 describe("util", () => {
   let helmGarden: TestGarden
   let helmGraph: ConfigGraph
   let ctx: KubernetesPluginContext
   let log: Log
-  let api: KubeApi
 
   before(async () => {
     helmGarden = await getHelmTestGarden()
@@ -65,7 +174,6 @@ describe("util", () => {
     })) as KubernetesPluginContext
     helmGraph = await helmGarden.getConfigGraph({ log, emit: false })
     await buildModules()
-    api = await KubeApi.factory(helmGarden.log, ctx, ctx.provider)
   })
 
   beforeEach(async () => {
@@ -112,105 +220,6 @@ describe("util", () => {
     }
   }
 
-  // TODO: Add more test cases
-  describe("getWorkloadPods", () => {
-    let garden: TestGarden
-    let cleanup: (() => void) | undefined
-
-    beforeEach(async () => {
-      ;({ garden, cleanup } = await getContainerTestGarden("local"))
-    })
-
-    afterEach(async () => {
-      if (cleanup) {
-        cleanup()
-      }
-    })
-
-    it("should return workload pods", async () => {
-      try {
-        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const provider = (await garden.resolveProvider({
-          log: garden.log,
-          name: "local-kubernetes",
-        })) as Provider<KubernetesConfig>
-
-        const rawAction = graph.getDeploy("simple-service")
-        const action = await garden.resolveAction({
-          action: rawAction,
-          log: garden.log,
-          graph,
-        })
-
-        const deployTask = new DeployTask({
-          force: false,
-          forceBuild: false,
-          garden,
-          graph,
-          log: garden.log,
-          action,
-        })
-
-        const resource = await createWorkloadManifest({
-          api,
-          provider,
-          action,
-          ctx,
-          imageId: action.getSpec().image,
-          namespace: provider.config.namespace!.name!,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          production: false,
-        })
-        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-
-        const pods = await getWorkloadPods({ api, namespace: "container", resource })
-        const services = flatten(pods.map((pod) => pod.spec?.containers.map((container) => container.name)))
-        expect(services).to.eql(["simple-service"])
-      } finally {
-        garden.close()
-      }
-    })
-
-    it("should read a Pod from a namespace directly when given a Pod manifest", async () => {
-      try {
-        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const rawAction = graph.getDeploy("simple-service")
-        const action = await garden.resolveAction({
-          action: rawAction,
-          log: garden.log,
-          graph,
-        })
-
-        const deployTask = new DeployTask({
-          force: false,
-          forceBuild: false,
-          garden,
-          graph,
-          log: garden.log,
-          action,
-        })
-
-        const provider = (await garden.resolveProvider({
-          log: garden.log,
-          name: "local-kubernetes",
-        })) as Provider<KubernetesConfig>
-        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-
-        const namespace = await getAppNamespace(ctx, log, provider)
-        const allPods = await api.core.listNamespacedPod({ namespace })
-
-        const pod = allPods.items[0]
-
-        const pods = await getWorkloadPods({ api, namespace, resource: pod })
-        expect(pods.length).to.equal(1)
-        expect(pods[0].kind).to.equal("Pod")
-        expect(pods[0].metadata.name).to.equal(pod.metadata.name)
-      } finally {
-        garden.close()
-      }
-    })
-  })
-
   describe("getServiceResourceSpec", () => {
     it("should return the spec on the given module if it has no base module", async () => {
       const module = helmGraph.getModule("artifacts")
@@ -248,27 +257,32 @@ describe("util", () => {
   })
 
   describe("getTargetResource", () => {
-    it("should return the resource specified by the query", async () => {
+    let apiAction: ResolvedDeployAction<HelmDeployConfig>
+
+    before(async () => {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({
+      apiAction = await helmGarden.resolveAction<HelmDeployAction>({
         action: rawAction,
         log: helmGarden.log,
         graph: helmGraph,
       })
-      await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log, graph: helmGraph })
+      await helmGarden.executeAction({ action: rawAction, log: helmGarden.log, graph: helmGraph })
+    })
+
+    it("should return the resource specified by the query", async () => {
       const manifests = await getChartResources({
         ctx,
-        action,
+        action: apiAction,
         log,
       })
       const result = await getTargetResource({
         ctx,
         log,
         provider: ctx.provider,
-        action,
+        action: apiAction,
         manifests,
         query: {
-          name: action.getSpec().releaseName,
+          name: apiAction.getSpec().releaseName,
           kind: "Deployment",
         },
       })
@@ -277,15 +291,9 @@ describe("util", () => {
     })
 
     it("should throw if no query is specified", async () => {
-      const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({
-        action: rawAction,
-        log: helmGarden.log,
-        graph: helmGraph,
-      })
       const manifests = await getChartResources({
         ctx,
-        action,
+        action: apiAction,
         log,
       })
       await expectError(
@@ -294,7 +302,7 @@ describe("util", () => {
             ctx,
             log,
             provider: ctx.provider,
-            action,
+            action: apiAction,
             manifests,
             query: {},
           }),
@@ -303,15 +311,9 @@ describe("util", () => {
     })
 
     it("should throw if no resource of the specified kind is in the chart", async () => {
-      const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({
-        action: rawAction,
-        log: helmGarden.log,
-        graph: helmGraph,
-      })
       const manifests = await getChartResources({
         ctx,
-        action,
+        action: apiAction,
         log,
       })
       await expectError(
@@ -320,10 +322,10 @@ describe("util", () => {
             ctx,
             log,
             provider: ctx.provider,
-            action,
+            action: apiAction,
             manifests,
             query: {
-              ...action._config.spec.defaultTarget,
+              ...apiAction._config.spec.defaultTarget,
               kind: "DaemonSet" as SyncableKind,
             },
           }),
@@ -332,15 +334,9 @@ describe("util", () => {
     })
 
     it("should throw if matching resource is not found by name", async () => {
-      const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({
-        action: rawAction,
-        log: helmGarden.log,
-        graph: helmGraph,
-      })
       const manifests = await getChartResources({
         ctx,
-        action,
+        action: apiAction,
         log,
       })
       await expectError(
@@ -349,10 +345,10 @@ describe("util", () => {
             ctx,
             log,
             provider: ctx.provider,
-            action,
+            action: apiAction,
             manifests,
             query: {
-              ...action._config.spec.defaultTarget,
+              ...apiAction._config.spec.defaultTarget,
               name: "foo",
             },
           }),
@@ -361,15 +357,9 @@ describe("util", () => {
     })
 
     it("should throw if no name is specified and multiple resources are matched", async () => {
-      const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<HelmDeployAction>({
-        action: rawAction,
-        log: helmGarden.log,
-        graph: helmGraph,
-      })
       const manifests = await getChartResources({
         ctx,
-        action,
+        action: apiAction,
         log,
       })
       const deployment = find(manifests, (r) => r.kind === "Deployment")
@@ -381,7 +371,7 @@ describe("util", () => {
             ctx,
             log,
             provider: ctx.provider,
-            action,
+            action: apiAction,
             manifests,
             query: {
               kind: "Deployment",
@@ -423,32 +413,7 @@ describe("util", () => {
     })
 
     context("podSelector", () => {
-      before(async () => {
-        const rawAction = helmGraph.getDeploy("api")
-        const action = await helmGarden.resolveAction<HelmDeployAction>({
-          action: rawAction,
-          log: helmGarden.log,
-          graph: helmGraph,
-        })
-        const deployTask = new DeployTask({
-          force: false,
-          forceBuild: false,
-          garden: helmGarden,
-          graph: helmGraph,
-          log: helmGarden.log,
-          action,
-        })
-
-        await helmGarden.processTasks({ tasks: [deployTask], throwOnError: true })
-      })
-
       it("returns running Pod if one is found matching podSelector", async () => {
-        const rawAction = helmGraph.getDeploy("api")
-        const action = await helmGarden.resolveAction<HelmDeployAction>({
-          action: rawAction,
-          log: helmGarden.log,
-          graph: helmGraph,
-        })
         const resourceSpec: ServiceResourceSpec = {
           podSelector: {
             "app.kubernetes.io/name": "api",
@@ -460,9 +425,8 @@ describe("util", () => {
           ctx,
           log,
           provider: ctx.provider,
-          action,
+          action: apiAction,
           manifests: [],
-
           query: resourceSpec,
         })
 
@@ -472,12 +436,6 @@ describe("util", () => {
       })
 
       it("throws if podSelector is set and no Pod is found matching the selector", async () => {
-        const rawAction = helmGraph.getDeploy("api")
-        const action = await helmGarden.resolveAction<HelmDeployAction>({
-          action: rawAction,
-          log: helmGarden.log,
-          graph: helmGraph,
-        })
         const resourceSpec: ServiceResourceSpec = {
           podSelector: {
             "app.kubernetes.io/name": "boo",
@@ -491,9 +449,8 @@ describe("util", () => {
               ctx,
               log,
               provider: ctx.provider,
-              action,
+              action: apiAction,
               manifests: [],
-
               query: resourceSpec,
             }),
           (err) => expect(stripAnsi(err.message)).to.include("Could not find any Pod matching provided podSelector")
