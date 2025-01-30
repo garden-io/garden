@@ -15,7 +15,7 @@ import { prepareEnvironment } from "../../../../../src/plugins/kubernetes/init.j
 import type { PrepareEnvironmentParams } from "../../../../../src/plugin/handlers/Provider/prepareEnvironment.js"
 import type { Garden } from "../../../../../src/garden.js"
 import { getEmptyGardenWithLocalK8sProvider } from "../../../helpers.js"
-import { ConfigGraph } from "../../../../../src/graph/config-graph.js"
+import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 
 describe("It should manage ingress controller for respective cluster type", () => {
   let garden: Garden

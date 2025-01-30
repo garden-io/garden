@@ -51,7 +51,7 @@ import {
 import type { ActionModeMap } from "../../../../../../src/actions/types.js"
 import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
 import stripAnsi from "strip-ansi"
-import { DeployActionConfig } from "../../../../../../src/actions/deploy.js"
+import type { DeployActionConfig } from "../../../../../../src/actions/deploy.js"
 
 describe("kubernetes-type handlers", () => {
   let tmpDir: tmp.DirectoryResult

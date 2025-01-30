@@ -20,7 +20,6 @@ import {
 } from "../../../../../../src/plugins/kubernetes/container/ingress.js"
 import type { ContainerDeployAction } from "../../../../../../src/plugins/container/moduleConfig.js"
 import type { ServicePortProtocol, ContainerIngressSpec } from "../../../../../../src/plugins/container/moduleConfig.js"
-import { getContainerTestGarden } from "./container.js"
 import type { PartialBy } from "../../../../../../src/util/util.js"
 import type { Resolved } from "../../../../../../src/actions/types.js"
 import { actionFromConfig } from "../../../../../../src/graph/actions.js"
@@ -303,7 +302,6 @@ const wildcardDomainCertSecret = {
 
 describe("createIngressResources", () => {
   let garden: Garden
-  let cleanup: (() => void) | undefined
   let context: string
   let basicProvider: KubernetesProvider
   let singleTlsProvider: KubernetesProvider

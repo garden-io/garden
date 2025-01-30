@@ -21,7 +21,7 @@ import {
 } from "../../../../../../src/constants.js"
 import { serialiseUnresolvedTemplates } from "../../../../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
-import { ActionConfig } from "../../../../../../src/actions/types.js"
+import type { ActionConfig } from "../../../../../../src/actions/types.js"
 
 describe("configureKubernetesModule", () => {
   let garden: TestGarden

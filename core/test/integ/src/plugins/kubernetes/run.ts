@@ -8,7 +8,8 @@
 
 import * as td from "testdouble"
 import tmp from "tmp-promise"
-import { expectError, getDataDir, makeTestGarden, pruneEmpty, TestGarden } from "../../../../helpers.js"
+import type { TestGarden } from "../../../../helpers.js"
+import { expectError, pruneEmpty } from "../../../../helpers.js"
 import fsExtra from "fs-extra"
 
 const { pathExists } = fsExtra
