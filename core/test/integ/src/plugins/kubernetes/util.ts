@@ -259,7 +259,6 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-
         log,
       })
       const result = await getTargetResource({
@@ -279,7 +278,7 @@ describe("util", () => {
 
     it("should throw if no query is specified", async () => {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<DeployAction>({
+      const action = await helmGarden.resolveAction<HelmDeployAction>({
         action: rawAction,
         log: helmGarden.log,
         graph: helmGraph,
@@ -287,10 +286,8 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-
         log,
       })
-      delete action._config.spec.serviceResource
       await expectError(
         () =>
           getTargetResource({
@@ -315,7 +312,6 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-
         log,
       })
       await expectError(
@@ -345,7 +341,6 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-
         log,
       })
       await expectError(
@@ -375,7 +370,6 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-
         log,
       })
       const deployment = find(manifests, (r) => r.kind === "Deployment")
@@ -564,7 +558,6 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-
         log,
       })
       return <KubernetesWorkload>find(manifests, (r) => r.kind === "Deployment")!
