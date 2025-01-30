@@ -564,29 +564,85 @@ describe("kubernetes-type handlers", () => {
         }
       )
     })
-    it("should only show logs returned from failed containers", async () => {
-      const graph = await garden.getConfigGraph({
-        log: garden.log,
-        emit: false,
-      })
-      const action = graph.getDeploy("action-simple")
 
+    it("should only show logs returned from failed containers", async () => {
       const name = `nginx-${randomString(4)}`
-      action._config.spec["manifests"][0]["metadata"]["name"] = name
-      action._config.spec["manifests"][0]["spec"]["template"]["spec"]["initContainers"] = [
+      // copied from 'action-simple' disk-based config
+      const actionConfig = {
+        kind: "Deploy",
+        type: "kubernetes",
+        name,
+        internal: {
+          basePath: ".",
+        },
+        timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
+        spec: {
+          manifests: [
+            {
+              apiVersion: "apps/v1",
+              kind: "Deployment",
+              metadata: {
+                name: "nginx",
+                labels: {
+                  app: "nginx",
+                },
+              },
+              spec: {
+                replicas: 1,
+                selector: {
+                  matchLabels: {
+                    app: "nginx",
+                  },
+                },
+                template: {
+                  metadata: {
+                    labels: {
+                      app: "nginx",
+                    },
+                  },
+                  spec: {
+                    containers: [
+                      {
+                        name: "nginx",
+                        image: "nginx:1.14.2",
+                        ports: [
+                          {
+                            containerPort: 80,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      } as DeployActionConfig
+
+      actionConfig.spec["manifests"][0]["metadata"]["name"] = name
+      actionConfig.spec["manifests"][0]["spec"]["template"]["spec"]["initContainers"] = [
         {
           name: "busybox1",
           image: "busybox:1.31.1",
           args: ["/bin/sh", "-c", "echo 'I AM OK'"],
         },
       ]
-      action._config.spec["manifests"][0]["spec"]["template"]["spec"]["containers"] = [
+      actionConfig.spec["manifests"][0]["spec"]["template"]["spec"]["containers"] = [
         {
           name: "busybox2",
           image: "busybox:1.31.1",
           args: ["/bin/sh", "-c", "echo 'I AM NOT OK' && exit 1"],
         },
       ]
+
+      garden.addAction(actionConfig)
+
+      const graph = await garden.getConfigGraph({
+        log: garden.log,
+        emit: false,
+      })
+      const action = graph.getDeploy(name)
 
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
 
@@ -605,6 +661,7 @@ describe("kubernetes-type handlers", () => {
         }
       )
     })
+
     it("should include logs from failed init containers", async () => {
       const name = `nginx-${randomString(4)}`
       // copied from 'action-simple' disk-based config
