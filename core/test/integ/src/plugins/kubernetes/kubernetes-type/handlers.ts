@@ -660,6 +660,7 @@ describe("kubernetes-type handlers", () => {
         },
       } as DeployActionConfig
 
+      actionConfig.spec["manifests"][0]["metadata"]["name"] = name
       // add 2 init containers - one should run successfully, and another should fail
       actionConfig.spec["manifests"][0]["spec"]["template"]["spec"]["initContainers"] = [
         {
