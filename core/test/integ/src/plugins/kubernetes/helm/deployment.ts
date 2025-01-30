@@ -24,7 +24,7 @@ import { buildHelmModules, getHelmLocalModeTestGarden, getHelmTestGarden } from 
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util.js"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
-import type { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config.js"
+import type { HelmDeployAction, HelmDeployConfig } from "../../../../../../src/plugins/kubernetes/helm/config.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
 import { FakeCloudApi } from "../../../../../helpers/api.js"
@@ -32,6 +32,9 @@ import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/nam
 import stripAnsi from "strip-ansi"
 import { randomString } from "../../../../../../src/util/string.js"
 import { ChildProcessError, DeploymentError } from "../../../../../../src/exceptions.js"
+import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants.js"
+import { join } from "node:path"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -371,7 +374,15 @@ describe("helmDeploy", () => {
       expect(releaseStatus.state).to.equal("ready")
 
       await deleteHelmDeploy({ ctx, log: actionLog, action })
-      await expectError(async () => await getHelmGardenMetadataConfigMapData({ ctx, action, log: actionLog, namespace }))
+      await expectError(
+        async () =>
+          await getHelmGardenMetadataConfigMapData({
+            ctx,
+            action,
+            log: actionLog,
+            namespace,
+          })
+      )
     })
 
     it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
@@ -396,7 +407,11 @@ describe("helmDeploy", () => {
         log: garden.log,
         graph,
       })
-      const actionLog = createActionLog({ log: gardenWithCloudApi.log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({
+        log: gardenWithCloudApi.log,
+        actionName: action.name,
+        actionKind: action.kind,
+      })
 
       await helmDeploy({
         ctx: ctxWithCloudApi,
@@ -486,14 +501,63 @@ describe("helmDeploy", () => {
   })
 
   context("errors and failures", () => {
-    it("should include K8s events and Pod logs with errors", async () => {
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    function makeAlternativeApiDeployConfig(name: string): HelmDeployConfig {
+      // based on 'deploy.api' action defined in the disk-based project
+      const helmDeployConfig = {
+        kind: "Deploy" as const,
+        name,
+        type: "helm" as const,
+        description: "The API backend for the voting UI",
+        dependencies: ["build.api-image"],
+        internal: {
+          // Use the same config dir as the deploy.api action
+          basePath: join(garden.projectRoot, "api"),
+        },
+        timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
+        spec: {
+          releaseName: name,
+          sync: {
+            paths: [
+              {
+                containerPath: "/app",
+              },
+            ],
+          },
+          defaultTarget: {
+            kind: "Deployment",
+            name,
+          },
+          values: {
+            args: ["python", "app.py"],
+            image: {
+              repository: "api-image",
+              tag: "${actions.build.api-image.version}",
+            },
+            ingress: {
+              enabled: true,
+              paths: ["/"],
+              hosts: ["api.local.demo.garden"],
+            },
+          },
+        },
+      }
 
-      const action = graph.getDeploy("api") as HelmDeployAction
-      action._config.spec.values["args"] = ["/bin/sh", "-c", "echo 'hello' && exit 1"]
-      action._config.spec.values["ingress"]!["enabled"] = false
-      action._config.spec.releaseName = `api-${randomString(4)}`
-      const resolvedAction = await garden.resolveAction<HelmDeployAction>({
+      // @ts-expect-error todo: correct types for unresolved configs
+      return parseTemplateCollection({ value: helmDeployConfig, source: { path: [] } })
+    }
+
+    it("should include K8s events and Pod logs with errors", async () => {
+      const name = `api-${randomString(4)}`
+      const deployConfig = makeAlternativeApiDeployConfig(name)
+
+      deployConfig.spec.values["args"] = ["/bin/sh", "-c", "echo 'hello' && exit 1"]
+      deployConfig.spec.values["ingress"]!["enabled"] = false
+
+      garden.addAction(deployConfig)
+
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = graph.getDeploy(name) as HelmDeployAction
+      const resolvedAction = await garden.resolveAction({
         action,
         log: garden.log,
         graph,
@@ -503,8 +567,8 @@ describe("helmDeploy", () => {
         actionName: resolvedAction.name,
         actionKind: resolvedAction.kind,
       })
-
       const releaseName = getReleaseName(resolvedAction)
+
       await expectError(
         () =>
           helmDeploy({
@@ -522,14 +586,19 @@ describe("helmDeploy", () => {
         }
       )
     })
-    it("should fail fast if one of the resources is unhealthy", async () => {
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-      const action = graph.getDeploy("api") as HelmDeployAction
-      action._config.spec.values["args"] = ["/bin/sh", "-c", "echo 'hello' && exit 1"]
-      action._config.spec.values["ingress"]!["enabled"] = false
-      action._config.spec.releaseName = `api-${randomString(4)}`
-      const resolvedAction = await garden.resolveAction<HelmDeployAction>({
+    it("should fail fast if one of the resources is unhealthy", async () => {
+      const name = `api-${randomString(4)}`
+      const deployConfig = makeAlternativeApiDeployConfig(name)
+
+      deployConfig.spec.values["args"] = ["/bin/sh", "-c", "echo 'hello' && exit 1"]
+      deployConfig.spec.values["ingress"]!["enabled"] = false
+
+      garden.addAction(deployConfig)
+
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = graph.getDeploy(name) as HelmDeployAction
+      const resolvedAction = await garden.resolveAction({
         action,
         log: garden.log,
         graph,
@@ -556,16 +625,21 @@ describe("helmDeploy", () => {
 
     context("atomic=true", () => {
       it("should NOT fail fast if one of the resources is unhealthy but wait for the Helm command to complete", async () => {
-        graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+        const name = `api-${randomString(4)}`
+        const deployConfig = makeAlternativeApiDeployConfig(name)
 
-        const action = graph.getDeploy("api") as HelmDeployAction
-        action._config.timeout = 5
-        action._config.spec.atomic = true
-        action._config.spec.values = {
-          ...action._config.spec.values,
+        deployConfig.timeout = 5
+        deployConfig.spec.atomic = true
+        deployConfig.spec.values = {
+          ...deployConfig.spec.values,
           args: ["/bin/sh", "-c", "echo 'hello' && exit 1"],
         }
-        const resolvedAction = await garden.resolveAction<HelmDeployAction>({
+
+        garden.addAction(deployConfig)
+
+        graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+        const action = graph.getDeploy(name) as HelmDeployAction
+        const resolvedAction = await garden.resolveAction({
           action,
           log: garden.log,
           graph,
@@ -575,8 +649,8 @@ describe("helmDeploy", () => {
           actionName: resolvedAction.name,
           actionKind: resolvedAction.kind,
         })
-
         const releaseName = getReleaseName(resolvedAction)
+
         await expectError(
           () =>
             helmDeploy({
@@ -594,6 +668,7 @@ describe("helmDeploy", () => {
         )
       })
     })
+
     context("waitForUnhealthyResources=true", () => {
       it("should include K8s events and Pod logs with errors", async () => {
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
