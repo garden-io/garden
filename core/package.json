@@ -258,7 +258,7 @@
     "fix-format": "npm run lint -- --fix --quiet",
     "lint": "eslint --ignore-pattern 'src/lib/**' --ext .ts,.tsx src/ test/",
     "migration:generate": "typeorm migration:generate --config ormconfig.js -n",
-    "_integ": "mocha --config .mocharc.integ.yml",
+    "_integ": "GARDEN_TESTS_LOG_LEVEL=${GARDEN_TESTS_LOG_LEVEL:-verbose} GARDEN_TESTS_SHOW_LOGS=${GARDEN_TESTS_LOG_LEVEL:-1} mocha --config .mocharc.integ.yml",
     "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" npm run _integ --",
     "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" npm run _integ --",
     "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" npm run _integ --",

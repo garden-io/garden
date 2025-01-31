@@ -18,6 +18,20 @@ import sourceMapSupport from "source-map-support"
 import { UnresolvedTemplateValue } from "../src/template/types.js"
 sourceMapSupport.install()
 
+let lastTime = performance.now()
+setInterval(() => {
+  const now = performance.now()
+  const diff = now - lastTime
+  if (diff > 50) {
+    // eslint-disable-next-line no-console
+    const logfn = diff > 200 ? console.error : console.warn
+    logfn(
+      `WARNING: Main loop was blocked during testing for ${diff}ms. There seem to be synchronous IO or a tight and expensive loop somewhere.`
+    )
+  }
+  lastTime = now
+}, 25)
+
 initTestLogger()
 
 // Work-around for nodejs crash with exit code 0
