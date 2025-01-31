@@ -325,7 +325,16 @@ export class LayeredContext extends ConfigContext {
 
   constructor(description: string, ...layers: ConfigContext[]) {
     super(description)
-    this.layers = layers
+    if (layers.length === 0) {
+      this.layers = [new GenericContext({})]
+    } else {
+      this.layers = layers
+    }
+  }
+
+  public addLayer(layer: ConfigContext) {
+    this.layers.push(layer)
+    this.clearCache()
   }
 
   override resolveImpl(args: ContextResolveParams): ContextResolveOutput {

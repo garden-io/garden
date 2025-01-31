@@ -46,24 +46,36 @@ export class VariablesContext extends LayeredContext {
       variableOverrides: DeepPrimitiveMap
     }
   ) {
-    const layers: ConfigContext[] = [
-      // project config context has no variables yet. Use empty context as root instead then
-      "variables" in context ? context.variables : new GenericContext({}),
-    ]
+    const layers: ConfigContext[] = []
+    if ("variables" in context) {
+      // populate the variable context with variables from parent context
+      layers.push(context.variables)
+    }
 
-    const entries = variablePrecedence.filter((tpl) => !isEmpty(tpl)).entries()
+    const scopesOrderedByPrecedence = variablePrecedence.filter((tpl) => !isEmpty(tpl)).entries()
 
-    for (const [i, layer] of entries) {
-      const parent = layers[i]
+    let parent: GenericContext | undefined
+    for (const [i, currentScope] of scopesOrderedByPrecedence) {
+      // add general context, to resolve inputs, action references, etc
+      const neededContext = new LayeredContext(`layer ${i}`, context)
+
+      // capture the needed context, so variables can be resolved correctly
+      const capturedScope = new GenericContext(capture(currentScope, neededContext))
+      layers.push(capturedScope)
+
+      // NOTE: we now mutate the context we just captured
+      // this allows variables cross-referencing each other in the same scope, e.g. to reuse values across multiple variables
+      const variableRoot = makeVariableRootContext(capturedScope)
+      neededContext.addLayer(variableRoot)
 
       // this ensures that a variable in any given context can refer to variables in the parent scope
-      let captured = capture(layer || {}, makeVariableRootContext(parent))
+      // variables in the parent scope take precedence over cross-referencing for backwards-compatibility
+      if (parent) {
+        neededContext.addLayer(parent)
+      }
 
-      // allow variables cross-referencing each other in the same scope, e.g. to reuse values across multiple variables
-      captured = capture(captured, makeVariableRootContext(new GenericContext(captured)))
-
-      // add this layer of variables
-      layers.push(new GenericContext(captured))
+      // make sure the lower precedence scope can access variables from this layer
+      parent = variableRoot
     }
 
     super(description, ...layers)
