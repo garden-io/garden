@@ -23,17 +23,9 @@ import { resolveMsg } from "../../../../../../src/logger/log-entry.js"
 import type { KubernetesPatchResource } from "../../../../../../src/plugins/kubernetes/types.js"
 import { type KubernetesResource } from "../../../../../../src/plugins/kubernetes/types.js"
 
-let kubernetesTestGarden: TestGarden
-
 export async function getKubernetesTestGarden() {
-  if (kubernetesTestGarden) {
-    return kubernetesTestGarden
-  }
-
   const projectRoot = getDataDir("test-projects", "kubernetes-type")
   const garden = await makeTestGarden(projectRoot)
-
-  kubernetesTestGarden = garden
 
   return garden
 }

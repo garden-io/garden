@@ -208,30 +208,12 @@ export class TestGarden extends Garden {
     currentDirectory: string,
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
-    // Cache the resolved params to save a bunch of time during tests
-    // TODO: re-instate this after we're done refactoring
-    const cacheKey = undefined
-    // const cacheKey = opts?.noCache
-    //   ? undefined
-    //   : hashString(serializeObject([currentDirectory, { ...opts, log: undefined }]))
 
-    let params: GardenParams
-
-    if (cacheKey && paramCache[cacheKey]) {
-      params = cloneDeep(paramCache[cacheKey])
-      // Need to do these separately to avoid issues around cloning
-      params.log = opts?.log || getRootLogger().createLog()
-      params.plugins = opts?.plugins || []
-    } else {
-      params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
-      if (opts?.gitScanMode) {
-        params.projectConfig.scan ??= { git: { mode: opts.gitScanMode } }
-        params.projectConfig.scan.git ??= { mode: opts.gitScanMode }
-        params.projectConfig.scan.git.mode = opts.gitScanMode
-      }
-      if (cacheKey) {
-        paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
-      }
+    const params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
+    if (opts?.gitScanMode) {
+      params.projectConfig.scan ??= { git: { mode: opts.gitScanMode } }
+      params.projectConfig.scan.git ??= { mode: opts.gitScanMode }
+      params.projectConfig.scan.git.mode = opts.gitScanMode
     }
 
     const garden = new this(params) as InstanceType<T>
@@ -239,8 +221,6 @@ export class TestGarden extends Garden {
     if (pathIsInside(currentDirectory, repoRoot)) {
       garden["repoRoot"] = repoRoot
     }
-
-    garden["cacheKey"] = cacheKey
 
     const globalDir = join(garden.gardenDirPath, "_global")
     await remove(globalDir)
