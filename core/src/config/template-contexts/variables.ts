@@ -55,12 +55,15 @@ export class VariablesContext extends LayeredContext {
 
     for (const [i, layer] of entries) {
       const parent = layers[i]
-      layers.push(
-        new GenericContext(
-          // this ensures that a variable in any given context can refer to variables in the parent scope
-          capture(layer || {}, makeVariableRootContext(parent))
-        )
-      )
+
+      // this ensures that a variable in any given context can refer to variables in the parent scope
+      let captured = capture(layer || {}, makeVariableRootContext(parent))
+
+      // allow variables cross-referencing each other in the same scope, e.g. to reuse values across multiple variables
+      captured = capture(captured, makeVariableRootContext(new GenericContext(captured)))
+
+      // add this layer of variables
+      layers.push(new GenericContext(captured))
     }
 
     super(description, ...layers)
