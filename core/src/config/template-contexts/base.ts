@@ -426,7 +426,7 @@ function traverseContext(
       getAvailableKeys = () => Array.from(value.keys()).filter((k) => typeof k === "string" || typeof k === "number")
     } else {
       nextValue = value[nextKey]
-      getAvailableKeys = () => Object.keys(value)
+      getAvailableKeys = () => Object.keys(value).filter((k) => !k.startsWith("_"))
     }
 
     if (nextValue === undefined) {

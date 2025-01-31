@@ -225,6 +225,26 @@ describe("ProjectConfigContext", () => {
     )
   })
 
+  it("should throw if 'var' key is referenced", () => {
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      projectRoot: "/tmp",
+      artifactsPath: "/tmp",
+      vcsInfo,
+      username: "some-user",
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo: { name: "test", args: {}, opts: {} },
+    })
+
+    const result = c.resolve({ nodePath: [], key: ["var", "foo"], opts: {} })
+    const unavailableReason = getUnavailableReason(result)
+    expect(stripAnsi(unavailableReason)).to.eql(
+      "Could not find key var. Available keys: local, command, datetime, project, git, secrets."
+    )
+  })
+
   it("should resolve the local arch", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",
