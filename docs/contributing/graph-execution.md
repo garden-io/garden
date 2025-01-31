@@ -69,7 +69,7 @@ In addition to the `getStatus` and `process` methods, each task class has method
 
 A task can specify _status dependencies_ by returning a non-empty array in its `resolveStatusDependencies` method. Status dependencies are essentially the pre-requisites for the task to be able to check its status.
 
-The primary example of this is for the action execution task classes, which all need their underlying action to be resolved first (via a `ResolveActionTask`). This is because the plugin handler that checks the status needs the resolved action to do its work (e.g. to know which Kubernetes resources to query for and compare against, in case there are Garden template strings in a selector in an underlying Kubernetes manifest—the details depend on the plugin in question).
+The primary example of this is for the action execution task classes, which all need their underlying action to be resolved first (via a `ResolveActionTask`). This is because the plugin handler that checks the status needs the resolved action to do its work (e.g. to know which Kubernetes resources to query for and compare against, in case there are unresolved Garden template values in a selector in an underlying Kubernetes manifest—the details depend on the plugin in question).
 
 Similarly, _process dependencies_ are the pre-requisites for the task to be run to completion. We highly recommend reading the code for the `resolveProcessDependencies` methods of `ResolveActionTask` and `BaseActionTask` to start with.
 
@@ -89,7 +89,7 @@ From least to most processed, this means: _No dependency < Resolved action/provi
 
 ### Implicit dependencies from template references
 
-Dependency references with `explicit: false` are added to actions when they're pre-processed. During this phase, we look for template strings referencing action outputs (e.g. `${actions.build.api.outputs.deployment-image-name}`) and add dependencies on the referenced actions (e.g. a build dependency on `api`).
+Dependency references with `explicit: false` are added to actions when they're pre-processed. During this phase, we look for unresolved template values referencing action outputs (e.g. `${actions.build.api.outputs.deployment-image-name}`) and add dependencies on the referenced actions (e.g. a build dependency on `api`).
 
 The `needsStaticOutputs` and `needsExecutedOutputs` flags will be set according to whether the field that's referenced is available before executing the action.
 
