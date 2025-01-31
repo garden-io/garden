@@ -1,4 +1,22 @@
 
+<a name="0.13.52"></a>
+## [0.13.52](https://github.com/garden-io/garden/compare/0.13.51...0.13.52) (2025-01-30)
+
+### Bug Fixes
+
+* broken path inside window binary zipped file ([#6812](https://github.com/garden-io/garden/issues/6812)) ([fe2fbdaee](https://github.com/garden-io/garden/commit/fe2fbdaee))
+
+### Improvements
+
+* **k8s:** update ingress controller to 1.12.0 (Helm chart 4.12.0) ([#6789](https://github.com/garden-io/garden/issues/6789)) ([ca9deca68](https://github.com/garden-io/garden/commit/ca9deca68))
+
+<a name="0.13.51"></a>
+## [0.13.51](https://github.com/garden-io/garden/compare/0.13.50...0.13.51) (2025-01-28)
+
+### Improvements
+
+* add better error handling when failing to archive test artifacts ([#6802](https://github.com/garden-io/garden/issues/6802)) ([589cb3926](https://github.com/garden-io/garden/commit/589cb3926))
+
 <a name="0.13.50"></a>
 ## [0.13.50](https://github.com/garden-io/garden/compare/0.13.49...0.13.50) (2025-01-24)
 

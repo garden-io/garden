@@ -488,7 +488,9 @@ jobs:
           name: Prepare the windows binary zip and cleanup
           command: |
             rm dist/garden-<<parameters.version>>-windows-amd64.zip
-            zip -r dist/garden-<<parameters.version>>-windows-amd64.zip dist/windows-amd64
+            cd dist
+            zip -r garden-<<parameters.version>>-windows-amd64.zip windows-amd64
+            cd ..
             sha256sum dist/garden-<<parameters.version>>-windows-amd64.zip | cut -d ' ' -f1 > dist/garden-<<parameters.version>>-windows-amd64.zip.sha256
       - persist_to_workspace:
           root: ./

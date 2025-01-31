@@ -39,6 +39,6 @@ Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Ga
 
 ## Examples
 
-- [Remote sources example project](https://github.com/garden-io/garden/tree/0.13.50/examples/remote-sources)
+- [Remote sources example project](https://github.com/garden-io/garden/tree/0.13.52/examples/remote-sources)
 
-- [kubernetes Deploy action type example with config templates](https://github.com/garden-io/garden/tree/0.13.50/examples/k8s-deploy-config-templates)
+- [kubernetes Deploy action type example with config templates](https://github.com/garden-io/garden/tree/0.13.52/examples/k8s-deploy-config-templates)
