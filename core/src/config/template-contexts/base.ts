@@ -28,7 +28,7 @@ export type ContextKey = ContextKeySegment[]
 export interface ContextResolveOpts {
   // This is kept for backwards compatibility of rendering kubernetes manifests
   // TODO(0.14): Do not allow the use of template strings in kubernetes manifest files
-  // TODO(0.14): Remove legacyAllowPartial & unescape
+  // TODO(0.14): Remove legacyAllowPartial & keepEscapingInTemplateStrings
   legacyAllowPartial?: boolean
 
   /**
@@ -43,7 +43,6 @@ export interface ContextResolveOpts {
 
   // for detecting circular references
   stack?: string[]
-
 }
 
 export interface ContextResolveParams {
