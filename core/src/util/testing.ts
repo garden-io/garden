@@ -27,7 +27,6 @@ import pathIsInside from "path-is-inside"
 import { basename, dirname, join, resolve } from "path"
 import type { GitScanMode } from "../constants.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants.js"
-import { getRootLogger } from "../logger/logger.js"
 import stripAnsi from "strip-ansi"
 import type { VcsHandler } from "../vcs/vcs.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
@@ -170,9 +169,6 @@ export class TestEventBus extends EventBus {
 const defaultCommandInfo = { name: "test", args: {}, opts: {} }
 export const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
-const paramCache: { [key: string]: GardenParams } = {}
-// const configGraphCache: { [key: string]: ConfigGraph } = {}
-
 export type TestGardenOpts = Partial<GardenOpts> & {
   noCache?: boolean
   noTempDir?: boolean
@@ -208,7 +204,6 @@ export class TestGarden extends Garden {
     currentDirectory: string,
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
-
     const params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
     if (opts?.gitScanMode) {
       params.projectConfig.scan ??= { git: { mode: opts.gitScanMode } }
