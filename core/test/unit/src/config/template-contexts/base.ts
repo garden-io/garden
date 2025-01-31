@@ -69,22 +69,6 @@ describe("ConfigContext", () => {
       expect(stripAnsi(getUnavailableReason(result))).to.include("Could not find key basic")
     })
 
-    // context("allowPartial=true", () => {
-    //   it("should return CONTEXT_RESOLVE_KEY_AVAILABLE_LATER symbol on missing key", async () => {
-    //     const c = new GenericContext({})
-    //     const result = resolveKey(c, ["basic"], { allowPartial: true })
-    //     expect(result.resolved).to.eql(CONTEXT_RESOLVE_KEY_AVAILABLE_LATER)
-    //   })
-
-    //   it("should return CONTEXT_RESOLVE_KEY_AVAILABLE_LATER symbol on missing key on nested context", async () => {
-    //     const c = new GenericContext({
-    //       nested: new GenericContext({ key: "value" }),
-    //     })
-    //     const result = resolveKey(c, ["nested", "bla"], { allowPartial: true })
-    //     expect(result.resolved).to.eql(CONTEXT_RESOLVE_KEY_AVAILABLE_LATER)
-    //   })
-    // })
-
     it("should throw when looking for nested value on primitive", async () => {
       const c = new GenericContext({ basic: "value" })
       await expectError(() => resolveKey(c, ["basic", "nested"]), "context-resolve")

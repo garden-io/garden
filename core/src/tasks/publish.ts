@@ -9,7 +9,7 @@
 import { BuildTask } from "./build.js"
 import type { BaseActionTaskParams, ActionTaskProcessParams } from "../tasks/base.js"
 import { BaseActionTask } from "../tasks/base.js"
-import { resolveTemplateString } from "../template/templated-strings.js"
+import { legacyResolveTemplateString } from "../template/templated-strings.js"
 import { joi } from "../config/common.js"
 import { versionStringPrefix } from "../vcs/vcs.js"
 import { ContextWithSchema, schema } from "../config/template-contexts/base.js"
@@ -115,7 +115,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       })
 
       // Resolve template string and make sure the result is a string
-      tagOverride = "" + resolveTemplateString({ string: this.tagOverrideTemplate, context: templateContext })
+      tagOverride = "" + legacyResolveTemplateString({ string: this.tagOverrideTemplate, context: templateContext })
 
       // TODO: validate the tag?
     }

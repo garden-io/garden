@@ -15,7 +15,7 @@ import { deline } from "./util/string.js"
 import { joi, joiVariables, joiStringMap, joiIdentifier, createSchema } from "./config/common.js"
 import type { PluginTool } from "./util/ext-tools.js"
 import type { ContextWithSchema, ContextResolveOpts } from "./config/template-contexts/base.js"
-import { resolveTemplateString } from "./template/templated-strings.js"
+import { legacyResolveTemplateString } from "./template/templated-strings.js"
 import type { Log } from "./logger/log-entry.js"
 import { logEntrySchema } from "./plugin/base.js"
 import { EventEmitter } from "eventemitter3"
@@ -240,7 +240,7 @@ export async function createPluginContext({
       })
     },
     legacyResolveTemplateString: (string: string, opts?: ResolveTemplateStringsOpts) => {
-      return resolveTemplateString({ string, context: templateContext, contextOpts: opts || {}, source: undefined })
+      return legacyResolveTemplateString({ string, context: templateContext, contextOpts: opts || {}, source: undefined })
     },
     sessionId: garden.sessionId,
     tools: await garden.getTools(),

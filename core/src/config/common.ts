@@ -394,7 +394,7 @@ joi = joi.extend({
   //   return { value }
   // },
   args(schema: any, keys: any) {
-    // Always allow the special $merge, $forEach etc. keys, which we resolve and collapse in resolveTemplateStrings()
+    // Always allow the special $merge, $forEach etc. keys, which are part of the template language.
     // Note: we allow both the expected schema and strings, since they may be templates resolving to the expected type.
     return schema.keys({
       [objectSpreadKey]: joi.alternatives(joi.object(), joi.string()),

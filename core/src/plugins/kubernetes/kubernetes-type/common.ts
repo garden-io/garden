@@ -436,7 +436,6 @@ async function readFileManifests(
         // if they reference variables that do not exist.
         const resolved = ctx.legacyResolveTemplateString(str, {
           legacyAllowPartial: true,
-          unescape: true,
         })
 
         if (typeof resolved !== "string") {

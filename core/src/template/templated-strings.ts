@@ -27,12 +27,8 @@ function parseWithPegJs(params: ParseParams) {
   return parser.parse(...params)
 }
 
-const shouldUnescape = ({ unescape = true }: ContextResolveOpts) => {
-  return unescape
-}
-
 const parseTemplateStringCache = new LRUCache<string, string | ast.TemplateExpression>({
-  max: 100000,
+  max: 1000,
 })
 
 class ParsedTemplateString extends UnresolvedTemplateValue {
@@ -75,12 +71,9 @@ class ParsedTemplateString extends UnresolvedTemplateValue {
 
 export function parseTemplateString({
   rawTemplateString,
-  // TODO: remove unescape hacks.
-  unescape = false,
   source,
 }: {
   rawTemplateString: string
-  unescape?: boolean
   source: ConfigSource
 }): ParsedTemplateString | string {
   // Just return immediately if this is definitely not a template string
@@ -88,8 +81,7 @@ export function parseTemplateString({
     return rawTemplateString
   }
 
-  const key = `u-${unescape ? "1" : "0"}-${rawTemplateString}`
-  const cached = parseTemplateStringCache.get(key)
+  const cached = parseTemplateStringCache.get(rawTemplateString)
 
   if (cached instanceof ast.TemplateExpression) {
     return new ParsedTemplateString(source, cached)
@@ -117,7 +109,7 @@ export function parseTemplateString({
       escapePrefix,
       optionalSuffix: "}?",
       parseNested: (nested: string) => {
-        const p = parseTemplateString({ rawTemplateString: nested, unescape, source })
+        const p = parseTemplateString({ rawTemplateString: nested, source })
         if (p instanceof UnresolvedTemplateValue) {
           return p["rootNode"]
         } else {
@@ -125,12 +117,11 @@ export function parseTemplateString({
         }
       },
       TemplateStringError: ParserError,
-      unescape,
       grammarSource: templateStringSource,
     },
   ])
 
-  parseTemplateStringCache.set(key, parsed)
+  parseTemplateStringCache.set(rawTemplateString, parsed)
 
   return new ParsedTemplateString(source, parsed)
 }
@@ -142,8 +133,10 @@ export function parseTemplateString({
  *
  * The context should be a ConfigContext instance. The optional `stack` parameter is used to detect circular
  * dependencies when resolving context variables.
+ *
+ * @deprecated Use `deepEvaluate` instead.
  */
-export function resolveTemplateString({
+export function legacyResolveTemplateString({
   string,
   context,
   contextOpts = {},
@@ -163,8 +156,6 @@ export function resolveTemplateString({
 
   const parsed = parseTemplateString({
     rawTemplateString: string,
-    // TODO: remove unescape hacks.
-    unescape: shouldUnescape(contextOpts),
     source,
   })
 

@@ -8,7 +8,7 @@
 
 import { isArray, isString, keyBy, partition, uniq } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
-import { isUnresolved, resolveTemplateString } from "./template/templated-strings.js"
+import { isUnresolved, legacyResolveTemplateString } from "./template/templated-strings.js"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden.js"
 import type { GardenError } from "./exceptions.js"
@@ -788,7 +788,11 @@ export class ModuleResolver {
         }
 
         const resolvedContents = fileSpec.resolveTemplates
-          ? resolveTemplateString({ string: contents, context: configContext, contextOpts: { unescape: true } })
+          ? legacyResolveTemplateString({
+              string: contents,
+              context: configContext,
+              contextOpts: {},
+            })
           : contents
 
         if (typeof resolvedContents !== "string") {
@@ -1252,11 +1256,9 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
     {
       context,
       opts: {
-        // Modules will be converted to actions later, and the actions will be properly unescaped.
-        // We avoid premature un-escaping here,
-        // because otherwise it will strip the escaped value in the module config
-        // to the normal template string in the converted action config.
-        unescape: false,
+        // Modules will be converted to actions later, and escape characters will be properly removed then.
+        // We need this as we intend to parse the evaluation result later again.
+        keepEscapingInTemplateStrings: true,
       },
     },
     skipRuntimeReferences
@@ -1294,8 +1296,10 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
         // in the second pass, we eliminate lurking item references
         // this can happen if the item context ($forEach) has been used together with runtime in the same template string
         legacyAllowPartial: true,
-        // we also do not unescape here, as the template strings will unfortunately be parsed again later.
-        unescape: false,
+
+        // Modules will be converted to actions later, and escape characters will be properly removed then.
+        // We need this as we intend to parse the evaluation result later again.
+        keepEscapingInTemplateStrings: true,
       },
     },
     findItemReferences

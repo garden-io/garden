@@ -10,7 +10,7 @@ import { expect } from "chai"
 import stripAnsi from "strip-ansi"
 import { getUnavailableReason } from "../../../../../src/config/template-contexts/base.js"
 import { DefaultEnvironmentContext, ProjectConfigContext } from "../../../../../src/config/template-contexts/project.js"
-import { resolveTemplateString } from "../../../../../src/template/templated-strings.js"
+import { legacyResolveTemplateString } from "../../../../../src/template/templated-strings.js"
 import { deline } from "../../../../../src/util/string.js"
 import type { TestGarden } from "../../../../helpers.js"
 import { freezeTime, makeTestGardenA } from "../../../../helpers.js"
@@ -334,7 +334,7 @@ describe("ProjectConfigContext", () => {
       commandInfo: { name: "deploy", args: {}, opts: { sync: ["my-service"] } },
     })
 
-    const result = resolveTemplateString({
+    const result = legacyResolveTemplateString({
       string: "${command.name == 'deploy' && (command.params.sync contains 'my-service')}",
       context: c,
     })
@@ -354,7 +354,7 @@ describe("ProjectConfigContext", () => {
       commandInfo: { name: "test", args: {}, opts: {} },
     })
 
-    const result = resolveTemplateString({
+    const result = legacyResolveTemplateString({
       string: "${command.params contains 'sync' && command.params.sync contains 'my-service'}",
       context: c,
     })

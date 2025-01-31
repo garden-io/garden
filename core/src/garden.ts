@@ -1638,8 +1638,7 @@ export class Garden {
 
   /**
    * Add a workflow config to the context after validating that its name doesn't conflict with previously
-   * added workflows, and partially resolving it (i.e. without fully resolving step configs, which
-   * is done just-in-time before a given step is run).
+   * added workflows.
    */
   private addRawWorkflow(config: WorkflowConfig) {
     const key = config.name
