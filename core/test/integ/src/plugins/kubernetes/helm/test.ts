@@ -17,13 +17,15 @@ import fsExtra from "fs-extra"
 const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
+import { randomString } from "../../../../../../src/util/string.js"
 
 describe("Helm Pod Test", () => {
   let garden: TestGarden
   let graph: ConfigGraph
+  const namespaceName = "helm-pod-test-testing-" + randomString(10)
 
   before(async () => {
-    garden = await getHelmTestGarden()
+    garden = await getHelmTestGarden(namespaceName)
   })
 
   beforeEach(async () => {
@@ -49,7 +51,7 @@ describe("Helm Pod Test", () => {
     expect(result?.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal("ok")
     expect(result!.result!.detail?.namespaceStatus).to.exist
-    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.eq("helm-test-default")
+    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.eq(namespaceName)
   })
 
   it("should run a test in a different namespace, if configured", async () => {

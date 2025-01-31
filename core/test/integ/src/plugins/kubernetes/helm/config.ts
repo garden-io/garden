@@ -13,7 +13,7 @@ import { omit } from "lodash-es"
 import type { TestGarden } from "../../../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../../helpers.js"
 import type { PluginContext } from "../../../../../../src/plugin-context.js"
-import { dedent } from "../../../../../../src/util/string.js"
+import { dedent, randomString } from "../../../../../../src/util/string.js"
 import type { ModuleConfig } from "../../../../../../src/config/module.js"
 import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common.js"
@@ -33,9 +33,10 @@ describe("configureHelmModule", () => {
   let garden: TestGarden
   let ctx: PluginContext
   let originalModuleConfigs: { [key: string]: ModuleConfig }
+  const namespaceName = "helm-configure-module-testing-" + randomString(10)
 
   before(async () => {
-    garden = await getHelmTestGarden()
+    garden = await getHelmTestGarden(namespaceName)
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await garden.resolveModules({ log: garden.log })

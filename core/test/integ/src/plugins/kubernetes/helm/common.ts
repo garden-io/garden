@@ -23,7 +23,7 @@ import {
 } from "../../../../../../src/plugins/kubernetes/helm/common.js"
 import { resolveMsg, type Log } from "../../../../../../src/logger/log-entry.js"
 import { BuildTask } from "../../../../../../src/tasks/build.js"
-import { dedent, deline } from "../../../../../../src/util/string.js"
+import { dedent, deline, randomString } from "../../../../../../src/util/string.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import type { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config.js"
 import { loadAll } from "js-yaml"
@@ -39,13 +39,17 @@ const { readdir, readFile } = fsExtra
 
 let helmTestGarden: TestGarden
 
-export async function getHelmTestGarden() {
+export async function getHelmTestGarden(namespaceName: string) {
   if (helmTestGarden) {
     return helmTestGarden
   }
 
   const projectRoot = getDataDir("test-projects", "helm")
-  const garden = await makeTestGarden(projectRoot)
+  const garden = await makeTestGarden(projectRoot, {
+    variableOverrides: {
+      namespaceName,
+    },
+  })
 
   helmTestGarden = garden
 
@@ -54,13 +58,17 @@ export async function getHelmTestGarden() {
 
 let helmLocalModeTestGarden: TestGarden
 
-export async function getHelmLocalModeTestGarden() {
+export async function getHelmLocalModeTestGarden(namespaceName: string) {
   if (helmLocalModeTestGarden) {
     return helmLocalModeTestGarden
   }
 
   const projectRoot = getDataDir("test-projects", "helm-local-mode")
-  const garden = await makeTestGarden(projectRoot)
+  const garden = await makeTestGarden(projectRoot, {
+    variableOverrides: {
+      namespaceName,
+    },
+  })
 
   helmLocalModeTestGarden = garden
 
@@ -95,9 +103,10 @@ describe("Helm common functions", () => {
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
   let log: Log
+  const namespaceName = "helm-common-functions-testing-" + randomString(10)
 
   before(async () => {
-    garden = await getHelmTestGarden()
+    garden = await getHelmTestGarden(namespaceName)
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = (await garden.getPluginContext({
       provider,

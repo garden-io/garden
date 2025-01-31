@@ -620,9 +620,10 @@ describe("kubernetes Pod runner functions", () => {
         max: 456,
       },
     }
+    const namespaceName = "helm-prepare-run-pod-spec-testing-" + randomString(10)
 
     before(async () => {
-      helmGarden = await getHelmTestGarden()
+      helmGarden = await getHelmTestGarden(namespaceName)
       helmProvider = <KubernetesProvider>(
         await helmGarden.resolveProvider({ log: helmGarden.log, name: "local-kubernetes" })
       )

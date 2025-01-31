@@ -41,9 +41,10 @@ describe("helmDeploy in local-mode", () => {
   let provider: KubernetesProvider
   let ctx: KubernetesPluginContext
   let graph: ConfigGraph
+  const namespaceName = "helm-localmode-testing-" + randomString(10)
 
   before(async () => {
-    garden = await getHelmLocalModeTestGarden()
+    garden = await getHelmLocalModeTestGarden(namespaceName)
     provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -112,9 +113,10 @@ describe("helmDeploy", () => {
   let provider: KubernetesProvider
   let ctx: KubernetesPluginContext
   let graph: ConfigGraph
+  const namespaceName = "helm-deploy-testing-" + randomString(10)
 
   before(async () => {
-    garden = await getHelmTestGarden()
+    garden = await getHelmTestGarden(namespaceName)
     provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -156,7 +158,7 @@ describe("helmDeploy", () => {
           force: false,
         })
         expect(namespaceStatus).to.exist
-        expect(namespaceStatus!.namespaceName).to.eql("helm-test-default")
+        expect(namespaceStatus!.namespaceName).to.eql(namespaceName)
 
         const releaseName = getReleaseName(action)
         const releaseStatus = await getReleaseStatus({
@@ -198,7 +200,7 @@ describe("helmDeploy", () => {
         force: false,
       })
       expect(namespaceStatus).to.exist
-      expect(namespaceStatus!.namespaceName).to.eql("helm-test-default")
+      expect(namespaceStatus!.namespaceName).to.eql(namespaceName)
 
       const releaseName = getReleaseName(action)
       const releaseStatus = await getReleaseStatus({
@@ -449,7 +451,7 @@ describe("helmDeploy", () => {
       const apiDeployment = (
         await Promise.all(
           workloads.map((workload) =>
-            api.readBySpec({ log: gardenWithCloudApi.log, namespace: "helm-test-default", manifest: workload })
+            api.readBySpec({ log: gardenWithCloudApi.log, namespace: namespaceName, manifest: workload })
           )
         )
       )[0]
@@ -461,7 +463,7 @@ describe("helmDeploy", () => {
 
       await api.apps.patchNamespacedDeployment({
         name: apiDeployment.metadata?.name,
-        namespace: "helm-test-default",
+        namespace: namespaceName,
         body: apiDeployment,
       })
 
