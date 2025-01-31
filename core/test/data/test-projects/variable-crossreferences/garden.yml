@@ -1,0 +1,16 @@
+apiVersion: garden.io/v1
+kind: Project
+name: duplicate-module
+environments:
+  - name: local
+    variables:
+      environmentLevel:
+        suffix: "world"
+        hello: hello ${var.environmentLevel.suffix}
+
+providers:
+  - name: test-plugin
+variables:
+  projectLevel:
+    suffix: "world"
+    hello: hello ${var.projectLevel.suffix}

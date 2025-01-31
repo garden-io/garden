@@ -28,29 +28,42 @@ import { deepEvaluate } from "../../../../../src/template/evaluate.js"
 import { isPlainObject } from "../../../../../src/util/objects.js"
 import { InternalError } from "../../../../../src/exceptions.js"
 import { parseTemplateCollection } from "../../../../../src/template/templated-collections.js"
+import type { ResolvedTemplate } from "../../../../../src/template/types.js"
 
 type TestValue = string | ConfigContext | TestValues
 
 interface TestValues {
   [key: string]: TestValue
 }
-
-describe("ConfigContext", () => {
-  class TestContext extends GenericContext {
-    constructor(obj: TestValues) {
-      super(obj)
-    }
-
-    addValues(obj: TestValues) {
-      if (!isPlainObject(this.data)) {
-        throw new InternalError({
-          message: "TestContext expects data to be a plain object",
-        })
-      }
-      Object.assign(this.data, obj)
-    }
+export class TestContext extends GenericContext {
+  constructor(obj: TestValues) {
+    super(obj)
   }
 
+  /**
+   * Helper to test contexts with fewer lines of code.
+   */
+  eval(rawTemplateString: string): ResolvedTemplate {
+    const parsed = parseTemplateString({
+      rawTemplateString,
+      source: {
+        path: [],
+      },
+    })
+    return deepEvaluate(parsed, { context: this, opts: {} })
+  }
+
+  addValues(obj: TestValues) {
+    if (!isPlainObject(this.data)) {
+      throw new InternalError({
+        message: "TestContext expects data to be a plain object",
+      })
+    }
+    Object.assign(this.data, obj)
+  }
+}
+
+describe("ConfigContext", () => {
   describe("resolve", () => {
     // just a shorthand to aid in testing
     function resolveKey(c: ConfigContext, key: ContextKey, opts = {}) {
