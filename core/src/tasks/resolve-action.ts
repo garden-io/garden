@@ -18,15 +18,19 @@ import type {
   ResolvedAction,
 } from "../actions/types.js"
 import { ActionSpecContext } from "../config/template-contexts/actions.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
 import { InternalError } from "../exceptions.js"
 import { validateWithPath } from "../config/validation.js"
-import type { DeepPrimitiveMap } from "../config/common.js"
-import { merge } from "lodash-es"
-import { mergeVariables } from "../graph/common.js"
 import { actionToResolved } from "../actions/helpers.js"
 import { ResolvedConfigGraph } from "../graph/config-graph.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { deepEvaluate } from "../template/evaluate.js"
+import { deepResolveContext } from "../config/template-contexts/base.js"
+import { isPlainObject } from "../util/objects.js"
+import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
+import { describeActionConfig } from "../actions/base.js"
+import { InputContext } from "../config/template-contexts/input.js"
+import { VariablesContext } from "../config/template-contexts/variables.js"
+import type { GroupConfig } from "../config/group.js"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -120,92 +124,86 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       }
     }
 
-    // Resolve template inputs
+    let resolvedInputs: DeepPrimitiveMap = deepEvaluate(config.internal.inputs || {}, {
+      context: new ActionSpecContext({
+        garden: this.garden,
+        resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
+        action,
+        modules: this.graph.getModules(),
+        resolvedDependencies,
+        executedDependencies,
+        variables: this.garden.variables, // inputs cannot access action variables
+        inputs: new InputContext({}), // inputs cannot reference themselves
+      }),
+      opts: {},
+    })
+
+    const templateName = config.internal.templateName
+    if (templateName) {
+      const template = this.garden.configTemplates[templateName]
+      if (!template) {
+        throw new InternalError({
+          message: `Could not find template name ${templateName} for ${describeActionConfig(config)}`,
+        })
+      }
+      // we must apply the input schema on partially evaluated inputs for backwards compatibility
+      resolvedInputs = validateWithPath<DeepPrimitiveMap>({
+        config: resolvedInputs,
+        configType: `inputs for action ${config.name}`,
+        path: this.action.effectiveConfigFileLocation(),
+        schema: template.inputsSchema,
+        projectRoot: this.garden.projectRoot,
+        source: undefined,
+      })
+    }
+
+    const inputs = new InputContext(
+      resolvedInputs,
+      // defaults are already applied on the inputs
+      undefined
+    )
+
     const inputsContext = new ActionSpecContext({
       garden: this.garden,
       resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
       action,
       modules: this.graph.getModules(),
-      partialRuntimeResolution: false,
       resolvedDependencies,
       executedDependencies,
-      variables: {},
-      inputs: {},
-    })
-
-    const template = config.internal.templateName ? this.garden.configTemplates[config.internal.templateName] : null
-
-    const inputs = resolveTemplateStrings({
-      value: config.internal.inputs || {},
-      context: inputsContext,
-      contextOpts: { allowPartial: false },
-      source: { yamlDoc: template?.internal.yamlDoc, path: ["inputs"] },
+      variables: this.garden.variables,
+      inputs,
     })
 
     // Resolve variables
-    let groupVariables: DeepPrimitiveMap = {}
     const groupName = action.groupName()
 
+    let group: GroupConfig | undefined
     if (groupName) {
-      const group = this.graph.getGroup(groupName)
+      group = this.graph.getGroup(groupName)
+    }
 
-      groupVariables = resolveTemplateStrings({
-        value: await mergeVariables({
-          basePath: group.path,
-          variables: group.variables,
-          varfiles: group.varfiles,
-          log: this.garden.log,
-        }),
-        context: inputsContext,
-        // TODO: map variables to their source
-        source: undefined,
+    const variables = await VariablesContext.forAction(this.garden, config, inputsContext, group)
+
+    const resolvedVariables = deepResolveContext("action variables", variables, inputsContext)
+    if (!isPlainObject(resolvedVariables)) {
+      throw new InternalError({
+        message: `Action variables for ${action.describe()} evaluated to ${typeof resolvedVariables}, expected a plain object.`,
       })
     }
 
-    const basePath = action.effectiveConfigFileLocation()
-
-    const actionVariables = resolveTemplateStrings({
-      value: await mergeVariables({
-        basePath,
-        variables: config.variables,
-        varfiles: config.varfiles,
-        log: this.garden.log,
-      }),
-      context: new ActionSpecContext({
-        garden: this.garden,
-        resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
-        action,
-        modules: this.graph.getModules(),
-        partialRuntimeResolution: false,
-        resolvedDependencies,
-        executedDependencies,
-        variables: groupVariables,
-        inputs,
-      }),
-      // TODO: map variables to their source
-      source: undefined,
-    })
-
-    const variables = groupVariables
-    merge(variables, actionVariables)
-    // Override with CLI-set variables
-    merge(variables, this.garden.variableOverrides)
-
     // Resolve spec
-    let spec = resolveTemplateStrings({
-      value: action.getConfig().spec || {},
+    let spec = deepEvaluate(action.getConfig().spec || {}, {
       context: new ActionSpecContext({
         garden: this.garden,
         resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
         action,
         modules: this.graph.getModules(),
-        partialRuntimeResolution: false,
         resolvedDependencies,
         executedDependencies,
         variables,
         inputs,
       }),
-      source: { yamlDoc: action.getInternal().yamlDoc, path: ["spec"] },
+      opts: {},
     })
 
     // Validate spec
@@ -225,7 +223,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       executedDependencies,
       resolvedDependencies,
       variables,
-      inputs,
+      resolvedVariables,
+      inputs: resolvedInputs,
       spec,
       staticOutputs: {},
     }) as Resolved<T>

@@ -37,7 +37,7 @@ describe("kubernetes container module conversion", () => {
   })
 
   it("should include build dependencies among converted runtime actions' dependencies", async () => {
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       makeModuleConfig<ContainerModuleConfig>(garden.projectRoot, {
         name: "test-image",
         type: "container",

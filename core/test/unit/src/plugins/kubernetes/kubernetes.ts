@@ -19,6 +19,7 @@ import {
   defaultSystemNamespace,
   defaultUtilImageRegistryDomain,
 } from "../../../../../src/plugins/kubernetes/constants.js"
+import { UnresolvedProviderConfig } from "../../../../../src/config/project.js"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
@@ -62,7 +63,12 @@ describe("kubernetes configureProvider", () => {
       ctx: await garden.getPluginContext({
         provider: providerFromConfig({
           plugin: gardenPlugin(),
-          config,
+          config: new UnresolvedProviderConfig(
+            config.name,
+            config.dependencies || [],
+            // @ts-expect-error todo: correct types for unresolved configs
+            config
+          ),
           dependencies: {},
           moduleConfigs: [],
           status: { ready: false, outputs: {} },

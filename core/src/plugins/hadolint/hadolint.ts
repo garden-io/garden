@@ -18,7 +18,7 @@ import { defaultDockerfileName } from "../container/config.js"
 import { baseBuildSpecSchema } from "../../config/module.js"
 import { getGitHubUrl } from "../../docs/common.js"
 import type { TestAction, TestActionConfig } from "../../actions/test.js"
-import { mayContainTemplateString } from "../../template-string/template-string.js"
+import { isUnresolved } from "../../template/templated-strings.js"
 import type { BaseAction } from "../../actions/base.js"
 import type { BuildAction } from "../../actions/build.js"
 import { sdk } from "../../plugin/sdk.js"
@@ -180,7 +180,7 @@ provider.addHandler("augmentGraph", async ({ ctx, actions }) => {
   const existingHadolintDockerfiles = actions
     .filter(isHadolintTest)
     // Can't really reason about templated dockerfile spec field
-    .filter((a) => !mayContainTemplateString(a.getConfig("spec").dockerfilePath))
+    .filter((a) => !isUnresolved(a.getConfig("spec").dockerfilePath))
     .map((a) => resolve(a.sourcePath(), a.getConfig("spec").dockerfilePath))
 
   const pickCompatibleAction = (action: BaseAction): action is BuildAction | HadolintTest => {
@@ -188,7 +188,7 @@ provider.addHandler("augmentGraph", async ({ ctx, actions }) => {
     if (isHadolintTest(action)) {
       const dockerfilePath = action.getConfig("spec").dockerfilePath
       if (
-        !mayContainTemplateString(dockerfilePath) &&
+        !isUnresolved(dockerfilePath) &&
         existingHadolintDockerfiles.includes(resolve(action.sourcePath(), dockerfilePath))
       ) {
         return false
@@ -215,7 +215,7 @@ provider.addHandler("augmentGraph", async ({ ctx, actions }) => {
       (isHadolintTest(action) ? action.getConfig("spec").dockerfilePath : action.getConfig("spec").dockerfile) ||
       defaultDockerfileName
 
-    const include = mayContainTemplateString(dockerfilePath) ? undefined : [dockerfilePath]
+    const include = isUnresolved(dockerfilePath) ? undefined : [dockerfilePath]
 
     return {
       kind: "Test",
@@ -270,7 +270,8 @@ hadolintTest.addHandler("configure", async ({ ctx, config }) => {
 
   if (!config.include.includes(dockerfilePath)) {
     try {
-      dockerfilePath = ctx.resolveTemplateStrings(dockerfilePath)
+      // @ts-expect-error todo: correct types for unresolved configs
+      dockerfilePath = ctx.deepEvaluate(dockerfilePath)
     } catch (error) {
       if (!(error instanceof GardenError)) {
         throw error

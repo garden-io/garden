@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { DeepPrimitiveMap } from "../common.js"
 import { variableNameRegex, joiPrimitive, joiArray, joiVariables, joiIdentifierMap } from "../common.js"
 import { joi } from "../common.js"
 import type { DefaultEnvironmentContextParams } from "./project.js"
 import { DefaultEnvironmentContext } from "./project.js"
 import { schema } from "./base.js"
+import type { VariablesContext } from "./variables.js"
 
 interface ArgsSchema {
   [name: string]: string | number | string[]
@@ -30,10 +30,10 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
       .description("A map of all variables defined in the command configuration.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: DeepPrimitiveMap
+  public readonly variables: VariablesContext
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: DeepPrimitiveMap
+  public readonly var: VariablesContext
 
   @schema(
     joi
@@ -54,7 +54,7 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
         "Map of all arguments, as defined in the Command spec. Also includes `$all`, `$rest` and `--` fields. See their description for details."
       )
   )
-  public args: ArgsSchema
+  public readonly args: ArgsSchema
 
   @schema(
     joi
@@ -64,13 +64,13 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
       .unknown(true)
       .description("Map of all options, as defined in the Command spec.")
   )
-  public opts: OptsSchema
+  public readonly opts: OptsSchema
 
   constructor(
     params: DefaultEnvironmentContextParams & {
       args: ArgsSchema
       opts: OptsSchema
-      variables: DeepPrimitiveMap
+      variables: VariablesContext
       rest: string[]
     }
   ) {

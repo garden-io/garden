@@ -8,9 +8,8 @@
 
 import type { CommonTaskParams, ResolveProcessDependenciesParams, TaskProcessParams } from "./base.js"
 import { BaseTask } from "./base.js"
-import type { GenericProviderConfig, Provider, ProviderMap } from "../config/provider.js"
+import type { BaseProviderConfig, Provider, ProviderMap } from "../config/provider.js"
 import { providerFromConfig, getProviderTemplateReferences } from "../config/provider.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
 import { ConfigurationError, PluginError } from "../exceptions.js"
 import { keyBy, omit, flatten, uniq } from "lodash-es"
 import { ProviderConfigContext } from "../config/template-contexts/provider.js"
@@ -31,9 +30,10 @@ import { stableStringify } from "../util/string.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { LogLevel } from "../logger/logger.js"
 import type { Log } from "../logger/log-entry.js"
-import type { ObjectPath } from "../config/base.js"
 import fsExtra from "fs-extra"
 import { RemoteSourceConfigContext } from "../config/template-contexts/project.js"
+import { deepEvaluate } from "../template/evaluate.js"
+import type { UnresolvedProviderConfig } from "../config/project.js"
 
 const { readFile, writeFile, ensureDir } = fsExtra
 
@@ -52,7 +52,7 @@ function getProviderLog(providerName: string, log: Log) {
 interface Params extends CommonTaskParams {
   plugin: GardenPluginSpec
   allPlugins: GardenPluginSpec[]
-  config: GenericProviderConfig
+  config: UnresolvedProviderConfig
   forceRefresh: boolean
   forceInit: boolean
 }
@@ -78,7 +78,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
   override readonly statusConcurrencyLimit = 20
   override readonly executeConcurrencyLimit = 20
 
-  private config: GenericProviderConfig
+  private config: UnresolvedProviderConfig
   private plugin: GardenPluginSpec
   private forceRefresh: boolean
   private forceInit: boolean
@@ -122,7 +122,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     ).map((name) => ({ name }))
     const allDeps = uniq([...pluginDeps, ...explicitDeps, ...implicitDeps])
 
-    const rawProviderConfigs = this.garden.getRawProviderConfigs()
+    const rawProviderConfigs = this.garden.getUnresolvedProviderConfigs()
     const plugins = keyBy(this.allPlugins, "name")
 
     const matchDependencies = (depName: string) => {
@@ -193,43 +193,26 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
     this.log.silly(() => `Resolving template strings for provider ${this.config.name}`)
 
-    const projectConfig = this.garden.getProjectConfig()
-    const yamlDoc = projectConfig.internal.yamlDoc
-    let yamlDocBasePath: ObjectPath = []
-
-    if (yamlDoc) {
-      projectConfig.providers.forEach((p, i) => {
-        if (p.name === this.config.name) {
-          yamlDocBasePath = ["providers", i]
-          return false
-        }
-        return true
-      })
-    }
-
-    const source = { yamlDoc, path: yamlDocBasePath }
-
-    let resolvedConfig = resolveTemplateStrings({ value: this.config, context, source })
-    const providerName = resolvedConfig.name
+    const evaluatedConfig = deepEvaluate(this.config.unresolvedConfig, { context, opts: {} })
+    const providerName = this.config.name
     const providerLog = getProviderLog(providerName, this.log)
     providerLog.info("Configuring provider...")
 
     this.log.silly(() => `Validating ${providerName} config`)
 
-    const validateConfig = (config: GenericProviderConfig) => {
-      return <GenericProviderConfig>validateWithPath({
-        config: omit(config, "path"),
+    const validateConfig = (config: unknown) => {
+      return validateWithPath<BaseProviderConfig>({
+        config,
         schema: this.plugin.configSchema || joi.object(),
         path: this.garden.projectRoot,
         projectRoot: this.garden.projectRoot,
         configType: "provider configuration",
         ErrorClass: ConfigurationError,
-        source,
+        source: undefined,
       })
     }
 
-    resolvedConfig = validateConfig(resolvedConfig)
-    resolvedConfig.path = this.garden.projectRoot
+    let resolvedConfig = validateConfig(evaluatedConfig)
 
     let moduleConfigs: ModuleConfig[] = []
 
@@ -285,14 +268,14 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
       this.log.silly(() => `Validating '${providerName}' config against '${base.name}' schema`)
 
-      resolvedConfig = <GenericProviderConfig>validateWithPath({
-        config: omit(resolvedConfig, "path"),
+      resolvedConfig = validateWithPath<BaseProviderConfig>({
+        config: resolvedConfig,
         schema: base.configSchema.unknown(true),
         path: this.garden.projectRoot,
         projectRoot: this.garden.projectRoot,
         configType: `provider configuration (base schema from '${base.name}' plugin)`,
         ErrorClass: ConfigurationError,
-        source: { yamlDoc, path: yamlDocBasePath },
+        source: undefined,
       })
     }
 
@@ -325,11 +308,11 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     })
   }
 
-  private hashConfig(config: GenericProviderConfig) {
+  private hashConfig(config: BaseProviderConfig) {
     return hashString(stableStringify(config))
   }
 
-  private async getCachedStatus(config: GenericProviderConfig): Promise<EnvironmentStatus | null> {
+  private async getCachedStatus(config: BaseProviderConfig): Promise<EnvironmentStatus | null> {
     const cachePath = this.getCachePath()
 
     this.log.silly(() => `Checking provider status cache for ${this.plugin.name} at ${cachePath}`)
@@ -368,7 +351,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     return omit(cachedStatus, ["configHash", "resolvedAt"])
   }
 
-  private async setCachedStatus(config: GenericProviderConfig, status: EnvironmentStatus) {
+  private async setCachedStatus(config: BaseProviderConfig, status: EnvironmentStatus) {
     const cachePath = this.getCachePath()
     this.log.silly(() => `Caching provider status for ${this.plugin.name} at ${cachePath}`)
 

@@ -42,6 +42,9 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
   override outputsSchema = () =>
     joi.object().keys({
       allEnvironmentNames: joiArray(environmentNameSchema()).required(),
+      allAvailablePlugins: joiArray(joi.string())
+        .description("A list of all plugins available to be used in the provider configuration.")
+        .required(),
       environmentName: environmentNameSchema().required(),
       namespace: joiIdentifier().description("The namespace of the current environment (if applicable)."),
       providers: joiArray(joi.alternatives(providerSchema(), providerConfigBaseSchema())).description(

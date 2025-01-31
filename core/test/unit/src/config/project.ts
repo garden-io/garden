@@ -13,7 +13,7 @@ import type { ProjectConfig } from "../../../../src/config/project.js"
 import {
   resolveProjectConfig,
   pickEnvironment,
-  defaultVarfilePath,
+  defaultProjectVarfilePath,
   defaultEnvVarfilePath,
   parseEnvironment,
   defaultNamespace,
@@ -22,10 +22,17 @@ import {
 } from "../../../../src/config/project.js"
 import { createProjectConfig, expectError } from "../../../helpers.js"
 import fsExtra from "fs-extra"
-const { realpath, writeFile } = fsExtra
 import { dedent } from "../../../../src/util/string.js"
 import { resolve, join } from "path"
 import { getRootLogger } from "../../../../src/logger/logger.js"
+import { deepEvaluate } from "../../../../src/template/evaluate.js"
+import { deepResolveContext, GenericContext } from "../../../../src/config/template-contexts/base.js"
+import { omit } from "lodash-es"
+import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
+import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
+import { ProjectConfigContext } from "../../../../src/config/template-contexts/project.js"
+
+const { realpath, writeFile } = fsExtra
 
 const enterpriseDomain = "https://garden.mydomain.com"
 const commandInfo = { name: "test", args: {}, opts: {} }
@@ -52,13 +59,17 @@ describe("resolveProjectConfig", () => {
         log,
         defaultEnvironmentName: "default",
         config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
+        context: new ProjectConfigContext({
+          projectName: config.name,
+          projectRoot: config.path,
+          artifactsPath: "/tmp",
+          vcsInfo,
+          username: "some-user",
+          loggedIn: true,
+          enterpriseDomain,
+          secrets: {},
+          commandInfo,
+        }),
       })
     ).to.eql({
       ...config,
@@ -71,7 +82,7 @@ describe("resolveProjectConfig", () => {
         },
       ],
       sources: [],
-      varfile: defaultVarfilePath,
+      varfile: defaultProjectVarfilePath,
     })
   })
 
@@ -109,18 +120,24 @@ describe("resolveProjectConfig", () => {
     process.env.TEST_ENV_VAR = "foo"
 
     expect(
-      resolveProjectConfig({
-        log,
-        defaultEnvironmentName: defaultEnvironment,
-        config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: { foo: "banana" },
-        commandInfo,
-      })
+      serialiseUnresolvedTemplates(
+        resolveProjectConfig({
+          log,
+          defaultEnvironmentName: defaultEnvironment,
+          config,
+          context: new ProjectConfigContext({
+            projectName: config.name,
+            projectRoot: config.path,
+            artifactsPath: "/tmp",
+            vcsInfo,
+            username: "some-user",
+            loggedIn: true,
+            enterpriseDomain,
+            secrets: { foo: "banana" },
+            commandInfo,
+          }),
+        })
+      )
     ).to.eql({
       ...config,
       dotIgnoreFiles: [],
@@ -141,7 +158,7 @@ describe("resolveProjectConfig", () => {
           repositoryUrl,
         },
       ],
-      varfile: defaultVarfilePath,
+      varfile: defaultProjectVarfilePath,
       variables: {
         platform: platform(),
         secret: "banana",
@@ -183,20 +200,26 @@ describe("resolveProjectConfig", () => {
     process.env.TEST_ENV_VAR_B = "boo"
 
     expect(
-      resolveProjectConfig({
-        log,
-        defaultEnvironmentName: defaultEnvironment,
-        config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
+      serialiseUnresolvedTemplates(
+        resolveProjectConfig({
+          log,
+          defaultEnvironmentName: defaultEnvironment,
+          config,
+          context: new ProjectConfigContext({
+            projectName: config.name,
+            projectRoot: config.path,
+            artifactsPath: "/tmp",
+            vcsInfo,
+            username: "some-user",
+            loggedIn: true,
+            enterpriseDomain,
+            secrets: {},
+            commandInfo,
+          }),
+        })
+      )
     ).to.eql({
-      ...config,
+      ...(serialiseUnresolvedTemplates(config) as DeepPrimitiveMap),
       dotIgnoreFiles: [],
       environments: [
         {
@@ -211,18 +234,16 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-a",
-          dependencies: [],
           someKey: "${local.env.TEST_ENV_VAR_A}",
         },
         {
           name: "provider-b",
-          dependencies: [],
           environments: ["default"],
           someKey: "${local.env.TEST_ENV_VAR_B}",
         },
       ],
       sources: [],
-      varfile: defaultVarfilePath,
+      varfile: defaultProjectVarfilePath,
     })
 
     delete process.env.TEST_ENV_VAR_A
@@ -248,13 +269,17 @@ describe("resolveProjectConfig", () => {
       log,
       defaultEnvironmentName: defaultEnvironment,
       config,
-      artifactsPath: "/tmp",
-      vcsInfo,
-      username: "some-user",
-      loggedIn: true,
-      enterpriseDomain,
-      secrets: {},
-      commandInfo,
+      context: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath: "/tmp",
+        vcsInfo,
+        username: "some-user",
+        loggedIn: true,
+        enterpriseDomain,
+        secrets: {},
+        commandInfo,
+      }),
     })
 
     expect(result.environments[0].variables).to.eql(config.environments[0].variables)
@@ -277,18 +302,24 @@ describe("resolveProjectConfig", () => {
     process.env.TEST_ENV_VAR = "foo"
 
     expect(
-      resolveProjectConfig({
-        log,
-        defaultEnvironmentName: defaultEnvironment,
-        config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
+      serialiseUnresolvedTemplates(
+        resolveProjectConfig({
+          log,
+          defaultEnvironmentName: defaultEnvironment,
+          config,
+          context: new ProjectConfigContext({
+            projectName: config.name,
+            projectRoot: config.path,
+            artifactsPath: "/tmp",
+            vcsInfo,
+            username: "some-user",
+            loggedIn: true,
+            enterpriseDomain,
+            secrets: {},
+            commandInfo,
+          }),
+        })
+      )
     ).to.eql({
       ...config,
       dotIgnoreFiles: [],
@@ -306,7 +337,7 @@ describe("resolveProjectConfig", () => {
           repositoryUrl,
         },
       ],
-      varfile: defaultVarfilePath,
+      varfile: defaultProjectVarfilePath,
       variables: {},
     })
 
@@ -321,7 +352,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: defaultEnvironmentName,
       environments: [{ defaultNamespace: null, name: "first-env", variables: {} }],
       outputs: [],
-      providers: [{ name: "some-provider", dependencies: [] }],
+      providers: [{ name: "some-provider" }],
       variables: {},
     })
 
@@ -330,13 +361,17 @@ describe("resolveProjectConfig", () => {
         log,
         defaultEnvironmentName,
         config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
+        context: new ProjectConfigContext({
+          projectName: config.name,
+          projectRoot: config.path,
+          artifactsPath: "/tmp",
+          vcsInfo,
+          username: "some-user",
+          loggedIn: true,
+          enterpriseDomain,
+          secrets: {},
+          commandInfo,
+        }),
       })
     ).to.eql({
       ...config,
@@ -344,7 +379,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: "first-env",
       environments: [{ defaultNamespace: null, name: "first-env", variables: {} }],
       sources: [],
-      varfile: defaultVarfilePath,
+      varfile: defaultProjectVarfilePath,
     })
   })
 
@@ -365,13 +400,17 @@ describe("resolveProjectConfig", () => {
         log,
         defaultEnvironmentName,
         config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
+        context: new ProjectConfigContext({
+          projectName: config.name,
+          projectRoot: config.path,
+          artifactsPath: "/tmp",
+          vcsInfo,
+          username: "some-user",
+          loggedIn: true,
+          enterpriseDomain,
+          secrets: {},
+          commandInfo,
+        }),
       })
     ).to.eql({
       ...config,
@@ -379,7 +418,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: "default",
       environments: [{ defaultNamespace: null, name: "default", variables: {} }],
       sources: [],
-      varfile: defaultVarfilePath,
+      varfile: defaultProjectVarfilePath,
     })
   })
 
@@ -412,11 +451,13 @@ describe("resolveProjectConfig", () => {
       variables: {},
     })
 
-    expect(
-      resolveProjectConfig({
-        log,
-        defaultEnvironmentName: defaultEnvironment,
-        config,
+    const resolvedConfig = resolveProjectConfig({
+      log,
+      defaultEnvironmentName: defaultEnvironment,
+      config,
+      context: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
         artifactsPath: "/tmp",
         vcsInfo,
         username: "some-user",
@@ -424,8 +465,9 @@ describe("resolveProjectConfig", () => {
         enterpriseDomain,
         secrets: {},
         commandInfo,
-      })
-    ).to.eql({
+      }),
+    })
+    expect(resolvedConfig).to.eql({
       ...config,
       internal: {
         basePath: "/foo",
@@ -444,20 +486,17 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-a",
-          dependencies: [],
         },
         {
           name: "provider-b",
           environments: ["default"],
-          dependencies: [],
         },
         {
           name: "provider-c",
-          dependencies: [],
         },
       ],
       sources: [],
-      varfile: defaultVarfilePath,
+      varfile: defaultProjectVarfilePath,
     })
   })
 })
@@ -487,7 +526,19 @@ describe("pickEnvironment", () => {
     await expectError(
       () =>
         pickEnvironment({
+          projectContext: new ProjectConfigContext({
+            projectName: config.name,
+            projectRoot: config.path,
+            artifactsPath,
+            vcsInfo,
+            username,
+            loggedIn: true,
+            enterpriseDomain: config.domain,
+            secrets: {},
+            commandInfo,
+          }),
           projectConfig: config,
+          variableOverrides: {},
           envString: "foo",
           artifactsPath,
           vcsInfo,
@@ -508,7 +559,19 @@ describe("pickEnvironment", () => {
     })
 
     const res = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -538,31 +601,53 @@ describe("pickEnvironment", () => {
       ],
     })
 
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "default",
+    const env = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
         artifactsPath,
         vcsInfo,
         username,
         loggedIn: true,
-        enterpriseDomain,
+        enterpriseDomain: config.domain,
         secrets: {},
         commandInfo,
-      })
-    ).to.eql({
+      }),
+
+      projectConfig: config,
+      variableOverrides: {},
+      envString: "default",
+      artifactsPath,
+      vcsInfo,
+      username,
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
+    })
+
+    expect(omit(env, "providers", "variables")).to.eql({
       environmentName: "default",
       defaultNamespace: "default",
       namespace: "default",
-      providers: [
-        { name: "exec" },
-        { name: "container", newKey: "foo", dependencies: [] },
-        { name: "templated" },
-        { name: "my-provider", b: "b" },
-      ],
       production: false,
-      variables: {},
     })
+    const variables = deepResolveContext("resolved env variables", env.variables)
+    expect(variables).to.eql({})
+
+    const resolvedProviders = env.providers.map((p) =>
+      deepEvaluate(p.unresolvedConfig, { context: new GenericContext({}), opts: {} })
+    )
+    expect(resolvedProviders).to.eql([
+      { name: "exec" },
+      { name: "container", newKey: "foo" },
+      { name: "templated" },
+      {
+        name: "my-provider",
+        a: undefined, // setting a to undefined is semantically equivalent to removing it in this context
+        b: "b",
+      },
+    ])
   })
 
   it("should correctly merge project and environment variables", async () => {
@@ -597,7 +682,20 @@ describe("pickEnvironment", () => {
     })
 
     const result = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -608,7 +706,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "project value A",
       b: "env value B",
       c: "env value C",
@@ -622,7 +721,7 @@ describe("pickEnvironment", () => {
   })
 
   it("should load variables from default project varfile if it exists", async () => {
-    const varfilePath = resolve(tmpPath, defaultVarfilePath)
+    const varfilePath = resolve(tmpPath, defaultProjectVarfilePath)
     await writeFile(
       varfilePath,
       dedent`
@@ -647,7 +746,20 @@ describe("pickEnvironment", () => {
     })
 
     const result = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -658,7 +770,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "a",
       b: "B",
       c: "c",
@@ -692,7 +805,20 @@ describe("pickEnvironment", () => {
     })
 
     const result = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -703,7 +829,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "a",
       b: "B",
       c: "c",
@@ -737,7 +864,20 @@ describe("pickEnvironment", () => {
     })
 
     const result = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -748,7 +888,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "a",
       b: "B",
       c: "c",
@@ -783,7 +924,20 @@ describe("pickEnvironment", () => {
     })
 
     const result = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -794,7 +948,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "a",
       b: "B",
       c: "c",
@@ -839,7 +994,20 @@ describe("pickEnvironment", () => {
     })
 
     const result = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -850,7 +1018,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "new-value",
       b: { some: "value", additional: "value" },
       c: ["some", "values"],
@@ -896,7 +1065,20 @@ describe("pickEnvironment", () => {
     })
 
     const result = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -907,7 +1089,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "new-value",
       b: { some: "value", additional: "value" },
       c: ["some", "values"],
@@ -925,7 +1108,20 @@ describe("pickEnvironment", () => {
     })
 
     const result = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -936,7 +1132,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       local: username,
       secret: "banana",
     })
@@ -953,7 +1150,20 @@ describe("pickEnvironment", () => {
     })
 
     await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -974,7 +1184,20 @@ describe("pickEnvironment", () => {
     })
 
     const result = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -985,7 +1208,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       foo: "value",
     })
   })
@@ -1002,7 +1226,7 @@ describe("pickEnvironment", () => {
 
     // Precedence 3/4
     await writeFile(
-      resolve(tmpPath, defaultVarfilePath),
+      resolve(tmpPath, defaultProjectVarfilePath),
       dedent`
       b=B
       c=c
@@ -1031,7 +1255,20 @@ describe("pickEnvironment", () => {
     })
 
     const result = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       vcsInfo,
@@ -1042,7 +1279,8 @@ describe("pickEnvironment", () => {
       commandInfo,
     })
 
-    expect(result.variables).to.eql({
+    const variables = deepResolveContext("resolved env variables", result.variables)
+    expect(variables).to.eql({
       a: "a",
       b: "B",
       c: "C",
@@ -1070,7 +1308,20 @@ describe("pickEnvironment", () => {
     await expectError(
       () =>
         pickEnvironment({
+          projectContext: new ProjectConfigContext({
+            projectName: config.name,
+            projectRoot: config.path,
+            artifactsPath,
+            vcsInfo,
+            username,
+            loggedIn: true,
+            enterpriseDomain: config.domain,
+            secrets: {},
+            commandInfo,
+          }),
+
           projectConfig: config,
+          variableOverrides: {},
           envString: "default",
           artifactsPath,
           vcsInfo,
@@ -1101,7 +1352,20 @@ describe("pickEnvironment", () => {
     await expectError(
       () =>
         pickEnvironment({
+          projectContext: new ProjectConfigContext({
+            projectName: config.name,
+            projectRoot: config.path,
+            artifactsPath,
+            vcsInfo,
+            username,
+            loggedIn: true,
+            enterpriseDomain: config.domain,
+            secrets: {},
+            commandInfo,
+          }),
+
           projectConfig: config,
+          variableOverrides: {},
           envString: "default",
           artifactsPath,
           vcsInfo,
@@ -1132,7 +1396,20 @@ describe("pickEnvironment", () => {
     await expectError(
       () =>
         pickEnvironment({
+          projectContext: new ProjectConfigContext({
+            projectName: config.name,
+            projectRoot: config.path,
+            artifactsPath,
+            vcsInfo,
+            username,
+            loggedIn: true,
+            enterpriseDomain: config.domain,
+            secrets: {},
+            commandInfo,
+          }),
+
           projectConfig: config,
+          variableOverrides: {},
           envString: "default",
           artifactsPath,
           vcsInfo,
@@ -1153,7 +1430,20 @@ describe("pickEnvironment", () => {
     })
 
     const res = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "foo.default",
       artifactsPath,
       vcsInfo,
@@ -1175,7 +1465,20 @@ describe("pickEnvironment", () => {
     })
 
     const res = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "foo.default",
       artifactsPath,
       vcsInfo,
@@ -1197,7 +1500,20 @@ describe("pickEnvironment", () => {
     })
 
     const res = await pickEnvironment({
+      projectContext: new ProjectConfigContext({
+        projectName: config.name,
+        projectRoot: config.path,
+        artifactsPath,
+        vcsInfo,
+        username,
+        loggedIn: true,
+        enterpriseDomain: config.domain,
+        secrets: {},
+        commandInfo,
+      }),
+
       projectConfig: config,
+      variableOverrides: {},
       envString: "default",
       artifactsPath,
       username,
@@ -1221,7 +1537,20 @@ describe("pickEnvironment", () => {
     await expectError(
       () =>
         pickEnvironment({
+          projectContext: new ProjectConfigContext({
+            projectName: config.name,
+            projectRoot: config.path,
+            artifactsPath,
+            vcsInfo,
+            username,
+            loggedIn: true,
+            enterpriseDomain: config.domain,
+            secrets: {},
+            commandInfo,
+          }),
+
           projectConfig: config,
+          variableOverrides: {},
           envString: "$.%",
           artifactsPath,
           vcsInfo,
@@ -1245,7 +1574,19 @@ describe("pickEnvironment", () => {
     await expectError(
       () =>
         pickEnvironment({
+          projectContext: new ProjectConfigContext({
+            projectName: config.name,
+            projectRoot: config.path,
+            artifactsPath,
+            vcsInfo,
+            username,
+            loggedIn: true,
+            enterpriseDomain: config.domain,
+            secrets: {},
+            commandInfo,
+          }),
           projectConfig: config,
+          variableOverrides: {},
           envString: "default",
           artifactsPath,
           vcsInfo,

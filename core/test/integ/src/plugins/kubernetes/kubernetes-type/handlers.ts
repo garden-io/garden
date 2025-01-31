@@ -43,10 +43,15 @@ import { buildHelmModules } from "../helm/common.js"
 import { gardenAnnotationKey, randomString } from "../../../../../../src/util/string.js"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
 import type { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants.js"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_DEPLOY_TIMEOUT_SEC,
+  GardenApiVersion,
+} from "../../../../../../src/constants.js"
 import type { ActionModeMap } from "../../../../../../src/actions/types.js"
 import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
 import stripAnsi from "strip-ansi"
+import type { DeployActionConfig } from "../../../../../../src/actions/deploy.js"
 
 describe("kubernetes-type handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -116,7 +121,7 @@ describe("kubernetes-type handlers", () => {
   }
 
   async function deployInNamespace({ nsName, deployName }: { nsName: string; deployName: string }) {
-    garden.mergeModuleConfigs([withNamespace(nsModuleConfig, nsName)])
+    garden.overrideRawModuleConfigs([withNamespace(nsModuleConfig, nsName)])
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getDeploy(deployName)
     const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
@@ -193,7 +198,7 @@ describe("kubernetes-type handlers", () => {
   })
 
   afterEach(() => {
-    garden.setModuleConfigs(moduleConfigBackup)
+    garden.setRawModuleConfigs(moduleConfigBackup)
   })
 
   describe("getKubernetesDeployStatus", () => {
@@ -524,120 +529,190 @@ describe("kubernetes-type handlers", () => {
       await expectError(() => kubernetesDeploy(deployParams), { contains: "error: unknown flag: --unknown-apply-flag" })
     })
 
-    it("should return events and Pod logs if the Pod can't start", async () => {
-      const graph = await garden.getConfigGraph({
-        log: garden.log,
-        emit: false,
+    context("logs and events", () => {
+      function getDeployActionConfig(name: string): DeployActionConfig {
+        // copied from 'action-simple' disk-based config
+        return {
+          kind: "Deploy",
+          type: "kubernetes",
+          name,
+          internal: {
+            basePath: ".",
+          },
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
+          spec: {
+            manifests: [
+              {
+                apiVersion: "apps/v1",
+                kind: "Deployment",
+                metadata: {
+                  name: "nginx",
+                  labels: {
+                    app: "nginx",
+                  },
+                },
+                spec: {
+                  replicas: 1,
+                  selector: {
+                    matchLabels: {
+                      app: "nginx",
+                    },
+                  },
+                  template: {
+                    metadata: {
+                      labels: {
+                        app: "nginx",
+                      },
+                    },
+                    spec: {
+                      containers: [
+                        {
+                          name: "nginx",
+                          image: "nginx:1.14.2",
+                          ports: [
+                            {
+                              containerPort: 80,
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        } as DeployActionConfig
+      }
+
+      it("should return events and Pod logs if the Pod can't start", async () => {
+        const name = `nginx-${randomString(4)}`
+        const actionConfig = getDeployActionConfig(name)
+
+        actionConfig.spec["manifests"][0]["metadata"]["name"] = name
+        actionConfig.spec["manifests"][0]["spec"]["template"]["spec"]["containers"] = [
+          {
+            name: "busybox",
+            image: "busybox:1.31.1",
+            args: ["/bin/sh", "-c", "badcommand"],
+          },
+        ]
+
+        garden.addAction(actionConfig)
+
+        const graph = await garden.getConfigGraph({
+          log: garden.log,
+          emit: false,
+        })
+        const action = graph.getDeploy(name)
+        const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+
+        await expectError(
+          () =>
+            kubernetesDeploy({
+              ctx,
+              log: actionLog,
+              action: resolvedAction,
+              force: false,
+            }),
+          (err) => {
+            const message = stripAnsi(err.message)
+            expect(message).to.include(`Latest events from Deployment ${name}`)
+            expect(message).to.include(`Back-off restarting failed container busybox`)
+            expect(message).to.include(`Latest logs from failed containers in each Pod in Deployment ${name}`)
+            expect(message).to.include(`/bin/sh: badcommand: not found`)
+          }
+        )
       })
-      const action = graph.getDeploy("action-simple")
 
-      const name = `nginx-${randomString(4)}`
-      action._config.spec["manifests"][0]["metadata"]["name"] = name
-      action._config.spec["manifests"][0]["spec"]["template"]["spec"]["containers"] = [
-        {
-          name: "busybox",
-          image: "busybox:1.31.1",
-          args: ["/bin/sh", "-c", "badcommand"],
-        },
-      ]
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+      it("should only show logs returned from failed containers", async () => {
+        const name = `nginx-${randomString(4)}`
+        const actionConfig = getDeployActionConfig(name)
 
-      await expectError(
-        () =>
-          kubernetesDeploy({
-            ctx,
-            log: actionLog,
-            action: resolvedAction,
-            force: false,
-          }),
-        (err) => {
-          const message = stripAnsi(err.message)
-          expect(message).to.include(`Latest events from Deployment ${name}`)
-          expect(message).to.include(`Back-off restarting failed container busybox`)
-          expect(message).to.include(`Latest logs from failed containers in each Pod in Deployment ${name}`)
-          expect(message).to.include(`/bin/sh: badcommand: not found`)
-        }
-      )
-    })
-    it("should only show logs returned from failed containers", async () => {
-      const graph = await garden.getConfigGraph({
-        log: garden.log,
-        emit: false,
+        actionConfig.spec["manifests"][0]["metadata"]["name"] = name
+        actionConfig.spec["manifests"][0]["spec"]["template"]["spec"]["initContainers"] = [
+          {
+            name: "busybox1",
+            image: "busybox:1.31.1",
+            args: ["/bin/sh", "-c", "echo 'I AM OK'"],
+          },
+        ]
+        actionConfig.spec["manifests"][0]["spec"]["template"]["spec"]["containers"] = [
+          {
+            name: "busybox2",
+            image: "busybox:1.31.1",
+            args: ["/bin/sh", "-c", "echo 'I AM NOT OK' && exit 1"],
+          },
+        ]
+
+        garden.addAction(actionConfig)
+
+        const graph = await garden.getConfigGraph({
+          log: garden.log,
+          emit: false,
+        })
+        const action = graph.getDeploy(name)
+        const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+
+        await expectError(
+          () =>
+            kubernetesDeploy({
+              ctx,
+              log: actionLog,
+              action: resolvedAction,
+              force: false,
+            }),
+          (err) => {
+            const message = stripAnsi(err.message)
+            expect(message).to.include(`I AM NOT OK`)
+            expect(message).to.not.include(`I AM OK`)
+          }
+        )
       })
-      const action = graph.getDeploy("action-simple")
 
-      const name = `nginx-${randomString(4)}`
-      action._config.spec["manifests"][0]["metadata"]["name"] = name
-      action._config.spec["manifests"][0]["spec"]["template"]["spec"]["initContainers"] = [
-        {
-          name: "busybox1",
-          image: "busybox:1.31.1",
-          args: ["/bin/sh", "-c", "echo 'I AM OK'"],
-        },
-      ]
-      action._config.spec["manifests"][0]["spec"]["template"]["spec"]["containers"] = [
-        {
-          name: "busybox2",
-          image: "busybox:1.31.1",
-          args: ["/bin/sh", "-c", "echo 'I AM NOT OK' && exit 1"],
-        },
-      ]
+      it("should include logs from failed init containers", async () => {
+        const name = `nginx-${randomString(4)}`
+        const actionConfig = getDeployActionConfig(name)
 
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+        actionConfig.spec["manifests"][0]["metadata"]["name"] = name
+        // add 2 init containers - one should run successfully, and another should fail
+        actionConfig.spec["manifests"][0]["spec"]["template"]["spec"]["initContainers"] = [
+          {
+            name: "busybox1",
+            image: "busybox:1.31.1",
+            args: ["/bin/sh", "-c", "echo 'I AM OK'"],
+          },
+          {
+            name: "busybox2",
+            image: "busybox:1.31.1",
+            args: ["/bin/sh", "-c", "echo 'I AM NOT OK' && exit 1"],
+          },
+        ]
 
-      await expectError(
-        () =>
-          kubernetesDeploy({
-            ctx,
-            log: actionLog,
-            action: resolvedAction,
-            force: false,
-          }),
-        (err) => {
-          const message = stripAnsi(err.message)
-          expect(message).to.include(`I AM NOT OK`)
-          expect(message).to.not.include(`I AM OK`)
-        }
-      )
-    })
-    it("should include logs from failed init containers", async () => {
-      const graph = await garden.getConfigGraph({
-        log: garden.log,
-        emit: false,
+        garden.addAction(actionConfig)
+
+        const graph = await garden.getConfigGraph({
+          log: garden.log,
+          emit: false,
+        })
+        const action = graph.getDeploy(name)
+        const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+
+        await expectError(
+          () =>
+            kubernetesDeploy({
+              ctx,
+              log: actionLog,
+              action: resolvedAction,
+              force: false,
+            }),
+          (err) => {
+            const message = stripAnsi(err.message)
+            expect(message).to.include(`I AM NOT OK`)
+            expect(message).to.not.include(`I AM OK`)
+          }
+        )
       })
-      const action = graph.getDeploy("action-simple")
-
-      const name = `nginx-${randomString(4)}`
-      action._config.spec["manifests"][0]["metadata"]["name"] = name
-      action._config.spec["manifests"][0]["spec"]["template"]["spec"]["initContainers"] = [
-        {
-          name: "busybox1",
-          image: "busybox:1.31.1",
-          args: ["/bin/sh", "-c", "echo 'I AM OK'"],
-        },
-        {
-          name: "busybox2",
-          image: "busybox:1.31.1",
-          args: ["/bin/sh", "-c", "echo 'I AM NOT OK' && exit 1"],
-        },
-      ]
-
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
-
-      await expectError(
-        () =>
-          kubernetesDeploy({
-            ctx,
-            log: actionLog,
-            action: resolvedAction,
-            force: false,
-          }),
-        (err) => {
-          const message = stripAnsi(err.message)
-          expect(message).to.include(`I AM NOT OK`)
-          expect(message).to.not.include(`I AM OK`)
-        }
-      )
     })
   })
 

@@ -23,6 +23,9 @@ import { defaultNamespace } from "../../../../src/config/project.js"
 import { join } from "path"
 import { GardenApiVersion } from "../../../../src/constants.js"
 import { omit } from "lodash-es"
+import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
+import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
+import { VariablesContext } from "../../../../src/config/template-contexts/variables.js"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
@@ -47,8 +50,8 @@ describe("resolveWorkflowConfig", () => {
 
   before(async () => {
     garden = await makeTestGardenA()
-    garden["secrets"] = { foo: "bar", bar: "baz", baz: "banana" }
-    garden["variables"] = { foo: "baz", skip: false }
+    garden.secrets = { foo: "bar", bar: "baz", baz: "banana" }
+    garden.variables = VariablesContext.forTest(garden, { foo: "baz", skip: false })
   })
 
   it("should pass through a canonical workflow config", async () => {
@@ -129,24 +132,27 @@ describe("resolveWorkflowConfig", () => {
   })
 
   it("should resolve template strings", async () => {
-    const config: WorkflowConfig = {
-      ...defaults,
-      apiVersion: GardenApiVersion.v0,
-      kind: "Workflow",
-      name: "workflow-a",
+    const config: WorkflowConfig = parseTemplateCollection({
+      value: {
+        ...defaults,
+        apiVersion: GardenApiVersion.v0,
+        kind: "Workflow" as const,
+        name: "workflow-a",
 
-      description: "Secret: ${secrets.foo}, var: ${variables.foo}",
-      envVars: {},
-      steps: [
-        {
-          description: "Deploy the stack",
-          command: ["deploy"],
-          skip: "${var.skip}" as unknown as boolean,
-          when: "onSuccess",
-          envVars: {},
-        },
-      ],
-    }
+        description: "Secret: ${secrets.foo}, var: ${variables.foo}" as string,
+        envVars: {},
+        steps: [
+          {
+            description: "Deploy the stack",
+            command: ["deploy"],
+            skip: "${var.skip}" as unknown as boolean,
+            when: "onSuccess",
+            envVars: {},
+          },
+        ],
+      } as const,
+      source: { path: [] },
+    })
 
     const resolved = resolveWorkflowConfig(garden, config)
 
@@ -155,25 +161,28 @@ describe("resolveWorkflowConfig", () => {
   })
 
   it("should not resolve template strings in step commands and scripts", async () => {
-    const config: WorkflowConfig = {
-      ...defaults,
-      apiVersion: GardenApiVersion.v0,
-      kind: "Workflow",
-      name: "workflow-a",
+    const config: WorkflowConfig = parseTemplateCollection({
+      value: {
+        ...defaults,
+        apiVersion: GardenApiVersion.v0,
+        kind: "Workflow" as const,
+        name: "workflow-a",
 
-      description: "foo",
-      envVars: {},
-      steps: [
-        {
-          ...defaultWorkflowStep,
-          description: "Deploy the stack",
-          command: ["deploy", "${var.foo}"],
-          skip: false,
-          when: "onSuccess",
-        },
-        { ...defaultWorkflowStep, script: "echo ${var.foo}", skip: false, when: "onSuccess" },
-      ],
-    }
+        description: "foo",
+        envVars: {},
+        steps: [
+          {
+            ...defaultWorkflowStep,
+            description: "Deploy the stack",
+            command: ["deploy", "${var.foo}" as string],
+            skip: false,
+            when: "onSuccess",
+          },
+          { ...defaultWorkflowStep, script: "echo ${var.foo}" as string, skip: false, when: "onSuccess" },
+        ],
+      } as const,
+      source: { path: [] },
+    })
 
     const resolved = resolveWorkflowConfig(garden, config)
 
@@ -297,13 +306,13 @@ describe("resolveWorkflowConfig", () => {
       templateName: "workflows",
       inputs: {
         name: "test",
-        envName: "local", // <- should be resolved
+        envName: "${environment.name}", // unresolved
       },
     }
 
     expect(workflow).to.exist
-    expect(workflow.steps[0].script).to.equal('echo "${environment.name}"') // <- resolved later
-    expect(omit(workflow.internal, "yamlDoc")).to.eql(internal) // <- `inputs.envName` should be resolved
+    expect(serialiseUnresolvedTemplates(workflow.steps[0].script)).to.equal('echo "${inputs.envName}"') // unresolved
+    expect(serialiseUnresolvedTemplates(omit(workflow.internal, "yamlDoc"))).to.eql(internal)
   })
 
   describe("populateNamespaceForTriggers", () => {

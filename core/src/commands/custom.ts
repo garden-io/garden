@@ -7,8 +7,6 @@
  */
 
 import { execa } from "execa"
-import { apply as jsonMerge } from "json-merge-patch"
-import cloneDeep from "fast-copy"
 import { keyBy, mapValues, flatten } from "lodash-es"
 import { parseCliArgs, prepareMinimistOpts } from "../cli/helpers.js"
 import type { Parameter, ParameterObject } from "../cli/params.js"
@@ -21,7 +19,6 @@ import { CustomCommandContext } from "../config/template-contexts/custom-command
 import { validateWithPath } from "../config/validation.js"
 import type { GardenError } from "../exceptions.js"
 import { ConfigurationError, RuntimeError, InternalError, toGardenError } from "../exceptions.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
 import { listDirectory, isConfigFilename } from "../util/fs.js"
 import type { CommandParams, CommandResult, PrintHeaderParams } from "./base.js"
 import { Command } from "./base.js"
@@ -32,6 +29,8 @@ import { getBuiltinCommands } from "./commands.js"
 import type { Log } from "../logger/log-entry.js"
 import { getTracePropagationEnvVars } from "../util/open-telemetry/propagation.js"
 import { styles } from "../logger/styles.js"
+import { deepEvaluate } from "../template/evaluate.js"
+import { VariablesContext } from "../config/template-contexts/variables.js"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -112,19 +111,18 @@ export class CustomCommandWrapper extends Command {
     // Strip the command name and any specified arguments off the $rest variable
     const rest = removeSlice(parsed._unknown, this.getPath()).slice(Object.keys(this.arguments || {}).length)
 
-    const yamlDoc = this.spec.internal.yamlDoc
-
     // Render the command variables
-    const variablesContext = new CustomCommandContext({ ...garden, args, opts, rest })
-    const commandVariables = resolveTemplateStrings({
-      value: this.spec.variables,
-      context: variablesContext,
-      source: { yamlDoc, path: ["variables"] },
-    })
-    const variables: any = jsonMerge(cloneDeep(garden.variables), commandVariables)
+
+    const variableContext = new CustomCommandContext({ ...garden, args, opts, variables: garden.variables, rest })
 
     // Make a new template context with the resolved variables
-    const commandContext = new CustomCommandContext({ ...garden, args, opts, variables, rest })
+    const commandContext = new CustomCommandContext({
+      ...garden,
+      args,
+      opts,
+      variables: VariablesContext.forCustomCommand(garden, this.spec, variableContext),
+      rest,
+    })
 
     const result: CustomCommandResult = {}
     const errors: GardenError[] = []
@@ -134,10 +132,9 @@ export class CustomCommandWrapper extends Command {
       const startedAt = new Date()
 
       const exec = validateWithPath<CommandResource["exec"]>({
-        config: resolveTemplateStrings({
-          value: this.spec.exec,
+        config: deepEvaluate(this.spec.exec, {
           context: commandContext,
-          source: { yamlDoc, path: ["exec"] },
+          opts: {},
         }),
         schema: customCommandExecSchema(),
         path: this.spec.internal.basePath,
@@ -186,10 +183,9 @@ export class CustomCommandWrapper extends Command {
       const startedAt = new Date()
 
       let gardenCommand = validateWithPath<CommandResource["gardenCommand"]>({
-        config: resolveTemplateStrings({
-          value: this.spec.gardenCommand,
+        config: deepEvaluate(this.spec.gardenCommand, {
           context: commandContext,
-          source: { yamlDoc, path: ["gardenCommand"] },
+          opts: {},
         }),
         schema: customCommandGardenCommandSchema(),
         path: this.spec.internal.basePath,

@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { TemplateHelperFunction } from "./functions.js"
-import { joi } from "../config/common.js"
+import type { TemplateHelperFunction } from "./index.js"
+import { joi } from "../../config/common.js"
 import { format as formatFns, add, type Duration } from "date-fns"
 import { UTCDateMini } from "@date-fns/utc"
 

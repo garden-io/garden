@@ -11,11 +11,13 @@ import { createProjectConfig, makeTempDir, TestGarden } from "../../helpers.js"
 import { resolveProjectOutputs } from "../../../src/outputs.js"
 import { expect } from "chai"
 import fsExtra from "fs-extra"
-const { realpath } = fsExtra
 import { createGardenPlugin } from "../../../src/plugin/plugin.js"
 import type { ProjectConfig } from "../../../src/config/project.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../src/constants.js"
 import { joi } from "../../../src/config/common.js"
+import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
+
+const { realpath } = fsExtra
 
 describe("resolveProjectOutputs", () => {
   let tmpDir: tmp.DirectoryResult
@@ -54,7 +56,15 @@ describe("resolveProjectOutputs", () => {
       },
     })
 
-    projectConfig.outputs = [{ name: "test", value: "${providers.test.outputs.test}" }]
+    projectConfig.outputs = parseTemplateCollection({
+      value: [
+        {
+          name: "test",
+          value: "${providers.test.outputs.test}",
+        },
+      ],
+      source: { path: [] },
+    })
 
     const garden = await TestGarden.factory(tmpPath, {
       plugins: [plugin],
@@ -88,14 +98,22 @@ describe("resolveProjectOutputs", () => {
       ],
     })
 
-    projectConfig.outputs = [{ name: "test", value: "${modules.test.outputs.test}" }]
+    projectConfig.outputs = parseTemplateCollection({
+      value: [
+        {
+          name: "test",
+          value: "${modules.test.outputs.test}",
+        },
+      ],
+      source: { path: [] },
+    })
 
     const garden = await TestGarden.factory(tmpPath, {
       plugins: [plugin],
       config: projectConfig,
     })
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         allowPublish: false,
@@ -152,14 +170,22 @@ describe("resolveProjectOutputs", () => {
       },
     })
 
-    projectConfig.outputs = [{ name: "test", value: "${runtime.services.test.outputs.test}" }]
+    projectConfig.outputs = parseTemplateCollection({
+      value: [
+        {
+          name: "test",
+          value: "${runtime.services.test.outputs.test}",
+        },
+      ],
+      source: { path: [] },
+    })
 
     const garden = await TestGarden.factory(tmpPath, {
       plugins: [plugin],
       config: projectConfig,
     })
 
-    garden.setActionConfigs([
+    garden.setPartialActionConfigs([
       {
         name: "test",
         type: "test",
@@ -220,14 +246,22 @@ describe("resolveProjectOutputs", () => {
       },
     })
 
-    projectConfig.outputs = [{ name: "test", value: "${runtime.tasks.test.outputs.log}" }]
+    projectConfig.outputs = parseTemplateCollection({
+      value: [
+        {
+          name: "test",
+          value: "${runtime.tasks.test.outputs.log}",
+        },
+      ],
+      source: { path: [] },
+    })
 
     const garden = await TestGarden.factory(tmpPath, {
       plugins: [plugin],
       config: projectConfig,
     })
 
-    garden.setActionConfigs([
+    garden.setPartialActionConfigs([
       {
         name: "test",
         type: "test",

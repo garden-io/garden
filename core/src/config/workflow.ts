@@ -22,7 +22,6 @@ import { deline, dedent } from "../util/string.js"
 import type { ServiceLimitSpec } from "../plugins/container/moduleConfig.js"
 import type { Garden } from "../garden.js"
 import { WorkflowConfigContext } from "./template-contexts/workflow.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
 import { validateConfig } from "./validation.js"
 import { ConfigurationError, GardenError } from "../exceptions.js"
 import type { EnvironmentConfig } from "./project.js"
@@ -31,6 +30,7 @@ import { omitUndefined } from "../util/objects.js"
 import type { BaseGardenResource, GardenResource } from "./base.js"
 import type { GardenApiVersion } from "../constants.js"
 import { DOCS_BASE_URL } from "../constants.js"
+import { deepEvaluate } from "../template/evaluate.js"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -323,20 +323,20 @@ export const triggerSchema = memoize(() => {
         \n
         `
       ),
-    branches: joi.array().items(joi.string()).unique().description(deline`
+    branches: joi.sparseArray().items(joi.string()).unique().description(deline`
         If specified, only run the workflow for branches matching one of these filters. These filters refer to the
         pull/merge request's head branch (e.g. \`my-feature-branch\`), not the base branch that the pull/merge request
         would be merged into if approved (e.g. \`main\`).
        `),
-    baseBranches: joi.array().items(joi.string()).unique().description(deline`
+    baseBranches: joi.sparseArray().items(joi.string()).unique().description(deline`
         If specified, only run the workflow for pull/merge requests whose base branch matches one of these filters.
       `),
-    ignoreBranches: joi.array().items(joi.string()).unique().description(deline`
+    ignoreBranches: joi.sparseArray().items(joi.string()).unique().description(deline`
         If specified, do not run the workflow for branches matching one of these filters. These filters refer to the
         pull/merge request's head branch (e.g. \`my-feature-branch\`), not the base branch that the pull/merge request
         would be merged into if approved (e.g. \`main\`).
       `),
-    ignoreBaseBranches: joi.array().items(joi.string()).unique().description(deline`
+    ignoreBaseBranches: joi.sparseArray().items(joi.string()).unique().description(deline`
         If specified, do not run the workflow for pull/merge requests whose base branch matches one of these filters.
       `),
   })
@@ -355,36 +355,22 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   const partialConfig = {
     // Don't allow templating in names and triggers
     ...omit(config, "name", "triggers"),
-    // Inputs can be partially resolved
-    internal: omit(config.internal, "inputs"),
     // Defer resolution of step commands and scripts (the dummy script will be overwritten again below)
     steps: config.steps.map((s) => ({ ...s, command: undefined, script: "echo" })),
   }
 
   let resolvedPartialConfig: WorkflowConfig = {
-    ...resolveTemplateStrings({
-      value: partialConfig,
+    // @ts-expect-error todo: correct types for unresolved configs
+    ...deepEvaluate(partialConfig, {
       context,
-      source: { yamlDoc: config.internal.yamlDoc, path: [] },
+      opts: {},
     }),
+    internal: config.internal,
     name: config.name,
   }
 
   if (config.triggers) {
     resolvedPartialConfig.triggers = config.triggers
-  }
-
-  if (config.internal.inputs) {
-    resolvedPartialConfig.internal.inputs = resolveTemplateStrings({
-      value: config.internal.inputs,
-      context,
-      contextOpts: {
-        allowPartial: true,
-        legacyAllowPartial: true,
-      },
-      // TODO: Map inputs to their original YAML sources
-      source: undefined,
-    })
   }
 
   log.silly(() => `Validating config for workflow ${config.name}`)

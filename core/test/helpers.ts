@@ -58,6 +58,7 @@ import { dumpYaml } from "../src/util/serialization.js"
 import { testPlugins } from "./helpers/test-plugin.js"
 import { testDataDir, testGitUrl } from "./helpers/constants.js"
 import { exec } from "../src/util/util.js"
+import { parseTemplateCollection } from "../src/template/templated-collections.js"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs.js"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing.js"
@@ -113,13 +114,18 @@ export const getDefaultProjectConfig = (): ProjectConfig =>
     defaultEnvironment,
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
-    providers: [{ name: "test-plugin", dependencies: [] }],
+    providers: [{ name: "test-plugin" }],
     variables: {},
   })
 
 export const createProjectConfig = (partialCustomConfig: Partial<ProjectConfig>): ProjectConfig => {
   const baseConfig = getDefaultProjectConfig()
-  return merge(baseConfig, partialCustomConfig)
+  // @ts-expect-error todo: correct types for unresolved configs
+  return parseTemplateCollection({
+    // @ts-expect-error todo: correct types for unresolved configs
+    value: merge(baseConfig, partialCustomConfig),
+    source: { path: [] },
+  })
 }
 
 export const defaultModuleConfig: ModuleConfig = {

@@ -15,18 +15,17 @@ export const arrayForEachKey = "$forEach"
 export const arrayForEachReturnKey = "$return"
 export const arrayForEachFilterKey = "$filter"
 
+const specialKeys = [
+  objectSpreadKey,
+  conditionalKey,
+  conditionalThenKey,
+  conditionalElseKey,
+  arrayConcatKey,
+  arrayForEachKey,
+  arrayForEachReturnKey,
+  arrayForEachFilterKey,
+]
 export function isSpecialKey(input: string): boolean {
-  const specialKeys = [
-    objectSpreadKey,
-    conditionalKey,
-    conditionalThenKey,
-    conditionalElseKey,
-    arrayConcatKey,
-    arrayForEachKey,
-    arrayForEachReturnKey,
-    arrayForEachFilterKey,
-  ]
-
   return specialKeys.some((key) => input === key)
 }
 

@@ -22,6 +22,8 @@ import {
 } from "../../../../src/constants.js"
 import { getRemoteSourceLocalPath } from "../../../../src/util/ext-source-util.js"
 import { clearVarfileCache } from "../../../../src/config/base.js"
+import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
+import { deepResolveContext } from "../../../../src/config/template-contexts/base.js"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory
@@ -303,30 +305,35 @@ describe("actionConfigsToGraph", () => {
       garden,
       log,
       groupConfigs: [],
-      configs: [
-        {
-          kind: "Build",
-          type: "test",
-          name: "foo",
-          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-          internal: {
-            basePath: tmpDir.path,
+      configs: parseTemplateCollection({
+        value: [
+          {
+            kind: "Build",
+            type: "test",
+            name: "foo",
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+            internal: {
+              basePath: tmpDir.path,
+            },
+            spec: {},
           },
-          spec: {},
+          {
+            kind: "Build",
+            type: "test",
+            name: "bar",
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+            internal: {
+              basePath: tmpDir.path,
+            },
+            spec: {
+              command: ["echo", "${actions.build.foo.version}"],
+            },
+          },
+        ] as const,
+        source: {
+          path: [],
         },
-        {
-          kind: "Build",
-          type: "test",
-          name: "bar",
-          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-          internal: {
-            basePath: tmpDir.path,
-          },
-          spec: {
-            command: ["echo", "${actions.build.foo.version}"],
-          },
-        },
-      ],
+      }),
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
@@ -352,30 +359,33 @@ describe("actionConfigsToGraph", () => {
       garden,
       log,
       groupConfigs: [],
-      configs: [
-        {
-          kind: "Build",
-          type: "test",
-          name: "foo",
-          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-          internal: {
-            basePath: tmpDir.path,
+      configs: parseTemplateCollection({
+        value: [
+          {
+            kind: "Build",
+            type: "test",
+            name: "foo",
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+            internal: {
+              basePath: tmpDir.path,
+            },
+            spec: {},
           },
-          spec: {},
-        },
-        {
-          kind: "Build",
-          type: "test",
-          name: "bar",
-          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-          internal: {
-            basePath: tmpDir.path,
+          {
+            kind: "Build",
+            type: "test",
+            name: "bar",
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+            internal: {
+              basePath: tmpDir.path,
+            },
+            spec: {
+              command: ["echo", "${actions.build.foo.outputs.bar}"],
+            },
           },
-          spec: {
-            command: ["echo", "${actions.build.foo.outputs.bar}"],
-          },
-        },
-      ],
+        ] as const,
+        source: { path: [] },
+      }),
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
@@ -401,30 +411,33 @@ describe("actionConfigsToGraph", () => {
       garden,
       log,
       groupConfigs: [],
-      configs: [
-        {
-          kind: "Build",
-          type: "container",
-          name: "foo",
-          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-          internal: {
-            basePath: tmpDir.path,
+      configs: parseTemplateCollection({
+        value: [
+          {
+            kind: "Build",
+            type: "container",
+            name: "foo",
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+            internal: {
+              basePath: tmpDir.path,
+            },
+            spec: {},
           },
-          spec: {},
-        },
-        {
-          kind: "Deploy",
-          type: "test",
-          name: "bar",
-          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-          internal: {
-            basePath: tmpDir.path,
+          {
+            kind: "Deploy",
+            type: "test",
+            name: "bar",
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+            internal: {
+              basePath: tmpDir.path,
+            },
+            spec: {
+              command: ["echo", "${actions.build.foo.outputs.deploymentImageName}"],
+            },
           },
-          spec: {
-            command: ["echo", "${actions.build.foo.outputs.deploymentImageName}"],
-          },
-        },
-      ],
+        ] as const,
+        source: { path: [] },
+      }),
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
@@ -505,21 +518,24 @@ describe("actionConfigsToGraph", () => {
       garden,
       log,
       groupConfigs: [],
-      configs: [
-        {
-          kind: "Build",
-          type: "test",
-          name: "foo",
-          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-          variables: {
-            projectName: "${project.name}",
+      configs: parseTemplateCollection({
+        value: [
+          {
+            kind: "Build",
+            type: "test",
+            name: "foo",
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+            variables: {
+              projectName: "${project.name}" as string,
+            },
+            internal: {
+              basePath: tmpDir.path,
+            },
+            spec: {},
           },
-          internal: {
-            basePath: tmpDir.path,
-          },
-          spec: {},
-        },
-      ],
+        ] as const,
+        source: { path: [] },
+      }),
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
@@ -527,8 +543,11 @@ describe("actionConfigsToGraph", () => {
 
     const action = graph.getBuild("foo")
     const vars = action["variables"]
+    const resolved = deepResolveContext("action variables", vars, garden.getProjectConfigContext())
 
-    expect(vars).to.eql({ projectName: garden.projectName })
+    expect(resolved).to.eql({
+      projectName: garden.projectName,
+    })
   })
 
   it("loads varfiles for the action", async () => {
@@ -562,7 +581,12 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(vars).to.eql({ projectName: "${project.name}" })
+    expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+      found: true,
+      resolved: {
+        projectName: "${project.name}",
+      },
+    })
   })
 
   it("loads optional varfiles for the action", async () => {
@@ -596,7 +620,10 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(vars).to.eql({ projectName: "${project.name}" })
+    expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+      found: true,
+      resolved: { projectName: "${project.name}" },
+    })
   })
 
   it("correctly merges varfile with variables", async () => {
@@ -635,7 +662,10 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
-    expect(vars).to.eql({ foo: "FOO", bar: "BAR", baz: "baz" })
+    expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+      found: true,
+      resolved: { foo: "FOO", bar: "BAR", baz: "baz" },
+    })
   })
 
   it("correctly merges varfile with variables when some variables are overridden with --var cli flag", async () => {
@@ -690,12 +720,15 @@ describe("actionConfigsToGraph", () => {
       const action = graph.getBuild("foo")
       const vars = action["variables"]
 
-      expect(vars).to.eql({
-        foo: "NEW_FOO",
-        bar: "BAR",
-        baz: "baz",
-        nested: {
-          key1: "NEW_KEY_1_VALUE",
+      expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+        found: true,
+        resolved: {
+          foo: "NEW_FOO",
+          bar: "BAR",
+          baz: "baz",
+          nested: {
+            key1: "NEW_KEY_1_VALUE",
+          },
         },
       })
     } finally {

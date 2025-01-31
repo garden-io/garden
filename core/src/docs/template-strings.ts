@@ -19,7 +19,7 @@ import {
 import { ProviderConfigContext } from "../config/template-contexts/provider.js"
 import { ModuleConfigContext, OutputConfigContext } from "../config/template-contexts/module.js"
 import { WorkflowStepConfigContext } from "../config/template-contexts/workflow.js"
-import { getHelperFunctions } from "../template-string/functions.js"
+import { getHelperFunctions } from "../template/functions/index.js"
 import { isEqual, kebabCase, sortBy } from "lodash-es"
 import { CustomCommandContext } from "../config/template-contexts/custom-command.js"
 import type Joi from "@hapi/joi"

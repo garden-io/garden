@@ -408,9 +408,8 @@ export function hashModuleVersion(
   // Otherwise, we use the full module config, omitting the configPath, path, and outputs fields, as well as individual
   // entity configuration fields, as these often vary between environments and runtimes but are unlikely to impact the
   // build output.
-  const configToHash =
-    moduleConfig.buildConfig ||
-    pick(moduleConfig, ["apiVersion", "name", "spec", "type", "variables", "varfile", "inputs"])
+  // Variables, varfile and inputs do not matter for the purposes of the module version.
+  const configToHash = moduleConfig.buildConfig || pick(moduleConfig, ["apiVersion", "name", "spec", "type"])
 
   const configString = serializeConfig(configToHash)
 

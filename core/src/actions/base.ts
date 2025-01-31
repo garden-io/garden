@@ -8,7 +8,7 @@
 
 import titleize from "titleize"
 import type { ConfigGraph, GetActionOpts, PickTypeByKind, ResolvedConfigGraph } from "../graph/config-graph.js"
-import type { ActionReference, DeepPrimitiveMap } from "../config/common.js"
+import type { ActionReference } from "../config/common.js"
 import {
   createSchema,
   includeGuideLink,
@@ -34,7 +34,6 @@ import { actionOutputsSchema } from "../plugin/handlers/base/base.js"
 import type { GraphResult, GraphResults } from "../graph/results.js"
 import type { RunResult } from "../plugin/base.js"
 import { Memoize } from "typescript-memoize"
-import cloneDeep from "fast-copy"
 import { flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash-es"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
 import { relative } from "path"
@@ -67,6 +66,10 @@ import type { LinkedSource } from "../config-store/local.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { styles } from "../logger/styles.js"
 import { dirname } from "node:path"
+import type { ResolvedTemplate } from "../template/types.js"
+import type { WorkflowConfig } from "../config/workflow.js"
+import type { VariablesContext } from "../config/template-contexts/variables.js"
+import { deepMap } from "../util/objects.js"
 
 // TODO: split this file
 
@@ -114,7 +117,7 @@ const actionSourceSpecSchema = createSchema({
   meta: { name: "action-source", advanced: true, templateContext: ActionConfigContext },
 })
 
-export const includeExcludeSchema = memoize(() => joi.array().items(joi.posixPath().allowGlobs().subPathOnly()))
+export const includeExcludeSchema = memoize(() => joi.sparseArray().items(joi.posixPath().allowGlobs().subPathOnly()))
 
 const varfileName = "my-action.${environment.name}.env"
 
@@ -370,7 +373,7 @@ export abstract class BaseAction<
   protected readonly projectRoot: string
   protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
-  protected readonly variables: DeepPrimitiveMap
+  protected readonly variables: VariablesContext
 
   constructor(protected readonly params: ActionWrapperParams<C>) {
     this.kind = params.config.kind
@@ -545,12 +548,12 @@ export abstract class BaseAction<
     const dependencyVersions = fromPairs(depPairs)
 
     const configVersion = this.configVersion()
-    const versionString =
-      versionStringPrefix + hashStrings([configVersion, this._treeVersion.contentHash, ...flatten(sortedDeps)])
+    const sourceVersion = this._treeVersion.contentHash
+    const versionString = versionStringPrefix + hashStrings([configVersion, sourceVersion, ...flatten(sortedDeps)])
 
     return {
       configVersion,
-      sourceVersion: this._treeVersion.contentHash,
+      sourceVersion,
       versionString,
       dependencyVersions,
       files: this._treeVersion.files,
@@ -583,7 +586,7 @@ export abstract class BaseAction<
     }
   }
 
-  getVariables(): DeepPrimitiveMap {
+  getVariablesContext(): VariablesContext {
     return this.variables
   }
 
@@ -598,7 +601,9 @@ export abstract class BaseAction<
   getConfig(): C
   getConfig<K extends keyof C>(key: K): C[K]
   getConfig(key?: keyof C["spec"]) {
-    return cloneDeep(key ? this._config[key] : this._config)
+    const res = key ? this._config[key] : this._config
+    // basically a clone that leaves unresolved template values intact as-is, as they are immutable.
+    return deepMap(res, (v) => v) as typeof res
   }
 
   /**
@@ -735,7 +740,9 @@ export interface ResolvedActionExtension<
 
   getOutputs(): StaticOutputs
 
-  getVariables(): DeepPrimitiveMap
+  getVariablesContext(): VariablesContext
+
+  getResolvedVariables(): Record<string, ResolvedTemplate>
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
@@ -806,7 +813,9 @@ export abstract class ResolvedRuntimeAction<
   getSpec(): Config["spec"]
   getSpec<K extends keyof Config["spec"]>(key: K): Config["spec"][K]
   getSpec(key?: keyof Config["spec"]) {
-    return cloneDeep(key ? this._config.spec[key] : this._config.spec)
+    const res = key ? this._config.spec[key] : this._config.spec
+    // basically a clone that leaves unresolved template values intact as-is, as they are immutable.
+    return deepMap(res, (v) => v) as typeof res
   }
 
   getOutput<K extends keyof StaticOutputs>(key: K): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
@@ -815,6 +824,10 @@ export abstract class ResolvedRuntimeAction<
 
   getOutputs() {
     return this._staticOutputs
+  }
+
+  getResolvedVariables(): Record<string, ResolvedTemplate> {
+    return this.params.resolvedVariables
   }
 }
 
@@ -898,7 +911,10 @@ export function getSourceAbsPath(basePath: string, sourceRelPath: string) {
   return joinWithPosix(basePath, sourceRelPath)
 }
 
-export function describeActionConfig(config: ActionConfig) {
+export function describeActionConfig(config: ActionConfig | WorkflowConfig) {
+  if (config.kind === "Workflow") {
+    return `${config.kind} ${config.name}`
+  }
   const d = `${config.type} ${config.kind} ${config.name}`
   if (config.internal?.moduleName) {
     return d + ` (from module ${config.internal?.moduleName})`
@@ -944,8 +960,18 @@ export function actionIsDisabled(config: ActionConfig, environmentName: string):
  *   see {@link VcsHandler.getTreeVersion} and {@link VcsHandler.getFiles}.
  * - The description field is just informational, shouldn't affect execution.
  * - The disabled flag is not relevant to the config version, since it only affects execution.
+ * - The variables and varfiles are only relevant if they have an effect on a relevant piece of configuration and thus can be omitted.
  */
-const nonVersionedActionConfigKeys = ["internal", "source", "include", "exclude", "description", "disabled"] as const
+const nonVersionedActionConfigKeys = [
+  "internal",
+  "source",
+  "include",
+  "exclude",
+  "description",
+  "disabled",
+  "variables",
+  "varfiles",
+] as const
 export type NonVersionedActionConfigKey = keyof Pick<BaseActionConfig, (typeof nonVersionedActionConfigKeys)[number]>
 
 export function getActionConfigVersion<C extends BaseActionConfig>(config: C) {
