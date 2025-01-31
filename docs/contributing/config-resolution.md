@@ -66,7 +66,7 @@ See `core/src/template/ast.ts` for the `evaluate` implementation of each express
 
 ### Partial VS full resolution
 
-For historical reasons, template strings with multiple expressions like `${var.foo}${var.bar}` can also be partially evaluated (`legacyAllowPartial: true`). This is currently used in the Module resolution and for Kubernetes manifest file templates.
+For historical reasons, template strings with multiple expressions like `${var.foo}${var.bar}` can also be partially evaluated (`legacyAllowPartial: true`). This is ONLY USED for backwards-compatibility with Garden version `0.13` when using template conditions in Kubernetes manifest file templates, and will be removed in `0.14`.
 
 We call configs where some templated values have been evaluated, and others have not, **unresolved configs** to differentiate it from the `legacyAllowPartial` feature.
 
@@ -87,7 +87,7 @@ It's the nature of the resolution flow that more and more params and instance va
 It's possible to reference action outputs when declaring inputs for config templates.
 This is possible because of the ability of a context to hold unresolved template values.
 
-We will evaluate unresolved template values at the time they are needed; For instance, the action name (which may be templated in config templates) is needed very early, and thus action outputs cannot be referenced here.
+We will evaluate unresolved template values at the time they are needed; for instance, the action name (which may be templated in config templates) is needed very early, and thus action outputs cannot be referenced here.
 
 ## Choosing which parts of a config to resolve
 

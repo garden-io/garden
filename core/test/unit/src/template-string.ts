@@ -75,15 +75,6 @@ describe("parse and evaluate template strings", () => {
     expect(res).to.equal(undefined)
   })
 
-  it("should pass optional string through if legacyAllowPartial=true keepEscapingInTemplateStrings=true", () => {
-    const res = legacyResolveTemplateString({
-      string: "${foo}?",
-      context: new GenericContext({}),
-      contextOpts: { legacyAllowPartial: true, keepEscapingInTemplateStrings: true },
-    })
-    expect(res).to.equal("${foo}?")
-  })
-
   it("should evaluate to undefined if legacyAllowPartial=true", () => {
     const res = legacyResolveTemplateString({
       string: "${foo}?",
@@ -93,11 +84,10 @@ describe("parse and evaluate template strings", () => {
     expect(res).to.equal(undefined)
   })
 
-  it("should not crash when variable in a member expression cannot be resolved with legacyAllowPartial=true keepEscapingInTemplateStrings=true", () => {
+  it("should not crash when variable in a member expression cannot be resolved legacyAllowPartial=true", () => {
     const inputs = [
       '${actions.run["${inputs.deployableTarget}-dummy"].var}',
       '${actions.build["${parent.name}"].outputs.deployment-image-id}',
-      '${actions.build["${parent.name}?"]}',
     ]
     for (const input of inputs) {
       const res = legacyResolveTemplateString({
@@ -108,7 +98,7 @@ describe("parse and evaluate template strings", () => {
             build: {},
           },
         }),
-        contextOpts: { legacyAllowPartial: true, keepEscapingInTemplateStrings: true },
+        contextOpts: { legacyAllowPartial: true },
       })
       expect(res).to.equal(input)
     }
@@ -687,15 +677,6 @@ describe("parse and evaluate template strings", () => {
         expect(res).to.equal(false)
       })
 
-      it("logical AND returns the original template if right side cannot be found with keepEscapingInTemplateStrings=true", () => {
-        const res = legacyResolveTemplateString({
-          string: "${'a' && var.foo}",
-          context: new GenericContext({ var: {} }),
-          contextOpts: { legacyAllowPartial: true, keepEscapingInTemplateStrings: true },
-        })
-        expect(res).to.equal("${'a' && var.foo}")
-      })
-
       it("logical AND resolves to false if right side cannot be found", () => {
         const res = legacyResolveTemplateString({
           string: "${'a' && var.foo}",
@@ -1186,15 +1167,6 @@ describe("parse and evaluate template strings", () => {
       expect(res).to.equal("${a}")
     })
 
-    it("passes through a template string with a missing key in an optional clause with keepEscapingInTemplateStrings=true", () => {
-      const res = legacyResolveTemplateString({
-        string: "${a || b}",
-        context: new GenericContext({ b: 123 }),
-        contextOpts: { legacyAllowPartial: true, keepEscapingInTemplateStrings: true },
-      })
-      expect(res).to.equal("${a || b}")
-    })
-
     it("resolves logical or clause when left side is missing by default", () => {
       const res = legacyResolveTemplateString({
         string: "${a || b}",
@@ -1203,17 +1175,7 @@ describe("parse and evaluate template strings", () => {
       })
       expect(res).to.equal(123)
     })
-
-    it("passes through a template string with a missing key in a ternary with keepEscapingInTemplateStrings=true", () => {
-      const res = legacyResolveTemplateString({
-        string: "${a ? b : 123}",
-        context: new GenericContext({ b: 123 }),
-        contextOpts: { legacyAllowPartial: true, keepEscapingInTemplateStrings: true },
-      })
-      expect(res).to.equal("${a ? b : 123}")
-    })
-
-    it("resolves value even when a key is missing by default", () => {
+    it("resolves value even when a key is missing", () => {
       const res = legacyResolveTemplateString({
         string: "${a ? b : 123}",
         context: new GenericContext({ b: 123 }),
@@ -1293,18 +1255,6 @@ describe("parse and evaluate template strings", () => {
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal("${a}-foo")
-      })
-
-      it("partially resolves template expressions when 'a' is missing in the context when evaluating a conditional expression with legacyAllowPartial=true keepEscapingInTemplateStrings=true", () => {
-        const res = legacyResolveTemplateString({
-          string: "${a || b}-${c}",
-          context: new GenericContext({ b: 123, c: "foo" }),
-          contextOpts: {
-            legacyAllowPartial: true,
-            keepEscapingInTemplateStrings: true,
-          },
-        })
-        expect(res).to.equal("${a || b}-foo")
       })
 
       it("resolves template expressions when the context is fully available", () => {
@@ -2178,44 +2128,6 @@ describe("parse and evaluate template collections", () => {
     })
   })
 
-  it("should partially resolve $merge keys if a dependency cannot be resolved yet in partial mode", () => {
-    const obj = {
-      "key-value-array": {
-        $forEach: "${inputs.merged-object || []}",
-        $return: {
-          name: "${item.key}",
-          value: "${item.value}",
-        },
-      },
-    }
-    const context = new GenericContext({
-      inputs: {
-        "merged-object": {
-          $merge: "${var.empty || var.input-object}",
-          INTERNAL_VAR_1: "INTERNAL_VAR_1",
-        },
-      },
-      var: {
-        "input-object": {
-          EXTERNAL_VAR_1: "EXTERNAL_VAR_1",
-        },
-      },
-    })
-
-    const parsed = parseTemplateCollection({ value: obj, source: { path: [] } })
-    const result = deepEvaluate(parsed, { context, opts: { legacyAllowPartial: true } })
-
-    expect(result).to.eql({
-      "key-value-array": {
-        $forEach: "${inputs.merged-object || []}",
-        $return: {
-          name: "${item.key}",
-          value: "${item.value}",
-        },
-      },
-    })
-  })
-
   it("should resolve $merge keys if a dependency cannot be resolved but there's a fallback", () => {
     const obj = {
       "key-value-array": {
@@ -2337,23 +2249,6 @@ describe("parse and evaluate template collections", () => {
 
       void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
         contains: 'A list item with a $concat key cannot have any other keys (found "nope" and "oops")',
-      })
-    })
-
-    it("ignores if $concat value is not an array and legacyAllowPartial=true", () => {
-      const obj = {
-        foo: ["a", { $concat: "${foo}" }, "d"],
-      }
-      const parsed = parseTemplateCollection({
-        source: { path: [] },
-        value: obj,
-      })
-      const res = deepEvaluate(parsed, {
-        context: new GenericContext({}),
-        opts: { legacyAllowPartial: true },
-      })
-      expect(res).to.eql({
-        foo: ["a", { $concat: "${foo}" }, "d"],
       })
     })
   })

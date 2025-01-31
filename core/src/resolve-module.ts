@@ -1251,7 +1251,7 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
     return true
   }
 
-  const interim = conditionallyDeepEvaluate(
+  const partial = conditionallyDeepEvaluate(
     config,
     {
       context,
@@ -1262,47 +1262,6 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
       },
     },
     skipRuntimeReferences
-  )
-
-  /**
-   * Returns true if the unresolved template value contains "item" references
-   *
-   * If runtime references are used together with item references, the item references need to be resolved
-   * in a second pass using "legacyAllowPartial".
-   *
-   * We don't use "legacyAllowPartial" for the first pass so that the user receives appropriate error messages
-   * if a key cannot be resolved.
-   */
-  const findItemReferences = (value: UnresolvedTemplateValue) => {
-    if (
-      someReferences({
-        value,
-        context,
-        onlyEssential: true,
-        matcher: (ref) => ref.keyPath[0] === "item",
-      })
-    ) {
-      return true // we want to evaluate item references
-    }
-
-    return false
-  }
-
-  const partial = conditionallyDeepEvaluate(
-    interim,
-    {
-      context,
-      opts: {
-        // in the second pass, we eliminate lurking item references
-        // this can happen if the item context ($forEach) has been used together with runtime in the same template string
-        legacyAllowPartial: true,
-
-        // Modules will be converted to actions later, and escape characters will be properly removed then.
-        // We need this as we intend to parse the evaluation result later again.
-        keepEscapingInTemplateStrings: true,
-      },
-    },
-    findItemReferences
   )
 
   // any leftover unresolved template values are now turned back into the raw form

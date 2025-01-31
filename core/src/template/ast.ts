@@ -194,10 +194,6 @@ export abstract class UnaryExpression extends TemplateExpression {
       optional: true,
     })
 
-    if (inner === CONTEXT_RESOLVE_KEY_NOT_FOUND && mayBeResolvableLater(args)) {
-      return inner
-    }
-
     return this.transform(inner)
   }
 
@@ -256,26 +252,12 @@ export function isTruthy(v: TemplatePrimitive | Collection<unknown>): boolean {
   return true
 }
 
-export function mayBeResolvableLater(args: ASTEvaluateArgs): boolean {
-  // if keepEscapingInTemplateStrings is true, we will parse the template string again later
-  // thus, we can't decide yet which branch to take when encountering missing variables.
-  if (args.opts.keepEscapingInTemplateStrings) {
-    return true
-  }
-  return false
-}
-
 export class LogicalOrExpression extends LogicalExpression {
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const left = this.left.evaluate({
       ...args,
       optional: true,
     })
-
-    if (left === CONTEXT_RESOLVE_KEY_NOT_FOUND && mayBeResolvableLater(args)) {
-      // If key might be available later, we can't decide which branch to take in the logical expression yet.
-      return left
-    }
 
     if (!isNotFound(left) && isTruthy(left)) {
       return left
@@ -292,11 +274,6 @@ export class LogicalAndExpression extends LogicalExpression {
       optional: true,
     })
 
-    if (left === CONTEXT_RESOLVE_KEY_NOT_FOUND && mayBeResolvableLater(args)) {
-      // If key might be available later, we can't decide which branch to take in the logical expression yet.
-      return left
-    }
-
     // We return false in case the variable could not be resolved. This is a quirk of Garden's template language that we want to keep for backwards compatibility.
     if (isNotFound(left)) {
       return false
@@ -310,11 +287,6 @@ export class LogicalAndExpression extends LogicalExpression {
       ...args,
       optional: true,
     })
-
-    if (right === CONTEXT_RESOLVE_KEY_NOT_FOUND && mayBeResolvableLater(args)) {
-      // If key might be available later, we can't decide on a final value yet and the logical expression needs to be reevaluated later.
-      return right
-    }
 
     if (isNotFound(right)) {
       return false
@@ -521,11 +493,6 @@ export class FormatStringExpression extends TemplateExpression {
       },
       optional: args.optional || this.isOptional,
     })
-
-    if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND && mayBeResolvableLater(args)) {
-      // if the value might be resolvable later, we can't decide yet if we evaluate to undefined
-      return result
-    }
 
     // Only if this expression is optional we return undefined instead of symbol.
     // If merely optional is true in EvaluateArgs, we must return symbol.
@@ -912,10 +879,6 @@ export class TernaryExpression extends TemplateExpression {
       ...args,
       optional: true,
     })
-
-    if (conditionResult === CONTEXT_RESOLVE_KEY_NOT_FOUND && mayBeResolvableLater(args)) {
-      return conditionResult
-    }
 
     // evaluate ternary expression
     const evaluationResult =
