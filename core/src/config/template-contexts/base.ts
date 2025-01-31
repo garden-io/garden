@@ -510,8 +510,8 @@ export function getUnavailableReason(result: ContextResolveOutput): string {
   const available = result.explanation.getAvailableKeys()
 
   const message = deline`
-    Could not find key ${result.explanation.key}${result.explanation.keyPath.length > 0 ? ` under ${renderKeyPath(result.explanation.keyPath)}` : ""}.
-    ${`Available keys: ${available?.length ? available.join(", ") : "(none)"}.`}
+    Could not find key ${styles.highlight(result.explanation.key)}${result.explanation.keyPath.length > 0 ? ` under ${styles.highlight(renderKeyPath(result.explanation.keyPath))}` : ""}.
+    ${`Available keys: ${available?.length ? available.map((k) => styles.highlight(k)).join(", ") : "(none)"}.`}
   `
 
   const footer = result.explanation.getFooterMessage?.()
