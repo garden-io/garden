@@ -394,7 +394,7 @@ export abstract class ContextResolveError extends GardenError {
 export class ContextCircularlyReferencesItself extends ContextResolveError {}
 
 /**
- * Occurs when attempting to look up a key on non-primitive values.
+ * Occurs when attempting to look up a key on primitive values.
  */
 export class ContextLookupNotIndexable extends ContextResolveError {}
 

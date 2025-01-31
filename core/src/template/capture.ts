@@ -24,6 +24,7 @@ import { isTemplatePrimitive, UnresolvedTemplateValue } from "./types.js"
 type CaptureResult<Input extends ParsedTemplate> = Input extends TemplatePrimitive
   ? Input
   : CapturedContextTemplateValue
+
 export function capture<Input extends ParsedTemplate>(template: Input, context: ConfigContext): CaptureResult<Input> {
   if (isTemplatePrimitive(template)) {
     return template as CaptureResult<Input>
