@@ -14,7 +14,6 @@ import { dedent, deline } from "../../util/string.js"
 import type { PrimitiveMap } from "../common.js"
 import { joi, joiIdentifier, joiIdentifierMap, joiPrimitive, joiVariables } from "../common.js"
 import type { ProviderMap } from "../provider.js"
-import type { ConfigContext } from "./base.js"
 import { ContextWithSchema, ErrorContext, ParentContext, schema, TemplateContext } from "./base.js"
 import { exampleVersion, OutputConfigContext } from "./module.js"
 import { TemplatableConfigContext } from "./templatable.js"
@@ -115,7 +114,7 @@ export class ActionReferenceContext extends ContextWithSchema {
   public readonly mode: ActionMode
 
   @schema(joiVariables().required().description("The variables configured on the action.").example({ foo: "bar" }))
-  public readonly var: ConfigContext
+  public readonly var: VariablesContext
 
   constructor({ name, disabled, buildPath, sourcePath, mode, variables }: ActionReferenceContextParams) {
     super()

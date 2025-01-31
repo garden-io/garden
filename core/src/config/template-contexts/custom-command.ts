@@ -10,7 +10,6 @@ import { variableNameRegex, joiPrimitive, joiArray, joiVariables, joiIdentifierM
 import { joi } from "../common.js"
 import type { DefaultEnvironmentContextParams } from "./project.js"
 import { DefaultEnvironmentContext } from "./project.js"
-import type { ConfigContext } from "./base.js"
 import { schema } from "./base.js"
 import type { VariablesContext } from "./variables.js"
 
@@ -34,7 +33,7 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
   public readonly variables: VariablesContext
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public readonly var: ConfigContext
+  public readonly var: VariablesContext
 
   @schema(
     joi

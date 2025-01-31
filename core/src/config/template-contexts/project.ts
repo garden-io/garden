@@ -11,7 +11,7 @@ import type { PrimitiveMap, DeepPrimitiveMap } from "../common.js"
 import { joiIdentifierMap, joiStringMap, joiPrimitive, joiVariables } from "../common.js"
 import { joi } from "../common.js"
 import { deline, dedent } from "../../util/string.js"
-import type { ConfigContext, ContextResolveParams } from "./base.js"
+import type { ContextResolveParams } from "./base.js"
 import { schema, ContextWithSchema, EnvironmentContext } from "./base.js"
 import type { CommandInfo } from "../../plugin-context.js"
 import type { Garden } from "../../garden.js"
@@ -360,7 +360,7 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
   public variables: VariablesContext
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: ConfigContext
+  public var: VariablesContext
 
   @schema(
     joiStringMap(joi.string().description("The secret's value."))
