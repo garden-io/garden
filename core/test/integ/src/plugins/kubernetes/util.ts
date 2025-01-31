@@ -43,10 +43,9 @@ import type {
 import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace.js"
 import { convertModules } from "../../../../../src/resolve-module.js"
 import type { BuildAction } from "../../../../../src/actions/build.js"
-import type { ResolvedDeployAction } from "../../../../../src/actions/deploy.js"
+import { ResolvedDeployAction } from "../../../../../src/actions/deploy.js"
 import type { HelmDeployAction, HelmDeployConfig } from "../../../../../src/plugins/kubernetes/helm/config.js"
-import type { ContainerDeployAction, ContainerDeployActionConfig } from "../../../../../src/plugins/container/config.js"
-import { randomString } from "../../../../../src/util/string.js"
+import { ContainerDeployAction, ContainerDeployActionConfig } from "../../../../../src/plugins/container/config.js";
 
 // TODO: Add more test cases
 describe("getWorkloadPods", () => {
@@ -103,11 +102,7 @@ describe("getWorkloadPods", () => {
       ctx,
       imageId: simpleServiceAction.getSpec().image!,
       namespace: provider.config.namespace!.name!,
-      log: createActionLog({
-        log: garden.log,
-        actionName: simpleServiceAction.name,
-        actionKind: simpleServiceAction.kind,
-      }),
+      log: createActionLog({ log: garden.log, actionName: simpleServiceAction.name, actionKind: simpleServiceAction.kind }),
       production: false,
     })
     const pods = await getWorkloadPods({ api, namespace: "container", resource })
@@ -133,10 +128,9 @@ describe("util", () => {
   let helmGraph: ConfigGraph
   let ctx: KubernetesPluginContext
   let log: Log
-  const namespaceName = "helm-util-testing-" + randomString(10)
 
   before(async () => {
-    helmGarden = await getHelmTestGarden(namespaceName)
+    helmGarden = await getHelmTestGarden()
     log = helmGarden.log
     const provider = await helmGarden.resolveProvider({ log, name: "local-kubernetes" })
     ctx = (await helmGarden.getPluginContext({

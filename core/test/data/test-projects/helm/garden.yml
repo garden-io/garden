@@ -5,5 +5,3 @@ environments:
   - name: local
 providers:
   - name: local-kubernetes
-    # Must be provided via --var namespaceName=xxx
-    namespace: ${var.namespaceName}

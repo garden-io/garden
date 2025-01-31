@@ -23,7 +23,7 @@ import {
 } from "../../../../../../src/plugins/kubernetes/helm/common.js"
 import { resolveMsg, type Log } from "../../../../../../src/logger/log-entry.js"
 import { BuildTask } from "../../../../../../src/tasks/build.js"
-import { dedent, deline, randomString } from "../../../../../../src/util/string.js"
+import { dedent, deline } from "../../../../../../src/util/string.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import type { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config.js"
 import { loadAll } from "js-yaml"
@@ -37,25 +37,15 @@ import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/nam
 
 const { readdir, readFile } = fsExtra
 
-export async function getHelmTestGarden(namespaceName: string) {
+export async function getHelmTestGarden() {
   const projectRoot = getDataDir("test-projects", "helm")
-  const garden = await makeTestGarden(projectRoot, {
-    variableOverrides: {
-      namespaceName,
-    },
-  })
-
+  const garden = await makeTestGarden(projectRoot)
   return garden
 }
 
-export async function getHelmLocalModeTestGarden(namespaceName: string) {
+export async function getHelmLocalModeTestGarden() {
   const projectRoot = getDataDir("test-projects", "helm-local-mode")
-  const garden = await makeTestGarden(projectRoot, {
-    variableOverrides: {
-      namespaceName,
-    },
-  })
-
+  const garden = await makeTestGarden(projectRoot)
   return garden
 }
 
@@ -87,10 +77,9 @@ describe("Helm common functions", () => {
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
   let log: Log
-  const namespaceName = "helm-common-functions-testing-" + randomString(10)
 
   before(async () => {
-    garden = await getHelmTestGarden(namespaceName)
+    garden = await getHelmTestGarden()
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = (await garden.getPluginContext({
       provider,

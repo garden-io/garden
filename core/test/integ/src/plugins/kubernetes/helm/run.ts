@@ -18,15 +18,13 @@ const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
 import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
-import { randomString } from "../../../../../../src/util/string.js"
 
 describe("Helm Pod Run", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  const namespaceName = "helm-pod-run-testing-" + randomString(10)
 
   before(async () => {
-    garden = await getHelmTestGarden(namespaceName)
+    garden = await getHelmTestGarden()
   })
 
   beforeEach(async () => {
