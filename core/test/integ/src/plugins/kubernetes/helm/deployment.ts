@@ -390,9 +390,6 @@ describe("helmDeploy", () => {
       const gardenWithCloudApi = await makeTestGarden(projectRoot, {
         overrideCloudApiFactory: FakeCloudApi.factory,
         noCache: true,
-        variableOverrides: {
-          namespaceName,
-        },
       })
 
       graph = await gardenWithCloudApi.getConfigGraph({ log: gardenWithCloudApi.log, emit: false })
