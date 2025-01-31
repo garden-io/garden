@@ -240,7 +240,12 @@ export async function createPluginContext({
       })
     },
     legacyResolveTemplateString: (string: string, opts?: ResolveTemplateStringsOpts) => {
-      return legacyResolveTemplateString({ string, context: templateContext, contextOpts: opts || {}, source: undefined })
+      return legacyResolveTemplateString({
+        string,
+        context: templateContext,
+        contextOpts: opts || {},
+        source: undefined,
+      })
     },
     sessionId: garden.sessionId,
     tools: await garden.getTools(),
