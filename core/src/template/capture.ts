@@ -51,7 +51,7 @@ export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
 
     return {
       partial: true,
-      resolved: deepMap(result.resolved, (v) => capture(v, context)) as Collection<ParsedTemplate>,
+      resolved: deepMap(result.resolved, (v) => capture(v, this.context)) as Collection<ParsedTemplate>,
     }
   }
 
