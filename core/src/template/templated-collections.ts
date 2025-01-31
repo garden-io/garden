@@ -374,7 +374,7 @@ export class ForEachLazyValue extends StructuralTemplateOperator {
 
     for (const i of Object.keys(collectionValue)) {
       // put the TemplateValue in the context, not the primitive value, so we have input tracking
-      const contextForIndex = new GenericContext({
+      const contextForIndex = new GenericContext("item ($forEach)", {
         item: { key: i, value: collectionValue[i] },
       })
       const loopContext = new LayeredContext("item ($forEach)", args.context, contextForIndex)

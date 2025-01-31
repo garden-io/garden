@@ -113,7 +113,7 @@ export abstract class ConfigContext {
   private readonly _cache: Map<string, ContextResolveOutput>
   private readonly _id: number
 
-  constructor(public readonly _description?: string) {
+  constructor(public readonly _description: string) {
     this._id = globalConfigContextCounter++
     this._cache = new Map()
     if (!_description) {
@@ -191,6 +191,10 @@ export abstract class ConfigContext {
 // Note: we're using classes here to be able to use decorators to describe each context node and key
 @Profile()
 export abstract class ContextWithSchema extends ConfigContext {
+  constructor(description: string = "") {
+    super(description)
+  }
+
   static getSchema() {
     const schemas = (<any>this)._schemas
     return joi.object().keys(schemas).required()
@@ -214,7 +218,10 @@ export abstract class ContextWithSchema extends ConfigContext {
  * A generic context that just wraps an object.
  */
 export class GenericContext extends ConfigContext {
-  constructor(protected readonly data: ParsedTemplate | Collection<ParsedTemplate | ConfigContext>) {
+  constructor(
+    description: string,
+    protected readonly data: ParsedTemplate | Collection<ParsedTemplate | ConfigContext>
+  ) {
     if (data === undefined) {
       throw new InternalError({
         message: "Generic context may not be undefined.",
@@ -226,7 +233,7 @@ export class GenericContext extends ConfigContext {
           "Generic context is useless when instantiated with just another context as parameter. Use the other context directly instead.",
       })
     }
-    super()
+    super(description)
   }
 
   protected override resolveImpl(params: ContextResolveParams): ContextResolveOutput {
@@ -269,7 +276,7 @@ export class EnvironmentContext extends ContextWithSchema {
  */
 export class ErrorContext extends ConfigContext {
   constructor(private readonly message: string) {
-    super()
+    super(`error`)
   }
 
   protected override resolveImpl({}): ContextResolveOutput {
@@ -326,7 +333,7 @@ export class LayeredContext extends ConfigContext {
   constructor(description: string, ...layers: ConfigContext[]) {
     super(description)
     if (layers.length === 0) {
-      this.layers = [new GenericContext({})]
+      this.layers = [new GenericContext("empty", {})]
     } else {
       this.layers = layers
     }

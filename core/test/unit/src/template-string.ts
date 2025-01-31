@@ -10,7 +10,6 @@ import { expect } from "chai"
 import repeat from "lodash-es/repeat.js"
 import stripAnsi from "strip-ansi"
 import { loadAndValidateYaml } from "../../../src/config/base.js"
-import { GenericContext } from "../../../src/config/template-contexts/base.js"
 import type { ContextLookupReferenceFinding } from "../../../src/template/analysis.js"
 import { getContextLookupReferences, UnresolvableValue, visitAll } from "../../../src/template/analysis.js"
 import { legacyResolveTemplateString } from "../../../src/template/templated-strings.js"
@@ -23,6 +22,10 @@ import { throwOnMissingSecretKeys } from "../../../src/config/secrets.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 import { deepEvaluate } from "../../../src/template/evaluate.js"
 import pick from "lodash-es/pick.js"
+import { TestContext } from "./config/template-contexts/base.js"
+import type { Collection } from "../../../src/util/objects.js"
+import type { ParsedTemplate } from "../../../src/template/types.js"
+import type { ConfigContext } from "../../../src/config/template-contexts/base.js"
 
 describe("template string access protection", () => {
   it("should crash when an unresolved value is accidentally treated as resolved", () => {
@@ -32,7 +35,7 @@ describe("template string access protection", () => {
 
   it("should not crash when an unresolved value is correctly evaluated", () => {
     const parsed = parseTemplateCollection({ value: { foo: "${bar}" } as const, source: { path: [] } })
-    const evaluated = deepEvaluate(parsed, { context: new GenericContext({ bar: "baz" }), opts: {} })
+    const evaluated = deepEvaluate(parsed, { context: new TestContext({ bar: "baz" }), opts: {} })
     expect(evaluated).to.eql({ foo: "baz" })
   })
 
@@ -45,14 +48,14 @@ describe("template string access protection", () => {
 
 describe("parse and evaluate template strings", () => {
   it("should return a non-templated string unchanged", () => {
-    const res = legacyResolveTemplateString({ string: "somestring", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "somestring", context: new TestContext({}) })
     expect(res).to.equal("somestring")
   })
 
   it("should resolve a key with a dash in it", () => {
     const res = legacyResolveTemplateString({
       string: "${some-key}",
-      context: new GenericContext({ "some-key": "value" }),
+      context: new TestContext({ "some-key": "value" }),
     })
     expect(res).to.equal("value")
   })
@@ -60,25 +63,25 @@ describe("parse and evaluate template strings", () => {
   it("should resolve a nested key with a dash in it", () => {
     const res = legacyResolveTemplateString({
       string: "${ctx.some-key}",
-      context: new GenericContext({ ctx: { "some-key": "value" } }),
+      context: new TestContext({ ctx: { "some-key": "value" } }),
     })
     expect(res).to.equal("value")
   })
 
   it("should correctly resolve if ? suffix is present but value exists", () => {
-    const res = legacyResolveTemplateString({ string: "${foo}?", context: new GenericContext({ foo: "bar" }) })
+    const res = legacyResolveTemplateString({ string: "${foo}?", context: new TestContext({ foo: "bar" }) })
     expect(res).to.equal("bar")
   })
 
   it("should allow undefined values if ? suffix is present", () => {
-    const res = legacyResolveTemplateString({ string: "${foo}?", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${foo}?", context: new TestContext({}) })
     expect(res).to.equal(undefined)
   })
 
   it("should evaluate to undefined if legacyAllowPartial=true", () => {
     const res = legacyResolveTemplateString({
       string: "${foo}?",
-      context: new GenericContext({}),
+      context: new TestContext({}),
       contextOpts: { legacyAllowPartial: true },
     })
     expect(res).to.equal(undefined)
@@ -92,7 +95,7 @@ describe("parse and evaluate template strings", () => {
     for (const input of inputs) {
       const res = legacyResolveTemplateString({
         string: input,
-        context: new GenericContext({
+        context: new TestContext({
           actions: {
             run: {},
             build: {},
@@ -109,7 +112,7 @@ describe("parse and evaluate template strings", () => {
       () =>
         legacyResolveTemplateString({
           string: '${actions.build["${parent.name}?"]}',
-          context: new GenericContext({
+          context: new TestContext({
             actions: {
               build: {},
             },
@@ -124,14 +127,14 @@ describe("parse and evaluate template strings", () => {
   })
 
   it("should support a string literal in a template string as a means to escape it", () => {
-    const res = legacyResolveTemplateString({ string: "${'$'}{bar}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${'$'}{bar}", context: new TestContext({}) })
     expect(res).to.equal("${bar}")
   })
 
   it("should pass through a template string with a double $$ prefix if legacyAllowPartial=true keepEscapingInTemplateStrings=true", () => {
     const res = legacyResolveTemplateString({
       string: "$${bar}",
-      context: new GenericContext({}),
+      context: new TestContext({}),
       contextOpts: { legacyAllowPartial: true, keepEscapingInTemplateStrings: true },
     })
     expect(res).to.equal("$${bar}")
@@ -140,7 +143,7 @@ describe("parse and evaluate template strings", () => {
   it("should unescape a template string with a double $$ prefix if legacyAllowPartial=true", () => {
     const res = legacyResolveTemplateString({
       string: "$${bar}",
-      context: new GenericContext({}),
+      context: new TestContext({}),
       contextOpts: { legacyAllowPartial: true },
     })
     expect(res).to.equal("${bar}")
@@ -149,7 +152,7 @@ describe("parse and evaluate template strings", () => {
   it("should unescape a template string with a double $$ prefix by default", () => {
     const res = legacyResolveTemplateString({
       string: "$${bar}",
-      context: new GenericContext({}),
+      context: new TestContext({}),
       contextOpts: {},
     })
     expect(res).to.equal("${bar}")
@@ -158,7 +161,7 @@ describe("parse and evaluate template strings", () => {
   it("should resolve other template variables after escaped one with keepEscapingInTemplateStrings=true", () => {
     const res = legacyResolveTemplateString({
       string: "foo $${} ${bar}",
-      context: new GenericContext({ bar: "bar" }),
+      context: new TestContext({ bar: "bar" }),
       contextOpts: { keepEscapingInTemplateStrings: true },
     })
     expect(res).to.equal("foo $${} bar")
@@ -167,7 +170,7 @@ describe("parse and evaluate template strings", () => {
   it("should resolve other template variables after escaped one", () => {
     const res = legacyResolveTemplateString({
       string: "foo $${} ${bar}",
-      context: new GenericContext({ bar: "bar" }),
+      context: new TestContext({ bar: "bar" }),
       contextOpts: {},
     })
     expect(res).to.equal("foo ${} bar")
@@ -176,7 +179,7 @@ describe("parse and evaluate template strings", () => {
   it("should not unescape inner template variables with keepEscapingInTemplateStrings=true", () => {
     const res = legacyResolveTemplateString({
       string: 'foo ${"$${}"} ${bar}',
-      context: new GenericContext({ bar: "bar" }),
+      context: new TestContext({ bar: "bar" }),
       contextOpts: { keepEscapingInTemplateStrings: true },
     })
     expect(res).to.equal("foo $${} bar")
@@ -185,7 +188,7 @@ describe("parse and evaluate template strings", () => {
   it("should unescape inner template variables by default", () => {
     const res = legacyResolveTemplateString({
       string: 'foo ${"$${}"} ${bar}',
-      context: new GenericContext({ bar: "bar" }),
+      context: new TestContext({ bar: "bar" }),
       contextOpts: {},
     })
     expect(res).to.equal("foo ${} bar")
@@ -194,7 +197,7 @@ describe("parse and evaluate template strings", () => {
   it("should not unescape outer template variables with keepEscapingInTemplateStrings=true", () => {
     const res = legacyResolveTemplateString({
       string: 'foo $${"${}"} ${bar}',
-      context: new GenericContext({ bar: "bar" }),
+      context: new TestContext({ bar: "bar" }),
       contextOpts: { keepEscapingInTemplateStrings: true },
     })
     expect(res).to.equal('foo $${"${}"} bar')
@@ -203,7 +206,7 @@ describe("parse and evaluate template strings", () => {
   it("should unescape outer template variables by default", () => {
     const res = legacyResolveTemplateString({
       string: 'foo $${"${}"} ${bar}',
-      context: new GenericContext({ bar: "bar" }),
+      context: new TestContext({ bar: "bar" }),
       contextOpts: {},
     })
     expect(res).to.equal('foo ${"${}"} bar')
@@ -212,7 +215,7 @@ describe("parse and evaluate template strings", () => {
   it("should unescape a template string with a double $$ prefix if legacyAllowPartial=false", () => {
     const res = legacyResolveTemplateString({
       string: "$${bar}",
-      context: new GenericContext({}),
+      context: new TestContext({}),
       contextOpts: {
         legacyAllowPartial: true,
       },
@@ -223,7 +226,7 @@ describe("parse and evaluate template strings", () => {
   it("should not unescape a template string with a double $$ prefix if legacyAllowPartial=false and keepEscapingInTemplateStrings=true", () => {
     const res = legacyResolveTemplateString({
       string: "$${bar}",
-      context: new GenericContext({}),
+      context: new TestContext({}),
       contextOpts: { legacyAllowPartial: true, keepEscapingInTemplateStrings: true },
     })
     expect(res).to.equal("$${bar}")
@@ -232,7 +235,7 @@ describe("parse and evaluate template strings", () => {
   it("should allow nesting escaped strings within normal strings", () => {
     const res = legacyResolveTemplateString({
       string: "${foo == 'yes' ? '$${bar}' : 'fail' }",
-      context: new GenericContext({ foo: "yes" }),
+      context: new TestContext({ foo: "yes" }),
       contextOpts: {},
     })
     expect(res).to.equal("${bar}")
@@ -250,7 +253,7 @@ describe("parse and evaluate template strings", () => {
         it("for standalone env vars", () => {
           const res = legacyResolveTemplateString({
             string: "$${env" + envFormat.delimiter + "TEST_ENV}",
-            context: new GenericContext({}),
+            context: new TestContext({}),
             contextOpts: {},
           })
           expect(res).to.equal("${env" + envFormat.delimiter + "TEST_ENV}")
@@ -259,7 +262,7 @@ describe("parse and evaluate template strings", () => {
         it("for env vars in argument lists", () => {
           const res = legacyResolveTemplateString({
             string: "foo $${env" + envFormat.delimiter + "TEST_ENV} bar",
-            context: new GenericContext({}),
+            context: new TestContext({}),
             contextOpts: {},
           })
           expect(res).to.equal("foo ${env" + envFormat.delimiter + "TEST_ENV} bar")
@@ -268,7 +271,7 @@ describe("parse and evaluate template strings", () => {
         it("for env vars that are parts of another strings", () => {
           const res = legacyResolveTemplateString({
             string: "${foo}-$${env" + envFormat.delimiter + "TEST_ENV}",
-            context: new GenericContext({ foo: "foo" }),
+            context: new TestContext({ foo: "foo" }),
             contextOpts: {},
           })
           expect(res).to.equal("foo-${env" + envFormat.delimiter + "TEST_ENV}")
@@ -280,7 +283,7 @@ describe("parse and evaluate template strings", () => {
   it("should allow mixing normal and escaped strings", () => {
     const res = legacyResolveTemplateString({
       string: "${foo}-and-$${var.nope}",
-      context: new GenericContext({ foo: "yes" }),
+      context: new TestContext({ foo: "yes" }),
       contextOpts: {},
     })
     expect(res).to.equal("yes-and-${var.nope}")
@@ -289,7 +292,7 @@ describe("parse and evaluate template strings", () => {
   it("should interpolate a format string with a prefix", () => {
     const res = legacyResolveTemplateString({
       string: "prefix-${some}",
-      context: new GenericContext({ some: "value" }),
+      context: new TestContext({ some: "value" }),
     })
     expect(res).to.equal("prefix-value")
   })
@@ -297,7 +300,7 @@ describe("parse and evaluate template strings", () => {
   it("should interpolate a format string with a suffix", () => {
     const res = legacyResolveTemplateString({
       string: "${some}-suffix",
-      context: new GenericContext({ some: "value" }),
+      context: new TestContext({ some: "value" }),
     })
     expect(res).to.equal("value-suffix")
   })
@@ -305,20 +308,20 @@ describe("parse and evaluate template strings", () => {
   it("should interpolate a format string with a prefix and a suffix", () => {
     const res = legacyResolveTemplateString({
       string: "prefix-${some}-suffix",
-      context: new GenericContext({ some: "value" }),
+      context: new TestContext({ some: "value" }),
     })
     expect(res).to.equal("prefix-value-suffix")
   })
 
   it("should interpolate an optional format string with a prefix and a suffix", () => {
-    const res = legacyResolveTemplateString({ string: "prefix-${some}?-suffix", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "prefix-${some}?-suffix", context: new TestContext({}) })
     expect(res).to.equal("prefix--suffix")
   })
 
   it("should interpolate a format string with a prefix with whitespace", () => {
     const res = legacyResolveTemplateString({
       string: "prefix ${some}",
-      context: new GenericContext({ some: "value" }),
+      context: new TestContext({ some: "value" }),
     })
     expect(res).to.equal("prefix value")
   })
@@ -326,7 +329,7 @@ describe("parse and evaluate template strings", () => {
   it("should interpolate a format string with a suffix with whitespace", () => {
     const res = legacyResolveTemplateString({
       string: "${some} suffix",
-      context: new GenericContext({ some: "value" }),
+      context: new TestContext({ some: "value" }),
     })
     expect(res).to.equal("value suffix")
   })
@@ -334,7 +337,7 @@ describe("parse and evaluate template strings", () => {
   it("should correctly interpolate a format string with surrounding whitespace", () => {
     const res = legacyResolveTemplateString({
       string: "prefix ${some} suffix",
-      context: new GenericContext({ some: "value" }),
+      context: new TestContext({ some: "value" }),
     })
     expect(res).to.equal("prefix value suffix")
   })
@@ -342,7 +345,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle a nested key", () => {
     const res = legacyResolveTemplateString({
       string: "${some.nested}",
-      context: new GenericContext({ some: { nested: "value" } }),
+      context: new TestContext({ some: { nested: "value" } }),
     })
     expect(res).to.equal("value")
   })
@@ -350,7 +353,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle multiple format strings", () => {
     const res = legacyResolveTemplateString({
       string: "prefix-${a}-${b}-suffix",
-      context: new GenericContext({ a: "value", b: "other" }),
+      context: new TestContext({ a: "value", b: "other" }),
     })
     expect(res).to.equal("prefix-value-other-suffix")
   })
@@ -358,13 +361,13 @@ describe("parse and evaluate template strings", () => {
   it("should handle consecutive format strings", () => {
     const res = legacyResolveTemplateString({
       string: "${a}${b}",
-      context: new GenericContext({ a: "value", b: "other" }),
+      context: new TestContext({ a: "value", b: "other" }),
     })
     expect(res).to.equal("valueother")
   })
 
   it("should throw when a key is not found", () => {
-    void expectError(() => legacyResolveTemplateString({ string: "${some}", context: new GenericContext({}) }), {
+    void expectError(() => legacyResolveTemplateString({ string: "${some}", context: new TestContext({}) }), {
       contains: "Invalid template string (${some}): Could not find key some",
     })
   })
@@ -375,7 +378,7 @@ describe("parse and evaluate template strings", () => {
       () =>
         legacyResolveTemplateString({
           string: `\${some} ${veryLongString} template string`,
-          context: new GenericContext({}),
+          context: new TestContext({}),
         }),
       (err) => expect(err.message.length).to.be.lessThan(350)
     )
@@ -383,7 +386,7 @@ describe("parse and evaluate template strings", () => {
 
   it("should replace line breaks in template strings in error messages", () => {
     void expectError(
-      () => legacyResolveTemplateString({ string: "${some}\nmulti\nline\nstring", context: new GenericContext({}) }),
+      () => legacyResolveTemplateString({ string: "${some}\nmulti\nline\nstring", context: new TestContext({}) }),
       {
         contains: "Invalid template string (${some}\\nmulti\\nline\\nstring): Could not find key some",
       }
@@ -392,7 +395,7 @@ describe("parse and evaluate template strings", () => {
 
   it("should throw when a nested key is not found", () => {
     void expectError(
-      () => legacyResolveTemplateString({ string: "${some.other}", context: new GenericContext({ some: {} }) }),
+      () => legacyResolveTemplateString({ string: "${some.other}", context: new TestContext({ some: {} }) }),
       {
         contains: "Invalid template string (${some.other}): Could not find key other under some",
       }
@@ -401,7 +404,7 @@ describe("parse and evaluate template strings", () => {
 
   it("should throw with an incomplete template string", () => {
     try {
-      legacyResolveTemplateString({ string: "${some", context: new GenericContext({ some: {} }) })
+      legacyResolveTemplateString({ string: "${some", context: new TestContext({ some: {} }) })
     } catch (err) {
       if (!(err instanceof TemplateStringError)) {
         expect.fail("Expected TemplateStringError")
@@ -416,12 +419,9 @@ describe("parse and evaluate template strings", () => {
   })
 
   it("should throw on nested format strings", () => {
-    void expectError(
-      () => legacyResolveTemplateString({ string: "${resol${part}ed}", context: new GenericContext({}) }),
-      {
-        contains: "Invalid template string (${resol${part}ed}): Unable to parse as valid template string.",
-      }
-    )
+    void expectError(() => legacyResolveTemplateString({ string: "${resol${part}ed}", context: new TestContext({}) }), {
+      contains: "Invalid template string (${resol${part}ed}): Unable to parse as valid template string.",
+    })
   })
 
   it("if available, should include yaml context in error message", async () => {
@@ -440,7 +440,7 @@ describe("parse and evaluate template strings", () => {
       () =>
         legacyResolveTemplateString({
           string: command,
-          context: new GenericContext({}),
+          context: new TestContext({}),
           source: {
             yamlDoc: yamlDoc[0],
             path: ["spec", "command"],
@@ -460,83 +460,83 @@ describe("parse and evaluate template strings", () => {
   })
 
   it("should handle a single-quoted string", () => {
-    const res = legacyResolveTemplateString({ string: "${'foo'}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${'foo'}", context: new TestContext({}) })
     expect(res).to.equal("foo")
   })
 
   it("should handle a numeric literal and return it directly", () => {
-    const res = legacyResolveTemplateString({ string: "${123}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${123}", context: new TestContext({}) })
     expect(res).to.equal(123)
   })
 
   it("should handle a boolean true literal and return it directly", () => {
-    const res = legacyResolveTemplateString({ string: "${true}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${true}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle a boolean false literal and return it directly", () => {
-    const res = legacyResolveTemplateString({ string: "${false}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${false}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should allow unclosed conditional blocks expressions (true)", () => {
-    const res = legacyResolveTemplateString({ string: "${if true}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${if true}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should allow unclosed conditional blocks expressions (false)", () => {
-    const res = legacyResolveTemplateString({ string: "${if false}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${if false}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should allow unclosed conditional blocks expressions (any value)", () => {
-    const res = legacyResolveTemplateString({ string: '${if "something"}', context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: '${if "something"}', context: new TestContext({}) })
     expect(res).to.equal("something")
   })
 
   it("empty conditional blocks expressions evaluate to empty string", () => {
-    const res = legacyResolveTemplateString({ string: "${if true}${endif}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${if true}${endif}", context: new TestContext({}) })
     expect(res).to.equal("")
   })
 
   it("should handle a null literal and return it directly", () => {
-    const res = legacyResolveTemplateString({ string: "${null}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${null}", context: new TestContext({}) })
     expect(res).to.equal(null)
   })
 
   it("should handle a numeric literal in a logical OR and return it directly", () => {
-    const res = legacyResolveTemplateString({ string: "${a || 123}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${a || 123}", context: new TestContext({}) })
     expect(res).to.equal(123)
   })
 
   it("should handle a boolean true literal in a logical OR and return it directly", () => {
-    const res = legacyResolveTemplateString({ string: "${a || true}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${a || true}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle a boolean false literal in a logical OR and return it directly", () => {
-    const res = legacyResolveTemplateString({ string: "${a || false}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${a || false}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should handle a null literal in a logical OR and return it directly", () => {
-    const res = legacyResolveTemplateString({ string: "${a || null}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${a || null}", context: new TestContext({}) })
     expect(res).to.equal(null)
   })
 
   it("should handle a double-quoted string", () => {
-    const res = legacyResolveTemplateString({ string: '${"foo"}', context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: '${"foo"}', context: new TestContext({}) })
     expect(res).to.equal("foo")
   })
 
   it("should throw on invalid single-quoted string", () => {
-    void expectError(() => legacyResolveTemplateString({ string: "${'foo}", context: new GenericContext({}) }), {
+    void expectError(() => legacyResolveTemplateString({ string: "${'foo}", context: new TestContext({}) }), {
       contains: "Invalid template string (${'foo}): Unable to parse as valid template string.",
     })
   })
 
   it("should throw on invalid double-quoted string", () => {
-    void expectError(() => legacyResolveTemplateString({ string: '${"foo}', context: new GenericContext({}) }), {
+    void expectError(() => legacyResolveTemplateString({ string: '${"foo}', context: new TestContext({}) }), {
       contains: 'Invalid template string (${"foo}): Unable to parse as valid template string.',
     })
   })
@@ -544,7 +544,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle a logical OR between two identifiers", () => {
     const res = legacyResolveTemplateString({
       string: "${a || b}",
-      context: new GenericContext({ a: undefined, b: "abc" }),
+      context: new TestContext({ a: undefined, b: "abc" }),
     })
     expect(res).to.equal("abc")
   })
@@ -552,7 +552,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle a logical OR between two nested identifiers", () => {
     const res = legacyResolveTemplateString({
       string: "${a.b || c.d}",
-      context: new GenericContext({
+      context: new TestContext({
         a: { b: undefined },
         c: { d: "abc" },
       }),
@@ -563,7 +563,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle a logical OR between two nested identifiers where the first resolves", () => {
     const res = legacyResolveTemplateString({
       string: "${a.b || c.d}",
-      context: new GenericContext({
+      context: new TestContext({
         a: { b: "abc" },
         c: { d: undefined },
       }),
@@ -574,25 +574,25 @@ describe("parse and evaluate template strings", () => {
   it("should handle a logical OR between two identifiers without spaces with first value undefined", () => {
     const res = legacyResolveTemplateString({
       string: "${a||b}",
-      context: new GenericContext({ a: undefined, b: "abc" }),
+      context: new TestContext({ a: undefined, b: "abc" }),
     })
     expect(res).to.equal("abc")
   })
 
   it("should handle a logical OR between two identifiers with first value undefined and string fallback", () => {
-    const res = legacyResolveTemplateString({ string: '${a || "foo"}', context: new GenericContext({ a: undefined }) })
+    const res = legacyResolveTemplateString({ string: '${a || "foo"}', context: new TestContext({ a: undefined }) })
     expect(res).to.equal("foo")
   })
 
   it("should handle a logical OR with undefined nested value and string fallback", () => {
-    const res = legacyResolveTemplateString({ string: "${a.b || 'foo'}", context: new GenericContext({ a: {} }) })
+    const res = legacyResolveTemplateString({ string: "${a.b || 'foo'}", context: new TestContext({ a: {} }) })
     expect(res).to.equal("foo")
   })
 
   it("should handle chained logical OR with string fallback", () => {
     const res = legacyResolveTemplateString({
       string: "${a.b || c.d || e.f || 'foo'}",
-      context: new GenericContext({ a: {}, c: {}, e: {} }),
+      context: new TestContext({ a: {}, c: {}, e: {} }),
     })
     expect(res).to.equal("foo")
   })
@@ -600,70 +600,70 @@ describe("parse and evaluate template strings", () => {
   it("should handle a logical OR between two identifiers without spaces with first value set", () => {
     const res = legacyResolveTemplateString({
       string: "${a||b}",
-      context: new GenericContext({ a: "abc", b: undefined }),
+      context: new TestContext({ a: "abc", b: undefined }),
     })
     expect(res).to.equal("abc")
   })
 
   it("should throw if neither key in logical OR is valid", () => {
-    void expectError(() => legacyResolveTemplateString({ string: "${a || b}", context: new GenericContext({}) }), {
+    void expectError(() => legacyResolveTemplateString({ string: "${a || b}", context: new TestContext({}) }), {
       contains: "Invalid template string (${a || b}): Could not find key b",
     })
   })
 
   it("should throw on invalid logical OR string", () => {
-    void expectError(() => legacyResolveTemplateString({ string: "${a || 'b}", context: new GenericContext({}) }), {
+    void expectError(() => legacyResolveTemplateString({ string: "${a || 'b}", context: new TestContext({}) }), {
       contains: "Invalid template string (${a || 'b}): Unable to parse as valid template string.",
     })
   })
 
   it("should handle a logical OR between a string and a string", () => {
-    const res = legacyResolveTemplateString({ string: "${'a' || 'b'}", context: new GenericContext({ a: undefined }) })
+    const res = legacyResolveTemplateString({ string: "${'a' || 'b'}", context: new TestContext({ a: undefined }) })
     expect(res).to.equal("a")
   })
 
   it("should handle a logical OR between an empty string and a string", () => {
-    const res = legacyResolveTemplateString({ string: "${a || 'b'}", context: new GenericContext({ a: "" }) })
+    const res = legacyResolveTemplateString({ string: "${a || 'b'}", context: new TestContext({ a: "" }) })
     expect(res).to.equal("b")
   })
 
   context("logical AND (&& operator)", () => {
     it("true literal and true variable reference", () => {
-      const res = legacyResolveTemplateString({ string: "${true && a}", context: new GenericContext({ a: true }) })
+      const res = legacyResolveTemplateString({ string: "${true && a}", context: new TestContext({ a: true }) })
       expect(res).to.equal(true)
     })
 
     it("two true variable references", () => {
       const res = legacyResolveTemplateString({
         string: "${var.a && var.b}",
-        context: new GenericContext({ var: { a: true, b: true } }),
+        context: new TestContext({ var: { a: true, b: true } }),
       })
       expect(res).to.equal(true)
     })
 
     it("first part is false but the second part is not resolvable", () => {
       // i.e. the 2nd clause should not need to be evaluated
-      const res = legacyResolveTemplateString({ string: "${false && a}", context: new GenericContext({}) })
+      const res = legacyResolveTemplateString({ string: "${false && a}", context: new TestContext({}) })
       expect(res).to.equal(false)
     })
 
     it("an empty string as the first clause", () => {
-      const res = legacyResolveTemplateString({ string: "${'' && true}", context: new GenericContext({}) })
+      const res = legacyResolveTemplateString({ string: "${'' && true}", context: new TestContext({}) })
       expect(res).to.equal("")
     })
 
     it("an empty string as the second clause", () => {
-      const res = legacyResolveTemplateString({ string: "${true && ''}", context: new GenericContext({}) })
+      const res = legacyResolveTemplateString({ string: "${true && ''}", context: new TestContext({}) })
       expect(res).to.equal("")
     })
 
     it("a missing reference as the first clause", () => {
-      const res = legacyResolveTemplateString({ string: "${var.foo && 'a'}", context: new GenericContext({ var: {} }) })
+      const res = legacyResolveTemplateString({ string: "${var.foo && 'a'}", context: new TestContext({ var: {} }) })
       expect(res).to.equal(false)
     })
 
     it("a missing reference as the second clause", () => {
-      const res = legacyResolveTemplateString({ string: "${'a' && var.foo}", context: new GenericContext({ var: {} }) })
+      const res = legacyResolveTemplateString({ string: "${'a' && var.foo}", context: new TestContext({ var: {} }) })
       expect(res).to.equal(false)
     })
 
@@ -671,7 +671,7 @@ describe("parse and evaluate template strings", () => {
       it("logical AND returns false if the left side cannot be found", () => {
         const res = legacyResolveTemplateString({
           string: "${var.foo && 'a'}",
-          context: new GenericContext({ var: {} }),
+          context: new TestContext({ var: {} }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal(false)
@@ -680,7 +680,7 @@ describe("parse and evaluate template strings", () => {
       it("logical AND resolves to false if right side cannot be found", () => {
         const res = legacyResolveTemplateString({
           string: "${'a' && var.foo}",
-          context: new GenericContext({ var: {} }),
+          context: new TestContext({ var: {} }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal(false)
@@ -696,7 +696,7 @@ describe("parse and evaluate template strings", () => {
           it("a missing reference as the first clause returns the original template", () => {
             const res = legacyResolveTemplateString({
               string: `$\{var.foo ${operator} 2}`,
-              context: new GenericContext({ var: {} }),
+              context: new TestContext({ var: {} }),
               contextOpts: { legacyAllowPartial: true },
             })
             expect(res).to.equal(`$\{var.foo ${operator} 2}`)
@@ -705,7 +705,7 @@ describe("parse and evaluate template strings", () => {
           it("a missing reference as the second clause returns the original template", () => {
             const res = legacyResolveTemplateString({
               string: `$\{2 ${operator} var.foo}`,
-              context: new GenericContext({ var: {} }),
+              context: new TestContext({ var: {} }),
               contextOpts: { legacyAllowPartial: true },
             })
             expect(res).to.equal(`$\{2 ${operator} var.foo}`)
@@ -721,7 +721,7 @@ describe("parse and evaluate template strings", () => {
           it(`a missing reference as the first clause returns the original template`, () => {
             const res = legacyResolveTemplateString({
               string: `$\{var.foo ${operator} '2'}`,
-              context: new GenericContext({ var: {} }),
+              context: new TestContext({ var: {} }),
               contextOpts: { legacyAllowPartial: true },
             })
             expect(res).to.equal(`$\{var.foo ${operator} '2'}`)
@@ -730,7 +730,7 @@ describe("parse and evaluate template strings", () => {
           it("a missing reference as the second clause returns the original template", () => {
             const res = legacyResolveTemplateString({
               string: `$\{2 ${operator} var.foo}`,
-              context: new GenericContext({ var: {} }),
+              context: new TestContext({ var: {} }),
               contextOpts: { legacyAllowPartial: true },
             })
             expect(res).to.equal(`$\{2 ${operator} var.foo}`)
@@ -741,157 +741,154 @@ describe("parse and evaluate template strings", () => {
   })
 
   it("should handle a positive equality comparison between equal resolved values", () => {
-    const res = legacyResolveTemplateString({ string: "${a == b}", context: new GenericContext({ a: "a", b: "a" }) })
+    const res = legacyResolveTemplateString({ string: "${a == b}", context: new TestContext({ a: "a", b: "a" }) })
     expect(res).to.equal(true)
   })
 
   it("should handle a positive equality comparison between equal string literals", () => {
-    const res = legacyResolveTemplateString({ string: "${'a' == 'a'}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${'a' == 'a'}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle a positive equality comparison between equal numeric literals", () => {
-    const res = legacyResolveTemplateString({ string: "${123 == 123}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${123 == 123}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle a positive equality comparison between equal boolean literals", () => {
-    const res = legacyResolveTemplateString({ string: "${true == true}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${true == true}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle a positive equality comparison between different resolved values", () => {
-    const res = legacyResolveTemplateString({ string: "${a == b}", context: new GenericContext({ a: "a", b: "b" }) })
+    const res = legacyResolveTemplateString({ string: "${a == b}", context: new TestContext({ a: "a", b: "b" }) })
     expect(res).to.equal(false)
   })
 
   it("should handle a positive equality comparison between different string literals", () => {
-    const res = legacyResolveTemplateString({ string: "${'a' == 'b'}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${'a' == 'b'}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should handle a positive equality comparison between different numeric literals", () => {
-    const res = legacyResolveTemplateString({ string: "${123 == 456}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${123 == 456}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should handle a positive equality comparison between different boolean literals", () => {
-    const res = legacyResolveTemplateString({ string: "${true == false}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${true == false}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between equal resolved values", () => {
-    const res = legacyResolveTemplateString({ string: "${a != b}", context: new GenericContext({ a: "a", b: "a" }) })
+    const res = legacyResolveTemplateString({ string: "${a != b}", context: new TestContext({ a: "a", b: "a" }) })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between equal string literals", () => {
-    const res = legacyResolveTemplateString({ string: "${'a' != 'a'}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${'a' != 'a'}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between equal numeric literals", () => {
-    const res = legacyResolveTemplateString({ string: "${123 != 123}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${123 != 123}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between equal boolean literals", () => {
-    const res = legacyResolveTemplateString({ string: "${false != false}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${false != false}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between different resolved values", () => {
-    const res = legacyResolveTemplateString({ string: "${a != b}", context: new GenericContext({ a: "a", b: "b" }) })
+    const res = legacyResolveTemplateString({ string: "${a != b}", context: new TestContext({ a: "a", b: "b" }) })
     expect(res).to.equal(true)
   })
 
   it("should handle a negative equality comparison between different string literals", () => {
-    const res = legacyResolveTemplateString({ string: "${'a' != 'b'}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${'a' != 'b'}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle a negative equality comparison between different numeric literals", () => {
-    const res = legacyResolveTemplateString({ string: "${123 != 456}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${123 != 456}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle a negative equality comparison between different boolean literals", () => {
-    const res = legacyResolveTemplateString({ string: "${true != false}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${true != false}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle a positive equality comparison between different value types", () => {
-    const res = legacyResolveTemplateString({ string: "${true == 'foo'}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${true == 'foo'}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between different value types", () => {
-    const res = legacyResolveTemplateString({ string: "${123 != false}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${123 != false}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle negations on booleans", () => {
-    const res = legacyResolveTemplateString({ string: "${!true}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${!true}", context: new TestContext({}) })
     expect(res).to.equal(false)
   })
 
   it("should handle negations on nulls", () => {
-    const res = legacyResolveTemplateString({ string: "${!null}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${!null}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle negations on empty strings", () => {
-    const res = legacyResolveTemplateString({ string: "${!''}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${!''}", context: new TestContext({}) })
     expect(res).to.equal(true)
   })
 
   it("should handle negations on resolved keys", () => {
-    const res = legacyResolveTemplateString({ string: "${!a}", context: new GenericContext({ a: false }) })
+    const res = legacyResolveTemplateString({ string: "${!a}", context: new TestContext({ a: false }) })
     expect(res).to.equal(true)
   })
 
   it("should handle the typeof operator for resolved booleans", () => {
-    const res = legacyResolveTemplateString({ string: "${typeof a}", context: new GenericContext({ a: false }) })
+    const res = legacyResolveTemplateString({ string: "${typeof a}", context: new TestContext({ a: false }) })
     expect(res).to.equal("boolean")
   })
 
   it("should handle the typeof operator for resolved numbers", () => {
-    const res = legacyResolveTemplateString({ string: "${typeof foo}", context: new GenericContext({ foo: 1234 }) })
+    const res = legacyResolveTemplateString({ string: "${typeof foo}", context: new TestContext({ foo: 1234 }) })
     expect(res).to.equal("number")
   })
 
   it("should handle the typeof operator for strings", () => {
-    const res = legacyResolveTemplateString({ string: "${typeof 'foo'}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${typeof 'foo'}", context: new TestContext({}) })
     expect(res).to.equal("string")
   })
 
   it("should throw when using comparison operators on missing keys", () => {
-    void expectError(
-      () => legacyResolveTemplateString({ string: "${a >= b}", context: new GenericContext({ a: 123 }) }),
-      {
-        contains: "Invalid template string (${a >= b}): Could not find key b. Available keys: a.",
-      }
-    )
+    void expectError(() => legacyResolveTemplateString({ string: "${a >= b}", context: new TestContext({ a: 123 }) }), {
+      contains: "Invalid template string (${a >= b}): Could not find key b. Available keys: a.",
+    })
   })
 
   it("should concatenate two arrays", () => {
-    const res = legacyResolveTemplateString({ string: "${a + b}", context: new GenericContext({ a: [1], b: [2, 3] }) })
+    const res = legacyResolveTemplateString({ string: "${a + b}", context: new TestContext({ a: [1], b: [2, 3] }) })
     expect(res).to.eql([1, 2, 3])
   })
 
   it("should concatenate two strings", () => {
-    const res = legacyResolveTemplateString({ string: "${a + b}", context: new GenericContext({ a: "foo", b: "bar" }) })
+    const res = legacyResolveTemplateString({ string: "${a + b}", context: new TestContext({ a: "foo", b: "bar" }) })
     expect(res).to.eql("foobar")
   })
 
   it("should add two numbers together", () => {
-    const res = legacyResolveTemplateString({ string: "${1 + a}", context: new GenericContext({ a: 2 }) })
+    const res = legacyResolveTemplateString({ string: "${1 + a}", context: new TestContext({ a: 2 }) })
     expect(res).to.equal(3)
   })
 
   it("should throw when using + on number and array", () => {
     void expectError(
-      () => legacyResolveTemplateString({ string: "${a + b}", context: new GenericContext({ a: 123, b: ["a"] }) }),
+      () => legacyResolveTemplateString({ string: "${a + b}", context: new TestContext({ a: 123, b: ["a"] }) }),
       {
         contains:
           "Invalid template string (${a + b}): Both terms need to be either arrays or strings or numbers for + operator (got number and object).",
@@ -900,14 +897,14 @@ describe("parse and evaluate template strings", () => {
   })
 
   it("should correctly evaluate clauses in parentheses", () => {
-    const res = legacyResolveTemplateString({ string: "${(1 + 2) * (3 + 4)}", context: new GenericContext({}) })
+    const res = legacyResolveTemplateString({ string: "${(1 + 2) * (3 + 4)}", context: new TestContext({}) })
     expect(res).to.equal(21)
   })
 
   it("should handle member lookup with bracket notation", () => {
     const res = legacyResolveTemplateString({
       string: "${foo['bar']}",
-      context: new GenericContext({ foo: { bar: true } }),
+      context: new TestContext({ foo: { bar: true } }),
     })
     expect(res).to.equal(true)
   })
@@ -915,7 +912,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle member lookup with bracket notation, single quotes and dot in key name", () => {
     const res = legacyResolveTemplateString({
       string: "${foo['bar.baz']}",
-      context: new GenericContext({ foo: { "bar.baz": true } }),
+      context: new TestContext({ foo: { "bar.baz": true } }),
     })
     expect(res).to.equal(true)
   })
@@ -923,7 +920,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle member lookup with bracket notation, double quotes and dot in key name", () => {
     const res = legacyResolveTemplateString({
       string: '${foo.bar["bla.ble"]}',
-      context: new GenericContext({ foo: { bar: { "bla.ble": 123 } } }),
+      context: new TestContext({ foo: { bar: { "bla.ble": 123 } } }),
     })
     expect(res).to.equal(123)
   })
@@ -931,7 +928,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle numeric member lookup with bracket notation", () => {
     const res = legacyResolveTemplateString({
       string: "${foo[1]}",
-      context: new GenericContext({ foo: [false, true] }),
+      context: new TestContext({ foo: [false, true] }),
     })
     expect(res).to.equal(true)
   })
@@ -939,7 +936,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle consecutive member lookups with bracket notation", () => {
     const res = legacyResolveTemplateString({
       string: "${foo['bar']['baz']}",
-      context: new GenericContext({ foo: { bar: { baz: true } } }),
+      context: new TestContext({ foo: { bar: { baz: true } } }),
     })
     expect(res).to.equal(true)
   })
@@ -947,7 +944,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle dot member after bracket member", () => {
     const res = legacyResolveTemplateString({
       string: "${foo['bar'].baz}",
-      context: new GenericContext({ foo: { bar: { baz: true } } }),
+      context: new TestContext({ foo: { bar: { baz: true } } }),
     })
     expect(res).to.equal(true)
   })
@@ -955,7 +952,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle template expression within brackets", () => {
     const res = legacyResolveTemplateString({
       string: "${foo['${bar}']}",
-      context: new GenericContext({
+      context: new TestContext({
         foo: { baz: true },
         bar: "baz",
       }),
@@ -966,7 +963,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle identifiers within brackets", () => {
     const res = legacyResolveTemplateString({
       string: "${foo[bar]}",
-      context: new GenericContext({
+      context: new TestContext({
         foo: { baz: true },
         bar: "baz",
       }),
@@ -977,7 +974,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle nested identifiers within brackets", () => {
     const res = legacyResolveTemplateString({
       string: "${foo[a.b]}",
-      context: new GenericContext({
+      context: new TestContext({
         foo: { baz: true },
         a: { b: "baz" },
       }),
@@ -987,7 +984,7 @@ describe("parse and evaluate template strings", () => {
 
   it("should throw if bracket expression resolves to a non-primitive", () => {
     void expectError(
-      () => legacyResolveTemplateString({ string: "${foo[bar]}", context: new GenericContext({ foo: {}, bar: {} }) }),
+      () => legacyResolveTemplateString({ string: "${foo[bar]}", context: new TestContext({ foo: {}, bar: {} }) }),
       {
         contains:
           "Invalid template string (${foo[bar]}): Expression in brackets must resolve to a string or number (got object).",
@@ -997,8 +994,7 @@ describe("parse and evaluate template strings", () => {
 
   it("should throw if attempting to index a primitive with brackets", () => {
     void expectError(
-      () =>
-        legacyResolveTemplateString({ string: "${foo[bar]}", context: new GenericContext({ foo: 123, bar: "baz" }) }),
+      () => legacyResolveTemplateString({ string: "${foo[bar]}", context: new TestContext({ foo: 123, bar: "baz" }) }),
       {
         contains: "Invalid template string (${foo[bar]}): Attempted to look up key baz on primitive value foo.baz.",
       }
@@ -1007,7 +1003,7 @@ describe("parse and evaluate template strings", () => {
 
   it("should throw when using >= on non-numeric terms", () => {
     void expectError(
-      () => legacyResolveTemplateString({ string: "${a >= b}", context: new GenericContext({ a: 123, b: "foo" }) }),
+      () => legacyResolveTemplateString({ string: "${a >= b}", context: new TestContext({ a: 123, b: "foo" }) }),
       {
         contains:
           "Invalid template string (${a >= b}): Both terms need to be numbers for >= operator (got number and string).",
@@ -1018,7 +1014,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle a positive ternary expression", () => {
     const res = legacyResolveTemplateString({
       string: "${foo ? true : false}",
-      context: new GenericContext({ foo: true }),
+      context: new TestContext({ foo: true }),
     })
     expect(res).to.equal(true)
   })
@@ -1026,7 +1022,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle a negative ternary expression", () => {
     const res = legacyResolveTemplateString({
       string: "${foo ? true : false}",
-      context: new GenericContext({ foo: false }),
+      context: new TestContext({ foo: false }),
     })
     expect(res).to.equal(false)
   })
@@ -1034,7 +1030,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle a ternary expression with an expression as a test", () => {
     const res = legacyResolveTemplateString({
       string: "${foo == 'bar' ? a : b}",
-      context: new GenericContext({ foo: "bar", a: true, b: false }),
+      context: new TestContext({ foo: "bar", a: true, b: false }),
     })
     expect(res).to.equal(true)
   })
@@ -1042,7 +1038,7 @@ describe("parse and evaluate template strings", () => {
   it("should ignore errors in a value not returned by a ternary", () => {
     const res = legacyResolveTemplateString({
       string: "${var.foo ? replace(var.foo, ' ', ',') : null}",
-      context: new GenericContext({ var: {} }),
+      context: new TestContext({ var: {} }),
     })
     expect(res).to.equal(null)
   })
@@ -1050,7 +1046,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle a ternary expression with an object as a test", () => {
     const res = legacyResolveTemplateString({
       string: "${a ? a.value : b}",
-      context: new GenericContext({ a: { value: true }, b: false }),
+      context: new TestContext({ a: { value: true }, b: false }),
     })
     expect(res).to.equal(true)
   })
@@ -1058,7 +1054,7 @@ describe("parse and evaluate template strings", () => {
   it("should handle a ternary expression with template key values", () => {
     const res = legacyResolveTemplateString({
       string: "${foo == 'bar' ? '=${foo}' : b}",
-      context: new GenericContext({ foo: "bar", a: true, b: false }),
+      context: new TestContext({ foo: "bar", a: true, b: false }),
     })
     expect(res).to.equal("=bar")
   })
@@ -1066,20 +1062,20 @@ describe("parse and evaluate template strings", () => {
   it("should handle an expression in parentheses", () => {
     const res = legacyResolveTemplateString({
       string: "${foo || (a > 5)}",
-      context: new GenericContext({ foo: false, a: 10 }),
+      context: new TestContext({ foo: false, a: 10 }),
     })
     expect(res).to.equal(true)
   })
 
   it("should handle numeric indices on arrays", () => {
-    const res = legacyResolveTemplateString({ string: "${foo.1}", context: new GenericContext({ foo: [false, true] }) })
+    const res = legacyResolveTemplateString({ string: "${foo.1}", context: new TestContext({ foo: [false, true] }) })
     expect(res).to.equal(true)
   })
 
   it("should resolve keys on objects in arrays", () => {
     const res = legacyResolveTemplateString({
       string: "${foo.1.bar}",
-      context: new GenericContext({ foo: [{}, { bar: true }] }),
+      context: new TestContext({ foo: [{}, { bar: true }] }),
     })
     expect(res).to.equal(true)
   })
@@ -1089,7 +1085,7 @@ describe("parse and evaluate template strings", () => {
       () =>
         legacyResolveTemplateString({
           string: "${nested.missing}",
-          context: new GenericContext({ nested: new GenericContext({ foo: 123, bar: 456, baz: 789 }) }),
+          context: new TestContext({ nested: new TestContext({ foo: 123, bar: 456, baz: 789 }) }),
         }),
       {
         contains:
@@ -1103,7 +1099,7 @@ describe("parse and evaluate template strings", () => {
       () =>
         legacyResolveTemplateString({
           string: "${nested.missing}",
-          context: new GenericContext({ nested: { foo: 123, bar: 456 } }),
+          context: new TestContext({ nested: { foo: 123, bar: 456 } }),
         }),
       {
         contains:
@@ -1113,7 +1109,7 @@ describe("parse and evaluate template strings", () => {
   })
 
   it("should correctly propagate errors when resolving key on object in nested context", () => {
-    const c = new GenericContext({ nested: new GenericContext({ deeper: {} }) })
+    const c = new TestContext({ nested: new TestContext({ deeper: {} }) })
 
     void expectError(() => legacyResolveTemplateString({ string: "${nested.deeper.missing}", context: c }), {
       contains: "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper.",
@@ -1121,7 +1117,7 @@ describe("parse and evaluate template strings", () => {
   })
 
   it("should correctly propagate errors from deeply nested contexts", () => {
-    const c = new GenericContext({ nested: new GenericContext({ deeper: new GenericContext({}) }) })
+    const c = new TestContext({ nested: new TestContext({ deeper: new TestContext({}) }) })
 
     void expectError(() => legacyResolveTemplateString({ string: "${nested.deeper.missing}", context: c }), {
       contains: "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper.",
@@ -1129,7 +1125,7 @@ describe("parse and evaluate template strings", () => {
   })
 
   it("should throw an error if var lookup fails combined with json encode", () => {
-    const c = new GenericContext({ var: {} })
+    const c = new TestContext({ var: {} })
 
     void expectError(() => legacyResolveTemplateString({ string: "${jsonEncode(var.missing)}", context: c }), {
       contains: "Invalid template string (${jsonEncode(var.missing)}): Could not find key missing under var.",
@@ -1148,7 +1144,7 @@ describe("parse and evaluate template strings", () => {
       const result = legacyResolveTemplateString({
         string: template,
         contextOpts: {},
-        context: new GenericContext({ var: {} }),
+        context: new TestContext({ var: {} }),
       })
       expect(result).to.eq(
         expectation,
@@ -1161,7 +1157,7 @@ describe("parse and evaluate template strings", () => {
     it("passes through template strings with missing key", () => {
       const res = legacyResolveTemplateString({
         string: "${a}",
-        context: new GenericContext({}),
+        context: new TestContext({}),
         contextOpts: { legacyAllowPartial: true },
       })
       expect(res).to.equal("${a}")
@@ -1170,7 +1166,7 @@ describe("parse and evaluate template strings", () => {
     it("resolves logical or clause when left side is missing by default", () => {
       const res = legacyResolveTemplateString({
         string: "${a || b}",
-        context: new GenericContext({ b: 123 }),
+        context: new TestContext({ b: 123 }),
         contextOpts: { legacyAllowPartial: true },
       })
       expect(res).to.equal(123)
@@ -1178,7 +1174,7 @@ describe("parse and evaluate template strings", () => {
     it("resolves value even when a key is missing", () => {
       const res = legacyResolveTemplateString({
         string: "${a ? b : 123}",
-        context: new GenericContext({ b: 123 }),
+        context: new TestContext({ b: 123 }),
         contextOpts: { legacyAllowPartial: true },
       })
       expect(res).to.equal(123)
@@ -1187,54 +1183,54 @@ describe("parse and evaluate template strings", () => {
 
   context("when the template string is the full input string", () => {
     it("should return a resolved number directly", () => {
-      const res = legacyResolveTemplateString({ string: "${a}", context: new GenericContext({ a: 100 }) })
+      const res = legacyResolveTemplateString({ string: "${a}", context: new TestContext({ a: 100 }) })
       expect(res).to.equal(100)
     })
 
     it("should return a resolved boolean true directly", () => {
-      const res = legacyResolveTemplateString({ string: "${a}", context: new GenericContext({ a: true }) })
+      const res = legacyResolveTemplateString({ string: "${a}", context: new TestContext({ a: true }) })
       expect(res).to.equal(true)
     })
 
     it("should return a resolved boolean false directly", () => {
-      const res = legacyResolveTemplateString({ string: "${a}", context: new GenericContext({ a: false }) })
+      const res = legacyResolveTemplateString({ string: "${a}", context: new TestContext({ a: false }) })
       expect(res).to.equal(false)
     })
 
     it("should return a resolved null directly", () => {
-      const res = legacyResolveTemplateString({ string: "${a}", context: new GenericContext({ a: null }) })
+      const res = legacyResolveTemplateString({ string: "${a}", context: new TestContext({ a: null }) })
       expect(res).to.equal(null)
     })
 
     it("should return a resolved object directly", () => {
-      const res = legacyResolveTemplateString({ string: "${a}", context: new GenericContext({ a: { b: 123 } }) })
+      const res = legacyResolveTemplateString({ string: "${a}", context: new TestContext({ a: { b: 123 } }) })
       expect(res).to.eql({ b: 123 })
     })
 
     it("should return a resolved array directly", () => {
-      const res = legacyResolveTemplateString({ string: "${a}", context: new GenericContext({ a: [123] }) })
+      const res = legacyResolveTemplateString({ string: "${a}", context: new TestContext({ a: [123] }) })
       expect(res).to.eql([123])
     })
   })
 
   context("when the template string is a part of a string", () => {
     it("should format a resolved number into the string", () => {
-      const res = legacyResolveTemplateString({ string: "foo-${a}", context: new GenericContext({ a: 100 }) })
+      const res = legacyResolveTemplateString({ string: "foo-${a}", context: new TestContext({ a: 100 }) })
       expect(res).to.equal("foo-100")
     })
 
     it("should format a resolved boolean true into the string", () => {
-      const res = legacyResolveTemplateString({ string: "foo-${a}", context: new GenericContext({ a: true }) })
+      const res = legacyResolveTemplateString({ string: "foo-${a}", context: new TestContext({ a: true }) })
       expect(res).to.equal("foo-true")
     })
 
     it("should format a resolved boolean false into the string", () => {
-      const res = legacyResolveTemplateString({ string: "foo-${a}", context: new GenericContext({ a: false }) })
+      const res = legacyResolveTemplateString({ string: "foo-${a}", context: new TestContext({ a: false }) })
       expect(res).to.equal("foo-false")
     })
 
     it("should format a resolved null into the string", () => {
-      const res = legacyResolveTemplateString({ string: "foo-${a}", context: new GenericContext({ a: null }) })
+      const res = legacyResolveTemplateString({ string: "foo-${a}", context: new TestContext({ a: null }) })
       expect(res).to.equal("foo-null")
     })
 
@@ -1242,7 +1238,7 @@ describe("parse and evaluate template strings", () => {
       it("does not resolve template expressions when 'b' is missing in the context", () => {
         const res = legacyResolveTemplateString({
           string: "${a}-${b}",
-          context: new GenericContext({ a: "foo" }),
+          context: new TestContext({ a: "foo" }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal("foo-${b}")
@@ -1251,7 +1247,7 @@ describe("parse and evaluate template strings", () => {
       it("partially resolves template expressions when 'a' is missing in the context", () => {
         const res = legacyResolveTemplateString({
           string: "${a}-${b}",
-          context: new GenericContext({ b: "foo" }),
+          context: new TestContext({ b: "foo" }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal("${a}-foo")
@@ -1260,7 +1256,7 @@ describe("parse and evaluate template strings", () => {
       it("resolves template expressions when the context is fully available", () => {
         const res = legacyResolveTemplateString({
           string: "${a}-${b}",
-          context: new GenericContext({ a: "foo", b: "bar" }),
+          context: new TestContext({ a: "foo", b: "bar" }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal("foo-bar")
@@ -1270,7 +1266,7 @@ describe("parse and evaluate template strings", () => {
       it("partially resolves template expressions when 'b' is missing in the context", () => {
         const res = legacyResolveTemplateString({
           string: "${a}-${b}",
-          context: new GenericContext({ a: "foo" }),
+          context: new TestContext({ a: "foo" }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal("foo-${b}")
@@ -1279,7 +1275,7 @@ describe("parse and evaluate template strings", () => {
       it("partially resolves template expressions when 'a' is missing in the context", () => {
         const res = legacyResolveTemplateString({
           string: "${a}-${b}",
-          context: new GenericContext({ b: "foo" }),
+          context: new TestContext({ b: "foo" }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal("${a}-foo")
@@ -1288,7 +1284,7 @@ describe("parse and evaluate template strings", () => {
       it("fully resolves template expressions when 'a' is missing in the context when evaluating a conditional expression", () => {
         const res = legacyResolveTemplateString({
           string: "${a || b}-${c}",
-          context: new GenericContext({ b: 123, c: "foo" }),
+          context: new TestContext({ b: 123, c: "foo" }),
           contextOpts: {
             legacyAllowPartial: true,
           },
@@ -1299,7 +1295,7 @@ describe("parse and evaluate template strings", () => {
       it("resolves template expressions when the context is fully available", () => {
         const res = legacyResolveTemplateString({
           string: "${a}-${b}",
-          context: new GenericContext({ a: "foo", b: "bar" }),
+          context: new TestContext({ a: "foo", b: "bar" }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal("foo-bar")
@@ -1308,7 +1304,7 @@ describe("parse and evaluate template strings", () => {
       it("partially resolves template expressions in the presence of an if expression", () => {
         const res = legacyResolveTemplateString({
           string: "${a}-${b}-${if c}exists${else}missing${endif}",
-          context: new GenericContext({ a: "foo", b: "bar" }),
+          context: new TestContext({ a: "foo", b: "bar" }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal("foo-bar-${if c}exists${else}missing${endif}")
@@ -1319,7 +1315,7 @@ describe("parse and evaluate template strings", () => {
         // This is unlikely to be a breaking change for users, because unresolved if statements likely result in YAML errors when resolving template strings in kubernetes manifests.
         const res = legacyResolveTemplateString({
           string: "${if c}${a}${else}${b}${endif}",
-          context: new GenericContext({ a: "foo" }),
+          context: new TestContext({ a: "foo" }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res).to.equal("${if c}${a}${else}${b}${endif}")
@@ -1328,13 +1324,13 @@ describe("parse and evaluate template strings", () => {
       it("partially resolves to consequent branch of if expression if conditional is true", () => {
         const res1 = legacyResolveTemplateString({
           string: "${if c}${a}${else}${b}${endif}",
-          context: new GenericContext({ a: "foo", c: true }),
+          context: new TestContext({ a: "foo", c: true }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res1).to.equal("foo")
         const res2 = legacyResolveTemplateString({
           string: "${if c}${a}${else}${b}${endif}",
-          context: new GenericContext({ c: true }),
+          context: new TestContext({ c: true }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res2).to.equal("${a}")
@@ -1343,13 +1339,13 @@ describe("parse and evaluate template strings", () => {
       it("partially resolves to alternate branch of if expression if conditional is false", () => {
         const res1 = legacyResolveTemplateString({
           string: "${if c}${a}${else}${b}${endif}",
-          context: new GenericContext({ b: "foo", c: false }),
+          context: new TestContext({ b: "foo", c: false }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res1).to.equal("foo")
         const res2 = legacyResolveTemplateString({
           string: "${if c}${a}${else}${b}${endif}",
-          context: new GenericContext({ c: false }),
+          context: new TestContext({ c: false }),
           contextOpts: { legacyAllowPartial: true },
         })
         expect(res2).to.equal("${b}")
@@ -1369,7 +1365,7 @@ describe("parse and evaluate template strings", () => {
             contextOpts: {
               legacyAllowPartial: true,
             },
-            context: new GenericContext({ var: { exists: {}, one: 1 } }),
+            context: new TestContext({ var: { exists: {}, one: 1 } }),
           })
           // it should not partially resolve, i.e. resolve back to input
           const expectation = templateString
@@ -1384,7 +1380,7 @@ describe("parse and evaluate template strings", () => {
 
   context("contains operator", () => {
     it("should throw when right-hand side is not a primitive", () => {
-      const c = new GenericContext({ a: [1, 2], b: [3, 4] })
+      const c = new TestContext({ a: [1, 2], b: [3, 4] })
 
       void expectError(() => legacyResolveTemplateString({ string: "${a contains b}", context: c }), {
         contains:
@@ -1393,7 +1389,7 @@ describe("parse and evaluate template strings", () => {
     })
 
     it("should throw when left-hand side is not a string, array or object", () => {
-      const c = new GenericContext({ a: "foo", b: null })
+      const c = new TestContext({ a: "foo", b: null })
 
       void expectError(() => legacyResolveTemplateString({ string: "${b contains a}", context: c }), {
         contains:
@@ -1402,14 +1398,14 @@ describe("parse and evaluate template strings", () => {
     })
 
     it("positive string literal contains string literal", () => {
-      const res = legacyResolveTemplateString({ string: "${'foobar' contains 'foo'}", context: new GenericContext({}) })
+      const res = legacyResolveTemplateString({ string: "${'foobar' contains 'foo'}", context: new TestContext({}) })
       expect(res).to.equal(true)
     })
 
     it("string literal contains string literal (negative)", () => {
       const res = legacyResolveTemplateString({
         string: "${'blorg' contains 'blarg'}",
-        context: new GenericContext({}),
+        context: new TestContext({}),
       })
       expect(res).to.equal(false)
     })
@@ -1417,7 +1413,7 @@ describe("parse and evaluate template strings", () => {
     it("string literal contains string reference", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains 'foo'}",
-        context: new GenericContext({ a: "foobar" }),
+        context: new TestContext({ a: "foobar" }),
       })
       expect(res).to.equal(true)
     })
@@ -1425,7 +1421,7 @@ describe("parse and evaluate template strings", () => {
     it("string reference contains string literal (negative)", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains 'blarg'}",
-        context: new GenericContext({ a: "foobar" }),
+        context: new TestContext({ a: "foobar" }),
       })
       expect(res).to.equal(false)
     })
@@ -1433,7 +1429,7 @@ describe("parse and evaluate template strings", () => {
     it("string contains number", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains 0}",
-        context: new GenericContext({ a: "hmm-0" }),
+        context: new TestContext({ a: "hmm-0" }),
       })
       expect(res).to.equal(true)
     })
@@ -1441,7 +1437,7 @@ describe("parse and evaluate template strings", () => {
     it("object contains string literal", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains 'foo'}",
-        context: new GenericContext({ a: { foo: 123 } }),
+        context: new TestContext({ a: { foo: 123 } }),
       })
       expect(res).to.equal(true)
     })
@@ -1449,7 +1445,7 @@ describe("parse and evaluate template strings", () => {
     it("object contains string literal (negative)", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains 'bar'}",
-        context: new GenericContext({ a: { foo: 123 } }),
+        context: new TestContext({ a: { foo: 123 } }),
       })
       expect(res).to.equal(false)
     })
@@ -1457,7 +1453,7 @@ describe("parse and evaluate template strings", () => {
     it("object contains string reference", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains b}",
-        context: new GenericContext({ a: { foo: 123 }, b: "foo" }),
+        context: new TestContext({ a: { foo: 123 }, b: "foo" }),
       })
       expect(res).to.equal(true)
     })
@@ -1465,7 +1461,7 @@ describe("parse and evaluate template strings", () => {
     it("object contains number reference", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains b}",
-        context: new GenericContext({ a: { 123: 456 }, b: 123 }),
+        context: new TestContext({ a: { 123: 456 }, b: 123 }),
       })
       expect(res).to.equal(true)
     })
@@ -1473,7 +1469,7 @@ describe("parse and evaluate template strings", () => {
     it("object contains number literal", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains 123}",
-        context: new GenericContext({ a: { 123: 456 } }),
+        context: new TestContext({ a: { 123: 456 } }),
       })
       expect(res).to.equal(true)
     })
@@ -1481,7 +1477,7 @@ describe("parse and evaluate template strings", () => {
     it("array contains string reference", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains b}",
-        context: new GenericContext({ a: ["foo"], b: "foo" }),
+        context: new TestContext({ a: ["foo"], b: "foo" }),
       })
       expect(res).to.equal(true)
     })
@@ -1489,7 +1485,7 @@ describe("parse and evaluate template strings", () => {
     it("array contains string reference (negative)", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains b}",
-        context: new GenericContext({ a: ["foo"], b: "bar" }),
+        context: new TestContext({ a: ["foo"], b: "bar" }),
       })
       expect(res).to.equal(false)
     })
@@ -1497,18 +1493,18 @@ describe("parse and evaluate template strings", () => {
     it("array contains string literal", () => {
       const res = legacyResolveTemplateString({
         string: "${a contains 'foo'}",
-        context: new GenericContext({ a: ["foo"] }),
+        context: new TestContext({ a: ["foo"] }),
       })
       expect(res).to.equal(true)
     })
 
     it("array contains number", () => {
-      const res = legacyResolveTemplateString({ string: "${a contains 1}", context: new GenericContext({ a: [0, 1] }) })
+      const res = legacyResolveTemplateString({ string: "${a contains 1}", context: new TestContext({ a: [0, 1] }) })
       expect(res).to.equal(true)
     })
 
     it("array contains numeric index (negative)", () => {
-      const res = legacyResolveTemplateString({ string: "${a contains 1}", context: new GenericContext({ a: [0] }) })
+      const res = legacyResolveTemplateString({ string: "${a contains 1}", context: new TestContext({ a: [0] }) })
       expect(res).to.equal(false)
     })
   })
@@ -1517,7 +1513,7 @@ describe("parse and evaluate template strings", () => {
     it("One single-line if block (positive)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix ${if a}content ${endif}suffix",
-        context: new GenericContext({ a: true }),
+        context: new TestContext({ a: true }),
       })
       expect(res).to.equal("prefix content suffix")
     })
@@ -1525,7 +1521,7 @@ describe("parse and evaluate template strings", () => {
     it("One single-line if block (negative)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix ${if a}content ${endif}suffix",
-        context: new GenericContext({ a: false }),
+        context: new TestContext({ a: false }),
       })
       expect(res).to.equal("prefix suffix")
     })
@@ -1533,7 +1529,7 @@ describe("parse and evaluate template strings", () => {
     it("One single-line if/else statement (positive)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix ${if a == 123}content ${else}other ${endif}suffix",
-        context: new GenericContext({ a: 123 }),
+        context: new TestContext({ a: 123 }),
       })
       expect(res).to.equal("prefix content suffix")
     })
@@ -1541,7 +1537,7 @@ describe("parse and evaluate template strings", () => {
     it("One single-line if/else statement (negative)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix ${if a}content ${else}other ${endif}suffix",
-        context: new GenericContext({ a: false }),
+        context: new TestContext({ a: false }),
       })
       expect(res).to.equal("prefix other suffix")
     })
@@ -1549,7 +1545,7 @@ describe("parse and evaluate template strings", () => {
     it("Two single-line if block (positive)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix ${if a}content ${endif}suffixprefix ${if a}content ${endif}suffix",
-        context: new GenericContext({ a: true }),
+        context: new TestContext({ a: true }),
       })
       expect(res).to.equal("prefix content suffixprefix content suffix")
     })
@@ -1557,7 +1553,7 @@ describe("parse and evaluate template strings", () => {
     it("Two single-line if block (negative)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix ${if a}content ${endif}suffixprefix ${if a}content ${endif}suffix",
-        context: new GenericContext({ a: false }),
+        context: new TestContext({ a: false }),
       })
       expect(res).to.equal("prefix suffixprefix suffix")
     })
@@ -1566,7 +1562,7 @@ describe("parse and evaluate template strings", () => {
       const res = legacyResolveTemplateString({
         string:
           "prefix ${if a == 123}content ${else}other ${endif}suffixprefix ${if a == 123}content ${else}other ${endif}suffix",
-        context: new GenericContext({ a: 123 }),
+        context: new TestContext({ a: 123 }),
       })
       expect(res).to.equal("prefix content suffixprefix content suffix")
     })
@@ -1574,7 +1570,7 @@ describe("parse and evaluate template strings", () => {
     it("Two single-line if/else statement (negative)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix ${if a}content ${else}other ${endif}suffixprefix ${if a}content ${else}other ${endif}suffix",
-        context: new GenericContext({ a: false }),
+        context: new TestContext({ a: false }),
       })
       expect(res).to.equal("prefix other suffixprefix other suffix")
     })
@@ -1582,7 +1578,7 @@ describe("parse and evaluate template strings", () => {
     it("multi-line if block (positive)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix\n${if a}content\n${endif}suffix",
-        context: new GenericContext({ a: true }),
+        context: new TestContext({ a: true }),
       })
       expect(res).to.equal(dedent`
         prefix
@@ -1594,7 +1590,7 @@ describe("parse and evaluate template strings", () => {
     it("template string within if block", () => {
       const res = legacyResolveTemplateString({
         string: "prefix\n${if a}templated: ${b}\n${endif}suffix",
-        context: new GenericContext({ a: true, b: "content" }),
+        context: new TestContext({ a: true, b: "content" }),
       })
       expect(res).to.equal(dedent`
         prefix
@@ -1606,7 +1602,7 @@ describe("parse and evaluate template strings", () => {
     it("nested if block (both positive)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix\n${if a}some ${if b}content\n${endif}${endif}suffix",
-        context: new GenericContext({ a: true, b: true }),
+        context: new TestContext({ a: true, b: true }),
       })
       expect(res).to.equal(dedent`
         prefix
@@ -1618,7 +1614,7 @@ describe("parse and evaluate template strings", () => {
     it("nested if block (outer negative)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix\n${if a}some ${if b}content\n${endif}${endif}suffix",
-        context: new GenericContext({ a: false, b: true }),
+        context: new TestContext({ a: false, b: true }),
       })
       expect(res).to.equal(dedent`
         prefix
@@ -1629,7 +1625,7 @@ describe("parse and evaluate template strings", () => {
     it("nested if block (inner negative)", () => {
       const res = legacyResolveTemplateString({
         string: "prefix\n${if a}some\n${if b}content\n${endif}${endif}suffix",
-        context: new GenericContext({ a: true, b: false }),
+        context: new TestContext({ a: true, b: false }),
       })
       expect(res).to.equal(dedent`
         prefix
@@ -1641,7 +1637,7 @@ describe("parse and evaluate template strings", () => {
     it("if/else statement inside if block", () => {
       const res = legacyResolveTemplateString({
         string: "prefix\n${if a}some\n${if b}nope${else}content\n${endif}${endif}suffix",
-        context: new GenericContext({ a: true, b: false }),
+        context: new TestContext({ a: true, b: false }),
       })
       expect(res).to.equal(dedent`
         prefix
@@ -1654,7 +1650,7 @@ describe("parse and evaluate template strings", () => {
     it("if block inside if/else statement", () => {
       const res = legacyResolveTemplateString({
         string: "prefix\n${if a}some\n${if b}content\n${endif}${else}nope ${endif}suffix",
-        context: new GenericContext({ a: true, b: false }),
+        context: new TestContext({ a: true, b: false }),
       })
       expect(res).to.equal(dedent`
         prefix
@@ -1668,7 +1664,7 @@ describe("parse and evaluate template strings", () => {
         () =>
           legacyResolveTemplateString({
             string: "prefix ${if a}?content ${endif}",
-            context: new GenericContext({ a: true }),
+            context: new TestContext({ a: true }),
           }),
         {
           contains:
@@ -1679,8 +1675,7 @@ describe("parse and evaluate template strings", () => {
 
     it("throws if an if block doesn't have a matching endif", () => {
       void expectError(
-        () =>
-          legacyResolveTemplateString({ string: "prefix ${if a}content", context: new GenericContext({ a: true }) }),
+        () => legacyResolveTemplateString({ string: "prefix ${if a}content", context: new TestContext({ a: true }) }),
         {
           contains: "Invalid template string (prefix ${if a}content): Missing ${endif} after ${if ...} block.",
         }
@@ -1691,7 +1686,7 @@ describe("parse and evaluate template strings", () => {
         () =>
           legacyResolveTemplateString({
             string: '${if "foo"}${if "this is bananas!"}${endif}',
-            context: new GenericContext({ a: true }),
+            context: new TestContext({ a: true }),
           }),
         {
           contains:
@@ -1702,8 +1697,7 @@ describe("parse and evaluate template strings", () => {
 
     it("throws if an endif block doesn't have a matching if", () => {
       void expectError(
-        () =>
-          legacyResolveTemplateString({ string: "prefix content ${endif}", context: new GenericContext({ a: true }) }),
+        () => legacyResolveTemplateString({ string: "prefix content ${endif}", context: new TestContext({ a: true }) }),
         {
           contains:
             "Invalid template string (prefix content ${endif}): Found ${endif} block without a preceding ${if...} block.",
@@ -1713,7 +1707,7 @@ describe("parse and evaluate template strings", () => {
 
     it("throws if an if block doesn't have a matching endif and there is content", () => {
       void expectError(
-        () => legacyResolveTemplateString({ string: "${if a}content", context: new GenericContext({ a: true }) }),
+        () => legacyResolveTemplateString({ string: "${if a}content", context: new TestContext({ a: true }) }),
         {
           contains: "Invalid template string (${if a}content): Missing ${endif} after ${if ...} block.",
         }
@@ -1723,27 +1717,27 @@ describe("parse and evaluate template strings", () => {
 
   context("helper functions", () => {
     it("resolves a helper function with a string literal", () => {
-      const res = legacyResolveTemplateString({ string: "${base64Encode('foo')}", context: new GenericContext({}) })
+      const res = legacyResolveTemplateString({ string: "${base64Encode('foo')}", context: new TestContext({}) })
       expect(res).to.equal("Zm9v")
     })
 
     it("resolves a template string in a helper argument", () => {
       const res = legacyResolveTemplateString({
         string: "${base64Encode('${a}')}",
-        context: new GenericContext({ a: "foo" }),
+        context: new TestContext({ a: "foo" }),
       })
       expect(res).to.equal("Zm9v")
     })
 
     it("resolves a helper function with multiple arguments", () => {
-      const res = legacyResolveTemplateString({ string: "${split('a,b,c', ',')}", context: new GenericContext({}) })
+      const res = legacyResolveTemplateString({ string: "${split('a,b,c', ',')}", context: new TestContext({}) })
       expect(res).to.eql(["a", "b", "c"])
     })
 
     it("resolves a helper function with a template key reference", () => {
       const res = legacyResolveTemplateString({
         string: "${base64Encode(a)}",
-        context: new GenericContext({ a: "foo" }),
+        context: new TestContext({ a: "foo" }),
       })
       expect(res).to.equal("Zm9v")
     })
@@ -1751,14 +1745,14 @@ describe("parse and evaluate template strings", () => {
     it("generates a correct hash with a string literal from the sha256 helper function", () => {
       const res = legacyResolveTemplateString({
         string: "${sha256('This Is A Test String')}",
-        context: new GenericContext({}),
+        context: new TestContext({}),
       })
       expect(res).to.equal("9a058284378d1cc6b4348aacb6ba847918376054b094bbe06eb5302defc52685")
     })
 
     it("throws if an argument is missing", () => {
       void expectError(
-        () => legacyResolveTemplateString({ string: "${base64Decode()}", context: new GenericContext({}) }),
+        () => legacyResolveTemplateString({ string: "${base64Decode()}", context: new TestContext({}) }),
         {
           contains:
             "Invalid template string (${base64Decode()}): Missing argument 'string' (at index 0) for base64Decode helper function.",
@@ -1768,7 +1762,7 @@ describe("parse and evaluate template strings", () => {
 
     it("throws if a wrong argument type is passed", () => {
       void expectError(
-        () => legacyResolveTemplateString({ string: "${base64Decode(a)}", context: new GenericContext({ a: 1234 }) }),
+        () => legacyResolveTemplateString({ string: "${base64Decode(a)}", context: new TestContext({ a: 1234 }) }),
         {
           contains:
             "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function:\n\nvalue must be a string",
@@ -1778,7 +1772,7 @@ describe("parse and evaluate template strings", () => {
 
     it("throws if the function can't be found", () => {
       void expectError(
-        () => legacyResolveTemplateString({ string: "${floop('blop')}", context: new GenericContext({}) }),
+        () => legacyResolveTemplateString({ string: "${floop('blop')}", context: new TestContext({}) }),
         {
           contains:
             "Invalid template string (${floop('blop')}): Could not find helper function 'floop'. Available helper functions:",
@@ -1788,7 +1782,7 @@ describe("parse and evaluate template strings", () => {
 
     it("throws if the function fails", () => {
       void expectError(
-        () => legacyResolveTemplateString({ string: "${jsonDecode('{]}')}", context: new GenericContext({}) }),
+        () => legacyResolveTemplateString({ string: "${jsonDecode('{]}')}", context: new TestContext({}) }),
         {
           contains:
             "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError",
@@ -1799,7 +1793,7 @@ describe("parse and evaluate template strings", () => {
     it("does not apply helper function on unresolved template string and returns string as-is, when legacyAllowPartial=true", () => {
       const res = legacyResolveTemplateString({
         string: "${base64Encode('${environment.namespace}')}",
-        context: new GenericContext({}),
+        context: new TestContext({}),
         contextOpts: {
           legacyAllowPartial: true,
         },
@@ -1810,7 +1804,7 @@ describe("parse and evaluate template strings", () => {
     it("does not apply helper function on unresolved template object and returns string as-is, when legacyAllowPartial=true", () => {
       const res = legacyResolveTemplateString({
         string: "${base64Encode(var.foo)}",
-        context: new GenericContext({ foo: { $forEach: ["a", "b"], $return: "${item.value}" } }),
+        context: new TestContext({ foo: { $forEach: ["a", "b"], $return: "${item.value}" } }),
         contextOpts: {
           legacyAllowPartial: true,
         },
@@ -1820,7 +1814,7 @@ describe("parse and evaluate template strings", () => {
 
     context("concat", () => {
       it("allows empty strings", () => {
-        const res = legacyResolveTemplateString({ string: "${concat('', '')}", context: new GenericContext({}) })
+        const res = legacyResolveTemplateString({ string: "${concat('', '')}", context: new TestContext({}) })
         expect(res).to.equal("")
       })
 
@@ -1831,11 +1825,11 @@ describe("parse and evaluate template strings", () => {
           errorMessage,
         }: {
           template: string
-          GenericContextVars?: GenericContext["data"]
+          GenericContextVars?: Collection<ParsedTemplate | ConfigContext> | ParsedTemplate
           errorMessage: string
         }) {
           void expectError(
-            () => legacyResolveTemplateString({ string: template, context: new GenericContext(GenericContextVars) }),
+            () => legacyResolveTemplateString({ string: template, context: new TestContext(GenericContextVars) }),
             {
               contains: `Invalid template string (\${concat(a, b)}): ${errorMessage}`,
             }
@@ -1871,24 +1865,24 @@ describe("parse and evaluate template strings", () => {
     context("isEmpty", () => {
       context("allows nulls", () => {
         it("resolves null as 'true'", () => {
-          const res = legacyResolveTemplateString({ string: "${isEmpty(null)}", context: new GenericContext({}) })
+          const res = legacyResolveTemplateString({ string: "${isEmpty(null)}", context: new TestContext({}) })
           expect(res).to.be.true
         })
 
         it("resolves references to null as 'true'", () => {
-          const res = legacyResolveTemplateString({ string: "${isEmpty(a)}", context: new GenericContext({ a: null }) })
+          const res = legacyResolveTemplateString({ string: "${isEmpty(a)}", context: new TestContext({ a: null }) })
           expect(res).to.be.true
         })
       })
 
       context("allows empty strings", () => {
         it("resolves an empty string as 'true'", () => {
-          const res = legacyResolveTemplateString({ string: "${isEmpty('')}", context: new GenericContext({}) })
+          const res = legacyResolveTemplateString({ string: "${isEmpty('')}", context: new TestContext({}) })
           expect(res).to.be.true
         })
 
         it("resolves a reference to an empty string as 'true'", () => {
-          const res = legacyResolveTemplateString({ string: "${isEmpty(a)}", context: new GenericContext({ a: "" }) })
+          const res = legacyResolveTemplateString({ string: "${isEmpty(a)}", context: new TestContext({ a: "" }) })
           expect(res).to.be.true
         })
       })
@@ -1898,7 +1892,7 @@ describe("parse and evaluate template strings", () => {
       it("allows numeric indices", () => {
         const res = legacyResolveTemplateString({
           string: "${slice(foo, 0, 3)}",
-          context: new GenericContext({ foo: "abcdef" }),
+          context: new TestContext({ foo: "abcdef" }),
         })
         expect(res).to.equal("abc")
       })
@@ -1906,7 +1900,7 @@ describe("parse and evaluate template strings", () => {
       it("allows numeric strings as indices", () => {
         const res = legacyResolveTemplateString({
           string: "${slice(foo, '0', '3')}",
-          context: new GenericContext({ foo: "abcdef" }),
+          context: new TestContext({ foo: "abcdef" }),
         })
         expect(res).to.equal("abc")
       })
@@ -1916,7 +1910,7 @@ describe("parse and evaluate template strings", () => {
           () =>
             legacyResolveTemplateString({
               string: "${slice(foo, 'a', 3)}",
-              context: new GenericContext({ foo: "abcdef" }),
+              context: new TestContext({ foo: "abcdef" }),
             }),
           {
             contains: `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: Error: start index must be a number or a numeric string (got "a")`,
@@ -1929,7 +1923,7 @@ describe("parse and evaluate template strings", () => {
           () =>
             legacyResolveTemplateString({
               string: "${slice(foo, 0, 'b')}",
-              context: new GenericContext({ foo: "abcdef" }),
+              context: new TestContext({ foo: "abcdef" }),
             }),
           {
             contains: `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: Error: end index must be a number or a numeric string (got "b")`,
@@ -1941,27 +1935,27 @@ describe("parse and evaluate template strings", () => {
 
   context("array literals", () => {
     it("returns an empty array literal back", () => {
-      const res = legacyResolveTemplateString({ string: "${[]}", context: new GenericContext({}) })
+      const res = legacyResolveTemplateString({ string: "${[]}", context: new TestContext({}) })
       expect(res).to.eql([])
     })
 
     it("returns an array literal of literals back", () => {
       const res = legacyResolveTemplateString({
         string: "${['foo', \"bar\", 123, true, false]}",
-        context: new GenericContext({}),
+        context: new TestContext({}),
       })
       expect(res).to.eql(["foo", "bar", 123, true, false])
     })
 
     it("resolves a key in an array literal", () => {
-      const res = legacyResolveTemplateString({ string: "${[foo]}", context: new GenericContext({ foo: "bar" }) })
+      const res = legacyResolveTemplateString({ string: "${[foo]}", context: new TestContext({ foo: "bar" }) })
       expect(res).to.eql(["bar"])
     })
 
     it("resolves a nested key in an array literal", () => {
       const res = legacyResolveTemplateString({
         string: "${[foo.bar]}",
-        context: new GenericContext({ foo: { bar: "baz" } }),
+        context: new TestContext({ foo: { bar: "baz" } }),
       })
       expect(res).to.eql(["baz"])
     })
@@ -1969,7 +1963,7 @@ describe("parse and evaluate template strings", () => {
     it("calls a helper in an array literal", () => {
       const res = legacyResolveTemplateString({
         string: "${[foo, base64Encode('foo')]}",
-        context: new GenericContext({ foo: "bar" }),
+        context: new TestContext({ foo: "bar" }),
       })
       expect(res).to.eql(["bar", "Zm9v"])
     })
@@ -1977,7 +1971,7 @@ describe("parse and evaluate template strings", () => {
     it("calls a helper with an array literal argument", () => {
       const res = legacyResolveTemplateString({
         string: "${join(['foo', 'bar'], ',')}",
-        context: new GenericContext({}),
+        context: new TestContext({}),
       })
       expect(res).to.eql("foo,bar")
     })
@@ -1985,7 +1979,7 @@ describe("parse and evaluate template strings", () => {
     it("allows empty string separator in join helper function", () => {
       const res = legacyResolveTemplateString({
         string: "${join(['foo', 'bar'], '')}",
-        context: new GenericContext({}),
+        context: new TestContext({}),
       })
       expect(res).to.eql("foobar")
     })
@@ -2001,7 +1995,7 @@ describe("parse and evaluate template collections", () => {
         noTemplate: "at-all",
       },
     }
-    const context = new GenericContext({
+    const context = new TestContext({
       key: "value",
       something: "else",
     })
@@ -2023,7 +2017,7 @@ describe("parse and evaluate template collections", () => {
       some: "${key}?",
       other: "${missing}?",
     }
-    const context = new GenericContext({
+    const context = new TestContext({
       key: "value",
     })
 
@@ -2042,7 +2036,7 @@ describe("parse and evaluate template collections", () => {
       b: "B",
       c: "c",
     }
-    const context = new GenericContext({})
+    const context = new TestContext({})
 
     const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
     const result = deepEvaluate(parsed, { context, opts: {} })
@@ -2060,7 +2054,7 @@ describe("parse and evaluate template collections", () => {
       c: "c",
       $merge: { a: "a", b: "b" },
     }
-    const context = new GenericContext({})
+    const context = new TestContext({})
 
     const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
     const result = deepEvaluate(parsed, { context, opts: {} })
@@ -2078,7 +2072,7 @@ describe("parse and evaluate template collections", () => {
       b: "B",
       c: "c",
     }
-    const context = new GenericContext({ obj: { a: "a", b: "b" } })
+    const context = new TestContext({ obj: { a: "a", b: "b" } })
 
     const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
     const result = deepEvaluate(parsed, { context, opts: {} })
@@ -2099,7 +2093,7 @@ describe("parse and evaluate template collections", () => {
         a: "a",
       },
     }
-    const context = new GenericContext({ obj: { b: "b" } })
+    const context = new TestContext({ obj: { b: "b" } })
 
     const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
     const result = deepEvaluate(parsed, { context, opts: {} })
@@ -2116,7 +2110,7 @@ describe("parse and evaluate template collections", () => {
       $merge: "${var.doesnotexist || var.obj}",
       c: "c",
     }
-    const context = new GenericContext({ var: { obj: { a: "a", b: "b" } } })
+    const context = new TestContext({ var: { obj: { a: "a", b: "b" } } })
 
     const parsed = parseTemplateCollection({ value: obj, source: { path: [] } })
     const result = deepEvaluate(parsed, { context, opts: {} })
@@ -2138,7 +2132,7 @@ describe("parse and evaluate template collections", () => {
         },
       },
     }
-    const context = new GenericContext(
+    const context = new TestContext(
       parseTemplateCollection({
         source: { path: [] },
         value: {
@@ -2169,7 +2163,7 @@ describe("parse and evaluate template collections", () => {
   })
 
   it("should ignore $merge keys if the object to be merged is undefined", () => {
-    const context = new GenericContext({ var: { obj: { a: "a", b: "b" } } })
+    const context = new TestContext({ var: { obj: { a: "a", b: "b" } } })
 
     const parsed = parseTemplateCollection({
       value: {
@@ -2187,7 +2181,7 @@ describe("parse and evaluate template collections", () => {
       const obj = {
         foo: ["a", { $concat: ["b", "c"] }, "d"],
       }
-      const context = new GenericContext({})
+      const context = new TestContext({})
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
       const res = deepEvaluate(parsed, { context, opts: {} })
       expect(res).to.eql({
@@ -2199,7 +2193,7 @@ describe("parse and evaluate template collections", () => {
       const obj = {
         foo: ["a", { $concat: "${foo}" }, "d"],
       }
-      const context = new GenericContext({ foo: ["b", "c"] })
+      const context = new TestContext({ foo: ["b", "c"] })
       const parsed = parseTemplateCollection({
         source: { path: [] },
         value: obj,
@@ -2214,7 +2208,7 @@ describe("parse and evaluate template collections", () => {
       const obj = {
         foo: ["a", { $concat: { $forEach: ["B", "C"], $return: "${lower(item.value)}" } }, "d"],
       }
-      const context = new GenericContext({ foo: ["b", "c"] })
+      const context = new TestContext({ foo: ["b", "c"] })
       const parsed = parseTemplateCollection({
         source: { path: [] },
         value: obj,
@@ -2231,7 +2225,7 @@ describe("parse and evaluate template collections", () => {
         foo: ["a", { $concat: "b" }, "d"],
       }
 
-      const context = new GenericContext({})
+      const context = new TestContext({})
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
 
       void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
@@ -2244,7 +2238,7 @@ describe("parse and evaluate template collections", () => {
         foo: ["a", { $concat: "b", nope: "nay", oops: "derp" }, "d"],
       }
 
-      const context = new GenericContext({})
+      const context = new TestContext({})
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
 
       void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
@@ -2262,7 +2256,7 @@ describe("parse and evaluate template collections", () => {
           $else: 456,
         },
       }
-      const context = new GenericContext({ foo: 1 })
+      const context = new TestContext({ foo: 1 })
       const parsed = parseTemplateCollection({
         source: { path: [] },
         value: obj,
@@ -2279,7 +2273,7 @@ describe("parse and evaluate template collections", () => {
           $else: 456,
         },
       }
-      const context = new GenericContext({ foo: 2 })
+      const context = new TestContext({ foo: 2 })
       const parsed = parseTemplateCollection({
         source: { path: [] },
         value: obj,
@@ -2295,7 +2289,7 @@ describe("parse and evaluate template collections", () => {
           $then: 123,
         },
       }
-      const context = new GenericContext({ foo: 2 })
+      const context = new TestContext({ foo: 2 })
       const parsed = parseTemplateCollection({
         source: { path: [] },
         value: obj,
@@ -2312,7 +2306,7 @@ describe("parse and evaluate template collections", () => {
         },
       }
 
-      const context = new GenericContext({ foo: "bla" })
+      const context = new TestContext({ foo: "bla" })
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
 
       void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
@@ -2355,7 +2349,7 @@ describe("parse and evaluate template collections", () => {
           $return: "foo",
         },
       }
-      const context = new GenericContext({})
+      const context = new TestContext({})
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
       const res = deepEvaluate(parsed, { context, opts: {} })
       expect(res).to.eql({
@@ -2374,7 +2368,7 @@ describe("parse and evaluate template collections", () => {
           $return: "${item.key}: ${item.value}",
         },
       }
-      const context = new GenericContext({})
+      const context = new TestContext({})
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
       const res = deepEvaluate(parsed, { context, opts: {} })
       expect(res).to.eql({
@@ -2389,7 +2383,7 @@ describe("parse and evaluate template collections", () => {
           $return: "foo",
         },
       }
-      const context = new GenericContext({})
+      const context = new TestContext({})
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
       void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
         contains: "Value of $forEach key must be (or resolve to) an array or mapping object (got string)",
@@ -2430,7 +2424,7 @@ describe("parse and evaluate template collections", () => {
           $return: "${item.key}: ${item.value}",
         },
       }
-      const context = new GenericContext({ foo: ["a", "b", "c"] })
+      const context = new TestContext({ foo: ["a", "b", "c"] })
       const parsed = parseTemplateCollection({
         source: { path: [] },
         value: obj,
@@ -2449,7 +2443,7 @@ describe("parse and evaluate template collections", () => {
           $return: "${item.value}",
         },
       }
-      const context = new GenericContext({ foo: ["a", "b", "c"] })
+      const context = new TestContext({ foo: ["a", "b", "c"] })
       const parsed = parseTemplateCollection({
         source: { path: [] },
         value: obj,
@@ -2469,7 +2463,7 @@ describe("parse and evaluate template collections", () => {
           $return: "${item.value}",
         },
       }
-      const context = new GenericContext({ foo: ["a", "b", "c"] })
+      const context = new TestContext({ foo: ["a", "b", "c"] })
       const parsed = parseTemplateCollection({
         source: { path: [] },
         value: obj,
@@ -2489,7 +2483,7 @@ describe("parse and evaluate template collections", () => {
           $return: "${item.value}",
         },
       }
-      const context = new GenericContext({})
+      const context = new TestContext({})
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
       void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
         contains: "$filter clause in $forEach loop must resolve to a boolean value (got string)",
@@ -2505,7 +2499,7 @@ describe("parse and evaluate template collections", () => {
           },
         },
       }
-      const context = new GenericContext({})
+      const context = new TestContext({})
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
       const res = deepEvaluate(parsed, { context, opts: {} })
 
@@ -2527,7 +2521,7 @@ describe("parse and evaluate template collections", () => {
           },
         },
       }
-      const context = new GenericContext({})
+      const context = new TestContext({})
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
       const res = deepEvaluate(parsed, { context, opts: {} })
 
@@ -2546,7 +2540,7 @@ describe("parse and evaluate template collections", () => {
           $return: "foo",
         },
       }
-      const context = new GenericContext({})
+      const context = new TestContext({})
       const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
       const res = deepEvaluate(parsed, { context, opts: {} })
 
@@ -2587,7 +2581,7 @@ describe("parse and evaluate template collections", () => {
         },
       }
 
-      const context = new GenericContext({ services })
+      const context = new TestContext({ services })
       const parsed = parseTemplateCollection({
         source: { path: [] },
         value: obj,
@@ -2636,7 +2630,7 @@ describe("getContextLookupReferences", () => {
         visitAll({
           value: obj,
         }),
-        new GenericContext({})
+        new TestContext({})
       )
     )
     const expected: Partial<ContextLookupReferenceFinding>[] = [
@@ -2697,7 +2691,7 @@ describe("getContextLookupReferences", () => {
         visitAll({
           value: obj,
         }),
-        new GenericContext({})
+        new TestContext({})
       )
     )
 
@@ -2776,7 +2770,7 @@ describe("getActionTemplateReferences", () => {
       value: config,
       source: { path: [] },
     })
-    return Array.from(getActionTemplateReferences(parsedConfig as any, new GenericContext({})))
+    return Array.from(getActionTemplateReferences(parsedConfig as any, new TestContext({})))
   }
 
   context("actions.*", () => {
@@ -3013,8 +3007,8 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
-    throwOnMissingSecretKeys(configs, new GenericContext({}), {}, "Module")
-    throwOnMissingSecretKeys(configs, new GenericContext({}), { someSecret: "123" }, "Module")
+    throwOnMissingSecretKeys(configs, new TestContext({}), {}, "Module")
+    throwOnMissingSecretKeys(configs, new TestContext({}), { someSecret: "123" }, "Module")
   })
 
   it("should not throw an error if secrets are optional in an expression", () => {
@@ -3029,8 +3023,8 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
-    throwOnMissingSecretKeys(configs, new GenericContext({}), {}, "Module")
-    throwOnMissingSecretKeys(configs, new GenericContext({}), { someSecret: "123" }, "Module")
+    throwOnMissingSecretKeys(configs, new TestContext({}), {}, "Module")
+    throwOnMissingSecretKeys(configs, new TestContext({}), { someSecret: "123" }, "Module")
   })
 
   it("should throw an error if one or more secrets is missing", () => {
@@ -3052,7 +3046,7 @@ describe("throwOnMissingSecretKeys", () => {
     } as const)
 
     void expectError(
-      () => throwOnMissingSecretKeys(configs, new GenericContext({}), { b: "123" }, "Module"),
+      () => throwOnMissingSecretKeys(configs, new TestContext({}), { b: "123" }, "Module"),
       (err) => {
         expect(err.message).to.match(/Module moduleA: a/)
         expect(err.message).to.match(/Module moduleB: a, c/)
@@ -3061,7 +3055,7 @@ describe("throwOnMissingSecretKeys", () => {
     )
 
     void expectError(
-      () => throwOnMissingSecretKeys(configs, new GenericContext({}), {}, "Module"),
+      () => throwOnMissingSecretKeys(configs, new TestContext({}), {}, "Module"),
       (err) => {
         expect(err.message).to.match(/Module moduleA: a, b/)
         expect(err.message).to.match(/Module moduleB: a, b, c/)

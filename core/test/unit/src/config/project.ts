@@ -31,6 +31,7 @@ import { omit } from "lodash-es"
 import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { ProjectConfigContext } from "../../../../src/config/template-contexts/project.js"
+import { TestContext } from "./template-contexts/base.js"
 
 const { realpath, writeFile } = fsExtra
 
@@ -636,7 +637,7 @@ describe("pickEnvironment", () => {
     expect(variables).to.eql({})
 
     const resolvedProviders = env.providers.map((p) =>
-      deepEvaluate(p.unresolvedConfig, { context: new GenericContext({}), opts: {} })
+      deepEvaluate(p.unresolvedConfig, { context: new TestContext({}), opts: {} })
     )
     expect(resolvedProviders).to.eql([
       { name: "exec" },

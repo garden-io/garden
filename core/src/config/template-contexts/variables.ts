@@ -47,25 +47,33 @@ export class VariablesContext extends LayeredContext {
     }
   ) {
     const layers: ConfigContext[] = []
+
+    let parent: ConfigContext | undefined
+
     if ("variables" in context) {
-      // populate the variable context with variables from parent context
+      // populate variables from root context
       layers.push(context.variables)
+
+      // ensures that higher-precedence variables can refer to root vars
+      parent = makeVariableRootContext(`root variable context in ${description}`, context.variables)
     }
 
     const scopesOrderedByPrecedence = variablePrecedence.filter((tpl) => !isEmpty(tpl)).entries()
 
-    let parent: GenericContext | undefined
     for (const [i, currentScope] of scopesOrderedByPrecedence) {
       // add general context, to resolve inputs, action references, etc
-      const neededContext = new LayeredContext(`layer ${i}`, context)
+      const neededContext = new LayeredContext(`context for scope ${i} in ${description}`, context)
 
       // capture the needed context, so variables can be resolved correctly
-      const capturedScope = new GenericContext(capture(currentScope, neededContext))
+      const capturedScope = new GenericContext(
+        `captured scope ${i} in ${description}`,
+        capture(currentScope, neededContext)
+      )
       layers.push(capturedScope)
 
       // NOTE: we now mutate the context we just captured
-      // this allows variables cross-referencing each other in the same scope, e.g. to reuse values across multiple variables
-      const variableRoot = makeVariableRootContext(capturedScope)
+      // this allowsat  variables cross-referencing each other in the same scope, e.g. to reuse values across multiple variables
+      const variableRoot = makeVariableRootContext(`variable root for scope ${i} in ${description}`, capturedScope)
       neededContext.addLayer(variableRoot)
 
       // this ensures that a variable in any given context can refer to variables in the parent scope
@@ -218,16 +226,16 @@ export class VariablesContext extends LayeredContext {
       }
     }
 
-    this.layers.push(new GenericContext(transformedOverrides))
+    this.layers.push(new GenericContext("variable overrides", transformedOverrides))
     this.clearCache()
   }
 }
 
 // helpers
 
-function makeVariableRootContext(contents: ConfigContext) {
+function makeVariableRootContext(description: string, contents: ConfigContext) {
   // This makes the contents available under the keys `var` and `variables`
-  return new GenericContext({
+  return new GenericContext(description, {
     var: contents,
     variables: contents,
   })

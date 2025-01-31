@@ -16,28 +16,24 @@ import type {
 } from "../../../../../src/config/template-contexts/base.js"
 import {
   ContextWithSchema,
-  GenericContext,
   getUnavailableReason,
   LayeredContext,
   schema,
+  GenericContext,
 } from "../../../../../src/config/template-contexts/base.js"
 import { expectError } from "../../../../helpers.js"
 import { joi } from "../../../../../src/config/common.js"
 import { parseTemplateString } from "../../../../../src/template/templated-strings.js"
 import { deepEvaluate } from "../../../../../src/template/evaluate.js"
+import type { Collection } from "../../../../../src/util/objects.js"
 import { isPlainObject } from "../../../../../src/util/objects.js"
 import { InternalError } from "../../../../../src/exceptions.js"
 import { parseTemplateCollection } from "../../../../../src/template/templated-collections.js"
-import type { ResolvedTemplate } from "../../../../../src/template/types.js"
+import type { ParsedTemplate, ResolvedTemplate } from "../../../../../src/template/types.js"
 
-type TestValue = string | ConfigContext | TestValues
-
-interface TestValues {
-  [key: string]: TestValue
-}
 export class TestContext extends GenericContext {
-  constructor(obj: TestValues) {
-    super(obj)
+  constructor(obj: ParsedTemplate | Collection<ParsedTemplate | ConfigContext>) {
+    super("test", obj)
   }
 
   /**
@@ -53,7 +49,7 @@ export class TestContext extends GenericContext {
     return deepEvaluate(parsed, { context: this, opts: {} })
   }
 
-  addValues(obj: TestValues) {
+  addValues(obj: Collection<ParsedTemplate | ConfigContext>) {
     if (!isPlainObject(this.data)) {
       throw new InternalError({
         message: "TestContext expects data to be a plain object",
@@ -71,37 +67,37 @@ describe("ConfigContext", () => {
     }
 
     it("should resolve simple keys", async () => {
-      const c = new GenericContext({ basic: "value" })
+      const c = new TestContext({ basic: "value" })
       expect(resolveKey(c, ["basic"])).to.eql({ found: true, resolved: "value" })
     })
 
     it("should return found: false for missing key", async () => {
-      const c = new GenericContext({})
+      const c = new TestContext({})
       const result = resolveKey(c, ["basic"])
       expect(result.found).to.be.equal(false)
       expect(stripAnsi(getUnavailableReason(result))).to.include("Could not find key basic")
     })
 
     it("should throw when looking for nested value on primitive", async () => {
-      const c = new GenericContext({ basic: "value" })
+      const c = new TestContext({ basic: "value" })
       await expectError(() => resolveKey(c, ["basic", "nested"]), "context-resolve")
     })
 
     it("should resolve nested keys", async () => {
-      const c = new GenericContext({ nested: { key: "value" } })
+      const c = new TestContext({ nested: { key: "value" } })
       expect(resolveKey(c, ["nested", "key"])).eql({ found: true, resolved: "value" })
     })
 
     it("should resolve keys on nested contexts", async () => {
-      const c = new GenericContext({
-        nested: new GenericContext({ key: "value" }),
+      const c = new TestContext({
+        nested: new TestContext({ key: "value" }),
       })
       expect(resolveKey(c, ["nested", "key"])).eql({ found: true, resolved: "value" })
     })
 
     it("should return found: false for missing keys on nested context", async () => {
-      const c = new GenericContext({
-        nested: new GenericContext({ key: "value" }),
+      const c = new TestContext({
+        nested: new TestContext({ key: "value" }),
       })
       const result = resolveKey(c, ["basic", "bla"])
       expect(result.found).to.be.equal(false)
@@ -110,7 +106,7 @@ describe("ConfigContext", () => {
 
     it("should cache resolved values", async () => {
       const nested = new TestContext({ key: "value" })
-      const c = new GenericContext({
+      const c = new TestContext({
         nested,
       })
       resolveKey(c, ["nested", "key"])
@@ -134,8 +130,8 @@ describe("ConfigContext", () => {
         bla: nestedTwo,
       })
 
-      const c = new GenericContext({
-        nestedOne: new NestedContextOne(),
+      const c = new TestContext({
+        nestedOne: new NestedContextOne("nestedOne"),
         nestedTwo,
       })
 
@@ -148,7 +144,7 @@ describe("ConfigContext", () => {
         nested: Map<string, string>
 
         constructor() {
-          super()
+          super("context")
           this.nested = new Map()
         }
       }
@@ -164,7 +160,7 @@ describe("ConfigContext", () => {
         nested: any
 
         constructor() {
-          super()
+          super("context")
           this.nested = {}
         }
       }
@@ -180,7 +176,7 @@ describe("ConfigContext", () => {
         nested: any
 
         constructor() {
-          super()
+          super("context")
           this.nested = { deeper: {} }
         }
       }
@@ -197,8 +193,8 @@ describe("ConfigContext", () => {
         nested: ContextWithSchema
 
         constructor() {
-          super()
-          this.nested = new Nested()
+          super("context")
+          this.nested = new Nested("nested")
         }
       }
 
@@ -211,7 +207,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "value",
       })
-      const nested = new GenericContext(parseTemplateCollection({ value: { key: "${foo}" }, source: { path: [] } }))
+      const nested = new TestContext(parseTemplateCollection({ value: { key: "${foo}" }, source: { path: [] } }))
       c.addValues({ nested })
       expect(resolveKey(c, ["nested", "key"])).to.eql({ found: true, resolved: "value" })
     })
@@ -220,7 +216,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested = new GenericContext(
+      const nested = new TestContext(
         parseTemplateCollection({ value: { key: "${nested.foo}", foo: "value" }, source: { path: [] } })
       )
       c.addValues({ nested })
@@ -228,7 +224,7 @@ describe("ConfigContext", () => {
     })
 
     it("should detect a self-reference when resolving a template string", async () => {
-      const c = new GenericContext(parseTemplateCollection({ value: { key: "${key}" }, source: { path: [] } }))
+      const c = new TestContext(parseTemplateCollection({ value: { key: "${key}" }, source: { path: [] } }))
       await expectError(() => resolveKey(c, ["key"]), "template-string")
     })
 
@@ -236,9 +232,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested = new GenericContext(
-        parseTemplateCollection({ value: { key: "${nested.key}" }, source: { path: [] } })
-      )
+      const nested = new TestContext(parseTemplateCollection({ value: { key: "${nested.key}" }, source: { path: [] } }))
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
@@ -247,7 +241,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested = new GenericContext(
+      const nested = new TestContext(
         parseTemplateCollection({ value: { key: "${nested.foo}", foo: "${nested.key}" }, source: { path: [] } })
       )
       c.addValues({ nested })
@@ -258,7 +252,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested = new GenericContext(
+      const nested = new TestContext(
         parseTemplateCollection({ value: { key: "${nested.foo}", foo: "${'${nested.key}'}" }, source: { path: [] } })
       )
       c.addValues({ nested })
@@ -269,7 +263,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested = new GenericContext(
+      const nested = new TestContext(
         parseTemplateCollection({ value: { key: "${'${nested.key}'}" }, source: { path: [] } })
       )
       c.addValues({ nested })
@@ -321,10 +315,10 @@ describe("LayeredContext", () => {
   it("allows you to merge multiple contexts", () => {
     const variables = new LayeredContext(
       "test",
-      new GenericContext({
+      new TestContext({
         foo: "foo",
       }),
-      new GenericContext({
+      new TestContext({
         bar: "bar",
       })
     )
@@ -332,7 +326,7 @@ describe("LayeredContext", () => {
     const tpl = parseTemplateString({ rawTemplateString: "${var.foo}-${var.bar}", source: { path: [] } })
 
     const res = deepEvaluate(tpl, {
-      context: new GenericContext({
+      context: new TestContext({
         var: variables,
       }),
       opts: {},
@@ -344,10 +338,10 @@ describe("LayeredContext", () => {
   it("takes the precedence from right to left when merging primitives", () => {
     const layeredContext = new LayeredContext(
       "test",
-      new GenericContext({
+      new TestContext({
         foo: "foo",
       }),
-      new GenericContext({
+      new TestContext({
         foo: "overriddenFoo",
       })
     )
@@ -359,10 +353,10 @@ describe("LayeredContext", () => {
   it("takes the precedence from right to left when merging objects", () => {
     const layeredContext = new LayeredContext(
       "test",
-      new GenericContext({
+      new TestContext({
         foo: "foo",
       }),
-      new GenericContext({
+      new TestContext({
         foo: "overriddenFoo",
       })
     )
@@ -374,10 +368,10 @@ describe("LayeredContext", () => {
   it("show the available keys if attempt to resolve a non-existing key", () => {
     const layeredContext = new LayeredContext(
       "test",
-      new GenericContext({
+      new TestContext({
         foo: "foo",
       }),
-      new GenericContext({
+      new TestContext({
         bar: "bar",
       })
     )
