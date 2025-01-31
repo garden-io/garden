@@ -16,10 +16,11 @@ import { initTestLogger, testProjectTempDirs } from "./helpers.js"
 import mocha from "mocha"
 import sourceMapSupport from "source-map-support"
 import { UnresolvedTemplateValue } from "../src/template/types.js"
+
 sourceMapSupport.install()
 
 let lastTime = performance.now()
-setInterval(() => {
+const mainBlockCheckup = setInterval(() => {
   const now = performance.now()
   const diff = now - lastTime
   if (diff > 50) {
@@ -58,6 +59,7 @@ export const mochaHooks = {
     // eslint-disable-next-line no-console
     console.log(getDefaultProfiler().report())
     await Promise.all(Object.values(testProjectTempDirs).map((d) => d.cleanup()))
+    clearInterval(mainBlockCheckup)
   },
 
   beforeEach() {},
