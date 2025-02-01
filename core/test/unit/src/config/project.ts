@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { platform } from "os"
 import { expect } from "chai"
 import tmp from "tmp-promise"
 import type { ProjectConfig } from "../../../../src/config/project.js"
@@ -26,7 +25,7 @@ import { dedent } from "../../../../src/util/string.js"
 import { resolve, join } from "path"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { deepEvaluate } from "../../../../src/template/evaluate.js"
-import { deepResolveContext, GenericContext } from "../../../../src/config/template-contexts/base.js"
+import { deepResolveContext } from "../../../../src/config/template-contexts/base.js"
 import { omit } from "lodash-es"
 import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
@@ -87,7 +86,7 @@ describe("resolveProjectConfig", () => {
     })
   })
 
-  it("should resolve template strings on fields other than environments, providers and remote sources", async () => {
+  it("should resolve template strings on fields other than environments, providers and remote sources and variables", async () => {
     const repositoryUrl = "git://github.com/foo/bar.git#boo"
 
     const config: ProjectConfig = createProjectConfig({
@@ -161,10 +160,10 @@ describe("resolveProjectConfig", () => {
       ],
       varfile: defaultProjectVarfilePath,
       variables: {
-        platform: platform(),
-        secret: "banana",
-        projectPath: config.path,
-        envVar: "foo",
+        platform: "${local.platform}",
+        secret: "${secrets.foo}",
+        projectPath: "${local.projectPath}",
+        envVar: "${local.env.TEST_ENV_VAR}",
       },
     })
 
