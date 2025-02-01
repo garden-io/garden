@@ -1,6 +1,7 @@
 apiVersion: garden.io/v1
 kind: Project
 name: duplicate-module
+
 environments:
   - name: local
     variables:
@@ -10,7 +11,43 @@ environments:
 
 providers:
   - name: test-plugin
+
 variables:
   projectLevel:
     suffix: "world"
     hello: hello ${var.projectLevel.suffix}
+
+---
+
+kind: RenderTemplate
+template: tpl
+name: render
+inputs:
+  dt: test-1
+
+---
+
+kind: ConfigTemplate
+name: tpl
+configs:
+  - kind: Build
+    type: exec
+    name: ${inputs.dt}-dummy
+    variables:
+      foo0: bar0
+      composeImageName: "busybox"
+      env:
+        DT: ${inputs.dt}
+        FOO0: ${var.foo0}
+
+  - kind: Deploy
+    type: container
+    name: ${inputs.dt}-container
+    variables:
+      $merge: ${actions.build["${inputs.dt}-dummy"].var}
+    spec:
+      env:
+        FOO0: ${var.foo0}
+      image: "${ var.composeImageName }"
+      command:
+        - echo ${!(var contains "web")}

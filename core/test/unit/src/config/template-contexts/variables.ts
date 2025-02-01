@@ -12,6 +12,7 @@ import type { TestGarden } from "../../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import { TestContext } from "./base.js"
 import { deepResolveContext } from "../../../../../src/config/template-contexts/base.js"
+import { resolveAction } from "../../../../../src/graph/actions.js"
 
 /*
  * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
@@ -38,6 +39,56 @@ describe("VariablesContext", () => {
           hello: "hello world",
           suffix: "world",
         },
+        projectLevel: {
+          hello: "hello world",
+          suffix: "world",
+        },
+      })
+    })
+
+    it("resolves the test action variables correctly", async () => {
+      const graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+
+      const dummy = await resolveAction({
+        garden,
+        graph,
+        action: graph.getActionByRef("build.test-1-dummy"),
+        log: garden.log,
+      })
+      expect(dummy.getResolvedVariables()).to.eql({
+        composeImageName: "busybox",
+        env: {
+          DT: "test-1",
+          FOO0: "bar0",
+        },
+        environmentLevel: {
+          hello: "hello world",
+          suffix: "world",
+        },
+        foo0: "bar0",
+        projectLevel: {
+          hello: "hello world",
+          suffix: "world",
+        },
+      })
+
+      const container = await resolveAction({
+        garden,
+        graph,
+        action: graph.getActionByRef("deploy.test-1-container"),
+        log: garden.log,
+      })
+      expect(container.getResolvedVariables()).to.eql({
+        composeImageName: "busybox",
+        env: {
+          DT: "test-1",
+          FOO0: "bar0",
+        },
+        environmentLevel: {
+          hello: "hello world",
+          suffix: "world",
+        },
+        foo0: "bar0",
         projectLevel: {
           hello: "hello world",
           suffix: "world",
