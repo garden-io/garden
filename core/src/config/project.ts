@@ -470,7 +470,7 @@ export function resolveProjectConfig({
   context: ProjectConfigContext
 }): ProjectConfig {
   // Resolve template strings for non-environment-specific fields (apart from `sources`).
-  const { environments = [], name, sources = [], providers = [], outputs = [] } = config
+  const { variables = {}, environments = [], name, sources = [], providers = [], outputs = [] } = config
 
   let globalConfig: any
 
@@ -479,7 +479,6 @@ export function resolveProjectConfig({
       {
         apiVersion: config.apiVersion,
         varfile: config.varfile,
-        variables: config.variables,
         environments: [],
         sources: [],
       },
@@ -505,6 +504,7 @@ export function resolveProjectConfig({
       environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-initial-load", variables: {} }],
       providers: [],
       sources: [],
+      variables: {},
       // this makes sure that the output declaration shape is valid
       outputs: serialiseUnresolvedTemplates(outputs),
     },
@@ -519,6 +519,7 @@ export function resolveProjectConfig({
     providers,
     sources,
     outputs,
+    variables,
   }
 
   config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
@@ -632,20 +633,30 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   // resolve project variables incl. varfiles
   deepResolveContext("project", context.variables)
 
-  // @ts-expect-error todo: correct types for unresolved configs
-  const config = deepEvaluate(environmentConfig, {
-    context,
-    opts: {},
-  })
+  const config = deepEvaluate(
+    {
+      ...environmentConfig,
+      // we leave variables unresolved, so we can cross-reference them
+      variables: {},
+    },
+    {
+      context,
+      opts: {},
+    }
+  )
 
-  environmentConfig = validateWithPath<EnvironmentConfig>({
-    config,
-    schema: environmentSchema(),
-    configType: `environment ${environment}`,
-    path: projectConfig.path,
-    projectRoot: projectConfig.path,
-    source,
-  })
+  environmentConfig = {
+    ...validateWithPath<EnvironmentConfig>({
+      config,
+      schema: environmentSchema(),
+      configType: `environment ${environment}`,
+      path: projectConfig.path,
+      projectRoot: projectConfig.path,
+      source,
+    }),
+    // we leave variables unresolved, so we can cross-reference them
+    variables: environmentConfig.variables,
+  }
 
   namespace = getNamespace(environmentConfig, namespace)
 

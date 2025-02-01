@@ -26,6 +26,7 @@ import type { ActionConfig } from "../../actions/types.js"
 import { isUnresolved } from "../../template/templated-strings.js"
 import type { Varfile } from "../common.js"
 import type { ActionConfigContext } from "./actions.js"
+import { ActionSpecContext } from "./actions.js"
 import type { CustomCommandContext } from "./custom-command.js"
 import type { CommandResource } from "../command.js"
 import type { GroupConfig } from "../group.js"
@@ -40,27 +41,55 @@ export class VariablesContext extends LayeredContext {
       context,
       variablePrecedence,
       variableOverrides,
+      isFinalContext = true,
     }: {
       context: EnvironmentConfigContext | ProjectConfigContext | CustomCommandContext
       variablePrecedence: (ParsedTemplate | undefined | null)[]
       variableOverrides: DeepPrimitiveMap
+      /**
+       * @see ContextResolveOpts.isFinalContext
+       */
+      isFinalContext?: boolean
     }
   ) {
-    const layers: ConfigContext[] = [
-      // project config context has no variables yet. Use empty context as root instead then
-      "variables" in context ? context.variables : new GenericContext({}),
-    ]
+    const layers: ConfigContext[] = []
 
-    const entries = variablePrecedence.filter((tpl) => !isEmpty(tpl)).entries()
+    let parent: ConfigContext | undefined
 
-    for (const [i, layer] of entries) {
-      const parent = layers[i]
-      layers.push(
-        new GenericContext(
-          // this ensures that a variable in any given context can refer to variables in the parent scope
-          capture(layer || {}, makeVariableRootContext(parent))
-        )
+    if ("variables" in context) {
+      // populate variables from root context
+      layers.push(context.variables)
+
+      // ensures that higher-precedence variables can refer to root vars
+      parent = makeVariableRootContext(`root variable context in ${description}`, context.variables)
+    }
+
+    const scopesOrderedByPrecedence = variablePrecedence.filter((tpl) => !isEmpty(tpl)).entries()
+
+    for (const [i, currentScope] of scopesOrderedByPrecedence) {
+      // add general context, to resolve inputs, action references, etc
+      const neededContext = new LayeredContext(`context for scope ${i} in ${description}`, context)
+
+      // capture the needed context, so variables can be resolved correctly
+      const capturedScope = new GenericContext(
+        `captured scope ${i} in ${description}`,
+        capture(currentScope, neededContext, { isFinalContext })
       )
+      layers.push(capturedScope)
+
+      // NOTE: we now mutate the context we just captured
+      // this allowsat  variables cross-referencing each other in the same scope, e.g. to reuse values across multiple variables
+      const variableRoot = makeVariableRootContext(`variable root for scope ${i} in ${description}`, capturedScope)
+      neededContext.addLayer(variableRoot)
+
+      // this ensures that a variable in any given context can refer to variables in the parent scope
+      // variables in the parent scope take precedence over cross-referencing for backwards-compatibility
+      if (parent) {
+        neededContext.addLayer(parent)
+      }
+
+      // make sure the lower precedence scope can access variables from this layer
+      parent = variableRoot
     }
 
     super(description, ...layers)
@@ -70,11 +99,23 @@ export class VariablesContext extends LayeredContext {
     }
   }
 
-  public static forTest(garden: Garden, ...vars: ParsedTemplate[]) {
+  public static forTest({
+    garden,
+    variablePrecedence,
+    isFinalContext,
+  }: {
+    garden: Garden
+    variablePrecedence: ParsedTemplate[]
+    /**
+     * @see ContextResolveOpts.isFinalContext
+     */
+    isFinalContext?: boolean
+  }) {
     return new this("test", {
       context: garden.getProjectConfigContext(),
-      variablePrecedence: [...vars],
+      variablePrecedence,
       variableOverrides: garden.variableOverrides,
+      isFinalContext,
     })
   }
 
@@ -152,7 +193,7 @@ export class VariablesContext extends LayeredContext {
   public static async forAction(
     garden: Garden,
     config: ActionConfig,
-    context: ActionConfigContext,
+    context: ActionConfigContext | ActionSpecContext,
     group?: GroupConfig
   ) {
     const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
@@ -170,6 +211,12 @@ export class VariablesContext extends LayeredContext {
       variablePrecedence: [...groupVariables, ...actionVariables],
       context,
       variableOverrides: garden.variableOverrides,
+      /**
+       * If context is ActionConfigContext, we are still preprocessing and can't access dependency results.
+       *
+       * @see ContextResolveOpts.isFinalContext
+       */
+      isFinalContext: context instanceof ActionSpecContext,
     })
   }
 
@@ -203,16 +250,16 @@ export class VariablesContext extends LayeredContext {
       }
     }
 
-    this.layers.push(new GenericContext(transformedOverrides))
+    this.layers.push(new GenericContext("variable overrides", transformedOverrides))
     this.clearCache()
   }
 }
 
 // helpers
 
-function makeVariableRootContext(contents: ConfigContext) {
+function makeVariableRootContext(description: string, contents: ConfigContext) {
   // This makes the contents available under the keys `var` and `variables`
-  return new GenericContext({
+  return new GenericContext(description, {
     var: contents,
     variables: contents,
   })

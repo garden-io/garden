@@ -9,9 +9,10 @@
 import type { CollectionOrValue } from "../util/objects.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import type { TemplateExpression } from "./ast.js"
-import { ContextLookupExpression } from "./ast.js"
+import { CONTEXT_RESOLVE_KEY_NOT_FOUND, ContextLookupExpression } from "./ast.js"
 import type { ParsedTemplate, TemplatePrimitive } from "./types.js"
 import { UnresolvedTemplateValue } from "./types.js"
+import type { ContextResolveOpts } from "../config/template-contexts/base.js"
 import { type ConfigContext } from "../config/template-contexts/base.js"
 import { GardenError, InternalError } from "../exceptions.js"
 import { type ConfigSource } from "../config/validation.js"
@@ -99,7 +100,8 @@ function captureError(arg: () => void): () => GardenError {
 
 export function* getContextLookupReferences(
   generator: TemplateExpressionGenerator,
-  context: ConfigContext
+  context: ConfigContext,
+  opts: ContextResolveOpts
 ): Generator<ContextLookupReferenceFinding, void, undefined> {
   for (const finding of generator) {
     if (finding.type !== "template-expression") {
@@ -119,7 +121,7 @@ export function* getContextLookupReferences(
     const keyPath = value.keyPath.map((keyPathExpression) => {
       const key = keyPathExpression.evaluate({
         context,
-        opts: {},
+        opts,
         optional: true,
         yamlSource,
       })
@@ -132,7 +134,7 @@ export function* getContextLookupReferences(
             // this will throw an error, because the key could not be resolved
             keyPathExpression.evaluate({
               context,
-              opts: {},
+              opts,
               optional: false,
               yamlSource,
             })
@@ -164,14 +166,10 @@ export function* getContextLookupReferences(
   }
 }
 
-export function someReferences({
-  value,
-  context,
-  onlyEssential = false,
-  matcher,
-}: {
+type ReferenceMatchArgs = {
   value: UnresolvedTemplateValue
   context: ConfigContext
+  opts: ContextResolveOpts
   /**
    * If true, the returned template expression generator will only yield template expressions that
    * will be evaluated when calling `evaluate`.
@@ -182,9 +180,18 @@ export function someReferences({
    * @default false
    */
   onlyEssential?: boolean
+}
+
+export function someReferences({
+  value,
+  context,
+  opts,
+  onlyEssential = false,
+  matcher,
+}: {
   matcher: (ref: ContextLookupReferenceFinding) => boolean
-}) {
-  const generator = getContextLookupReferences(value.visitAll({ onlyEssential }), context)
+} & ReferenceMatchArgs) {
+  const generator = getContextLookupReferences(value.visitAll({ onlyEssential }), context, opts)
 
   for (const ref of generator) {
     const isMatch = matcher(ref)
@@ -194,4 +201,28 @@ export function someReferences({
   }
 
   return false
+}
+
+/**
+ * If `onlyEssential: true`, and this function returns `true`, then `evaluate` will not throw an error due to missing context keys.
+ * If `onlyEssential: false`, and this function returns `true`, then `deepEvaluate` will not throw an error due to missing context keys.
+ */
+export function canEvaluateSuccessfully({ value, context, opts, onlyEssential = false }: ReferenceMatchArgs) {
+  const generator = getContextLookupReferences(value.visitAll({ onlyEssential }), context, opts)
+
+  // find all essential root expressions containing context lookups
+  for (const finding of generator) {
+    const essentialExpression = finding.root
+
+    // test if essential expression can be evaluated
+    const result = essentialExpression.evaluate({ optional: true, context, opts, yamlSource: finding.yamlSource })
+
+    // the expression might handle the missing key and default to static value
+    if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+      // if it resolved to symbol, then evaluation will result in an error with `optional: false`
+      return false
+    }
+  }
+
+  return true
 }

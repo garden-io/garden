@@ -773,6 +773,11 @@ export abstract class ResolvedRuntimeAction<
     this.executedDependencies = params.executedDependencies
     this.resolvedDependencies = params.resolvedDependencies
     this._staticOutputs = params.staticOutputs
+    this._config = {
+      ...this._config,
+      // makes sure the variables show up in the `garden get config` command
+      variables: params.resolvedVariables,
+    }
     this._config.spec = params.spec
     this._config.internal.inputs = params.inputs
   }
