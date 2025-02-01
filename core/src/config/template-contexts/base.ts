@@ -41,6 +41,30 @@ export interface ContextResolveOpts {
    */
   keepEscapingInTemplateStrings?: boolean
 
+  /**
+   * If true, the given context is final and contains everything needed to fully resolve the given templates.
+   *
+   * If false, this flag enables special behaviour of for some template values, like `ObjectSpreadLazyValue`,
+   * where we basically ignore unresolvable templates and resolve to whatever is available at the moment.
+   *
+   * This is currently used in the `VariableContext`, to allow for using some of the variables early during action processing,
+   * before we built the actual graph.
+   *
+   * @example
+   *  kind: Build
+   *  name: xy
+   *  dependencies: ${var.dependencies} // <-- if false, we can resolve 'var.dependencies' despite the fact that 'actions' context is missing
+   *  variables:
+   *    $merge: ${actions.build.foo.vars} // <-- if true, the $merge operation fails if 'actions' context is missing
+   *    dependencies: ["bar"]
+   *
+   * @warning If set to false, templates can lose information; Be careful when persisting the resolved values, because
+   * we may have lost some information even if evaluate returned `partial: false`.
+   *
+   * @default true
+   */
+  isFinalContext?: boolean
+
   // for detecting circular references
   stack?: string[]
 }

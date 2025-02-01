@@ -26,6 +26,7 @@ import type { ActionConfig } from "../../actions/types.js"
 import { isUnresolved } from "../../template/templated-strings.js"
 import type { Varfile } from "../common.js"
 import type { ActionConfigContext } from "./actions.js"
+import { ActionSpecContext } from "./actions.js"
 import type { CustomCommandContext } from "./custom-command.js"
 import type { CommandResource } from "../command.js"
 import type { GroupConfig } from "../group.js"
@@ -40,10 +41,15 @@ export class VariablesContext extends LayeredContext {
       context,
       variablePrecedence,
       variableOverrides,
+      isFinalContext = true,
     }: {
       context: EnvironmentConfigContext | ProjectConfigContext | CustomCommandContext
       variablePrecedence: (ParsedTemplate | undefined | null)[]
       variableOverrides: DeepPrimitiveMap
+      /**
+       * @see ContextResolveOpts.isFinalContext
+       */
+      isFinalContext?: boolean
     }
   ) {
     const layers: ConfigContext[] = []
@@ -67,7 +73,7 @@ export class VariablesContext extends LayeredContext {
       // capture the needed context, so variables can be resolved correctly
       const capturedScope = new GenericContext(
         `captured scope ${i} in ${description}`,
-        capture(currentScope, neededContext)
+        capture(currentScope, neededContext, { isFinalContext })
       )
       layers.push(capturedScope)
 
@@ -93,11 +99,23 @@ export class VariablesContext extends LayeredContext {
     }
   }
 
-  public static forTest(garden: Garden, ...vars: ParsedTemplate[]) {
+  public static forTest({
+    garden,
+    variablePrecedence,
+    isFinalContext,
+  }: {
+    garden: Garden
+    variablePrecedence: ParsedTemplate[]
+    /**
+     * @see ContextResolveOpts.isFinalContext
+     */
+    isFinalContext?: boolean
+  }) {
     return new this("test", {
       context: garden.getProjectConfigContext(),
-      variablePrecedence: [...vars],
+      variablePrecedence,
       variableOverrides: garden.variableOverrides,
+      isFinalContext,
     })
   }
 
@@ -175,7 +193,7 @@ export class VariablesContext extends LayeredContext {
   public static async forAction(
     garden: Garden,
     config: ActionConfig,
-    context: ActionConfigContext,
+    context: ActionConfigContext | ActionSpecContext,
     group?: GroupConfig
   ) {
     const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
@@ -193,6 +211,12 @@ export class VariablesContext extends LayeredContext {
       variablePrecedence: [...groupVariables, ...actionVariables],
       context,
       variableOverrides: garden.variableOverrides,
+      /**
+       * If context is ActionConfigContext, we are still preprocessing and can't access dependency results.
+       *
+       * @see ContextResolveOpts.isFinalContext
+       */
+      isFinalContext: context instanceof ActionSpecContext,
     })
   }
 

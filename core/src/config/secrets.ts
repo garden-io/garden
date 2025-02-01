@@ -86,7 +86,8 @@ export function detectMissingSecretKeys(
     visitAll({
       value: obj,
     }),
-    context
+    context,
+    {}
   )
   for (const finding of generator) {
     const keyPath = finding.keyPath

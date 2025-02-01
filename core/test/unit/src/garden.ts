@@ -2924,7 +2924,7 @@ describe("Garden", () => {
         await exec("git", ["add", "."], { cwd: repoPath })
         await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
 
-        garden.variables = VariablesContext.forTest(garden, { sourceBranch: "main" })
+        garden.variables = VariablesContext.forTest({ garden, variablePrecedence: [{ sourceBranch: "main" }] })
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const _garden = garden as any

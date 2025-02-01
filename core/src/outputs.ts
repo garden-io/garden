@@ -41,7 +41,8 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
       resolvedProviders: {},
       variables: garden.variables,
       modules: [],
-    })
+    }),
+    {}
   )
   for (const finding of generator) {
     const keyPath = finding.keyPath

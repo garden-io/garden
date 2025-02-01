@@ -2630,7 +2630,8 @@ describe("getContextLookupReferences", () => {
         visitAll({
           value: obj,
         }),
-        new TestContext({})
+        new TestContext({}),
+        {}
       )
     )
     const expected: Partial<ContextLookupReferenceFinding>[] = [
@@ -2691,7 +2692,8 @@ describe("getContextLookupReferences", () => {
         visitAll({
           value: obj,
         }),
-        new TestContext({})
+        new TestContext({}),
+        {}
       )
     )
 

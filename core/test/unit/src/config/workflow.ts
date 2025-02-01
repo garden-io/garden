@@ -51,7 +51,7 @@ describe("resolveWorkflowConfig", () => {
   before(async () => {
     garden = await makeTestGardenA()
     garden.secrets = { foo: "bar", bar: "baz", baz: "banana" }
-    garden.variables = VariablesContext.forTest(garden, { foo: "baz", skip: false })
+    garden.variables = VariablesContext.forTest({ garden, variablePrecedence: [{ foo: "baz", skip: false }] })
   })
 
   it("should pass through a canonical workflow config", async () => {

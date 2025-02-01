@@ -84,7 +84,7 @@ describe("RunWorkflowCommand", () => {
 
     garden.setRawWorkflowConfigs(parsedWorkflowConfigs)
 
-    garden.variables = VariablesContext.forTest(garden, { foo: null })
+    garden.variables = VariablesContext.forTest({ garden, variablePrecedence: [{ foo: null }] })
 
     const result = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 

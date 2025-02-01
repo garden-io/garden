@@ -43,11 +43,33 @@ configs:
   - kind: Deploy
     type: container
     name: ${inputs.dt}-container
+    # It must be possible to use var.dependencies despite the $merge in variables
+    dependencies: ${var.dependencies}
     variables:
       $merge: ${actions.build["${inputs.dt}-dummy"].var}
+      dependencies:
+        - build.${inputs.dt}-dummy
     spec:
       env:
         FOO0: ${var.foo0}
       image: "${ var.composeImageName }"
       command:
         - echo ${!(var contains "web")}
+
+---
+
+kind: Deploy
+type: container
+name: standalone-container
+# It must be possible to use var.dependencies despite the $merge in variables
+dependencies: ${var.dependencies}
+variables:
+  $merge: ${actions.build.test-1-dummy.var}
+  dependencies:
+   - build.test-1-dummy
+spec:
+  env:
+    FOO0: ${var.foo0}
+  image: "${ var.composeImageName }"
+  command:
+    - echo ${!(var contains "web")}

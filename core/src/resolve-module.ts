@@ -1241,6 +1241,7 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
       someReferences({
         value,
         context,
+        opts: {},
         onlyEssential: true,
         matcher: (ref) => ref.keyPath[0] === "runtime",
       })

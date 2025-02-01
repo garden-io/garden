@@ -31,7 +31,7 @@ import { evaluate } from "./evaluate.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
 import { parseTemplateString } from "./templated-strings.js"
 import { TemplateError } from "./errors.js"
-import { visitAll, type TemplateExpressionGenerator } from "./analysis.js"
+import { canEvaluateSuccessfully, visitAll, type TemplateExpressionGenerator } from "./analysis.js"
 import { capture } from "./capture.js"
 
 export function pushYamlPath(part: ObjectPath[0], configSource: ConfigSource): ConfigSource {
@@ -442,6 +442,18 @@ export class ObjectSpreadLazyValue extends StructuralTemplateOperator {
       }
 
       k satisfies typeof objectSpreadKey
+
+      const { isFinalContext = true } = args.opts
+      if (!isFinalContext && v instanceof UnresolvedTemplateValue) {
+        if (!canEvaluateSuccessfully({ value: v, ...args, onlyEssential: true })) {
+          /**
+           * if this is not the final context, and calling `evaluate` would fail, then
+           * skip evaluating the $merge operation.
+           * @see ContextResolveOpts.isFinalContext
+           */
+          continue
+        }
+      }
 
       const { resolved } = evaluate(v, args)
 

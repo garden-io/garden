@@ -274,7 +274,10 @@ describe("getModuleVersionString", () => {
     templateGarden["cacheKey"] = "" // Disable caching of the config graph
     const before = await templateGarden.resolveModule("module-a")
 
-    templateGarden.variables = VariablesContext.forTest(templateGarden, { "echo-string": "something-else" })
+    templateGarden.variables = VariablesContext.forTest({
+      garden: templateGarden,
+      variablePrecedence: [{ "echo-string": "something-else" }],
+    })
 
     const after = await templateGarden.resolveModule("module-a")
 

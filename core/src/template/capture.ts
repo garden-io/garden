@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ConfigContext } from "../config/template-contexts/base.js"
+import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
 import type { Collection } from "../util/objects.js"
 import { deepMap } from "../util/objects.js"
@@ -25,17 +25,22 @@ type CaptureResult<Input extends ParsedTemplate> = Input extends TemplatePrimiti
   ? Input
   : CapturedContextTemplateValue
 
-export function capture<Input extends ParsedTemplate>(template: Input, context: ConfigContext): CaptureResult<Input> {
+export function capture<Input extends ParsedTemplate>(
+  template: Input,
+  context: ConfigContext,
+  opts: Partial<ContextResolveOpts> = {}
+): CaptureResult<Input> {
   if (isTemplatePrimitive(template)) {
     return template as CaptureResult<Input>
   }
-  return new CapturedContextTemplateValue(template, context) as CaptureResult<Input>
+  return new CapturedContextTemplateValue(template, context, opts) as CaptureResult<Input>
 }
 
 export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
   constructor(
     private readonly wrapped: ParsedTemplate,
-    private readonly context: ConfigContext
+    private readonly context: ConfigContext,
+    private readonly opts: ContextResolveOpts
   ) {
     super()
     this.context = context
@@ -44,7 +49,14 @@ export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
   override evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult {
     const context = new LayeredContext(`captured ${this.context.toSanitizedValue()}`, args.context, this.context)
 
-    const result = evaluate(this.wrapped, { ...args, context })
+    const result = evaluate(this.wrapped, {
+      ...args,
+      context,
+      opts: {
+        ...args.opts,
+        ...this.opts,
+      },
+    })
 
     if (!result.partial) {
       return result
@@ -52,7 +64,7 @@ export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
 
     return {
       partial: true,
-      resolved: deepMap(result.resolved, (v) => capture(v, this.context)) as Collection<ParsedTemplate>,
+      resolved: deepMap(result.resolved, (v) => capture(v, this.context, this.opts)) as Collection<ParsedTemplate>,
     }
   }
 
