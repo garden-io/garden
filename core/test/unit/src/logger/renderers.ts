@@ -25,7 +25,7 @@ import type { TaskMetadata } from "../../../../src/logger/log-entry.js"
 import { createActionLog } from "../../../../src/logger/log-entry.js"
 import logSymbols from "log-symbols"
 import stripAnsi from "strip-ansi"
-import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization.js"
+import { safeDumpYaml } from "../../../../src/util/serialization.js"
 import { freezeTime } from "../../../helpers.js"
 import { format } from "date-fns"
 import { styles } from "../../../../src/logger/styles.js"
@@ -212,12 +212,12 @@ describe("renderers", () => {
       it("should render yaml by default if data is passed", () => {
         const entry = logger.createLog().info({ data: sampleData }).getLatestEntry()
         const dataAsYaml = safeDumpYaml(sampleData, { noRefs: true })
-        expect(renderData(entry)).to.eql(highlightYaml(dataAsYaml))
+        expect(renderData(entry)).to.eql(dataAsYaml)
       })
       it('should render yaml if dataFormat is "yaml"', () => {
         const entry = logger.createLog().info({ data: sampleData, dataFormat: "yaml" }).getLatestEntry()
         const dataAsYaml = safeDumpYaml(sampleData, { noRefs: true })
-        expect(renderData(entry)).to.eql(highlightYaml(dataAsYaml))
+        expect(renderData(entry)).to.eql(dataAsYaml)
       })
       it('should render json if dataFormat is "json"', () => {
         const entry = logger.createLog().info({ data: sampleData, dataFormat: "json" }).getLatestEntry()

@@ -203,11 +203,8 @@ TemplateStrings
 
 FormatString
   = EscapeStart (!FormatEndWithOptional SourceCharacter)* FormatEndWithOptional {
-    if (options.unescape) {
-      return new ast.LiteralExpression(text(), location(), text().slice(1))
-    } else {
-      return new ast.LiteralExpression(text(), location(), text())
-    }
+    const isEscapedValue = true
+    return new ast.LiteralExpression(text(), location(), text(), isEscapedValue)
   }
   / FormatStart op:BlockOperator FormatEnd {
     // These expressions will not show up in the final AST, but will be used to build the conditional tree
@@ -222,12 +219,9 @@ FormatString
     }
   }
   / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
-      if (pre[0] === escapePrefix) {
-        if (options.unescape) {
-          return new ast.LiteralExpression(text(), location(), text().slice(1))
-        } else {
-          return new ast.LiteralExpression(text(), location(), text())
-        }
+      const isEscapedValue = pre[0] === escapePrefix
+      if (isEscapedValue) {
+        return new ast.LiteralExpression(text(), location(), text(), isEscapedValue)
       }
 
       const isOptional = end[1] === optionalSuffix

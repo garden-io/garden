@@ -97,7 +97,7 @@ export const localBuild: BuildHandler = async (params) => {
   const buildResult = await base({ ...params, ctx: { ...ctx, provider: containerProvider } })
 
   if (!provider.config.deploymentRegistry) {
-    await loadToLocalK8s(params)
+    await kubernetesContainerHelpers.loadToLocalK8s(params)
     return buildResult
   }
 
@@ -116,20 +116,22 @@ export const localBuild: BuildHandler = async (params) => {
   return buildResult
 }
 
-/**
- * Loads a built local image to a local Kubernetes instance.
- */
-export async function loadToLocalK8s(params: BuildActionParams<"build", ContainerBuildAction>) {
-  const { ctx, log, action } = params
-  const provider = ctx.provider as KubernetesProvider
+export const kubernetesContainerHelpers = {
+  /**
+   * Loads a built local image to a local Kubernetes instance.
+   */
+  async loadToLocalK8s(params: BuildActionParams<"build", ContainerBuildAction>) {
+    const { ctx, log, action } = params
+    const provider = ctx.provider as KubernetesProvider
 
-  const { localImageId } = k8sGetContainerBuildActionOutputs({ provider, action })
+    const { localImageId } = k8sGetContainerBuildActionOutputs({ provider, action })
 
-  if (provider.config.clusterType === "kind") {
-    await loadImageToKind(localImageId, provider.config, log)
-  } else if (provider.config.clusterType === "microk8s") {
-    await loadImageToMicrok8s({ action, imageId: localImageId, log, ctx })
-  }
+    if (provider.config.clusterType === "kind") {
+      await loadImageToKind(localImageId, provider.config, log)
+    } else if (provider.config.clusterType === "microk8s") {
+      await loadImageToMicrok8s({ action, imageId: localImageId, log, ctx })
+    }
+  },
 }
 
 function containerProviderWithAdditionalDockerArgs(

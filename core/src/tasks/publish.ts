@@ -9,15 +9,16 @@
 import { BuildTask } from "./build.js"
 import type { BaseActionTaskParams, ActionTaskProcessParams } from "../tasks/base.js"
 import { BaseActionTask } from "../tasks/base.js"
-import { resolveTemplateString } from "../template-string/template-string.js"
+import { legacyResolveTemplateString } from "../template/templated-strings.js"
 import { joi } from "../config/common.js"
 import { versionStringPrefix } from "../vcs/vcs.js"
-import { ConfigContext, schema } from "../config/template-contexts/base.js"
+import { ContextWithSchema, schema } from "../config/template-contexts/base.js"
 import type { PublishActionResult } from "../plugin/handlers/Build/publish.js"
 import type { BuildAction } from "../actions/build.js"
 import type { ActionSpecContextParams } from "../config/template-contexts/actions.js"
 import { ActionSpecContext } from "../config/template-contexts/actions.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { InputContext } from "../config/template-contexts/input.js"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   /**
@@ -107,15 +108,14 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         action,
         resolvedProviders,
         modules: this.graph.getModules(),
-        partialRuntimeResolution: false,
         resolvedDependencies: action.getResolvedDependencies(),
         executedDependencies: action.getExecutedDependencies(),
-        inputs: action.getInternal().inputs || {},
-        variables: action.getVariables(),
+        inputs: new InputContext(action.getInternal().inputs),
+        variables: action.getVariablesContext(),
       })
 
       // Resolve template string and make sure the result is a string
-      tagOverride = "" + resolveTemplateString({ string: this.tagOverrideTemplate, context: templateContext })
+      tagOverride = "" + legacyResolveTemplateString({ string: this.tagOverrideTemplate, context: templateContext })
 
       // TODO: validate the tag?
     }
@@ -145,18 +145,18 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
   }
 }
 
-class BuildSelfContext extends ConfigContext {
+class BuildSelfContext extends ContextWithSchema {
   @schema(joi.string().description("The name of the build being tagged."))
-  public name: string
+  public readonly name: string
 
   @schema(joi.string().description("The version of the build being tagged (including the 'v-' prefix)."))
-  public version: string
+  public readonly version: string
 
   @schema(joi.string().description("The version hash of the build being tagged (minus the 'v-' prefix)."))
-  public hash: string
+  public readonly hash: string
 
-  constructor(parent: ConfigContext, build: BuildAction) {
-    super(parent)
+  constructor(build: BuildAction) {
+    super()
     this.name = build.name
     this.version = build.versionString()
     this.hash = this.version.slice(versionStringPrefix.length)
@@ -165,13 +165,13 @@ class BuildSelfContext extends ConfigContext {
 
 class BuildTagContext extends ActionSpecContext {
   @schema(BuildSelfContext.getSchema().description("Extended information about the build being tagged."))
-  public build: BuildSelfContext
+  public readonly build: BuildSelfContext
 
   @schema(BuildSelfContext.getSchema().description("Alias kept for compatibility."))
-  public module: BuildSelfContext
+  public readonly module: BuildSelfContext
 
   constructor(params: ActionSpecContextParams & { action: BuildAction }) {
     super(params)
-    this.build = this.module = new BuildSelfContext(this, params.action)
+    this.build = this.module = new BuildSelfContext(params.action)
   }
 }

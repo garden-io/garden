@@ -14,6 +14,7 @@ import type { TestGarden } from "../../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import type { Log } from "../../../../../src/logger/log-entry.js"
 import type { ExecProviderOutputs } from "../../../../../src/plugins/exec/exec.js"
+import { parseTemplateCollection } from "../../../../../src/template/templated-collections.js"
 
 describe("exec plugin", () => {
   let garden: TestGarden
@@ -54,7 +55,10 @@ describe("exec plugin", () => {
 
     it("actions should be able to access exec provider script result", async () => {
       const action = graph.getRun("task-a")
-      action._config.spec.command = ["echo", "${providers.exec.outputs.initScript.log}"]
+      action._config.spec.command = parseTemplateCollection({
+        value: ["echo", "${providers.exec.outputs.initScript.log}"],
+        source: { path: [] },
+      })
       const resolved = await resolveAction({ action, log, graph, garden })
       const result = await executeAction({ action: resolved, graph, log, garden })
       expect(result.getOutput("log")).to.eql("this is a provider output message")

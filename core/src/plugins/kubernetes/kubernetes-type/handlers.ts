@@ -40,6 +40,7 @@ import type { ActionMode, Resolved } from "../../../actions/types.js"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status.js"
 import type { ResolvedDeployAction } from "../../../actions/deploy.js"
 import { isSha256 } from "../../../util/hashing.js"
+import { prepareSecrets } from "../secrets.js"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -364,6 +365,10 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
   const namespace = namespaceStatus.namespaceName
 
   const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
+
+  // Ensure secrets are created in the target namespace
+  const secrets = [...provider.config.copySecrets, ...provider.config.imagePullSecrets]
+  await prepareSecrets({ api, namespace, secrets, log })
 
   // We separate out manifests for namespace resources, since we don't want to apply a prune selector
   // when applying them.

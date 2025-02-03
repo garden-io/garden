@@ -10,11 +10,9 @@ import { mapValues } from "lodash-es"
 import fsExtra from "fs-extra"
 import type { DumpOptions } from "js-yaml"
 import { dump, load } from "js-yaml"
-import highlightModule from "cli-highlight"
-import { styles } from "../logger/styles.js"
+import { UnresolvedTemplateValue } from "../template/types.js"
 
 const { readFile, writeFile } = fsExtra
-const highlight = highlightModule.default
 
 export async function dumpYaml(yamlPath: string, data: any) {
   return writeFile(yamlPath, safeDumpYaml(data, { noRefs: true }))
@@ -23,8 +21,20 @@ export async function dumpYaml(yamlPath: string, data: any) {
 /**
  * Wraps safeDump and enforces that invalid values are skipped
  */
-export function safeDumpYaml(data: any, opts: DumpOptions = {}) {
-  return dump(data, { ...opts, skipInvalid: true })
+export function safeDumpYaml(data: any, opts: Omit<DumpOptions, "replacer"> = {}) {
+  return dump(data, {
+    ...opts,
+    skipInvalid: true,
+    replacer: (_, v) => {
+      if (v instanceof UnresolvedTemplateValue) {
+        // serialize unresolved template values to JSON
+        return v.toJSON()
+      }
+
+      // return the original value otherwise
+      return v
+    },
+  })
 }
 
 /**
@@ -32,24 +42,6 @@ export function safeDumpYaml(data: any, opts: DumpOptions = {}) {
  */
 export function encodeYamlMulti(objects: object[]) {
   return objects.map((s) => safeDumpYaml(s, { noRefs: true }) + "---\n").join("")
-}
-
-export function highlightYaml(s: string) {
-  try {
-    return highlight(s, {
-      language: "yaml",
-      theme: {
-        keyword: styles.accent.italic,
-        literal: styles.accent.italic,
-        string: styles.accent,
-      },
-    })
-  } catch (err) {
-    // FIXME: this is a quickfix for https://github.com/garden-io/garden/issues/5442
-    //  The issue needs to be fixed properly, by fixing Garden single app binary construction.
-    // Fallback to non-highlighted yaml if an error occurs.
-    return s
-  }
 }
 
 /**

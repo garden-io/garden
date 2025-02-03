@@ -80,7 +80,7 @@ async function makeGarden({ tmpDir, plugin }: { tmpDir: tmp.DirectoryResult; plu
   })
 
   const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
-  garden.setActionConfigs([makeDeployAction(tmpDir.path, "test-service-a")])
+  garden.setPartialActionConfigs([makeDeployAction(tmpDir.path, "test-service-a")])
   return garden
 }
 
@@ -371,7 +371,7 @@ describe("LogsCommand", () => {
         }
         const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
 
-        garden.setActionConfigs([
+        garden.setPartialActionConfigs([
           makeDeployAction(tmpDir.path, "a-short"),
           makeDeployAction(tmpDir.path, "b-not-short"),
           makeDeployAction(tmpDir.path, "c-by-far-the-longest-of-the-bunch"),
@@ -429,7 +429,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
-      garden.setActionConfigs(actionConfigsForTags())
+      garden.setPartialActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
@@ -462,7 +462,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
-      garden.setActionConfigs(actionConfigsForTags())
+      garden.setPartialActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api"] } }))
@@ -482,7 +482,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
-      garden.setActionConfigs(actionConfigsForTags())
+      garden.setPartialActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       await expectError(() => command.action(makeCommandParams({ garden, opts: { tag: ["*-main"] } })), {
@@ -513,7 +513,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
-      garden.setActionConfigs(actionConfigsForTags())
+      garden.setPartialActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api,myTag=1"] } }))
@@ -553,7 +553,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
-      garden.setActionConfigs(actionConfigsForTags())
+      garden.setPartialActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(
@@ -599,7 +599,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
-      garden.setActionConfigs(actionConfigsForTags())
+      garden.setPartialActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=*-main"] } }))

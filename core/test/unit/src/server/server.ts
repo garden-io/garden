@@ -212,6 +212,8 @@ describe("GardenServer", () => {
         .set({ [authTokenHeader]: gardenServer.authKey })
         .send({ command: "get config", stringArguments: [] })
         .expect(200)
+      expect(res.body.errors).to.eq(undefined, `error response: ${res.body.errors?.[0]?.stack}`)
+
       const config = await garden.dumpConfig({ log: garden.log })
       expect(res.body.result).to.eql(deepOmitUndefined(config))
     })
@@ -225,6 +227,7 @@ describe("GardenServer", () => {
         })
         .expect(200)
 
+      expect(res.body.errors).to.eq(undefined, `error response: ${res.body.errors?.[0]?.stack}`)
       const result = taskResultOutputs(res.body.result)
       expect(result["build.module-a"]).to.exist
       expect(result["build.module-a"].state).to.equal("ready")
@@ -236,6 +239,7 @@ describe("GardenServer", () => {
         .set({ [authTokenHeader]: gardenServer.authKey })
         .send({ command: "get config --var foo=bar" })
         .expect(200)
+      expect(res.body.errors).to.eq(undefined, `error response: ${res.body.errors?.[0]?.stack}`)
       expect(res.body.result.variables.foo).to.equal("bar")
     })
   })

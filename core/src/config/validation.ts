@@ -93,15 +93,15 @@ export function validateWithPath<T>({
   return <T>validateSchema(config, schema, validateOpts)
 }
 
-export interface ValidateConfigParams<T extends BaseGardenResource> {
-  config: T
+export interface ValidateConfigParams {
+  config: BaseGardenResource
   schema: Joi.Schema
   projectRoot: string
   yamlDocBasePath: ObjectPath
   ErrorClass?: typeof ConfigurationError
 }
 
-export function validateConfig<T extends BaseGardenResource>(params: ValidateConfigParams<T>): T {
+export function validateConfig<T extends BaseGardenResource>(params: ValidateConfigParams): T {
   const { config, schema, projectRoot, ErrorClass, yamlDocBasePath } = params
 
   const { name, kind } = config
@@ -119,7 +119,7 @@ export function validateConfig<T extends BaseGardenResource>(params: ValidateCon
 }
 
 export function validateSchema<T>(
-  value: T,
+  value: unknown,
   schema: Joi.Schema,
   { source, context = "", ErrorClass = ConfigurationError }: ValidateOptions = {}
 ): T {

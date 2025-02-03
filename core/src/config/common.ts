@@ -8,6 +8,7 @@
 
 import type { SchemaLike } from "@hapi/joi"
 import Joi from "@hapi/joi"
+import type { JSONSchemaType, ValidateFunction } from "ajv"
 import ajvPackage from "ajv"
 
 const Ajv = ajvPackage.default
@@ -26,16 +27,16 @@ import type { ConfigContextType } from "./template-contexts/base.js"
 import { z } from "zod"
 import {
   gitUrlRegex,
-  objectSpreadKey,
-  arrayConcatKey,
-  arrayForEachKey,
-  arrayForEachFilterKey,
-  arrayForEachReturnKey,
   identifierRegex,
   joiIdentifierDescription,
   userIdentifierRegex,
   variableNameRegex,
   envVarRegex,
+  arrayForEachReturnKey,
+  arrayForEachFilterKey,
+  arrayForEachKey,
+  arrayConcatKey,
+  objectSpreadKey,
 } from "./constants.js"
 import { renderZodError } from "./zod.js"
 import { makeDocsLinkPlain } from "../docs/common.js"
@@ -167,7 +168,7 @@ declare module "@hapi/joi" {
 export interface CustomObjectSchema extends Joi.ObjectSchema {
   concat(schema: object): this
 
-  jsonSchema(schema: object): this
+  jsonSchema(schema: any): this
 
   zodSchema(schema: z.ZodObject<any>): this
 }
@@ -369,7 +370,7 @@ joi = joi.extend({
  * Compiles a JSON schema and caches the result.
  */
 const compileJsonSchema = memoize(
-  (schema: any) => {
+  (schema: JSONSchemaType<Record<string, unknown>>) => {
     return ajv.compile(schema)
   },
   (s) => JSON.stringify(s)
@@ -393,7 +394,7 @@ joi = joi.extend({
   //   return { value }
   // },
   args(schema: any, keys: any) {
-    // Always allow the special $merge, $forEach etc. keys, which we resolve and collapse in resolveTemplateStrings()
+    // Always allow the special $merge, $forEach etc. keys, which are part of the template language.
     // Note: we allow both the expected schema and strings, since they may be templates resolving to the expected type.
     return schema.keys({
       [objectSpreadKey]: joi.alternatives(joi.object(), joi.string()),
@@ -406,7 +407,7 @@ joi = joi.extend({
   },
   rules: {
     jsonSchema: {
-      method(jsonSchema: object) {
+      method(jsonSchema: JSONSchemaType<unknown>) {
         // eslint-disable-next-line no-invalid-this
         this.$_setFlag("jsonSchema", jsonSchema)
         // eslint-disable-next-line no-invalid-this
@@ -419,7 +420,7 @@ joi = joi.extend({
             return !!value
           },
           message: "must be a valid JSON Schema with type=object",
-          normalize: (value) => {
+          normalize: (value: JSONSchemaType<unknown>): false | ValidateFunction<Record<string, unknown>> => {
             if (value.type !== "object") {
               return false
             }
@@ -433,7 +434,7 @@ joi = joi.extend({
         },
       ],
       validate(originalValue, helpers, args) {
-        const validate = args.jsonSchema
+        const validate: ValidateFunction<Record<string, unknown>> = args.jsonSchema
 
         // Need to do this to be able to assign defaults without mutating original value
         const value = cloneDeep(originalValue)
@@ -443,7 +444,7 @@ joi = joi.extend({
           return value
         } else {
           // TODO: customize the rendering here to make it a bit nicer
-          const errors = [...validate.errors]
+          const errors = [...validate.errors!]
           const error = helpers.error("validation")
           error.message = ajv.errorsText(errors, { dataVar: `value at ${joiPathPlaceholder}` })
           return error

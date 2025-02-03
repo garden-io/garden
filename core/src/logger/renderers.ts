@@ -14,7 +14,7 @@ import stringWidth from "string-width"
 import { format } from "date-fns"
 import { resolveMsg, type LogEntry } from "./log-entry.js"
 import type { JsonLogEntry } from "./writers/json-terminal-writer.js"
-import { highlightYaml, safeDumpYaml } from "../util/serialization.js"
+import { safeDumpYaml } from "../util/serialization.js"
 import type { Logger } from "./logger.js"
 import { logLevelMap, LogLevel } from "./logger.js"
 import { toGardenError } from "../exceptions.js"
@@ -131,7 +131,7 @@ export function renderData(entry: LogEntry): string {
   }
   if (!dataFormat || dataFormat === "yaml") {
     const asYaml = safeDumpYaml(data, { noRefs: true })
-    return highlightYaml(asYaml)
+    return asYaml
   }
   return stringify(data, null, 2)
 }

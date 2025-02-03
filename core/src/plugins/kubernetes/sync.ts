@@ -176,8 +176,11 @@ const syncModeOverrideSpec = () =>
     target: targetResourceSpecSchema().description(
       "The Kubernetes resources to override. If specified, this is used instead of `spec.defaultTarget`."
     ),
-    command: joi.array().items(joi.string()).description("Override the command/entrypoint in the matched container."),
-    args: joi.array().items(joi.string()).description("Override the args in the matched container."),
+    command: joi
+      .sparseArray()
+      .items(joi.string())
+      .description("Override the command/entrypoint in the matched container."),
+    args: joi.sparseArray().items(joi.string()).description("Override the args in the matched container."),
     image: joi.string().description("Override the image of the matched container."),
   })
 

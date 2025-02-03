@@ -4,7 +4,7 @@ ARG VARIANT=root
 
 # NOTE: This is not the node version Garden itself will run in. Garden binaries have node "built in" and the version installed on the system does not matter.
 # The main reason we base these images off of the Node image is for Azure DevOps Support.
-FROM node:23.6.0-alpine@sha256:498bf3e45a4132b99952f88129ae5429e3568f3836edbfc09e3661515f620837 as garden-base-root
+FROM node:23.6.1-alpine@sha256:15b885c5e195296ba49bab32681b478e92eb0f255078a84ad29020b87b0bdcc6 as garden-base-root
 
 RUN apk add --no-cache \
   bash \
@@ -65,8 +65,8 @@ WORKDIR /project
 
 FROM python:3.12.7-alpine@sha256:e75de178bc15e72f3f16bf75a6b484e33d39a456f03fc771a2b3abb9146b75f8 AS aws-builder
 
-ENV AWSCLI_VERSION=2.22.0
-ENV AWSCLI_SHA256="7eea66e262a767551daf0f627b3063077da93f48751e7600a4b61b924219e0ce"
+ENV AWSCLI_VERSION=2.23.2
+ENV AWSCLI_SHA256="105e0eb770d4fa7df3e06b4449bddf52d160f296be126737307b67393fb4f4bb"
 
 RUN apk add --no-cache \
   wget \
@@ -100,7 +100,7 @@ COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/b
 #
 # gcloud base
 #
-FROM google/cloud-sdk:505.0.0-alpine@sha256:aa09cac314aef6ba8feea5a9548c2a2c1816726a9b0867dbdf2c64bc8ffeebf4 as gcloud-base
+FROM google/cloud-sdk:507.0.0-alpine@sha256:2cfaf692f2218e9d57c73a72adc56e488f8508c3dd152a8d4bbea05546d62e2a as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet && gcloud components remove gsutil --quiet
 
@@ -113,10 +113,10 @@ RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-
 FROM garden-base-root as garden-azure-base
 
 WORKDIR /
-ENV AZURE_CLI_VERSION=2.67.0
+ENV AZURE_CLI_VERSION=2.68.0
 
 RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-${AZURE_CLI_VERSION}/src/azure-cli/requirements.py3.Linux.txt && \
-  echo "f1245ac756208ebe408ec61d5f88ef44047f0d02ea1fd437db249267a9134205  requirements.txt" | sha256sum -c
+  echo "21f5cc86925387f2e2c8247b75ed3b95ec6fc0d8134de76b447470719eff6a45  requirements.txt" | sha256sum -c
 RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-${AZURE_CLI_VERSION}/scripts/trim_sdk.py && \
   echo "2e6292f5285b4fcedbe8efd77309fade550667d1c502a6ffa078f1aa97942c64  trim_sdk.py" | sha256sum -c
 

@@ -20,7 +20,7 @@ import { renderTable, dedent, deline } from "../../util/string.js"
 import { relative, sep } from "path"
 import type { Garden } from "../../index.js"
 import type { Log } from "../../logger/log-entry.js"
-import { highlightYaml, safeDumpYaml } from "../../util/serialization.js"
+import { safeDumpYaml } from "../../util/serialization.js"
 import { deepMap } from "../../util/objects.js"
 import { styles } from "../../logger/styles.js"
 
@@ -137,7 +137,7 @@ function logFull(garden: Garden, modules: GardenModule[], log: Log) {
       ${printEmoji("🌱", log)}  Module: ${styles.success(module.name)}
       ${divider}\n
     `)
-    log.info(highlightYaml(yaml))
+    log.info(yaml)
   }
 }
 

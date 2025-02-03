@@ -40,6 +40,8 @@ describe("getActionConfigVersion", () => {
       exclude: { leftValue: ["file1"], rightValue: ["file2"] },
       include: { leftValue: ["file1"], rightValue: ["file2"] },
       internal: { leftValue: { basePath: "./base1" }, rightValue: { basePath: "./base2" } },
+      variables: { leftValue: { foo: "bar" }, rightValue: { bar: "baz" } },
+      varfiles: { leftValue: ["foo.yml"], rightValue: ["bar.yml"] },
       source: { leftValue: { path: "path1" }, rightValue: { path: "path2" } },
     }
 

@@ -50,7 +50,7 @@ describe("persistentvolumeclaim", () => {
       },
     }
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "test",

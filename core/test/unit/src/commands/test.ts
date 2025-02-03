@@ -479,7 +479,7 @@ describe("TestCommand", () => {
         }),
       ]
 
-      garden.setModuleConfigs(moduleConfigs)
+      garden.setPartialModuleConfigs(moduleConfigs)
 
       const { result, errors } = await command.action({
         garden,

@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Document } from "yaml"
-import type { ModuleConfig } from "./module.js"
+import { coreModuleSpecKeys, type ModuleConfig } from "./module.js"
 import { dedent, deline, naturalList } from "../util/string.js"
-import type { BaseGardenResource, RenderTemplateKind, YamlDocumentWithSource } from "./base.js"
+import type { BaseGardenResource, RenderTemplateKind } from "./base.js"
 import {
   baseInternalFieldsSchema,
   configTemplateKind,
@@ -17,20 +16,16 @@ import {
   prepareResource,
   renderTemplateKind,
 } from "./base.js"
-import {
-  maybeTemplateString,
-  resolveTemplateString,
-  resolveTemplateStrings,
-} from "../template-string/template-string.js"
+import { isUnresolved } from "../template/templated-strings.js"
 import { validateWithPath } from "./validation.js"
 import type { Garden } from "../garden.js"
-import { ConfigurationError, GardenError } from "../exceptions.js"
+import { ConfigurationError, GardenError, InternalError } from "../exceptions.js"
 import { resolve, posix } from "path"
 import fsExtra from "fs-extra"
 
 const { ensureDir } = fsExtra
 import type { TemplatedModuleConfig } from "../plugins/templated.js"
-import { omit } from "lodash-es"
+import { isString, omit } from "lodash-es"
 import { EnvironmentConfigContext } from "./template-contexts/project.js"
 import type { ConfigTemplateConfig, TemplatableConfig } from "./config-template.js"
 import { templatableKinds, templateNoTemplateFields } from "./config-template.js"
@@ -39,6 +34,10 @@ import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { RenderTemplateConfigContext } from "./template-contexts/render.js"
 import type { Log } from "../logger/log-entry.js"
 import { GardenApiVersion } from "../constants.js"
+import { deepEvaluate, evaluate } from "../template/evaluate.js"
+import { serialiseUnresolvedTemplates, UnresolvedTemplateValue } from "../template/types.js"
+import { isArray, isPlainObject } from "../util/objects.js"
+import { InputContext } from "./template-contexts/input.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -127,25 +126,15 @@ export async function renderConfigTemplate({
   const enterpriseDomain = garden.cloudApi?.domain
   const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, enterpriseDomain })
 
-  const yamlDoc = config.internal.yamlDoc
+  // @ts-expect-error todo: correct types for unresolved configs
+  const resolvedWithoutInputs: RenderTemplateConfig = deepEvaluate(omit(config, "inputs"), {
+    context: templateContext,
+    opts: {},
+  })
 
-  const resolvedWithoutInputs = resolveTemplateStrings({
-    value: { ...omit(config, "inputs") },
-    context: templateContext,
-    source: { yamlDoc, path: [] },
-  })
-  const partiallyResolvedInputs = resolveTemplateStrings({
-    value: config.inputs || {},
-    context: templateContext,
-    contextOpts: {
-      allowPartial: true,
-      legacyAllowPartial: true,
-    },
-    source: { yamlDoc, path: ["inputs"] },
-  })
   let resolved: RenderTemplateConfig = {
     ...resolvedWithoutInputs,
-    inputs: partiallyResolvedInputs,
+    inputs: config.inputs,
   }
 
   const configType = "Render " + resolved.name
@@ -155,7 +144,6 @@ export async function renderConfigTemplate({
     return { resolved, modules: [], configs: [] }
   }
 
-  // Validate the module spec
   resolved = validateWithPath({
     config: resolved,
     configType,
@@ -184,7 +172,7 @@ export async function renderConfigTemplate({
     enterpriseDomain,
     parentName: resolved.name,
     templateName: template.name,
-    inputs: partiallyResolvedInputs,
+    inputs: InputContext.forRenderTemplate(config, template),
   })
 
   // TODO: remove in 0.14
@@ -206,36 +194,46 @@ async function renderModules({
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
 }): Promise<ModuleConfig[]> {
-  const yamlDoc = template.internal.yamlDoc
-
   return Promise.all(
-    (template.modules || []).map(async (m, i) => {
-      // Run a partial template resolution with the parent+template info
-      const spec = resolveTemplateStrings({
-        value: m,
+    (template.modules || []).map(async (m, index) => {
+      // @ts-expect-error todo: correct types for unresolved configs
+      const spec = evaluate(m, {
         context,
-        contextOpts: { allowPartial: true, legacyAllowPartial: true },
-        source: { yamlDoc, path: ["modules", i] },
-      })
+        opts: {},
+      }).resolved
+
+      if (!isPlainObject(spec)) {
+        throw new ConfigurationError({
+          message: `${configTemplateKind} ${template.name}: invalid module at index ${index}: Must be or resolve to a plain object`,
+        })
+      }
+
       const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
       let moduleConfig: ModuleConfig
 
+      const resolvedSpec = { ...spec }
       try {
-        moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
+        for (const key of coreModuleSpecKeys()) {
+          resolvedSpec[key] = deepEvaluate(resolvedSpec[key], { context, opts: {} })
+        }
+        moduleConfig = prepareModuleResource(resolvedSpec, renderConfigPath, garden.projectRoot)
       } catch (error) {
-        if (!(error instanceof GardenError)) {
+        if (!(error instanceof GardenError) || error.type === "crash") {
           throw error
         }
         let msg = error.message
 
-        if (spec.name && spec.name.includes && spec.name.includes("${")) {
+        if (coreModuleSpecKeys().some((k) => spec[k] instanceof UnresolvedTemplateValue)) {
           msg +=
-            ". Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
+            "\n\nNote that if a template string is used for the name, kind, type or apiVersion of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
         }
 
         throw new ConfigurationError({
-          message: `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${renderConfig.name}: ${msg}`,
+          message: `${configTemplateKind} ${template.name} returned an invalid module (named ${
+            // We use serializeUnresolvedTemplates here because the error message is clearer for the user with a plain unresolved template string
+            serialiseUnresolvedTemplates(resolvedSpec.name)
+          }) for templated module ${renderConfig.name}: ${msg}`,
         })
       }
 
@@ -246,8 +244,8 @@ async function renderModules({
       }))
 
       // If a path is set, resolve the path and ensure that directory exists
-      if (spec.path) {
-        moduleConfig.path = resolve(renderConfig.internal.basePath, ...spec.path.split(posix.sep))
+      if (resolvedSpec.path && isString(resolvedSpec.path)) {
+        moduleConfig.path = resolve(renderConfig.internal.basePath, ...resolvedSpec.path.split(posix.sep))
         await ensureDir(moduleConfig.path)
       }
 
@@ -274,30 +272,37 @@ async function renderConfigs({
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
 }): Promise<TemplatableConfig[]> {
-  const source = { yamlDoc: template.internal.yamlDoc, path: ["configs"] }
-
   const templateDescription = `${configTemplateKind} '${template.name}'`
-  const templateConfigs = template.configs || []
-  const partiallyResolvedTemplateConfigs = resolveTemplateStrings({
-    value: templateConfigs,
+  // @ts-expect-error todo: correct types for unresolved configs
+  const templateConfigs = evaluate(template.configs || [], {
     context,
-    contextOpts: { allowPartial: true, legacyAllowPartial: true },
-    source,
-  })
+    opts: {},
+  }).resolved
+
+  if (!isArray(templateConfigs)) {
+    throw new InternalError({ message: "Expected templateConfigs to be an array" })
+  }
 
   return Promise.all(
-    partiallyResolvedTemplateConfigs.map(async (m, index) => {
+    templateConfigs.map(async (c) => {
+      const m = evaluate(c, {
+        context,
+        opts: {},
+      }).resolved as any
+
       // Resolve just the name, which must be immediately resolvable
       let resolvedName = m.name
 
       try {
-        resolvedName = resolveTemplateString({
-          string: m.name,
+        resolvedName = deepEvaluate(m.name, {
           context,
-          contextOpts: { allowPartial: false },
-          source: { ...source, path: [...source.path, index, "name"] },
+          opts: {},
         }) as string
       } catch (error) {
+        if (!(error instanceof GardenError)) {
+          throw error
+        }
+
         throw new ConfigurationError({
           message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
         })
@@ -305,7 +310,7 @@ async function renderConfigs({
 
       // TODO: validate this before?
       for (const field of templateNoTemplateFields) {
-        if (maybeTemplateString(m[field])) {
+        if (isUnresolved(m[field])) {
           throw new ConfigurationError({
             message: `${templateDescription} contains an invalid resource: Found a template string in '${field}' field (${m[field]}).`,
           })
@@ -328,7 +333,8 @@ async function renderConfigs({
       try {
         resource = <TemplatableConfig>prepareResource({
           log,
-          doc: new Document(spec) as YamlDocumentWithSource,
+          spec,
+          doc: undefined,
           configFilePath: renderConfigPath,
           projectRoot: garden.projectRoot,
           description: `resource in Render ${renderConfig.name}`,
@@ -355,8 +361,8 @@ async function renderConfigs({
       // Attach metadata
       resource.internal.parentName = renderConfig.name
       resource.internal.templateName = template.name
-      resource.internal.inputs = renderConfig.inputs
 
+      resource.internal.inputs = renderConfig.inputs
       return resource
     })
   )

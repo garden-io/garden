@@ -11,7 +11,8 @@ import * as td from "testdouble"
 
 import type { PluginContext } from "../../../../../src/plugin-context.js"
 import type { ContainerProvider } from "../../../../../src/plugins/container/container.js"
-import { gardenPlugin } from "../../../../../src/plugins/container/container.js"
+import { gardenPlugin as gardenContainerPlugin } from "../../../../../src/plugins/container/container.js"
+import { gardenPlugin as gardenK8sPlugin } from "../../../../../src/plugins/kubernetes/kubernetes.js"
 import type { TestGarden } from "../../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../helpers.js"
 import type { ActionLog } from "../../../../../src/logger/log-entry.js"
@@ -29,11 +30,11 @@ import type { BuildActionConfig } from "../../../../../src/actions/build.js"
 import { containerHelpers, minDockerVersion } from "../../../../../src/plugins/container/helpers.js"
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants.js"
-
-const testVersionedId = "some/image:12345"
+import type { KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
+import { kubernetesContainerHelpers } from "../../../../../src/plugins/kubernetes/container/build/local.js"
 
 describe("plugins.container", () => {
-  const projectRoot = getDataDir("test-project-container")
+  const projectRoot = getDataDir("test-project-container-kubernetes")
 
   const baseConfig: BuildActionConfig<"container", ContainerBuildActionSpec> = {
     name: "test",
@@ -58,7 +59,7 @@ describe("plugins.container", () => {
   let dockerCli: sinon.SinonStub<any>
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
+    garden = await makeTestGarden(projectRoot, { plugins: [gardenContainerPlugin(), gardenK8sPlugin()] })
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     containerProvider = await garden.resolveProvider({ log: garden.log, name: "container" })
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
@@ -71,23 +72,26 @@ describe("plugins.container", () => {
 
   async function getTestBuild(cfg: BuildActionConfig): Promise<Executed<ContainerBuildAction>> {
     sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
+    sinon.replace(kubernetesContainerHelpers, "loadToLocalK8s", async () => undefined)
 
     dockerCli = sinon.stub(containerHelpers, "dockerCli")
     dockerCli.returns(
       Promise.resolve({
         all: "test log",
-        stdout: testVersionedId,
+        stdout: "test log",
         stderr: "",
         code: 0,
         proc: null,
       })
     )
 
-    garden.setActionConfigs([cfg])
+    garden.setPartialActionConfigs([cfg])
     const graph = await garden.getConfigGraph({ emit: false, log })
     const build = graph.getBuild(cfg.name)
     const resolved = await garden.resolveAction({ action: build, graph, log })
-    return garden.executeAction({ action: resolved, graph, log })
+    const executed = await garden.executeAction({ action: resolved, graph, log })
+
+    return executed
   }
 
   describe("publishContainerBuild", () => {
@@ -100,10 +104,6 @@ describe("plugins.container", () => {
 
       const action = await getTestBuild(config)
 
-      sinon.replace(action, "getOutput", (o: string) =>
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        o === "localImageId" ? testVersionedId : action.getOutput(<any>o)
-      )
       sinon.restore()
 
       const _dockerCli = sinon.stub(containerHelpers, "dockerCli")
@@ -113,7 +113,7 @@ describe("plugins.container", () => {
 
       sinon.assert.calledWithMatch(_dockerCli.firstCall, {
         cwd: action.getBuildPath(),
-        args: ["tag", action.getOutput("local-image-id"), publishId],
+        args: ["tag", `test:${action.versionString()}`, publishId],
       })
 
       sinon.assert.calledWithMatch(_dockerCli.secondCall, {
@@ -124,17 +124,9 @@ describe("plugins.container", () => {
 
     it("should use specified tag if provided", async () => {
       const config = cloneDeep(baseConfig)
-      const action = td.object(await getTestBuild(config))
+      const action = await getTestBuild(config)
 
       sinon.restore()
-
-      sinon.replace(action, "getOutput", (o: string) =>
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        o === "localImageId" ? testVersionedId : action.getOutput(<any>o)
-      )
-
-      sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
-
       const _dockerCli = sinon.stub(containerHelpers, "dockerCli")
 
       const result = await publishContainerBuild({ ctx, log, action, tagOverride: "custom-tag" })
@@ -144,7 +136,7 @@ describe("plugins.container", () => {
         _dockerCli,
         sinon.match({
           cwd: action.getBuildPath(),
-          args: ["tag", testVersionedId, "test:custom-tag"],
+          args: ["tag", `test:${action.versionString()}`, "test:custom-tag"],
         })
       )
 
@@ -174,7 +166,7 @@ describe("plugins.container", () => {
 
       it("should use spec.publishId if defined", async () => {
         const config = cloneDeep(baseConfig)
-        config.spec.publishId = testVersionedId
+        config.spec.publishId = "some/image:12345"
 
         action = await getTestBuild(config)
 
@@ -196,11 +188,31 @@ describe("plugins.container", () => {
         const config = cloneDeep(baseConfig)
 
         action = await getTestBuild(config)
-
         const result = await publishContainerBuild({ ctx, log, action })
         assertPublishId(`test:${action.versionString()}`, result.detail)
       })
+      it("should fall back to action.outputs.deploymentImageName if spec.localId and spec.publishId are not defined - with kubernetes provider with deployment registry", async () => {
+        const kubernetesProvider = (await garden.resolveProvider({
+          log,
+          name: "local-kubernetes",
+        })) as KubernetesProvider
+        kubernetesProvider.config.deploymentRegistry = {
+          hostname: "foo.io",
+          namespace: "bar",
+          insecure: false,
+        }
+        ctx = await garden.getPluginContext({
+          provider: kubernetesProvider,
+          templateContext: undefined,
+          events: undefined,
+        })
+        const config = cloneDeep(baseConfig)
 
+        action = await getTestBuild(config)
+
+        const result = await publishContainerBuild({ ctx, log, action })
+        assertPublishId(`foo.io/bar/test:${action.versionString()}`, result.detail)
+      })
       it("should respect tagOverride, which corresponds to garden publish --tag command line option", async () => {
         const config = cloneDeep(baseConfig)
 

@@ -16,7 +16,7 @@ import { mavendSpec, mvnd, mvndVersion } from "./mavend.js"
 import { gradle, gradleSpec, gradleVersion } from "./gradle.js"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
-import type { GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
+import type { BaseProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
 import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider.js"
 import { getGitHubUrl } from "@garden-io/core/build/src/docs/common.js"
 import {
@@ -38,7 +38,7 @@ import type {
 } from "@garden-io/core/build/src/plugin/handlers/Module/convert.js"
 import type { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context.js"
 
-export type JibProviderConfig = GenericProviderConfig
+export type JibProviderConfig = BaseProviderConfig
 
 export type JibProvider = Provider<JibProviderConfig>
 

@@ -253,7 +253,7 @@ describe("sync mode deployments and sync behavior", () => {
       // Since the sync specs for both `kubernetes` and `helm` modules have the type
       // `KubernetesModuleDevModeSpec`, we don't need separate test cases for each of those two module types here.
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         <KubernetesModuleConfig>{
           kind: "Module",
           type: "kubernetes",
@@ -301,7 +301,7 @@ describe("sync mode deployments and sync behavior", () => {
     })
 
     it("should return a sync spec using several options converted from a kubernetes or helm module", async () => {
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         <HelmModuleConfig>{
           kind: "Module",
           type: "helm",
@@ -390,8 +390,8 @@ describe("sync mode deployments and sync behavior", () => {
     })
 
     it("converts a sync spec from a container Deploy action", async () => {
-      garden.setModuleConfigs([])
-      garden.setActionConfigs([
+      garden.setPartialModuleConfigs([])
+      garden.setPartialActionConfigs([
         <ContainerDeployActionConfig>{
           kind: "Deploy",
           type: "container",

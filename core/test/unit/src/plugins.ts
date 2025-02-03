@@ -15,6 +15,7 @@ import { ACTION_RUNTIME_LOCAL, createGardenPlugin } from "../../../src/plugin/pl
 import { resolvePlugins } from "../../../src/plugins.js"
 import { findByName } from "../../../src/util/util.js"
 import { expectError } from "../../helpers.js"
+import { UnresolvedProviderConfig } from "../../../src/config/project.js"
 
 describe("resolvePlugins", () => {
   const log = getRootLogger().createLog()
@@ -60,9 +61,12 @@ describe("resolvePlugins", () => {
       },
     ]
 
-    await expectError(async () => resolvePlugins(log, { test: plugin }, [{ name: "test" }]), {
-      contains: "has overlapping keys in staticoutputsschema and runtimeoutputsschema",
-    })
+    await expectError(
+      async () => resolvePlugins(log, { test: plugin }, [new UnresolvedProviderConfig("test", [], { name: "test" })]),
+      {
+        contains: "has overlapping keys in staticoutputsschema and runtimeoutputsschema",
+      }
+    )
   })
 
   it("throws if action type staticOutputsSchema allows unknown keys", async () => {
@@ -82,9 +86,12 @@ describe("resolvePlugins", () => {
       },
     ]
 
-    await expectError(async () => resolvePlugins(log, { test: plugin }, [{ name: "test" }]), {
-      contains: "allows unknown keys in the staticoutputsschema",
-    })
+    await expectError(
+      async () => resolvePlugins(log, { test: plugin }, [new UnresolvedProviderConfig("base", [], { name: "test" })]),
+      {
+        contains: "allows unknown keys in the staticoutputsschema",
+      }
+    )
   })
 
   it("inherits created action type from base plugin", async () => {
@@ -110,7 +117,9 @@ describe("resolvePlugins", () => {
 
     const dependant = createGardenPlugin({ name: "dependant", base: "base" })
 
-    const result = resolvePlugins(log, { base, dependant }, [{ name: "test" }])
+    const result = resolvePlugins(log, { base, dependant }, [
+      new UnresolvedProviderConfig("test", [], { name: "test" }),
+    ])
     const inheritedActionType = result.find((plugin) => plugin.name === "dependant")?.createActionTypes.Build[0]
     expect(inheritedActionType).to.exist
     expect(inheritedActionType?.name).to.eql("base")
@@ -157,9 +166,13 @@ describe("resolvePlugins", () => {
       },
     ]
 
-    await expectError(async () => resolvePlugins(log, { base, dependant }, [{ name: "test" }]), {
-      contains: "plugin 'dependant' redeclares the 'base' build type, already declared by its base",
-    })
+    await expectError(
+      async () =>
+        resolvePlugins(log, { base, dependant }, [new UnresolvedProviderConfig("test", [], { name: "test" })]),
+      {
+        contains: "plugin 'dependant' redeclares the 'base' build type, already declared by its base",
+      }
+    )
   })
 
   it("inherits action type extension from base plugin", async () => {
@@ -186,7 +199,9 @@ describe("resolvePlugins", () => {
 
     const dependant = createGardenPlugin({ name: "dependant", base: "base2" })
 
-    const plugins = resolvePlugins(log, { base1, base2, dependant }, [{ name: "dependant" }])
+    const plugins = resolvePlugins(log, { base1, base2, dependant }, [
+      new UnresolvedProviderConfig("dependant", [], { name: "dependant" }),
+    ])
     const resolved = findByName(plugins, "dependant")
 
     expect(resolved).to.exist
@@ -228,7 +243,10 @@ describe("resolvePlugins", () => {
         },
       })
 
-      const plugins = resolvePlugins(log, { base, extension }, [{ name: "base" }, { name: "extension" }])
+      const plugins = resolvePlugins(log, { base, extension }, [
+        new UnresolvedProviderConfig("base", [], { name: "base" }),
+        new UnresolvedProviderConfig("extension", [], { name: "extension" }),
+      ])
       const resolved = findByName(plugins, "extension")
 
       expect(resolved).to.exist
@@ -274,9 +292,9 @@ describe("resolvePlugins", () => {
       })
 
       const plugins = resolvePlugins(log, { base1, base2, extension }, [
-        { name: "base1" },
-        { name: "base2" },
-        { name: "extension" },
+        new UnresolvedProviderConfig("base1", [], { name: "base1" }),
+        new UnresolvedProviderConfig("base2", [], { name: "base2" }),
+        new UnresolvedProviderConfig("extension", [], { name: "extension" }),
       ])
       const resolved = findByName(plugins, "extension")
 
@@ -323,7 +341,10 @@ describe("resolvePlugins", () => {
         },
       })
 
-      const plugins = resolvePlugins(log, { base, inheriting }, [{ name: "base" }, { name: "inheriting" }])
+      const plugins = resolvePlugins(log, { base, inheriting }, [
+        new UnresolvedProviderConfig("base", [], { name: "base" }),
+        new UnresolvedProviderConfig("inheriting", [], { name: "inheriting" }),
+      ])
       const resolved = findByName(plugins, "inheriting")
 
       expect(resolved).to.exist
@@ -383,9 +404,9 @@ describe("resolvePlugins", () => {
       })
 
       const plugins = resolvePlugins(log, { base1, base2, inheriting }, [
-        { name: "base1" },
-        { name: "base2" },
-        { name: "inheriting" },
+        new UnresolvedProviderConfig("base1", [], { name: "base1" }),
+        new UnresolvedProviderConfig("base2", [], { name: "base2" }),
+        new UnresolvedProviderConfig("inheriting", [], { name: "inheriting" }),
       ])
       const resolved = findByName(plugins, "inheriting")
 
@@ -412,7 +433,9 @@ describe("resolvePlugins", () => {
         dependencies: [{ name: "base" }],
       })
 
-      const plugins = resolvePlugins(log, { base, extension }, [{ name: "extension" }])
+      const plugins = resolvePlugins(log, { base, extension }, [
+        new UnresolvedProviderConfig("extension", [], { name: "extension" }),
+      ])
       const resolved = findByName(plugins, "extension")
 
       expect(resolved).to.exist
@@ -458,7 +481,9 @@ describe("resolvePlugins", () => {
         dependencies: [{ name: "base2" }],
       })
 
-      const plugins = resolvePlugins(log, { base1, base2, extension }, [{ name: "extension" }])
+      const plugins = resolvePlugins(log, { base1, base2, extension }, [
+        new UnresolvedProviderConfig("extension", [], { name: "extension" }),
+      ])
       const resolved = findByName(plugins, "extension")
 
       expect(resolved).to.exist
@@ -522,7 +547,9 @@ describe("resolvePlugins", () => {
         },
       })
 
-      const plugins = resolvePlugins(log, { base1, base2, extension }, [{ name: "extension" }])
+      const plugins = resolvePlugins(log, { base1, base2, extension }, [
+        new UnresolvedProviderConfig("extension", [], { name: "extension" }),
+      ])
       const resolved = findByName(plugins, "extension")
 
       expect(resolved).to.exist

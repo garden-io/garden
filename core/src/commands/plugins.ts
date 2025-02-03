@@ -7,7 +7,7 @@
  */
 
 import { max, fromPairs, zip } from "lodash-es"
-import { findByName, getNames } from "../util/util.js"
+import { findByName } from "../util/util.js"
 import { dedent, naturalList, renderTable, tablePresets } from "../util/string.js"
 import { ParameterError, toGardenError } from "../exceptions.js"
 import type { Log } from "../logger/log-entry.js"
@@ -25,7 +25,7 @@ const pluginArgs = {
     help: "The name of the plugin, whose command you wish to run.",
     required: false,
     getSuggestions: ({ configDump }) => {
-      return getNames(configDump.providers)
+      return configDump.allAvailablePlugins
     },
   }),
   command: new StringOption({
@@ -65,7 +65,7 @@ export class PluginsCommand extends Command<Args> {
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
-    const providerConfigs = garden.getRawProviderConfigs()
+    const providerConfigs = garden.getUnresolvedProviderConfigs()
     const configuredPlugins = providerConfigs.map((p) => p.name)
 
     if (!args.command || !args.plugin) {

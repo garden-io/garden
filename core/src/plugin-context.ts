@@ -9,13 +9,13 @@
 import type { Garden } from "./garden.js"
 import type { SourceConfig } from "./config/project.js"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema } from "./config/project.js"
-import type { Provider, GenericProviderConfig } from "./config/provider.js"
+import type { Provider, BaseProviderConfig } from "./config/provider.js"
 import { providerSchema } from "./config/provider.js"
 import { deline } from "./util/string.js"
 import { joi, joiVariables, joiStringMap, joiIdentifier, createSchema } from "./config/common.js"
 import type { PluginTool } from "./util/ext-tools.js"
-import type { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base.js"
-import { resolveTemplateStrings } from "./template-string/template-string.js"
+import type { ContextWithSchema, ContextResolveOpts } from "./config/template-contexts/base.js"
+import { legacyResolveTemplateString } from "./template/templated-strings.js"
 import type { Log } from "./logger/log-entry.js"
 import { logEntrySchema } from "./plugin/base.js"
 import { EventEmitter } from "eventemitter3"
@@ -24,6 +24,8 @@ import { EventLogger, LogLevel } from "./logger/logger.js"
 import { Memoize } from "typescript-memoize"
 import type { ParameterObject, ParameterValues } from "./cli/params.js"
 import type { NamespaceStatus } from "./types/namespace.js"
+import type { ParsedTemplate, ResolvedTemplate } from "./template/types.js"
+import { deepEvaluate } from "./template/evaluate.js"
 
 export type WrappedFromGarden = Pick<
   Garden,
@@ -47,15 +49,16 @@ export interface CommandInfo {
   opts: ParameterValues<ParameterObject>
 }
 
-type ResolveTemplateStringsOpts = Omit<ContextResolveOpts, "stack">
+type ResolveTemplateStringsOpts = Omit<ContextResolveOpts, "contextStack" | "keyStack" | "stack">
 
-export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
+export interface PluginContext<C extends BaseProviderConfig = BaseProviderConfig> extends WrappedFromGarden {
   command: CommandInfo
   log: Log
   events: PluginEventBroker
   projectSources: SourceConfig[]
   provider: Provider<C>
-  resolveTemplateStrings: <T>(o: T, opts?: ResolveTemplateStringsOpts) => T
+  legacyResolveTemplateString: (value: string, opts?: ResolveTemplateStringsOpts) => ResolvedTemplate
+  deepEvaluate: (value: ParsedTemplate) => ResolvedTemplate
   tools: { [key: string]: PluginTool }
 }
 
@@ -91,11 +94,12 @@ export const pluginContextSchema = createSchema({
     projectRoot: joi.string().description("The absolute path of the project root."),
     projectSources: projectSourcesSchema(),
     provider: providerSchema().description("The provider being used for this context.").id("ctxProviderSchema"),
-    resolveTemplateStrings: joi
+    legacyResolveTemplateString: joi
       .function()
       .description(
-        "Helper function to resolve template strings, given the same templating context as was used to render the configuration before calling the handler. Accepts any data type, and returns the same data type back with all template strings resolved."
+        "Helper function to resolve a template string in a legacy way, given the same templating context as was used to render the configuration before calling the handler. Accepts any data type, and returns the same data type back with all template strings resolved."
       ),
+    deepEvaluate: joi.function().description("Helper function to deeply resolve parsed template strings."),
     sessionId: joi.string().description("The unique ID of the currently active session."),
     tools: joiStringMap(joi.object()),
     workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
@@ -214,7 +218,7 @@ export async function createPluginContext({
   garden: Garden
   provider: Provider
   command: CommandInfo
-  templateContext: ConfigContext
+  templateContext: ContextWithSchema
   events: PluginEventBroker | undefined
 }): Promise<PluginContext> {
   return {
@@ -229,8 +233,19 @@ export async function createPluginContext({
     projectSources: garden.getProjectSources(),
     provider,
     production: garden.production,
-    resolveTemplateStrings: <T>(o: T, opts?: ResolveTemplateStringsOpts) => {
-      return resolveTemplateStrings({ value: o, context: templateContext, contextOpts: opts || {}, source: undefined })
+    deepEvaluate: (o: ParsedTemplate): ResolvedTemplate => {
+      return deepEvaluate(o, {
+        context: templateContext,
+        opts: {},
+      })
+    },
+    legacyResolveTemplateString: (string: string, opts?: ResolveTemplateStringsOpts) => {
+      return legacyResolveTemplateString({
+        string,
+        context: templateContext,
+        contextOpts: opts || {},
+        source: undefined,
+      })
     },
     sessionId: garden.sessionId,
     tools: await garden.getTools(),

@@ -1,0 +1,16 @@
+kind: Module
+name: module-a
+type: container
+services:
+  - name: service-a
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /
+        port: http
+    healthCheck:
+      tcpPort: http
+tasks:
+  - name: task-a
+    args: [echo, A]

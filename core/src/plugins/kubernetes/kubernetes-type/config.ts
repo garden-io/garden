@@ -117,7 +117,7 @@ export const kubernetesPatchResourcesSchema = () =>
   )
 
 export const kubernetesApplyArgsSchema = () =>
-  joi.array().items(joi.string()).description("Additional arguments to pass to `kubectl apply`.")
+  joi.sparseArray().items(joi.string()).description("Additional arguments to pass to `kubectl apply`.")
 
 export const kubernetesCommonDeploySpecKeys = () => ({
   files: kubernetesFilesSchema(),

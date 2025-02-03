@@ -90,7 +90,7 @@ export const gardenPlugin = () =>
           handlers: {
             configure: async (params) => {
               const ctx = params.ctx as PluginContext<TerraformProviderConfig>
-              const config = params.config as TerraformProviderConfig
+              const config = params.config as TerraformDeployConfig
               const provider = ctx.provider as TerraformProvider
 
               // Use the provider config if no value is specified for the module

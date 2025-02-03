@@ -55,7 +55,8 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
         }
 
         try {
-          files = ctx.resolveTemplateStrings(files)
+          // @ts-expect-error todo: correct types for unresolved configs
+          files = ctx.deepEvaluate(files)
         } catch (error) {
           if (!(error instanceof GardenError)) {
             throw error

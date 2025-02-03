@@ -37,33 +37,15 @@ import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/nam
 
 const { readdir, readFile } = fsExtra
 
-let helmTestGarden: TestGarden
-
 export async function getHelmTestGarden() {
-  if (helmTestGarden) {
-    return helmTestGarden
-  }
-
   const projectRoot = getDataDir("test-projects", "helm")
   const garden = await makeTestGarden(projectRoot)
-
-  helmTestGarden = garden
-
   return garden
 }
 
-let helmLocalModeTestGarden: TestGarden
-
 export async function getHelmLocalModeTestGarden() {
-  if (helmLocalModeTestGarden) {
-    return helmLocalModeTestGarden
-  }
-
   const projectRoot = getDataDir("test-projects", "helm-local-mode")
   const garden = await makeTestGarden(projectRoot)
-
-  helmLocalModeTestGarden = garden
-
   return garden
 }
 

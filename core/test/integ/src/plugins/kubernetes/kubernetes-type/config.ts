@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import cloneDeep from "fast-copy"
 
 import type { TestGarden } from "../../../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../../../helpers.js"
@@ -20,6 +19,9 @@ import {
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
 } from "../../../../../../src/constants.js"
+import { serialiseUnresolvedTemplates } from "../../../../../../src/template/types.js"
+import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
+import type { ActionConfig } from "../../../../../../src/actions/types.js"
 
 describe("configureKubernetesModule", () => {
   let garden: TestGarden
@@ -28,16 +30,19 @@ describe("configureKubernetesModule", () => {
   before(async () => {
     garden = await getKubernetesTestGarden()
     await garden.resolveModules({ log: garden.log })
-    moduleConfigs = cloneDeep(garden.moduleConfigs)
+    moduleConfigs = { ...garden.moduleConfigs }
   })
 
   afterEach(() => {
-    garden.moduleConfigs = cloneDeep(moduleConfigs)
+    garden.moduleConfigs = { ...moduleConfigs }
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function patchModuleConfig(name: string, patch: any) {
-    apply(garden.moduleConfigs[name], patch)
+    const moduleConfig = serialiseUnresolvedTemplates(garden.moduleConfigs[name]) as ModuleConfig
+    apply(moduleConfig, patch)
+    // @ts-expect-error todo: correct types for unresolved configs
+    garden.moduleConfigs[name] = parseTemplateCollection({ value: moduleConfig, source: { path: [] } })
   }
 
   it("should validate a Kubernetes module", async () => {
@@ -189,6 +194,17 @@ describe("configureKubernetesType", () => {
   it("should resolve fine with null values for manifests in spec.files", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const action = graph.getDeploy("config-map-list")
-    expect(action["_config"].spec.files).to.eql([null])
+    const config = serialiseUnresolvedTemplates(action["_config"]) as ActionConfig
+
+    // spec won't be resolved until resolveAction
+    expect(config.spec.files).to.eql(["${var.foo ? 'manifests.yaml' : null}"])
+
+    // include will be fully resolved in preprocessActionConfig, and null values will be filtered by sparseArray
+    expect(config.include).to.eql([])
+
+    // validation will remove null values from sparse arrays
+    const resolved = await garden.resolveAction({ action, graph, log: garden.log })
+    expect(resolved.getConfig().spec.files).to.eql([])
+    expect(resolved.getConfig().include).to.eql([])
   })
 })

@@ -454,7 +454,7 @@ describe("AnalyticsHandler", () => {
     it("should handle projects with no services, tests, or tasks", async () => {
       await mockServer.forPost("/v1/batch").thenReply(200)
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           name: "module-a",

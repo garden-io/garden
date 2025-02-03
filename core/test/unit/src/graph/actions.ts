@@ -13,6 +13,7 @@ import type { RunActionConfig } from "../../../../src/actions/run.js"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../src/constants.js"
 import type tmp from "tmp-promise"
 import { expect } from "chai"
+import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 
 // TODO: add more tests
 describe("preprocessActionConfig", () => {
@@ -31,18 +32,21 @@ describe("preprocessActionConfig", () => {
   context("template strings", () => {
     context("include/exclude configs", () => {
       it("should resolve variables in 'exclude' config", async () => {
-        const config: RunActionConfig = {
-          internal: { basePath: tmpDir.path },
-          timeout: DEFAULT_RUN_TIMEOUT_SEC,
-          kind: "Run",
-          type: "exec",
-          name: "run",
-          exclude: ["${var.anyVar}"],
-          variables: {
-            anyVar: "*/**",
+        const config: RunActionConfig = parseTemplateCollection({
+          value: {
+            internal: { basePath: tmpDir.path },
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
+            kind: "Run" as const,
+            type: "exec",
+            name: "run",
+            exclude: ["${var.anyVar}"],
+            variables: {
+              anyVar: "*/**",
+            },
+            spec: { command: ["echo", "foo"] },
           },
-          spec: { command: ["echo", "foo"] },
-        }
+          source: { path: [] },
+        })
 
         const router = await garden.getActionRouter()
         const actionTypes = await garden.getActionTypes()
@@ -64,18 +68,21 @@ describe("preprocessActionConfig", () => {
       })
 
       it("should resolve variables in 'include' config", async () => {
-        const config: RunActionConfig = {
-          internal: { basePath: tmpDir.path },
-          timeout: DEFAULT_RUN_TIMEOUT_SEC,
-          kind: "Run",
-          type: "exec",
-          name: "run",
-          include: ["${var.anyVar}"],
-          variables: {
-            anyVar: "*/**",
+        const config: RunActionConfig = parseTemplateCollection({
+          value: {
+            internal: { basePath: tmpDir.path },
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
+            kind: "Run" as const,
+            type: "exec",
+            name: "run",
+            include: ["${var.anyVar}"],
+            variables: {
+              anyVar: "*/**",
+            },
+            spec: { command: ["echo", "foo"] },
           },
-          spec: { command: ["echo", "foo"] },
-        }
+          source: { path: [] },
+        })
 
         const router = await garden.getActionRouter()
         const actionTypes = await garden.getActionTypes()

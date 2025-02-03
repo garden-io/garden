@@ -18,7 +18,7 @@ import type {
 } from "../plugin/base.js"
 import type { GardenPluginSpec, ActionHandler, PluginMap } from "../plugin/plugin.js"
 import type { PluginContext, PluginEventBroker } from "../plugin-context.js"
-import type { ConfigContext } from "../config/template-contexts/base.js"
+import type { ContextWithSchema } from "../config/template-contexts/base.js"
 import type { BaseAction } from "../actions/base.js"
 import type { ActionKind, BaseActionConfig, Resolved } from "../actions/types.js"
 import type {
@@ -39,9 +39,10 @@ import { getNames } from "../util/util.js"
 import { defaultProvider } from "../config/provider.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
-import { TemplatableConfigContext } from "../config/template-contexts/project.js"
+import { TemplatableConfigContext } from "../config/template-contexts/templatable.js"
 import type { ParamsBase } from "../plugin/handlers/base/base.js"
 import { Profile } from "../util/profiling.js"
+import { InputContext } from "../config/template-contexts/input.js"
 
 export type CommonParams = keyof PluginActionContextParams
 
@@ -69,7 +70,7 @@ export abstract class BaseRouter {
   protected async commonParams(
     handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>,
     log: Log,
-    templateContext: ConfigContext | undefined,
+    templateContext: ContextWithSchema | undefined,
     events: PluginEventBroker | undefined
   ): Promise<PluginActionParamsBase> {
     const provider = await this.garden.resolveProvider({ log, name: handler.pluginName })
@@ -295,12 +296,12 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           garden: this.garden,
           resolvedProviders: providers,
           action,
-          partialRuntimeResolution: false,
           modules: graph.getModules(),
           resolvedDependencies: action.getResolvedDependencies(),
           executedDependencies: action.getExecutedDependencies(),
-          inputs: action.getInternal().inputs || {},
-          variables: action.getVariables(),
+          // inputs are fully resolved now
+          inputs: new InputContext(action.getInternal().inputs),
+          variables: action.getVariablesContext(),
         })
       : new ActionConfigContext({
           garden: this.garden,
@@ -309,7 +310,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
             mode: action.mode(),
             name: action.name,
           },
-          variables: action.getVariables(),
+          variables: action.getVariablesContext(),
         })
 
     const handlerParams = {
@@ -448,7 +449,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       if (filtered.length > 1) {
         // If we still end up with multiple handlers with no obvious best candidate, we use the order of configuration
         // as a tie-breaker.
-        const configs = this.garden.getRawProviderConfigs()
+        const configs = this.garden.getUnresolvedProviderConfigs()
 
         for (const config of configs.reverse()) {
           for (const handler of filtered) {

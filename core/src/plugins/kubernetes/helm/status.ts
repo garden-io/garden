@@ -17,7 +17,7 @@ import type { KubernetesResource, KubernetesServerResource } from "../types.js"
 import { getActionNamespace } from "../namespace.js"
 import { getTargetResource, isWorkload } from "../util.js"
 import { getDeployedResource, isConfiguredForLocalMode } from "../status/status.js"
-import { KubeApi } from "../api.js"
+import { KubeApi, KubernetesError } from "../api.js"
 import { getK8sIngresses } from "../status/ingress.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
 import type { HelmDeployAction } from "./config.js"
@@ -262,13 +262,28 @@ export async function getPausedResources({
   const api = await KubeApi.factory(log, ctx, ctx.provider)
   const renderedResources = await getRenderedResources({ ctx, action, releaseName, log })
   const workloads = renderedResources.filter(isWorkload)
-  const deployedResources = await Promise.all(
-    workloads.map((workload) => api.readBySpec({ log, namespace, manifest: workload }))
-  )
+
+  const deployedResources = (
+    await Promise.all(
+      workloads.map(async (workload) => {
+        try {
+          const resource = await api.readBySpec({ log, namespace, manifest: workload })
+          return resource
+        } catch (err) {
+          // If readBySpec fails with 404 then the resource isn't deployed
+          if (err instanceof KubernetesError && err.responseStatusCode === 404) {
+            return null
+          }
+          throw err
+        }
+      })
+    )
+  ).filter(isTruthy)
 
   const pausedWorkloads = deployedResources.filter((resource) => {
     return resource?.metadata?.annotations?.[gardenCloudAECPauseAnnotation] === "paused"
   })
+
   return pausedWorkloads
 }
 

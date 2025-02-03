@@ -1,0 +1,8 @@
+apiVersion: garden.io/v1
+kind: Project
+name: container
+environments:
+  - name: local
+providers:
+  - name: local-kubernetes
+    environments: [ local ]

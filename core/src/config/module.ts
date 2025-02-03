@@ -170,17 +170,18 @@ export const baseBuildSpecSchema = createSchema({
 })
 
 // These fields are validated immediately when loading the config file
-const coreModuleSpecKeys = memoize(() => ({
+const coreModuleSpecSchemaKeys = memoize(() => ({
   apiVersion: unusedApiVersionSchema(),
   kind: joi.string().default("Module").valid("Module"),
   type: joiIdentifier().required().description("The type of this module.").example("container"),
   name: joiUserIdentifier().required().description("The name of this module.").example("my-sweet-module"),
 }))
+export const coreModuleSpecKeys = () => Object.keys(coreModuleSpecSchemaKeys())
 
 export const coreModuleSpecSchema = createSchema({
   name: "core-module-spec",
   description: "Configure a module whose sources are located in this directory.",
-  keys: coreModuleSpecKeys,
+  keys: coreModuleSpecSchemaKeys,
   allowUnknown: true,
   meta: { extendable: true },
 })

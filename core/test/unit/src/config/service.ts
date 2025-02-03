@@ -7,6 +7,7 @@
  */
 
 import { expect } from "chai"
+import type { CommonServiceSpec } from "../../../../src/config/service.js"
 import { baseServiceSpecSchema } from "../../../../src/config/service.js"
 import { validateSchema } from "../../../../src/config/validation.js"
 
@@ -16,7 +17,7 @@ describe("baseServiceSpecSchema", () => {
       name: "foo",
       dependencies: ["service-a", undefined, "service-b", null, "service-c"],
     }
-    const output = validateSchema(input, baseServiceSpecSchema())
+    const output = validateSchema<CommonServiceSpec>(input, baseServiceSpecSchema())
     expect(output.dependencies).to.eql(["service-a", "service-b", "service-c"])
   })
 })

@@ -22,9 +22,11 @@ import type { ConfigGraph } from "../../../src/graph/config-graph.js"
 import { loadYamlFile } from "../../../src/util/serialization.js"
 import type { DeployActionConfig } from "../../../src/actions/deploy.js"
 import type { BaseActionConfig } from "../../../src/actions/types.js"
+import type { Log } from "../../../src/logger/log-entry.js"
 import { resolveMsg } from "../../../src/logger/log-entry.js"
 import { deline } from "../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
+import { resolveAction } from "../../../src/graph/actions.js"
 
 describe("ModuleResolver", () => {
   // Note: We test the ModuleResolver via the TestGarden.resolveModule method, for convenience.
@@ -32,7 +34,7 @@ describe("ModuleResolver", () => {
   it("handles a project template reference in a build dependency name", async () => {
     const garden = await makeTestGardenA()
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         name: "test-project-a",
         type: "test",
@@ -51,7 +53,7 @@ describe("ModuleResolver", () => {
     expect(module.build.dependencies[0].name).to.equal("test-project-a")
   })
 
-  it("sets the relevant variables in module config from variable overrides", async () => {
+  it("variable overrides should only affect template evaluation, and not alter the module config itself", async () => {
     const garden = await makeTestGardenA([], {
       variableOverrides: {
         foo: "override",
@@ -59,12 +61,17 @@ describe("ModuleResolver", () => {
       },
     })
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         name: "test-project-a",
         type: "test",
         path: join(garden.projectRoot, "module-a"),
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        spec: {
+          build: {
+            command: ["echo", "${var.foo}"],
+          },
+        },
         variables: {
           foo: "somevalue",
         },
@@ -72,13 +79,20 @@ describe("ModuleResolver", () => {
     ])
 
     const module = await garden.resolveModule("test-project-a")
-    expect(module.variables).to.eql({ foo: "override" })
+    expect(module.variables).to.eql({
+      // the variables section of the module config should not change
+      foo: "somevalue",
+    })
+    expect(module.spec.build.command).to.eql(
+      // --> ${var.foo} should evaluate to "override"
+      ["echo", "override"]
+    )
   })
 
   it("handles a module template reference in a build dependency name", async () => {
     const garden = await makeTestGardenA()
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         name: "module-a",
         type: "test",
@@ -102,39 +116,45 @@ describe("ModuleResolver", () => {
       let dataDir: string
       let garden: TestGarden
       let graph: ConfigGraph
+      let log: Log
 
       before(async () => {
         dataDir = getDataDir("test-projects", "template-configs")
         garden = await makeTestGarden(dataDir)
-        graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+        log = garden.log
+        graph = await garden.getConfigGraph({ log, emit: false })
       })
 
       const expectedExtraFlags = "-Dbuilder=docker"
 
       context("should resolve vars and inputs with defaults", () => {
         it("with RenderTemplate and ConfigTemplate.configs", async () => {
-          const buildAction = graph.getBuild("render-template-based-build")
+          const action = graph.getBuild("render-template-based-build")
+          const buildAction = await resolveAction({ garden, graph, action, log })
           const spec = buildAction.getConfig().spec
           expect(spec).to.exist
           expect(spec.extraFlags).to.eql([expectedExtraFlags])
         })
 
         it("with RenderTemplate and ConfigTemplate.modules", async () => {
-          const buildAction = graph.getBuild("render-template-based-module")
+          const action = graph.getBuild("render-template-based-module")
+          const buildAction = await resolveAction({ garden, graph, action, log })
           const spec = buildAction.getConfig().spec
           expect(spec).to.exist
           expect(spec.extraFlags).to.eql([expectedExtraFlags])
         })
 
         it("with ModuleTemplate and ConfigTemplate.modules", async () => {
-          const buildAction = graph.getBuild("templated-module-based-module")
+          const action = graph.getBuild("templated-module-based-module")
+          const buildAction = await resolveAction({ garden, graph, action, log })
           const spec = buildAction.getConfig().spec
           expect(spec).to.exist
           expect(spec.extraFlags).to.eql([expectedExtraFlags])
         })
 
         it("with RenderTemplate and ConfigTemplate.configs", async () => {
-          const buildAction = graph.getBuild("templated-module-based-build")
+          const action = graph.getBuild("templated-module-based-build")
+          const buildAction = await resolveAction({ garden, graph, action, log })
           const spec = buildAction.getConfig().spec
           expect(spec).to.exist
           expect(spec.extraFlags).to.eql([expectedExtraFlags])
@@ -219,7 +239,7 @@ describe("convertModules", () => {
       const garden = await makeTestGarden(projectRootA, { plugins: [testPlugin] })
       const log = garden.log
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           name: "module-a",
           type: "test",

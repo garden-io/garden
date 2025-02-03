@@ -49,7 +49,7 @@ describe("ResolveActionTask", () => {
 
   describe("resolveStatusDependencies", () => {
     it("returns an empty list", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -65,7 +65,7 @@ describe("ResolveActionTask", () => {
 
   describe("resolveProcessDependencies", () => {
     it("returns nothing if no dependencies are defined or found", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -79,7 +79,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("returns execute task for dependency with needsExecutedOutputs=true", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -104,7 +104,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("returns resolve task for dependency with needsStaticOutputs=true", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -129,7 +129,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("returns resolve task for explicit dependency", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -155,7 +155,7 @@ describe("ResolveActionTask", () => {
 
   describe("process", () => {
     it("resolves an action", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -173,7 +173,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves action variables", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -188,13 +188,13 @@ describe("ResolveActionTask", () => {
       const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
-      const variables = resolved.getVariables()
+      const variables = resolved.getResolvedVariables()
 
       expect(variables).to.eql({ foo: garden.projectName })
     })
 
     it("resolves action mode", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Deploy",
           type: "test",
@@ -215,7 +215,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("correctly merges action and CLI variables", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -228,15 +228,15 @@ describe("ResolveActionTask", () => {
         },
       ])
 
-      garden.variables.a = 1
-      garden.variables.b = 200
+      garden.variables["a"] = 1
+      garden.variables["b"] = 200
       garden.variableOverrides.b = 2000 // <-- should win
 
       const task = await getTask("Build", "foo")
       const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
-      const variables = resolved.getVariables()
+      const variables = resolved.getResolvedVariables()
 
       expect(variables).to.eql({
         a: 100,
@@ -246,7 +246,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves static action references", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -278,7 +278,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("throws if spec is invalid after resolution", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -303,7 +303,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves static outputs", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -347,7 +347,7 @@ describe("ResolveActionTask", () => {
         },
       })
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -388,7 +388,7 @@ describe("ResolveActionTask", () => {
         },
       })
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -405,7 +405,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves action.* runtime references", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Run",
           type: "test",
@@ -433,7 +433,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves runtime.* references", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Run",
           type: "test",
@@ -466,13 +466,14 @@ describe("ResolveActionTask", () => {
           kind: configTemplateKind,
           name: "template",
           inputsSchema: joi.object(),
+          inputsSchemaDefaults: {},
           internal: {
             basePath: garden.projectRoot,
           },
         },
       }
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Deploy",
           type: "test",

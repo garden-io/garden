@@ -27,7 +27,7 @@ describe("GetWorkflowsCommand", () => {
 
   it("should return workflows, grouped alphabetically", async () => {
     const garden = await makeTestGarden(projectRoot)
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       { name: "c", description: "c-desc", ...defaultWorkflowConf },
       { name: "a", description: "a-desc", ...defaultWorkflowConf },
       { name: "b", description: "b-desc", ...defaultWorkflowConf },
@@ -53,7 +53,7 @@ describe("GetWorkflowsCommand", () => {
 
   it("should return only the applicable workflow when called with a name", async () => {
     const garden = await makeTestGarden(projectRoot)
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       { name: "c", description: "c-desc", ...defaultWorkflowConf },
       { name: "a", description: "a-desc", ...defaultWorkflowConf },
       { name: "b", description: "b-desc", ...defaultWorkflowConf },
@@ -75,7 +75,7 @@ describe("GetWorkflowsCommand", () => {
 
   it("should return only the applicable workflows when called with a list of names", async () => {
     const garden = await makeTestGarden(projectRoot)
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       { name: "c", description: "c-desc", ...defaultWorkflowConf },
       { name: "a", description: "a-desc", ...defaultWorkflowConf },
       { name: "b", description: "b-desc", ...defaultWorkflowConf },

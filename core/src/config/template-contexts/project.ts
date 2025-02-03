@@ -6,28 +6,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { last, isEmpty } from "lodash-es"
+import { isEmpty } from "lodash-es"
 import type { PrimitiveMap, DeepPrimitiveMap } from "../common.js"
 import { joiIdentifierMap, joiStringMap, joiPrimitive, joiVariables } from "../common.js"
 import { joi } from "../common.js"
 import { deline, dedent } from "../../util/string.js"
-import type { ContextKeySegment } from "./base.js"
-import { schema, ConfigContext, EnvironmentContext, ParentContext, TemplateContext } from "./base.js"
+import type { ContextResolveParams } from "./base.js"
+import { schema, ContextWithSchema, EnvironmentContext } from "./base.js"
 import type { CommandInfo } from "../../plugin-context.js"
 import type { Garden } from "../../garden.js"
-import type { VcsInfo } from "../../vcs/vcs.js"
-import type { ActionConfig } from "../../actions/types.js"
-import type { WorkflowConfig } from "../workflow.js"
+import { type VcsInfo } from "../../vcs/vcs.js"
 import { styles } from "../../logger/styles.js"
+import type { VariablesContext } from "./variables.js"
 
-class LocalContext extends ConfigContext {
+class LocalContext extends ContextWithSchema {
   @schema(
     joi
       .string()
       .description("The absolute path to the directory where exported artifacts from test and task runs are stored.")
       .example("/home/me/my-project/.garden/artifacts")
   )
-  public artifactsPath: string
+  public readonly artifactsPath: string
 
   @schema(
     joiStringMap(joi.string().description("The environment variable value."))
@@ -36,7 +35,7 @@ class LocalContext extends ConfigContext {
       )
       .meta({ keyPlaceholder: "<env-var-name>" })
   )
-  public env: typeof process.env
+  public readonly env: typeof process.env
 
   @schema(
     joi
@@ -47,7 +46,7 @@ class LocalContext extends ConfigContext {
       )
       .example("x64")
   )
-  public arch: string
+  public readonly arch: string
   @schema(
     joi
       .string()
@@ -57,10 +56,10 @@ class LocalContext extends ConfigContext {
       )
       .example("linux")
   )
-  public platform: string
+  public readonly platform: string
 
   @schema(joi.string().description("The absolute path to the project root directory.").example("/home/me/my-project"))
-  public projectPath: string
+  public readonly projectPath: string
 
   @schema(
     joi
@@ -68,7 +67,7 @@ class LocalContext extends ConfigContext {
       .description("The current username (as resolved by https://github.com/sindresorhus/username).")
       .example("tenzing_norgay")
   )
-  public username?: string
+  public readonly username?: string
 
   @schema(
     joi
@@ -81,10 +80,10 @@ class LocalContext extends ConfigContext {
       )
       .example("tenzing_norgay")
   )
-  public usernameLowerCase?: string
+  public readonly usernameLowerCase?: string
 
-  constructor(root: ConfigContext, artifactsPath: string, projectRoot: string, username?: string) {
-    super(root)
+  constructor(artifactsPath: string, projectRoot: string, username?: string) {
+    super()
     this.artifactsPath = artifactsPath
     this.arch = process.arch
     this.env = process.env
@@ -95,24 +94,24 @@ class LocalContext extends ConfigContext {
   }
 }
 
-class ProjectContext extends ConfigContext {
+class ProjectContext extends ContextWithSchema {
   @schema(joi.string().description("The name of the Garden project.").example("my-project"))
-  public name: string
+  public readonly name: string
 
-  constructor(root: ConfigContext, name: string) {
-    super(root)
+  constructor(name: string) {
+    super()
     this.name = name
   }
 }
 
-class DatetimeContext extends ConfigContext {
+class DatetimeContext extends ContextWithSchema {
   @schema(
     joi
       .string()
       .description("The current UTC date and time, at time of template resolution, in ISO-8601 format.")
       .example("2011-10-05T14:48:00.000Z")
   )
-  public now: string
+  public readonly now: string
 
   @schema(
     joi
@@ -120,7 +119,7 @@ class DatetimeContext extends ConfigContext {
       .description("The current UTC date, at time of template resolution, in ISO-8601 format.")
       .example("2011-10-05")
   )
-  public today: string
+  public readonly today: string
 
   @schema(
     joi
@@ -128,10 +127,10 @@ class DatetimeContext extends ConfigContext {
       .description("The current UTC Unix timestamp (in seconds), at time of template resolution.")
       .example(1642005235)
   )
-  public timestamp: number
+  public readonly timestamp: number
 
-  constructor(root: ConfigContext) {
-    super(root)
+  constructor() {
+    super()
     const now = new Date()
 
     this.now = now.toISOString()
@@ -140,7 +139,7 @@ class DatetimeContext extends ConfigContext {
   }
 }
 
-class VcsContext extends ConfigContext {
+class VcsContext extends ContextWithSchema {
   @schema(
     joi
       .string()
@@ -157,7 +156,7 @@ class VcsContext extends ConfigContext {
       )
       .example("my-feature-branch")
   )
-  public branch: string
+  public readonly branch: string
 
   @schema(
     joi
@@ -173,7 +172,7 @@ class VcsContext extends ConfigContext {
       )
       .example("my-feature-branch")
   )
-  public commitHash: string
+  public readonly commitHash: string
 
   @schema(
     joi
@@ -187,17 +186,17 @@ class VcsContext extends ConfigContext {
       )
       .example("my-feature-branch")
   )
-  public originUrl: string
+  public readonly originUrl: string
 
-  constructor(root: ConfigContext, info: VcsInfo) {
-    super(root)
+  constructor(info: VcsInfo) {
+    super()
     this.branch = info.branch
     this.commitHash = info.commitHash
     this.originUrl = info.originUrl
   }
 }
 
-class CommandContext extends ConfigContext {
+class CommandContext extends ContextWithSchema {
   @schema(
     joi
       .string()
@@ -210,7 +209,7 @@ class CommandContext extends ConfigContext {
       )
       .example("deploy")
   )
-  public name: string
+  public readonly name: string
 
   @schema(
     joiStringMap(joi.any())
@@ -223,10 +222,10 @@ class CommandContext extends ConfigContext {
       )
       .example({ force: true, dev: ["my-service"] })
   )
-  public params: DeepPrimitiveMap
+  public readonly params: DeepPrimitiveMap
 
-  constructor(root: ConfigContext, commandInfo: CommandInfo) {
-    super(root)
+  constructor(commandInfo: CommandInfo) {
+    super()
     this.name = commandInfo.name
     this.params = { ...commandInfo.args, ...commandInfo.opts }
   }
@@ -244,25 +243,25 @@ export interface DefaultEnvironmentContextParams {
 /**
  * This context is available for template strings in the `defaultEnvironment` field in project configs.
  */
-export class DefaultEnvironmentContext extends ConfigContext {
+export class DefaultEnvironmentContext extends ContextWithSchema {
   @schema(
     LocalContext.getSchema().description(
       "Context variables that are specific to the currently running environment/machine."
     )
   )
-  public local: LocalContext
+  public readonly local: LocalContext
 
   @schema(CommandContext.getSchema().description("Information about the currently running command and its arguments."))
-  public command: CommandContext
+  public readonly command: CommandContext
 
   @schema(DatetimeContext.getSchema().description("Information about the date/time at template resolution time."))
-  public datetime: DatetimeContext
+  public readonly datetime: DatetimeContext
 
   @schema(ProjectContext.getSchema().description("Information about the Garden project."))
-  public project: ProjectContext
+  public readonly project: ProjectContext
 
   @schema(VcsContext.getSchema().description("Information about the current state of the project's Git repository."))
-  public git: VcsContext
+  public readonly git: VcsContext
 
   constructor({
     projectName,
@@ -273,11 +272,11 @@ export class DefaultEnvironmentContext extends ConfigContext {
     commandInfo,
   }: DefaultEnvironmentContextParams) {
     super()
-    this.local = new LocalContext(this, artifactsPath, projectRoot, username)
-    this.datetime = new DatetimeContext(this)
-    this.git = new VcsContext(this, vcsInfo)
-    this.project = new ProjectContext(this, projectName)
-    this.command = new CommandContext(this, commandInfo)
+    this.local = new LocalContext(artifactsPath, projectRoot, username)
+    this.datetime = new DatetimeContext()
+    this.git = new VcsContext(vcsInfo)
+    this.project = new ProjectContext(projectName)
+    this.command = new CommandContext(commandInfo)
   }
 }
 
@@ -303,12 +302,12 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
         keyPlaceholder: "<secret-name>",
       })
   )
-  public secrets: PrimitiveMap
-  private _enterpriseDomain: string | undefined
-  private _loggedIn: boolean
+  public readonly secrets: PrimitiveMap
+  private readonly _enterpriseDomain: string | undefined
+  private readonly _loggedIn: boolean
 
-  override getMissingKeyErrorFooter(_key: ContextKeySegment, path: ContextKeySegment[]): string {
-    if (last(path) !== "secrets") {
+  override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
+    if (key[0] !== "secrets") {
       return ""
     }
 
@@ -345,8 +344,8 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   }
 }
 
-interface EnvironmentConfigContextParams extends ProjectConfigContextParams {
-  variables: DeepPrimitiveMap
+export interface EnvironmentConfigContextParams extends ProjectConfigContextParams {
+  variables: VariablesContext
 }
 
 /**
@@ -358,10 +357,10 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
       .description("A map of all variables defined in the project configuration.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: DeepPrimitiveMap
+  public variables: VariablesContext
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: DeepPrimitiveMap
+  public var: VariablesContext
 
   @schema(
     joiStringMap(joi.string().description("The secret's value."))
@@ -384,7 +383,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
   @schema(
     EnvironmentContext.getSchema().description("Information about the environment that Garden is running against.")
   )
-  public environment: EnvironmentContext
+  public readonly environment: EnvironmentContext
 
   // Overriding to update the description. Same schema as base.
   @schema(
@@ -394,9 +393,9 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       )
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public override variables: DeepPrimitiveMap
+  public override variables: VariablesContext
 
-  constructor(garden: Garden, variables: DeepPrimitiveMap) {
+  constructor(garden: Garden, variables: VariablesContext) {
     super({
       projectName: garden.projectName,
       projectRoot: garden.projectRoot,
@@ -411,37 +410,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
     })
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
-    this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
+    this.environment = new EnvironmentContext(garden.environmentName, fullEnvName, garden.namespace)
     this.variables = this.var = variables
-  }
-}
-
-export class TemplatableConfigContext extends RemoteSourceConfigContext {
-  @schema(
-    joiVariables().description(`The inputs provided to the config through a template, if applicable.`).meta({
-      keyPlaceholder: "<input-key>",
-    })
-  )
-  public inputs: DeepPrimitiveMap
-
-  @schema(
-    ParentContext.getSchema().description(
-      `Information about the config parent, if any (usually a template, if applicable).`
-    )
-  )
-  public parent?: ParentContext
-
-  @schema(
-    TemplateContext.getSchema().description(
-      `Information about the template used when generating the config, if applicable.`
-    )
-  )
-  public template?: TemplateContext
-
-  constructor(garden: Garden, config: ActionConfig | WorkflowConfig) {
-    super(garden, garden.variables)
-    this.inputs = config.internal.inputs || {}
-    this.parent = config.internal.parentName ? new ParentContext(this, config.internal.parentName) : undefined
-    this.template = config.internal.templateName ? new TemplateContext(this, config.internal.templateName) : undefined
   }
 }

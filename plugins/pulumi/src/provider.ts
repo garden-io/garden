@@ -7,17 +7,18 @@
  */
 
 import { joi } from "@garden-io/core/build/src/config/common.js"
-import type { GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
+import type { BaseProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
 import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider.js"
 import { dedent } from "@garden-io/sdk/build/src/util/string.js"
 import { defaultPulumiVersion, supportedVersions } from "./cli.js"
 
-export type PulumiProviderConfig = GenericProviderConfig & {
+export type PulumiProviderConfig = BaseProviderConfig & {
   version: string | null
   previewDir: string | null
   orgName?: string
   backendURL: string
   pluginTaskConcurrencyLimit: number
+  useNewPulumiVarfileSchema?: boolean
 }
 
 export type PulumiProvider = Provider<PulumiProviderConfig>

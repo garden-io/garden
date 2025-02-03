@@ -19,7 +19,6 @@ import type { GardenError } from "../exceptions.js"
 import { ChildProcessError, InternalError, RuntimeError, WorkflowScriptError, toGardenError } from "../exceptions.js"
 import type { WorkflowStepResult } from "../config/template-contexts/workflow.js"
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../config/template-contexts/workflow.js"
-import { resolveTemplateStrings, resolveTemplateString } from "../template-string/template-string.js"
 import { ConfigurationError, FilesystemError } from "../exceptions.js"
 import { posix, join } from "path"
 import fsExtra from "fs-extra"
@@ -34,6 +33,7 @@ import type { GardenCli } from "../cli/cli.js"
 import { getCustomCommands } from "./custom.js"
 import { getBuiltinCommands } from "./commands.js"
 import { styles } from "../logger/styles.js"
+import { deepEvaluate } from "../template/evaluate.js"
 
 const { ensureDir, writeFile } = fsExtra
 
@@ -87,11 +87,11 @@ export class WorkflowCommand extends Command<Args, {}> {
     await registerAndSetUid(garden, log, workflow)
     garden.events.emit("workflowRunning", {})
     const templateContext = new WorkflowConfigContext(garden, garden.variables)
-    const yamlDoc = workflow.internal.yamlDoc
-    const files = resolveTemplateStrings({
-      value: workflow.files || [],
+
+    // @ts-expect-error todo: correct types for unresolved configs
+    const files: WorkflowFileSpec[] = deepEvaluate(workflow.files || [], {
       context: templateContext,
-      source: { yamlDoc, path: ["files"] },
+      opts: {},
     })
 
     // Write all the configured files for the workflow
@@ -173,15 +173,14 @@ export class WorkflowCommand extends Command<Args, {}> {
 
       try {
         if (step.command) {
-          step.command = resolveTemplateStrings({
-            value: step.command,
+          step.command = deepEvaluate(step.command, {
             context: stepTemplateContext,
-            source: { yamlDoc, path: ["steps", index, "command"] },
+            opts: {},
           }).filter((arg) => !!arg)
 
           stepResult = await runStepCommand(stepParams)
         } else if (step.script) {
-          step.script = resolveTemplateString({ string: step.script, context: stepTemplateContext }) as string
+          step.script = deepEvaluate(step.script, { context: stepTemplateContext, opts: {} }) as string
           stepResult = await runStepScript(stepParams)
         } else {
           stepResult = undefined

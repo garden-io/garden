@@ -45,7 +45,7 @@ describe("configmap module", () => {
       foo: "bar",
     }
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "test",

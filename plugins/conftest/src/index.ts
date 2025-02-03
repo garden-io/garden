@@ -16,7 +16,7 @@ import { dedent, naturalList } from "@garden-io/sdk/build/src/util/string.js"
 import { matchGlobs, listDirectory } from "@garden-io/sdk/build/src/util/fs.js"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
-import type { GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
+import type { BaseProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
 import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider.js"
 import { joi, joiIdentifier, joiSparseArray } from "@garden-io/core/build/src/config/common.js"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module.js"
@@ -32,7 +32,7 @@ import { actionRefMatches } from "@garden-io/core/build/src/actions/base.js"
 import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
 import { DEFAULT_TEST_TIMEOUT_SEC } from "@garden-io/core/build/src/constants.js"
 
-export interface ConftestProviderConfig extends GenericProviderConfig {
+export interface ConftestProviderConfig extends BaseProviderConfig {
   policyPath: string
   namespace?: string
   testFailureThreshold: "deny" | "warn" | "none"
@@ -289,7 +289,8 @@ export const gardenPlugin = () =>
                 }
 
                 try {
-                  files = ctx.resolveTemplateStrings(files)
+                  // @ts-expect-error todo: correct types for unresolved configs
+                  files = ctx.deepEvaluate(files)
                 } catch (error) {
                   if (!(error instanceof GardenError)) {
                     throw error

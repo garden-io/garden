@@ -315,7 +315,7 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
     })
   } else {
     log.warn(dedent`
-      The old Pulumi varfile schema is deprecated and will be removed in a future version of Garden. 
+      The old Pulumi varfile schema is deprecated and will be removed in a future version of Garden.
       For more information see: https://docs.garden.io/pulumi-plugin/about#pulumi-varfile-schema
     `)
     for (const varfileVars of varfileContents) {
@@ -577,7 +577,12 @@ async function loadPulumiVarfile({
 
   try {
     const str = (await readFile(resolvedPath)).toString()
-    const resolved = ctx.resolveTemplateStrings(str)
+    const resolved = ctx.legacyResolveTemplateString(str)
+    if (typeof resolved !== "string") {
+      throw new ConfigurationError({
+        message: `Expected template expression to resolve to string; Actually got: ${typeof resolved}`,
+      })
+    }
     const parsed = load(resolved)
     return parsed as DeepPrimitiveMap
   } catch (error) {

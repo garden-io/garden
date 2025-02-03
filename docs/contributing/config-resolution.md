@@ -3,15 +3,14 @@ title: Config resolution
 order: 6
 ---
 
-This doc explains the high-level steps that Garden takes to go from config files on disk to a fully resolved project (with all modules, actions and workflows resolved with no template strings remaining).
+This doc explains the high-level steps that Garden takes to go from config files on disk to a fully resolved project (with all modules, actions and workflows resolved with no unresolved template values remaining).
 
 This includes:
 
-* The steps involved in resolving Garden template strings into concrete values. For example:
+* The steps involved in resolving Garden templates into concrete values. For example:
   * E.g. `${environment.name}.mydomain.com` -> `dev.mydomain.com`
   * or `${actions.build.api.outputs.deployment-image-id}` -> `some-registry.io/my-org/api:v-abf3f8dca`.
 * Applying structural template operators (e.g. `$merge` and `$concat`).
-* Garden's multi-pass approach to config resolution, including partial resolution.
 * The config graph and the process of creating it (from files on disk to resolved action configs).
 * How module configs are converted to action configs in 0.13.
 
@@ -19,9 +18,9 @@ Like in the [graph execution doc](./graph-execution.md), we'll start from the bo
 
 Then we'll move on to describing the high-level resolution flow and how it provides the necessary template context data for the next resolution step.
 
-## How template strings are resolved - The parser and the `resolveTemplateStrings` function
+## How template strings are resolved - Parsing and evaluation
 
-Let's say we're resolving template strings in this action config:
+Let's say we're resolving this action config:
 
 ```yaml
 kind: Deploy
@@ -48,46 +47,28 @@ spec:
 
 The following needs to happen here:
 
-* `${environment.name}` and `${var.commonEnvVars}` need to be resolved (into `dev` and `{ SOME_VAR: A, OTHER_VAR: B }`).
-* The `{ SOME_VAR: A, OTHER_VAR: B }` map needs to be merged into the `env` map.
+* We need to parse template strings and create an abstract syntax tree (See `parseTemplateString()`)
+* We need to parse structural template operators and create a tree of `UnresolvedTemplateValue` instances (See `parseTemplateCollection()`)
+* We call the `deepEvaluate()` function on the configuration, together with the context that contains values of `environment.name` and `var.commonEnvVars`.
+* This calls `evaluate` on the `UnresolvedTemplateValue` that holds all AST node instances of the template string, and `ContextLookupExpression.evaluate` will look up the keys in the context.
+* We also call `evaluate` on the `MergeLazyValue` instance that represents the `$merge` operation, which merges the `{ SOME_VAR: A, OTHER_VAR: B }` map into the `env` map.
 
-Both of these happen inside the `resolveTemplateStrings` function. We highly recommend reading the source code for `resolveTemplateStrings` along with this doc, since the full details of the implementation reside there.
-
-The `resolveTemplateStrings` function takes the following params:
-
-* `value` is a JSON-like object. For example, a project/action/module config.
-* `context` provides the template keys & values that the parser uses for lookups—in the example below, this would contain the `environment` and `var` keys (among other things).
-* `opts` contains a few optional fields, most importantly `allowPartial`, which we'll cover in the section on partial resolution below.
-
-In a nutshell, we do the following in `resolveTemplateStrings`:
-
-* We recursively walk through `value`, looking for string values and calling the parser on them (the parser is also provided with the `context` and `opts` params, among other things).
-* These values are replaced with the resolved values from the parser.
-* Structural operators (e.g. `$merge`, `$if`, `$concat` and `$forEach`) are also applied.
-
-> Note: To avoid coupling this guide too tightly to the particular implementation (this guide was written in August 2023), we'll leave it to the reader to familiarize themselves with the details by reading the source of `resolveTemplateStrings` and other helpers/data structures around it.
-
-The _parser_ is an auto-generated recursive-descent parser, and implements all the syntactic elements available in Garden's template expressions. This includes:
+The template-string _parser_ is an auto-generated recursive-descent parser, and implements all the syntactic elements available in Garden's template expressions. It generates an abstract syntax tree. This includes:
 
 * Boolean expressions
 * Calling template helper functions (like `camelCase`, `join` or `isEmpty`)
 * Template context lookups (like `environment.name` or `var.some_key`)
 
-See `core/src/template-string/parser.pegjs` for details on the syntax and expression evaluation logic. When Core is built, this file is passed to a parser generation tool which generates an efficient parser based on the syntax & functions defined there.
+See `core/src/template/parser.pegjs` for the syntax and parser implementation.
+When Core is built, this file is passed to a parser generation tool which generates an efficient parser based on the syntax & functions defined there.
+
+See `core/src/template/ast.ts` for the `evaluate` implementation of each expression.
 
 ### Partial VS full resolution
 
-In the above example, we already had all the template context keys we needed available to fully resolve the action config (the `environment` and `var` keys).
+For historical reasons, template strings with multiple expressions like `${var.foo}${var.bar}` can also be partially evaluated (`legacyAllowPartial: true`). This is ONLY USED for backwards-compatibility with Garden version `0.13` when using template conditions in Kubernetes manifest file templates, and will be removed in `0.14`.
 
-This isn't always the case! There are several points in the config resolution flow where we can resolve some—but not all—template strings.
-
-The most important example is the preprocessing phase of action resolution. There, we have access to most of the available template fields, but not e.g. outputs of other actions—those are only available when the actions are fully resolved via the solver.
-
-Our strategy in those situations is to resolve what we can, and leave what we can't resolve for later. To do this, we call `resolveTemplateStrings` with `allowPartial: true`.
-
-At some point later in the resolution flow, we'll have all the data we need to fully resolve all template strings (for example, the outputs of all dependency actions, so we can resolve e.g. `${actions.deploy.api.outputs.some-key}`). At that point, we'll call `resolveTemplateStrings` again, but this time with `allowPartial: false`—this means that if any strings couldn't be resolved, that's an error: Something was missing (which is usually a user error).
-
-The question of which template context keys are available at what times brings us to our next topic: The config resolution flow.
+We call configs where some templated values have been evaluated, and others have not, **unresolved configs** to differentiate it from the `legacyAllowPartial` feature.
 
 ## The config context classes
 
@@ -101,11 +82,18 @@ In general, the relevant template context fields will be available as function p
 
 It's the nature of the resolution flow that more and more params and instance variables will be available to provide to the template resolution calls as we get deeper in the control flow (from initializing the Garden instance and resolving the project config in the early phases, to fully resolving action configs in the solver close to the end).
 
+## Lazy evaluation and config templates
+
+It's possible to reference action outputs when declaring inputs for config templates.
+This is possible because of the ability of a context to hold unresolved template values.
+
+We will evaluate unresolved template values at the time they are needed; for instance, the action name (which may be templated in config templates) is needed very early, and thus action outputs cannot be referenced here.
+
 ## Choosing which parts of a config to resolve
 
 In several places, we resolve only certain fields of a config at a given phase, only to resolve it fully a few lines below.
 
-This is because we may want to use the results of the prior resolution in the next one, or because we want to use a different config context for the different resolution calls. This will usually be clear when reading the code.
+This is because we need different values in Garden core at different times, and we also may want to use a different config context for the different resolution calls.
 
 Because this process of incremental resolution is so spread-out, we rely heavily on tests to make sure the whole behaves as it should.
 
@@ -133,7 +121,7 @@ At a high level, these are the steps that Garden takes to fully resolve a projec
   * See: `Garden#resolveProviders`.
 * Modules are resolved. This uses [an older resolution system, the `ModuleResolver`](#module-resolution) that is isolated from the rest of the flow.
 * [Modules are converted into actions](#converting-modules-into-actions) (still in `Garden#getConfigGraph`).
-* [Phase 1 of action resolution](#phase-1-of-action-resolution-preprocessing-during-config-graph-construction): Actions are preprocessed (i.e. partially resolved) and their dependencies are augmented with any implicit dependencies detected in template references to outputs from other actions.
+* [Phase 1 of action resolution](#phase-1-of-action-resolution-preprocessing-during-config-graph-construction): Actions are preprocessed (i.e. we resolve the template values that we need to construct the graph) and their dependencies are augmented with any implicit dependencies detected in template references to outputs from other actions.
   * The result of this phase is a `MutableConfigGraph`: A DAG-like graph data structure that allows easy lookup of actions by e.g. name and kind.
   * See the call to `actionsToConfigGraph` in `Garden#getConfigGraph`.
 * If any plugins define an `augmentGraph` handler, these are called now.
@@ -179,13 +167,13 @@ To get a better understanding of how module conversion works, we recommend readi
 
 ### Phase 1 of action resolution: Preprocessing during config graph construction
 
-Here, we do partial resolution on certain fields on the action configs, fully resolving built-in action config fields (like `include` and `dependencies`)—that is, framework-level fields that are not plugin-specific.
+Here, we fully resolve built-in action config fields (like `include` and `dependencies`)—that is, framework-level fields that are not plugin-specific.
 
 Some of these built-in fields need to be resolved so the framework can e.g. calculate the action version (`include`/`exclude`) and figure out the dependency structure between actions (`dependencies`) so that the `ConfigGraph` can be constructed. These calculations need to be finished before the solver is called to fully resolve and execute the actions in phase 2 (which is what enables us to resolve references to e.g. action outputs).
 
 Importantly, `spec` and `variables` (on the action level) are not among these fields—`spec` is where plugin-specific fields live, and is typically where later-stage fields (such as static & runtime outputs from other actions) are relevant and necessary. This is fine, since `spec` is only used by the action's underlying plugin.
 
-We recommend closely reading the source for the finer details. The `actionFromConfig` and `preprocessActionConfig` functions are where most of this is implemented.
+The `actionFromConfig` and `preprocessActionConfig` functions are where most of this is implemented.
 
 ### Phase 2 of action resolution: Full resolution in solver just before task execution
 

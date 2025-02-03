@@ -8,13 +8,13 @@
 
 import type { PluginActionParamsBase } from "../../base.js"
 import { projectActionParamsSchema } from "../../base.js"
-import { type EnvironmentStatus } from "./getEnvironmentStatus.js"
+import type { EnvironmentStatus } from "./getEnvironmentStatus.js"
 import { dedent } from "../../../util/string.js"
 import { joi } from "../../../config/common.js"
 import { environmentStatusSchema } from "../../../config/status.js"
-import type { GenericProviderConfig } from "../../../config/provider.js"
+import type { BaseProviderConfig } from "../../../config/provider.js"
 
-export interface PrepareEnvironmentParams<C extends GenericProviderConfig = any> extends PluginActionParamsBase<C> {
+export interface PrepareEnvironmentParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {
   force: boolean
 }
 

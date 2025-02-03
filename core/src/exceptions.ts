@@ -17,8 +17,6 @@ import { constants } from "os"
 import dns from "node:dns"
 import { styles } from "./logger/styles.js"
 import type { ExecaError } from "execa"
-import type { Location } from "./template-string/ast.js"
-import { addYamlContext, type ConfigSource } from "./config/validation.js"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
@@ -125,7 +123,7 @@ export abstract class GardenError extends Error {
   /**
    * Necessary to make testFlags.expandErrors work.
    */
-  private unexpandedStack: string | undefined
+  protected unexpandedStack: string | undefined
 
   constructor({ message, wrappedErrors, taskType, code }: GardenErrorParams) {
     super(message.trim())
@@ -249,10 +247,6 @@ export class ParameterError extends GardenError {
   type = "parameter"
 }
 
-export class NotImplementedError extends GardenError {
-  type = "not-implemented"
-}
-
 export class DeploymentError extends GardenError {
   type = "deployment"
 }
@@ -304,37 +298,6 @@ export class CloudApiError extends GardenError {
   constructor(params: GardenErrorParams & { responseStatusCode?: number }) {
     super(params)
     this.responseStatusCode = params.responseStatusCode
-  }
-}
-
-export class TemplateStringError extends GardenError {
-  type = "template-string"
-
-  loc: Location
-  originalMessage: string
-
-  constructor(params: GardenErrorParams & { loc: Location; yamlSource: ConfigSource }) {
-    let enriched: string = params.message
-    try {
-      // TODO: Use Location information from parser to point to the specific part
-      enriched = addYamlContext({ source: params.yamlSource, message: params.message })
-    } catch {
-      // ignore
-    }
-
-    if (enriched === params.message) {
-      const { path } = params.yamlSource
-
-      const pathDescription = path.length > 0 ? ` at path ${styles.accent(path.join("."))}` : ""
-      const prefix = `Invalid template string (${styles.accent(
-        truncate(params.loc.source.rawTemplateString, { length: 200 }).replace(/\n/g, "\\n")
-      )})${pathDescription}: `
-      enriched = params.message.startsWith(prefix) ? params.message : prefix + params.message
-    }
-
-    super({ ...params, message: enriched })
-    this.loc = params.loc
-    this.originalMessage = params.message
   }
 }
 
@@ -407,6 +370,10 @@ export class InternalError extends GardenError {
   // we want it to be obvious in amplitude data that this is not a normal error condition
   type = "crash"
 
+  public overrideStack(newStack: string | undefined) {
+    this.stack = this.unexpandedStack = newStack
+  }
+
   // not using object destructuring here on purpose, because errors are of type any and then the error might be passed as the params object accidentally.
   static wrapError(error: Error | string | any, prefix?: string): InternalError {
     let message: string | undefined
@@ -414,11 +381,11 @@ export class InternalError extends GardenError {
     let code: NodeJSErrnoException["code"] | undefined
 
     if (isErrnoException(error)) {
-      message = error.message
+      message = error.toString()
       stack = error.stack
       code = error.code
     } else if (error instanceof Error) {
-      message = error.message
+      message = error.toString()
       stack = error.stack
     } else if (isString(error)) {
       message = error
@@ -430,7 +397,7 @@ export class InternalError extends GardenError {
     message = message ? stripAnsi(message) : ""
 
     const err = new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, code })
-    err.stack = stack
+    err.overrideStack(stack)
 
     return err
   }
@@ -452,6 +419,8 @@ export class InternalError extends GardenError {
     return styles.error(`${styles.bold(header)}\n\n${body}\n\n${styles.primary(bugReportInformation)}`)
   }
 }
+
+export class NotImplementedError extends InternalError {}
 
 export function toGardenError(err: Error | GardenError | string | any): GardenError {
   if (err instanceof GardenError) {

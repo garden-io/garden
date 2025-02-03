@@ -12,11 +12,11 @@ import type { TerraformBaseSpec } from "./helpers.js"
 import { variablesSchema } from "./helpers.js"
 import { docsBaseUrl } from "@garden-io/sdk/build/src/constants.js"
 
-import type { GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
+import type { BaseProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
 import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider.js"
 import { joi } from "@garden-io/core/build/src/config/common.js"
 
-export type TerraformProviderConfig = GenericProviderConfig &
+export type TerraformProviderConfig = BaseProviderConfig &
   TerraformBaseSpec & {
     initRoot?: string
   }
