@@ -55,11 +55,11 @@ export class InputContext extends LayeredContext {
     if (template) {
       super(
         "unresolved inputs (with best-effort schema defaults)",
-        new GenericContext(template.inputsSchemaDefaults),
-        new GenericContext(inputs || {})
+        new GenericContext("best-effort schema defaults", template.inputsSchemaDefaults),
+        new GenericContext("unresolved inputs", inputs || {})
       )
     } else {
-      super("fully resolved inputs", new GenericContext(inputs || {}))
+      super("fully resolved inputs", new GenericContext("fully resolved inputs", inputs || {}))
     }
   }
 }

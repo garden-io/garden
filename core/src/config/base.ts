@@ -458,7 +458,7 @@ export function prepareProjectResource(log: Log, spec: any): ProjectConfig {
 }
 
 export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleConfig {
-  spec.build = evaluate(spec.build, { context: new GenericContext({}), opts: {} }).resolved
+  spec.build = evaluate(spec.build, { context: new GenericContext("empty", {}), opts: {} }).resolved
 
   const dependencies: BuildDependencyConfig[] = spec.build?.dependencies || []
 

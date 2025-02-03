@@ -168,7 +168,8 @@ export function* getActionTemplateReferences(
     visitAll({
       value: config as ObjectWithName,
     }),
-    context
+    context,
+    {}
   )
 
   for (const finding of generator) {
@@ -190,7 +191,8 @@ export function getModuleTemplateReferences(config: ModuleConfig, context: Modul
     visitAll({
       value: config as ObjectWithName,
     }),
-    context
+    context,
+    {}
   )
 
   for (const finding of generator) {

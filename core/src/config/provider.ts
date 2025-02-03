@@ -185,7 +185,8 @@ export function getProviderTemplateReferences(config: UnresolvedProviderConfig, 
     visitAll({
       value: config.unresolvedConfig,
     }),
-    context
+    context,
+    {}
   )
   for (const finding of generator) {
     const keyPath = finding.keyPath

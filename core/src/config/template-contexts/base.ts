@@ -41,6 +41,30 @@ export interface ContextResolveOpts {
    */
   keepEscapingInTemplateStrings?: boolean
 
+  /**
+   * If true, the given context is final and contains everything needed to fully resolve the given templates.
+   *
+   * If false, this flag enables special behaviour of for some template values, like `ObjectSpreadLazyValue`,
+   * where we basically ignore unresolvable templates and resolve to whatever is available at the moment.
+   *
+   * This is currently used in the `VariableContext`, to allow for using some of the variables early during action processing,
+   * before we built the actual graph.
+   *
+   * @example
+   *  kind: Build
+   *  name: xy
+   *  dependencies: ${var.dependencies} // <-- if false, we can resolve 'var.dependencies' despite the fact that 'actions' context is missing
+   *  variables:
+   *    $merge: ${actions.build.foo.vars} // <-- if true, the $merge operation fails if 'actions' context is missing
+   *    dependencies: ["bar"]
+   *
+   * @warning If set to false, templates can lose information; Be careful when persisting the resolved values, because
+   * we may have lost some information even if evaluate returned `partial: false`.
+   *
+   * @default true
+   */
+  isFinalContext?: boolean
+
   // for detecting circular references
   stack?: string[]
 }
@@ -113,7 +137,7 @@ export abstract class ConfigContext {
   private readonly _cache: Map<string, ContextResolveOutput>
   private readonly _id: number
 
-  constructor(public readonly _description?: string) {
+  constructor(public readonly _description: string) {
     this._id = globalConfigContextCounter++
     this._cache = new Map()
     if (!_description) {
@@ -191,6 +215,10 @@ export abstract class ConfigContext {
 // Note: we're using classes here to be able to use decorators to describe each context node and key
 @Profile()
 export abstract class ContextWithSchema extends ConfigContext {
+  constructor(description: string = "") {
+    super(description)
+  }
+
   static getSchema() {
     const schemas = (<any>this)._schemas
     return joi.object().keys(schemas).required()
@@ -214,7 +242,10 @@ export abstract class ContextWithSchema extends ConfigContext {
  * A generic context that just wraps an object.
  */
 export class GenericContext extends ConfigContext {
-  constructor(protected readonly data: ParsedTemplate | Collection<ParsedTemplate | ConfigContext>) {
+  constructor(
+    description: string,
+    protected readonly data: ParsedTemplate | Collection<ParsedTemplate | ConfigContext>
+  ) {
     if (data === undefined) {
       throw new InternalError({
         message: "Generic context may not be undefined.",
@@ -226,7 +257,7 @@ export class GenericContext extends ConfigContext {
           "Generic context is useless when instantiated with just another context as parameter. Use the other context directly instead.",
       })
     }
-    super()
+    super(description)
   }
 
   protected override resolveImpl(params: ContextResolveParams): ContextResolveOutput {
@@ -269,7 +300,7 @@ export class EnvironmentContext extends ContextWithSchema {
  */
 export class ErrorContext extends ConfigContext {
   constructor(private readonly message: string) {
-    super()
+    super(`error`)
   }
 
   protected override resolveImpl({}): ContextResolveOutput {
@@ -325,7 +356,16 @@ export class LayeredContext extends ConfigContext {
 
   constructor(description: string, ...layers: ConfigContext[]) {
     super(description)
-    this.layers = layers
+    if (layers.length === 0) {
+      this.layers = [new GenericContext("empty", {})]
+    } else {
+      this.layers = layers
+    }
+  }
+
+  public addLayer(layer: ConfigContext) {
+    this.layers.push(layer)
+    this.clearCache()
   }
 
   override resolveImpl(args: ContextResolveParams): ContextResolveOutput {

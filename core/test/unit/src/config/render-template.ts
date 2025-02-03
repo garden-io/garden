@@ -458,8 +458,13 @@ describe("config templates", () => {
 
       const config: RenderTemplateConfig = cloneDeep(defaults)
       config.inputs = parseTemplateCollection({ value: { name: "${var.test}" }, source: { path: [] } })
-      garden.variables = VariablesContext.forTest(garden, {
-        test: "test-value",
+      garden.variables = VariablesContext.forTest({
+        garden,
+        variablePrecedence: [
+          {
+            test: "test-value",
+          },
+        ],
       })
 
       const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
