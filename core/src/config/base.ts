@@ -419,6 +419,7 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
 function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
   const projectApiVersion = projectSpec.apiVersion
 
+  // TODO(0.14): should we use v1 by default?
   // We conservatively set the apiVersion to be compatible with 0.12.
   if (projectApiVersion === undefined) {
     emitNonRepeatableWarning(
@@ -436,10 +437,6 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
       log,
       `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
     )
-  } else if (projectApiVersion !== GardenApiVersion.v1) {
-    throw new ConfigurationError({
-      message: `Project configuration with \`apiVersion: ${projectApiVersion}\` is not supported. Valid values are ${naturalList(supportedApiVersions)}.`,
-    })
   }
 
   return projectSpec

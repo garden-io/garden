@@ -46,6 +46,7 @@ import { deepResolveContext } from "./template-contexts/base.js"
 import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
+import { makeDocsLinkPlain } from "../docs/common.js"
 
 export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -314,6 +315,11 @@ export const projectSchema = createSchema({
 
       Note that the value ${GardenApiVersion.v1} will break compatibility of your project
       with Garden Acorn (0.12).
+
+      Configuring ${GardenApiVersion.v2} explicitly in your project configuration
+      activates the breaking changes introduced in Garden 0.14.
+
+      See [Garden 0.14 Migration Guide](${DOCS_BASE_URL}/guides/migrating-to-0.14) for more details on the migration from 0.13 to 0.14.
     `),
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
     path: projectRootSchema().meta({ internal: true }),

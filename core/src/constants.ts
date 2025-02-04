@@ -36,9 +36,14 @@ export const DEFAULT_PORT_PROTOCOL = "TCP"
 export enum GardenApiVersion {
   v0 = "garden.io/v0",
   v1 = "garden.io/v1",
+  v2 = "garden.io/v2",
 }
 
 export const supportedApiVersions: string[] = Object.values(GardenApiVersion).map((v) => v as string)
+
+export function gardenApiSupportsActions(apiVersion: GardenApiVersion): boolean {
+  return apiVersion !== GardenApiVersion.v0
+}
 
 export const DEFAULT_BUILD_TIMEOUT_SEC = 600
 export const DEFAULT_TEST_TIMEOUT_SEC = 600

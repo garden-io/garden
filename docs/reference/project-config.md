@@ -30,6 +30,12 @@ The values in the schema below are the default values.
 #
 # Note that the value garden.io/v1 will break compatibility of your project
 # with Garden Acorn (0.12).
+#
+# Configuring garden.io/v2 explicitly in your project configuration
+# activates the breaking changes introduced in Garden 0.14.
+#
+# See [Garden 0.14 Migration Guide](https://docs.garden.io/guides/migrating-to-0.14) for more details on the migration
+# from 0.13 to 0.14.
 apiVersion:
 
 # Indicate what kind of config this is.
@@ -228,9 +234,14 @@ you to start using the new Action configs introduced in Garden Bonsai (0.13).
 Note that the value garden.io/v1 will break compatibility of your project
 with Garden Acorn (0.12).
 
-| Type     | Allowed Values                 | Required |
-| -------- | ------------------------------ | -------- |
-| `string` | "garden.io/v0", "garden.io/v1" | Yes      |
+Configuring garden.io/v2 explicitly in your project configuration
+activates the breaking changes introduced in Garden 0.14.
+
+See [Garden 0.14 Migration Guide](https://docs.garden.io/guides/migrating-to-0.14) for more details on the migration from 0.13 to 0.14.
+
+| Type     | Allowed Values                                 | Required |
+| -------- | ---------------------------------------------- | -------- |
+| `string` | "garden.io/v0", "garden.io/v1", "garden.io/v2" | Yes      |
 
 ### `kind`
 
