@@ -422,7 +422,7 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
   return projectSpec
 }
 
-function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
+function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
   const projectApiVersion = projectSpec.apiVersion
 
   // We conservatively set the apiVersion to be compatible with 0.12.
@@ -453,7 +453,7 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
 }
 
 const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [
-  handleMissingApiVersion,
+  handleApiVersion,
   handleDotIgnoreFiles,
   handleProjectModules,
 ]
