@@ -23,14 +23,14 @@ import type { ConfigTemplateKind } from "./config-template.js"
 import { isNotNull, isTruthy } from "../util/util.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "./common.js"
 import { createSchema, joi } from "./common.js"
-import { emitNonRepeatableWarning } from "../warnings.js"
+import { emitNonRepeatableWarning, reportDeprecatedFeatureUsage } from "../warnings.js"
 import type { ActionKind, BaseActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
 import { isUnresolved } from "../template/templated-strings.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
-import { dedent, deline } from "../util/string.js"
+import { dedent } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
 import { profileAsync } from "../util/profiling.js"
 import { readFile } from "fs/promises"
@@ -38,6 +38,7 @@ import { LRUCache } from "lru-cache"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import { evaluate } from "../template/evaluate.js"
 import { GenericContext } from "./template-contexts/base.js"
+import { styles } from "../logger/styles.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -370,10 +371,12 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
     return projectSpec
   }
 
-  emitNonRepeatableWarning(
+  reportDeprecatedFeatureUsage({
+    apiVersion: projectSpec.apiVersion,
     log,
-    deline`Multi-valued project configuration field \`dotIgnoreFiles\` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued \`dotIgnoreFile\` instead.`
-  )
+    featureDesc: `Multi-valued project configuration field ${styles.highlight("dotIgnoreFiles")}.`,
+    hint: `Please use single-valued ${styles.highlight("dotIgnoreFile")} instead.`,
+  })
 
   if (dotIgnoreFiles.length === 0) {
     return { ...projectSpec, dotIgnoreFile: defaultDotIgnoreFile }
@@ -394,10 +397,12 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
   // Field 'modules' was intentionally removed from the internal interface `ProjectConfig`,
   // but it still can be presented in the runtime if the old config format is used.
   if (projectSpec["modules"]) {
-    emitNonRepeatableWarning(
+    reportDeprecatedFeatureUsage({
+      apiVersion: projectSpec.apiVersion,
       log,
-      "Project configuration field `modules` is deprecated in 0.13 and will be removed in 0.14. Please use the `scan` field instead."
-    )
+      featureDesc: `Project configuration field ${styles.highlight("modules")}`,
+      hint: `Please use the ${styles.highlight("scan")} field instead.`,
+    })
     let scanConfig = projectSpec.scan || {}
     for (const key of ["include", "exclude"]) {
       if (projectSpec["modules"][key]) {
@@ -434,10 +439,15 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
   }
 
   if (projectApiVersion === GardenApiVersion.v0) {
-    emitNonRepeatableWarning(
+    reportDeprecatedFeatureUsage({
+      apiVersion: projectApiVersion,
       log,
-      `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
-    )
+      featureDesc: `Project config ${styles.highlight(`apiVersion: ${projectApiVersion}`)}`,
+      hint: dedent`
+      Note that ${styles.highlight(`apiVersion: ${projectApiVersion}`)} enables backwards compatibility with garden 0.12 only in Garden 0.13.
+      In Garden 0.14 use ${styles.highlight(`apiVersion: ${GardenApiVersion.v1}`)} or higher.
+      `,
+    })
   }
 
   return projectSpec

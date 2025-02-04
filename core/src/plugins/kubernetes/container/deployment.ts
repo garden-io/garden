@@ -26,7 +26,7 @@ import { KubeApi } from "../api.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import type { ActionLog, Log } from "../../../logger/log-entry.js"
 import { prepareEnvVars } from "../util.js"
-import { deline, gardenAnnotationKey } from "../../../util/string.js"
+import { dedent, deline, gardenAnnotationKey } from "../../../util/string.js"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward.js"
 import { prepareSecrets } from "../secrets.js"
@@ -46,7 +46,7 @@ import type {
 import { syncableKinds } from "../types.js"
 import type { ContainerServiceStatus } from "./status.js"
 import { k8sGetContainerDeployStatus } from "./status.js"
-import { emitNonRepeatableWarning } from "../../../warnings.js"
+import { reportDeprecatedFeatureUsage } from "../../../warnings.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run.js"
 import { styles } from "../../../logger/styles.js"
 
@@ -80,10 +80,15 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   }
 
   if (deploymentStrategy === "blue-green") {
-    emitNonRepeatableWarning(
+    reportDeprecatedFeatureUsage({
+      apiVersion: ctx.projectApiVersion,
       log,
-      "The deploymentStrategy configuration option has been deprecated and has no effect. It will be removed iin 0.14. The 'rolling' deployment strategy will be applied."
-    )
+      featureDesc: `The ${styles.highlight("deploymentStrategy")} configuration option of the ${styles.highlight("kubernetes deploy")} spec`,
+      hint: dedent`
+      This configuration option has no effect, please remove it.
+      The ${styles.highlight("deploymentStrategy: 'rolling'")} will be applied.
+      `,
+    })
   }
   await deployContainerServiceRolling({ ...params, api, imageId })
 
