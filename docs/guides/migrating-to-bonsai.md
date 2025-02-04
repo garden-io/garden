@@ -41,6 +41,8 @@ Here is the list of breaking changes from Garden Acorn (0.12) to Bonsai (0.13). 
   - `maven-container` (superseded by the `jib-container` plugin)
   - `npm-package` (the `exec` provider is a good replacement there)
   - `openfaas`
+- Changes in the plugin-level commands:
+  - The `cluster-init` command of the Kubernetes plugin was deprecated and has no effect now.
 - Bonsai follows the YAML 1.2 specification when reading Garden configuration files by default, and Acorn followed the 1.1 standard ([Summary of the differences](https://yaml.org/spec/1.2.2/ext/changes/#:~:text=The%20most%20significant%20difference%20between,counterparts%20are%20parsed%20as%20strings.)).
   - To go back to using YAML 1.1 if you intend to make your config compatible with both Bonsai and Acorn, you can add a version directive at the top of the Garden configuration file:
     ```YAML
