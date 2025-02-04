@@ -449,6 +449,8 @@ function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
     })
   }
 
+  // TODO(0.14): print a warning if apiVersion: garden.io/v1 is used
+
   return projectSpec
 }
 
