@@ -7,7 +7,7 @@ title: Migrating to Bonsai
 
 **Bonsai** is the codename for Garden 0.13.
 
-In Garden Bonsai, _actions_ replace _modules_ as the recommended way to describe components in your your Garden projects. The top-level project configuration is mostly unchanged.
+In Garden Bonsai, _actions_ replace _modules_ as the recommended way to describe components in your Garden projects. The top-level project configuration is mostly unchanged.
 
 But fear not: Bonsai is _mostly backwards compatible_ with the old configuration! There are very few breaking changes that require editing any existing module-based configuration files - your projects should mostly just work when updating Garden.
 
