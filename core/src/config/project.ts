@@ -46,7 +46,6 @@ import { deepResolveContext } from "./template-contexts/base.js"
 import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
-import { makeDocsLinkPlain } from "../docs/common.js"
 
 export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
