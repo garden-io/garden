@@ -417,8 +417,10 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
 }
 
 function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
+  const projectApiVersion = projectSpec.apiVersion
+
   // We conservatively set the apiVersion to be compatible with 0.12.
-  if (projectSpec["apiVersion"] === undefined) {
+  if (projectApiVersion === undefined) {
     emitNonRepeatableWarning(
       log,
       `"apiVersion" is missing in the Project config. Assuming "${
@@ -427,17 +429,17 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
     )
 
     return { ...projectSpec, apiVersion: GardenApiVersion.v0 }
-  } else {
-    if (projectSpec["apiVersion"] === GardenApiVersion.v0) {
-      emitNonRepeatableWarning(
-        log,
-        `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
-      )
-    } else if (projectSpec["apiVersion"] !== GardenApiVersion.v1) {
-      throw new ConfigurationError({
-        message: `Project configuration with \`apiVersion: ${projectSpec["apiVersion"]}\` is not supported. Valid values are ${naturalList(supportedApiVersions)}.`,
-      })
-    }
+  }
+
+  if (projectApiVersion === GardenApiVersion.v0) {
+    emitNonRepeatableWarning(
+      log,
+      `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
+    )
+  } else if (projectApiVersion !== GardenApiVersion.v1) {
+    throw new ConfigurationError({
+      message: `Project configuration with \`apiVersion: ${projectApiVersion}\` is not supported. Valid values are ${naturalList(supportedApiVersions)}.`,
+    })
   }
 
   return projectSpec
