@@ -13,7 +13,7 @@ import type { KubernetesConfig, KubernetesPluginContext, KubernetesProvider } fr
 import { PodRunner, PodRunnerError, PodRunnerTimeoutError } from "../../run.js"
 import type { PluginContext } from "../../../../plugin-context.js"
 import { hashString, sleep } from "../../../../util/util.js"
-import { ConfigurationError, RuntimeError } from "../../../../exceptions.js"
+import { ConfigurationError } from "../../../../exceptions.js"
 import type { Log } from "../../../../logger/log-entry.js"
 import { prepareDockerAuth } from "../../init.js"
 import { prepareSecrets } from "../../secrets.js"
@@ -285,12 +285,17 @@ export async function skopeoBuildStatus({
         return { state: "not-ready", outputs, detail: { runtime } }
       }
 
-      throw new RuntimeError({
-        message: `Unable to query registry for image status: Command "${skopeoCommand.join(
+      log.warn(
+        `Failed to check if the image has already been built: Command "${skopeoCommand.join(
           " "
-        )}" failed: ${err.message}`,
-        wrappedErrors: [err],
+        )}" failed: ${err.message}`
+      )
+      log.debug({
+        error: err,
       })
+
+      // If we fail to check the image status, we assume we need to rebuild it.
+      return { state: "not-ready", outputs, detail: { runtime } }
     }
 
     throw err
@@ -732,7 +737,7 @@ const baseUtilService: KubernetesResource<V1Service> = {
         name: "rsync",
         protocol: "TCP",
         port: utilRsyncPort,
-        targetPort: <any>utilRsyncPort,
+        targetPort: utilRsyncPort,
       },
     ],
     selector: {
