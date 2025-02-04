@@ -227,6 +227,26 @@ export interface ProjectConfig extends BaseGardenResource {
   variables: DeepPrimitiveMap
 }
 
+export const projectApiVersionSchema = memoize(() =>
+  joi.string().valid(...supportedApiVersions).description(dedent`
+      The Garden apiVersion for this project.
+
+      The value ${GardenApiVersion.v0} is the default for backwards compatibility with
+      Garden Acorn (0.12) when not explicitly specified.
+
+      Configuring ${GardenApiVersion.v1} explicitly in your project configuration allows
+      you to start using the new Action configs introduced in Garden Bonsai (0.13).
+
+      Note that the value ${GardenApiVersion.v1} will break compatibility of your project
+      with Garden Acorn (0.12).
+
+      Configuring ${GardenApiVersion.v2} explicitly in your project configuration
+      activates the breaking changes introduced in Garden 0.14.
+
+      See [Garden 0.14 Migration Guide](${DOCS_BASE_URL}/guides/migrating-to-0.14) for more details on the migration from 0.13 to 0.14.
+    `)
+)
+
 export const projectNameSchema = memoize(() =>
   joiIdentifier().required().description("The name of the project.").example("my-sweet-project")
 )
@@ -303,23 +323,7 @@ export const projectSchema = createSchema({
     "Configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
   required: true,
   keys: () => ({
-    apiVersion: joi.string().valid(...supportedApiVersions).description(dedent`
-      The Garden apiVersion for this project.
-
-      The value ${GardenApiVersion.v0} is the default for backwards compatibility with
-      Garden Acorn (0.12) when not explicitly specified.
-
-      Configuring ${GardenApiVersion.v1} explicitly in your project configuration allows
-      you to start using the new Action configs introduced in Garden Bonsai (0.13).
-
-      Note that the value ${GardenApiVersion.v1} will break compatibility of your project
-      with Garden Acorn (0.12).
-
-      Configuring ${GardenApiVersion.v2} explicitly in your project configuration
-      activates the breaking changes introduced in Garden 0.14.
-
-      See [Garden 0.14 Migration Guide](${DOCS_BASE_URL}/guides/migrating-to-0.14) for more details on the migration from 0.13 to 0.14.
-    `),
+    apiVersion: projectApiVersionSchema(),
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
     path: projectRootSchema().meta({ internal: true }),
     configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
