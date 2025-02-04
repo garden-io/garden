@@ -370,15 +370,16 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
     return projectSpec
   }
 
+  emitNonRepeatableWarning(
+    log,
+    deline`Multi-valued project configuration field \`dotIgnoreFiles\` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued \`dotIgnoreFile\` instead.`
+  )
+
   if (dotIgnoreFiles.length === 0) {
     return { ...projectSpec, dotIgnoreFile: defaultDotIgnoreFile }
   }
 
   if (dotIgnoreFiles.length === 1) {
-    emitNonRepeatableWarning(
-      log,
-      deline`Multi-valued project configuration field \`dotIgnoreFiles\` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued \`dotIgnoreFile\` instead.`
-    )
     return { ...projectSpec, dotIgnoreFile: dotIgnoreFiles[0] }
   }
 
