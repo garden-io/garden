@@ -14,7 +14,7 @@ import { omit, isPlainObject } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
 import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
 import { ConfigurationError, FilesystemError, isErrnoException, ParameterError } from "../exceptions.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, defaultGardenApiVersion, GardenApiVersion } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import { validateWithPath } from "./validation.js"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs.js"
@@ -425,13 +425,12 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
 function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
   const projectApiVersion = projectSpec.apiVersion
 
-  // TODO(0.14): should we use v1 by default?
   // We conservatively set the apiVersion to be compatible with 0.12.
   if (projectApiVersion === undefined) {
     emitNonRepeatableWarning(
       log,
       `"apiVersion" is missing in the Project config. Assuming "${
-        GardenApiVersion.v0
+        defaultGardenApiVersion
       }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLinkStyled("guides/migrating-to-bonsai")}`
     )
 
