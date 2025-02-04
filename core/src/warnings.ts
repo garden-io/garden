@@ -37,7 +37,7 @@ type DeprecationWarningParams = {
   apiVersion: GardenApiVersion
   log: Log
   featureDesc: string
-  hint?: string
+  hint: string
 }
 
 const migrationGuideReference = deline`
@@ -45,16 +45,21 @@ See Garden 0.14 Migration Guide at ${styles.link(`${DOCS_BASE_URL}/guides/migrat
 `
 
 function makeWarningFor_0_13({ featureDesc, hint }: { featureDesc: string; hint?: string }): string {
+  // add newline delimiter only if the sections are not empty
+  const warnMessage = !!featureDesc ? `\n${featureDesc} is deprecated in 0.13 and will be removed in 0.14.` : ""
+  const hintAppendix = !!hint ? `\n${hint}` : ""
   return dedent`
-  ${styles.bold("!!!!!!!!!!!!!!!!!!!! [DEPRECATION WARNING] !!!!!!!!!!!!!!!!!!!!")}
-  ${featureDesc} is deprecated in 0.13 and will be removed in 0.14.${!!hint ? `\n${hint}` : ""}
+  ${styles.bold("!!!!!!!!!!!!!!!!!!!! [DEPRECATION WARNING] !!!!!!!!!!!!!!!!!!!!")}${warnMessage}${hintAppendix}
   ${migrationGuideReference}
   `
 }
 
 function makeErrorFor_0_14({ featureDesc, hint }: { featureDesc: string; hint?: string }): string {
+  // add newline delimiter only if the sections are not empty
+  const errMessage = !!featureDesc ? `\n${featureDesc} has been removed in 0.14.` : ""
+  const hintAppendix = !!hint ? `\n${hint}` : ""
   return dedent`
-  ${featureDesc} has been removed in 0.14.${!!hint ? `\n${hint}` : ""}
+  ${errMessage}${hintAppendix}
   ${migrationGuideReference}
   `
 }
