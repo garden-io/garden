@@ -17,7 +17,7 @@ import {
   loadAndValidateYaml,
 } from "../../../../src/config/base.js"
 import { resolve, join } from "path"
-import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers.js"
+import { expectError, expectFuzzyMatch, getDataDir, getDefaultProjectConfig } from "../../../helpers.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs.js"
 import { safeDumpYaml } from "../../../../src/util/serialization.js"
@@ -28,6 +28,8 @@ import { omit } from "lodash-es"
 import { dedent } from "../../../../src/util/string.js"
 import { omitInternal } from "../../../../src/garden.js"
 import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
+import stripAnsi from "strip-ansi"
+import { styles } from "../../../../src/logger/styles.js"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -157,9 +159,13 @@ describe("prepareProjectResource", () => {
     expect(returnedProjectResource).to.eql(projectResource)
 
     const logEntry = log.getLatestEntry()
-    expect(logEntry.msg).to.include(
-      `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
-    )
+    const sanitizedMsg = stripAnsi((logEntry.msg as string) || "")
+    const expectedMessages = [
+      `Project config ${styles.highlight(`apiVersion: ${GardenApiVersion.v0}`)} is deprecated in 0.13 and will be removed in 0.14.`,
+      `Note that ${styles.highlight(`apiVersion: ${GardenApiVersion.v0}`)} enables backwards compatibility with garden 0.12 only in Garden 0.13.`,
+      `In Garden 0.14 use ${styles.highlight(`apiVersion: ${GardenApiVersion.v1}`)} or higher`,
+    ]
+    expectFuzzyMatch(sanitizedMsg, expectedMessages)
   })
 })
 
