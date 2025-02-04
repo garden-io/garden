@@ -111,6 +111,7 @@
 ## 🌷 Guides
 
 * [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
+* [Migrating to Garden 0.14](./guides/migrating-to-0.14.md)
 * [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Environments and namespaces](./guides/namespaces.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
