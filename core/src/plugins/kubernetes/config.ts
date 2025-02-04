@@ -99,11 +99,13 @@ const containerBuildModes = ["local-docker", "kaniko", "cluster-buildkit"] as co
 export type ContainerBuildMode = (typeof containerBuildModes)[number]
 
 /**
+ * TODO(0.14): remove this
  * To be removed in 0.14
  * @deprecated since 0.13
  */
 export type DefaultDeploymentStrategy = "rolling"
 /**
+ * TODO(0.14): remove this
  * To be removed in 0.14
  * @deprecated since 0.13
  */
@@ -157,6 +159,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
   defaultHostname?: string
   deploymentRegistry?: ContainerRegistryConfig
   /**
+   * TODO(0.14): remove this
    * Deprecated. Has no effect since 0.13. To be removed in 0.14.
    * @deprecated since 0.13
    */
