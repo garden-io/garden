@@ -14,7 +14,7 @@ import { omit, isPlainObject } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
 import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
 import { ConfigurationError, FilesystemError, isErrnoException, ParameterError } from "../exceptions.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion, supportedApiVersions } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import { validateWithPath } from "./validation.js"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs.js"
@@ -30,7 +30,7 @@ import { isUnresolved } from "../template/templated-strings.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
-import { dedent, deline } from "../util/string.js"
+import { dedent, deline, naturalList } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
 import { profileAsync } from "../util/profiling.js"
 import { readFile } from "fs/promises"
@@ -435,7 +435,7 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
       )
     } else if (projectSpec["apiVersion"] !== GardenApiVersion.v1) {
       throw new ConfigurationError({
-        message: `Project configuration with \`apiVersion: ${projectSpec["apiVersion"]}\` is not supported. Valid values are ${GardenApiVersion.v1} or ${GardenApiVersion.v0}.`,
+        message: `Project configuration with \`apiVersion: ${projectSpec["apiVersion"]}\` is not supported. Valid values are ${naturalList(supportedApiVersions)}.`,
       })
     }
   }

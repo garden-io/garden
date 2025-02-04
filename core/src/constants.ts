@@ -38,6 +38,8 @@ export enum GardenApiVersion {
   v1 = "garden.io/v1",
 }
 
+export const supportedApiVersions: string[] = Object.values(GardenApiVersion).map((v) => v as string)
+
 export const DEFAULT_BUILD_TIMEOUT_SEC = 600
 export const DEFAULT_TEST_TIMEOUT_SEC = 600
 export const DEFAULT_RUN_TIMEOUT_SEC = 600

@@ -30,6 +30,7 @@ import { ConfigurationError, InternalError, ParameterError, ValidationError } fr
 import { memoize } from "lodash-es"
 import { providerConfigBaseSchema } from "./provider.js"
 import type { GitScanMode } from "../constants.js"
+import { supportedApiVersions } from "../constants.js"
 import { DOCS_BASE_URL, GardenApiVersion, defaultGitScanMode, gitScanModes } from "../constants.js"
 import { defaultDotIgnoreFile } from "../util/fs.js"
 import type { CommandInfo } from "../plugin-context.js"
@@ -302,7 +303,7 @@ export const projectSchema = createSchema({
     "Configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
   required: true,
   keys: () => ({
-    apiVersion: joi.string().valid(GardenApiVersion.v0, GardenApiVersion.v1).description(dedent`
+    apiVersion: joi.string().valid(...supportedApiVersions).description(dedent`
       The Garden apiVersion for this project.
 
       The value ${GardenApiVersion.v0} is the default for backwards compatibility with
