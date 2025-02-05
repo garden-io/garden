@@ -82,25 +82,30 @@ export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: D
 
 export const DEPRECATIONS = {
   containerDeploymentStrategy: {
+    contextDesc: "Kubernetes provider configuration",
     featureDesc: `The ${styles.highlight("deploymentStrategy")} config field`,
     hint: `This field has no effect as the experimental support for blue/green deployments (via the ${styles.highlight(`"blue-green"`)} strategy) has been removed.`,
   },
   dotIgnoreFiles: {
+    contextDesc: "Project configuration",
     featureDesc: `The ${styles.highlight("dotIgnoreFiles")} config field`,
     hint: `Use the ${styles.highlight("dotIgnoreFile")} field instead. It only allows specifying one filename.`,
   },
   apiVersionV0: {
+    contextDesc: "Project configuration",
     featureDesc: `${styles.highlight(`apiVersion: ${GardenApiVersion.v0}`)} in the project config`,
     hint: dedent`
       Use ${styles.highlight(`apiVersion: ${GardenApiVersion.v1}`)} or higher instead.
     `,
   },
   projectConfigModules: {
-    featureDesc: `Project configuration field ${styles.highlight("modules")}`,
+    contextDesc: "Project configuration",
+    featureDesc: `${styles.highlight("modules")} config field`,
     hint: `Please use the ${styles.highlight("scan")} field instead.`,
   },
   kubernetesClusterInitCommand: {
+    contextDesc: "Garden Commands",
     featureDesc: `Kubernetes plugin command ${styles.highlight("cluster-init")}`,
     hint: "Do not use this command.",
   },
-}
+} as const

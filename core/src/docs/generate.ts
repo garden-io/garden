@@ -32,6 +32,9 @@ import { GardenApiVersion } from "../constants.js"
 import { actionKinds } from "../actions/types.js"
 
 import { fileURLToPath } from "node:url"
+import dedent from "dedent"
+import { DEPRECATIONS } from "../util/deprecations.js"
+import stripAnsi from "strip-ansi"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 /* eslint-disable no-console */
@@ -47,6 +50,8 @@ export async function generateDocs(targetDir: string, getPlugins: () => (GardenP
   writeTemplateStringReferenceDocs(docsRoot)
   console.log("Generating table of contents...")
   await writeTableOfContents(docsRoot, "README.md")
+  console.log("Updating the deprecation guide...")
+  await updateDeprecationGuide(docsRoot, "guides/deprecations.md")
 }
 
 export async function writeConfigReferenceDocs(
@@ -198,4 +203,38 @@ export async function writeConfigReferenceDocs(
   await renderConfigTemplate("workflow", renderConfigReference(workflowConfigSchema()))
   await renderConfigTemplate("config-template", renderConfigReference(configTemplateSchema()))
   await renderConfigTemplate("render-template", renderConfigReference(renderTemplateConfigSchema()))
+}
+
+async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename: string) {
+  const guide = resolve(docsRoot, deprecationGuideFilename)
+  const contents = (await readFile(guide)).toString()
+  const humanGenerated = contents.split("## Breaking changes")[0]
+
+  const contexts = new Set<string>()
+  for (const [_, { contextDesc }] of Object.entries(DEPRECATIONS)) {
+    contexts.add(contextDesc)
+  }
+
+  const breakingChanges: string[] = []
+
+  for (const context of contexts) {
+    breakingChanges.push(`### ${context}`)
+
+    const matchingDeprecations = Object.entries(DEPRECATIONS).filter(([_, { contextDesc }]) => contextDesc === context)
+    for (const [id, { hint, featureDesc }] of matchingDeprecations) {
+      breakingChanges.push(`#### <a id="${id}">${featureDesc}</a>`)
+      breakingChanges.push(hint)
+    }
+  }
+
+  await writeFile(
+    guide,
+    dedent`
+    ${humanGenerated.trimEnd()}
+
+    ## Breaking changes
+
+    ${stripAnsi(breakingChanges.join("\n\n"))}
+    `
+  )
 }
