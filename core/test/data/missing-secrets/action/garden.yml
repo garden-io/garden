@@ -1,6 +1,6 @@
 apiVersion: garden.io/v1
 kind: Project
-name: container
+name: test-project-missing-secrets-in-action
 environments:
   - name: local
 providers:
