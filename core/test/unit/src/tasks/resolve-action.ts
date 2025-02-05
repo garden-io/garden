@@ -64,7 +64,7 @@ describe("ResolveActionTask", () => {
       expect(garden.isLoggedIn()).to.be.false
 
       const task = await getTask("Run", "run-with-missing-secrets")
-      expectError(() => getTask("Run", "run-with-missing-secrets"), {
+      await expectError(() => getTask("Run", "run-with-missing-secrets"), {
         contains: [
           "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
           "Run run-with-missing-secrets: MISSING",
