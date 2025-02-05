@@ -46,9 +46,9 @@ import type {
 import { syncableKinds } from "../types.js"
 import type { ContainerServiceStatus } from "./status.js"
 import { k8sGetContainerDeployStatus } from "./status.js"
-import { reportDeprecatedFeatureUsage } from "../../../warnings.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run.js"
 import { styles } from "../../../logger/styles.js"
+import { DEPRECATIONS, reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
@@ -79,15 +79,11 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     })
   }
 
-  if (deploymentStrategy === "blue-green") {
+  if (deploymentStrategy) {
     reportDeprecatedFeatureUsage({
       apiVersion: ctx.projectApiVersion,
       log,
-      featureDesc: `The ${styles.highlight("deploymentStrategy")} configuration option of the ${styles.highlight("kubernetes deploy")} spec`,
-      hint: dedent`
-      This configuration option has no effect, please remove it.
-      The ${styles.highlight("deploymentStrategy: 'rolling'")} will be applied.
-      `,
+      deprecation: DEPRECATIONS.containerDeploymentStrategy,
     })
   }
   await deployContainerServiceRolling({ ...params, api, imageId })

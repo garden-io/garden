@@ -8,8 +8,8 @@
 
 import type { PluginCommand } from "../../../plugin/command.js"
 import { prepareEnvironment, getEnvironmentStatus } from "../init.js"
-import { reportDeprecatedFeatureUsage } from "../../../warnings.js"
 import { styles } from "../../../logger/styles.js"
+import { DEPRECATIONS, reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 // TODO: remove in 0.14
 const commandName = "cluster-init"
@@ -26,8 +26,7 @@ export const clusterInit: PluginCommand = {
     reportDeprecatedFeatureUsage({
       apiVersion: ctx.projectApiVersion,
       log,
-      featureDesc: `Kubernetes plugin command ${styles.highlight(commandName)}`,
-      hint: "Do not use this command.",
+      deprecation: DEPRECATIONS.kubernetesClusterInitCommand,
     })
 
     const status = await getEnvironmentStatus({ ctx, log })

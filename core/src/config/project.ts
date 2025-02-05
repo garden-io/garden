@@ -46,6 +46,7 @@ import { deepResolveContext } from "./template-contexts/base.js"
 import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
+import { DEPRECATIONS, makeDeprecationMessage } from "../util/deprecations.js"
 
 export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -240,10 +241,11 @@ export const projectApiVersionSchema = memoize(() =>
       Note that the value ${GardenApiVersion.v1} will break compatibility of your project
       with Garden Acorn (0.12).
 
-      Configuring ${GardenApiVersion.v2} explicitly in your project configuration
+      EXPERIMENTAL: Configuring ${GardenApiVersion.v2} explicitly in your project configuration
       activates the breaking changes introduced in Garden 0.14.
+      The list of breaking changes is not final yet, so use this setting at your own risk.
 
-      See [Garden 0.14 Migration Guide](${DOCS_BASE_URL}/guides/migrating-to-0.14) for more details on the migration from 0.13 to 0.14.
+      Please refer to [the deprecations guide](${DOCS_BASE_URL}/guides/deprecations) for more information.
     `)
 )
 
@@ -366,13 +368,10 @@ export const projectSchema = createSchema({
       .description(
         deline`
       Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-
-      Note: This field has been deprecated in 0.13 in favor of the \`dotIgnoreFile\` field, and as of 0.13 only one filename is allowed here. If a single filename is specified, the conversion is done automatically. If multiple filenames are provided, an error will be thrown.
-      Otherwise, an error will be thrown.
     `
       )
       .meta({
-        deprecated: "Please use `dotIgnoreFile` instead.",
+        deprecated: makeDeprecationMessage(DEPRECATIONS.dotIgnoreFiles),
       })
       .example([".gitignore"]),
     dotIgnoreFile: joi

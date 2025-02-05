@@ -43,6 +43,7 @@ import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultUtilImageRegistryDomain, defaultSystemNamespace } from "./constants.js"
 import type { LocalKubernetesClusterType } from "./local/config.js"
 import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
+import { DEPRECATIONS, makeDeprecationMessage } from "../../util/deprecations.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -621,17 +622,11 @@ export const kubernetesConfigBase = () =>
         .description(
           dedent`
           Sets the deployment strategy for \`container\` deploy actions.
-
-          Note that this field has been deprecated since 0.13, and has no effect.
-          The \`"rolling"\` will be applied in all cases.
-          The experimental support for blue/green deployments (via the \`"blue-green"\` strategy) has been removed.
-
-          Note that this setting only applies to \`container\` deploy actions (and not, for example,  \`kubernetes\` or \`helm\` deploy actions).
         `
         )
         .meta({
           experimental: true,
-          deprecated: "This field has been deprecated since 0.13, and has no effect.",
+          deprecated: makeDeprecationMessage(DEPRECATIONS.containerDeploymentStrategy),
         }),
       sync: joi
         .object()

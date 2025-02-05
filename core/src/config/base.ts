@@ -23,7 +23,7 @@ import type { ConfigTemplateKind } from "./config-template.js"
 import { isNotNull, isTruthy } from "../util/util.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "./common.js"
 import { createSchema, joi } from "./common.js"
-import { emitNonRepeatableWarning, reportDeprecatedFeatureUsage } from "../warnings.js"
+import { emitNonRepeatableWarning } from "../warnings.js"
 import type { ActionKind, BaseActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
 import { isUnresolved } from "../template/templated-strings.js"
@@ -39,6 +39,7 @@ import { parseTemplateCollection } from "../template/templated-collections.js"
 import { evaluate } from "../template/evaluate.js"
 import { GenericContext } from "./template-contexts/base.js"
 import { styles } from "../logger/styles.js"
+import { DEPRECATIONS, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -374,8 +375,7 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
   reportDeprecatedFeatureUsage({
     apiVersion: projectSpec.apiVersion,
     log,
-    featureDesc: `Multi-valued project configuration field ${styles.highlight("dotIgnoreFiles")}.`,
-    hint: `Please use single-valued ${styles.highlight("dotIgnoreFile")} instead.`,
+    deprecation: DEPRECATIONS.dotIgnoreFiles,
   })
 
   if (dotIgnoreFiles.length === 0) {
@@ -400,8 +400,7 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
     reportDeprecatedFeatureUsage({
       apiVersion: projectSpec.apiVersion,
       log,
-      featureDesc: `Project configuration field ${styles.highlight("modules")}`,
-      hint: `Please use the ${styles.highlight("scan")} field instead.`,
+      deprecation: DEPRECATIONS.projectConfigModules,
     })
     let scanConfig = projectSpec.scan || {}
     for (const key of ["include", "exclude"]) {
@@ -441,11 +440,7 @@ function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
     reportDeprecatedFeatureUsage({
       apiVersion: projectApiVersion,
       log,
-      featureDesc: `Project config ${styles.highlight(`apiVersion: ${projectApiVersion}`)}`,
-      hint: dedent`
-      Note that ${styles.highlight(`apiVersion: ${projectApiVersion}`)} enables backwards compatibility with garden 0.12 only in Garden 0.13.
-      In Garden 0.14 use ${styles.highlight(`apiVersion: ${GardenApiVersion.v1}`)} or higher.
-      `,
+      deprecation: DEPRECATIONS.apiVersionV0,
     })
   }
 

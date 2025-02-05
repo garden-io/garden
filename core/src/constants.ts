@@ -10,6 +10,8 @@ import env from "env-var"
 import { dirname, join, resolve } from "node:path"
 import { homedir } from "os"
 import { fileURLToPath } from "node:url"
+import dedent from "dedent"
+import { deline } from "./util/string.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
