@@ -7,9 +7,6 @@
  */
 
 import type { Log } from "./logger/log-entry.js"
-import { DOCS_BASE_URL, GardenApiVersion } from "./constants.js"
-import { GardenError } from "./exceptions.js"
-import { styles } from "./logger/styles.js"
 
 interface LoggerContext {
   readonly history: Set<string>

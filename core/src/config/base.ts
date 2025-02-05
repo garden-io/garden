@@ -38,7 +38,6 @@ import { LRUCache } from "lru-cache"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import { evaluate } from "../template/evaluate.js"
 import { GenericContext } from "./template-contexts/base.js"
-import { styles } from "../logger/styles.js"
 import { DEPRECATIONS, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 
 export const configTemplateKind = "ConfigTemplate"
