@@ -46,7 +46,7 @@ class FeatureNotAvailable extends GardenError {
 
   constructor({ featureDesc, hint, apiVersion }: { featureDesc: string; hint?: string; apiVersion: GardenApiVersion }) {
     const lines = [
-      `${featureDesc} has been deprecated and is not available when using ${styles.highlight(`\`apiVersion: ${apiVersion}\``)} in your project configuration file.`,
+      `${featureDesc} has been deprecated and is not available when using ${styles.highlight(`apiVersion: ${apiVersion}`)} in your project configuration file.`,
     ]
 
     if (hint) {
@@ -81,12 +81,12 @@ export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: D
 
 export const DEPRECATIONS = {
   containerDeploymentStrategy: {
-    featureDesc: "The `deploymentStrategy` config field",
-    hint: `This field has no effect as the experimental support for blue/green deployments (via the \`"blue-green"\` strategy) has been removed.`,
+    featureDesc: `The ${styles.highlight("deploymentStrategy")} config field`,
+    hint: `This field has no effect as the experimental support for blue/green deployments (via the ${styles.highlight(`"blue-green"`)} strategy) has been removed.`,
   },
   dotIgnoreFiles: {
-    featureDesc: "The `dotIgnoreFiles` config field",
-    hint: "Use the `dotIgnoreFile` field instead. It only allows specifying one filename.",
+    featureDesc: `The ${styles.highlight("dotIgnoreFiles")} config field`,
+    hint: `Use the ${styles.highlight("dotIgnoreFile")} field instead. It only allows specifying one filename.`,
   },
   apiVersionV0: {
     featureDesc: `${styles.highlight(`apiVersion: ${GardenApiVersion.v0}`)} in the project config`,
