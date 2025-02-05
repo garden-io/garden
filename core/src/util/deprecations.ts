@@ -53,7 +53,7 @@ class FeatureNotAvailable extends GardenError {
       lines.push(hint)
     }
 
-    const link = DOCS_DEPRECATION_GUIDE
+    const link = styles.link(DOCS_DEPRECATION_GUIDE)
     lines.push(
       `Avoiding to use this feature will ensure that your configuration does not break when we release Garden 0.14. For more information, see ${link}`
     )
