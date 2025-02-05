@@ -29,6 +29,7 @@ import { omitInternal } from "../../../../src/garden.js"
 import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
 import stripAnsi from "strip-ansi"
 import { styles } from "../../../../src/logger/styles.js"
+import { DOCS_DEPRECATION_GUIDE } from "../../../../src/util/deprecations.js"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -150,9 +151,10 @@ describe("prepareProjectResource", () => {
     const logEntry = log.getLatestEntry()
     const sanitizedMsg = stripAnsi((logEntry.msg as string) || "")
     const expectedMessages = [
-      `Project config ${styles.highlight(`apiVersion: ${GardenApiVersion.v0}`)} is deprecated in 0.13 and will be removed in 0.14.`,
-      `Note that ${styles.highlight(`apiVersion: ${GardenApiVersion.v0}`)} enables backwards compatibility with garden 0.12 only in Garden 0.13.`,
-      `In Garden 0.14 use ${styles.highlight(`apiVersion: ${GardenApiVersion.v1}`)} or higher`,
+      "Deprecation warning:",
+      `apiVersion: ${GardenApiVersion.v0} in the project config is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.`,
+      `Use apiVersion: ${GardenApiVersion.v1} or higher instead.`,
+      `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${DOCS_DEPRECATION_GUIDE}`,
     ]
     expectFuzzyMatch(sanitizedMsg, expectedMessages)
   })
