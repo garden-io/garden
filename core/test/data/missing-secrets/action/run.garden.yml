@@ -1,0 +1,6 @@
+kind: Run
+name: run-with-missing-secrets
+type: exec
+description: This should not fail while config scan
+spec:
+  command: [ "echo", "${secrets.MISSING}" ]

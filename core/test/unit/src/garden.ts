@@ -3328,6 +3328,15 @@ describe("Garden", () => {
         expect.fail("Expected scanAndAddConfigs not to throw")
       }
     })
+
+    it("should not throw when action config references missing secrets", async () => {
+      const garden = await makeTestGarden(getDataDir("missing-secrets", "action"))
+      try {
+        await garden.scanAndAddConfigs()
+      } catch (err) {
+        expect.fail("Expected scanAndAddConfigs not to throw")
+      }
+    })
   })
 
   describe("resolveModules", () => {
