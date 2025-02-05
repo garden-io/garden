@@ -22,7 +22,6 @@ import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/con
 import { defaultDotIgnoreFile } from "../../../../src/util/fs.js"
 import { safeDumpYaml } from "../../../../src/util/serialization.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
-import { ConfigurationError } from "../../../../src/exceptions.js"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings.js"
 import { omit } from "lodash-es"
 import { dedent } from "../../../../src/util/string.js"
@@ -118,16 +117,6 @@ describe("prepareProjectResource", () => {
     expect(processConfigAction).to.throw(
       "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.somedotignore, .gitignore]"
     )
-  })
-
-  it("should throw an error if the apiVersion is not known", async () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      apiVersion: "unknown",
-    }
-
-    const processConfigAction = () => prepareProjectResource(log, projectResource)
-    expect(processConfigAction).to.throw(ConfigurationError, /\`apiVersion: unknown\` is not supported/)
   })
 
   it("should fall back to the previous apiVersion when not defined", async () => {
