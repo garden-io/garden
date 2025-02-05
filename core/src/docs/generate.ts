@@ -34,7 +34,7 @@ import { actionKinds } from "../actions/types.js"
 import { fileURLToPath } from "node:url"
 import dedent from "dedent"
 import { DEPRECATIONS } from "../util/deprecations.js"
-import stripAnsi from "strip-ansi"
+import ansiRegex from "ansi-regex"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 /* eslint-disable no-console */
@@ -234,13 +234,10 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
 
     ## Breaking changes
 
-    ${stripAnsi(
-      breakingChanges
-        .join("\n\n")
-        // replace styles.highlight ansi codes with backticks
-        .replaceAll("[36m", "`")
-        .replaceAll("[39m", "`")
-    )}
+    ${breakingChanges
+      .join("\n\n")
+      // replace styles.highlight ansi codes with backticks
+      .replaceAll(ansiRegex(), "`")}
     `
   )
 }
