@@ -544,6 +544,53 @@ describe("RunWorkflowCommand", () => {
     })
   })
 
+  it("should throw before execution if any step references missing secrets", async () => {
+    const name = "workflow-with-missing-secrets"
+    const configs: WorkflowConfig[] = [
+      {
+        apiVersion: GardenApiVersion.v0,
+        name,
+        kind: "Workflow",
+        internal: {
+          basePath: garden.projectRoot,
+        },
+        files: [],
+        envVars: {},
+        resources: defaultWorkflowResources,
+        steps: [
+          {
+            name: "init",
+            script: "echo init",
+          },
+          {
+            name: "secrets",
+            script: "echo secrets ${secrets.missing}",
+          },
+          {
+            name: "end",
+            script: "echo end",
+          },
+        ],
+      },
+    ]
+    // @ts-expect-error todo: correct types for unresolved configs
+    const parsedConfigs = parseTemplateCollection({
+      // @ts-expect-error todo: correct types for unresolved configs
+      value: configs,
+      source: { path: [] },
+    }) as WorkflowConfig[]
+
+    garden.setRawWorkflowConfigs(parsedConfigs)
+
+    await expectError(() => cmd.action({ ...defaultParams, args: { workflow: name } }), {
+      contains: [
+        "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
+        `Workflow ${name}: missing`,
+        "No secrets have been loaded. If you have defined secrets for the current project and environment in Garden Cloud, this may indicate a problem with your configuration.",
+      ],
+    })
+  })
+
   it("should throw if attempting to write a file to an existing directory path", async () => {
     garden.setRawWorkflowConfigs([
       {

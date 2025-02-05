@@ -34,6 +34,8 @@ import { getCustomCommands } from "./custom.js"
 import { getBuiltinCommands } from "./commands.js"
 import { styles } from "../logger/styles.js"
 import { deepEvaluate } from "../template/evaluate.js"
+import { throwOnMissingSecretKeys } from "../config/secrets.js"
+import { RemoteSourceConfigContext } from "../config/template-contexts/project.js"
 
 const { ensureDir, writeFile } = fsExtra
 
@@ -78,6 +80,14 @@ export class WorkflowCommand extends Command<Args, {}> {
     const outerLog = log.createLog({})
     // Prepare any configured files before continuing
     const workflow = await garden.getWorkflowConfig(args.workflow)
+
+    throwOnMissingSecretKeys(
+      [workflow],
+      new RemoteSourceConfigContext(garden, garden.variables),
+      garden.secrets,
+      workflow.kind,
+      log
+    )
 
     // Merge any workflow-level environment variables into process.env.
     for (const [key, value] of Object.entries(toEnvVars(workflow.envVars))) {
