@@ -38,7 +38,7 @@ export function makeDeprecationMessage({
     `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${link}`
   )
 
-  return lines.join("\n\n")
+  return lines.join("\n")
 }
 
 class FeatureNotAvailable extends GardenError {
@@ -58,7 +58,7 @@ class FeatureNotAvailable extends GardenError {
       `Avoiding to use this feature will ensure that your configuration does not break when we release Garden 0.14. For more information, see ${link}`
     )
 
-    super({ message: lines.join("\n\n") })
+    super({ message: lines.join("\n") })
   }
 }
 
@@ -77,7 +77,7 @@ export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: D
   }
 
   const warnMessage = makeDeprecationMessage({ ...deprecation, styleLink: true })
-  emitNonRepeatableWarning(log, `DEPRECATION WARNING: ${warnMessage}`)
+  emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
 }
 
 export const DEPRECATIONS = {
