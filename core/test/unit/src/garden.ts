@@ -3324,31 +3324,33 @@ describe("Garden", () => {
       }
     })
 
-    it("should not throw when an action config references missing secrets", async () => {
-      const garden = await makeTestGarden(getDataDir("missing-secrets", "action"))
-      try {
-        await garden.scanAndAddConfigs()
-      } catch (err) {
-        expect.fail("Expected scanAndAddConfigs not to throw")
-      }
-    })
+    describe("missing secrets", () => {
+      it("should not throw when an action config references missing secrets", async () => {
+        const garden = await makeTestGarden(getDataDir("missing-secrets", "action"))
+        try {
+          await garden.scanAndAddConfigs()
+        } catch (err) {
+          expect.fail("Expected scanAndAddConfigs not to throw")
+        }
+      })
 
-    it("should not throw when a module config references missing secrets", async () => {
-      const garden = await makeTestGarden(getDataDir("missing-secrets", "module"))
-      try {
-        await garden.scanAndAddConfigs()
-      } catch (err) {
-        expect.fail("Expected scanAndAddConfigs not to throw")
-      }
-    })
+      it("should not throw when a module config references missing secrets", async () => {
+        const garden = await makeTestGarden(getDataDir("missing-secrets", "module"))
+        try {
+          await garden.scanAndAddConfigs()
+        } catch (err) {
+          expect.fail("Expected scanAndAddConfigs not to throw")
+        }
+      })
 
-    it("should not throw when a workflow config references missing secrets", async () => {
-      const garden = await makeTestGarden(getDataDir("missing-secrets", "workflow"))
-      try {
-        await garden.scanAndAddConfigs()
-      } catch (err) {
-        expect.fail("Expected scanAndAddConfigs not to throw")
-      }
+      it("should not throw when a workflow config references missing secrets", async () => {
+        const garden = await makeTestGarden(getDataDir("missing-secrets", "workflow"))
+        try {
+          await garden.scanAndAddConfigs()
+        } catch (err) {
+          expect.fail("Expected scanAndAddConfigs not to throw")
+        }
+      })
     })
   })
 
