@@ -31,6 +31,7 @@ import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { ProjectConfigContext } from "../../../../src/config/template-contexts/project.js"
 import { TestContext } from "./template-contexts/base.js"
+import { defaultDotIgnoreFile } from "../../../../src/util/fs.js"
 
 const { realpath, writeFile } = fsExtra
 
@@ -46,6 +47,44 @@ const vcsInfo = {
 const log = getRootLogger().createLog()
 
 describe("resolveProjectConfig", () => {
+  it("should throw an error if the apiVersion is not known", async () => {
+    const config = {
+      apiVersion: "unknown" as any,
+      kind: "Project" as const,
+      name: "test",
+      path: "/tmp/", // the path does not matter in this test suite
+      defaultEnvironment: "default",
+      dotIgnoreFile: defaultDotIgnoreFile,
+      internal: {
+        basePath: ".",
+      },
+      environments: [{ name: "default", defaultNamespace: null, variables: {} }],
+      providers: [{ name: "foo" }],
+      variables: {},
+    }
+
+    const processConfigAction = () =>
+      resolveProjectConfig({
+        log,
+        defaultEnvironmentName: "default",
+        config,
+        context: new ProjectConfigContext({
+          projectName: config.name,
+          projectRoot: config.path,
+          artifactsPath: "/tmp",
+          vcsInfo,
+          username: "some-user",
+          loggedIn: true,
+          enterpriseDomain,
+          secrets: {},
+          commandInfo,
+        }),
+      })
+    await expectError(processConfigAction, {
+      contains: "apiVersion must be one of [garden.io/v0, garden.io/v1, garden.io/v2]",
+    })
+  })
+
   it("should pass through a canonical project config", async () => {
     const config: ProjectConfig = createProjectConfig({
       name: "my-project",

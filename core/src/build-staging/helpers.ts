@@ -84,10 +84,7 @@ export function cloneFile(
           if (fromStats.target?.isFile()) {
             // For compatibility with older versions of garden that would allow symlink targets outside the root, if the target file existed, we only emit a warning here.
             // TODO(0.14): Throw an error here
-            emitNonRepeatableWarning(
-              log,
-              outOfBoundsMessage + `\n\nWARNING: This will become an error in an upcoming release of Garden.`
-            )
+            emitNonRepeatableWarning(log, outOfBoundsMessage + `\n\nWARNING: This will become an error in Garden 0.14.`)
             // For compatibility with older versions of Garden, copy the target file instead of reproducing the symlink
             // TODO(0.14): Only reproduce the symlink. The target file will be copied in another call to `cloneFile`.
             fromStats = fromStats.target

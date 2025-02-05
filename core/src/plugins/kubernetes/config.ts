@@ -43,6 +43,7 @@ import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultUtilImageRegistryDomain, defaultSystemNamespace } from "./constants.js"
 import type { LocalKubernetesClusterType } from "./local/config.js"
 import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
+import { makeDeprecationMessage } from "../../util/deprecations.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -99,11 +100,13 @@ const containerBuildModes = ["local-docker", "kaniko", "cluster-buildkit"] as co
 export type ContainerBuildMode = (typeof containerBuildModes)[number]
 
 /**
+ * TODO(0.14): remove this
  * To be removed in 0.14
  * @deprecated since 0.13
  */
 export type DefaultDeploymentStrategy = "rolling"
 /**
+ * TODO(0.14): remove this
  * To be removed in 0.14
  * @deprecated since 0.13
  */
@@ -157,6 +160,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
   defaultHostname?: string
   deploymentRegistry?: ContainerRegistryConfig
   /**
+   * TODO(0.14): remove this
    * Deprecated. Has no effect since 0.13. To be removed in 0.14.
    * @deprecated since 0.13
    */
@@ -618,17 +622,11 @@ export const kubernetesConfigBase = () =>
         .description(
           dedent`
           Sets the deployment strategy for \`container\` deploy actions.
-
-          Note that this field has been deprecated since 0.13, and has no effect.
-          The \`"rolling"\` will be applied in all cases.
-          The experimental support for blue/green deployments (via the \`"blue-green"\` strategy) has been removed.
-
-          Note that this setting only applies to \`container\` deploy actions (and not, for example,  \`kubernetes\` or \`helm\` deploy actions).
         `
         )
         .meta({
           experimental: true,
-          deprecated: "This field has been deprecated since 0.13, and has no effect.",
+          deprecated: makeDeprecationMessage({ deprecation: "containerDeploymentStrategy" }),
         }),
       sync: joi
         .object()
