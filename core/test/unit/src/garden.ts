@@ -3329,7 +3329,7 @@ describe("Garden", () => {
       }
     })
 
-    it("should not throw when action config references missing secrets", async () => {
+    it("should not throw when an action config references missing secrets", async () => {
       const garden = await makeTestGarden(getDataDir("missing-secrets", "action"))
       try {
         await garden.scanAndAddConfigs()
