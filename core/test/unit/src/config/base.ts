@@ -28,7 +28,6 @@ import { dedent } from "../../../../src/util/string.js"
 import { omitInternal } from "../../../../src/garden.js"
 import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
 import stripAnsi from "strip-ansi"
-import { styles } from "../../../../src/logger/styles.js"
 import { DOCS_DEPRECATION_GUIDE } from "../../../../src/util/deprecations.js"
 
 const projectPathA = getDataDir("test-project-a")
