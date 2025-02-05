@@ -19,6 +19,7 @@ import type { BaseKeyDescription, NormalizeOptions } from "./common.js"
 import { indent, renderMarkdownTable, convertMarkdownLinks, flattenSchema, isArrayType } from "./common.js"
 import { JoiKeyDescription } from "./joi-schema.js"
 import { safeDumpYaml } from "../util/serialization.js"
+import stripAnsi from "strip-ansi"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
@@ -86,8 +87,8 @@ function makeMarkdownDescription(description: BaseKeyDescription, { showRequired
 
   let deprecatedDescription = "This field will be removed in a future release."
 
-  if (description.deprecated && isString(description.deprecated)) {
-    deprecatedDescription = description.deprecated + " " + deprecatedDescription
+  if (description.deprecated && isString(description.deprecationMessage)) {
+    deprecatedDescription = stripAnsi(description.deprecationMessage)
   }
 
   return {

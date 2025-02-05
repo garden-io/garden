@@ -1225,7 +1225,11 @@ providers:
 {% endhint %}
 
 {% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
+**Deprecated**: The deploymentStrategy config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
+
+This field has no effect as the experimental support for blue/green deployments (via the &quot;blue-green&quot; strategy) has been removed.
+
+To make sure your configuration does not break when we release Garden 0.14, please follow the steps at https://docs.garden.io/guides/deprecations
 {% endhint %}
 
 Sets the deployment strategy for `container` deploy actions.
@@ -1766,7 +1770,7 @@ providers:
 [providers](#providers) > [resources](#providersresources) > sync
 
 {% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
+**Deprecated**: The sync service is only used for the cluster-docker build mode, which is being deprecated.
 {% endhint %}
 
 Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
