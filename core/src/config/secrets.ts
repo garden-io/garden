@@ -17,6 +17,44 @@ import difference from "lodash-es/difference.js"
 import { ConfigurationError } from "../exceptions.js"
 import { CONTEXT_RESOLVE_KEY_NOT_FOUND } from "../template/ast.js"
 
+function composeErrorMessage({
+  allMissing,
+  secrets,
+  prefix,
+}: {
+  allMissing: [string, ContextKeySegment[]][]
+  secrets: StringMap
+  prefix: string
+}): string {
+  const descriptions = allMissing.map(([key, missing]) => `${prefix} ${key}: ${missing.join(", ")}`)
+  /**
+   * Secret keys with empty values should have resulted in an error by this point, but we filter on keys with
+   * values for good measure.
+   */
+  const loadedKeys = Object.entries(secrets)
+    .filter(([_key, value]) => value)
+    .map(([key, _value]) => key)
+
+  let footer: string
+  if (loadedKeys.length === 0) {
+    footer = deline`
+      Note: No secrets have been loaded. If you have defined secrets for the current project and environment in Garden
+      Cloud, this may indicate a problem with your configuration.
+    `
+  } else {
+    footer = `Secret keys with loaded values: ${loadedKeys.join(", ")}`
+  }
+
+  const errMsg = dedent`
+    The following secret names were referenced in configuration, but are missing from the secrets loaded remotely:
+
+    ${descriptions.join("\n\n")}
+
+    ${footer}
+  `
+  return errMsg
+}
+
 /**
  * Gathers secret references in configs and throws an error if one or more referenced secrets isn't present (or has
  * blank values) in the provided secrets map.
@@ -42,33 +80,11 @@ export function throwOnMissingSecretKeys(
     return
   }
 
-  const descriptions = allMissing.map(([key, missing]) => `${prefix} ${key}: ${missing.join(", ")}`)
-  /**
-   * Secret keys with empty values should have resulted in an error by this point, but we filter on keys with
-   * values for good measure.
-   */
-  const loadedKeys = Object.entries(secrets)
-    .filter(([_key, value]) => value)
-    .map(([key, _value]) => key)
-  let footer: string
-  if (loadedKeys.length === 0) {
-    footer = deline`
-      Note: No secrets have been loaded. If you have defined secrets for the current project and environment in Garden
-      Cloud, this may indicate a problem with your configuration.
-    `
-  } else {
-    footer = `Secret keys with loaded values: ${loadedKeys.join(", ")}`
-  }
-  const errMsg = dedent`
-    The following secret names were referenced in configuration, but are missing from the secrets loaded remotely:
-
-    ${descriptions.join("\n\n")}
-
-    ${footer}
-  `
+  const errMsg = composeErrorMessage({ allMissing, secrets, prefix })
   if (log) {
     log.silly(() => errMsg)
   }
+
   throw new ConfigurationError({ message: errMsg })
 }
 
