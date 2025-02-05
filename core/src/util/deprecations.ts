@@ -13,7 +13,7 @@ import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
 
-const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
+export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
 
 export function makeDeprecationMessage({
   featureDesc,
@@ -35,7 +35,7 @@ export function makeDeprecationMessage({
     link = styles.link(link)
   }
   lines.push(
-    `To make sure your configuration does not break when when we release Garden 0.14, please follow the steps at ${link}`
+    `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${link}`
   )
 
   return lines.join("\n\n")
@@ -70,6 +70,7 @@ type DeprecationWarningParams = {
     hint: string
   }
 }
+
 export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: DeprecationWarningParams) {
   if (apiVersion === GardenApiVersion.v2) {
     throw new FeatureNotAvailable({ apiVersion, ...deprecation })
