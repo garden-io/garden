@@ -13,42 +13,44 @@ import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
 
-export const DEPRECATIONS = {
-  containerDeploymentStrategy: {
-    contextDesc: "Kubernetes provider configuration",
-    featureDesc: `The ${styles.highlight("deploymentStrategy")} config field`,
-    hint: `This field has no effect as the experimental support for blue/green deployments (via the ${styles.highlight(`"blue-green"`)} strategy) has been removed.`,
-  },
-  dotIgnoreFiles: {
-    contextDesc: "Project configuration",
-    featureDesc: `The ${styles.highlight("dotIgnoreFiles")} config field`,
-    hint: `Use the ${styles.highlight("dotIgnoreFile")} field instead. It only allows specifying one filename.`,
-  },
-  apiVersionV0: {
-    contextDesc: "Project configuration",
-    featureDesc: `${styles.highlight(`apiVersion: ${GardenApiVersion.v0}`)} in the project config`,
-    hint: dedent`
-      Use ${styles.highlight(`apiVersion: ${GardenApiVersion.v1}`)} or higher instead.
+export function getDeprecations(style: (s: string) => string = styles.highlight) {
+  return {
+    containerDeploymentStrategy: {
+      contextDesc: "Kubernetes provider configuration",
+      featureDesc: `The ${style("deploymentStrategy")} config field`,
+      hint: `This field has no effect as the experimental support for blue/green deployments (via the ${style(`"blue-green"`)} strategy) has been removed.`,
+    },
+    dotIgnoreFiles: {
+      contextDesc: "Project configuration",
+      featureDesc: `The ${style("dotIgnoreFiles")} config field`,
+      hint: `Use the ${style("dotIgnoreFile")} field instead. It only allows specifying one filename.`,
+    },
+    apiVersionV0: {
+      contextDesc: "Project configuration",
+      featureDesc: `${style(`apiVersion: ${GardenApiVersion.v0}`)} in the project config`,
+      hint: dedent`
+      Use ${style(`apiVersion: ${GardenApiVersion.v1}`)} or higher instead.
     `,
-  },
-  projectConfigModules: {
-    contextDesc: "Project configuration",
-    featureDesc: `${styles.highlight("modules")} config field`,
-    hint: `Please use the ${styles.highlight("scan")} field instead.`,
-  },
-  kubernetesClusterInitCommand: {
-    contextDesc: "Garden Commands",
-    featureDesc: `Kubernetes plugin command ${styles.highlight("cluster-init")}`,
-    hint: "Do not use this command.",
-  },
-} as const
+    },
+    projectConfigModules: {
+      contextDesc: "Project configuration",
+      featureDesc: `${style("modules")} config field`,
+      hint: `Please use the ${style("scan")} field instead.`,
+    },
+    kubernetesClusterInitCommand: {
+      contextDesc: "Garden Commands",
+      featureDesc: `Kubernetes plugin command ${style("cluster-init")}`,
+      hint: "Do not use this command.",
+    },
+  } as const
+}
 
-export type Deprecation = keyof typeof DEPRECATIONS
+export type Deprecation = keyof ReturnType<typeof getDeprecations>
 
 export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
 
 export function makeDeprecationMessage({ deprecation, styleLink }: { deprecation: Deprecation; styleLink?: boolean }) {
-  const { featureDesc, hint } = DEPRECATIONS[deprecation]
+  const { featureDesc, hint } = getDeprecations()[deprecation]
 
   const lines = [`${featureDesc} is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.`]
 
@@ -71,7 +73,7 @@ class FeatureNotAvailable extends GardenError {
   override type = "deprecated-feature-unavailable" as const
 
   constructor({ deprecation, apiVersion }: { deprecation: Deprecation; apiVersion: GardenApiVersion }) {
-    const { featureDesc, hint } = DEPRECATIONS[deprecation]
+    const { featureDesc, hint } = getDeprecations()[deprecation]
     const lines = [
       `${featureDesc} has been deprecated and is not available when using ${styles.highlight(`apiVersion: ${apiVersion}`)} in your project configuration file.`,
     ]

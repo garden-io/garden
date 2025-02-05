@@ -9,7 +9,7 @@
 import type { PluginCommand } from "../../../plugin/command.js"
 import { prepareEnvironment, getEnvironmentStatus } from "../init.js"
 import { styles } from "../../../logger/styles.js"
-import { DEPRECATIONS, reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 // TODO: remove in 0.14
 const commandName = "cluster-init"

@@ -91,7 +91,7 @@
     "e2e": "./bin/garden test e2e-tests",
     "e2e-project": "cd e2e; npm run e2e-project --",
     "fix-format": "./scripts/run-script.ts fix-format --no-bail --parallel",
-    "generate-docs": "FORCE_COLOR=true ./scripts/run-script.ts generate-docs",
+    "generate-docs": "./scripts/run-script.ts generate-docs",
     "integ": "./scripts/run-script.ts integ",
     "lint": "./scripts/run-script.ts lint --no-bail --parallel",
     "prettier": "prettier --check \"./**/*.ts\"",

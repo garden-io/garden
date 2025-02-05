@@ -33,8 +33,7 @@ import { actionKinds } from "../actions/types.js"
 
 import { fileURLToPath } from "node:url"
 import dedent from "dedent"
-import { DEPRECATIONS } from "../util/deprecations.js"
-import ansiRegex from "ansi-regex"
+import { getDeprecations } from "../util/deprecations.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 /* eslint-disable no-console */
@@ -210,8 +209,11 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
   const contents = (await readFile(guide)).toString()
   const humanGenerated = contents.split("## Breaking changes")[0]
 
+  // apply style for docs, using backticks instead of ansi codes
+  const deprecations = getDeprecations((s) => `\`${s}\``)
+
   const contexts = new Set<string>()
-  for (const [_, { contextDesc }] of Object.entries(DEPRECATIONS)) {
+  for (const [_, { contextDesc }] of Object.entries(deprecations)) {
     contexts.add(contextDesc)
   }
 
@@ -220,7 +222,7 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
   for (const context of contexts) {
     breakingChanges.push(`### ${context}`)
 
-    const matchingDeprecations = Object.entries(DEPRECATIONS).filter(([_, { contextDesc }]) => contextDesc === context)
+    const matchingDeprecations = Object.entries(deprecations).filter(([_, { contextDesc }]) => contextDesc === context)
     for (const [id, { hint, featureDesc }] of matchingDeprecations) {
       breakingChanges.push(`#### <a id="${id}">${featureDesc}</a>`)
       breakingChanges.push(hint)
@@ -234,10 +236,7 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
 
     ## Breaking changes
 
-    ${breakingChanges
-      .join("\n\n")
-      // replace styles.highlight ansi codes with backticks
-      .replaceAll(ansiRegex(), "`")}
+    ${breakingChanges.join("\n\n")}
     `
   )
 }
