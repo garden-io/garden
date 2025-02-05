@@ -454,9 +454,7 @@ defaultEnvironment: "dev"
 
 {% hint style="warning" %}
 **Deprecated**: The dotIgnoreFiles config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-
 Use the dotIgnoreFile field instead. It only allows specifying one filename.
-
 To make sure your configuration does not break when we release Garden 0.14, please follow the steps at https://docs.garden.io/guides/deprecations
 {% endhint %}
 
