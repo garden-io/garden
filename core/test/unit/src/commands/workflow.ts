@@ -583,6 +583,10 @@ describe("RunWorkflowCommand", () => {
 
     garden.setRawWorkflowConfigs(parsedConfigs)
 
+    // TestGarden is not logged in to Cloud and has no secrets
+    expect(garden.isLoggedIn()).to.be.false
+    expect(garden.secrets).to.be.empty
+
     await expectError(() => cmd.action({ ...defaultParams, args: { workflow: name } }), {
       contains: [
         "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
