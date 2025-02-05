@@ -31,11 +31,11 @@ The values in the schema below are the default values.
 # Note that the value garden.io/v1 will break compatibility of your project
 # with Garden Acorn (0.12).
 #
-# Configuring garden.io/v2 explicitly in your project configuration
+# EXPERIMENTAL: Configuring garden.io/v2 explicitly in your project configuration
 # activates the breaking changes introduced in Garden 0.14.
+# The list of breaking changes is not final yet, so use this setting at your own risk.
 #
-# See [Garden 0.14 Migration Guide](https://docs.garden.io/guides/migrating-to-0.14) for more details on the migration
-# from 0.13 to 0.14.
+# Please refer to [the deprecations guide](https://docs.garden.io/guides/deprecations) for more information.
 apiVersion:
 
 # Indicate what kind of config this is.
@@ -234,10 +234,11 @@ you to start using the new Action configs introduced in Garden Bonsai (0.13).
 Note that the value garden.io/v1 will break compatibility of your project
 with Garden Acorn (0.12).
 
-Configuring garden.io/v2 explicitly in your project configuration
+EXPERIMENTAL: Configuring garden.io/v2 explicitly in your project configuration
 activates the breaking changes introduced in Garden 0.14.
+The list of breaking changes is not final yet, so use this setting at your own risk.
 
-See [Garden 0.14 Migration Guide](https://docs.garden.io/guides/migrating-to-0.14) for more details on the migration from 0.13 to 0.14.
+Please refer to [the deprecations guide](https://docs.garden.io/guides/deprecations) for more information.
 
 | Type     | Allowed Values                                 | Required |
 | -------- | ---------------------------------------------- | -------- |
@@ -456,7 +457,6 @@ defaultEnvironment: "dev"
 {% endhint %}
 
 Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-Note: This field has been deprecated in 0.13 in favor of the `dotIgnoreFile` field, and as of 0.13 only one filename is allowed here. If a single filename is specified, the conversion is done automatically. If multiple filenames are provided, an error will be thrown. Otherwise, an error will be thrown.
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |

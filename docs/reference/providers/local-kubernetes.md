@@ -1230,12 +1230,6 @@ providers:
 
 Sets the deployment strategy for `container` deploy actions.
 
-Note that this field has been deprecated since 0.13, and has no effect.
-The `"rolling"` will be applied in all cases.
-The experimental support for blue/green deployments (via the `"blue-green"` strategy) has been removed.
-
-Note that this setting only applies to `container` deploy actions (and not, for example,  `kubernetes` or `helm` deploy actions).
-
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |
 | `string` | `"rolling"` | No       |
