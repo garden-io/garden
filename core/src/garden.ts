@@ -1439,16 +1439,6 @@ export class Garden {
       )
       const groupedResources = groupBy(allResources, "kind")
 
-      for (const [kind, configs] of Object.entries(groupedResources)) {
-        throwOnMissingSecretKeys(
-          configs,
-          new RemoteSourceConfigContext(this, this.variables),
-          this.secrets,
-          kind,
-          this.log
-        )
-      }
-
       let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
       const rawWorkflowConfigs = (groupedResources.Workflow as WorkflowConfig[]) || []
       const rawConfigTemplateResources = (groupedResources[configTemplateKind] as ConfigTemplateResource[]) || []
