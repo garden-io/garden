@@ -500,6 +500,7 @@ describe("RunWorkflowCommand", () => {
 
     const data = await readFile(filePath)
     expect(data.toString()).to.equal(garden.secrets.test)
+    delete garden.secrets.test
   })
 
   it("should throw if a file references a secret that doesn't exist", async () => {
