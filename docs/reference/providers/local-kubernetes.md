@@ -1227,7 +1227,7 @@ providers:
 {% hint style="warning" %}
 **Deprecated**: The deploymentStrategy config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
 This field has no effect as the experimental support for blue/green deployments (via the &quot;blue-green&quot; strategy) has been removed.
-To make sure your configuration does not break when we release Garden 0.14, please follow the steps at https://docs.garden.io/guides/deprecations
+To make sure your configuration does not break when we release Garden 0.14, please follow the steps at https://docs.garden.io/guides/deprecations#containerDeploymentStrategy
 {% endhint %}
 
 Sets the deployment strategy for `container` deploy actions.

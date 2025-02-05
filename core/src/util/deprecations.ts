@@ -13,73 +13,6 @@ import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
 
-export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
-
-export function makeDeprecationMessage({
-  featureDesc,
-  hint,
-  styleLink,
-}: {
-  featureDesc: string
-  hint?: string
-  styleLink?: boolean
-}) {
-  const lines = [`${featureDesc} is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.`]
-
-  if (hint) {
-    lines.push(hint)
-  }
-
-  let link = DOCS_DEPRECATION_GUIDE
-  if (styleLink) {
-    link = styles.link(link)
-  }
-  lines.push(
-    `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${link}`
-  )
-
-  return lines.join("\n")
-}
-
-class FeatureNotAvailable extends GardenError {
-  override type = "deprecated-feature-unavailable" as const
-
-  constructor({ featureDesc, hint, apiVersion }: { featureDesc: string; hint?: string; apiVersion: GardenApiVersion }) {
-    const lines = [
-      `${featureDesc} has been deprecated and is not available when using ${styles.highlight(`apiVersion: ${apiVersion}`)} in your project configuration file.`,
-    ]
-
-    if (hint) {
-      lines.push(hint)
-    }
-
-    const link = styles.link(DOCS_DEPRECATION_GUIDE)
-    lines.push(
-      `Avoiding to use this feature will ensure that your configuration does not break when we release Garden 0.14. For more information, see ${link}`
-    )
-
-    super({ message: lines.join("\n") })
-  }
-}
-
-type DeprecationWarningParams = {
-  apiVersion: GardenApiVersion
-  log: Log
-  deprecation: {
-    featureDesc: string
-    hint: string
-  }
-}
-
-export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: DeprecationWarningParams) {
-  if (apiVersion === GardenApiVersion.v2) {
-    throw new FeatureNotAvailable({ apiVersion, ...deprecation })
-  }
-
-  const warnMessage = makeDeprecationMessage({ ...deprecation, styleLink: true })
-  emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
-}
-
 export const DEPRECATIONS = {
   containerDeploymentStrategy: {
     contextDesc: "Kubernetes provider configuration",
@@ -109,3 +42,64 @@ export const DEPRECATIONS = {
     hint: "Do not use this command.",
   },
 } as const
+
+export type Deprecation = keyof typeof DEPRECATIONS
+
+export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
+
+export function makeDeprecationMessage({ deprecation, styleLink }: { deprecation: Deprecation; styleLink?: boolean }) {
+  const { featureDesc, hint } = DEPRECATIONS[deprecation]
+
+  const lines = [`${featureDesc} is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.`]
+
+  if (hint) {
+    lines.push(hint)
+  }
+
+  let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation}`
+  if (styleLink) {
+    link = styles.link(link)
+  }
+  lines.push(
+    `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${link}`
+  )
+
+  return lines.join("\n")
+}
+
+class FeatureNotAvailable extends GardenError {
+  override type = "deprecated-feature-unavailable" as const
+
+  constructor({ deprecation, apiVersion }: { deprecation: Deprecation; apiVersion: GardenApiVersion }) {
+    const { featureDesc, hint } = DEPRECATIONS[deprecation]
+    const lines = [
+      `${featureDesc} has been deprecated and is not available when using ${styles.highlight(`apiVersion: ${apiVersion}`)} in your project configuration file.`,
+    ]
+
+    if (hint) {
+      lines.push(hint)
+    }
+
+    const link = styles.link(DOCS_DEPRECATION_GUIDE)
+    lines.push(
+      `Avoiding to use this feature will ensure that your configuration does not break when we release Garden 0.14. For more information, see ${link}`
+    )
+
+    super({ message: lines.join("\n") })
+  }
+}
+
+type DeprecationWarningParams = {
+  apiVersion: GardenApiVersion
+  log: Log
+  deprecation: Deprecation
+}
+
+export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: DeprecationWarningParams) {
+  if (apiVersion === GardenApiVersion.v2) {
+    throw new FeatureNotAvailable({ apiVersion, deprecation })
+  }
+
+  const warnMessage = makeDeprecationMessage({ deprecation, styleLink: true })
+  emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
+}

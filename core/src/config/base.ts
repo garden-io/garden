@@ -374,7 +374,7 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
   reportDeprecatedFeatureUsage({
     apiVersion: projectSpec.apiVersion,
     log,
-    deprecation: DEPRECATIONS.dotIgnoreFiles,
+    deprecation: "dotIgnoreFiles",
   })
 
   if (dotIgnoreFiles.length === 0) {
@@ -399,7 +399,7 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
     reportDeprecatedFeatureUsage({
       apiVersion: projectSpec.apiVersion,
       log,
-      deprecation: DEPRECATIONS.projectConfigModules,
+      deprecation: "projectConfigModules",
     })
     let scanConfig = projectSpec.scan || {}
     for (const key of ["include", "exclude"]) {
@@ -439,7 +439,7 @@ function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
     reportDeprecatedFeatureUsage({
       apiVersion: projectApiVersion,
       log,
-      deprecation: DEPRECATIONS.apiVersionV0,
+      deprecation: "apiVersionV0",
     })
   }
 

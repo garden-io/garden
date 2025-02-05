@@ -83,7 +83,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     reportDeprecatedFeatureUsage({
       apiVersion: ctx.projectApiVersion,
       log,
-      deprecation: DEPRECATIONS.containerDeploymentStrategy,
+      deprecation: "containerDeploymentStrategy",
     })
   }
   await deployContainerServiceRolling({ ...params, api, imageId })

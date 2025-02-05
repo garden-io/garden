@@ -15,26 +15,26 @@ When using `apiVersion: garden.io/v1` in your project configuration file, Garden
 
 ### Kubernetes provider configuration
 
-#### <a id="containerDeploymentStrategy">The deploymentStrategy config field</a>
+#### <a id="containerDeploymentStrategy">The `deploymentStrategy` config field</a>
 
-This field has no effect as the experimental support for blue/green deployments (via the "blue-green" strategy) has been removed.
+This field has no effect as the experimental support for blue/green deployments (via the `"blue-green"` strategy) has been removed.
 
 ### Project configuration
 
-#### <a id="dotIgnoreFiles">The dotIgnoreFiles config field</a>
+#### <a id="dotIgnoreFiles">The `dotIgnoreFiles` config field</a>
 
-Use the dotIgnoreFile field instead. It only allows specifying one filename.
+Use the `dotIgnoreFile` field instead. It only allows specifying one filename.
 
-#### <a id="apiVersionV0">apiVersion: garden.io/v0 in the project config</a>
+#### <a id="apiVersionV0">`apiVersion: garden.io/v0` in the project config</a>
 
-Use apiVersion: garden.io/v1 or higher instead.
+Use `apiVersion: garden.io/v1` or higher instead.
 
-#### <a id="projectConfigModules">modules config field</a>
+#### <a id="projectConfigModules">`modules` config field</a>
 
-Please use the scan field instead.
+Please use the `scan` field instead.
 
 ### Garden Commands
 
-#### <a id="kubernetesClusterInitCommand">Kubernetes plugin command cluster-init</a>
+#### <a id="kubernetesClusterInitCommand">Kubernetes plugin command `cluster-init`</a>
 
 Do not use this command.

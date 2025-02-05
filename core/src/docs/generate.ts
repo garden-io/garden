@@ -234,7 +234,13 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
 
     ## Breaking changes
 
-    ${stripAnsi(breakingChanges.join("\n\n"))}
+    ${stripAnsi(
+      breakingChanges
+        .join("\n\n")
+        // replace styles.highlight ansi codes with backticks
+        .replaceAll("[36m", "`")
+        .replaceAll("[39m", "`")
+    )}
     `
   )
 }

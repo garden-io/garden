@@ -26,7 +26,7 @@ export const clusterInit: PluginCommand = {
     reportDeprecatedFeatureUsage({
       apiVersion: ctx.projectApiVersion,
       log,
-      deprecation: DEPRECATIONS.kubernetesClusterInitCommand,
+      deprecation: "kubernetesClusterInitCommand",
     })
 
     const status = await getEnvironmentStatus({ ctx, log })
