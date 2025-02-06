@@ -69,6 +69,7 @@ describe("ResolveActionTask", () => {
           "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
           "Run run-with-missing-secrets: missing",
           "You are not logged in. Log in to get access to Secrets in Garden Cloud.",
+          "See also https://cloud.docs.garden.io/features/secrets",
         ],
       })
     })
@@ -106,6 +107,7 @@ describe("ResolveActionTask", () => {
           "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
           "Run task-with-missing-secrets: missing",
           "You are not logged in. Log in to get access to Secrets in Garden Cloud.",
+          "See also https://cloud.docs.garden.io/features/secrets",
         ],
       })
     })

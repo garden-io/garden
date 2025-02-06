@@ -19,7 +19,7 @@ import { CONTEXT_RESOLVE_KEY_NOT_FOUND } from "../template/ast.js"
 
 function getMessageFooter({ loadedKeys, isLoggedIn }: { loadedKeys: string[]; isLoggedIn: boolean }) {
   if (!isLoggedIn) {
-    return "You are not logged in. Log in to get access to Secrets in Garden Cloud."
+    return "You are not logged in. Log in to get access to Secrets in Garden Cloud. See also https://cloud.docs.garden.io/features/secrets"
   }
 
   if (loadedKeys.length === 0) {
