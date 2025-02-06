@@ -19,6 +19,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
   private joiDescription: JoiDescription
 
   override deprecated: boolean
+  override deprecationMessage: string | undefined
   override example?: any
   override experimental: boolean
   override required: boolean
@@ -53,6 +54,9 @@ export class JoiKeyDescription extends BaseKeyDescription {
     const metas: any = extend({}, ...(joiDescription.metas || []))
 
     this.deprecated = joiDescription.parent?.deprecated || !!metas.deprecated
+    if (typeof metas.deprecated === "string") {
+      this.deprecationMessage = metas.deprecated
+    }
     this.description = joiDescription.flags?.description
     this.experimental = joiDescription.parent?.experimental || !!metas.experimental
     this.internal = joiDescription.parent?.internal || !!metas.internal

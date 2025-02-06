@@ -14,7 +14,7 @@ import { omit, isPlainObject } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
 import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
 import { ConfigurationError, FilesystemError, isErrnoException, ParameterError } from "../exceptions.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, defaultGardenApiVersion, GardenApiVersion } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import { validateWithPath } from "./validation.js"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs.js"
@@ -30,7 +30,7 @@ import { isUnresolved } from "../template/templated-strings.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
-import { dedent, deline } from "../util/string.js"
+import { dedent } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
 import { profileAsync } from "../util/profiling.js"
 import { readFile } from "fs/promises"
@@ -38,6 +38,7 @@ import { LRUCache } from "lru-cache"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import { evaluate } from "../template/evaluate.js"
 import { GenericContext } from "./template-contexts/base.js"
+import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -370,15 +371,17 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
     return projectSpec
   }
 
+  reportDeprecatedFeatureUsage({
+    apiVersion: projectSpec.apiVersion,
+    log,
+    deprecation: "dotIgnoreFiles",
+  })
+
   if (dotIgnoreFiles.length === 0) {
     return { ...projectSpec, dotIgnoreFile: defaultDotIgnoreFile }
   }
 
   if (dotIgnoreFiles.length === 1) {
-    emitNonRepeatableWarning(
-      log,
-      deline`Multi-valued project configuration field \`dotIgnoreFiles\` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued \`dotIgnoreFile\` instead.`
-    )
     return { ...projectSpec, dotIgnoreFile: dotIgnoreFiles[0] }
   }
 
@@ -393,10 +396,11 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
   // Field 'modules' was intentionally removed from the internal interface `ProjectConfig`,
   // but it still can be presented in the runtime if the old config format is used.
   if (projectSpec["modules"]) {
-    emitNonRepeatableWarning(
+    reportDeprecatedFeatureUsage({
+      apiVersion: projectSpec.apiVersion,
       log,
-      "Project configuration field `modules` is deprecated in 0.13 and will be removed in 0.14. Please use the `scan` field instead."
-    )
+      deprecation: "projectConfigModules",
+    })
     let scanConfig = projectSpec.scan || {}
     for (const key of ["include", "exclude"]) {
       if (projectSpec["modules"][key]) {
@@ -416,35 +420,36 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
   return projectSpec
 }
 
-function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
+function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
+  const projectApiVersion = projectSpec.apiVersion
+
   // We conservatively set the apiVersion to be compatible with 0.12.
-  if (projectSpec["apiVersion"] === undefined) {
+  if (projectApiVersion === undefined) {
     emitNonRepeatableWarning(
       log,
       `"apiVersion" is missing in the Project config. Assuming "${
-        GardenApiVersion.v0
+        defaultGardenApiVersion
       }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLinkStyled("guides/migrating-to-bonsai")}`
     )
 
     return { ...projectSpec, apiVersion: GardenApiVersion.v0 }
-  } else {
-    if (projectSpec["apiVersion"] === GardenApiVersion.v0) {
-      emitNonRepeatableWarning(
-        log,
-        `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
-      )
-    } else if (projectSpec["apiVersion"] !== GardenApiVersion.v1) {
-      throw new ConfigurationError({
-        message: `Project configuration with \`apiVersion: ${projectSpec["apiVersion"]}\` is not supported. Valid values are ${GardenApiVersion.v1} or ${GardenApiVersion.v0}.`,
-      })
-    }
   }
+
+  if (projectApiVersion === GardenApiVersion.v0) {
+    reportDeprecatedFeatureUsage({
+      apiVersion: projectApiVersion,
+      log,
+      deprecation: "apiVersionV0",
+    })
+  }
+
+  // TODO(0.14): print a warning if apiVersion: garden.io/v1 is used
 
   return projectSpec
 }
 
 const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [
-  handleMissingApiVersion,
+  handleApiVersion,
   handleDotIgnoreFiles,
   handleProjectModules,
 ]

@@ -8,12 +8,14 @@
 
 import type { PluginCommand } from "../../../plugin/command.js"
 import { prepareEnvironment, getEnvironmentStatus } from "../init.js"
-import { emitNonRepeatableWarning } from "../../../warnings.js"
 import { styles } from "../../../logger/styles.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 // TODO: remove in 0.14
+const commandName = "cluster-init"
+
 export const clusterInit: PluginCommand = {
-  name: "cluster-init",
+  name: commandName,
   description: "[DEPRECATED] Initialize or update cluster-wide Garden services.",
 
   title: ({ environmentName }) => {
@@ -21,7 +23,11 @@ export const clusterInit: PluginCommand = {
   },
 
   handler: async ({ ctx, log }) => {
-    emitNonRepeatableWarning(log, "This command is now deprecated and will be removed in Garden 0.14.")
+    reportDeprecatedFeatureUsage({
+      apiVersion: ctx.projectApiVersion,
+      log,
+      deprecation: "kubernetesClusterInitCommand",
+    })
 
     const status = await getEnvironmentStatus({ ctx, log })
     let result = {}

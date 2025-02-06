@@ -15,6 +15,7 @@ export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
   override type: string
   override example?: T | undefined
   override deprecated: boolean
+  override deprecationMessage: undefined // not used in json schema
   override experimental: boolean
   override required: boolean
 

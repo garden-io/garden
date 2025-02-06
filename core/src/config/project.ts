@@ -30,6 +30,7 @@ import { ConfigurationError, InternalError, ParameterError, ValidationError } fr
 import { memoize } from "lodash-es"
 import { providerConfigBaseSchema } from "./provider.js"
 import type { GitScanMode } from "../constants.js"
+import { supportedApiVersions } from "../constants.js"
 import { DOCS_BASE_URL, GardenApiVersion, defaultGitScanMode, gitScanModes } from "../constants.js"
 import { defaultDotIgnoreFile } from "../util/fs.js"
 import type { CommandInfo } from "../plugin-context.js"
@@ -45,6 +46,7 @@ import { deepResolveContext } from "./template-contexts/base.js"
 import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
+import { makeDeprecationMessage } from "../util/deprecations.js"
 
 export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -226,6 +228,27 @@ export interface ProjectConfig extends BaseGardenResource {
   variables: DeepPrimitiveMap
 }
 
+export const projectApiVersionSchema = memoize(() =>
+  joi.string().valid(...supportedApiVersions).description(dedent`
+      The Garden apiVersion for this project.
+
+      The value ${GardenApiVersion.v0} is the default for backwards compatibility with
+      Garden Acorn (0.12) when not explicitly specified.
+
+      Configuring ${GardenApiVersion.v1} explicitly in your project configuration allows
+      you to start using the new Action configs introduced in Garden Bonsai (0.13).
+
+      Note that the value ${GardenApiVersion.v1} will break compatibility of your project
+      with Garden Acorn (0.12).
+
+      EXPERIMENTAL: Configuring ${GardenApiVersion.v2} explicitly in your project configuration
+      activates the breaking changes introduced in Garden 0.14.
+      The list of breaking changes is not final yet, so use this setting at your own risk.
+
+      Please refer to [the deprecations guide](${DOCS_BASE_URL}/guides/deprecations) for more information.
+    `)
+)
+
 export const projectNameSchema = memoize(() =>
   joiIdentifier().required().description("The name of the project.").example("my-sweet-project")
 )
@@ -302,18 +325,7 @@ export const projectSchema = createSchema({
     "Configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
   required: true,
   keys: () => ({
-    apiVersion: joi.string().valid(GardenApiVersion.v0, GardenApiVersion.v1).description(dedent`
-      The Garden apiVersion for this project.
-
-      The value ${GardenApiVersion.v0} is the default for backwards compatibility with
-      Garden Acorn (0.12) when not explicitly specified.
-
-      Configuring ${GardenApiVersion.v1} explicitly in your project configuration allows
-      you to start using the new Action configs introduced in Garden Bonsai (0.13).
-
-      Note that the value ${GardenApiVersion.v1} will break compatibility of your project
-      with Garden Acorn (0.12).
-    `),
+    apiVersion: projectApiVersionSchema(),
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
     path: projectRootSchema().meta({ internal: true }),
     configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
@@ -356,13 +368,10 @@ export const projectSchema = createSchema({
       .description(
         deline`
       Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-
-      Note: This field has been deprecated in 0.13 in favor of the \`dotIgnoreFile\` field, and as of 0.13 only one filename is allowed here. If a single filename is specified, the conversion is done automatically. If multiple filenames are provided, an error will be thrown.
-      Otherwise, an error will be thrown.
     `
       )
       .meta({
-        deprecated: "Please use `dotIgnoreFile` instead.",
+        deprecated: makeDeprecationMessage({ deprecation: "dotIgnoreFiles" }),
       })
       .example([".gitignore"]),
     dotIgnoreFile: joi

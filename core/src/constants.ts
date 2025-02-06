@@ -36,6 +36,17 @@ export const DEFAULT_PORT_PROTOCOL = "TCP"
 export enum GardenApiVersion {
   v0 = "garden.io/v0",
   v1 = "garden.io/v1",
+  v2 = "garden.io/v2",
+}
+
+// TODO(0.14): bump this to v1 (or v2?)
+//  Update the comments and log messages in the placed where it's used.
+export const defaultGardenApiVersion = GardenApiVersion.v0
+
+export const supportedApiVersions: string[] = Object.values(GardenApiVersion).map((v) => v as string)
+
+export function gardenApiSupportsActions(apiVersion: GardenApiVersion): boolean {
+  return apiVersion !== GardenApiVersion.v0
 }
 
 export const DEFAULT_BUILD_TIMEOUT_SEC = 600

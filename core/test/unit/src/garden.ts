@@ -3311,7 +3311,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-action-kind-v0"))
 
       await expectError(() => garden.scanAndAddConfigs(), {
-        contains: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}"`,
+        contains: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}" or higher`,
       })
     })
 

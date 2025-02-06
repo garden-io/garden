@@ -2110,7 +2110,7 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 [services](#services) > limits
 
 {% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
+**Deprecated**: Please use the &#x60;cpu&#x60; and &#x60;memory&#x60; fields instead.
 {% endhint %}
 
 Specify resource limits for the service.
