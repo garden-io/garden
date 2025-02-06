@@ -591,7 +591,7 @@ describe("RunWorkflowCommand", () => {
       contains: [
         "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
         `Workflow ${name}: missing`,
-        "No secrets have been loaded. If you have defined secrets for the current project and environment in Garden Cloud, this may indicate a problem with your configuration.",
+        "You are not logged in. Log in to get access to Secrets in Garden Cloud.",
       ],
     })
   })

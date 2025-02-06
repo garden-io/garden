@@ -55,7 +55,7 @@ describe("ResolveActionTask", () => {
           type: "test",
           name: "run-with-missing-secrets",
           spec: {
-            command: ["echo", "${secrets.MISSING}"],
+            command: ["echo", "${secrets.missing}"],
           },
         },
       ])
@@ -66,8 +66,8 @@ describe("ResolveActionTask", () => {
       await expectError(() => getTask("Run", "run-with-missing-secrets"), {
         contains: [
           "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
-          "Run run-with-missing-secrets: MISSING",
-          "No secrets have been loaded. If you have defined secrets for the current project and environment in Garden Cloud, this may indicate a problem with your configuration.",
+          "Run run-with-missing-secrets: missing",
+          "You are not logged in. Log in to get access to Secrets in Garden Cloud.",
         ],
       })
     })

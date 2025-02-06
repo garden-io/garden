@@ -18,6 +18,10 @@ import { ConfigurationError } from "../exceptions.js"
 import { CONTEXT_RESOLVE_KEY_NOT_FOUND } from "../template/ast.js"
 
 function getMessageFooter({ loadedKeys, isLoggedIn }: { loadedKeys: string[]; isLoggedIn: boolean }) {
+  if (!isLoggedIn) {
+    return "You are not logged in. Log in to get access to Secrets in Garden Cloud."
+  }
+
   if (loadedKeys.length === 0) {
     return deline`
       Note: No secrets have been loaded. If you have defined secrets for the current project and environment in Garden
