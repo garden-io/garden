@@ -21,7 +21,7 @@ import { LogLevel } from "@garden-io/sdk/build/src/types.js"
 import { gardenPlugin } from "../src/index.js"
 import type { TerraformProvider } from "../src/provider.js"
 import { DeployTask } from "@garden-io/core/build/src/tasks/deploy.js"
-import { getWorkspaces, setWorkspace } from "../src/helpers.js"
+import { getWorkspaces, ensureWorkspace } from "../src/helpers.js"
 import { resolveAction } from "@garden-io/core/build/src/graph/actions.js"
 import { RunTask } from "@garden-io/core/build/src/tasks/run.js"
 import { defaultTerraformVersion } from "../src/cli.js"
@@ -433,7 +433,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -478,7 +478,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const _ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -523,7 +523,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: _garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -760,7 +760,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           log: _garden.log,
         })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         await actions.deploy.delete({ action: _action, log: _action.createLog(_garden.log), graph: _graph })
 
@@ -878,7 +878,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -923,7 +923,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const _ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -968,7 +968,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: _garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -1204,7 +1204,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           log: _garden.log,
         })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         await actions.deploy.delete({ action: _action, log: _action.createLog(_garden.log), graph: _graph })
 
