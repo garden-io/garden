@@ -76,7 +76,7 @@ export function throwOnMissingSecretKeys({
 }) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
   for (const config of configs) {
-    const missing = detectMissingSecretKeys(config, context, secrets)
+    const missing = detectMissingSecretKeys({ obj: config, context: context, secrets: secrets })
     if (missing.length > 0) {
       allMissing.push([config.name, missing])
     }
@@ -98,11 +98,15 @@ export function throwOnMissingSecretKeys({
  * Collects template references to secrets in obj, and returns an array of any secret keys referenced in it that
  * aren't present (or have blank values) in the provided secrets map.
  */
-export function detectMissingSecretKeys(
-  obj: ObjectWithName,
-  context: ConfigContext,
+export function detectMissingSecretKeys({
+  obj,
+  context,
+  secrets,
+}: {
+  obj: ObjectWithName
+  context: ConfigContext
   secrets: StringMap
-): ContextKeySegment[] {
+}): ContextKeySegment[] {
   const requiredKeys: ContextKeySegment[] = []
   const generator = getContextLookupReferences(
     visitAll({
