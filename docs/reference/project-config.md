@@ -453,9 +453,8 @@ defaultEnvironment: "dev"
 ### `dotIgnoreFiles[]`
 
 {% hint style="warning" %}
-**Deprecated**: The dotIgnoreFiles config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-Use the dotIgnoreFile field instead. It only allows specifying one filename.
-To make sure your configuration does not break when we release Garden 0.14, please follow the steps at https://docs.garden.io/guides/deprecations#dotIgnoreFiles
+**Deprecated**: The `dotIgnoreFiles` config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
+Use the `dotIgnoreFile` field instead. It only allows specifying one filename.
 {% endhint %}
 
 Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for actions and action sources.
