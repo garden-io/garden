@@ -12,6 +12,35 @@ import { GardenError } from "../exceptions.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
+import { naturalList } from "./string.js"
+import type { RegisterPluginParam } from "../plugin/plugin.js"
+
+const deprecatedPluginNames: string[] = ["conftest", "conftest-container", "conftest-kubernetes", "hadolint", "octant"]
+
+export function isDeprecatedPlugin(pluginName: string): boolean {
+  return deprecatedPluginNames.includes(pluginName)
+}
+
+export function reportDeprecatedPluginsUsage({
+  apiVersion,
+  plugins,
+  log,
+}: {
+  apiVersion: GardenApiVersion
+  plugins: RegisterPluginParam[]
+  log: Log
+}) {
+  for (const plugin of plugins) {
+    const pluginName = typeof plugin === "string" ? plugin : plugin.name
+    if (isDeprecatedPlugin(pluginName)) {
+      reportDeprecatedFeatureUsage({
+        apiVersion,
+        log,
+        deprecation: "deprecatedPlugins",
+      })
+    }
+  }
+}
 
 export function getDeprecations(style: (s: string) => string = styles.highlight) {
   return {
@@ -54,6 +83,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       contextDesc: "Garden Commands",
       featureDesc: `The Kubernetes plugin command ${style("cluster-init")}`,
       hint: "Do not use this command. It has no effect.",
+      hintReferenceLink: null,
+    },
+    deprecatedPlugins: {
+      contextDesc: "Garden Plugins",
+      featureDesc: `The ${naturalList(deprecatedPluginNames.map((p) => style(p)))} plugins`,
+      hint: "These plugins are still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use these plugins explicitly in Garden 0.14.",
       hintReferenceLink: null,
     },
   } as const

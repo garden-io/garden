@@ -51,3 +51,9 @@ For more information, please refer to the [`scan` reference documentation](../re
 <h3 id="kubernetesClusterInitCommand">The Kubernetes plugin command `cluster-init`</h3>
 
 Do not use this command. It has no effect.
+
+## Garden Plugins
+
+<h3 id="hadolintPlugin">The `Hadolint` plugin</h3>
+
+Do not use this plugin.

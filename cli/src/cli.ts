@@ -22,6 +22,7 @@ import { waitForOutputFlush } from "@garden-io/core/build/src/process.js"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [
+  // TODO(0.14): remove confest plugins from the list of the bundled plugins
   {
     name: "conftest",
     callback: async () => {
