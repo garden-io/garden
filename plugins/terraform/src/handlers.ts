@@ -9,7 +9,14 @@
 import { join } from "path"
 import { deline } from "@garden-io/core/build/src/util/string.js"
 import { terraform } from "./cli.js"
-import { applyStack, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers.js"
+import {
+  applyStack,
+  getStackStatus,
+  getTfOutputs,
+  prepareVariables,
+  ensureWorkspace,
+  initTerraform,
+} from "./helpers.js"
 import type { TerraformProvider } from "./provider.js"
 import type { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types.js"
 import type { DeployState } from "@garden-io/core/build/src/types/service.js"
@@ -25,6 +32,8 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
   const variables = spec.variables
   const workspace = spec.workspace || null
 
+  await ensureWorkspace({ log, ctx, provider, root, workspace })
+  await initTerraform({ log, ctx, provider, root })
   const status = await getStackStatus({
     ctx,
     log,
@@ -65,7 +74,7 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
         `
       )
     )
-    await setWorkspace({ log, ctx, provider, root, workspace })
+    await ensureWorkspace({ log, ctx, provider, root, workspace })
   }
 
   return {
@@ -99,7 +108,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
   const variables = spec.variables
   const workspace = spec.workspace || null
 
-  await setWorkspace({ ctx, provider, root, log, workspace })
+  await ensureWorkspace({ ctx, provider, root, log, workspace })
 
   const args = ["destroy", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
   await terraform(ctx, provider).exec({ log, args, cwd: root })

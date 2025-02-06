@@ -14,7 +14,7 @@ import type { TerraformProvider } from "../src/provider.js"
 import type { TestGarden } from "@garden-io/sdk/build/src/testing.js"
 import { makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
 import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
-import { getWorkspaces, setWorkspace } from "../src/helpers.js"
+import { getWorkspaces, ensureWorkspace } from "../src/helpers.js"
 import { expect } from "chai"
 import { defaultTerraformVersion, terraform } from "../src/cli.js"
 import { fileURLToPath } from "node:url"
@@ -94,7 +94,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         await terraform(ctx, provider).exec({ args: ["init"], cwd: root, log })
         await terraform(ctx, provider).exec({ args: ["workspace", "new", "foo"], cwd: root, log })
 
-        await setWorkspace({ ctx, provider, log, root, workspace: null })
+        await ensureWorkspace({ ctx, provider, log, root, workspace: null })
 
         const { workspaces, selected } = await getWorkspaces({ ctx, provider, log, root })
         expect(selected).to.equal("foo")
@@ -102,7 +102,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("does nothing if already on requested workspace", async () => {
-        await setWorkspace({ ctx, provider, log, root, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, log, root, workspace: "default" })
 
         const { workspaces, selected } = await getWorkspaces({ ctx, provider, log, root })
         expect(selected).to.equal("default")
@@ -114,7 +114,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         await terraform(ctx, provider).exec({ args: ["workspace", "new", "foo"], cwd: root, log })
         await terraform(ctx, provider).exec({ args: ["workspace", "select", "default"], cwd: root, log })
 
-        await setWorkspace({ ctx, provider, log, root, workspace: "foo" })
+        await ensureWorkspace({ ctx, provider, log, root, workspace: "foo" })
 
         const { workspaces, selected } = await getWorkspaces({ ctx, provider, log, root })
         expect(selected).to.equal("foo")
@@ -122,7 +122,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("creates a new workspace if it doesn't already exist", async () => {
-        await setWorkspace({ ctx, provider, log, root, workspace: "foo" })
+        await ensureWorkspace({ ctx, provider, log, root, workspace: "foo" })
 
         const { workspaces, selected } = await getWorkspaces({ ctx, provider, log, root })
         expect(selected).to.equal("foo")

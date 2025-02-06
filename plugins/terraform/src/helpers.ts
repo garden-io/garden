@@ -47,13 +47,13 @@ interface TerraformParamsWithVariables extends TerraformParamsWithWorkspace {
 }
 
 /**
- * Validates the stack at the given root.
- *
- * Note that this does not set the workspace, so it must be set ahead of calling the function.
+ * Initialize Terraform.
  */
-export async function tfValidate(params: TerraformParams) {
+export async function initTerraform(params: TerraformParams) {
   const { log, ctx, provider, root } = params
 
+  // The Terraform init command is idempotent but can be slow so we first check if the stack is valid
+  // and return early if it is (if Terraform hasn't been initialized then validate returns false)
   const args = ["validate", "-json"]
   const res = await terraform(ctx, provider).json({
     log,
@@ -94,8 +94,8 @@ export async function tfValidate(params: TerraformParams) {
         )
         errorMsg += dedent`\n\n${resultErrors.join("\n")}
 
-    Garden tried running "terraform init" but got the following error:\n
-    ${initError.message}`
+        Garden tried running "terraform init" but got the following error:\n
+        ${initError.message}`
       } else {
         // "terraform init" went through but there is still a validation error afterwards so we
         // add the retry error.
@@ -143,9 +143,6 @@ type StackStatus = "up-to-date" | "outdated" | "error"
 export async function getStackStatus(params: TerraformParamsWithVariables): Promise<StackStatus> {
   const { ctx, log, provider, root, variables } = params
 
-  await setWorkspace(params)
-  await tfValidate(params)
-
   const statusLog = log.createLog({ name: "terraform" }).info("Running plan...")
 
   const plan = await terraform(ctx, provider).exec({
@@ -188,7 +185,7 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
 export async function applyStack(params: TerraformParamsWithVariables) {
   const { ctx, log, provider, root, variables } = params
 
-  await setWorkspace(params)
+  await ensureWorkspace(params)
 
   const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
   const proc = await terraform(ctx, provider).spawn({ log, args, cwd: root })
@@ -279,7 +276,7 @@ export async function getWorkspaces(params: TerraformParams) {
  * Sets the workspace to use in the Terraform `root`, creating it if it doesn't already exist. Does nothing if
  * no `workspace` is set.
  */
-export async function setWorkspace(params: TerraformParamsWithWorkspace) {
+export async function ensureWorkspace(params: TerraformParamsWithWorkspace) {
   const { ctx, provider, root, log, workspace } = params
 
   if (!workspace) {
