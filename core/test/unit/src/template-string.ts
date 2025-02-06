@@ -3009,16 +3009,24 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
-    // The `isLoggedIn` flag affects the error message and has no effect for this test.
-    // Let's set it to true.
-    throwOnMissingSecretKeys({ configs, context: new TestContext({}), secrets: {}, prefix: "Module", isLoggedIn: true })
-    throwOnMissingSecretKeys({
-      configs,
-      context: new TestContext({}),
-      secrets: { someSecret: "123" },
-      prefix: "Module",
-      isLoggedIn: true,
-    })
+    try {
+      throwOnMissingSecretKeys({
+        configs,
+        context: new TestContext({}),
+        secrets: {},
+        prefix: "Module",
+        isLoggedIn: true,
+      })
+      throwOnMissingSecretKeys({
+        configs,
+        context: new TestContext({}),
+        secrets: { someSecret: "123" },
+        prefix: "Module",
+        isLoggedIn: true,
+      })
+    } catch (err) {
+      expect.fail("Expected throwOnMissingSecretKeys not to throw")
+    }
   })
 
   it("should not throw an error if secrets are optional in an expression", () => {
@@ -3033,16 +3041,24 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
-    // The `isLoggedIn` flag affects the error message and has no effect for this test.
-    // Let's set it to true.
-    throwOnMissingSecretKeys({ configs, context: new TestContext({}), secrets: {}, prefix: "Module", isLoggedIn: true })
-    throwOnMissingSecretKeys({
-      configs,
-      context: new TestContext({}),
-      secrets: { someSecret: "123" },
-      prefix: "Module",
-      isLoggedIn: true,
-    })
+    try {
+      throwOnMissingSecretKeys({
+        configs,
+        context: new TestContext({}),
+        secrets: {},
+        prefix: "Module",
+        isLoggedIn: true,
+      })
+      throwOnMissingSecretKeys({
+        configs,
+        context: new TestContext({}),
+        secrets: { someSecret: "123" },
+        prefix: "Module",
+        isLoggedIn: true,
+      })
+    } catch (err) {
+      expect.fail("Expected throwOnMissingSecretKeys not to throw")
+    }
   })
 
   it("should throw an error if one or more secrets is missing", () => {
