@@ -1236,17 +1236,17 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
   /**
    * Returns false if the unresolved template value contains runtime references, in order to skip resolving it at this point.
    */
-  const skipRuntimeReferences = (value: UnresolvedTemplateValue) => {
+  const skipRuntimeAndSecretsReferences = (value: UnresolvedTemplateValue) => {
     if (
       someReferences({
         value,
         context,
         opts: {},
         onlyEssential: true,
-        matcher: (ref) => ref.keyPath[0] === "runtime",
+        matcher: (ref) => ref.keyPath[0] === "runtime" || ref.keyPath[0] === "secrets",
       })
     ) {
-      return false // do not evaluate runtime references
+      return false // do not evaluate runtime and secrets references
     }
 
     return true
@@ -1262,7 +1262,7 @@ function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, co
         keepEscapingInTemplateStrings: true,
       },
     },
-    skipRuntimeReferences
+    skipRuntimeAndSecretsReferences
   )
 
   // any leftover unresolved template values are now turned back into the raw form
