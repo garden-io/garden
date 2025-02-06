@@ -3009,8 +3009,13 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
-    throwOnMissingSecretKeys(configs, new TestContext({}), {}, "Module")
-    throwOnMissingSecretKeys(configs, new TestContext({}), { someSecret: "123" }, "Module")
+    throwOnMissingSecretKeys({ configs, context: new TestContext({}), secrets: {}, prefix: "Module" })
+    throwOnMissingSecretKeys({
+      configs,
+      context: new TestContext({}),
+      secrets: { someSecret: "123" },
+      prefix: "Module",
+    })
   })
 
   it("should not throw an error if secrets are optional in an expression", () => {
@@ -3025,8 +3030,13 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
-    throwOnMissingSecretKeys(configs, new TestContext({}), {}, "Module")
-    throwOnMissingSecretKeys(configs, new TestContext({}), { someSecret: "123" }, "Module")
+    throwOnMissingSecretKeys({ configs, context: new TestContext({}), secrets: {}, prefix: "Module" })
+    throwOnMissingSecretKeys({
+      configs,
+      context: new TestContext({}),
+      secrets: { someSecret: "123" },
+      prefix: "Module",
+    })
   })
 
   it("should throw an error if one or more secrets is missing", () => {
@@ -3048,7 +3058,13 @@ describe("throwOnMissingSecretKeys", () => {
     } as const)
 
     void expectError(
-      () => throwOnMissingSecretKeys(configs, new TestContext({}), { b: "123" }, "Module"),
+      () =>
+        throwOnMissingSecretKeys({
+          configs,
+          context: new TestContext({}),
+          secrets: { b: "123" },
+          prefix: "Module",
+        }),
       (err) => {
         expect(err.message).to.match(/Module moduleA: a/)
         expect(err.message).to.match(/Module moduleB: a, c/)
@@ -3057,7 +3073,7 @@ describe("throwOnMissingSecretKeys", () => {
     )
 
     void expectError(
-      () => throwOnMissingSecretKeys(configs, new TestContext({}), {}, "Module"),
+      () => throwOnMissingSecretKeys({ configs, context: new TestContext({}), secrets: {}, prefix: "Module" }),
       (err) => {
         expect(err.message).to.match(/Module moduleA: a, b/)
         expect(err.message).to.match(/Module moduleB: a, b, c/)

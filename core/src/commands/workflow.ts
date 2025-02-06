@@ -81,13 +81,13 @@ export class WorkflowCommand extends Command<Args, {}> {
     // Prepare any configured files before continuing
     const workflow = await garden.getWorkflowConfig(args.workflow)
 
-    throwOnMissingSecretKeys(
-      [workflow],
-      new RemoteSourceConfigContext(garden, garden.variables),
-      garden.secrets,
-      workflow.kind,
-      log
-    )
+    throwOnMissingSecretKeys({
+      configs: [workflow],
+      context: new RemoteSourceConfigContext(garden, garden.variables),
+      secrets: garden.secrets,
+      prefix: workflow.kind,
+      log,
+    })
 
     // Merge any workflow-level environment variables into process.env.
     for (const [key, value] of Object.entries(toEnvVars(workflow.envVars))) {

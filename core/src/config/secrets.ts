@@ -61,13 +61,19 @@ function composeErrorMessage({
  *
  * Prefix should be e.g. "Module" or "Provider" (used when generating error messages).
  */
-export function throwOnMissingSecretKeys(
-  configs: ObjectWithName[],
-  context: ConfigContext,
-  secrets: StringMap,
-  prefix: string,
+export function throwOnMissingSecretKeys({
+  configs,
+  context,
+  secrets,
+  prefix,
+  log,
+}: {
+  configs: ObjectWithName[]
+  context: ConfigContext
+  secrets: StringMap
+  prefix: string
   log?: Log
-) {
+}) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
   for (const config of configs) {
     const missing = detectMissingSecretKeys(config, context, secrets)

@@ -58,13 +58,13 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
   constructor(params: BaseActionTaskParams<T>) {
     super(params)
-    throwOnMissingSecretKeys(
-      [this.action.getConfig()],
-      new RemoteSourceConfigContext(params.garden, params.garden.variables),
-      params.garden.secrets,
-      this.action.kind,
-      this.log
-    )
+    throwOnMissingSecretKeys({
+      configs: [this.action.getConfig()],
+      context: new RemoteSourceConfigContext(params.garden, params.garden.variables),
+      secrets: params.garden.secrets,
+      prefix: this.action.kind,
+      log: this.log,
+    })
   }
 
   getDescription() {
