@@ -17,6 +17,17 @@ import difference from "lodash-es/difference.js"
 import { ConfigurationError } from "../exceptions.js"
 import { CONTEXT_RESOLVE_KEY_NOT_FOUND } from "../template/ast.js"
 
+function getMessageFooter(loadedKeys: string[]) {
+  if (loadedKeys.length === 0) {
+    return deline`
+      Note: No secrets have been loaded. If you have defined secrets for the current project and environment in Garden
+      Cloud, this may indicate a problem with your configuration.
+    `
+  } else {
+    return `Secret keys with loaded values: ${loadedKeys.join(", ")}`
+  }
+}
+
 function composeErrorMessage({
   allMissing,
   secrets,
@@ -35,15 +46,7 @@ function composeErrorMessage({
     .filter(([_key, value]) => value)
     .map(([key, _value]) => key)
 
-  let footer: string
-  if (loadedKeys.length === 0) {
-    footer = deline`
-      Note: No secrets have been loaded. If you have defined secrets for the current project and environment in Garden
-      Cloud, this may indicate a problem with your configuration.
-    `
-  } else {
-    footer = `Secret keys with loaded values: ${loadedKeys.join(", ")}`
-  }
+  const footer = getMessageFooter(loadedKeys)
 
   const errMsg = dedent`
     The following secret names were referenced in configuration, but are missing from the secrets loaded remotely:
