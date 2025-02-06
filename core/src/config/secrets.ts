@@ -17,7 +17,7 @@ import difference from "lodash-es/difference.js"
 import { ConfigurationError } from "../exceptions.js"
 import { CONTEXT_RESOLVE_KEY_NOT_FOUND } from "../template/ast.js"
 
-function getMessageFooter(loadedKeys: string[]) {
+function getMessageFooter({ loadedKeys, isLoggedIn }: { loadedKeys: string[]; isLoggedIn: boolean }) {
   if (loadedKeys.length === 0) {
     return deline`
       Note: No secrets have been loaded. If you have defined secrets for the current project and environment in Garden
@@ -32,10 +32,12 @@ function composeErrorMessage({
   allMissing,
   secrets,
   prefix,
+  isLoggedIn,
 }: {
   allMissing: [string, ContextKeySegment[]][]
   secrets: StringMap
   prefix: string
+  isLoggedIn: boolean
 }): string {
   const descriptions = allMissing.map(([key, missing]) => `${prefix} ${key}: ${missing.join(", ")}`)
   /**
@@ -46,7 +48,7 @@ function composeErrorMessage({
     .filter(([_key, value]) => value)
     .map(([key, _value]) => key)
 
-  const footer = getMessageFooter(loadedKeys)
+  const footer = getMessageFooter({ loadedKeys, isLoggedIn })
 
   const errMsg = dedent`
     The following secret names were referenced in configuration, but are missing from the secrets loaded remotely:
@@ -69,17 +71,19 @@ export function throwOnMissingSecretKeys({
   context,
   secrets,
   prefix,
+  isLoggedIn,
   log,
 }: {
   configs: ObjectWithName[]
   context: ConfigContext
   secrets: StringMap
   prefix: string
+  isLoggedIn: boolean
   log?: Log
 }) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
   for (const config of configs) {
-    const missing = detectMissingSecretKeys({ obj: config, context: context, secrets: secrets })
+    const missing = detectMissingSecretKeys({ obj: config, context, secrets })
     if (missing.length > 0) {
       allMissing.push([config.name, missing])
     }
@@ -89,7 +93,7 @@ export function throwOnMissingSecretKeys({
     return
   }
 
-  const errMsg = composeErrorMessage({ allMissing, secrets, prefix })
+  const errMsg = composeErrorMessage({ allMissing, secrets, prefix, isLoggedIn })
   if (log) {
     log.silly(() => errMsg)
   }

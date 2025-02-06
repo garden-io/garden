@@ -809,6 +809,7 @@ export class Garden {
         context: new RemoteSourceConfigContext(this, this.variables),
         secrets: this.secrets,
         prefix: "Provider",
+        isLoggedIn: this.isLoggedIn(),
         log,
       })
 

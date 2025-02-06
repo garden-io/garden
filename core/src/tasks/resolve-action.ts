@@ -63,6 +63,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       context: new RemoteSourceConfigContext(params.garden, params.garden.variables),
       secrets: params.garden.secrets,
       prefix: this.action.kind,
+      isLoggedIn: params.garden.isLoggedIn(),
       log: this.log,
     })
   }

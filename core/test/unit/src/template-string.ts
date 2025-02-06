@@ -3009,12 +3009,15 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
-    throwOnMissingSecretKeys({ configs, context: new TestContext({}), secrets: {}, prefix: "Module" })
+    // The `isLoggedIn` flag affects the error message and has no effect for this test.
+    // Let's set it to true.
+    throwOnMissingSecretKeys({ configs, context: new TestContext({}), secrets: {}, prefix: "Module", isLoggedIn: true })
     throwOnMissingSecretKeys({
       configs,
       context: new TestContext({}),
       secrets: { someSecret: "123" },
       prefix: "Module",
+      isLoggedIn: true,
     })
   })
 
@@ -3030,12 +3033,15 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
-    throwOnMissingSecretKeys({ configs, context: new TestContext({}), secrets: {}, prefix: "Module" })
+    // The `isLoggedIn` flag affects the error message and has no effect for this test.
+    // Let's set it to true.
+    throwOnMissingSecretKeys({ configs, context: new TestContext({}), secrets: {}, prefix: "Module", isLoggedIn: true })
     throwOnMissingSecretKeys({
       configs,
       context: new TestContext({}),
       secrets: { someSecret: "123" },
       prefix: "Module",
+      isLoggedIn: true,
     })
   })
 
@@ -3057,6 +3063,7 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
+    // The `isLoggedIn` flag affects the error message, assume we're logged in here
     void expectError(
       () =>
         throwOnMissingSecretKeys({
@@ -3064,6 +3071,7 @@ describe("throwOnMissingSecretKeys", () => {
           context: new TestContext({}),
           secrets: { b: "123" },
           prefix: "Module",
+          isLoggedIn: true,
         }),
       (err) => {
         expect(err.message).to.match(/Module moduleA: a/)
@@ -3072,8 +3080,16 @@ describe("throwOnMissingSecretKeys", () => {
       }
     )
 
+    // The `isLoggedIn` flag affects the error message, assume we're logged in here
     void expectError(
-      () => throwOnMissingSecretKeys({ configs, context: new TestContext({}), secrets: {}, prefix: "Module" }),
+      () =>
+        throwOnMissingSecretKeys({
+          configs,
+          context: new TestContext({}),
+          secrets: {},
+          prefix: "Module",
+          isLoggedIn: true,
+        }),
       (err) => {
         expect(err.message).to.match(/Module moduleA: a, b/)
         expect(err.message).to.match(/Module moduleB: a, b, c/)

@@ -86,6 +86,7 @@ export class WorkflowCommand extends Command<Args, {}> {
       context: new RemoteSourceConfigContext(garden, garden.variables),
       secrets: garden.secrets,
       prefix: workflow.kind,
+      isLoggedIn: garden.isLoggedIn(),
       log,
     })
 
