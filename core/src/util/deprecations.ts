@@ -18,29 +18,43 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     containerDeploymentStrategy: {
       contextDesc: "Kubernetes provider configuration",
       featureDesc: `The ${style("deploymentStrategy")} config field`,
-      hint: `This field has no effect as the experimental support for blue/green deployments (via the ${style(`"blue-green"`)} strategy) has been removed.`,
+      hint: `Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the ${style(`blue-green`)} strategy) has been removed.`,
+      hintReferenceLink: null,
     },
     dotIgnoreFiles: {
       contextDesc: "Project configuration",
       featureDesc: `The ${style("dotIgnoreFiles")} config field`,
       hint: `Use the ${style("dotIgnoreFile")} field instead. It only allows specifying one filename.`,
+      hintReferenceLink: {
+        name: `${style("dotIgnoreFile")} reference documentation`,
+        link: `reference/project-config.md#dotignorefile`,
+      },
     },
     apiVersionV0: {
       contextDesc: "Project configuration",
-      featureDesc: `${style(`apiVersion: ${GardenApiVersion.v0}`)} in the project config`,
+      featureDesc: `Using ${style(`apiVersion: ${GardenApiVersion.v0}`)} in the project config`,
       hint: dedent`
       Use ${style(`apiVersion: ${GardenApiVersion.v1}`)} or higher instead.
-    `,
+      `,
+      hintReferenceLink: {
+        name: `${style("apiVersion")} reference documentation`,
+        link: `reference/project-config.md#apiVersion`,
+      },
     },
     projectConfigModules: {
       contextDesc: "Project configuration",
-      featureDesc: `${style("modules")} config field`,
+      featureDesc: `The ${style("modules")} config field`,
       hint: `Please use the ${style("scan")} field instead.`,
+      hintReferenceLink: {
+        name: `${style("scan")} reference documentation`,
+        link: `reference/project-config.md#scan`,
+      },
     },
     kubernetesClusterInitCommand: {
       contextDesc: "Garden Commands",
-      featureDesc: `Kubernetes plugin command ${style("cluster-init")}`,
-      hint: "Do not use this command.",
+      featureDesc: `The Kubernetes plugin command ${style("cluster-init")}`,
+      hint: "Do not use this command. It has no effect.",
+      hintReferenceLink: null,
     },
   } as const
 }
@@ -49,8 +63,16 @@ export type Deprecation = keyof ReturnType<typeof getDeprecations>
 
 export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
 
-export function makeDeprecationMessage({ deprecation, styleLink }: { deprecation: Deprecation; styleLink?: boolean }) {
-  const { featureDesc, hint } = getDeprecations()[deprecation]
+export function makeDeprecationMessage({
+  deprecation,
+  includeLink,
+  style,
+}: {
+  deprecation: Deprecation
+  includeLink?: boolean
+  style?: boolean
+}) {
+  const { featureDesc, hint } = getDeprecations(style ? styles.highlight : (s) => `\`${s}\``)[deprecation]
 
   const lines = [`${featureDesc} is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.`]
 
@@ -58,13 +80,15 @@ export function makeDeprecationMessage({ deprecation, styleLink }: { deprecation
     lines.push(hint)
   }
 
-  let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation}`
-  if (styleLink) {
-    link = styles.link(link)
+  if (includeLink) {
+    let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation}`
+    if (style) {
+      link = styles.link(link)
+    }
+    lines.push(
+      `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${link}`
+    )
   }
-  lines.push(
-    `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${link}`
-  )
 
   return lines.join("\n")
 }
@@ -102,6 +126,6 @@ export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: D
     throw new FeatureNotAvailable({ apiVersion, deprecation })
   }
 
-  const warnMessage = makeDeprecationMessage({ deprecation, styleLink: true })
+  const warnMessage = makeDeprecationMessage({ deprecation, includeLink: true, style: true })
   emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
 }
