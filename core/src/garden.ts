@@ -181,6 +181,7 @@ import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
+import { reportDeprecatedPluginsUsage } from "./util/deprecations.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -268,6 +269,17 @@ interface ResolveProviderParams {
 type GardenType = typeof Garden.prototype
 // TODO: add more fields that are known to be defined when logged in to Cloud
 export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
+
+function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
+  const projectApiVersion = params.projectApiVersion
+
+  const builtinPlugins = getBuiltinPlugins(projectApiVersion)
+  const customPlugins = params.plugins
+
+  reportDeprecatedPluginsUsage({ apiVersion: projectApiVersion, plugins: customPlugins, log: params.log })
+
+  return [...builtinPlugins, ...customPlugins]
+}
 
 @Profile()
 export class Garden {
@@ -460,7 +472,7 @@ export class Garden {
     this.moduleConfigs = {}
     this.workflowConfigs = {}
     this.configPaths = new Set<string>()
-    this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
+    this.registeredPlugins = getRegisteredPlugins(params)
     this.resolvedProviders = {}
 
     this.events = new EventBus({ gardenKey: this.getInstanceKey() })
