@@ -63,7 +63,6 @@ describe("ResolveActionTask", () => {
       expect(garden.secrets).to.be.empty
       expect(garden.isLoggedIn()).to.be.false
 
-      const task = await getTask("Run", "run-with-missing-secrets")
       await expectError(() => getTask("Run", "run-with-missing-secrets"), {
         contains: [
           "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
@@ -71,7 +70,6 @@ describe("ResolveActionTask", () => {
           "No secrets have been loaded. If you have defined secrets for the current project and environment in Garden Cloud, this may indicate a problem with your configuration.",
         ],
       })
-      expect(task).to.be.not.undefined
     })
   })
 
