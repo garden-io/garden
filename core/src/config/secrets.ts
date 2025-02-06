@@ -17,15 +17,16 @@ import difference from "lodash-es/difference.js"
 import { ConfigurationError } from "../exceptions.js"
 import { CONTEXT_RESOLVE_KEY_NOT_FOUND } from "../template/ast.js"
 
+const secretsGuideLink = "https://cloud.docs.garden.io/features/secrets"
+
 function getMessageFooter({ loadedKeys, isLoggedIn }: { loadedKeys: string[]; isLoggedIn: boolean }) {
   if (!isLoggedIn) {
-    return "You are not logged in. Log in to get access to Secrets in Garden Cloud. See also https://cloud.docs.garden.io/features/secrets"
+    return `You are not logged in. Log in to get access to Secrets in Garden Cloud. See also ${secretsGuideLink}`
   }
 
   if (loadedKeys.length === 0) {
     return deline`
-      Note: No secrets have been loaded. If you have defined secrets for the current project and environment in Garden
-      Cloud, this may indicate a problem with your configuration.
+      Note: You can manage secrets in Garden Cloud. No secrets have been defined for the current project and environment. See also ${secretsGuideLink}
     `
   } else {
     return `Secret keys with loaded values: ${loadedKeys.join(", ")}`

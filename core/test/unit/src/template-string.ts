@@ -3093,7 +3093,7 @@ describe("throwOnMissingSecretKeys", () => {
       (err) => {
         expect(err.message).to.match(/Module moduleA: a, b/)
         expect(err.message).to.match(/Module moduleB: a, b, c/)
-        expect(err.message).to.match(/Note: No secrets have been loaded./)
+        expect(err.message).to.match(/Note: You can manage secrets in Garden Cloud./)
       }
     )
   })
