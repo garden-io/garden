@@ -231,7 +231,7 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
       breakingChanges.push(hint)
       if (hintReferenceLink) {
         breakingChanges.push(
-          `For more information, please refer to the [${hintReferenceLink.name}](${hintReferenceLink.link}).`
+          `For more information, please refer to the [${hintReferenceLink.name}](../${hintReferenceLink.link}).`
         )
       }
     }

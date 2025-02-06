@@ -32,19 +32,19 @@ Do not use this config field. It has no effect as the experimental support for b
 
 Use the `dotIgnoreFile` field instead. It only allows specifying one filename.
 
-For more information, please refer to the [`dotIgnoreFile` reference documentation](reference/project-config.md#dotignorefile).
+For more information, please refer to the [`dotIgnoreFile` reference documentation](../reference/project-config.md#dotignorefile).
 
 <h3 id="apiVersionV0">Using `apiVersion: garden.io/v0` in the project config</h3>
 
 Use `apiVersion: garden.io/v1` or higher instead.
 
-For more information, please refer to the [`apiVersion` reference documentation](reference/project-config.md#apiVersion).
+For more information, please refer to the [`apiVersion` reference documentation](../reference/project-config.md#apiVersion).
 
 <h3 id="projectConfigModules">The `modules` config field</h3>
 
 Please use the `scan` field instead.
 
-For more information, please refer to the [`scan` reference documentation](reference/project-config.md#scan).
+For more information, please refer to the [`scan` reference documentation](../reference/project-config.md#scan).
 
 ### Garden Commands
 
