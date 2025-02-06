@@ -6,7 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ActionTaskStatusParams, BaseTask, ValidResultType, ActionTaskProcessParams } from "./base.js"
+import type {
+  ActionTaskStatusParams,
+  BaseTask,
+  ValidResultType,
+  ActionTaskProcessParams,
+  BaseActionTaskParams,
+} from "./base.js"
 import { BaseActionTask } from "./base.js"
 import { Profile } from "../util/profiling.js"
 import type {
@@ -31,6 +37,8 @@ import { describeActionConfig } from "../actions/base.js"
 import { InputContext } from "../config/template-contexts/input.js"
 import { VariablesContext } from "../config/template-contexts/variables.js"
 import type { GroupConfig } from "../config/group.js"
+import { throwOnMissingSecretKeys } from "../config/secrets.js"
+import { RemoteSourceConfigContext } from "../config/template-contexts/project.js"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -47,6 +55,18 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
   // TODO: resolving template strings is CPU bound, does single-threaded concurrent execution make it faster or slower?
   override readonly executeConcurrencyLimit = 10
   override readonly statusConcurrencyLimit = 10
+
+  constructor(params: BaseActionTaskParams<T>) {
+    super(params)
+    throwOnMissingSecretKeys({
+      configs: [this.action.getConfig()],
+      context: new RemoteSourceConfigContext(params.garden, params.garden.variables),
+      secrets: params.garden.secrets,
+      prefix: this.action.kind,
+      isLoggedIn: params.garden.isLoggedIn(),
+      log: this.log,
+    })
+  }
 
   getDescription() {
     return `resolve ${this.action.longDescription()}`

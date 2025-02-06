@@ -22,6 +22,7 @@ import {
   getAllTaskResults,
   getDefaultProjectConfig,
 } from "../../../helpers.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
 
 describe("ResolveActionTask", () => {
   let garden: TestGarden
@@ -46,6 +47,71 @@ describe("ResolveActionTask", () => {
       force: false,
     })
   }
+
+  describe("handling missing secrets in constructor", () => {
+    it("should throw if an action references missing secrets", async () => {
+      garden.setPartialActionConfigs([
+        {
+          kind: "Run",
+          type: "test",
+          name: "run-with-missing-secrets",
+          spec: {
+            command: ["echo", "${secrets.missing}"],
+          },
+        },
+      ])
+
+      expect(garden.secrets).to.be.empty
+      expect(garden.isLoggedIn()).to.be.false
+
+      await expectError(() => getTask("Run", "run-with-missing-secrets"), {
+        contains: [
+          "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
+          "Run run-with-missing-secrets: missing",
+          "You are not logged in. Log in to get access to Secrets in Garden Cloud.",
+          "See also https://cloud.docs.garden.io/features/secrets",
+        ],
+      })
+    })
+
+    it("should throw if a module references missing secrets", async () => {
+      garden.setPartialModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
+          kind: "Module",
+          type: "test",
+          name: "module-with-missing-secrets",
+          allowPublish: false,
+          disabled: false,
+          path: garden.projectRoot,
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {
+            tasks: [
+              {
+                name: "task-with-missing-secrets",
+                command: ["echo", "${secrets.missing}"],
+              },
+            ],
+          },
+        },
+      ])
+
+      expect(garden.secrets).to.be.empty
+      expect(garden.isLoggedIn()).to.be.false
+
+      await expectError(() => getTask("Run", "task-with-missing-secrets"), {
+        contains: [
+          "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
+          "Run task-with-missing-secrets: missing",
+          "You are not logged in. Log in to get access to Secrets in Garden Cloud.",
+          "See also https://cloud.docs.garden.io/features/secrets",
+        ],
+      })
+    })
+  })
 
   describe("resolveStatusDependencies", () => {
     it("returns an empty list", async () => {

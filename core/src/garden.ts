@@ -805,13 +805,14 @@ export class Garden {
         providerNames = getNames(rawConfigs)
       }
 
-      throwOnMissingSecretKeys(
-        rawConfigs,
-        new RemoteSourceConfigContext(this, this.variables),
-        this.secrets,
-        "Provider",
-        log
-      )
+      throwOnMissingSecretKeys({
+        configs: rawConfigs,
+        context: new RemoteSourceConfigContext(this, this.variables),
+        secrets: this.secrets,
+        prefix: "Provider",
+        isLoggedIn: this.isLoggedIn(),
+        log,
+      })
 
       // As an optimization, we return immediately if all requested providers are already resolved
       const alreadyResolvedProviders = providerNames.map((name) => this.resolvedProviders[name]).filter(Boolean)
@@ -1439,16 +1440,6 @@ export class Garden {
         await Promise.all(configPaths.map(async (path) => (await this.loadResources(path)) || []))
       )
       const groupedResources = groupBy(allResources, "kind")
-
-      for (const [kind, configs] of Object.entries(groupedResources)) {
-        throwOnMissingSecretKeys(
-          configs,
-          new RemoteSourceConfigContext(this, this.variables),
-          this.secrets,
-          kind,
-          this.log
-        )
-      }
 
       let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
       const rawWorkflowConfigs = (groupedResources.Workflow as WorkflowConfig[]) || []

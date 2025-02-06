@@ -500,6 +500,7 @@ describe("RunWorkflowCommand", () => {
 
     const data = await readFile(filePath)
     expect(data.toString()).to.equal(garden.secrets.test)
+    delete garden.secrets.test
   })
 
   it("should throw if a file references a secret that doesn't exist", async () => {
@@ -541,6 +542,58 @@ describe("RunWorkflowCommand", () => {
 
     await expectError(() => cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } }), {
       contains: "Unable to write file 'garden.yml/foo.txt': Error: EEXIST: file already exists, mkdir",
+    })
+  })
+
+  it("should throw before execution if any step references missing secrets", async () => {
+    const name = "workflow-with-missing-secrets"
+    const configs: WorkflowConfig[] = [
+      {
+        apiVersion: GardenApiVersion.v0,
+        name,
+        kind: "Workflow",
+        internal: {
+          basePath: garden.projectRoot,
+        },
+        files: [],
+        envVars: {},
+        resources: defaultWorkflowResources,
+        steps: [
+          {
+            name: "init",
+            script: "echo init",
+          },
+          {
+            name: "secrets",
+            script: "echo secrets ${secrets.missing}",
+          },
+          {
+            name: "end",
+            script: "echo end",
+          },
+        ],
+      },
+    ]
+    // @ts-expect-error todo: correct types for unresolved configs
+    const parsedConfigs = parseTemplateCollection({
+      // @ts-expect-error todo: correct types for unresolved configs
+      value: configs,
+      source: { path: [] },
+    }) as WorkflowConfig[]
+
+    garden.setRawWorkflowConfigs(parsedConfigs)
+
+    // TestGarden is not logged in to Cloud and has no secrets
+    expect(garden.isLoggedIn()).to.be.false
+    expect(garden.secrets).to.be.empty
+
+    await expectError(() => cmd.action({ ...defaultParams, args: { workflow: name } }), {
+      contains: [
+        "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
+        `Workflow ${name}: missing`,
+        "You are not logged in. Log in to get access to Secrets in Garden Cloud.",
+        "See also https://cloud.docs.garden.io/features/secrets",
+      ],
     })
   })
 
