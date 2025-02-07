@@ -57,3 +57,9 @@ Do not use this command. It has no effect.
 <h3 id="deprecatedPlugins">The `conftest`, `conftest-container`, `conftest-kubernetes`, `hadolint` and `octant` plugins</h3>
 
 These plugins are still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use these plugins explicitly in Garden 0.14.
+
+## Local mode
+
+<h3 id="localMode">The `local mode` feature for container, kubernetes and helm deploys</h3>
+
+Please do not use this in Garden 0.14

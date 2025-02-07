@@ -91,6 +91,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: "These plugins are still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use these plugins explicitly in Garden 0.14.",
       hintReferenceLink: null,
     },
+    localMode: {
+      contextDesc: "Local mode",
+      featureDesc: `The ${style("local mode")} feature for container, kubernetes and helm deploys`,
+      hint: "Please do not use this in Garden 0.14",
+      hintReferenceLink: null,
+    },
   } as const
 }
 
