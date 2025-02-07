@@ -8,7 +8,6 @@
 
 import { join, resolve } from "path"
 import fsExtra from "fs-extra"
-const { pathExists, readFile } = fsExtra
 import { joi } from "../../config/common.js"
 import { dedent, splitLines, naturalList } from "../../util/string.js"
 import { STATIC_DIR } from "../../constants.js"
@@ -23,6 +22,8 @@ import type { BaseAction } from "../../actions/base.js"
 import type { BuildAction } from "../../actions/build.js"
 import { sdk } from "../../plugin/sdk.js"
 import { styles } from "../../logger/styles.js"
+
+const { pathExists, readFile } = fsExtra
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
