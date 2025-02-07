@@ -181,6 +181,7 @@ import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
+import { reportDeprecatedPluginsUsage } from "./util/deprecations.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -268,6 +269,17 @@ interface ResolveProviderParams {
 type GardenType = typeof Garden.prototype
 // TODO: add more fields that are known to be defined when logged in to Cloud
 export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
+
+function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
+  const projectApiVersion = params.projectApiVersion
+
+  const builtinPlugins = getBuiltinPlugins(projectApiVersion)
+  const customPlugins = params.plugins
+
+  reportDeprecatedPluginsUsage({ apiVersion: projectApiVersion, plugins: customPlugins, log: params.log })
+
+  return [...builtinPlugins, ...customPlugins]
+}
 
 @Profile()
 export class Garden {
@@ -460,7 +472,7 @@ export class Garden {
     this.moduleConfigs = {}
     this.workflowConfigs = {}
     this.configPaths = new Set<string>()
-    this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
+    this.registeredPlugins = getRegisteredPlugins(params)
     this.resolvedProviders = {}
 
     this.events = new EventBus({ gardenKey: this.getInstanceKey() })
@@ -805,13 +817,14 @@ export class Garden {
         providerNames = getNames(rawConfigs)
       }
 
-      throwOnMissingSecretKeys(
-        rawConfigs,
-        new RemoteSourceConfigContext(this, this.variables),
-        this.secrets,
-        "Provider",
-        log
-      )
+      throwOnMissingSecretKeys({
+        configs: rawConfigs,
+        context: new RemoteSourceConfigContext(this, this.variables),
+        secrets: this.secrets,
+        prefix: "Provider",
+        isLoggedIn: this.isLoggedIn(),
+        log,
+      })
 
       // As an optimization, we return immediately if all requested providers are already resolved
       const alreadyResolvedProviders = providerNames.map((name) => this.resolvedProviders[name]).filter(Boolean)
@@ -1440,16 +1453,6 @@ export class Garden {
       )
       const groupedResources = groupBy(allResources, "kind")
 
-      for (const [kind, configs] of Object.entries(groupedResources)) {
-        throwOnMissingSecretKeys(
-          configs,
-          new RemoteSourceConfigContext(this, this.variables),
-          this.secrets,
-          kind,
-          this.log
-        )
-      }
-
       let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
       const rawWorkflowConfigs = (groupedResources.Workflow as WorkflowConfig[]) || []
       const rawConfigTemplateResources = (groupedResources[configTemplateKind] as ConfigTemplateResource[]) || []
@@ -2054,23 +2057,23 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
     } = partialResolved
 
-    let { config, namespace } = partialResolved
+    let { config: projectConfig, namespace } = partialResolved
 
     await ensureDir(gardenDirPath)
     await ensureDir(artifactsPath)
 
-    const projectApiVersion = config.apiVersion
+    const projectApiVersion = projectConfig.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
 
-    const cloudDomain = getCloudDomain(config.domain)
+    const cloudDomain = getCloudDomain(projectConfig.domain)
     const cloudApi = await initCloudApi({
       cloudApiFactory,
       cloudDomain,
       globalConfigStore,
       log,
-      projectConfig: config,
+      projectConfig,
       skipCloudConnect,
     })
     const loggedIn = !!cloudApi
@@ -2080,7 +2083,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     const { secrets, cloudProject } = await initCloudProject({
       cloudApi,
-      config,
+      config: projectConfig,
       log,
       projectRoot,
       projectName,
@@ -2096,22 +2099,22 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: config.domain,
+      enterpriseDomain: projectConfig.domain,
       secrets,
       commandInfo,
     })
 
-    config = resolveProjectConfig({
+    projectConfig = resolveProjectConfig({
       log,
       defaultEnvironmentName: configDefaultEnvironment,
-      config,
+      config: projectConfig,
       context: projectContext,
     })
 
     const variableOverrides = opts.variableOverrides || {}
 
     const pickedEnv = await pickEnvironment({
-      projectConfig: config,
+      projectConfig,
       variableOverrides,
       envString: environmentStr,
       artifactsPath,
@@ -2119,7 +2122,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: config.domain,
+      enterpriseDomain: projectConfig.domain,
       secrets,
       commandInfo,
     })
@@ -2140,7 +2143,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
 
     const moduleExcludePatterns = [
-      ...((config.scan || {}).exclude || []),
+      ...((projectConfig.scan || {}).exclude || []),
       gardenDirExcludePattern,
       ...fixedProjectExcludes,
     ]
@@ -2149,8 +2152,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     let proxyHostname: string
     if (gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS) {
       proxyHostname = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
-    } else if (config.proxy?.hostname) {
-      proxyHostname = config.proxy.hostname
+    } else if (projectConfig.proxy?.hostname) {
+      proxyHostname = projectConfig.proxy.hostname
     } else {
       proxyHostname = defaultLocalAddress
     }
@@ -2168,8 +2171,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       // If the user is logged in and a cloud project exists we use that ID
       // but fallback to the one set in the config (even if the user isn't logged in).
       // Same applies for domains.
-      projectId: cloudProject?.id || config.id,
-      projectConfig: config,
+      projectId: cloudProject?.id || projectConfig.id,
+      projectConfig,
       projectRoot,
       projectName,
       environmentName,
@@ -2178,22 +2181,22 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       variables,
       variableOverrides,
       secrets,
-      projectSources: config.sources,
+      projectSources: projectConfig.sources,
       production,
       gardenDirPath,
       localConfigStore,
       globalConfigStore,
       opts,
-      outputs: config.outputs || [],
+      outputs: projectConfig.outputs || [],
       plugins: opts.plugins || [],
       providerConfigs: providers,
       moduleExcludePatterns,
       workingCopyId,
-      dotIgnoreFile: config.dotIgnoreFile,
+      dotIgnoreFile: projectConfig.dotIgnoreFile,
       proxy,
       log,
       gardenInitLog: opts.gardenInitLog,
-      moduleIncludePatterns: (config.scan || {}).include,
+      moduleIncludePatterns: (projectConfig.scan || {}).include,
       username: _username,
       forceRefresh: opts.forceRefresh,
       cache: treeCache,

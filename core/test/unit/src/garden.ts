@@ -3307,11 +3307,6 @@ describe("Garden", () => {
       })
     })
 
-    it.skip("should throw an error if references to missing secrets are present in a module config", async () => {
-      const garden = await makeTestGarden(getDataDir("missing-secrets", "module"))
-      await expectError(() => garden.scanAndAddConfigs(), { contains: "Module module-a: missing" })
-    })
-
     it("should throw when apiVersion v0 is set in a project with action configs", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-action-kind-v0"))
 
@@ -3327,6 +3322,35 @@ describe("Garden", () => {
       } catch (er) {
         expect.fail("Expected scanAndAddConfigs not to throw")
       }
+    })
+
+    describe("missing secrets", () => {
+      it("should not throw when an action config references missing secrets", async () => {
+        const garden = await makeTestGarden(getDataDir("missing-secrets", "action"))
+        try {
+          await garden.scanAndAddConfigs()
+        } catch (err) {
+          expect.fail("Expected scanAndAddConfigs not to throw")
+        }
+      })
+
+      it("should not throw when a module config references missing secrets", async () => {
+        const garden = await makeTestGarden(getDataDir("missing-secrets", "module"))
+        try {
+          await garden.scanAndAddConfigs()
+        } catch (err) {
+          expect.fail("Expected scanAndAddConfigs not to throw")
+        }
+      })
+
+      it("should not throw when a workflow config references missing secrets", async () => {
+        const garden = await makeTestGarden(getDataDir("missing-secrets", "workflow"))
+        try {
+          await garden.scanAndAddConfigs()
+        } catch (err) {
+          expect.fail("Expected scanAndAddConfigs not to throw")
+        }
+      })
     })
   })
 

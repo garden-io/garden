@@ -3009,8 +3009,24 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
-    throwOnMissingSecretKeys(configs, new TestContext({}), {}, "Module")
-    throwOnMissingSecretKeys(configs, new TestContext({}), { someSecret: "123" }, "Module")
+    try {
+      throwOnMissingSecretKeys({
+        configs,
+        context: new TestContext({}),
+        secrets: {},
+        prefix: "Module",
+        isLoggedIn: true,
+      })
+      throwOnMissingSecretKeys({
+        configs,
+        context: new TestContext({}),
+        secrets: { someSecret: "123" },
+        prefix: "Module",
+        isLoggedIn: true,
+      })
+    } catch (err) {
+      expect.fail("Expected throwOnMissingSecretKeys not to throw")
+    }
   })
 
   it("should not throw an error if secrets are optional in an expression", () => {
@@ -3025,8 +3041,24 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
-    throwOnMissingSecretKeys(configs, new TestContext({}), {}, "Module")
-    throwOnMissingSecretKeys(configs, new TestContext({}), { someSecret: "123" }, "Module")
+    try {
+      throwOnMissingSecretKeys({
+        configs,
+        context: new TestContext({}),
+        secrets: {},
+        prefix: "Module",
+        isLoggedIn: true,
+      })
+      throwOnMissingSecretKeys({
+        configs,
+        context: new TestContext({}),
+        secrets: { someSecret: "123" },
+        prefix: "Module",
+        isLoggedIn: true,
+      })
+    } catch (err) {
+      expect.fail("Expected throwOnMissingSecretKeys not to throw")
+    }
   })
 
   it("should throw an error if one or more secrets is missing", () => {
@@ -3047,8 +3079,16 @@ describe("throwOnMissingSecretKeys", () => {
       source: { path: [] },
     } as const)
 
+    // The `isLoggedIn` flag affects the error message, assume we're logged in here
     void expectError(
-      () => throwOnMissingSecretKeys(configs, new TestContext({}), { b: "123" }, "Module"),
+      () =>
+        throwOnMissingSecretKeys({
+          configs,
+          context: new TestContext({}),
+          secrets: { b: "123" },
+          prefix: "Module",
+          isLoggedIn: true,
+        }),
       (err) => {
         expect(err.message).to.match(/Module moduleA: a/)
         expect(err.message).to.match(/Module moduleB: a, c/)
@@ -3056,12 +3096,20 @@ describe("throwOnMissingSecretKeys", () => {
       }
     )
 
+    // The `isLoggedIn` flag affects the error message, assume we're logged in here
     void expectError(
-      () => throwOnMissingSecretKeys(configs, new TestContext({}), {}, "Module"),
+      () =>
+        throwOnMissingSecretKeys({
+          configs,
+          context: new TestContext({}),
+          secrets: {},
+          prefix: "Module",
+          isLoggedIn: true,
+        }),
       (err) => {
         expect(err.message).to.match(/Module moduleA: a, b/)
         expect(err.message).to.match(/Module moduleB: a, b, c/)
-        expect(err.message).to.match(/Note: No secrets have been loaded./)
+        expect(err.message).to.match(/Note: You can manage secrets in Garden Cloud./)
       }
     )
   })
