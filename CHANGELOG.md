@@ -1,4 +1,20 @@
 
+<a name="0.13.53"></a>
+## [0.13.53](https://github.com/garden-io/garden/compare/0.13.52...0.13.53) (2025-02-06)
+
+### Bug Fixes
+
+* validate secrets before action resolution ([#6822](https://github.com/garden-io/garden/issues/6822)) ([55e7308d2](https://github.com/garden-io/garden/commit/55e7308d2))
+* **cluster-buildkit:** assume image needs rebuild if skopeo command fails and print a warning ([#6810](https://github.com/garden-io/garden/issues/6810)) ([a8918e3c3](https://github.com/garden-io/garden/commit/a8918e3c3))
+
+### Features
+
+* allow cross-referencing variables in the same scope ([#6814](https://github.com/garden-io/garden/issues/6814)) ([463a758f2](https://github.com/garden-io/garden/commit/463a758f2))
+
+### Performance Improvements
+
+* improve preprocess action perf by only resolving template strings when absolutely needed ([#6745](https://github.com/garden-io/garden/issues/6745)) ([c968c6164](https://github.com/garden-io/garden/commit/c968c6164))
+
 <a name="0.13.52"></a>
 ## [0.13.52](https://github.com/garden-io/garden/compare/0.13.51...0.13.52) (2025-01-30)
 
