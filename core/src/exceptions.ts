@@ -79,6 +79,15 @@ export function isExecaError(err: any): err is ExecaError {
   return err.exitCode !== undefined && err.exitCode !== null
 }
 
+export function isErrorWithMessage(error: unknown): error is { message: string } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message: unknown }).message === "string"
+  )
+}
+
 export type StackTraceMetadata = {
   functionName: string
   relativeFileName?: string

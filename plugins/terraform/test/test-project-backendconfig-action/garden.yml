@@ -1,0 +1,15 @@
+apiVersion: garden.io/v1
+kind: Project
+name: terraform-provider-backendconfig-action
+environments:
+  - name: local
+  - name: prod
+providers:
+  - name: terraform
+---
+kind: Deploy
+name: tf-backendconfig-deploy
+type: terraform
+spec:
+  autoApply: true
+  root: ./tf
