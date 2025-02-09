@@ -182,15 +182,24 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
   }
 }
 
-export async function applyStack(params: TerraformParamsWithVariables) {
-  const { ctx, log, provider, root, variables } = params
+export async function applyStack(params: TerraformParamsWithVariables & { actionName?: string }) {
+  const { ctx, log, provider, root, variables, actionName } = params
 
   await ensureWorkspace(params)
 
   const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
   const proc = await terraform(ctx, provider).spawn({ log, args, cwd: root })
 
-  const statusLine = log.createLog({}).info("→ Applying Terraform stack...")
+  const logEventContext = {
+    origin: "terraform",
+    level: "verbose" as const,
+  }
+  const statusLine = log
+    .createLog({
+      name: actionName || "terraform",
+      origin: "terraform",
+    })
+    .info("Applying Terraform stack...")
   const logStream = split2()
 
   let stderr = ""
@@ -207,7 +216,11 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   }
 
   logStream.on("data", (line: Buffer) => {
-    statusLine.info(styles.primary("→ " + line.toString()))
+    const msg = line.toString()
+    statusLine.info(styles.primary(msg))
+    if (provider.config.streamLogsToCloud) {
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg, ...logEventContext })
+    }
   })
 
   await new Promise<void>((_resolve, reject) => {

@@ -19,6 +19,7 @@ import { joi } from "@garden-io/core/build/src/config/common.js"
 export type TerraformProviderConfig = BaseProviderConfig &
   TerraformBaseSpec & {
     initRoot?: string
+    streamLogsToCloud: boolean
   }
 
 export type TerraformProvider = Provider<TerraformProviderConfig>
@@ -53,5 +54,11 @@ export const terraformProviderConfigSchema = providerConfigBaseSchema()
         The version of Terraform to use. Set to \`null\` to use whichever version of \`terraform\` that is on your PATH.
       `),
     workspace: joi.string().description("Use the specified Terraform workspace."),
+    streamLogsToCloud: joi
+      .boolean()
+      .default(false)
+      .description(
+        `Set to \`true\` to make logs from Terraform Deploy actions visible in Garden Cloud/Enterprise. Defaults to \`false\``
+      ),
   })
   .unknown(false)
