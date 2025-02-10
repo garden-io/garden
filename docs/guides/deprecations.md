@@ -62,13 +62,6 @@ This plugin is still enabled by default in Garden 0.13, but will be removed in G
 
 This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.
 
-These plugins are still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use these plugins explicitly in Garden 0.14.
-
-## Acton Configs
-
-<h3 id="buildConfigFieldOnRuntimeActions">The `build` config field in runtime action configs</h3>
-
-Use `dependencies` config build to define the build dependencies.
 <h3 id="conftestPlugin">The plugin `conftest`</h3>
 
 This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.
@@ -78,3 +71,9 @@ This plugin is still enabled by default in Garden 0.13, but will be removed in G
 <h3 id="localMode">The `local mode` feature for container, kubernetes and helm deploys</h3>
 
 Please do not use this in Garden 0.14
+
+## Acton Configs
+
+<h3 id="buildConfigFieldOnRuntimeActions">The `build` config field in runtime action configs</h3>
+
+Use `dependencies` config build to define the build dependencies.
