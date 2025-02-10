@@ -19,6 +19,56 @@ Please note that as of today, not all warnings are in place, so we are still wor
 Once the list of breaking changes is final, we will make this known here.
 {% endhint %}
 
+# Migration hints
+
+## Updating action configs
+
+To get rid of the [deprecated `build`](#acton-configs) usages,
+you need to replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
+
+For example, a configuration like
+
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+build: backend # <-- old config style uses `build` field
+
+spec:
+image: ${actions.build.backend.outputs.deploymentImageId}
+...
+```
+
+should be replaced with
+
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+
+# use `dependencies` field instead of the `build`
+dependencies:
+- build.backend
+
+spec:
+image: ${actions.build.backend.outputs.deploymentImageId}
+...
+```
+
 # Breaking changes
 
 <!-- DO NOT CHANGE BELOW - AUTO-GENERATED -->
@@ -81,3 +131,5 @@ Please do not use this in Garden 0.14
 <h3 id="buildConfigFieldOnRuntimeActions">The `build` config field in runtime action configs</h3>
 
 Use `dependencies` config build to define the build dependencies.
+
+For more information, please refer to the [Migration guide for action configs](../guides/deprecations#updating-action-configs).

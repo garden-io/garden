@@ -90,7 +90,10 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       contextDesc: "Acton Configs",
       featureDesc: `The ${style("build")} config field in runtime action configs`,
       hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
-      hintReferenceLink: null,
+      hintReferenceLink: {
+        name: "Migration guide for action configs",
+        link: "guides/deprecations#updating-action-configs",
+      },
     },
   } as const
 }
