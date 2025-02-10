@@ -77,6 +77,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: "Do not use this command. It has no effect.",
       hintReferenceLink: null,
     },
+    hadolintPlugin: makePluginDeprecation("hadolint", style),
   } as const
 }
 
