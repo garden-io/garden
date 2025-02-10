@@ -15,7 +15,7 @@ import {
   getTfOutputs,
   prepareVariables,
   ensureWorkspace,
-  initTerraform,
+  ensureTerraformInit,
 } from "./helpers.js"
 import type { TerraformProvider } from "./provider.js"
 import type { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types.js"
@@ -33,7 +33,8 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
   const workspace = spec.workspace || null
 
   await ensureWorkspace({ log, ctx, provider, root, workspace })
-  await initTerraform({ log, ctx, provider, root })
+  await ensureTerraformInit({ log, ctx, provider, root, backendConfig: spec.backendConfig })
+
   const status = await getStackStatus({
     ctx,
     log,
@@ -62,6 +63,8 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
   const root = getModuleStackRoot(action, spec)
 
   if (spec.autoApply) {
+    await ensureWorkspace({ log, ctx, provider, root, workspace })
+    await ensureTerraformInit({ log, ctx, provider, root, backendConfig: spec.backendConfig })
     await applyStack({ log, ctx, provider, root, variables: spec.variables, workspace, actionName: action.name })
   } else {
     const templateKey = `\${runtime.services.${action.name}.outputs.*}`

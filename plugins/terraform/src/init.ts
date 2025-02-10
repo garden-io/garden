@@ -14,7 +14,7 @@ import {
   getTfOutputs,
   prepareVariables,
   ensureWorkspace,
-  initTerraform,
+  ensureTerraformInit,
 } from "./helpers.js"
 import { deline } from "@garden-io/sdk/build/src/util/string.js"
 import type { ProviderHandlers } from "@garden-io/sdk/build/src/types.js"
@@ -85,7 +85,7 @@ export const prepareEnvironment: ProviderHandlers["prepareEnvironment"] = async 
   const workspace = provider.config.workspace || null
 
   await ensureWorkspace({ log, ctx, provider, root, workspace })
-  await initTerraform({ log, ctx, provider, root })
+  await ensureTerraformInit({ log, ctx, provider, root, backendConfig: provider.config.backendConfig })
 
   const status = await getStackStatus({
     log,

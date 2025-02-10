@@ -9,7 +9,7 @@
 import { dedent } from "@garden-io/sdk/build/src/util/string.js"
 import { defaultTerraformVersion, supportedVersions } from "./cli.js"
 import type { TerraformBaseSpec } from "./helpers.js"
-import { variablesSchema } from "./helpers.js"
+import { terraformBackendConfigSchema, variablesSchema } from "./helpers.js"
 import { docsBaseUrl } from "@garden-io/sdk/build/src/constants.js"
 
 import type { BaseProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
@@ -60,5 +60,6 @@ export const terraformProviderConfigSchema = providerConfigBaseSchema()
       .description(
         `Set to \`true\` to make logs from Terraform Deploy actions visible in Garden Cloud/Enterprise. Defaults to \`false\``
       ),
+    backendConfig: terraformBackendConfigSchema(),
   })
   .unknown(false)

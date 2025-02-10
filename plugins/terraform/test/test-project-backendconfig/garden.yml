@@ -1,0 +1,12 @@
+apiVersion: garden.io/v1
+kind: Project
+name: terraform-provider-backendconfig
+environments:
+  - name: local
+  - name: prod
+providers:
+  - name: terraform
+    autoApply: true
+    initRoot: tf
+    backendConfig:
+      address: ${var.address}
