@@ -287,7 +287,7 @@ export const baseRuntimeActionConfigSchema = createSchema({
       )
       .meta({
         templateContext: ActionConfigContext,
-        deprecated: makeDeprecationMessage({ deprecation: "buildConfigFieldOnRuntimeActions" }),
+        deprecated: makeDeprecationMessage({ deprecation: "buildConfigFieldOnRuntimeActions", includeLink: true }),
       }),
   }),
   extend: baseActionConfigSchema,
