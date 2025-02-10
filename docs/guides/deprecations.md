@@ -54,6 +54,6 @@ Do not use this command. It has no effect.
 
 ## Garden Plugins
 
-<h3 id="hadolintPlugin">The `Hadolint` plugin</h3>
+<h3 id="deprecatedPlugins">The `conftest`, `conftest-container`, `conftest-kubernetes`, `hadolint` and `octant` plugins</h3>
 
-Do not use this plugin.
+These plugins are still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use these plugins explicitly in Garden 0.14.

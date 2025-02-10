@@ -62,7 +62,7 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
   const root = getModuleStackRoot(action, spec)
 
   if (spec.autoApply) {
-    await applyStack({ log, ctx, provider, root, variables: spec.variables, workspace })
+    await applyStack({ log, ctx, provider, root, variables: spec.variables, workspace, actionName: action.name })
   } else {
     const templateKey = `\${runtime.services.${action.name}.outputs.*}`
     log.warn(
