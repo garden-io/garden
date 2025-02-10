@@ -24,6 +24,7 @@ import type { GardenPluginReference } from "../plugin/plugin.js"
 import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions.js"
 import { styles } from "../logger/styles.js"
 import { getCloudDistributionName } from "../cloud/util.js"
+import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 
 export const defaultServerPort = 9777
 
@@ -96,6 +97,14 @@ export class ServeCommand<
   }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
     const sessionId = garden.sessionId
     this.setProps(sessionId, cli?.plugins || [])
+
+    if (opts["local-mode"] !== undefined) {
+      reportDeprecatedFeatureUsage({
+        apiVersion: garden.projectApiVersion,
+        log,
+        deprecation: "localMode",
+      })
+    }
 
     const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 

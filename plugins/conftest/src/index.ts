@@ -31,6 +31,7 @@ import type { HelmDeployAction } from "@garden-io/core/build/src/plugins/kuberne
 import { actionRefMatches } from "@garden-io/core/build/src/actions/base.js"
 import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
 import { DEFAULT_TEST_TIMEOUT_SEC } from "@garden-io/core/build/src/constants.js"
+import { reportDeprecatedFeatureUsage } from "@garden-io/core/build/src/util/deprecations.js"
 
 export interface ConftestProviderConfig extends BaseProviderConfig {
   policyPath: string
@@ -280,7 +281,13 @@ export const gardenPlugin = () =>
               .description("The Helm Deploy action to validate."),
           }),
           handlers: <TestActionHandlers<TestAction<ConftestHelmTestConfig>>>{
-            configure: async ({ ctx, config }) => {
+            configure: async ({ ctx, config, log }) => {
+              reportDeprecatedFeatureUsage({
+                apiVersion: ctx.projectApiVersion,
+                log,
+                deprecation: "conftestPlugin",
+              })
+
               let files = config.spec.files || []
 
               if (files.length > 0) {

@@ -12,33 +12,25 @@ import { GardenError } from "../exceptions.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
-import { naturalList } from "./string.js"
-import type { RegisterPluginParam } from "../plugin/plugin.js"
 
-const deprecatedPluginNames: string[] = ["conftest", "conftest-container", "conftest-kubernetes", "hadolint", "octant"]
+const deprecatedPluginNames = ["conftest", "conftest-container", "conftest-kubernetes", "hadolint", "octant"] as const
+export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
 
-export function isDeprecatedPlugin(pluginName: string): boolean {
-  return deprecatedPluginNames.includes(pluginName)
+export function isDeprecatedPlugin(pluginName: string): pluginName is DeprecatedPluginName {
+  for (const deprecatedPluginName of deprecatedPluginNames) {
+    if (deprecatedPluginName === pluginName) {
+      return true
+    }
+  }
+  return false
 }
 
-export function reportDeprecatedPluginsUsage({
-  apiVersion,
-  plugins,
-  log,
-}: {
-  apiVersion: GardenApiVersion
-  plugins: RegisterPluginParam[]
-  log: Log
-}) {
-  for (const plugin of plugins) {
-    const pluginName = typeof plugin === "string" ? plugin : plugin.name
-    if (isDeprecatedPlugin(pluginName)) {
-      reportDeprecatedFeatureUsage({
-        apiVersion,
-        log,
-        deprecation: "deprecatedPlugins",
-      })
-    }
+function makePluginDeprecation(pluginName: DeprecatedPluginName, style: (s: string) => string) {
+  return {
+    contextDesc: "Garden Plugins",
+    featureDesc: `The plugin ${style(pluginName)}`,
+    hint: "This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.",
+    hintReferenceLink: null,
   }
 }
 
@@ -85,10 +77,13 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: "Do not use this command. It has no effect.",
       hintReferenceLink: null,
     },
-    deprecatedPlugins: {
-      contextDesc: "Garden Plugins",
-      featureDesc: `The ${naturalList(deprecatedPluginNames.map((p) => style(p)))} plugins`,
-      hint: "These plugins are still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use these plugins explicitly in Garden 0.14.",
+    hadolintPlugin: makePluginDeprecation("hadolint", style),
+    octantPlugin: makePluginDeprecation("octant", style),
+    conftestPlugin: makePluginDeprecation("conftest", style),
+    localMode: {
+      contextDesc: "Local mode",
+      featureDesc: `The ${style("local mode")} feature for container, kubernetes and helm deploys`,
+      hint: "Please do not use this in Garden 0.14",
       hintReferenceLink: null,
     },
     buildConfigFieldOnRuntimeActions: {

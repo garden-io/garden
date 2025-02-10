@@ -54,7 +54,13 @@ Do not use this command. It has no effect.
 
 ## Garden Plugins
 
-<h3 id="deprecatedPlugins">The `conftest`, `conftest-container`, `conftest-kubernetes`, `hadolint` and `octant` plugins</h3>
+<h3 id="hadolintPlugin">The plugin `hadolint`</h3>
+
+This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.
+
+<h3 id="octantPlugin">The plugin `octant`</h3>
+
+This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.
 
 These plugins are still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use these plugins explicitly in Garden 0.14.
 
@@ -63,3 +69,12 @@ These plugins are still enabled by default in Garden 0.13, but will be removed i
 <h3 id="buildConfigFieldOnRuntimeActions">The `build` config field in runtime action configs</h3>
 
 Use `dependencies` config build to define the build dependencies.
+<h3 id="conftestPlugin">The plugin `conftest`</h3>
+
+This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.
+
+## Local mode
+
+<h3 id="localMode">The `local mode` feature for container, kubernetes and helm deploys</h3>
+
+Please do not use this in Garden 0.14
