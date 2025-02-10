@@ -91,6 +91,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: "These plugins are still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use these plugins explicitly in Garden 0.14.",
       hintReferenceLink: null,
     },
+    buildConfigFieldOnRuntimeActions: {
+      contextDesc: "Acton Configs",
+      featureDesc: `The ${style("build")} config field in runtime action configs`,
+      hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
+      hintReferenceLink: null,
+    },
   } as const
 }
 
