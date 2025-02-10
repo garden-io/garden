@@ -24,7 +24,7 @@ import {
   unusedApiVersionSchema,
 } from "../config/common.js"
 import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
-import { dedent, naturalList, stableStringify } from "../util/string.js"
+import { dedent, deline, naturalList, stableStringify } from "../util/string.js"
 import type { ActionVersion, ModuleVersion, TreeVersion } from "../vcs/vcs.js"
 import { getActionSourcePath, hashStrings, versionStringPrefix } from "../vcs/vcs.js"
 import type { BuildAction, ResolvedBuildAction } from "./build.js"
@@ -710,7 +710,10 @@ export abstract class RuntimeAction<
       const config = params.config
       // Report concrete action name for better UX
       log.warn(
-        `Action ${styles.highlight(config.name)} of type ${styles.highlight(`${config.kind} ${config.type}`)} declares deprecated config field ${styles.highlight("build")}`
+        deline`Action ${styles.highlight(this.key())}
+        of type ${styles.highlight(config.type)}
+        defined in ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}
+        declares deprecated config field ${styles.highlight("build")}`
       )
       // Report general deprecation warning
       reportDeprecatedFeatureUsage({
