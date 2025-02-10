@@ -22,6 +22,7 @@ import type { BaseAction } from "../../actions/base.js"
 import type { BuildAction } from "../../actions/build.js"
 import { sdk } from "../../plugin/sdk.js"
 import { styles } from "../../logger/styles.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 const { pathExists, readFile } = fsExtra
 
@@ -262,7 +263,13 @@ const hadolintTest = provider.createActionType({
   runtimeOutputsSchema: s.object({}),
 })
 
-hadolintTest.addHandler("configure", async ({ ctx, config }) => {
+hadolintTest.addHandler("configure", async ({ ctx, config, log }) => {
+  reportDeprecatedFeatureUsage({
+    apiVersion: ctx.projectApiVersion,
+    log,
+    deprecation: "hadolintPlugin",
+  })
+
   let dockerfilePath = config.spec.dockerfilePath
 
   if (!config.include) {

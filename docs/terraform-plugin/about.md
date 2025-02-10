@@ -44,49 +44,19 @@ Each command automatically applies any variables configured on the provider or a
 garden --env=<env-name> plugins terraform apply-root -- -auto-approve
 ```
 
-## Injecting Environment Variables Into Backend Manifests
+## Setting the backend dynamically
 
-[Terraform does not interpolate named values in backend manifests](https://developer.hashicorp.com/terraform/language/backend). Below is a solution using an `exec` provider.
+[Terraform does not interpolate named values in backend manifests](https://developer.hashicorp.com/terraform/language/backend) but with Garden you can achieve this via the `backendConfig` field on either the `terraform` provider or action configuration. This enables you to dynamically set the backend when applying your Terraform stack in different environments.
 
-### Exec Provider
+For example, running `garden deploy --env dev` and `garden deploy --env ci` will pick the appropriate backend for the environment.
 
-One way to inject variables into new terraform manifests is to add an [exec provider](../reference/providers/exec.md) that calls an [initScript](../reference/providers/exec.md#providers-.initscript) in the project.garden.yaml file. Exec providers allow us to run scripts while initiating other providers. An `initScript` runs in the project root when initializing those providers.
+If you'd like to apply the stack when starting Garden (e.g. because you're provisioning a Kubernetes cluster and need to pass the outputs to other Garden providers), check out [the Terraform provider docs for configuring dynamic backends](./configure-provider.md#setting-the-backend-dynamically).
 
-In this sample `terraform/backend.tf` manifest, we need to replace the `key` based on which environment we are building.
-
-```
-terraform {
-  backend "s3" {
-    bucket  = "state-bucket"
-    key     = "projects/my-project/terraform.tfstate"
-    region  = "us-west-2"
-  }
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 3.0"
-    }
-  }
-}
-```
-
-In the `project.garden.yaml` file for this sample, the `exec` provider calls an `initScript` that replaces in-place the pre-existing state file with a copy that substitutes the s3 bucket name with the environment name in the `backend.tf` file.
-
-```yaml
-providers:
-  - name: exec
-    initScript: rm -rf terraform/.terraform* && sed -i .bak 's;key *= *"projects/[a-zA-Z0-9]*/terraform.tfstate";key = "projects/${environment.name}/terraform.tfstate";g' terraform/backend.tf
-  - name: terraform
-    initRoot: "./terraform"
-    variables:
-      project: ${environment.name}
-    dependencies: [exec]
-```
-
-Now when you deploy a new Terraformed environment, the new backend statefile will know where to go.
+If instead you configure your Terraform stack via actions (e.g. because you have
+multiple AWS labmdas that should each have their own stack), check out [the Terraform action docs for configuring dynamic backends](./actions.md#setting-the-backend-dynamically).
 
 ## Next steps
 
-Check out the [terraform-gke example](https://github.com/garden-io/garden/tree/0.13.53/examples/terraform-gke) project. Also take a look at the [Terraform provider reference](../reference/providers/terraform.md) and the [Terraform Deploy action type reference](../reference/action-types/Deploy/terraform.md) for details on all the configuration parameters.
+Check out how to configure the Terraform provider and/or actions in the following pages.
+You'll find some [Terraform examples here](https://github.com/garden-io/garden/tree/main/examples).
 
-If you're having issues with Terraform itself, please refer to the [official docs](https://developer.hashicorp.com/terraform/docs).

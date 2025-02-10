@@ -56,6 +56,16 @@ providers:
 
     # Set to `true` to make logs from Terraform Deploy actions visible in Garden Cloud/Enterprise. Defaults to `false`
     streamLogsToCloud: false
+
+    # Configure the Terraform backend.
+    #
+    # The key-value pairs defined here are set as the `-backend-config` options when Garden
+    # runs `terraform init`.
+    #
+    # This can be used to dynamically set a Terraform backend depending on the environment.
+    #
+    # If Garden sees that the backend has changes, it'll re-initialize Terraform and set the new values.
+    backendConfig:
 ```
 ## Configuration Keys
 
@@ -193,4 +203,29 @@ Set to `true` to make logs from Terraform Deploy actions visible in Garden Cloud
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
+
+### `providers[].backendConfig`
+
+[providers](#providers) > backendConfig
+
+Configure the Terraform backend.
+
+The key-value pairs defined here are set as the `-backend-config` options when Garden
+runs `terraform init`.
+
+This can be used to dynamically set a Terraform backend depending on the environment.
+
+If Garden sees that the backend has changes, it'll re-initialize Terraform and set the new values.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - backendConfig:
+        "bucket: ${environment.name\\}-bucket\nkey: tf-state/${local.username\\}/terraform.tfstate"
+```
 

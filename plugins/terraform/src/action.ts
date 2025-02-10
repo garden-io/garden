@@ -10,7 +10,7 @@ import { createSchema, joi, joiVariables } from "@garden-io/core/build/src/confi
 import { dedent } from "@garden-io/core/build/src/util/string.js"
 import { supportedVersions } from "./cli.js"
 import type { TerraformBaseSpec } from "./helpers.js"
-import { variablesSchema } from "./helpers.js"
+import { terraformBackendConfigSchema, variablesSchema } from "./helpers.js"
 import type { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy.js"
 
 export interface TerraformDeploySpec extends TerraformBaseSpec {
@@ -48,6 +48,7 @@ export const terraformDeploySchemaKeys = () => ({
     Set to \`null\` to use whichever version of \`terraform\` that is on your PATH.
   `),
   workspace: joi.string().allow(null).description("Use the specified Terraform workspace."),
+  backendConfig: terraformBackendConfigSchema(),
 })
 
 export const terraformDeploySchema = createSchema({

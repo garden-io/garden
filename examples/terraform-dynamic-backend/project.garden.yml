@@ -1,0 +1,32 @@
+apiVersion: "garden.io/v1"
+kind: Project
+name: terraform-dynamic-backend-example
+defaultEnvironment: dev
+
+environments:
+  - name: dev
+    variables:
+      bucket: dev-bucket
+      keyNamespace: ${kebabCase(local.username)}
+  - name: ci
+    variables:
+      bucket: ci-bucket
+      keyNamespace: ${slice(git.commitHash, 0, 7) || '<detached>'}
+  - name: qa
+    variables:
+      bucket: qa-bucket
+      keyNamespace: ${git.branch}
+
+providers:
+  - name: terraform
+
+---
+kind: Deploy
+name: tf-hello
+
+spec:
+  root: .
+  backendConfig: # <--- Dynamically set the backend for this action, depending on the environment
+    bucket: ${var.bucket}
+    key: tf-state/${var.keyNamespace}/terraform.tfstate
+    region: eu-central-1
