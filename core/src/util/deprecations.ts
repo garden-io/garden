@@ -79,6 +79,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     hadolintPlugin: makePluginDeprecation("hadolint", style),
     octantPlugin: makePluginDeprecation("octant", style),
+    conftestPlugin: makePluginDeprecation("conftest", style),
   } as const
 }
 
