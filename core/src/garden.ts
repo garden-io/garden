@@ -268,6 +268,7 @@ interface ResolveProviderParams {
 type GardenType = typeof Garden.prototype
 // TODO: add more fields that are known to be defined when logged in to Cloud
 export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
+export type LoggedInGrow = GardenType & Required<Pick<GardenType, "cloudApiV2">>
 
 function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
   const projectApiVersion = params.projectApiVersion
@@ -1867,9 +1868,18 @@ export class Garden {
     return suggestions
   }
 
-  /** Returns whether the user is logged in to the Garden Cloud */
+  /**
+   * Returns whether the user is logged in to the Garden Cloud.
+   */
   public isLoggedIn(): this is LoggedInGarden {
     return !!this.cloudApi
+  }
+
+  /**
+   * Returns whether the user is logged in to the Grow Cloud.
+   */
+  public isLoggedInV2(): this is LoggedInGrow {
+    return !!this.cloudApiV2
   }
 }
 
