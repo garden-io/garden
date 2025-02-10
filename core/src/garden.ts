@@ -181,7 +181,6 @@ import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
-import { reportDeprecatedPluginsUsage } from "./util/deprecations.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -275,8 +274,6 @@ function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
 
   const builtinPlugins = getBuiltinPlugins(projectApiVersion)
   const customPlugins = params.plugins
-
-  reportDeprecatedPluginsUsage({ apiVersion: projectApiVersion, plugins: customPlugins, log: params.log })
 
   return [...builtinPlugins, ...customPlugins]
 }
