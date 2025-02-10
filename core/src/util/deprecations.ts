@@ -80,6 +80,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     hadolintPlugin: makePluginDeprecation("hadolint", style),
     octantPlugin: makePluginDeprecation("octant", style),
     conftestPlugin: makePluginDeprecation("conftest", style),
+    localMode: {
+      contextDesc: "Local mode",
+      featureDesc: `The ${style("local mode")} feature for container, kubernetes and helm deploys`,
+      hint: "Please do not use this in Garden 0.14",
+      hintReferenceLink: null,
+    },
   } as const
 }
 
