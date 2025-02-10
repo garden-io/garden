@@ -54,6 +54,9 @@ providers:
     # Use the specified Terraform workspace.
     workspace:
 
+    # Set to `true` to make logs from Terraform Deploy actions visible in Garden Cloud/Enterprise. Defaults to `false`
+    streamLogsToCloud: false
+
     # Configure the Terraform backend.
     #
     # The key-value pairs defined here are set as the `-backend-config` options when Garden
@@ -190,6 +193,16 @@ Use the specified Terraform workspace.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `providers[].streamLogsToCloud`
+
+[providers](#providers) > streamLogsToCloud
+
+Set to `true` to make logs from Terraform Deploy actions visible in Garden Cloud/Enterprise. Defaults to `false`
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `providers[].backendConfig`
 
