@@ -2,7 +2,7 @@
 
 This example project demonstrates how to use dynamic Terraform backends with Garden.
 
-Terraform itself doesn't allow variables in the backend configuration but with Garden you can enable this behaviour and create unique, on-demand environments for your Terraform stack.
+Terraform itself doesn't allow variables in the backend configuration but with Garden you can enable this behavior and create unique, on-demand environments for your Terraform stack.
 
 > [!TIP]
 > If using S3 or similar as your Terraform backend, set a lifecycle policy on your bucket so that old folders get cleaned up in non-production environments. They'll anyway get re-created if needed.
@@ -35,7 +35,7 @@ terraform {
 
 You'll notice that the actual values are empty because they're set dynamically by Garden (you could also have default values here).
 
-In the Garden config in the `project.garden.yml` file we dynmically set the backend values based on the environment:
+In the Garden config in the `project.garden.yml` file we dynamically set the backend values based on the environment:
 
 ```yaml
 apiVersion: "garden.io/v1"
