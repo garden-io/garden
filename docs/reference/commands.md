@@ -2094,15 +2094,6 @@ actionConfigs:
       # The spec for the specific action type.
       spec:
 
-      # Specify a _Build_ action, and resolve this action from the context of that Build.
-      #
-      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
-      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
-      #
-      # This would mean that instead of looking for manifest files relative to this action's location in your project
-      # structure, the output directory for the referenced `exec` Build would be the source.
-      build:
-
       kind:
 
       # Timeout for the deploy to complete, in seconds.
@@ -2249,15 +2240,6 @@ actionConfigs:
       # The spec for the specific action type.
       spec:
 
-      # Specify a _Build_ action, and resolve this action from the context of that Build.
-      #
-      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
-      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
-      #
-      # This would mean that instead of looking for manifest files relative to this action's location in your project
-      # structure, the output directory for the referenced `exec` Build would be the source.
-      build:
-
       kind:
 
       # Set a timeout for the run to complete, in seconds.
@@ -2403,15 +2385,6 @@ actionConfigs:
 
       # The spec for the specific action type.
       spec:
-
-      # Specify a _Build_ action, and resolve this action from the context of that Build.
-      #
-      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
-      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
-      #
-      # This would mean that instead of looking for manifest files relative to this action's location in your project
-      # structure, the output directory for the referenced `exec` Build would be the source.
-      build:
 
       kind:
 

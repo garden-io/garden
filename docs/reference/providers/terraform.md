@@ -191,6 +191,16 @@ Use the specified Terraform workspace.
 | -------- | -------- |
 | `string` | No       |
 
+### `providers[].streamLogsToCloud`
+
+[providers](#providers) > streamLogsToCloud
+
+Set to `true` to make logs from Terraform Deploy actions visible in Garden Cloud/Enterprise. Defaults to `false`
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
 ### `providers[].backendConfig`
 
 [providers](#providers) > backendConfig
