@@ -50,12 +50,10 @@ garden --env=<env-name> plugins terraform apply-root -- -auto-approve
 
 For example, running `garden deploy --env dev` and `garden deploy --env ci` will pick the appropriate backend for the environment.
 
-If you'd like to apply the stack when starting Garden (e.g. because you're provisioning a Kubernetes cluster and need to pass the outputs to other Garden providers), checkout [the Terraform provider docs for configuring dynamic backends](./configure-provider.md#setting-the-backend-dynamically).
+If you'd like to apply the stack when starting Garden (e.g. because you're provisioning a Kubernetes cluster and need to pass the outputs to other Garden providers), check out [the Terraform provider docs for configuring dynamic backends](./configure-provider.md#setting-the-backend-dynamically).
 
 If instead you configure your Terraform stack via actions (e.g. because you have
-multiple AWS labmdas that should each have their own stack), checkout [the Terraform
-action docs for configuring dynamic
-backends](./actions.md#setting-the-backend-dynamically).
+multiple AWS labmdas that should each have their own stack), check out [the Terraform action docs for configuring dynamic backends](./actions.md#setting-the-backend-dynamically).
 
 ## Next steps
 

@@ -54,7 +54,7 @@ In the example below we can imagine a Terraform stack that provisions a Kubernet
 
 We achieve this via the `backendConfig` field on the `terraform` provider spec which can make use of Garden's powerful templating system.
 
-This means you can run `garden deploy` (for the dev env) and it'll use the corresponding backend. From the same host you could then run `garden deploy --env` without needing to update your config and manually re-intialize Terraform and it'll again pick the correct backend.
+This means you can run `garden deploy` (for the dev env) and it will use the corresponding backend. From the same host you could then run `garden deploy --env` without needing to update your config and manually re-intialize Terraform, and it will again pick the correct backend.
 
 ```yaml
 # In project.garden.yml file

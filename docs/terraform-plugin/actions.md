@@ -52,10 +52,10 @@ defaultEnvironment: dev
 environments:
   - name: dev
     variables:
-      tfNamespace: ${kebabCase(local.username)} # <--- Each user has their lambda
+      tfNamespace: ${kebabCase(local.username)} # <--- Each user has their own set of lambdas
   - name: ci
     variables:
-      tfNamespace: ${slice(git.commitHash, 0, 7) || '<detached>'} # <--- Each CI run has their lambda
+      tfNamespace: ${slice(git.commitHash, 0, 7) || '<detached>'} # <--- Each CI run has its own set of lambdas
 
 ---
 kind: Deploy
