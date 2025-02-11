@@ -152,7 +152,7 @@ export type ApiV2Deprecation = keyof ReturnType<typeof getApiV2Deprecations>
 
 export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
 
-export function makeDeprecationMessage({
+export function makeApiV1DeprecationMessage({
   deprecation,
   includeLink,
   style,
@@ -223,6 +223,6 @@ export function reportDeprecatedFeatureUsage({
     throw new FeatureNotAvailable({ apiVersion, deprecation })
   }
 
-  const warnMessage = makeDeprecationMessage({ deprecation, includeLink: true, style: true })
+  const warnMessage = makeApiV1DeprecationMessage({ deprecation, includeLink: true, style: true })
   emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
 }
