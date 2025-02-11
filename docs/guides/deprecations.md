@@ -133,3 +133,9 @@ Please do not use this in Garden 0.14
 Use `dependencies` config build to define the build dependencies.
 
 For more information, please refer to the [Migration guide for action configs](#updating-action-configs).
+
+## Build Staging
+
+<h3 id="rsyncBuildStaging">The `legacy rsync-based file syncing` for build staging</h3>
+
+Do not use ``GARDEN_LEGACY_BUILD_STAGE`` environment variable in 0.14.
