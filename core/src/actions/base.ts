@@ -70,7 +70,7 @@ import type { ResolvedTemplate } from "../template/types.js"
 import type { WorkflowConfig } from "../config/workflow.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
 import { deepMap } from "../util/objects.js"
-import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { makeApiV1DeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 import { RootLogger } from "../logger/logger.js"
 
 // TODO: split this file
@@ -287,7 +287,7 @@ export const baseRuntimeActionConfigSchema = createSchema({
       )
       .meta({
         templateContext: ActionConfigContext,
-        deprecated: makeDeprecationMessage({ deprecation: "buildConfigFieldOnRuntimeActions", includeLink: true }),
+        deprecated: makeApiV1DeprecationMessage({ deprecation: "buildConfigFieldOnRuntimeActions", includeLink: true }),
       }),
   }),
   extend: baseActionConfigSchema,
