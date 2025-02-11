@@ -100,11 +100,19 @@ Please use the `scan` field instead.
 
 For more information, please refer to the [`scan` reference documentation](../reference/project-config.md#scan).
 
-## Garden Commands
+## Garden commands
 
 <h3 id="kubernetesClusterInitCommand">The Kubernetes plugin command `cluster-init`</h3>
 
 Do not use this command. It has no effect.
+
+## Sync mode
+
+<h3 id="syncStartCommand">The `sync-start` command.</h3>
+
+Behaviour of `sync start` is now deprecated and will be changed in a future breaking change release.
+Instead, we recommend running `garden deploy --sync` or starting syncs inside the dev console
+with either `deploy --sync` or `sync start`.
 
 ## Garden Plugins
 
@@ -126,7 +134,7 @@ This plugin is still enabled by default in Garden 0.13, but will be removed in G
 
 Please do not use this in Garden 0.14
 
-## Acton Configs
+## Acton configs
 
 <h3 id="buildConfigFieldOnRuntimeActions">The `build` config field in runtime action configs</h3>
 
