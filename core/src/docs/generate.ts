@@ -27,7 +27,7 @@ import type { ActionKind } from "../plugin/action-types.js"
 import { renderTemplateConfigSchema } from "../config/render-template.js"
 import { pMemoizeClearAll } from "../lib/p-memoize.js"
 import { makeDocsLinkOpts } from "./common.js"
-import { GardenApiVersion } from "../constants.js"
+import { defaultGardenApiVersion } from "../constants.js"
 import { actionKinds } from "../actions/types.js"
 import { fileURLToPath } from "node:url"
 import dedent from "dedent"
@@ -79,7 +79,7 @@ export async function writeConfigReferenceDocs(
       commandInfo: { name: "generate-docs", args: {}, opts: {} },
       config: {
         path: moduleDirName,
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: defaultGardenApiVersion,
         kind: "Project",
         name: "generate-docs",
         internal: {

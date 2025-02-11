@@ -84,6 +84,7 @@ import {
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
   gardenApiSupportsActions,
+  defaultGardenApiVersion,
 } from "./constants.js"
 import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
@@ -2427,7 +2428,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
 
   const config: ProjectConfig = {
     path: root,
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: defaultGardenApiVersion,
     kind: "Project",
     name: "no-project",
     internal: {
