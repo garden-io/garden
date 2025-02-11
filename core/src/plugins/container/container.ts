@@ -53,6 +53,7 @@ import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 import type { PluginContext } from "../../plugin-context.js"
 import { actionReferenceToString } from "../../actions/base.js"
+import { reportApiV2DeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
@@ -539,7 +540,13 @@ export const gardenPlugin = () =>
           staticOutputsSchema: containerDeployOutputsSchema(),
           handlers: {
             // Other handlers are implemented by other providers (e.g. kubernetes)
-            async configure({ config }) {
+            async configure({ config, ctx, log }) {
+              reportApiV2DeprecatedFeatureUsage({
+                apiVersion: ctx.projectApiVersion,
+                log,
+                deprecation: "containerDeployAction",
+              })
+
               return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
             },
 

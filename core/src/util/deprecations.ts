@@ -241,6 +241,29 @@ export function makeApiV2DeprecationMessage({
   return makeDeprecationMessage({ apiVersion: GardenApiVersion.v2, deprecation, includeLink, style })
 }
 
+/**
+ * Prints deprecation warning for `apiVersion: garden.io/v2`
+ * and has no effect for `apiVersion: garden.io/v1` or older.
+ *
+ * To be used to inform users about the upcoming breaking changes in 0.14.
+ */
+export function reportApiV2DeprecatedFeatureUsage({
+  apiVersion,
+  log,
+  deprecation,
+}: {
+  apiVersion: GardenApiVersion
+  log: Log
+  deprecation: ApiV2Deprecation
+}) {
+  if (apiVersion !== GardenApiVersion.v2) {
+    return
+  }
+
+  const warnMessage = makeApiV2DeprecationMessage({ deprecation, includeLink: true, style: true })
+  emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
+}
+
 ///// Shared parts /////
 
 function pickDeprecationDetails({
