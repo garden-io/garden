@@ -31,6 +31,7 @@ function makePluginDeprecation(pluginName: DeprecatedPluginName, style: (s: stri
     featureDesc: `The plugin ${style(pluginName)}`,
     hint: "This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.",
     hintReferenceLink: null,
+    apiVersion: GardenApiVersion.v1,
   }
 }
 
@@ -41,6 +42,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       featureDesc: `The ${style("deploymentStrategy")} config field`,
       hint: `Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the ${style(`blue-green`)} strategy) has been removed.`,
       hintReferenceLink: null,
+      apiVersion: GardenApiVersion.v1,
     },
     dotIgnoreFiles: {
       contextDesc: "Project configuration",
@@ -50,6 +52,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         name: `${style("dotIgnoreFile")} reference documentation`,
         link: `reference/project-config.md#dotignorefile`,
       },
+      apiVersion: GardenApiVersion.v1,
     },
     apiVersionV0: {
       contextDesc: "Project configuration",
@@ -61,6 +64,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         name: `${style("apiVersion")} reference documentation`,
         link: `reference/project-config.md#apiVersion`,
       },
+      apiVersion: GardenApiVersion.v1,
     },
     projectConfigModules: {
       contextDesc: "Project configuration",
@@ -76,6 +80,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       featureDesc: `The Kubernetes plugin command ${style("cluster-init")}`,
       hint: "Do not use this command. It has no effect.",
       hintReferenceLink: null,
+      apiVersion: GardenApiVersion.v1,
     },
     hadolintPlugin: makePluginDeprecation("hadolint", style),
     octantPlugin: makePluginDeprecation("octant", style),
@@ -85,6 +90,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       featureDesc: `The ${style("local mode")} feature for container, kubernetes and helm deploys`,
       hint: "Please do not use this in Garden 0.14",
       hintReferenceLink: null,
+      apiVersion: GardenApiVersion.v1,
     },
   } as const
 }
