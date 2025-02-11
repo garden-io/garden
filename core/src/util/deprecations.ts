@@ -83,9 +83,19 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       },
     },
     kubernetesClusterInitCommand: {
-      contextDesc: "Garden Commands",
+      contextDesc: "Garden commands",
       featureDesc: `The Kubernetes plugin command ${style("cluster-init")}`,
       hint: "Do not use this command. It has no effect.",
+      hintReferenceLink: null,
+    },
+    syncStartCommand: {
+      contextDesc: "Sync mode",
+      featureDesc: `The ${style("sync-start")} command.`,
+      hint: dedent`Behaviour of ${style(
+        "sync start"
+      )} is now deprecated and will be changed in a future breaking change release.
+        Instead, we recommend running ${style("garden deploy --sync")} or starting syncs inside the dev console
+        with either ${style("deploy --sync")} or ${style("sync start")}.`,
       hintReferenceLink: null,
     },
     hadolintPlugin: makePluginDeprecation("hadolint", style),
@@ -98,7 +108,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hintReferenceLink: null,
     },
     buildConfigFieldOnRuntimeActions: {
-      contextDesc: "Acton Configs",
+      contextDesc: "Acton configs",
       featureDesc: `The ${style("build")} config field in runtime action configs`,
       hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
       hintReferenceLink: {
