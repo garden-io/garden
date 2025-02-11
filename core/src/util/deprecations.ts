@@ -40,7 +40,7 @@ function makeDeployActionTypeDeprecation(actionType: DeprecatedDeployActionType,
   return {
     contextDesc: "Garden action types",
     featureDesc: `The ${style(`${actionType} Deploy`)} action type`,
-    hint: "Do not use this deploy action type in Garden 0.14.",
+    hint: "Do not use this action in Garden 0.14.",
     hintReferenceLink: null,
   }
 }
