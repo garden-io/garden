@@ -86,6 +86,15 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: "Please do not use this in Garden 0.14",
       hintReferenceLink: null,
     },
+    buildConfigFieldOnRuntimeActions: {
+      contextDesc: "Acton Configs",
+      featureDesc: `The ${style("build")} config field in runtime action configs`,
+      hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
+      hintReferenceLink: {
+        name: "Migration guide for action configs",
+        link: "#updating-action-configs",
+      },
+    },
   } as const
 }
 

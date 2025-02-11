@@ -5,15 +5,69 @@ title: Deprecations and major-version updates
 
 # Deprecations and major-version updates
 
-The next major version of Garden, 0.14, will contain breaking changes. To make the update as seamless as possible for your team, avoid functionality that has been deprecated in Garden 0.13.
+The next major version of Garden, 0.14, will contain breaking changes. To make the update as seamless as possible for
+your team, avoid functionality that has been deprecated in Garden 0.13.
 
-When using `apiVersion: garden.io/v1` in your project configuration file, Garden will warn you if your configuration depends on features that will be removed in Garden 0.14.
+When using `apiVersion: garden.io/v1` in your project configuration file, Garden will warn you if your configuration
+depends on features that will be removed in Garden 0.14.
 
-**EXPERIMENTAL**: You can opt-in to the new behaviour in Garden 0.14 by using `apiVersion: garden.io/v2`. This setting will make Garden throw errors whenever it detects usage of deprecated functionality.
+**EXPERIMENTAL**: You can opt-in to the new behaviour in Garden 0.14 by using `apiVersion: garden.io/v2`. This setting
+will make Garden throw errors whenever it detects usage of deprecated functionality.
 
 {% hint style="warning" %}
-Please note that as of today, not all warnings are in place, so we are still working on the list of breaking changes. Once the list of breaking changes is final, we will make this known here.
+Please note that as of today, not all warnings are in place, so we are still working on the list of breaking changes.
+Once the list of breaking changes is final, we will make this known here.
 {% endhint %}
+
+# Migration hints
+
+## Updating action configs
+
+To get rid of the [deprecated `build`](#acton-configs) usages,
+you need to replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
+
+For example, a configuration like
+
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+build: backend # <-- old config style uses `build` field
+
+spec:
+image: ${actions.build.backend.outputs.deploymentImageId}
+...
+```
+
+should be replaced with
+
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+
+# use `dependencies` field instead of the `build`
+dependencies:
+- build.backend
+
+spec:
+image: ${actions.build.backend.outputs.deploymentImageId}
+...
+```
 
 # Breaking changes
 
@@ -71,3 +125,11 @@ This plugin is still enabled by default in Garden 0.13, but will be removed in G
 <h3 id="localMode">The `local mode` feature for container, kubernetes and helm deploys</h3>
 
 Please do not use this in Garden 0.14
+
+## Acton Configs
+
+<h3 id="buildConfigFieldOnRuntimeActions">The `build` config field in runtime action configs</h3>
+
+Use `dependencies` config build to define the build dependencies.
+
+For more information, please refer to the [Migration guide for action configs](#updating-action-configs).
