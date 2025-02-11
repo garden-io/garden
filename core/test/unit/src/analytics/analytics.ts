@@ -19,7 +19,7 @@ import {
   dummyOrganization,
 } from "../../../helpers/api.js"
 import type { CommandResultEvent } from "../../../../src/analytics/analytics.js"
-import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics.js"
+import { AnalyticsHandler, countActions, getAnonymousUserId } from "../../../../src/analytics/analytics.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_GARDEN_CLOUD_DOMAIN,
@@ -33,6 +33,7 @@ import { resolveMsg } from "../../../../src/logger/log-entry.js"
 
 import { getLocal } from "mockttp"
 import { sleep } from "../../../../src/util/util.js"
+import { type ActionConfigMap } from "../../../../src/actions/types.js"
 
 const mockServer = getLocal()
 
@@ -386,11 +387,12 @@ describe("AnalyticsHandler", () => {
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
-          sessionId: analytics["sessionId"],
-          parentSessionId: analytics["sessionId"],
+          sessionId: garden.sessionId,
+          parentSessionId: garden.sessionId,
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
+          environmentName: "local",
           projectMetadata: {
             modulesCount: 3,
             moduleTypes: ["test"],
@@ -402,6 +404,12 @@ describe("AnalyticsHandler", () => {
             testActionCount: 0,
             deployActionCount: 0,
             runActionCount: 0,
+            buildActionCountByType: {},
+            runActionCountByType: {},
+            deployActionCountByType: {},
+            testActionCountByType: {},
+            providerNames: ["exec", "container", "templated", "test-plugin", "test-plugin-b"],
+            actionTypes: [],
           },
         },
       })
@@ -431,11 +439,12 @@ describe("AnalyticsHandler", () => {
           system: analytics["systemConfig"],
           isCI: true,
           ciName: "foo",
-          sessionId: analytics["sessionId"],
-          parentSessionId: analytics["sessionId"],
+          sessionId: garden.sessionId,
+          parentSessionId: garden.sessionId,
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
+          environmentName: "local",
           projectMetadata: {
             modulesCount: 3,
             moduleTypes: ["test"],
@@ -447,6 +456,12 @@ describe("AnalyticsHandler", () => {
             testActionCount: 0,
             deployActionCount: 0,
             runActionCount: 0,
+            buildActionCountByType: {},
+            runActionCountByType: {},
+            deployActionCountByType: {},
+            testActionCountByType: {},
+            providerNames: ["exec", "container", "templated", "test-plugin", "test-plugin-b"],
+            actionTypes: [],
           },
         },
       })
@@ -493,11 +508,12 @@ describe("AnalyticsHandler", () => {
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
-          sessionId: analytics["sessionId"],
-          parentSessionId: analytics["sessionId"],
+          sessionId: garden.sessionId,
+          parentSessionId: garden.sessionId,
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
+          environmentName: "local",
           projectMetadata: {
             modulesCount: 1,
             moduleTypes: ["test"],
@@ -509,6 +525,12 @@ describe("AnalyticsHandler", () => {
             testActionCount: 0,
             deployActionCount: 0,
             runActionCount: 0,
+            buildActionCountByType: {},
+            runActionCountByType: {},
+            deployActionCountByType: {},
+            testActionCountByType: {},
+            providerNames: ["exec", "container", "templated", "test-plugin", "test-plugin-b"],
+            actionTypes: [],
           },
         },
       })
@@ -543,11 +565,12 @@ describe("AnalyticsHandler", () => {
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
-          sessionId: analytics["sessionId"],
-          parentSessionId: analytics["sessionId"],
+          sessionId: garden.sessionId,
+          parentSessionId: garden.sessionId,
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
+          environmentName: "local",
           projectMetadata: {
             modulesCount: 0,
             moduleTypes: [],
@@ -559,6 +582,12 @@ describe("AnalyticsHandler", () => {
             testActionCount: 0,
             deployActionCount: 0,
             runActionCount: 0,
+            buildActionCountByType: {},
+            runActionCountByType: {},
+            deployActionCountByType: {},
+            testActionCountByType: {},
+            providerNames: ["exec", "container", "templated"],
+            actionTypes: [],
           },
         },
       })
@@ -593,11 +622,12 @@ describe("AnalyticsHandler", () => {
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
-          sessionId: analytics["sessionId"],
+          sessionId: garden.sessionId,
           parentSessionId: "test-parent-session",
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
+          environmentName: "local",
           projectMetadata: {
             modulesCount: 0,
             moduleTypes: [],
@@ -609,6 +639,12 @@ describe("AnalyticsHandler", () => {
             testActionCount: 0,
             deployActionCount: 0,
             runActionCount: 0,
+            buildActionCountByType: {},
+            runActionCountByType: {},
+            deployActionCountByType: {},
+            testActionCountByType: {},
+            providerNames: ["exec", "container", "templated"],
+            actionTypes: [],
           },
         },
       })
@@ -643,11 +679,12 @@ describe("AnalyticsHandler", () => {
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
-          sessionId: analytics["sessionId"],
-          parentSessionId: analytics["sessionId"],
+          sessionId: garden.sessionId,
+          parentSessionId: garden.sessionId,
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now,
           isRecurringUser: false,
+          environmentName: "local",
           projectMetadata: {
             modulesCount: 0,
             moduleTypes: [],
@@ -659,6 +696,18 @@ describe("AnalyticsHandler", () => {
             testActionCount: 1,
             deployActionCount: 1,
             runActionCount: 0,
+            buildActionCountByType: {
+              test: 1,
+            },
+            runActionCountByType: {},
+            deployActionCountByType: {
+              test: 1,
+            },
+            testActionCountByType: {
+              test: 1,
+            },
+            providerNames: ["exec", "container", "templated", "test-plugin"],
+            actionTypes: ["test"],
           },
         },
       })
@@ -713,11 +762,12 @@ describe("AnalyticsHandler", () => {
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
-          sessionId: analytics["sessionId"],
-          parentSessionId: analytics["sessionId"],
+          sessionId: garden.sessionId,
+          parentSessionId: garden.sessionId,
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: startTime,
           isRecurringUser: false,
+          environmentName: "local",
           projectMetadata: {
             modulesCount: 3,
             moduleTypes: ["test"],
@@ -729,6 +779,12 @@ describe("AnalyticsHandler", () => {
             testActionCount: 0,
             deployActionCount: 0,
             runActionCount: 0,
+            buildActionCountByType: {},
+            deployActionCountByType: {},
+            runActionCountByType: {},
+            testActionCountByType: {},
+            providerNames: ["exec", "container", "templated", "test-plugin", "test-plugin-b"],
+            actionTypes: [],
           },
         },
       })
@@ -931,6 +987,151 @@ describe("AnalyticsHandler", () => {
     it("should return 'ci-user' if anonymous user ID is not already set and in CI", async () => {
       const anonymousUserId = getAnonymousUserId({ analyticsConfig: undefined, isCi: true })
       expect(anonymousUserId).to.eql("ci-user")
+    })
+  })
+
+  describe("countActions", () => {
+    it("should correctly count actions with multiple kinds and types", () => {
+      const actionConfigs = {
+        Build: {
+          api: {
+            kind: "Build",
+            type: "container",
+            name: "api",
+          },
+          worker: {
+            kind: "Build",
+            type: "container",
+            name: "worker",
+          },
+          script: {
+            kind: "Build",
+            type: "exec",
+            name: "script",
+          },
+        },
+        Deploy: {
+          api: {
+            kind: "Deploy",
+            type: "kubernetes",
+            name: "api",
+          },
+        },
+        Run: {
+          api: {
+            kind: "Run",
+            type: "kubernetes",
+            name: "api",
+          },
+          web: {
+            kind: "Run",
+            type: "kubernetes",
+            name: "web",
+          },
+        },
+        Test: {
+          api: {
+            kind: "Test",
+            type: "kubernetes",
+            name: "api",
+          },
+        },
+      } as unknown as ActionConfigMap
+
+      const result = countActions(actionConfigs)
+
+      expect(result.total).to.eql(7)
+      expect(result.countByActionKind).to.eql({
+        Build: 3,
+        Deploy: 1,
+        Run: 2,
+        Test: 1,
+      })
+      expect(result.countByActionType).to.eql({
+        Build: {
+          container: 2,
+          exec: 1,
+        },
+        Deploy: {
+          kubernetes: 1,
+        },
+        Run: {
+          kubernetes: 2,
+        },
+        Test: {
+          kubernetes: 1,
+        },
+      })
+    })
+
+    it("should handle empty input object", () => {
+      const actionConfigs = {} as unknown as ActionConfigMap
+      const result = countActions(actionConfigs)
+
+      expect(result.total).to.eql(0)
+      expect(result.countByActionKind).to.eql({})
+      expect(result.countByActionType).to.eql({})
+    })
+
+    it("should handle kind with no actions", () => {
+      const actionConfigs = {
+        Build: {},
+        Deploy: {
+          api: {
+            kind: "Deploy",
+            type: "kubernetes",
+            name: "api",
+          },
+        },
+      } as unknown as ActionConfigMap
+
+      const result = countActions(actionConfigs)
+
+      expect(result.total).to.eql(1)
+      expect(result.countByActionKind).to.eql({
+        Build: 0,
+        Deploy: 1,
+      })
+      expect(result.countByActionType).to.eql({
+        Build: {},
+        Deploy: {
+          kubernetes: 1,
+        },
+      })
+    })
+
+    it("should handle different totals per kind correctly", () => {
+      const actionConfigs = {
+        Build: {
+          api: { kind: "Build", type: "container", name: "api" },
+          web: { kind: "Build", type: "container", name: "web" },
+          script: { kind: "Build", type: "exec", name: "script" },
+        },
+        Test: {
+          unit: { kind: "Test", type: "container", name: "unit" },
+          e2e: { kind: "Test", type: "exec", name: "e2e" },
+          integration: { kind: "Test", type: "container", name: "integration" },
+          component: { kind: "Test", type: "container", name: "component" },
+        },
+      } as unknown as ActionConfigMap
+
+      const result = countActions(actionConfigs)
+
+      expect(result.total).to.eql(7)
+      expect(result.countByActionKind).to.eql({
+        Build: 3,
+        Test: 4,
+      })
+      expect(result.countByActionType).to.eql({
+        Build: {
+          container: 2,
+          exec: 1,
+        },
+        Test: {
+          container: 3,
+          exec: 1,
+        },
+      })
     })
   })
 })

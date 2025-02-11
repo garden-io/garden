@@ -25,18 +25,61 @@ import type { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random.js"
 import type { GardenError, NodeJSErrnoException, StackTraceMetadata } from "../exceptions.js"
 import type { ActionConfigMap } from "../actions/types.js"
-import { actionKinds } from "../actions/types.js"
 import { getResultErrorProperties } from "./helpers.js"
 import { Analytics } from "@segment/analytics-node"
 import type { CloudProject } from "../cloud/api.js"
+import type { UnresolvedProviderConfig } from "../config/project.js"
 
 const CI_USER = "ci-user"
 
 /**
  * Helper function for counting the number of tasks, tests, etc in module configs
  */
-function countActions(moduleConfigs: ModuleConfig[], key: "tasks" | "services" | "tests") {
+function countActionsFromModuleConfigs(moduleConfigs: ModuleConfig[], key: "tasks" | "services" | "tests") {
   return moduleConfigs.flatMap((c) => c.spec[key]).filter((spec) => !!spec).length
+}
+
+type CountResult = {
+  countByActionKind: { [kind: string]: number }
+  countByActionType: { [kind: string]: { [type: string]: number } }
+  total: number
+}
+
+/**
+ * Count actions in action config, returning total action count, action count by kind and action count
+ * by type for each action kind.
+ */
+export function countActions(actionConfigs: ActionConfigMap): CountResult {
+  return Object.entries(actionConfigs).reduce(
+    (acc, [kind, configs]) => {
+      acc.countByActionKind[kind] = 0
+      acc.countByActionType[kind] = {}
+
+      // Count all actions within this kind
+      const kindCounts = Object.values(configs).reduce(
+        (kindAcc, config) => {
+          kindAcc.byKind++
+          acc.total++
+
+          const type = config.type
+          kindAcc.byType[type] = (kindAcc.byType[type] || 0) + 1
+
+          return kindAcc
+        },
+        { byKind: 0, byType: {} as { [type: string]: number } }
+      )
+
+      acc.countByActionKind[kind] = kindCounts.byKind
+      acc.countByActionType[kind] = kindCounts.byType
+
+      return acc
+    },
+    {
+      total: 0,
+      countByActionKind: {},
+      countByActionType: {},
+    } as CountResult
+  )
 }
 
 /**
@@ -98,9 +141,15 @@ interface ProjectMetadata {
   moduleTypes: string[]
   actionsCount: number
   buildActionCount: number
-  testActionCount: number
-  deployActionCount: number
   runActionCount: number
+  deployActionCount: number
+  testActionCount: number
+  buildActionCountByType: { [key: string]: number }
+  runActionCountByType: { [key: string]: number }
+  deployActionCountByType: { [key: string]: number }
+  testActionCountByType: { [key: string]: number }
+  providerNames: string[]
+  actionTypes: string[]
 }
 
 interface PropertiesBase {
@@ -124,6 +173,7 @@ interface PropertiesBase {
   firstRunAt?: Date
   latestRunAt?: Date
   isRecurringUser: boolean
+  environmentName: string
 }
 
 interface EventBase {
@@ -273,13 +323,11 @@ export class AnalyticsHandler {
   private enterpriseDomain?: string
   private enterpriseProjectIdV2?: string
   private enterpriseDomainV2?: string
-  private isLoggedIn: boolean
   private cloudUserId?: string
   private cloudCustomerName?: string
   private ciName: string | null
   private systemConfig: SystemInfo
   private isCI: boolean
-  private sessionId: string
   private pendingEvents: Map<string, SegmentEvent>
   protected garden: Garden
   private projectMetadata: ProjectMetadata
@@ -293,6 +341,7 @@ export class AnalyticsHandler {
     anonymousUserId,
     moduleConfigs,
     actionConfigs,
+    providerConfigs,
     cloudUser,
     cloudProject,
     isEnabled,
@@ -305,6 +354,7 @@ export class AnalyticsHandler {
     anonymousUserId: string
     moduleConfigs: ModuleConfig[]
     actionConfigs: ActionConfigMap
+    providerConfigs: UnresolvedProviderConfig[]
     isEnabled: boolean
     cloudUser?: UserResult
     cloudProject?: CloudProject
@@ -324,36 +374,31 @@ export class AnalyticsHandler {
     this.log = log
     this.isEnabled = isEnabled
     this.garden = garden
-    this.sessionId = garden.sessionId
-    this.isLoggedIn = garden.isLoggedIn()
     // Events that are queued or flushed but the network response hasn't returned
     this.pendingEvents = new Map()
 
     this.analyticsConfig = analyticsConfig
 
-    let actionsCount = 0
-    const countByActionKind: { [key: string]: number } = {}
-
-    for (const kind of actionKinds) {
-      countByActionKind[kind] = 0
-
-      for (const _name in actionConfigs[kind]) {
-        countByActionKind[kind] = countByActionKind[kind] + 1
-        actionsCount++
-      }
-    }
+    const { countByActionKind, countByActionType, total } = countActions(actionConfigs)
+    const actionTypes = [...new Set(Object.values(countByActionType).flatMap((kindTypes) => Object.keys(kindTypes)))]
 
     this.projectMetadata = {
       modulesCount: moduleConfigs.length,
       moduleTypes: uniq(moduleConfigs.map((c) => c.type)),
-      tasksCount: countActions(moduleConfigs, "tasks"),
-      servicesCount: countActions(moduleConfigs, "services"),
-      testsCount: countActions(moduleConfigs, "tests"),
-      actionsCount,
+      tasksCount: countActionsFromModuleConfigs(moduleConfigs, "tasks"),
+      servicesCount: countActionsFromModuleConfigs(moduleConfigs, "services"),
+      testsCount: countActionsFromModuleConfigs(moduleConfigs, "tests"),
+      actionsCount: total,
       buildActionCount: countByActionKind["Build"],
-      testActionCount: countByActionKind["Test"],
-      deployActionCount: countByActionKind["Deploy"],
       runActionCount: countByActionKind["Run"],
+      deployActionCount: countByActionKind["Deploy"],
+      testActionCount: countByActionKind["Test"],
+      buildActionCountByType: countByActionType["Build"],
+      runActionCountByType: countByActionType["Run"],
+      testActionCountByType: countByActionType["Test"],
+      deployActionCountByType: countByActionType["Deploy"],
+      providerNames: providerConfigs.map((c) => c.name),
+      actionTypes,
     }
     this.systemConfig = {
       platform: platform(),
@@ -458,6 +503,7 @@ export class AnalyticsHandler {
     const isFirstRun = !currentAnalyticsConfig.firstRunAt
     const moduleConfigs = await garden.getRawModuleConfigs()
     const actionConfigs = await garden.getRawActionConfigs()
+    const providerConfigs = await garden.getRawProviderConfigs()
     const log = garden.log
 
     let cloudUser: UserResult | undefined
@@ -521,6 +567,7 @@ export class AnalyticsHandler {
       analyticsConfig,
       moduleConfigs,
       actionConfigs,
+      providerConfigs,
       cloudUser,
       cloudProject,
       isEnabled,
@@ -566,18 +613,19 @@ export class AnalyticsHandler {
       enterpriseProjectIdV2: this.enterpriseProjectIdV2,
       enterpriseDomain: this.enterpriseDomain,
       enterpriseDomainV2: this.enterpriseDomainV2,
-      isLoggedIn: this.isLoggedIn,
+      isLoggedIn: this.garden.isLoggedIn(),
       ciName: this.ciName,
       customer: this.cloudCustomerName,
       system: this.systemConfig,
       isCI: this.isCI,
-      sessionId: this.sessionId,
+      sessionId: this.garden.sessionId,
       // default to the sessionId since if not set we are the parent
-      parentSessionId: parentSessionId || this.sessionId,
+      parentSessionId: parentSessionId || this.garden.sessionId,
       projectMetadata: this.projectMetadata,
       firstRunAt: this.analyticsConfig.firstRunAt,
       latestRunAt: this.analyticsConfig.latestRunAt,
       isRecurringUser: this.isRecurringUser,
+      environmentName: this.garden.environmentName,
     }
   }
 
