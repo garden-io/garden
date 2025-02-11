@@ -232,27 +232,27 @@ function renderApiDeprecations(header: string, apiDeprecations: ApiV1Deprecation
     contexts.add(contextDesc)
   }
 
-  const breakingChanges: string[] = [`# ${header}`]
+  const changeset: string[] = [`# ${header}`]
 
   for (const context of contexts) {
-    breakingChanges.push(`## ${context}`)
+    changeset.push(`## ${context}`)
 
     const matchingDeprecations = Object.entries(apiDeprecations).filter(
       ([_, { contextDesc }]) => contextDesc === context
     )
     for (const [id, { hint, featureDesc, hintReferenceLink }] of matchingDeprecations) {
-      breakingChanges.push(`<h3 id="${id}">${featureDesc}</h3>`)
-      breakingChanges.push(hint)
+      changeset.push(`<h3 id="${id}">${featureDesc}</h3>`)
+      changeset.push(hint)
       if (hintReferenceLink) {
         const linkPrefix = hintReferenceLink.link.startsWith("#") ? "" : "../"
-        breakingChanges.push(
+        changeset.push(
           `For more information, please refer to the [${hintReferenceLink.name}](${linkPrefix}${hintReferenceLink.link}).`
         )
       }
     }
   }
 
-  return breakingChanges
+  return changeset
 }
 
 async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename: string) {
