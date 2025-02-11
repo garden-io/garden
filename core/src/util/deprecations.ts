@@ -149,7 +149,8 @@ export function getApiV1Deprecations(style: (s: string) => string = styles.highl
   } as const
 }
 
-export type ApiV1Deprecation = keyof ReturnType<typeof getApiV1Deprecations>
+export type ApiV1Deprecations = ReturnType<typeof getApiV1Deprecations>
+export type ApiV1Deprecation = keyof ApiV1Deprecations
 
 export function makeApiV1DeprecationMessage({
   deprecation,
@@ -218,7 +219,7 @@ type ApiV2DeprecationShape = DeprecationShape<GardenApiVersion.v2>
 export function getApiV2Deprecations(style: (s: string) => string = styles.highlight) {
   return {
     containerDeployAction: {
-      contextDesc: "Garden Action Types",
+      contextDesc: "Garden action types",
       featureDesc: `The ${style("container Deploy")} action type`,
       hint: `Consider using ${style("kubernetes Deploy")} action type instead.`,
       hintReferenceLink: null, // TODO(0.14): create migration guide and link it
@@ -227,7 +228,8 @@ export function getApiV2Deprecations(style: (s: string) => string = styles.highl
   } as const
 }
 
-export type ApiV2Deprecation = keyof ReturnType<typeof getApiV2Deprecations>
+export type ApiV2Deprecations = ReturnType<typeof getApiV2Deprecations>
+export type ApiV2Deprecation = keyof ApiV2Deprecations
 
 export function makeApiV2DeprecationMessage({
   deprecation,
