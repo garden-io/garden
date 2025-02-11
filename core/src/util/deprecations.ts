@@ -230,3 +230,33 @@ export function getApiV2Deprecations(style: (s: string) => string = styles.highl
 }
 
 export type ApiV2Deprecation = keyof ReturnType<typeof getApiV2Deprecations>
+
+export function makeApiV2DeprecationMessage({
+  deprecation,
+  includeLink,
+  style,
+}: {
+  deprecation: ApiV2Deprecation
+  includeLink?: boolean
+  style?: boolean
+}) {
+  const { featureDesc, hint } = getApiV2Deprecations(style ? styles.highlight : (s) => `\`${s}\``)[deprecation]
+
+  const lines = [`${featureDesc} is deprecated in 0.14 and will be removed in the next major release, Garden 0.15.`]
+
+  if (hint) {
+    lines.push(hint)
+  }
+
+  if (includeLink) {
+    let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation}`
+    if (style) {
+      link = styles.link(link)
+    }
+    lines.push(
+      `To make sure your configuration does not break when we release Garden 0.15, please follow the steps at ${link}`
+    )
+  }
+
+  return lines.join("\n")
+}
