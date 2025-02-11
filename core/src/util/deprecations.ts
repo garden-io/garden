@@ -95,7 +95,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
   } as const
 }
 
-export type Deprecation = keyof ReturnType<typeof getDeprecations>
+export type ApiV1Deprecation = keyof ReturnType<typeof getDeprecations>
 
 export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
 
@@ -104,7 +104,7 @@ export function makeDeprecationMessage({
   includeLink,
   style,
 }: {
-  deprecation: Deprecation
+  deprecation: ApiV1Deprecation
   includeLink?: boolean
   style?: boolean
 }) {
@@ -132,7 +132,7 @@ export function makeDeprecationMessage({
 class FeatureNotAvailable extends GardenError {
   override type = "deprecated-feature-unavailable" as const
 
-  constructor({ deprecation, apiVersion }: { deprecation: Deprecation; apiVersion: GardenApiVersion }) {
+  constructor({ deprecation, apiVersion }: { deprecation: ApiV1Deprecation; apiVersion: GardenApiVersion }) {
     const { featureDesc, hint } = getDeprecations()[deprecation]
     const lines = [
       `${featureDesc} has been deprecated and is not available when using ${styles.highlight(`apiVersion: ${apiVersion}`)} in your project configuration file.`,
@@ -164,7 +164,7 @@ export function reportDeprecatedFeatureUsage({
 }: {
   apiVersion: GardenApiVersion
   log: Log
-  deprecation: Deprecation
+  deprecation: ApiV1Deprecation
 }) {
   if (apiVersion === GardenApiVersion.v2) {
     throw new FeatureNotAvailable({ apiVersion, deprecation })
