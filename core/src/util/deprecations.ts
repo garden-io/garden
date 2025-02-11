@@ -144,25 +144,7 @@ export function makeApiV1DeprecationMessage({
   includeLink?: boolean
   style?: boolean
 }) {
-  const { featureDesc, hint } = getApiV1Deprecations(style ? styles.highlight : (s) => `\`${s}\``)[deprecation]
-
-  const lines = [`${featureDesc} is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.`]
-
-  if (hint) {
-    lines.push(hint)
-  }
-
-  if (includeLink) {
-    let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation}`
-    if (style) {
-      link = styles.link(link)
-    }
-    lines.push(
-      `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${link}`
-    )
-  }
-
-  return lines.join("\n")
+  return makeDeprecationMessage({ apiVersion: GardenApiVersion.v1, deprecation, includeLink, style })
 }
 
 class FeatureNotAvailable extends GardenError {
@@ -240,9 +222,52 @@ export function makeApiV2DeprecationMessage({
   includeLink?: boolean
   style?: boolean
 }) {
-  const { featureDesc, hint } = getApiV2Deprecations(style ? styles.highlight : (s) => `\`${s}\``)[deprecation]
+  return makeDeprecationMessage({ apiVersion: GardenApiVersion.v2, deprecation, includeLink, style })
+}
 
-  const lines = [`${featureDesc} is deprecated in 0.14 and will be removed in the next major release, Garden 0.15.`]
+///// Shared parts /////
+
+function pickDeprecationDetails({
+  apiVersion,
+  deprecation,
+  style,
+}: {
+  apiVersion: GardenApiVersion.v1 | GardenApiVersion.v2
+  deprecation: ApiV1Deprecation | ApiV2Deprecation
+  includeLink?: boolean
+  style?: boolean
+}) {
+  if (apiVersion === GardenApiVersion.v1) {
+    const { featureDesc, hint } = getApiV1Deprecations(style ? styles.highlight : (s) => `\`${s}\``)[
+      deprecation as ApiV1Deprecation
+    ]
+    return { featureDesc, hint, prevVersion: "0.13", nextVersion: "0.14" }
+  } else if (apiVersion === GardenApiVersion.v2) {
+    const { featureDesc, hint } = getApiV2Deprecations(style ? styles.highlight : (s) => `\`${s}\``)[
+      deprecation as ApiV2Deprecation
+    ]
+    return { featureDesc, hint, prevVersion: "0.14", nextVersion: "0.15" }
+  } else {
+    return apiVersion satisfies never
+  }
+}
+
+export function makeDeprecationMessage({
+  apiVersion,
+  deprecation,
+  includeLink,
+  style,
+}: {
+  apiVersion: GardenApiVersion.v1 | GardenApiVersion.v2
+  deprecation: ApiV1Deprecation | ApiV2Deprecation
+  includeLink?: boolean
+  style?: boolean
+}) {
+  const { featureDesc, hint, prevVersion, nextVersion } = pickDeprecationDetails({ apiVersion, deprecation, style })
+
+  const lines = [
+    `${featureDesc} is deprecated in ${prevVersion} and will be removed in the next major release, Garden ${nextVersion}.`,
+  ]
 
   if (hint) {
     lines.push(hint)
@@ -254,7 +279,7 @@ export function makeApiV2DeprecationMessage({
       link = styles.link(link)
     }
     lines.push(
-      `To make sure your configuration does not break when we release Garden 0.15, please follow the steps at ${link}`
+      `To make sure your configuration does not break when we release Garden ${nextVersion}, please follow the steps at ${link}`
     )
   }
 
