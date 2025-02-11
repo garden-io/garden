@@ -27,7 +27,7 @@ import type { ActionKind } from "../plugin/action-types.js"
 import { renderTemplateConfigSchema } from "../config/render-template.js"
 import { pMemoizeClearAll } from "../lib/p-memoize.js"
 import { makeDocsLinkOpts } from "./common.js"
-import { defaultGardenApiVersion } from "../constants.js"
+import { defaultGardenApiVersion, GardenApiVersion } from "../constants.js"
 import { actionKinds } from "../actions/types.js"
 import { fileURLToPath } from "node:url"
 import dedent from "dedent"
@@ -215,6 +215,12 @@ function getBreakingChanges(): string[] {
 }
 
 function getDeprecations(): string[] {
+  // TODO(0.14): remove this
+  // The cast is necessary here, otherwise TypeScript will complain that values have no overlap
+  if ((defaultGardenApiVersion as GardenApiVersion) !== GardenApiVersion.v2) {
+    return []
+  }
+
   // apply style for docs, using backticks instead of ansi codes
   const apiV2Deprecations = getApiV2Deprecations(deprecationHeaderStyle)
   return renderApiDeprecations("Deprecations", apiV2Deprecations)
