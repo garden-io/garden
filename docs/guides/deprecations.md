@@ -132,4 +132,4 @@ Please do not use this in Garden 0.14
 
 Use `dependencies` config build to define the build dependencies.
 
-For more information, please refer to the [Migration guide for action configs](../guides/deprecations#updating-action-configs).
+For more information, please refer to the [Migration guide for action configs](#updating-action-configs).

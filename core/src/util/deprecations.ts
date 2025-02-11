@@ -92,7 +92,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
       hintReferenceLink: {
         name: "Migration guide for action configs",
-        link: "guides/deprecations#updating-action-configs",
+        link: "#updating-action-configs",
       },
     },
   } as const
