@@ -100,7 +100,7 @@ Please use the `scan` field instead.
 
 For more information, please refer to the [`scan` reference documentation](../reference/project-config.md#scan).
 
-## Garden Commands
+## Garden commands
 
 <h3 id="kubernetesClusterInitCommand">The Kubernetes plugin command `cluster-init`</h3>
 
@@ -134,7 +134,7 @@ This plugin is still enabled by default in Garden 0.13, but will be removed in G
 
 Please do not use this in Garden 0.14
 
-## Acton Configs
+## Acton configs
 
 <h3 id="buildConfigFieldOnRuntimeActions">The `build` config field in runtime action configs</h3>
 

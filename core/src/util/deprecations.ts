@@ -72,7 +72,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       },
     },
     kubernetesClusterInitCommand: {
-      contextDesc: "Garden Commands",
+      contextDesc: "Garden commands",
       featureDesc: `The Kubernetes plugin command ${style("cluster-init")}`,
       hint: "Do not use this command. It has no effect.",
       hintReferenceLink: null,
@@ -97,7 +97,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hintReferenceLink: null,
     },
     buildConfigFieldOnRuntimeActions: {
-      contextDesc: "Acton Configs",
+      contextDesc: "Acton configs",
       featureDesc: `The ${style("build")} config field in runtime action configs`,
       hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
       hintReferenceLink: {
