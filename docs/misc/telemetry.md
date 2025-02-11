@@ -18,14 +18,18 @@ Below you can find examples of events we currently collect.
 
 Sent the first time a Garden command is run on a machine.
 
-```js
+```json
 {
-  userId: '8fd322d7-bad3-4bbb-82cb-cebf3f804a37',
-  traits: {
-    gardenVersion: '0.10.16',
-    platform: 'darwin',
-    platformVersion: '18.7.0',
-    isCI: false
+  "anonymousId": "3c16127b-8c51-4f6a-943a-f67b91295999",
+  "traits": {
+    "userIdV2": "steadfast-slippery-birthday_833c47738e851d0d71a0c606fb7d3999",
+    "platform": "darwin",
+    "platformVersion": "24.3.0",
+    "gardenVersion": "0.13.53",
+    "isCI": false,
+    "firstRunAt": "2023-02-28T09:28:24.000Z",
+    "latestRunAt": "2025-02-11T15:35:09.967Z",
+    "isRecurringUser": true
   }
 }
 ```
@@ -34,31 +38,59 @@ Sent the first time a Garden command is run on a machine.
 
 Sent every time a Garden command is run.
 
-```js
+```json
 {
-  userId: '1a4d5101-d64a-49ea-a85f-7c35e591461a',
-  event: 'Run Command',
-  properties: {
-    isCI: true,
-    name: 'deploy',
-    projectId: '740fa4458581c6983614a7c72ea9e9bcec46350fa965bc66b0979c7a5b4dd951',
-    projectMetadata: {
-      moduleTypes: [
-        'container'
-      ],
-      modulesCount: 2,
-      servicesCount: 2,
-      tasksCount: 0,
-      testsCount: 2
+  "anonymousId": "3c16127b-8c51-4f6a-943a-f67b91295999",
+  "event": "Run Command",
+  "properties": {
+    "projectId": "7a4a9238b43ea6d6c19a17e5c866f20672a0f644cf14eeade62c96374bf12faf4fd6ce3f1854bb81f39b8051869380b30885262365fd9818cfc1b98266390999",
+    "projectIdV2": "grouchy-female-ticket_7a4a9238b43ea6d6c19a17e5c866f999",
+    "projectName": "833c47738e851d0d71a0c606fb7d3e153dfc88b6370cfbe3f8d8acbede6a8ad7a92b9d88090eb2e8167c7882573f2df418742e46b6d38f8d28e94b77f3e29999",
+    "projectNameV2": "steadfast-slippery-birthday_833c47738e851d0d71a0c606fb7d3999",
+    "enterpriseDomain": "2769c2abae62151b2ebb8658628f7c5f5d0dc0c29fdefdd19a23dec9cb0a7b96d74d82512d1f6906bef65b24a29d84685dfd2fd66964a56fbdaff39fabd69999",
+    "enterpriseDomainV2": "ratty-willing-science_2769c2abae62151b2ebb8658628f7999",
+    "isLoggedIn": false,
+    "ciName": null,
+    "system": {
+      "platform": "darwin",
+      "platformVersion": "24.3.0",
+      "gardenVersion": "0.13.53"
     },
-    projectName: 'c333b9667097f729ecfdadeb89b200663a6783290e4e2e65004cd74b4570a5c0',
-    ciName: 'CircleCI',
-    sessionId: 'dcb9738d-ed92-4e5b-a85c-ed219eb99829',
-    system: {
-      gardenVersion: '0.10.16',
-      platform: 'linux',
-      platformVersion: '4.15.0-1027-gcp'
-    }
+    "isCI": false,
+    "sessionId": "ab062965-c29c-43e2-bdbe-b8f80dfe2999",
+    "parentSessionId": "ab062965-c29c-43e2-bdbe-b8f80dfe2999",
+    "projectMetadata": {
+      "modulesCount": 1,
+      "moduleTypes": ["container"],
+      "tasksCount": 0,
+      "servicesCount": 0,
+      "testsCount": 0,
+      "actionsCount": 17,
+      "buildActionCount": 4,
+      "runActionCount": 4,
+      "deployActionCount": 6,
+      "testActionCount": 3,
+      "buildActionCountByType": {
+        "container": 4
+      },
+      "runActionCountByType": {
+        "container": 3,
+        "exec": 1
+      },
+      "testActionCountByType": {
+        "container": 3
+      },
+      "deployActionCountByType": {
+        "container": 6
+      },
+      "providerNames": ["exec", "container"],
+      "actionTypes": ["container", "exec"]
+    },
+    "firstRunAt": "2023-02-28T09:28:24.000Z",
+    "latestRunAt": "2025-02-11T15:35:09.967Z",
+    "isRecurringUser": true,
+    "environmentName": "local",
+    "name": "validate"
   }
 }
 ```

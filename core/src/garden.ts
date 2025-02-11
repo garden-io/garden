@@ -1036,6 +1036,18 @@ export class Garden {
     return this.actionConfigs
   }
 
+  /**
+   * Returns provider configs that are registered in this context, before template resolution and validation.
+   * Scans for configs in the project root and remote/linked sources if it hasn't already been done.
+   */
+  async getRawProviderConfigs() {
+    if (!this.state.configsScanned) {
+      await this.scanAndAddConfigs()
+    }
+
+    return this.providerConfigs
+  }
+
   async getOutputConfigContext(log: Log, modules: GardenModule[], graphResults: GraphResults) {
     const providers = await this.resolveProviders({ log })
     return new OutputConfigContext({
