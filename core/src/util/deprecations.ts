@@ -151,6 +151,12 @@ type DeprecationWarningParams = {
   deprecation: Deprecation
 }
 
+/**
+ * Prints deprecation warning for `apiVersion: garden.io/v1`
+ * and throws and error for `apiVersion: garden.io/v2`.
+ *
+ * To be used to inform users about the upcoming breaking changes in 0.14.
+ */
 export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: DeprecationWarningParams) {
   if (apiVersion === GardenApiVersion.v2) {
     throw new FeatureNotAvailable({ apiVersion, deprecation })
