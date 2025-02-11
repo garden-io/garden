@@ -145,19 +145,21 @@ class FeatureNotAvailable extends GardenError {
   }
 }
 
-type DeprecationWarningParams = {
-  apiVersion: GardenApiVersion
-  log: Log
-  deprecation: Deprecation
-}
-
 /**
  * Prints deprecation warning for `apiVersion: garden.io/v1`
  * and throws and error for `apiVersion: garden.io/v2`.
  *
  * To be used to inform users about the upcoming breaking changes in 0.14.
  */
-export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: DeprecationWarningParams) {
+export function reportDeprecatedFeatureUsage({
+  apiVersion,
+  log,
+  deprecation,
+}: {
+  apiVersion: GardenApiVersion
+  log: Log
+  deprecation: Deprecation
+}) {
   if (apiVersion === GardenApiVersion.v2) {
     throw new FeatureNotAvailable({ apiVersion, deprecation })
   }
