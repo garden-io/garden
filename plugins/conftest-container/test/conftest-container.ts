@@ -18,7 +18,11 @@ import type { ProjectConfig } from "@garden-io/core/build/src/config/project.js"
 import { defaultNamespace } from "@garden-io/core/build/src/config/project.js"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs.js"
 import { defaultDockerfileName } from "@garden-io/core/build/src/plugins/container/config.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "@garden-io/core/build/src/constants.js"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  defaultGardenApiVersion,
+  GardenApiVersion,
+} from "@garden-io/core/build/src/constants.js"
 import { fileURLToPath } from "node:url"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
@@ -27,7 +31,7 @@ describe.skip("conftest-container provider", () => {
   const projectRoot = join(moduleDirName, "test-project")
 
   const projectConfig: ProjectConfig = {
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: defaultGardenApiVersion,
     kind: "Project",
     name: "test",
     path: projectRoot,

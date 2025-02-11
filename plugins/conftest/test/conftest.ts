@@ -18,7 +18,7 @@ import { makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test.js"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs.js"
-import { GardenApiVersion } from "@garden-io/core/build/src/constants.js"
+import { defaultGardenApiVersion } from "@garden-io/core/build/src/constants.js"
 import { fileURLToPath } from "node:url"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
@@ -27,7 +27,7 @@ describe("conftest provider", () => {
   const projectRoot = join(moduleDirName, "test-project")
 
   const projectConfig: ProjectConfig = {
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: defaultGardenApiVersion,
     kind: "Project",
     name: "test",
     path: projectRoot,
