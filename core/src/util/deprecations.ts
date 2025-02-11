@@ -128,6 +128,22 @@ export function getApiV1Deprecations(style: (s: string) => string = styles.highl
       featureDesc: `The ${style("local mode")} feature for container, kubernetes and helm deploys`,
       hint: "Please do not use this in Garden 0.14",
       hintReferenceLink: null,
+    },
+    buildConfigFieldOnRuntimeActions: {
+      contextDesc: "Acton Configs",
+      featureDesc: `The ${style("build")} config field in runtime action configs`,
+      hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
+      hintReferenceLink: {
+        name: "Migration guide for action configs",
+        link: "#updating-action-configs",
+      },
+      apiVersion: GardenApiVersion.v1,
+    } satisfies ApiV1DeprecationShape,
+    rsyncBuildStaging: {
+      contextDesc: "Build Staging",
+      featureDesc: `The ${style("legacy rsync-based file syncing")} for build staging`,
+      hint: `Do not use ${style("`GARDEN_LEGACY_BUILD_STAGE`")} environment variable in 0.14.`,
+      hintReferenceLink: null,
       apiVersion: GardenApiVersion.v1,
     } satisfies ApiV1DeprecationShape,
   } as const

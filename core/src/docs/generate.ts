@@ -9,18 +9,17 @@
 import handlebars from "handlebars"
 import { dirname, resolve } from "node:path"
 import { writeCommandReferenceDocs } from "./commands.js"
-import { TEMPLATES_DIR, renderProjectConfigReference, renderConfigReference } from "./config.js"
+import { renderConfigReference, renderProjectConfigReference, TEMPLATES_DIR } from "./config.js"
 import { writeTemplateStringReferenceDocs } from "./template-strings.js"
 import { writeTableOfContents } from "./table-of-contents.js"
 import { Garden } from "../garden.js"
 import { defaultDotIgnoreFile } from "../util/fs.js"
 import { keyBy } from "lodash-es"
 import fsExtra from "fs-extra"
-const { writeFileSync, readFile, writeFile, mkdirp } = fsExtra
-import { renderModuleTypeReference, moduleTypes } from "./module-type.js"
+import { moduleTypes, renderModuleTypeReference } from "./module-type.js"
 import { renderProviderReference } from "./provider.js"
 import { defaultEnvironment, defaultNamespace } from "../config/project.js"
-import type { GardenPluginSpec, GardenPluginReference } from "../plugin/plugin.js"
+import type { GardenPluginReference, GardenPluginSpec } from "../plugin/plugin.js"
 import { workflowConfigSchema } from "../config/workflow.js"
 import { configTemplateSchema } from "../config/config-template.js"
 import { renderActionTypeReference } from "./action-type.js"
@@ -30,12 +29,14 @@ import { pMemoizeClearAll } from "../lib/p-memoize.js"
 import { makeDocsLinkOpts } from "./common.js"
 import { GardenApiVersion } from "../constants.js"
 import { actionKinds } from "../actions/types.js"
-
 import { fileURLToPath } from "node:url"
 import dedent from "dedent"
 import { getApiV1Deprecations } from "../util/deprecations.js"
 
+const { writeFileSync, readFile, writeFile, mkdirp } = fsExtra
+
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
+
 /* eslint-disable no-console */
 
 export async function generateDocs(targetDir: string, getPlugins: () => (GardenPluginSpec | GardenPluginReference)[]) {
@@ -230,8 +231,9 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
       breakingChanges.push(`<h3 id="${id}">${featureDesc}</h3>`)
       breakingChanges.push(hint)
       if (hintReferenceLink) {
+        const linkPrefix = hintReferenceLink.link.startsWith("#") ? "" : "../"
         breakingChanges.push(
-          `For more information, please refer to the [${hintReferenceLink.name}](../${hintReferenceLink.link}).`
+          `For more information, please refer to the [${hintReferenceLink.name}](${linkPrefix}${hintReferenceLink.link}).`
         )
       }
     }
