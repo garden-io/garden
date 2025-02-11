@@ -152,8 +152,8 @@ Do not use ``GARDEN_LEGACY_BUILD_STAGE`` environment variable in 0.14.
 
 <h3 id="configmapDeployAction">The `configmap Deploy` action type</h3>
 
-Do not use this deploy action type in Garden 0.14.
+Do not use this action in Garden 0.14.
 
 <h3 id="persistentvolumeclaimDeployAction">The `persistentvolumeclaim Deploy` action type</h3>
 
-Do not use this deploy action type in Garden 0.14.
+Do not use this action in Garden 0.14.
