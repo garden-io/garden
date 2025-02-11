@@ -205,19 +205,12 @@ export async function writeConfigReferenceDocs(
   await renderConfigTemplate("render-template", renderConfigReference(renderTemplateConfigSchema()))
 }
 
-async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename: string) {
-  const guide = resolve(docsRoot, deprecationGuideFilename)
-  const contents = (await readFile(guide)).toString()
-
-  const marker = "<!-- DO NOT CHANGE BELOW - AUTO-GENERATED -->"
-
-  const humanGenerated = contents.split(marker)[0]
-
+function getBreakingChanges(): string[] {
   // apply style for docs, using backticks instead of ansi codes
-  const deprecations = getApiV1Deprecations((s) => `\`${s}\``)
+  const apiV1Deprecations = getApiV1Deprecations((s) => `\`${s}\``)
 
   const contexts = new Set<string>()
-  for (const [_, { contextDesc }] of Object.entries(deprecations)) {
+  for (const [_, { contextDesc }] of Object.entries(apiV1Deprecations)) {
     contexts.add(contextDesc)
   }
 
@@ -226,7 +219,9 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
   for (const context of contexts) {
     breakingChanges.push(`## ${context}`)
 
-    const matchingDeprecations = Object.entries(deprecations).filter(([_, { contextDesc }]) => contextDesc === context)
+    const matchingDeprecations = Object.entries(apiV1Deprecations).filter(
+      ([_, { contextDesc }]) => contextDesc === context
+    )
     for (const [id, { hint, featureDesc, hintReferenceLink }] of matchingDeprecations) {
       breakingChanges.push(`<h3 id="${id}">${featureDesc}</h3>`)
       breakingChanges.push(hint)
@@ -238,6 +233,19 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
       }
     }
   }
+
+  return breakingChanges
+}
+
+async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename: string) {
+  const guide = resolve(docsRoot, deprecationGuideFilename)
+  const contents = (await readFile(guide)).toString()
+
+  const marker = "<!-- DO NOT CHANGE BELOW - AUTO-GENERATED -->"
+
+  const humanGenerated = contents.split(marker)[0]
+
+  const breakingChanges = getBreakingChanges()
 
   await writeFile(
     guide,
