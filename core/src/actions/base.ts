@@ -70,7 +70,7 @@ import type { ResolvedTemplate } from "../template/types.js"
 import type { WorkflowConfig } from "../config/workflow.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
 import { deepMap } from "../util/objects.js"
-import { makeApiV1DeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { makeApiV1DeprecationMessage, reportApiV1DeprecatedFeatureUsage } from "../util/deprecations.js"
 import { RootLogger } from "../logger/logger.js"
 
 // TODO: split this file
@@ -716,7 +716,7 @@ export abstract class RuntimeAction<
         declares deprecated config field ${styles.highlight("build")}.`
       )
       // Report general deprecation warning
-      reportDeprecatedFeatureUsage({
+      reportApiV1DeprecatedFeatureUsage({
         // TODO(0.14): change this to v2
         apiVersion: GardenApiVersion.v1,
         log,

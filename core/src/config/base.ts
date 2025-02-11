@@ -38,7 +38,7 @@ import { LRUCache } from "lru-cache"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import { evaluate } from "../template/evaluate.js"
 import { GenericContext } from "./template-contexts/base.js"
-import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { reportApiV1DeprecatedFeatureUsage } from "../util/deprecations.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -371,7 +371,7 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
     return projectSpec
   }
 
-  reportDeprecatedFeatureUsage({
+  reportApiV1DeprecatedFeatureUsage({
     apiVersion: projectSpec.apiVersion,
     log,
     deprecation: "dotIgnoreFiles",
@@ -396,7 +396,7 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
   // Field 'modules' was intentionally removed from the internal interface `ProjectConfig`,
   // but it still can be presented in the runtime if the old config format is used.
   if (projectSpec["modules"]) {
-    reportDeprecatedFeatureUsage({
+    reportApiV1DeprecatedFeatureUsage({
       apiVersion: projectSpec.apiVersion,
       log,
       deprecation: "projectConfigModules",
@@ -436,7 +436,7 @@ function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
   }
 
   if (projectApiVersion === GardenApiVersion.v0) {
-    reportDeprecatedFeatureUsage({
+    reportApiV1DeprecatedFeatureUsage({
       apiVersion: projectApiVersion,
       log,
       deprecation: "apiVersionV0",

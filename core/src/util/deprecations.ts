@@ -191,7 +191,7 @@ class FeatureNotAvailable extends GardenError {
  *
  * To be used to inform users about the upcoming breaking changes in 0.14.
  */
-export function reportDeprecatedFeatureUsage({
+export function reportApiV1DeprecatedFeatureUsage({
   apiVersion,
   log,
   deprecation,

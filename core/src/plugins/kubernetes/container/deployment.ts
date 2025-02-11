@@ -48,7 +48,7 @@ import type { ContainerServiceStatus } from "./status.js"
 import { k8sGetContainerDeployStatus } from "./status.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run.js"
 import { styles } from "../../../logger/styles.js"
-import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { reportApiV1DeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
@@ -80,7 +80,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   }
 
   if (deploymentStrategy) {
-    reportDeprecatedFeatureUsage({
+    reportApiV1DeprecatedFeatureUsage({
       apiVersion: ctx.projectApiVersion,
       log,
       deprecation: "containerDeploymentStrategy",
