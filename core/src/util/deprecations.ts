@@ -35,7 +35,7 @@ function makePluginDeprecation(pluginName: DeprecatedPluginName, style: (s: stri
   }
 }
 
-export function getDeprecations(style: (s: string) => string = styles.highlight) {
+export function getApiV1Deprecations(style: (s: string) => string = styles.highlight) {
   return {
     containerDeploymentStrategy: {
       contextDesc: "Kubernetes provider configuration",
@@ -95,7 +95,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
   } as const
 }
 
-export type ApiV1Deprecation = keyof ReturnType<typeof getDeprecations>
+export type ApiV1Deprecation = keyof ReturnType<typeof getApiV1Deprecations>
 
 export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
 
@@ -108,7 +108,7 @@ export function makeDeprecationMessage({
   includeLink?: boolean
   style?: boolean
 }) {
-  const { featureDesc, hint } = getDeprecations(style ? styles.highlight : (s) => `\`${s}\``)[deprecation]
+  const { featureDesc, hint } = getApiV1Deprecations(style ? styles.highlight : (s) => `\`${s}\``)[deprecation]
 
   const lines = [`${featureDesc} is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.`]
 
@@ -133,7 +133,7 @@ class FeatureNotAvailable extends GardenError {
   override type = "deprecated-feature-unavailable" as const
 
   constructor({ deprecation, apiVersion }: { deprecation: ApiV1Deprecation; apiVersion: GardenApiVersion }) {
-    const { featureDesc, hint } = getDeprecations()[deprecation]
+    const { featureDesc, hint } = getApiV1Deprecations()[deprecation]
     const lines = [
       `${featureDesc} has been deprecated and is not available when using ${styles.highlight(`apiVersion: ${apiVersion}`)} in your project configuration file.`,
     ]

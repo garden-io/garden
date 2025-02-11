@@ -33,7 +33,7 @@ import { actionKinds } from "../actions/types.js"
 
 import { fileURLToPath } from "node:url"
 import dedent from "dedent"
-import { getDeprecations } from "../util/deprecations.js"
+import { getApiV1Deprecations } from "../util/deprecations.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 /* eslint-disable no-console */
@@ -213,7 +213,7 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
   const humanGenerated = contents.split(marker)[0]
 
   // apply style for docs, using backticks instead of ansi codes
-  const deprecations = getDeprecations((s) => `\`${s}\``)
+  const deprecations = getApiV1Deprecations((s) => `\`${s}\``)
 
   const contexts = new Set<string>()
   for (const [_, { contextDesc }] of Object.entries(deprecations)) {
