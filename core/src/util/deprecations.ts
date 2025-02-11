@@ -13,27 +13,7 @@ import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
 
-const deprecatedPluginNames = ["conftest", "conftest-container", "conftest-kubernetes", "hadolint", "octant"] as const
-export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
-
-export function isDeprecatedPlugin(pluginName: string): pluginName is DeprecatedPluginName {
-  for (const deprecatedPluginName of deprecatedPluginNames) {
-    if (deprecatedPluginName === pluginName) {
-      return true
-    }
-  }
-  return false
-}
-
-function makePluginDeprecation(pluginName: DeprecatedPluginName, style: (s: string) => string) {
-  return {
-    contextDesc: "Garden Plugins",
-    featureDesc: `The plugin ${style(pluginName)}`,
-    hint: "This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.",
-    hintReferenceLink: null,
-    apiVersion: GardenApiVersion.v1,
-  } satisfies ApiV1DeprecationShape
-}
+export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
 
 /**
  * Guard type to separate V1 and V2 deprecations,
@@ -61,6 +41,30 @@ type DeprecationShape<T extends GardenApiVersion> = {
     link: string
   }
   apiVersion: T
+}
+
+///// Deprecation machinery for `apiVersion: garden.io/v1` /////
+
+const deprecatedPluginNames = ["conftest", "conftest-container", "conftest-kubernetes", "hadolint", "octant"] as const
+export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
+
+export function isDeprecatedPlugin(pluginName: string): pluginName is DeprecatedPluginName {
+  for (const deprecatedPluginName of deprecatedPluginNames) {
+    if (deprecatedPluginName === pluginName) {
+      return true
+    }
+  }
+  return false
+}
+
+function makePluginDeprecation(pluginName: DeprecatedPluginName, style: (s: string) => string) {
+  return {
+    contextDesc: "Garden Plugins",
+    featureDesc: `The plugin ${style(pluginName)}`,
+    hint: "This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.",
+    hintReferenceLink: null,
+    apiVersion: GardenApiVersion.v1,
+  } satisfies ApiV1DeprecationShape
 }
 
 /**
@@ -130,27 +134,6 @@ export function getApiV1Deprecations(style: (s: string) => string = styles.highl
 }
 
 export type ApiV1Deprecation = keyof ReturnType<typeof getApiV1Deprecations>
-
-/**
- * Guard type to make sure that all V2 deprecations have the valid `apiVersion` tag.
- */
-type ApiV2DeprecationShape = DeprecationShape<GardenApiVersion.v2>
-
-export function getApiV2Deprecations(style: (s: string) => string = styles.highlight) {
-  return {
-    containerDeployAction: {
-      contextDesc: "Garden Action Types",
-      featureDesc: `The ${style("container Deploy")} action type`,
-      hint: `Consider using ${style("kubernetes Deploy")} action type instead.`,
-      hintReferenceLink: null, // TODO(0.14): create migration guide and link it
-      apiVersion: GardenApiVersion.v2,
-    } satisfies ApiV2DeprecationShape,
-  } as const
-}
-
-export type ApiV2Deprecation = keyof ReturnType<typeof getApiV2Deprecations>
-
-export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
 
 export function makeApiV1DeprecationMessage({
   deprecation,
@@ -226,3 +209,24 @@ export function reportDeprecatedFeatureUsage({
   const warnMessage = makeApiV1DeprecationMessage({ deprecation, includeLink: true, style: true })
   emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
 }
+
+///// Deprecation machinery for `apiVersion: garden.io/v2` /////
+
+/**
+ * Guard type to make sure that all V2 deprecations have the valid `apiVersion` tag.
+ */
+type ApiV2DeprecationShape = DeprecationShape<GardenApiVersion.v2>
+
+export function getApiV2Deprecations(style: (s: string) => string = styles.highlight) {
+  return {
+    containerDeployAction: {
+      contextDesc: "Garden Action Types",
+      featureDesc: `The ${style("container Deploy")} action type`,
+      hint: `Consider using ${style("kubernetes Deploy")} action type instead.`,
+      hintReferenceLink: null, // TODO(0.14): create migration guide and link it
+      apiVersion: GardenApiVersion.v2,
+    } satisfies ApiV2DeprecationShape,
+  } as const
+}
+
+export type ApiV2Deprecation = keyof ReturnType<typeof getApiV2Deprecations>
