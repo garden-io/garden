@@ -57,7 +57,7 @@ export function isDeprecatedPlugin(pluginName: string): pluginName is Deprecated
   return false
 }
 
-function makePluginDeprecation(pluginName: DeprecatedPluginName, style: (s: string) => string) {
+function makePluginApiV1Deprecation(pluginName: DeprecatedPluginName, style: (s: string) => string) {
   return {
     contextDesc: "Garden Plugins",
     featureDesc: `The plugin ${style(pluginName)}`,
@@ -120,9 +120,9 @@ export function getApiV1Deprecations(style: (s: string) => string = styles.highl
       hintReferenceLink: null,
       apiVersion: GardenApiVersion.v1,
     },
-    hadolintPlugin: makePluginDeprecation("hadolint", style),
-    octantPlugin: makePluginDeprecation("octant", style),
-    conftestPlugin: makePluginDeprecation("conftest", style),
+    hadolintPlugin: makePluginApiV1Deprecation("hadolint", style),
+    octantPlugin: makePluginApiV1Deprecation("octant", style),
+    conftestPlugin: makePluginApiV1Deprecation("conftest", style),
     localMode: {
       contextDesc: "Local mode",
       featureDesc: `The ${style("local mode")} feature for container, kubernetes and helm deploys`,
