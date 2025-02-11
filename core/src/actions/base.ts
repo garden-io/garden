@@ -713,7 +713,7 @@ export abstract class RuntimeAction<
         deline`Action ${styles.highlight(this.key())}
         of type ${styles.highlight(config.type)}
         defined in ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}
-        declares deprecated config field ${styles.highlight("build")}`
+        declares deprecated config field ${styles.highlight("build")}.`
       )
       // Report general deprecation warning
       reportDeprecatedFeatureUsage({
