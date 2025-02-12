@@ -1,0 +1,20 @@
+apiVersion: garden.io/v1
+kind: Project
+name: varfiles-with-templates
+
+varfile: "vars-project.yml"
+
+environments:
+  - name: default
+    varfile: "vars-env.yml"
+
+---
+
+kind: Run
+type: exec
+name: echo
+
+varfiles: [ "vars-action.yml" ]
+
+spec:
+  command: [ echo, 'PROJECT_VAR=${var.PROJECT_VAR}', 'ENV_VAR=${var.ENV_VAR}', 'ACTION_VAR=${var.ACTION_VAR}' ]
