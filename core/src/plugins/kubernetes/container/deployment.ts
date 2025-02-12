@@ -79,7 +79,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     })
   }
 
-  if (deploymentStrategy) {
+  if (deploymentStrategy === "blue-green") {
     reportApiV1DeprecatedFeatureUsage({
       apiVersion: ctx.projectApiVersion,
       log,

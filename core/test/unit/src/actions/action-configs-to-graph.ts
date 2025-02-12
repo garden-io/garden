@@ -542,15 +542,15 @@ describe("actionConfigsToGraph", () => {
     })
 
     const action = graph.getBuild("foo")
-    const vars = action["variables"]
-    const resolved = deepResolveContext("action variables", vars, garden.getProjectConfigContext())
+    const varContext = action.getVariablesContext()
+    const resolved = deepResolveContext("action variables", varContext, garden.getProjectConfigContext())
 
     expect(resolved).to.eql({
       projectName: garden.projectName,
     })
   })
 
-  it("loads varfiles for the action", async () => {
+  it("loads varfiles for the action and resolve template strings in varfile", async () => {
     const varfilePath = join(tmpDir.path, "varfile.yml")
     await dumpYaml(varfilePath, {
       projectName: "${project.name}",
@@ -579,17 +579,19 @@ describe("actionConfigsToGraph", () => {
     })
 
     const action = graph.getBuild("foo")
-    const vars = action["variables"]
+    const varContext = action.getVariablesContext()
 
-    expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+    expect(
+      varContext.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })
+    ).to.eql({
       found: true,
       resolved: {
-        projectName: "${project.name}",
+        projectName: "test",
       },
     })
   })
 
-  it("loads optional varfiles for the action", async () => {
+  it("loads optional varfiles for the action and resolve template strings in varfile", async () => {
     const varfilePath = join(tmpDir.path, "varfile.yml")
     await dumpYaml(varfilePath, {
       projectName: "${project.name}",
@@ -618,11 +620,13 @@ describe("actionConfigsToGraph", () => {
     })
 
     const action = graph.getBuild("foo")
-    const vars = action["variables"]
+    const varContext = action.getVariablesContext()
 
-    expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+    expect(
+      varContext.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })
+    ).to.eql({
       found: true,
-      resolved: { projectName: "${project.name}" },
+      resolved: { projectName: "test" },
     })
   })
 
@@ -660,9 +664,11 @@ describe("actionConfigsToGraph", () => {
     })
 
     const action = graph.getBuild("foo")
-    const vars = action["variables"]
+    const varContext = action.getVariablesContext()
 
-    expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+    expect(
+      varContext.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })
+    ).to.eql({
       found: true,
       resolved: { foo: "FOO", bar: "BAR", baz: "baz" },
     })
@@ -718,9 +724,11 @@ describe("actionConfigsToGraph", () => {
       })
 
       const action = graph.getBuild("foo")
-      const vars = action["variables"]
+      const varContext = action.getVariablesContext()
 
-      expect(vars.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })).to.eql({
+      expect(
+        varContext.resolve({ nodePath: [], key: [], opts: {}, rootContext: garden.getProjectConfigContext() })
+      ).to.eql({
         found: true,
         resolved: {
           foo: "NEW_FOO",

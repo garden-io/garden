@@ -14,13 +14,40 @@ import { TestContext } from "./base.js"
 import { deepResolveContext } from "../../../../../src/config/template-contexts/base.js"
 import { resolveAction } from "../../../../../src/graph/actions.js"
 
-/*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+describe("varfiles", () => {
+  let garden: TestGarden
+
+  beforeEach(async () => {
+    garden = await makeTestGarden(getDataDir("test-projects", "varfiles-with-templates"))
+  })
+
+  afterEach(() => {
+    garden.close()
+  })
+
+  it("should parse template strings in varfiles", async () => {
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const runAction = graph.getRun("echo")
+
+    const varContext = runAction.getVariablesContext()
+    const output = varContext.resolve({
+      nodePath: [],
+      key: [],
+      opts: {},
+      rootContext: garden.getProjectConfigContext(),
+    })
+
+    expect(output).to.eql({
+      found: true,
+      resolved: {
+        ACTION_VAR: "varfiles-with-templates",
+        ENV_VAR: "varfiles-with-templates",
+        PROJECT_VAR: "varfiles-with-templates",
+      },
+    })
+  })
+})
+
 describe("VariablesContext", () => {
   let garden: TestGarden
 

@@ -36,6 +36,7 @@ import {
 } from "../events/util.js"
 import { styles } from "../logger/styles.js"
 import type { ActionRuntime } from "../plugin/base.js"
+import { deline } from "../util/string.js"
 
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
@@ -282,8 +283,10 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
         if (disabled && action.kind !== "Build") {
           // TODO-0.13.1: Need to handle conditional references, over in dependenciesFromAction()
           throw new GraphError({
-            message: `${this.action.longDescription()} depends on one or more runtime outputs from action
-             ${action.key}, which is disabled. Please either remove the reference or enable the action.`,
+            message: deline`
+            ${this.action.longDescription()} depends on one or more runtime outputs from action
+             ${styles.highlight(action.key())}, which is disabled.
+             Please either remove the reference or enable the action.`,
           })
         }
         return [this.getExecuteTask(action)]
