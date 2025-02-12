@@ -75,7 +75,8 @@ function makeDeployActionTypeDeprecation(actionType: DeprecatedDeployActionType,
     featureDesc: `The ${style(`${actionType} Deploy`)} action type`,
     hint: "Do not use this action in Garden 0.14.",
     hintReferenceLink: null,
-  }
+    apiVersion: GardenApiVersion.v1,
+  } satisfies ApiV1DeprecationShape
 }
 
 /**
