@@ -34,6 +34,17 @@ function makePluginDeprecation(pluginName: DeprecatedPluginName, style: (s: stri
   }
 }
 
+export type DeprecatedDeployActionType = "configmap" | "persistentvolumeclaim"
+
+function makeDeployActionTypeDeprecation(actionType: DeprecatedDeployActionType, style: (s: string) => string) {
+  return {
+    contextDesc: "Garden action types",
+    featureDesc: `The ${style(`${actionType} Deploy`)} action type`,
+    hint: "Do not use this action in Garden 0.14.",
+    hintReferenceLink: null,
+  }
+}
+
 export function getDeprecations(style: (s: string) => string = styles.highlight) {
   return {
     containerDeploymentStrategy: {
@@ -111,6 +122,8 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: `Do not use ${style("`GARDEN_LEGACY_BUILD_STAGE`")} environment variable in 0.14.`,
       hintReferenceLink: null,
     },
+    configmapDeployAction: makeDeployActionTypeDeprecation("configmap", style),
+    persistentvolumeclaimDeployAction: makeDeployActionTypeDeprecation("persistentvolumeclaim", style),
   } as const
 }
 

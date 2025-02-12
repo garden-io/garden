@@ -24,6 +24,7 @@ import type { KubernetesDeployActionConfig } from "../kubernetes-type/config.js"
 import type { Resolved } from "../../../actions/types.js"
 import { makeDocsLinkPlain } from "../../../docs/common.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 // TODO: If we make a third one in addition to this and `persistentvolumeclaim`, we should dedupe some code.
 
@@ -59,7 +60,13 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
   docs: getDocs(),
   schema: joi.object().keys(commonSpecKeys()),
   handlers: {
-    configure: async ({ config }) => {
+    configure: async ({ config, ctx, log }) => {
+      reportDeprecatedFeatureUsage({
+        apiVersion: ctx.projectApiVersion,
+        log,
+        deprecation: "configmapDeployAction",
+      })
+
       config.include = []
       return { config, supportedModes: {} }
     },
