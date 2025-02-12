@@ -23,7 +23,7 @@ import {
   parseActionReference,
   unusedApiVersionSchema,
 } from "../config/common.js"
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
+import { defaultGardenApiVersion, DOCS_BASE_URL } from "../constants.js"
 import { dedent, deline, naturalList, stableStringify } from "../util/string.js"
 import type { ActionVersion, ModuleVersion, TreeVersion } from "../vcs/vcs.js"
 import { getActionSourcePath, hashStrings, versionStringPrefix } from "../vcs/vcs.js"
@@ -70,7 +70,7 @@ import type { ResolvedTemplate } from "../template/types.js"
 import type { WorkflowConfig } from "../config/workflow.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
 import { deepMap } from "../util/objects.js"
-import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { makeApiV1DeprecationMessage, reportApiV1DeprecatedFeatureUsage } from "../util/deprecations.js"
 import { RootLogger } from "../logger/logger.js"
 
 // TODO: split this file
@@ -287,7 +287,7 @@ export const baseRuntimeActionConfigSchema = createSchema({
       )
       .meta({
         templateContext: ActionConfigContext,
-        deprecated: makeDeprecationMessage({ deprecation: "buildConfigFieldOnRuntimeActions", includeLink: true }),
+        deprecated: makeApiV1DeprecationMessage({ deprecation: "buildConfigFieldOnRuntimeActions", includeLink: true }),
       }),
   }),
   extend: baseActionConfigSchema,
@@ -716,9 +716,8 @@ export abstract class RuntimeAction<
         declares deprecated config field ${styles.highlight("build")}.`
       )
       // Report general deprecation warning
-      reportDeprecatedFeatureUsage({
-        // TODO(0.14): change this to v2
-        apiVersion: GardenApiVersion.v1,
+      reportApiV1DeprecatedFeatureUsage({
+        apiVersion: defaultGardenApiVersion,
         log,
         deprecation: "buildConfigFieldOnRuntimeActions",
       })

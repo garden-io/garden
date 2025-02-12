@@ -43,7 +43,7 @@ import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultUtilImageRegistryDomain, defaultSystemNamespace } from "./constants.js"
 import type { LocalKubernetesClusterType } from "./local/config.js"
 import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
-import { makeDeprecationMessage } from "../../util/deprecations.js"
+import { makeApiV1DeprecationMessage } from "../../util/deprecations.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -626,7 +626,7 @@ export const kubernetesConfigBase = () =>
         )
         .meta({
           experimental: true,
-          deprecated: makeDeprecationMessage({ deprecation: "containerDeploymentStrategy" }),
+          deprecated: makeApiV1DeprecationMessage({ deprecation: "containerDeploymentStrategy" }),
         }),
       sync: joi
         .object()

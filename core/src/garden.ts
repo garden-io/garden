@@ -84,6 +84,7 @@ import {
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
   gardenApiSupportsActions,
+  defaultGardenApiVersion,
 } from "./constants.js"
 import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
@@ -181,7 +182,7 @@ import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
-import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
+import { reportApiV1DeprecatedFeatureUsage } from "./util/deprecations.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -428,7 +429,7 @@ export class Garden {
     const legacyBuildSync =
       params.opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : params.opts.legacyBuildSync
     if (legacyBuildSync) {
-      reportDeprecatedFeatureUsage({
+      reportApiV1DeprecatedFeatureUsage({
         apiVersion: params.projectApiVersion,
         log: params.log,
         deprecation: "rsyncBuildStaging",
@@ -2439,7 +2440,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
 
   const config: ProjectConfig = {
     path: root,
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: defaultGardenApiVersion,
     kind: "Project",
     name: "no-project",
     internal: {

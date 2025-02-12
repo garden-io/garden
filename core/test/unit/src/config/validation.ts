@@ -12,7 +12,7 @@ import { validateSchema } from "../../../../src/config/validation.js"
 import { expectError } from "../../../helpers.js"
 import type { BaseGardenResource, YamlDocumentWithSource } from "../../../../src/config/base.js"
 import { baseInternalFieldsSchema, loadAndValidateYaml } from "../../../../src/config/base.js"
-import { GardenApiVersion } from "../../../../src/constants.js"
+import { defaultGardenApiVersion } from "../../../../src/constants.js"
 import { parseDocument } from "yaml"
 import { dedent } from "../../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
@@ -28,7 +28,7 @@ describe("validateSchema", () => {
     })
 
     const config: BaseGardenResource = {
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: defaultGardenApiVersion,
       kind: "Test",
       name: "foo",
       internal: {

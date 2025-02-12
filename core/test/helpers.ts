@@ -30,7 +30,13 @@ import { joi } from "../src/config/common.js"
 import type { GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin.js"
 import type { Garden } from "../src/garden.js"
 import type { ModuleConfig } from "../src/config/module.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion, gardenEnv } from "../src/constants.js"
+import {
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  defaultGardenApiVersion,
+  GARDEN_CORE_ROOT,
+  GardenApiVersion,
+  gardenEnv,
+} from "../src/constants.js"
 import type { GlobalOptions, ParameterObject, ParameterValues } from "../src/cli/params.js"
 import { globalOptions } from "../src/cli/params.js"
 import type { ExternalSourceType } from "../src/util/ext-source-util.js"
@@ -104,7 +110,7 @@ export async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlug
 
 export const getDefaultProjectConfig = (): ProjectConfig =>
   cloneDeep({
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: defaultGardenApiVersion,
     kind: "Project",
     name: "test",
     path: "tmp",
