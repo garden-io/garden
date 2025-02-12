@@ -20,7 +20,7 @@ import { createActionLog } from "../../logger/log-entry.js"
 import type { DeployAction } from "../../actions/deploy.js"
 import type { ConfigGraph } from "../../graph/config-graph.js"
 import type { Garden } from "../../index.js"
-import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { reportApiV1DeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 const syncStartArgs = {
   names: new StringsParameter({
@@ -97,7 +97,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
     const { garden, log, args, opts } = params
 
     if (!params.parentCommand) {
-      reportDeprecatedFeatureUsage({
+      reportApiV1DeprecatedFeatureUsage({
         apiVersion: garden.projectApiVersion,
         log,
         deprecation: "syncStartCommand",
