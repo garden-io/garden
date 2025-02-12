@@ -67,6 +67,17 @@ function makePluginApiV1Deprecation(pluginName: DeprecatedPluginName, style: (s:
   } satisfies ApiV1DeprecationShape
 }
 
+export type DeprecatedDeployActionType = "configmap" | "persistentvolumeclaim"
+
+function makeDeployActionTypeDeprecation(actionType: DeprecatedDeployActionType, style: (s: string) => string) {
+  return {
+    contextDesc: "Garden action types",
+    featureDesc: `The ${style(`${actionType} Deploy`)} action type`,
+    hint: "Do not use this action in Garden 0.14.",
+    hintReferenceLink: null,
+  }
+}
+
 /**
  * Guard type to make sure that all V1 deprecations have the valid `apiVersion` tag.
  */
@@ -114,9 +125,20 @@ export function getApiV1Deprecations(style: (s: string) => string = styles.highl
       apiVersion: GardenApiVersion.v1,
     } satisfies ApiV1DeprecationShape,
     kubernetesClusterInitCommand: {
-      contextDesc: "Garden Commands",
+      contextDesc: "Garden commands",
       featureDesc: `The Kubernetes plugin command ${style("cluster-init")}`,
       hint: "Do not use this command. It has no effect.",
+      hintReferenceLink: null,
+      apiVersion: GardenApiVersion.v1,
+    },
+    syncStartCommand: {
+      contextDesc: "Sync mode",
+      featureDesc: `The ${style("sync-start")} command.`,
+      hint: dedent`Behaviour of ${style(
+        "sync start"
+      )} is now deprecated and will be changed in a future breaking change release.
+        Instead, we recommend running ${style("garden deploy --sync")} or starting syncs inside the dev console
+        with either ${style("deploy --sync")} or ${style("sync start")}.`,
       hintReferenceLink: null,
       apiVersion: GardenApiVersion.v1,
     },
@@ -128,9 +150,10 @@ export function getApiV1Deprecations(style: (s: string) => string = styles.highl
       featureDesc: `The ${style("local mode")} feature for container, kubernetes and helm deploys`,
       hint: "Please do not use this in Garden 0.14",
       hintReferenceLink: null,
+      apiVersion: GardenApiVersion.v1,
     },
     buildConfigFieldOnRuntimeActions: {
-      contextDesc: "Acton Configs",
+      contextDesc: "Acton configs",
       featureDesc: `The ${style("build")} config field in runtime action configs`,
       hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
       hintReferenceLink: {
@@ -146,6 +169,8 @@ export function getApiV1Deprecations(style: (s: string) => string = styles.highl
       hintReferenceLink: null,
       apiVersion: GardenApiVersion.v1,
     } satisfies ApiV1DeprecationShape,
+    configmapDeployAction: makeDeployActionTypeDeprecation("configmap", style),
+    persistentvolumeclaimDeployAction: makeDeployActionTypeDeprecation("persistentvolumeclaim", style),
   } as const
 }
 

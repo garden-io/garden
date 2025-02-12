@@ -8,7 +8,6 @@
 
 import type { V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec } from "@kubernetes/client-node"
 import fsExtra from "fs-extra"
-const { readFileSync } = fsExtra
 import { memoize } from "lodash-es"
 import { join } from "path"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy.js"
@@ -27,6 +26,9 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl.js"
 import type { KubernetesDeployActionConfig } from "../kubernetes-type/config.js"
 import { deleteKubernetesDeploy, getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers.js"
 import type { KubernetesResource } from "../types.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+
+const { readFileSync } = fsExtra
 
 export interface PersistentVolumeClaimDeploySpec {
   namespace?: string
@@ -81,7 +83,13 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
   `,
   schema: joi.object().keys(commonSpecKeys()),
   handlers: {
-    configure: async ({ config }) => {
+    configure: async ({ config, ctx, log }) => {
+      reportDeprecatedFeatureUsage({
+        apiVersion: ctx.projectApiVersion,
+        log,
+        deprecation: "persistentvolumeclaimDeployAction",
+      })
+
       // No need to scan for files
       config.include = []
 

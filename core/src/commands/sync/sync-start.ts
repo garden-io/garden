@@ -20,7 +20,7 @@ import { createActionLog } from "../../logger/log-entry.js"
 import type { DeployAction } from "../../actions/deploy.js"
 import type { ConfigGraph } from "../../graph/config-graph.js"
 import type { Garden } from "../../index.js"
-import { styles } from "../../logger/styles.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 const syncStartArgs = {
   names: new StringsParameter({
@@ -97,14 +97,11 @@ export class SyncStartCommand extends Command<Args, Opts> {
     const { garden, log, args, opts } = params
 
     if (!params.parentCommand) {
-      log.warn(
-        dedent`Behaviour of ${styles.command(
-          "sync start"
-        )} is now deprecated and will be changed in a future breaking change release.
-        Instead we recommend running ${styles.command("garden deploy --sync")} or starting syncs ${styles.italic(
-          "inside"
-        )} the dev console with either ${styles.command("deploy --sync")} or ${styles.command("sync start")}.`
-      )
+      reportDeprecatedFeatureUsage({
+        apiVersion: garden.projectApiVersion,
+        log,
+        deprecation: "syncStartCommand",
+      })
     }
 
     // We default to starting syncs for all Deploy actions
