@@ -757,27 +757,26 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       context: builtinFieldContext,
       opts: {},
     })
+    config = { ...config, ...resolvedBuiltin }
+
     const { spec = {} } = config
 
-    config = {
-      ...config,
-      // Validate fully resolved keys (the above + those that don't allow any templating)
-      ...validateWithPath({
-        config: {
-          ...resolvedBuiltin,
-          variables: {},
-          spec: {},
-        },
-        schema: getActionSchema(config.kind),
-        configType: describeActionConfig(config),
-        name: config.name,
-        path: config.internal.basePath,
-        projectRoot: garden.projectRoot,
-        source: { yamlDoc: config.internal.yamlDoc, path: [] },
-      }),
-      spec,
-      variables: config.variables,
-    }
+    // Validate fully resolved keys (the above + those that don't allow any templating)
+    config = validateWithPath({
+      config: {
+        ...config,
+        variables: {},
+        spec: {},
+      },
+      schema: getActionSchema(config.kind),
+      configType: describeActionConfig(config),
+      name: config.name,
+      path: config.internal.basePath,
+      projectRoot: garden.projectRoot,
+      source: { yamlDoc: config.internal.yamlDoc, path: [] },
+    })
+
+    config = { ...config, variables: config.variables, spec }
   }
 
   resolveTemplates()
