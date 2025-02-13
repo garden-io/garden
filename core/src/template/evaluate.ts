@@ -38,7 +38,7 @@ export function conditionallyDeepEvaluate(
     if (v instanceof UnresolvedTemplateValue && condition(v)) {
       const evaluated = evaluate(v, args)
       if (evaluated.partial) {
-        return deepEvaluate(evaluated.resolved, args)
+        return conditionallyDeepEvaluate(evaluated.resolved, args, condition)
       }
       return evaluated.resolved
     }
