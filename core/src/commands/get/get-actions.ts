@@ -8,7 +8,7 @@
 
 import { getActionState, getRelativeActionConfigPath } from "../../actions/helpers.js"
 import type { ActionKind, ActionState, ResolvedAction } from "../../actions/types.js"
-import { actionKinds, actionStateTypes } from "../../actions/types.js"
+import { actionKinds, actionStates } from "../../actions/types.js"
 import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params.js"
 import { createSchema, joi, joiArray } from "../../config/common.js"
 import { printHeader } from "../../logger/util.js"
@@ -50,7 +50,7 @@ export const getActionsCmdOutputSchema = createSchema({
     type: joi.string().required().description(`Action Type (e.g. 'container').`),
     state: joi
       .string()
-      .allow(...actionStateTypes)
+      .allow(...actionStates)
       .only()
       .description("The state of the action."),
     path: joi.string().description("The relative path of the action config file."),

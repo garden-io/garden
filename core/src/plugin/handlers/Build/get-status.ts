@@ -21,7 +21,8 @@ import type { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/t
  * - `built`: The build was completed successfully.
  * - `failed`: An error occurred while fetching or building.
  */
-export type BuildState = "fetching" | "fetched" | "outdated" | "building" | "built" | "failed" | "unknown"
+export const buildStates = ["fetching", "fetched", "outdated", "building", "built", "failed", "unknown"] as const
+export type BuildState = (typeof buildStates)[number]
 
 export interface BuildStatusForEventPayload {
   state: BuildState

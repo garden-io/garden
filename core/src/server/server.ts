@@ -380,7 +380,6 @@ export class GardenServer extends EventEmitter {
           parentSessionId: this.sessionId,
         })
         this.debugLog.debug(`Command '${command.name}' completed successfully`)
-
         ctx.response.body = sanitizeValue(result)
       } catch (error) {
         // Return 200 with errors attached, since commands can legitimately fail (e.g. tests erroring etc.)
@@ -706,7 +705,9 @@ export class GardenServer extends EventEmitter {
           })
           // Here we handle the actual command result.
           .then((commandResult) => {
-            const { result, errors } = commandResult
+            const errors = commandResult.errors
+            // TODO-DODDI-0.14: Remove this line once we've removed graphResults from ProcessCommandResult.
+            const result = omit(commandResult.result, "graphResults")
             send(
               "commandResult",
               sanitizeValue({

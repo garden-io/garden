@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, makeTestGardenA, taskResultOutputs, testPluginReferences } from "../../../helpers.js"
+import { expectError, makeTestGardenA, testPluginReferences } from "../../../helpers.js"
 import type { Server } from "http"
 import { GardenServer, startServer } from "../../../../src/server/server.js"
 import type { Garden } from "../../../../src/garden.js"
@@ -17,7 +17,7 @@ import { gardenEnv } from "../../../../src/constants.js"
 import { deepOmitUndefined } from "../../../../src/util/objects.js"
 import { uuidv4 } from "../../../../src/util/random.js"
 import { GardenInstanceManager } from "../../../../src/server/instance-manager.js"
-import type { CommandParams } from "../../../../src/commands/base.js"
+import type { CommandParams, ProcessCommandResult } from "../../../../src/commands/base.js"
 import { Command } from "../../../../src/commands/base.js"
 import request from "supertest"
 import getPort from "get-port"
@@ -228,9 +228,9 @@ describe("GardenServer", () => {
         .expect(200)
 
       expect(res.body.errors).to.eq(undefined, `error response: ${res.body.errors?.[0]?.stack}`)
-      const result = taskResultOutputs(res.body.result)
-      expect(result["build.module-a"]).to.exist
-      expect(result["build.module-a"].state).to.equal("ready")
+      const result = res.body.result as ProcessCommandResult
+      expect(result.build["module-a"]).to.exist
+      expect(result.build["module-a"].actionState).to.equal("ready")
     })
 
     it("creates a Garden instance as needed", async () => {
@@ -497,14 +497,15 @@ describe("GardenServer", () => {
           if (req.type !== "commandResult") {
             return
           }
-          const taskResult = taskResultOutputs(req.result)
+          const taskResult = req.result
           const result = {
             ...req,
             result: taskResult,
           }
           expect(result.requestId).to.equal(id)
-          expect(result.result["build.module-a"]).to.exist
-          expect(result.result["build.module-a"].state).to.equal("ready")
+          const processRes = result.result as ProcessCommandResult
+          expect(processRes.build["module-a"]).to.exist
+          expect(processRes.build["module-a"].actionState).to.equal("ready")
           done()
         },
         skipType: "logEntry",
@@ -535,14 +536,15 @@ describe("GardenServer", () => {
           if (msg.type !== "commandResult") {
             return
           }
-          const taskResult = taskResultOutputs(msg.result)
+          const taskResult = msg.result
           const result = {
             ...msg,
             result: taskResult,
           }
           expect(result.requestId).to.equal(id)
-          expect(result.result["build.module-a"]).to.exist
-          expect(result.result["build.module-a"].state).to.equal("ready")
+          const processRes = result.result as ProcessCommandResult
+          expect(processRes.build["module-a"]).to.exist
+          expect(processRes.build["module-a"].actionState).to.equal("ready")
           done()
         },
         skipType: "logEntry",

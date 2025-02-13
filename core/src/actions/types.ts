@@ -112,8 +112,8 @@ export interface ActionConfigTypes {
  *
  * See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
  */
-export const actionStateTypes = ["ready", "not-ready", "processing", "failed", "unknown"] as const
-export type ActionState = (typeof actionStateTypes)[number]
+export const actionStates = ["ready", "not-ready", "processing", "failed", "unknown"] as const
+export type ActionState = (typeof actionStates)[number]
 
 export interface ActionStatus<
   T extends BaseAction = BaseAction,

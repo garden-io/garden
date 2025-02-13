@@ -54,7 +54,7 @@ import type {
   ResolvedAction,
   ResolvedActionWrapperParams,
 } from "./types.js"
-import { actionKinds, actionStateTypes } from "./types.js"
+import { actionKinds, actionStates } from "./types.js"
 import { baseInternalFieldsSchema, varfileDescription } from "../config/base.js"
 import type { DeployAction } from "./deploy.js"
 import type { TestAction } from "./test.js"
@@ -298,7 +298,7 @@ export const actionStatusSchema = createSchema({
   keys: () => ({
     state: joi
       .string()
-      .allow(...actionStateTypes)
+      .allow(...actionStates)
       .only()
       .required()
       .description("The state of the action."),
