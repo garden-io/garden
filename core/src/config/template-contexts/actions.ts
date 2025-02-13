@@ -76,6 +76,8 @@ export class ActionConfigContext extends TemplatableConfigContext {
   }
 }
 
+export const actionConfigContextKeys = Object.freeze(Object.keys(ActionConfigContext.getSchema().describe()["keys"]))
+
 interface ActionReferenceContextParams {
   name: string
   disabled: boolean
