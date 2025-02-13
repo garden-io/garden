@@ -777,6 +777,15 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     })
 
     config = { ...config, variables: config.variables, spec }
+
+    // Partially resolve other fields
+    // @ts-expect-error todo: correct types for unresolved configs
+    const resolvedOther = deepEvaluate(omit(config, builtinConfigKeys), {
+      context: builtinFieldContext,
+      opts: { isFinalContext: false },
+    })
+    // @ts-expect-error todo: correct types for unresolved configs
+    config = { ...config, ...resolvedOther }
   }
 
   resolveTemplates()
