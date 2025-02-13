@@ -233,7 +233,7 @@ export class GardenServer extends EventEmitter {
         }
       } while (!serverStarted)
     }
-    this.log.info(`Garden server has successfully started at port ${styles.highlight(this.port.toString())}\n`)
+    this.log.info(`Garden server has successfully started at port ${styles.highlight(this.port.toString())}`)
 
     const processRecord = await this.globalConfigStore.get("activeProcesses", String(process.pid))
 
@@ -706,7 +706,8 @@ export class GardenServer extends EventEmitter {
           })
           // Here we handle the actual command result.
           .then((commandResult) => {
-            const { result, errors } = commandResult
+            const errors = commandResult.errors
+            const result = omit(commandResult.result, "graphResults")
             send(
               "commandResult",
               sanitizeValue({

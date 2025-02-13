@@ -186,6 +186,7 @@ export class ServeCommand<
             const distroName = getCloudDistributionName(defaultGarden.cloudDomain)
             const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId }).toString()
             const msg = dedent`\n${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
+
               Follow the link below to stream logs, run commands, and more from the Garden dashboard ${printEmoji(
                 "👇",
                 log

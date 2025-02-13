@@ -44,7 +44,15 @@ const getNumberOfCharsPerWidth = (char, width) => width / stringWidth(char)
 const PAD = " "
 
 // Divider
-const Divider = ({ title, width, padding, titlePadding, titleColor, dividerChar, dividerColor }) => {
+const Divider = ({
+  title,
+  width = 50,
+  padding = 1,
+  titlePadding = 1,
+  titleColor = "white",
+  dividerChar = "─",
+  dividerColor = "grey",
+}) => {
   const titleString = title ? `${PAD.repeat(titlePadding) + title + PAD.repeat(titlePadding)}` : ""
   const titleWidth = stringWidth(titleString)
 
@@ -75,16 +83,6 @@ Divider.propTypes = {
   titleColor: PropTypes.string,
   dividerChar: PropTypes.string,
   dividerColor: PropTypes.string,
-}
-
-Divider.defaultProps = {
-  title: null,
-  width: 50,
-  padding: 1,
-  titlePadding: 1,
-  titleColor: "white",
-  dividerChar: "─",
-  dividerColor: "grey",
 }
 
 export default Divider
