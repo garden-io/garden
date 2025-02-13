@@ -8,19 +8,19 @@
 
 /**
     The MIT License (MIT)
- 
+
     Copyright (c) 2018-present Jure Sotošek
- 
+
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
- 
+
     The above copyright notice and this permission notice shall be included in all
     copies or substantial portions of the Software.
- 
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,7 +32,6 @@
 
 import React from "react"
 import { Box, Text } from "ink"
-import PropTypes from "prop-types"
 import stringWidth from "string-width"
 
 // Adapted from https://github.com/JureSotosek/ink-divider due to ESM incompatibilities
@@ -44,7 +43,23 @@ const getNumberOfCharsPerWidth = (char, width) => width / stringWidth(char)
 const PAD = " "
 
 // Divider
-const Divider = ({ title, width, padding, titlePadding, titleColor, dividerChar, dividerColor }) => {
+const Divider = ({
+  title = null,
+  width = 50,
+  padding = 1,
+  titlePadding = 1,
+  titleColor = "white",
+  dividerChar = "-",
+  dividerColor = "grey",
+}: {
+  title: string | null
+  width?: number
+  padding?: number
+  titlePadding?: number
+  titleColor?: string
+  dividerChar?: string
+  dividerColor?: string
+}) => {
   const titleString = title ? `${PAD.repeat(titlePadding) + title + PAD.repeat(titlePadding)}` : ""
   const titleWidth = stringWidth(titleString)
 
@@ -65,26 +80,6 @@ const Divider = ({ title, width, padding, titlePadding, titleColor, dividerChar,
       </Text>
     </Box>
   )
-}
-
-Divider.propTypes = {
-  title: PropTypes.string,
-  width: PropTypes.number,
-  padding: PropTypes.number,
-  titlePadding: PropTypes.number,
-  titleColor: PropTypes.string,
-  dividerChar: PropTypes.string,
-  dividerColor: PropTypes.string,
-}
-
-Divider.defaultProps = {
-  title: null,
-  width: 50,
-  padding: 1,
-  titlePadding: 1,
-  titleColor: "white",
-  dividerChar: "─",
-  dividerColor: "grey",
 }
 
 export default Divider
