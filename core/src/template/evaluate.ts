@@ -46,6 +46,27 @@ export function conditionallyDeepEvaluate(
   })
 }
 
+export function conditionallyDeepEvaluateSafe(
+  collection: ParsedTemplate,
+  args: EvaluateTemplateArgs,
+  condition: (v: UnresolvedTemplateValue) => boolean
+): ParsedTemplate {
+  return deepMap(collection, (v) => {
+    if (v instanceof UnresolvedTemplateValue && condition(v)) {
+      try {
+        const evaluated = evaluate(v, args)
+        if (evaluated.partial) {
+          return conditionallyDeepEvaluateSafe(evaluated.resolved, args, condition)
+        }
+        return evaluated.resolved
+      } catch (_) {
+        return v
+      }
+    }
+    return v
+  })
+}
+
 export function evaluate(value: ParsedTemplate, args: EvaluateTemplateArgs): TemplateEvaluationResult {
   if (value instanceof UnresolvedTemplateValue) {
     return value.evaluate(args)

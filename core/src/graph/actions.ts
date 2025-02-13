@@ -64,7 +64,7 @@ import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
 import { isUnresolvableValue, someReferences } from "../template/analysis.js"
 import { getActionTemplateReferences } from "../config/references.js"
-import { conditionallyDeepEvaluate, deepEvaluate } from "../template/evaluate.js"
+import { conditionallyDeepEvaluateSafe, deepEvaluate } from "../template/evaluate.js"
 import type { UnresolvedTemplateValue } from "../template/types.js"
 import { type ParsedTemplate } from "../template/types.js"
 import { validateWithPath } from "../config/validation.js"
@@ -811,7 +811,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
     // Partially resolve other fields
     const skipPossiblyNonResolvableKeysCondition = getSkipPossiblyNonResolvableKeysCondition(builtinFieldContext)
-    const resolvedOther = conditionallyDeepEvaluate(
+    const resolvedOther = conditionallyDeepEvaluateSafe(
       // @ts-expect-error todo: correct types for unresolved configs
       omit(config, builtinConfigKeys),
       {
