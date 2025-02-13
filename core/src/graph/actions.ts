@@ -39,7 +39,7 @@ import { noTemplateFields } from "../config/base.js"
 import type { ActionReference, JoiDescription } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
-import { ActionConfigContext } from "../config/template-contexts/actions.js"
+import { ActionConfigContext, actionConfigContextKeys } from "../config/template-contexts/actions.js"
 import { ConfigurationError, GardenError, PluginError } from "../exceptions.js"
 import { type Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
@@ -62,9 +62,10 @@ import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
-import { isUnresolvableValue } from "../template/analysis.js"
+import { isUnresolvableValue, someReferences } from "../template/analysis.js"
 import { getActionTemplateReferences } from "../config/references.js"
-import { deepEvaluate } from "../template/evaluate.js"
+import { conditionallyDeepEvaluate, deepEvaluate } from "../template/evaluate.js"
+import type { UnresolvedTemplateValue } from "../template/types.js"
 import { type ParsedTemplate } from "../template/types.js"
 import { validateWithPath } from "../config/validation.js"
 import { VariablesContext } from "../config/template-contexts/variables.js"
@@ -703,6 +704,36 @@ interface ComputedActionMode {
   explicitMode: boolean
 }
 
+/**
+ * Skips the keys that are not defined in {@link ActionConfigContext},
+ * and the keys that can contain references to the references
+ * which are not resolvable yet.
+ *
+ * @param context the available {@link ActionConfigContext}
+ */
+const getSkipPossiblyNonResolvableKeysCondition = (context: ActionConfigContext) => {
+  return (value: UnresolvedTemplateValue) => {
+    const hasPossiblyNonResolvableReferences = someReferences({
+      value,
+      context,
+      opts: {},
+      onlyEssential: true,
+      matcher: (ref) => {
+        const key = ref.keyPath[0]
+        if (typeof key !== "string") {
+          return false
+        }
+        if (key === "inputs") {
+          return true
+        }
+        return !actionConfigContextKeys.includes(key)
+      },
+    })
+    // do not evaluate references that are not defined in ActionConfigContext
+    return !hasPossiblyNonResolvableReferences
+  }
+}
+
 export const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
   garden,
   config,
@@ -779,11 +810,16 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     config = { ...config, variables: config.variables, spec }
 
     // Partially resolve other fields
-    // @ts-expect-error todo: correct types for unresolved configs
-    const resolvedOther = deepEvaluate(omit(config, builtinConfigKeys), {
-      context: builtinFieldContext,
-      opts: { isFinalContext: false },
-    })
+    const skipPossiblyNonResolvableKeysCondition = getSkipPossiblyNonResolvableKeysCondition(builtinFieldContext)
+    const resolvedOther = conditionallyDeepEvaluate(
+      // @ts-expect-error todo: correct types for unresolved configs
+      omit(config, builtinConfigKeys),
+      {
+        context: builtinFieldContext,
+        opts: { isFinalContext: false },
+      },
+      skipPossiblyNonResolvableKeysCondition
+    )
     // @ts-expect-error todo: correct types for unresolved configs
     config = { ...config, ...resolvedOther }
   }
