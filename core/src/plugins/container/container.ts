@@ -203,6 +203,46 @@ export const regctlCliSpec: PluginToolSpec = {
   ],
 }
 
+const progressToolVersion = "0.0.1"
+const progressToolSpec: PluginToolSpec = {
+  name: "standalone-progressui",
+  version: progressToolVersion,
+  description: "Helper that utilizes the buildkit library to parse docker logs from progress json output.",
+  type: "binary",
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: `https://progressui-releases.s3.us-west-2.amazonaws.com/standalone-progressui-v${progressToolVersion}-darwin-arm64`,
+      sha256: "ed042fe79eb8d29def4b259cd04942c4c9cf92e18f608e682c629ce4a4c5b0f8",
+    },
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: `https://progressui-releases.s3.us-west-2.amazonaws.com/standalone-progressui-v${progressToolVersion}-darwin-amd64`,
+      sha256: "7e76d4065391d2b120c0d3fb6e53d499d00eeb1fd837e96e3d99e5e41934bfa0",
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: `https://progressui-releases.s3.us-west-2.amazonaws.com/standalone-progressui-v${progressToolVersion}-linux-arm64`,
+      sha256: "c417952f902ed2baab60c6d5ed76d6bc6a42cb525c3f0f64df78e8adab728d1b",
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: `https://progressui-releases.s3.us-west-2.amazonaws.com/standalone-progressui-v${progressToolVersion}-linux-amd64`,
+      sha256: "06b6b66a06e6ddb030f738ff17938af988e450bb1abd19114488a2f04581cf72",
+    },
+    {
+      platform: "windows",
+      architecture: "amd64",
+      url: `https://progressui-releases.s3.us-west-2.amazonaws.com/standalone-progressui-v${progressToolVersion}-windows-amd64`,
+      sha256: "8e4ebeaef8b9c85ce86ae34e8a73cae169de40198dac0f9a12952d91f6c58031",
+    },
+  ],
+}
+
 // TODO: remove in 0.14. validation should be in the action validation handler.
 export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate services
@@ -661,7 +701,7 @@ export const gardenPlugin = () =>
       },
     ],
 
-    tools: [dockerSpec, regctlCliSpec],
+    tools: [dockerSpec, regctlCliSpec, progressToolSpec],
   })
 
 function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
