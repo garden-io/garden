@@ -8,6 +8,7 @@
 
 import { containerHelpers } from "./helpers.js"
 import type { GardenError } from "../../exceptions.js"
+import { BuildError } from "../../exceptions.js"
 import { ConfigurationError, InternalError, toGardenError } from "../../exceptions.js"
 import type { PrimitiveMap } from "../../config/common.js"
 import split2 from "split2"
@@ -101,13 +102,29 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     level: "verbose" as const,
   }
 
-  // TODO: use go tool to transform rawjson logs into human readable logs
-  const dockerLogs: DockerBuildReport["dockerLogs"] = []
+  const progressui = ctx.tools["container.standalone-progressui"]
+  const progressuiProcess = await progressui.spawn({ log })
+  progressuiProcess.stdout?.on("data", (data: Buffer) => {
+    data
+      .toString()
+      .trim()
+      .split("\n")
+      .forEach((line) => {
+        ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line, ...logEventContext })
+      })
+  })
+  const dockerLogs: DockerBuildReport[] = []
+  const dockerErrorLogs: string[] = []
   const outputStream = split2()
-  outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    dockerLogs.push(JSON.parse(line.toString()))
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
+    if (progressuiProcess.stdin) {
+      progressuiProcess.stdin.write(line + "\n")
+    }
+    try {
+      dockerLogs.push(JSON.parse(line.toString()))
+    } catch (_error) {
+      dockerErrorLogs.push(line.toString())
+    }
   })
   const timeout = action.getConfig("timeout")
 
@@ -115,7 +132,16 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   const availability = await cloudBuilder.getAvailability(ctx, action)
   const runtime = cloudBuilder.getActionRuntime(ctx, availability)
   if (availability.available) {
-    res = await buildContainerInCloudBuilder({ action, availability, outputStream, timeout, log, ctx, dockerLogs })
+    res = await buildContainerInCloudBuilder({
+      action,
+      availability,
+      outputStream,
+      timeout,
+      log,
+      ctx,
+      dockerLogs,
+      dockerErrorLogs,
+    })
   } else {
     res = await buildxBuildContainer({
       action,
@@ -125,6 +151,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
       ctx,
       runtime,
       dockerLogs,
+      dockerErrorLogs,
     })
   }
 
@@ -152,6 +179,7 @@ async function buildxBuildContainer({
   extraDockerOpts = [],
   runtime,
   dockerLogs,
+  dockerErrorLogs,
 }: {
   action: Resolved<ContainerBuildAction>
   outputStream: Writable
@@ -161,6 +189,7 @@ async function buildxBuildContainer({
   extraDockerOpts?: string[]
   runtime: ActionRuntime
   dockerLogs: DockerBuildReport["dockerLogs"]
+  dockerErrorLogs: string[]
 }): Promise<{ buildResult: SpawnOutput; timeSaved: number }> {
   const spec = action.getSpec()
   const outputs = action.getOutputs()
@@ -252,8 +281,11 @@ async function buildxBuildContainer({
       })
       timeSaved = output?.timeSaved || 0
     }
+
     if (buildError !== null) {
-      throw buildError
+      throw new BuildError({
+        message: dockerErrorLogs.join("\n") || buildError.message,
+      })
     }
     return { buildResult: res, timeSaved }
   }
@@ -267,6 +299,7 @@ async function buildContainerInCloudBuilder(params: {
   log: ActionLog
   ctx: PluginContext<ContainerProviderConfig>
   dockerLogs: DockerBuildReport["dockerLogs"]
+  dockerErrorLogs: string[]
 }) {
   const runtime = cloudBuilder.getActionRuntime(params.ctx, params.availability)
 
