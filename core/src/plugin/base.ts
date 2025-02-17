@@ -182,14 +182,15 @@ export const artifactsPathSchema = memoize(() =>
   joi.string().required().description("A directory path where the handler should write any exported artifacts to.")
 )
 
-export type RunState = "outdated" | "unknown" | "running" | "succeeded" | "failed" | "not-implemented"
+export const runStates = ["outdated", "unknown", "running", "succeeded", "failed", "not-implemented"] as const
+export type RunState = (typeof runStates)[number]
 
 export interface RunStatusForEventPayload {
   state: RunState
 }
 
 export const outputSchemaDocs = dedent`
-  The schema must be a single level object, with string keys. Each value must be a primitive (null, boolean, number or string).
+  The schema must be a single level object, with string keys. Each vaue must be a primitive (null, boolean, number or string).
 
   If no schema is provided, an error may be thrown if a plugin handler attempts to return an output key.
 
