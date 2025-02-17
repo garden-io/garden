@@ -20,7 +20,7 @@ import { addConfig } from "./helpers.js"
 import { wordWrap } from "../../util/string.js"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params.js"
 import { userPrompt } from "../../util/util.js"
-import { DOCS_BASE_URL, GardenApiVersion } from "../../constants.js"
+import { defaultGardenApiVersion, DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import { makeDocsLinkPlain } from "../../docs/common.js"
 
@@ -155,7 +155,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     # Documentation about Garden projects can be found at ${projectDocUrl}
     # Reference for Garden projects can be found at ${projectReferenceUrl}
 
-    apiVersion: ${GardenApiVersion.v1}
+    apiVersion: ${defaultGardenApiVersion}
     kind: Project
     name: ${name}
 

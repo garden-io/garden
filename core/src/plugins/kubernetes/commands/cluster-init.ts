@@ -9,7 +9,7 @@
 import type { PluginCommand } from "../../../plugin/command.js"
 import { prepareEnvironment, getEnvironmentStatus } from "../init.js"
 import { styles } from "../../../logger/styles.js"
-import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { reportApiV1DeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 // TODO: remove in 0.14
 const commandName = "cluster-init"
@@ -23,7 +23,7 @@ export const clusterInit: PluginCommand = {
   },
 
   handler: async ({ ctx, log }) => {
-    reportDeprecatedFeatureUsage({
+    reportApiV1DeprecatedFeatureUsage({
       apiVersion: ctx.projectApiVersion,
       log,
       deprecation: "kubernetesClusterInitCommand",

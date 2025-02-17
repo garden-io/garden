@@ -26,7 +26,7 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl.js"
 import type { KubernetesDeployActionConfig } from "../kubernetes-type/config.js"
 import { deleteKubernetesDeploy, getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers.js"
 import type { KubernetesResource } from "../types.js"
-import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { reportApiV1DeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 const { readFileSync } = fsExtra
 
@@ -84,7 +84,7 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
   schema: joi.object().keys(commonSpecKeys()),
   handlers: {
     configure: async ({ config, ctx, log }) => {
-      reportDeprecatedFeatureUsage({
+      reportApiV1DeprecatedFeatureUsage({
         apiVersion: ctx.projectApiVersion,
         log,
         deprecation: "persistentvolumeclaimDeployAction",

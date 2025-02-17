@@ -46,7 +46,7 @@ import { deepResolveContext } from "./template-contexts/base.js"
 import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
-import { makeDeprecationMessage } from "../util/deprecations.js"
+import { makeApiV1DeprecationMessage } from "../util/deprecations.js"
 
 export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -371,7 +371,7 @@ export const projectSchema = createSchema({
     `
       )
       .meta({
-        deprecated: makeDeprecationMessage({ deprecation: "dotIgnoreFiles" }),
+        deprecated: makeApiV1DeprecationMessage({ deprecation: "dotIgnoreFiles" }),
       })
       .example([".gitignore"]),
     dotIgnoreFile: joi

@@ -22,7 +22,7 @@ import type { BaseAction } from "../../actions/base.js"
 import type { BuildAction } from "../../actions/build.js"
 import { sdk } from "../../plugin/sdk.js"
 import { styles } from "../../logger/styles.js"
-import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { reportApiV1DeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 const { pathExists, readFile } = fsExtra
 
@@ -264,7 +264,7 @@ const hadolintTest = provider.createActionType({
 })
 
 hadolintTest.addHandler("configure", async ({ ctx, config, log }) => {
-  reportDeprecatedFeatureUsage({
+  reportApiV1DeprecatedFeatureUsage({
     apiVersion: ctx.projectApiVersion,
     log,
     deprecation: "hadolintPlugin",
