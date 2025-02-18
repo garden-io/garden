@@ -7,8 +7,6 @@
  */
 
 import { deepMap, isArray, type CollectionOrValue } from "../util/objects.js"
-import type { VisitorOpts } from "./analysis.js"
-import { visitAll, type VisitorFindingGenerator } from "./analysis.js"
 import { evaluate } from "./evaluate.js"
 import type { EvaluateTemplateArgs, ParsedTemplate, TemplateEvaluationResult, TemplatePrimitive } from "./types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "./types.js"

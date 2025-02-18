@@ -11,7 +11,6 @@ import { LayeredContext } from "../config/template-contexts/base.js"
 import type { Collection } from "../util/objects.js"
 import { deepMap } from "../util/objects.js"
 import type { VisitorOpts } from "./analysis.js"
-import { visitAll, type VisitorFindingGenerator } from "./analysis.js"
 import { evaluate } from "./evaluate.js"
 import type {
   EvaluateTemplateArgs,

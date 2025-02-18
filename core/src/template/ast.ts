@@ -18,7 +18,6 @@ import { type ConfigSource, validateSchema } from "../config/validation.js"
 import type { Branch } from "./analysis.js"
 import { TemplateStringError } from "./errors.js"
 import { styles } from "../logger/styles.js"
-import { r } from "tar"
 
 type ASTEvaluateArgs = EvaluateTemplateArgs & {
   yamlSource: ConfigSource
