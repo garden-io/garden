@@ -39,6 +39,10 @@ export function renderActionTypeReference(kind: ActionKind, name: string, desc: 
   const templatePath = resolve(TEMPLATES_DIR, "action-type.hbs")
   const { markdownReference } = renderConfigReference(fullSchema)
 
+  // if (kind === "Build" && name === "exec") {
+  //   debugger
+  // }
+
   const staticOutputsSchema = desc.staticOutputsSchema || joi.object()
   const runtimeOutputsSchema = desc.runtimeOutputsSchema || joi.object()
   const outputsSchema = staticOutputsSchema.concat(runtimeOutputsSchema)

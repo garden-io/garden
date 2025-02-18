@@ -7,7 +7,7 @@
  */
 
 import handlebars from "handlebars"
-import { dirname, resolve } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import { writeCommandReferenceDocs } from "./commands.js"
 import { renderConfigReference, renderProjectConfigReference, TEMPLATES_DIR } from "./config.js"
 import { writeTemplateStringReferenceDocs } from "./template-strings.js"
@@ -32,26 +32,28 @@ import { actionKinds } from "../actions/types.js"
 import { fileURLToPath } from "node:url"
 import dedent from "dedent"
 import { getDeprecations } from "../util/deprecations.js"
+import { genJsonSchema } from "./gen-json-schema.js"
 
-const { writeFileSync, readFile, writeFile, mkdirp } = fsExtra
+const { writeFileSync, readFile, writeFile, mkdirp, writeJSONSync } = fsExtra
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
+export const skipDocsForPlugins = ["templated", "openshift"]
 
 /* eslint-disable no-console */
 
 export async function generateDocs(targetDir: string, getPlugins: () => (GardenPluginSpec | GardenPluginReference)[]) {
   const docsRoot = resolve(process.cwd(), targetDir)
 
-  console.log("Updating command references...")
-  writeCommandReferenceDocs(docsRoot)
-  console.log("Updating config references...")
+  // console.log("Updating command references...")
+  // writeCommandReferenceDocs(docsRoot)
+  // console.log("Updating config references...")
   await writeConfigReferenceDocs(docsRoot, getPlugins)
   console.log("Updating template string reference...")
-  writeTemplateStringReferenceDocs(docsRoot)
-  console.log("Generating table of contents...")
-  await writeTableOfContents(docsRoot, "README.md")
-  console.log("Updating the deprecation guide...")
-  await updateDeprecationGuide(docsRoot, "guides/deprecations.md")
+  // writeTemplateStringReferenceDocs(docsRoot)
+  // console.log("Generating table of contents...")
+  // await writeTableOfContents(docsRoot, "README.md")
+  // console.log("Updating the deprecation guide...")
+  // await updateDeprecationGuide(docsRoot, "guides/deprecations.md")
 }
 
 export async function writeConfigReferenceDocs(
@@ -103,17 +105,27 @@ export async function writeConfigReferenceDocs(
 
   const providerDir = resolve(docsRoot, "reference", "providers")
   makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = "../../"
-  const allPlugins = await (await getFreshGarden()).getAllPlugins()
-  const skippedPlugins = ["templated", "openshift"]
-  const pluginsByName = keyBy(allPlugins, "name")
+  const pluginsToRender = (await (await getFreshGarden()).getAllPlugins()).filter(
+    (p) => !skipDocsForPlugins.includes(p.name)
+  )
+  const pluginsByName = keyBy(pluginsToRender, "name")
   const providersReadme = ["---", "order: 1", "title: Providers", "---", "", "# Providers", ""]
 
-  for (const plugin of allPlugins) {
-    const name = plugin.name
+  const jsonSchema = genJsonSchema(await (await getFreshGarden()).getActionTypes(), pluginsToRender)
+  const jsonSchemaPath = join(docsRoot, ".json-schema")
+  await mkdirp(jsonSchemaPath)
+  writeJSONSync(join(jsonSchemaPath, "json-schema.json"), jsonSchema, {
+    spaces: 2,
+    EOL: "\n",
+  })
 
-    if (skippedPlugins.includes(plugin.name)) {
-      continue
-    }
+  const ret = true
+  if (ret) {
+    return
+  }
+
+  for (const plugin of pluginsToRender) {
+    const name = plugin.name
 
     const path = resolve(providerDir, `${name}.md`)
     console.log("->", path)

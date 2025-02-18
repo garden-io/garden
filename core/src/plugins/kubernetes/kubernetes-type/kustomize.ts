@@ -20,9 +20,8 @@ export const kustomizeSpecSchema = () =>
     .object()
     .keys({
       path: joi
-        .alternatives(joi.posixPath().relativeOnly().subPathOnly(), joi.string().uri())
+        .alternatives(joi.posixPath().relativeOnly().subPathOnly(), joi.string().uri(), null)
         .default(".")
-        .allow(null)
         .description(
           "The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action root. Defaults to the action root. If you set this to null, kustomize will not be run."
         ),

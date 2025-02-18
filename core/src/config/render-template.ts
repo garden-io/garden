@@ -50,13 +50,16 @@ export const renderTemplateConfigSchema = createSchema({
     internal: baseInternalFieldsSchema,
 
     template: joiUserIdentifier().description(`The ${configTemplateKind} to render.`),
-    inputs: joi.object().description(
-      dedent`
+    inputs: joi
+      .object()
+      .unknown(true)
+      .description(
+        dedent`
       A map of inputs to pass to the ${configTemplateKind}. These must match the inputs schema of the ${configTemplateKind}.
 
       Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference other actions, modules or runtime variables. See the [environment configuration context reference](./template-strings/environments.md) to see template strings that are safe to use for inputs used to generate config identifiers.
       `
-    ),
+      ),
   }),
 })
 

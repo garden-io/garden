@@ -150,7 +150,7 @@ const jibModuleSchema = () =>
     build: baseBuildSpecSchema().keys(jibBuildSchemaKeys()),
   })
 
-const jibBuildSchema = () => containerBuildSpecSchema().keys(jibBuildSchemaKeys())
+export const jibBuildSchema = () => containerBuildSpecSchema().keys(jibBuildSchemaKeys())
 
 const docs = dedent`
   Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](${exampleUrl}) to see it in action.

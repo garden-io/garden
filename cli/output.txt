@@ -1,0 +1,36 @@
+
+> @garden-io/cli@0.13.54 test
+> mocha -g genJsonSchema
+
+
+
+  genJsonSchema
+DIRNAME /Users/eysi/code/garden-io/garden/examples
+    ✔ should return a valid JSON schema (424ms)
+Processing directory: argocd
+Found 4 garden configuration files in argocd
+Parsed 2 YAML documents from /Users/eysi/code/garden-io/garden/examples/argocd/api/garden.yml
+Parsed 1 YAML documents from /Users/eysi/code/garden-io/garden/examples/argocd/postgres/garden.yml
+Parsed 1 YAML documents from /Users/eysi/code/garden-io/garden/examples/argocd/project.garden.yml
+Parsed 3 YAML documents from /Users/eysi/code/garden-io/garden/examples/argocd/web/garden.yml
+    ✔ should generate a schema that is valid for all our examples (236ms)
+
+
+ Profiling data:
+
+ INVOCATIONS:
+ ─────────────────────────────────────────────────────────────────────────────────────────
+ Function/method  # Invocations  Total ms  Avg. ms  Median ms  First ms  Min ms  Max ms 
+                                                                                               
+ ─────────────────────────────────────────────────────────────────────────────────────────
+
+ COUNTERS:
+ ─────────────────────────────────────────────────────────────────────────────────────────
+ Counter                      Value 
+                                     
+ GitHandler.RepoRoots.misses  1     
+ ─────────────────────────────────────────────────────────────────────────────────────────
+    
+
+  2 passing (706ms)
+

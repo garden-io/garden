@@ -1,0 +1,205 @@
+[
+  {
+    "kind": "Module",
+    "type": "container",
+    "description": "Image for the API backend for the voting UI",
+    "name": "api-image",
+    "include": [
+      "."
+    ]
+  },
+  {
+    "kind": "Module",
+    "description": "The API backend for the voting UI",
+    "type": "helm",
+    "name": "api",
+    "chartPath": "./chart",
+    "serviceResource": {
+      "containerModule": "api-image"
+    },
+    "values": {
+      "name": "api",
+      "image": {
+        "repository": "${modules.api-image.outputs.deployment-image-name}",
+        "tag": "${modules.api-image.version}"
+      },
+      "healthCheckPath": "/api"
+    }
+  },
+  {
+    "kind": "Module",
+    "description": "Postgres Helm chart for storing voting results",
+    "type": "helm",
+    "name": "postgres",
+    "repo": "https://charts.bitnami.com/bitnami",
+    "chart": "postgresql",
+    "version": "12.1.2",
+    "serviceResource": {
+      "kind": "StatefulSet",
+      "name": "postgres"
+    },
+    "values": {
+      "fullnameOverride": "postgres",
+      "auth": {
+        "postgresPassword": "postgres"
+      }
+    },
+    "tasks": [
+      {
+        "name": "db-init",
+        "command": [
+          "/bin/sh",
+          "-c"
+        ],
+        "args": [
+          "psql -w -U postgres --host=postgres --port=5432 -d postgres -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'"
+        ],
+        "dependencies": [
+          "postgres"
+        ],
+        "env": {
+          "PGPASSWORD": "postgres"
+        }
+      },
+      {
+        "name": "db-clear",
+        "command": [
+          "/bin/sh",
+          "-c"
+        ],
+        "args": [
+          "psql -w -U postgres --host=postgres --port=5432 -d postgres -c 'TRUNCATE votes'"
+        ],
+        "dependencies": [
+          "postgres"
+        ],
+        "env": {
+          "PGPASSWORD": "postgres"
+        }
+      }
+    ]
+  },
+  {
+    "apiVersion": "garden.io/v1",
+    "kind": "Project",
+    "name": "vote-helm-argocd",
+    "defaultEnvironment": "${local.env.GITHUB_ACTIONS ? 'ci' : 'gke-gitops-dev'}",
+    "variables": {
+      "common-k8s-provider-config": {
+        "context": "gke_garden",
+        "buildMode": "cluster-buildkit",
+        "imagePullSecrets": [
+          {
+            "name": "regcred",
+            "namespace": "default"
+          }
+        ],
+        "deploymentRegistry": {
+          "hostname": "index.docker.io",
+          "namespace": "gardendev"
+        }
+      },
+      "dev-k8s-namespace": "${project.name}-${local.username}",
+      "ci-k8s-namespace": "${project.name}-${local.username}-${local.env.GITHUB_REF_NAME || \"branch\"}-${local.env.GITHUB_RUN_NUMBER || 0}"
+    },
+    "environments": [
+      {
+        "name": "local",
+        "variables": {
+          "baseHostname": "vote.local.demo.garden"
+        }
+      },
+      {
+        "name": "gke-gitops-dev",
+        "defaultNamespace": "${var.dev-k8s-namespace}",
+        "variables": {
+          "baseHostname": "${var.dev-k8s-namespace}.dev-1.sys.garden"
+        }
+      },
+      {
+        "name": "ci",
+        "defaultNamespace": "${var.ci-k8s-namespace}",
+        "variables": {
+          "baseHostname": "${var.ci-k8s-namespace}.ci.sys.garden"
+        }
+      }
+    ],
+    "providers": [
+      {
+        "name": "local-kubernetes",
+        "environments": [
+          "local"
+        ],
+        "context": "docker-desktop"
+      },
+      {
+        "name": "kubernetes",
+        "environments": [
+          "gke-gitops-dev",
+          "ci"
+        ],
+        "$merge": "${var.common-k8s-provider-config}",
+        "namespace": "${environment.namespace}",
+        "defaultHostname": "${var.baseHostname}"
+      }
+    ]
+  },
+  {
+    "kind": "Module",
+    "description": "The voting UI",
+    "name": "web-image",
+    "type": "container",
+    "include": [
+      "."
+    ],
+    "tests": [
+      {
+        "name": "unit",
+        "args": [
+          "npm",
+          "run",
+          "test:unit"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "Module",
+    "description": "The voting web UI",
+    "type": "helm",
+    "name": "web",
+    "chartPath": "./chart",
+    "serviceResource": {
+      "containerModule": "web-image"
+    },
+    "values": {
+      "name": "web",
+      "image": {
+        "repository": "${modules.web-image.outputs.deployment-image-name}",
+        "tag": "${modules.web-image.version}"
+      },
+      "healthCheckPath": "/"
+    }
+  },
+  {
+    "kind": "Module",
+    "type": "container",
+    "name": "e2e-runner",
+    "image": "${modules.web-image.outputs.deployment-image-id}",
+    "disabled": true,
+    "include": [],
+    "tests": [
+      {
+        "name": "e2e",
+        "args": [
+          "npm",
+          "run",
+          "test:e2e"
+        ],
+        "dependencies": [
+          "web"
+        ]
+      }
+    ]
+  }
+]

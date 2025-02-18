@@ -215,6 +215,6 @@ const templatedResourceSchema = createSchema({
       .only()
       .description("The kind of resource to create."),
     name: joiUserIdentifier().description("The name of the resource."),
-    unknown: true,
   }),
+  allowUnknown: true,
 })

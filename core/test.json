@@ -1,0 +1,14 @@
+{
+  "kind": "person",
+  "address": {
+    "street": "mystreet",
+    "city": "mycity",
+    "$if": "bar",
+    "country": {
+      "code": "is",
+      "name": "Iceland",
+      "$merge": "something"
+    }
+  },
+  "$merge": "foo"
+}

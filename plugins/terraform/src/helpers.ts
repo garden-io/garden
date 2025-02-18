@@ -23,7 +23,7 @@ import type { TerraformProvider } from "./provider.js"
 import fsExtra from "fs-extra"
 const { writeFile, readJSON } = fsExtra
 import type { DeepPrimitiveMap, PrimitiveMap } from "@garden-io/core/build/src/config/common.js"
-import { joi, joiStringMap } from "@garden-io/core/build/src/config/common.js"
+import { joi, joiPrimitive, joiStringMap } from "@garden-io/core/build/src/config/common.js"
 import split2 from "split2"
 import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import { join } from "node:path/posix"
@@ -32,7 +32,7 @@ import { type inferType, s } from "@garden-io/core/build/src/config/zod.js"
 export const terraformBackendConfigSchema = () =>
   joi
     .object()
-    .pattern(joi.string(), joi.string())
+    .pattern(/.+/, joiPrimitive())
     .optional()
     .description(
       dedent`

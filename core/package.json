@@ -88,6 +88,7 @@
     "is-glob": "^4.0.3",
     "is-url": "^1.2.4",
     "isomorphic-ws": "^5.0.0",
+    "joi-to-json": "^4.3.1",
     "js-yaml": "^4.1.0",
     "json-diff": "^1.0.3",
     "json-merge-patch": "^1.0.2",
@@ -163,7 +164,7 @@
     "yaml": "^2.5.1",
     "yaml-lint": "^1.2.4",
     "zod": "^3.23.8",
-    "zod-to-json-schema": "^3.23.5"
+    "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",
