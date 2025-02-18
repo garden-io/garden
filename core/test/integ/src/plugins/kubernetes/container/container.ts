@@ -10,14 +10,12 @@ import type { TestGarden } from "../../../../../helpers.js"
 import { getDataDir, makeTestGarden, expectError } from "../../../../../helpers.js"
 import { TestTask } from "../../../../../../src/tasks/test.js"
 import fsExtra from "fs-extra"
-const { emptyDir, pathExists } = fsExtra
 import { expect } from "chai"
 import { dirname, join } from "path"
-import type { Garden } from "../../../../../../src/garden.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { deline } from "../../../../../../src/util/string.js"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
-import type { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
+import type { KubernetesConfig } from "../../../../../../src/plugins/kubernetes/config.js"
 import type { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init.js"
 import type { ContainerTestAction } from "../../../../../../src/plugins/container/config.js"
@@ -29,10 +27,10 @@ import type { KubernetesResource } from "../../../../../../src/plugins/kubernete
 import { mkdir, writeFile } from "fs/promises"
 import { isErrnoException } from "../../../../../../src/exceptions.js"
 
+const { emptyDir, pathExists } = fsExtra
+
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
-const initializedEnvs: string[] = []
-let localInstance: Garden
 
 export interface ContainerTestGardenResult {
   garden: TestGarden
@@ -49,10 +47,6 @@ export async function getContainerTestGarden(
   cleanups.push(() => garden.close())
 
   let dockerConfig: string | undefined
-
-  if (!localInstance) {
-    localInstance = await makeTestGarden(root, { environmentString: "local", noTempDir: opts?.noTempDir })
-  }
 
   if (opts?.remoteContainerAuth) {
     dockerConfig = JSON.stringify(await getGoogleADCImagePullSecret())
@@ -73,13 +67,18 @@ export async function getContainerTestGarden(
     })
   }
 
-  const needsInit = !environmentName.startsWith("local") && !initializedEnvs.includes(environmentName)
+  const needsInit = !environmentName.startsWith("local")
 
   if (needsInit) {
-    // Load the test authentication for private registries
-    const localProvider = <KubernetesProvider>(
-      await localInstance.resolveProvider({ log: localInstance.log, name: "local-kubernetes" })
-    )
+    const localProvider = await garden.resolveProvider<KubernetesConfig>({
+      log: garden.log,
+      name: "local-kubernetes",
+    })
+    const ctx = await garden.getPluginContext({
+      provider: localProvider,
+      templateContext: undefined,
+      events: undefined,
+    })
     const api = await KubeApi.factory(
       garden.log,
       await garden.getPluginContext({ provider: localProvider, templateContext: undefined, events: undefined }),
@@ -130,12 +129,7 @@ export async function getContainerTestGarden(
       },
     }
     await api.upsert({ kind: "Secret", namespace: "default", obj: credentialHelperAuth, log: garden.log })
-  }
 
-  const provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
-  const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-
-  if (needsInit) {
     // Run cluster-init
     await clusterInit.handler({
       garden,
@@ -144,7 +138,6 @@ export async function getContainerTestGarden(
       args: [],
       graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
     })
-    initializedEnvs.push(environmentName)
   }
 
   return { garden, cleanup: () => cleanups.forEach((c) => c()) }

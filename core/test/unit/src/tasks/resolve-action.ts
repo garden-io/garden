@@ -22,6 +22,7 @@ import {
   getAllTaskResults,
   getDefaultProjectConfig,
 } from "../../../helpers.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
 
 describe("ResolveActionTask", () => {
   let garden: TestGarden
@@ -47,9 +48,74 @@ describe("ResolveActionTask", () => {
     })
   }
 
+  describe("handling missing secrets in constructor", () => {
+    it("should throw if an action references missing secrets", async () => {
+      garden.setPartialActionConfigs([
+        {
+          kind: "Run",
+          type: "test",
+          name: "run-with-missing-secrets",
+          spec: {
+            command: ["echo", "${secrets.missing}"],
+          },
+        },
+      ])
+
+      expect(garden.secrets).to.be.empty
+      expect(garden.isLoggedIn()).to.be.false
+
+      await expectError(() => getTask("Run", "run-with-missing-secrets"), {
+        contains: [
+          "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
+          "Run run-with-missing-secrets: missing",
+          "You are not logged in. Log in to get access to Secrets in Garden Cloud.",
+          "See also https://cloud.docs.garden.io/features/secrets",
+        ],
+      })
+    })
+
+    it("should throw if a module references missing secrets", async () => {
+      garden.setPartialModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
+          kind: "Module",
+          type: "test",
+          name: "module-with-missing-secrets",
+          allowPublish: false,
+          disabled: false,
+          path: garden.projectRoot,
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {
+            tasks: [
+              {
+                name: "task-with-missing-secrets",
+                command: ["echo", "${secrets.missing}"],
+              },
+            ],
+          },
+        },
+      ])
+
+      expect(garden.secrets).to.be.empty
+      expect(garden.isLoggedIn()).to.be.false
+
+      await expectError(() => getTask("Run", "task-with-missing-secrets"), {
+        contains: [
+          "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
+          "Run task-with-missing-secrets: missing",
+          "You are not logged in. Log in to get access to Secrets in Garden Cloud.",
+          "See also https://cloud.docs.garden.io/features/secrets",
+        ],
+      })
+    })
+  })
+
   describe("resolveStatusDependencies", () => {
     it("returns an empty list", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -65,7 +131,7 @@ describe("ResolveActionTask", () => {
 
   describe("resolveProcessDependencies", () => {
     it("returns nothing if no dependencies are defined or found", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -79,7 +145,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("returns execute task for dependency with needsExecutedOutputs=true", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -104,7 +170,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("returns resolve task for dependency with needsStaticOutputs=true", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -129,7 +195,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("returns resolve task for explicit dependency", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -155,7 +221,7 @@ describe("ResolveActionTask", () => {
 
   describe("process", () => {
     it("resolves an action", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -173,7 +239,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves action variables", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -188,13 +254,13 @@ describe("ResolveActionTask", () => {
       const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
-      const variables = resolved.getVariables()
+      const variables = resolved.getResolvedVariables()
 
       expect(variables).to.eql({ foo: garden.projectName })
     })
 
     it("resolves action mode", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Deploy",
           type: "test",
@@ -215,7 +281,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("correctly merges action and CLI variables", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -228,15 +294,15 @@ describe("ResolveActionTask", () => {
         },
       ])
 
-      garden.variables.a = 1
-      garden.variables.b = 200
+      garden.variables["a"] = 1
+      garden.variables["b"] = 200
       garden.variableOverrides.b = 2000 // <-- should win
 
       const task = await getTask("Build", "foo")
       const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
-      const variables = resolved.getVariables()
+      const variables = resolved.getResolvedVariables()
 
       expect(variables).to.eql({
         a: 100,
@@ -246,7 +312,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves static action references", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -278,7 +344,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("throws if spec is invalid after resolution", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -303,7 +369,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves static outputs", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -347,7 +413,7 @@ describe("ResolveActionTask", () => {
         },
       })
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -388,7 +454,7 @@ describe("ResolveActionTask", () => {
         },
       })
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -405,7 +471,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves action.* runtime references", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Run",
           type: "test",
@@ -433,7 +499,7 @@ describe("ResolveActionTask", () => {
     })
 
     it("resolves runtime.* references", async () => {
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Run",
           type: "test",
@@ -466,13 +532,14 @@ describe("ResolveActionTask", () => {
           kind: configTemplateKind,
           name: "template",
           inputsSchema: joi.object(),
+          inputsSchemaDefaults: {},
           internal: {
             basePath: garden.projectRoot,
           },
         },
       }
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Deploy",
           type: "test",

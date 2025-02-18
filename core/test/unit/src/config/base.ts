@@ -10,7 +10,6 @@ import { expect } from "chai"
 import {
   loadConfigResources,
   findProjectConfig,
-  prepareModuleResource,
   prepareProjectResource,
   noTemplateFields,
   validateRawConfig,
@@ -18,15 +17,18 @@ import {
   loadAndValidateYaml,
 } from "../../../../src/config/base.js"
 import { resolve, join } from "path"
-import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers.js"
+import { expectError, expectFuzzyMatch, getDataDir, getDefaultProjectConfig } from "../../../helpers.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs.js"
 import { safeDumpYaml } from "../../../../src/util/serialization.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
-import { ConfigurationError } from "../../../../src/exceptions.js"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings.js"
 import { omit } from "lodash-es"
 import { dedent } from "../../../../src/util/string.js"
+import { omitInternal } from "../../../../src/garden.js"
+import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
+import stripAnsi from "strip-ansi"
+import { DOCS_DEPRECATION_GUIDE } from "../../../../src/util/deprecations.js"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -117,16 +119,6 @@ describe("prepareProjectResource", () => {
     )
   })
 
-  it("should throw an error if the apiVersion is not known", async () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      apiVersion: "unknown",
-    }
-
-    const processConfigAction = () => prepareProjectResource(log, projectResource)
-    expect(processConfigAction).to.throw(ConfigurationError, /\`apiVersion: unknown\` is not supported/)
-  })
-
   it("should fall back to the previous apiVersion when not defined", async () => {
     const projectResource = {
       ...projectResourceTemplate,
@@ -156,9 +148,14 @@ describe("prepareProjectResource", () => {
     expect(returnedProjectResource).to.eql(projectResource)
 
     const logEntry = log.getLatestEntry()
-    expect(logEntry.msg).to.include(
-      `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
-    )
+    const sanitizedMsg = stripAnsi((logEntry.msg as string) || "")
+    const expectedMessages = [
+      "Deprecation warning:",
+      `apiVersion: ${GardenApiVersion.v0} in the project config is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.`,
+      `Use apiVersion: ${GardenApiVersion.v1} or higher instead.`,
+      `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${DOCS_DEPRECATION_GUIDE}`,
+    ]
+    expectFuzzyMatch(sanitizedMsg, expectedMessages)
   })
 })
 
@@ -256,11 +253,11 @@ describe("loadConfigResources", () => {
 
   it("should load and parse a module config", async () => {
     const configPath = resolve(modulePathA, "garden.yml")
-    const parsed = await loadConfigResources(log, projectPathA, configPath)
+    const configResources = await loadConfigResources(log, projectPathA, configPath)
+    expect(configResources.length).to.equal(1)
 
-    expect(parsed.length).to.equal(1)
-
-    expect(omit(parsed[0], "internal")).to.eql({
+    const configResource = serialiseUnresolvedTemplates(omitInternal(configResources[0]))
+    expect(configResource).to.eql({
       apiVersion: GardenApiVersion.v0,
       kind: "Module",
       name: "module-a",
@@ -317,12 +314,11 @@ describe("loadConfigResources", () => {
   it("should load and parse a module template", async () => {
     const projectPath = getDataDir("test-projects", "module-templates")
     const configFilePath = resolve(projectPath, "templates.garden.yml")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsed: any = await loadConfigResources(log, projectPath, configFilePath)
+    const configResources = await loadConfigResources(log, projectPath, configFilePath)
+    expect(configResources.length).to.equal(1)
 
-    expect(parsed.length).to.equal(1)
-
-    expect(omit(parsed[0], "internal")).to.eql({
+    const configResource = serialiseUnresolvedTemplates(omitInternal(configResources[0]))
+    expect(configResource).to.eql({
       kind: configTemplateKind,
       name: "combo",
 
@@ -454,7 +450,7 @@ describe("loadConfigResources", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         build: {
-          dependencies: [{ name: "module-from-project-config", copy: [] }],
+          dependencies: ["module-from-project-config"],
           timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
         local: undefined,
@@ -463,7 +459,7 @@ describe("loadConfigResources", () => {
         spec: {
           build: {
             command: ["echo", "A1"],
-            dependencies: [{ name: "module-from-project-config", copy: [] }],
+            dependencies: ["module-from-project-config"],
           },
           services: [{ name: "service-a1" }],
           tests: [{ name: "unit", command: ["echo", "OK"] }],
@@ -545,20 +541,6 @@ describe("loadConfigResources", () => {
       path,
       configPath,
     })
-  })
-})
-
-describe("prepareModuleResource", () => {
-  it("should normalize build dependencies", async () => {
-    const moduleConfigPath = resolve(modulePathA, "garden.yml")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsed: any = (await loadConfigResources(log, projectPathA, moduleConfigPath))[0]
-    parsed.build!.dependencies = [{ name: "apple" }, "banana", null]
-    const prepared = prepareModuleResource(parsed, moduleConfigPath, projectPathA)
-    expect(prepared.build!.dependencies).to.eql([
-      { name: "apple", copy: [] },
-      { name: "banana", copy: [] },
-    ])
   })
 })
 

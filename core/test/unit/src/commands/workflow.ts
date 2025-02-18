@@ -26,13 +26,16 @@ import { joi } from "../../../../src/config/common.js"
 import type { ProjectConfig } from "../../../../src/config/project.js"
 import { join } from "path"
 import fsExtra from "fs-extra"
+
 const { remove, readFile, pathExists } = fsExtra
 import { dedent } from "../../../../src/util/string.js"
 import { resolveMsg, type LogEntry } from "../../../../src/logger/log-entry.js"
-import type { WorkflowStepSpec } from "../../../../src/config/workflow.js"
+import type { WorkflowConfig, WorkflowStepSpec } from "../../../../src/config/workflow.js"
 import { defaultWorkflowResources } from "../../../../src/config/workflow.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
 import { WorkflowScriptError } from "../../../../src/exceptions.js"
+import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
+import { VariablesContext } from "../../../../src/config/template-contexts/variables.js"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new WorkflowCommand()
@@ -52,31 +55,36 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should run a workflow", async () => {
-    garden.setWorkflowConfigs([
-      {
-        apiVersion: GardenApiVersion.v0,
-        name: "workflow-a",
-        kind: "Workflow",
-        envVars: {},
-        resources: defaultWorkflowResources,
-        internal: {
-          basePath: garden.projectRoot,
+    const parsedWorkflowConfigs = parseTemplateCollection({
+      value: [
+        {
+          apiVersion: GardenApiVersion.v0,
+          name: "workflow-a",
+          kind: "Workflow",
+          envVars: {},
+          resources: defaultWorkflowResources,
+          internal: {
+            basePath: garden.projectRoot,
+          },
+          steps: [
+            { command: ["deploy"], description: "deploy services" },
+            { command: ["get", "outputs"] },
+            { command: ["test"] },
+            { command: ["deploy", "${var.foo}"] }, // <-- the second (null) element should get filtered out
+            { command: ["test", "module-a-unit"] },
+            { command: ["run", "task-a"] },
+            { command: ["cleanup", "service", "service-a"] },
+            { command: ["cleanup", "namespace"] },
+            { command: ["publish"] },
+          ],
         },
-        steps: [
-          { command: ["deploy"], description: "deploy services" },
-          { command: ["get", "outputs"] },
-          { command: ["test"] },
-          { command: ["deploy", "${var.foo}"] }, // <-- the second (null) element should get filtered out
-          { command: ["test", "module-a-unit"] },
-          { command: ["run", "task-a"] },
-          { command: ["cleanup", "service", "service-a"] },
-          { command: ["cleanup", "namespace"] },
-          { command: ["publish"] },
-        ],
-      },
-    ])
+      ],
+      source: { path: [] },
+    }) as WorkflowConfig[]
 
-    garden.variables = { foo: null }
+    garden.setRawWorkflowConfigs(parsedWorkflowConfigs)
+
+    garden.variables = VariablesContext.forTest({ garden, variablePrecedence: [{ foo: null }] })
 
     const result = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 
@@ -84,7 +92,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should continue on error if continueOnError = true", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -136,7 +144,7 @@ describe("RunWorkflowCommand", () => {
       log: _log,
       opts: withDefaultGlobalOpts({}),
     }
-    _garden.setWorkflowConfigs([
+    _garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -178,7 +186,7 @@ describe("RunWorkflowCommand", () => {
       log: _log,
       opts: withDefaultGlobalOpts({}),
     }
-    _garden.setWorkflowConfigs([
+    _garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -219,7 +227,7 @@ describe("RunWorkflowCommand", () => {
   }
 
   it("should collect log outputs from a command step", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -368,7 +376,7 @@ describe("RunWorkflowCommand", () => {
 
     const _garden = await TestGarden.factory(tmpDir.path, { config: projectConfig, plugins: [testPlugin] })
     const log = garden.log
-    _garden.setActionConfigs([
+    _garden.setPartialActionConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         kind: "Run",
@@ -396,7 +404,7 @@ describe("RunWorkflowCommand", () => {
         },
       },
     ])
-    _garden.setWorkflowConfigs([
+    _garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -450,7 +458,7 @@ describe("RunWorkflowCommand", () => {
 
     const _garden = await makeTestGarden(garden.projectRoot, { config: projectConfig, plugins: [test] })
 
-    _garden.setWorkflowConfigs([
+    _garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -470,7 +478,7 @@ describe("RunWorkflowCommand", () => {
 
   it("should write a file with data from a secret", async () => {
     garden.secrets.test = "super secret value"
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -492,10 +500,11 @@ describe("RunWorkflowCommand", () => {
 
     const data = await readFile(filePath)
     expect(data.toString()).to.equal(garden.secrets.test)
+    delete garden.secrets.test
   })
 
   it("should throw if a file references a secret that doesn't exist", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -516,7 +525,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should throw if attempting to write a file with a directory path that contains an existing file", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -536,8 +545,60 @@ describe("RunWorkflowCommand", () => {
     })
   })
 
+  it("should throw before execution if any step references missing secrets", async () => {
+    const name = "workflow-with-missing-secrets"
+    const configs: WorkflowConfig[] = [
+      {
+        apiVersion: GardenApiVersion.v0,
+        name,
+        kind: "Workflow",
+        internal: {
+          basePath: garden.projectRoot,
+        },
+        files: [],
+        envVars: {},
+        resources: defaultWorkflowResources,
+        steps: [
+          {
+            name: "init",
+            script: "echo init",
+          },
+          {
+            name: "secrets",
+            script: "echo secrets ${secrets.missing}",
+          },
+          {
+            name: "end",
+            script: "echo end",
+          },
+        ],
+      },
+    ]
+    // @ts-expect-error todo: correct types for unresolved configs
+    const parsedConfigs = parseTemplateCollection({
+      // @ts-expect-error todo: correct types for unresolved configs
+      value: configs,
+      source: { path: [] },
+    }) as WorkflowConfig[]
+
+    garden.setRawWorkflowConfigs(parsedConfigs)
+
+    // TestGarden is not logged in to Cloud and has no secrets
+    expect(garden.isLoggedIn()).to.be.false
+    expect(garden.secrets).to.be.empty
+
+    await expectError(() => cmd.action({ ...defaultParams, args: { workflow: name } }), {
+      contains: [
+        "The following secret names were referenced in configuration, but are missing from the secrets loaded remotely",
+        `Workflow ${name}: missing`,
+        "You are not logged in. Log in to get access to Secrets in Garden Cloud.",
+        "See also https://cloud.docs.garden.io/features/secrets",
+      ],
+    })
+  })
+
   it("should throw if attempting to write a file to an existing directory path", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -558,7 +619,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should run a script step in the project root", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -581,7 +642,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should run a custom command in a command step", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -604,7 +665,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should support global parameters for custom commands", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -632,7 +693,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should include env vars from the workflow config, if provided", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -658,7 +719,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should override env vars from the workflow config with script step env vars, if provided", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -684,7 +745,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should apply configured envVars when running script steps", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -709,7 +770,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should skip disabled steps", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -813,7 +874,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should collect log outputs, including stderr, from a script step", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -846,7 +907,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should throw if a script step fails", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -868,7 +929,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should throw if a script step fails and add log to output with --output flag set", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -897,7 +958,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should return script logs with the --output flag set", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -923,7 +984,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should include outputs from steps in the command output", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -953,7 +1014,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should use explicit names for steps if specified", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-a",
@@ -980,20 +1041,25 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should resolve references to previous steps when running a command step", async () => {
-    garden.setWorkflowConfigs([
-      {
-        apiVersion: GardenApiVersion.v0,
-        name: "workflow-a",
-        kind: "Workflow",
-        internal: {
-          basePath: garden.projectRoot,
+    const parsedWorkflowConfigs = parseTemplateCollection({
+      value: [
+        {
+          apiVersion: GardenApiVersion.v0,
+          name: "workflow-a",
+          kind: "Workflow",
+          internal: {
+            basePath: garden.projectRoot,
+          },
+          files: [],
+          envVars: {},
+          resources: defaultWorkflowResources,
+          steps: [{ command: ["get", "outputs"] }, { command: ["run", "${steps.step-1.outputs.taskName}"] }],
         },
-        files: [],
-        envVars: {},
-        resources: defaultWorkflowResources,
-        steps: [{ command: ["get", "outputs"] }, { command: ["run", "${steps.step-1.outputs.taskName}"] }],
-      },
-    ])
+      ],
+      source: { path: [] },
+    }) as WorkflowConfig[]
+
+    garden.setRawWorkflowConfigs(parsedWorkflowConfigs)
 
     const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 
@@ -1006,20 +1072,25 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should resolve references to previous steps when running a script step", async () => {
-    garden.setWorkflowConfigs([
-      {
-        apiVersion: GardenApiVersion.v0,
-        name: "workflow-a",
-        kind: "Workflow",
-        internal: {
-          basePath: garden.projectRoot,
+    const parsedWorkflowConfigs = parseTemplateCollection({
+      value: [
+        {
+          apiVersion: GardenApiVersion.v0,
+          name: "workflow-a",
+          kind: "Workflow",
+          internal: {
+            basePath: garden.projectRoot,
+          },
+          files: [],
+          envVars: {},
+          resources: defaultWorkflowResources,
+          steps: [{ command: ["get", "outputs"] }, { script: "echo ${steps.step-1.outputs.taskName}" }],
         },
-        files: [],
-        envVars: {},
-        resources: defaultWorkflowResources,
-        steps: [{ command: ["get", "outputs"] }, { script: "echo ${steps.step-1.outputs.taskName}" }],
-      },
-    ])
+      ],
+      source: { path: [] },
+    }) as WorkflowConfig[]
+
+    garden.setRawWorkflowConfigs(parsedWorkflowConfigs)
 
     const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 
@@ -1032,7 +1103,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should only resolve the workflow that's being run", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "workflow-to-run",
@@ -1080,7 +1151,7 @@ describe("Lazy provider initialization in RunWorkflowCommand", () => {
   })
 
   it("should run script steps before initializing providers", async () => {
-    garden.setWorkflowConfigs([
+    garden.setRawWorkflowConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         name: "test",

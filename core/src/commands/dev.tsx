@@ -85,6 +85,7 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
 
   override async action(params: ActionParams): Promise<CommandResult> {
     const { log } = params
+
     this.setProps(params.garden.sessionId, params.cli?.plugins || [])
 
     const logger = log.root

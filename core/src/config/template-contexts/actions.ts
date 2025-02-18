@@ -6,28 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { merge } from "lodash-es"
 import type { ActionConfig, Action, ExecutedAction, ResolvedAction } from "../../actions/types.js"
 import type { ActionMode } from "../../actions/types.js"
 import type { Garden } from "../../garden.js"
 import type { GardenModule } from "../../types/module.js"
 import { dedent, deline } from "../../util/string.js"
-import type { DeepPrimitiveMap, PrimitiveMap } from "../common.js"
+import type { PrimitiveMap } from "../common.js"
 import { joi, joiIdentifier, joiIdentifierMap, joiPrimitive, joiVariables } from "../common.js"
 import type { ProviderMap } from "../provider.js"
-import { ConfigContext, ErrorContext, ParentContext, schema, TemplateContext } from "./base.js"
+import { ContextWithSchema, ErrorContext, ParentContext, schema, TemplateContext } from "./base.js"
 import { exampleVersion, OutputConfigContext } from "./module.js"
-import { TemplatableConfigContext } from "./project.js"
+import { TemplatableConfigContext } from "./templatable.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
-
-function mergeVariables({ garden, variables }: { garden: Garden; variables: DeepPrimitiveMap }): DeepPrimitiveMap {
-  const mergedVariables: DeepPrimitiveMap = {}
-  merge(mergedVariables, garden.variables)
-  merge(mergedVariables, variables)
-  merge(mergedVariables, garden.variableOverrides)
-  return mergedVariables
-}
+import type { InputContext } from "./input.js"
+import type { VariablesContext } from "./variables.js"
 
 type ActionConfigThisContextParams = Pick<ActionReferenceContextParams, "name" | "mode">
 
@@ -47,15 +40,15 @@ const actionModeSchema = joi
   )
   .example("sync")
 
-class ActionConfigThisContext extends ConfigContext {
+class ActionConfigThisContext extends ContextWithSchema {
   @schema(actionNameSchema)
-  public name: string
+  public readonly name: string
 
   @schema(actionModeSchema)
-  public mode: ActionMode
+  public readonly mode: ActionMode
 
-  constructor(root: ConfigContext, { name, mode }: ActionConfigThisContextParams) {
-    super(root)
+  constructor({ name, mode }: ActionConfigThisContextParams) {
+    super()
     this.name = name
     this.mode = mode
   }
@@ -65,7 +58,7 @@ interface ActionConfigContextParams {
   garden: Garden
   config: ActionConfig
   thisContextParams: ActionConfigThisContextParams
-  variables: DeepPrimitiveMap
+  variables: VariablesContext
 }
 
 /**
@@ -74,32 +67,30 @@ interface ActionConfigContextParams {
  */
 export class ActionConfigContext extends TemplatableConfigContext {
   @schema(ActionConfigThisContext.getSchema().description("Information about the action currently being resolved."))
-  public this: ActionConfigThisContext
+  public readonly this: ActionConfigThisContext
 
   constructor({ garden, config, thisContextParams, variables }: ActionConfigContextParams) {
-    const mergedVariables = mergeVariables({ garden, variables })
     super(garden, config)
-    this.this = new ActionConfigThisContext(this, thisContextParams)
-    this.variables = this.var = mergedVariables
+    this.this = new ActionConfigThisContext(thisContextParams)
+    this.variables = this.var = variables
   }
 }
 
 interface ActionReferenceContextParams {
-  root: ConfigContext
   name: string
   disabled: boolean
   buildPath: string
   sourcePath: string
   mode: ActionMode
-  variables: DeepPrimitiveMap
+  variables: VariablesContext
 }
 
-export class ActionReferenceContext extends ConfigContext {
+export class ActionReferenceContext extends ContextWithSchema {
   @schema(actionNameSchema)
-  public name: string
+  public readonly name: string
 
   @schema(joi.boolean().required().description("Whether the action is disabled.").example(true))
-  public disabled: boolean
+  public readonly disabled: boolean
 
   @schema(
     joi
@@ -108,7 +99,7 @@ export class ActionReferenceContext extends ConfigContext {
       .description("The local path to the action build directory.")
       .example("/my/project/.garden/build/my-action")
   )
-  public buildPath: string
+  public readonly buildPath: string
 
   @schema(
     joi
@@ -117,16 +108,16 @@ export class ActionReferenceContext extends ConfigContext {
       .description("The local path to the action source directory.")
       .example("/my/project/my-action")
   )
-  public sourcePath: string
+  public readonly sourcePath: string
 
   @schema(actionModeSchema)
-  public mode: ActionMode
+  public readonly mode: ActionMode
 
   @schema(joiVariables().required().description("The variables configured on the action.").example({ foo: "bar" }))
-  public var: DeepPrimitiveMap
+  public readonly var: VariablesContext
 
-  constructor({ root, name, disabled, buildPath, sourcePath, mode, variables }: ActionReferenceContextParams) {
-    super(root)
+  constructor({ name, disabled, buildPath, sourcePath, mode, variables }: ActionReferenceContextParams) {
+    super()
     this.name = name
     this.disabled = disabled
     this.buildPath = buildPath
@@ -156,10 +147,10 @@ class ActionResultContext extends ActionReferenceContext {
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
-  public outputs: PrimitiveMap
+  public readonly outputs: PrimitiveMap
 
   @schema(joi.string().required().description("The current version of the action.").example(exampleVersion))
-  public version: string
+  public readonly version: string
 
   constructor(params: ActionResultContextParams) {
     super(params)
@@ -175,27 +166,27 @@ const _actionResultContextSchema = joiIdentifierMap(ActionResultContext.getSchem
 const actionResultContextSchema = (kind: string) =>
   _actionResultContextSchema.description(`Information about a ${kind} action dependency, including its outputs.`)
 
-class ActionReferencesContext extends ConfigContext {
+class ActionReferencesContext extends ContextWithSchema {
   @schema(actionResultContextSchema("Build"))
-  public build: Map<string, ActionResultContext>
+  public readonly build: Map<string, ActionResultContext>
 
   @schema(actionResultContextSchema("Deploy"))
-  public deploy: Map<string, ActionResultContext>
+  public readonly deploy: Map<string, ActionResultContext>
 
   @schema(actionResultContextSchema("Run"))
-  public run: Map<string, ActionResultContext>
+  public readonly run: Map<string, ActionResultContext>
 
   @schema(actionResultContextSchema("Test"))
-  public test: Map<string, ActionResultContext>
+  public readonly test: Map<string, ActionResultContext>
 
   @schema(_actionResultContextSchema.description("Alias for `deploy`."))
-  public services: Map<string, ActionResultContext>
+  public readonly services: Map<string, ActionResultContext>
 
   @schema(_actionResultContextSchema.description("Alias for `run`."))
-  public tasks: Map<string, ActionResultContext>
+  public readonly tasks: Map<string, ActionResultContext>
 
-  constructor(root: ConfigContext, allowPartial: boolean, actions: (ResolvedAction | ExecutedAction)[]) {
-    super(root)
+  constructor(actions: (ResolvedAction | ExecutedAction)[]) {
+    super()
 
     this.build = new Map()
     this.deploy = new Map()
@@ -209,7 +200,6 @@ class ActionReferencesContext extends ConfigContext {
       this[action.kind.toLowerCase()].set(
         action.name,
         new ActionResultContext({
-          root: this,
           name: action.name,
           outputs: action.getOutputs(),
           version: action.versionString(),
@@ -217,14 +207,10 @@ class ActionReferencesContext extends ConfigContext {
           buildPath: action.getBuildPath(),
           sourcePath: action.sourcePath(),
           mode: action.mode(),
-          variables: action.getVariables(),
+          variables: action.getVariablesContext(),
         })
       )
     }
-
-    // This ensures that any template string containing runtime.* references is returned unchanged when
-    // there is no or limited runtime context available.
-    this._alwaysAllowPartial = allowPartial
   }
 }
 
@@ -232,12 +218,11 @@ export interface ActionSpecContextParams {
   garden: Garden
   resolvedProviders: ProviderMap
   modules: GardenModule[]
-  partialRuntimeResolution: boolean
   action: Action
   resolvedDependencies: ResolvedAction[]
   executedDependencies: ExecutedAction[]
-  variables: DeepPrimitiveMap
-  inputs: DeepPrimitiveMap
+  variables: VariablesContext
+  inputs: InputContext
 }
 
 /**
@@ -249,46 +234,42 @@ export class ActionSpecContext extends OutputConfigContext {
       "Runtime outputs and information from other actions (only resolved at runtime when executing actions)."
     )
   )
-  public actions: ActionReferencesContext
+  public readonly actions: ActionReferencesContext
 
   @schema(ActionReferencesContext.getSchema().description("Alias for `action`."))
-  public override runtime: ActionReferencesContext
+  public override readonly runtime: ActionReferencesContext
 
   @schema(
     joiVariables().description(`The inputs provided to the config through a template, if applicable.`).meta({
       keyPlaceholder: "<input-key>",
     })
   )
-  public inputs: DeepPrimitiveMap
+  public readonly inputs: InputContext
 
   @schema(
     ParentContext.getSchema().description(
       `Information about the config parent, if any (usually a template, if applicable).`
     )
   )
-  public parent?: ParentContext
+  public readonly parent?: ParentContext
 
   @schema(
     TemplateContext.getSchema().description(
       `Information about the template used when generating the config, if applicable.`
     )
   )
-  public template?: TemplateContext
+  public readonly template?: TemplateContext
 
   @schema(ActionReferenceContext.getSchema().description("Information about the action currently being resolved."))
-  public this: ActionReferenceContext
+  public readonly this: ActionReferenceContext
 
   constructor(params: ActionSpecContextParams) {
-    const { action, garden, partialRuntimeResolution, variables, inputs, resolvedDependencies, executedDependencies } =
-      params
+    const { action, variables, inputs, resolvedDependencies, executedDependencies } = params
 
     const internal = action.getInternal()
-
-    const mergedVariables = mergeVariables({ garden, variables })
-
     super({
       ...params,
-      variables: mergedVariables,
+      variables,
     })
 
     const name = action.name
@@ -297,10 +278,7 @@ export class ActionSpecContext extends OutputConfigContext {
     const parentName = internal?.parentName
     const templateName = internal?.templateName
 
-    this.actions = new ActionReferencesContext(this, partialRuntimeResolution, [
-      ...resolvedDependencies,
-      ...executedDependencies,
-    ])
+    this.actions = new ActionReferencesContext([...resolvedDependencies, ...executedDependencies])
 
     // Throw specific error when attempting to resolve self
     this.actions[action.kind.toLowerCase()].set(
@@ -309,21 +287,20 @@ export class ActionSpecContext extends OutputConfigContext {
     )
 
     if (parentName && templateName) {
-      this.parent = new ParentContext(this, parentName)
-      this.template = new TemplateContext(this, templateName)
+      this.parent = new ParentContext(parentName)
+      this.template = new TemplateContext(templateName)
     }
     this.inputs = inputs
 
     this.runtime = this.actions
 
     this.this = new ActionReferenceContext({
-      root: this,
       disabled: action.isDisabled(),
       buildPath,
       name,
       sourcePath,
       mode: action.mode(),
-      variables: mergedVariables,
+      variables,
     })
   }
 }

@@ -10,15 +10,13 @@ import { joi } from "../../config/common.js"
 import { dedent } from "../../util/string.js"
 import { runScript } from "../../util/util.js"
 import { ChildProcessError, RuntimeError } from "../../exceptions.js"
-import type { GenericProviderConfig, Provider } from "../../config/provider.js"
+import type { BaseProviderConfig, Provider } from "../../config/provider.js"
 import { configureExecModule, execModuleSpecSchema } from "./moduleConfig.js"
 import { convertExecModule } from "./convert.js"
 import { sdk } from "../../plugin/sdk.js"
 
-export type ExecProviderConfig = GenericProviderConfig
-
-export type ExecProvider = Provider<ExecProviderConfig>
-export interface ExecProviderOutputs {
+export type ExecProvider = Provider<ExecProviderOutputs>
+export interface ExecProviderOutputs extends BaseProviderConfig {
   initScript: {
     log: string
   }
@@ -87,30 +85,33 @@ execProvider.addHandler("getEnvironmentStatus", async ({ ctx }) => {
 
 execProvider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   const execLog = log.createLog({ name: "exec" })
-  if (ctx.provider.config.initScript) {
-    try {
-      execLog.info("Running init script")
-      const result = await runScript({
-        log: execLog,
-        cwd: ctx.projectRoot,
-        script: ctx.provider.config.initScript,
-      })
-      return { status: { ready: true, outputs: { initScript: { log: result.stdout.trim() } } } }
-    } catch (err) {
-      // Unexpected error (failed to execute script, as opposed to script returning an error code)
-      if (!(err instanceof ChildProcessError)) {
-        throw err
-      }
 
-      throw new RuntimeError({
-        message: dedent`
+  if (!ctx.provider.config.initScript) {
+    return { status: { ready: true, outputs: {} } }
+  }
+
+  try {
+    execLog.info("Running init script")
+    const result = await runScript({
+      log: execLog,
+      cwd: ctx.projectRoot,
+      script: ctx.provider.config.initScript,
+    })
+
+    return { status: { ready: true, outputs: { initScript: { log: result.stdout.trim() } } } }
+  } catch (err) {
+    // Unexpected error (failed to execute script, as opposed to script returning an error code)
+    if (!(err instanceof ChildProcessError)) {
+      throw err
+    }
+
+    throw new RuntimeError({
+      message: dedent`
           exec provider init script exited with code ${err.details.code}. Script output:
           ${err.details.output}
         `,
-      })
-    }
+    })
   }
-  return { status: { ready: true, outputs: {} } }
 })
 
 export const gardenPlugin = execPlugin

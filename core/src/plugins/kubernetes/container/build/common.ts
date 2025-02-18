@@ -13,7 +13,7 @@ import type { KubernetesConfig, KubernetesPluginContext, KubernetesProvider } fr
 import { PodRunner, PodRunnerError, PodRunnerTimeoutError } from "../../run.js"
 import type { PluginContext } from "../../../../plugin-context.js"
 import { hashString, sleep } from "../../../../util/util.js"
-import { InternalError, RuntimeError } from "../../../../exceptions.js"
+import { ConfigurationError } from "../../../../exceptions.js"
 import type { Log } from "../../../../logger/log-entry.js"
 import { prepareDockerAuth } from "../../init.js"
 import { prepareSecrets } from "../../secrets.js"
@@ -187,9 +187,11 @@ export async function skopeoBuildStatus({
   const deploymentRegistry = provider.config.deploymentRegistry
 
   if (!deploymentRegistry) {
-    // This is validated in the provider configure handler, so this is an internal error if it happens
-    throw new InternalError({
-      message: `Expected configured deploymentRegistry for remote build`,
+    // This was supposed to be validated in the provider configure handler
+    // with conditional joi validation, but that caused some troubles with docs generation.
+    // Throw a configuration error here instead of a crash.
+    throw new ConfigurationError({
+      message: `The deploymentRegistry must be configured in provider for remote builds`,
     })
   }
 
@@ -283,12 +285,17 @@ export async function skopeoBuildStatus({
         return { state: "not-ready", outputs, detail: { runtime } }
       }
 
-      throw new RuntimeError({
-        message: `Unable to query registry for image status: Command "${skopeoCommand.join(
+      log.warn(
+        `Failed to check if the image has already been built: Command "${skopeoCommand.join(
           " "
-        )}" failed: ${err.message}`,
-        wrappedErrors: [err],
+        )}" failed: ${err.message}`
+      )
+      log.debug({
+        error: err,
       })
+
+      // If we fail to check the image status, we assume we need to rebuild it.
+      return { state: "not-ready", outputs, detail: { runtime } }
     }
 
     throw err
@@ -730,7 +737,7 @@ const baseUtilService: KubernetesResource<V1Service> = {
         name: "rsync",
         protocol: "TCP",
         port: utilRsyncPort,
-        targetPort: <any>utilRsyncPort,
+        targetPort: utilRsyncPort,
       },
     ],
     selector: {

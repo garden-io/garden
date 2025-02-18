@@ -12,6 +12,7 @@ import { withDefaultGlobalOpts, TestGarden, createProjectConfig, makeTempDir } f
 import { GetOutputsCommand } from "../../../../../src/commands/get/get-outputs.js"
 import type { ProjectConfig } from "../../../../../src/config/project.js"
 import { createGardenPlugin } from "../../../../../src/plugin/plugin.js"
+import { parseTemplateCollection } from "../../../../../src/template/templated-collections.js"
 
 describe("GetOutputsCommand", () => {
   let tmpDir: tmp.DirectoryResult
@@ -34,13 +35,16 @@ describe("GetOutputsCommand", () => {
     const plugin = createGardenPlugin({
       name: "test",
       handlers: {
-        async getEnvironmentStatus() {
-          return { ready: true, outputs: { test: "test-value" } }
+        async prepareEnvironment() {
+          return { status: { ready: true, outputs: { test: "test-value" } } }
         },
       },
     })
 
-    projectConfig.outputs = [{ name: "test", value: "${providers.test.outputs.test}" }]
+    projectConfig.outputs = parseTemplateCollection({
+      value: [{ name: "test", value: "${providers.test.outputs.test}" }],
+      source: { path: [] },
+    })
 
     const garden = await TestGarden.factory(tmpDir.path, {
       plugins: [plugin],

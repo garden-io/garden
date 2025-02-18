@@ -7,19 +7,48 @@
  */
 
 import { resolve } from "path"
-import { mapValues, startCase } from "lodash-es"
+import { isPlainObject, mapValues, startCase } from "lodash-es"
 
-import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/build/src/exceptions.js"
+import {
+  ConfigurationError,
+  isErrnoException,
+  isErrorWithMessage,
+  PluginError,
+  RuntimeError,
+} from "@garden-io/sdk/build/src/exceptions.js"
 import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
 import { dedent } from "@garden-io/sdk/build/src/util/string.js"
 import { terraform } from "./cli.js"
 import type { TerraformProvider } from "./provider.js"
 import fsExtra from "fs-extra"
-const { writeFile } = fsExtra
-import type { PrimitiveMap } from "@garden-io/core/build/src/config/common.js"
+const { writeFile, readJSON } = fsExtra
+import type { DeepPrimitiveMap, PrimitiveMap } from "@garden-io/core/build/src/config/common.js"
 import { joi, joiStringMap } from "@garden-io/core/build/src/config/common.js"
 import split2 from "split2"
 import { styles } from "@garden-io/core/build/src/logger/styles.js"
+import { join } from "node:path/posix"
+import { type inferType, s } from "@garden-io/core/build/src/config/zod.js"
+
+export const terraformBackendConfigSchema = () =>
+  joi
+    .object()
+    .pattern(joi.string(), joi.string())
+    .optional()
+    .description(
+      dedent`
+        Configure the Terraform backend.
+
+        The key-value pairs defined here are set as the \`-backend-config\` options when Garden
+        runs \`terraform init\`.
+
+        This can be used to dynamically set a Terraform backend depending on the environment.
+
+        If Garden sees that the backend has changes, it'll re-initialize Terraform and set the new values.
+      `
+    ).example(dedent`
+      bucket: \$\{environment.name\}-bucket
+      key: tf-state/\$\{local.username\}/terraform.tfstate
+    `)
 
 export const variablesSchema = () => joiStringMap(joi.any())
 
@@ -29,6 +58,7 @@ export interface TerraformBaseSpec {
   variables: PrimitiveMap
   version: string | null
   workspace?: string
+  backendConfig?: { [key: string]: string }
 }
 
 interface TerraformParams {
@@ -46,67 +76,152 @@ interface TerraformParamsWithVariables extends TerraformParamsWithWorkspace {
   variables: object
 }
 
-/**
- * Validates the stack at the given root.
- *
- * Note that this does not set the workspace, so it must be set ahead of calling the function.
- */
-export async function tfValidate(params: TerraformParams) {
-  const { log, ctx, provider, root } = params
+const terraformValidateOutputSchema = s
+  .object({
+    valid: s.boolean(),
+    diagnostics: s.array(
+      s
+        .object({
+          severity: s.string(),
+          summary: s.string(),
+          detail: s.string(),
+        })
+        .passthrough()
+    ),
+  })
+  .passthrough()
 
+/**
+ * Reads the current backend config from the `.terraform/terraform.tfstate` file and
+ * compares it to the backend config supplied by the user via the Garden config (passed)
+ * as an argument to this function.
+ *
+ * Returns true if the user defined backend config is different from the one in the `tfstate` file.
+ */
+export async function hasBackendConfigChanged({
+  root,
+  backendConfig,
+  log,
+}: {
+  root: string
+  backendConfig: { [key: string]: string }
+  log: Log
+}) {
+  let tfState: DeepPrimitiveMap | undefined
+  const tfStatePath = join(root, ".terraform", "terraform.tfstate")
+  try {
+    tfState = await readJSON(tfStatePath)
+  } catch (err) {
+    if (isErrnoException(err) && err.code === "ENOENT") {
+      log.silly(`Terrafrom state file not found at path ${tfStatePath}`)
+      // Backend config hasn't changed if there's no state file to begin with
+      return false
+    }
+
+    log.error(
+      `Got unexpected error when reading Terraform state file at path ${tfStatePath}: ${isErrorWithMessage(err) ? err.message : "<no error message>"}`
+    )
+    throw err
+  }
+
+  const currentBackendConfig = tfState?.backend?.["config"] as { [key: string]: string } | undefined
+
+  const hasChanged =
+    (currentBackendConfig &&
+      isPlainObject(currentBackendConfig) &&
+      !Object.entries(backendConfig).every(([key, value]) => {
+        return currentBackendConfig[key] === value
+      })) ||
+    false
+
+  return hasChanged
+}
+
+/**
+ * Initialize Terraform.
+ */
+export async function ensureTerraformInit(params: TerraformParams & { backendConfig?: { [key: string]: string } }) {
+  const { log, ctx, provider, root, backendConfig } = params
+
+  const backendConfigArgs = Object.entries(backendConfig || []).flatMap(([key, value]) => {
+    return ["-backend-config", `${key}=${value}`]
+  })
+
+  // If the user defined a backend config and it has changed we always run `terraform init` and then return...
+  if (backendConfig && (await hasBackendConfigChanged({ root, backendConfig, log }))) {
+    log.info(`Detected change in backend config, will re-initialize Terraform with '-reconfigure' flag`)
+
+    const initArgs = ["init", ...backendConfigArgs, "-reconfigure"]
+    await terraform(ctx, provider).exec({ log, args: initArgs, cwd: root, timeoutSec: 600 })
+
+    return
+  }
+
+  // ...otherwise we check the status via the `validate` command and only run `terraform init` if it's not
+  // valid (terraform init is idempotent but can be slow so running validate first can save time)
   const args = ["validate", "-json"]
-  const res = await terraform(ctx, provider).json({
+  const rawRes = (await terraform(ctx, provider).json({
     log,
     args,
     ignoreError: true,
     cwd: root,
-  })
+  })) as unknown
 
-  if (res.valid === false) {
-    // We need to run `terraform init` and retry validation
-    log.debug(`Validation failed, trying to run "terraform init".`)
-    let retryRes: any
-    let initError: any
-    try {
-      await terraform(ctx, provider).exec({ log, args: ["init"], cwd: root, timeoutSec: 600 })
-      retryRes = await terraform(ctx, provider).json({
-        log,
-        args,
-        ignoreError: true,
-        cwd: root,
-      })
-    } catch (error) {
-      // We catch the error thrown by the terraform init request
-      log.debug("Terraform init failed with error: ${error.message}")
-      initError = error
+  const res = terraformValidateOutputSchema.parse(rawRes)
+
+  if (res.valid === true) {
+    return
+  }
+
+  // We need to run `terraform init` and retry validation
+  log.debug(`Validation failed, trying to run "terraform init".`)
+  let retryRes: inferType<typeof terraformValidateOutputSchema> | undefined
+  let initError: unknown
+  try {
+    await terraform(ctx, provider).exec({
+      log,
+      args: ["init", ...backendConfigArgs],
+      cwd: root,
+      timeoutSec: 600,
+    })
+
+    const retryResRaw = (await terraform(ctx, provider).json({
+      log,
+      args,
+      ignoreError: true,
+      cwd: root,
+    })) as unknown
+
+    retryRes = terraformValidateOutputSchema.parse(retryResRaw)
+  } catch (error) {
+    // We catch the error thrown by the terraform init request
+    log.debug(`Terraform init failed with error: ${isErrorWithMessage(error) ? error.message : "<no error message>"}`)
+    initError = error
+    throw error
+  }
+
+  // If the original validate request has failed and there is an error thrown by the init request
+  // OR the second validate try has failed, we throw a new ConfigurationError.
+  if ((res?.valid === false && initError) || retryRes?.valid === false) {
+    let errorMsg = dedent`Failed validating Terraform configuration:`
+
+    // It failed when running "terraform init": in this case we only add the error from the
+    // first validation try
+    if (initError) {
+      const resultErrors = res.diagnostics.map((d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`)
+      errorMsg += dedent`\n\n${resultErrors.join("\n")}
+
+        Garden tried running "terraform init" but got the following error:\n
+        ${isErrorWithMessage(initError) ? initError.message : "<no error message>"}`
+    } else {
+      // "terraform init" went through but there is still a validation error afterwards so we
+      // add the retry error.
+      const resultErrors =
+        retryRes?.diagnostics.map((d) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`) || []
+      errorMsg += dedent`\n\n${resultErrors.join("\n")}`
     }
 
-    // If the original validate request has failed and there is an error thrown by the init request
-    // OR the second validate try has failed, we throw a new ConfigurationError.
-    if ((res?.valid === false && initError) || retryRes?.valid === false) {
-      let errorMsg = dedent`Failed validating Terraform configuration:`
-
-      // It failed when running "terraform init": in this case we only add the error from the
-      // first validation try
-      if (initError) {
-        const resultErrors = res.diagnostics.map(
-          (d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`
-        )
-        errorMsg += dedent`\n\n${resultErrors.join("\n")}
-
-    Garden tried running "terraform init" but got the following error:\n
-    ${initError.message}`
-      } else {
-        // "terraform init" went through but there is still a validation error afterwards so we
-        // add the retry error.
-        const resultErrors = retryRes.diagnostics.map(
-          (d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`
-        )
-        errorMsg += dedent`\n\n${resultErrors.join("\n")}`
-      }
-
-      throw new ConfigurationError({ message: errorMsg })
-    }
+    throw new ConfigurationError({ message: errorMsg })
   }
 }
 
@@ -142,9 +257,6 @@ type StackStatus = "up-to-date" | "outdated" | "error"
  */
 export async function getStackStatus(params: TerraformParamsWithVariables): Promise<StackStatus> {
   const { ctx, log, provider, root, variables } = params
-
-  await setWorkspace(params)
-  await tfValidate(params)
 
   const statusLog = log.createLog({ name: "terraform" }).info("Running plan...")
 
@@ -185,15 +297,22 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
   }
 }
 
-export async function applyStack(params: TerraformParamsWithVariables) {
-  const { ctx, log, provider, root, variables } = params
-
-  await setWorkspace(params)
+export async function applyStack(params: TerraformParamsWithVariables & { actionName?: string }) {
+  const { ctx, log, provider, root, variables, actionName } = params
 
   const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
   const proc = await terraform(ctx, provider).spawn({ log, args, cwd: root })
 
-  const statusLine = log.createLog({}).info("→ Applying Terraform stack...")
+  const logEventContext = {
+    origin: "terraform",
+    level: "verbose" as const,
+  }
+  const statusLine = log
+    .createLog({
+      name: actionName || "terraform",
+      origin: "terraform",
+    })
+    .info("Applying Terraform stack...")
   const logStream = split2()
 
   let stderr = ""
@@ -210,7 +329,11 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   }
 
   logStream.on("data", (line: Buffer) => {
-    statusLine.info(styles.primary("→ " + line.toString()))
+    const msg = line.toString()
+    statusLine.info(styles.primary(msg))
+    if (provider.config.streamLogsToCloud) {
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg, ...logEventContext })
+    }
   })
 
   await new Promise<void>((_resolve, reject) => {
@@ -279,7 +402,7 @@ export async function getWorkspaces(params: TerraformParams) {
  * Sets the workspace to use in the Terraform `root`, creating it if it doesn't already exist. Does nothing if
  * no `workspace` is set.
  */
-export async function setWorkspace(params: TerraformParamsWithWorkspace) {
+export async function ensureWorkspace(params: TerraformParamsWithWorkspace) {
   const { ctx, provider, root, log, workspace } = params
 
   if (!workspace) {

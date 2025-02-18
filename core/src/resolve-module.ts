@@ -6,16 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import cloneDeep from "fast-copy"
-import { isArray, isString, keyBy, keys, partition, pick, union, uniq } from "lodash-es"
+import { isArray, isString, keyBy, partition, uniq } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
-import {
-  getModuleTemplateReferences,
-  mayContainTemplateString,
-  resolveTemplateString,
-  resolveTemplateStrings,
-} from "./template-string/template-string.js"
-import { GenericContext } from "./config/template-contexts/base.js"
+import { isUnresolved, legacyResolveTemplateString } from "./template/templated-strings.js"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden.js"
 import type { GardenError } from "./exceptions.js"
@@ -39,14 +32,11 @@ import { allowUnknown } from "./config/common.js"
 import type { ProviderMap } from "./config/provider.js"
 import { DependencyGraph } from "./graph/common.js"
 import fsExtra from "fs-extra"
-
-const { mkdirp, readFile } = fsExtra
 import type { Log } from "./logger/log-entry.js"
 import type { ModuleConfigContextParams } from "./config/template-contexts/module.js"
 import { ModuleConfigContext } from "./config/template-contexts/module.js"
 import { pathToCacheContext } from "./cache.js"
-import { loadVarfile, prepareBuildDependencies } from "./config/base.js"
-import { merge } from "json-merge-patch"
+import { prepareBuildDependencies } from "./config/base.js"
 import type { ModuleTypeDefinition } from "./plugin/plugin.js"
 import { serviceFromConfig } from "./types/service.js"
 import { taskFromConfig } from "./types/task.js"
@@ -63,6 +53,16 @@ import { styles } from "./logger/styles.js"
 import { actionReferenceToString } from "./actions/base.js"
 import type { DepGraph } from "dependency-graph"
 import { minimatch } from "minimatch"
+import { getModuleTemplateReferences } from "./config/references.js"
+import { type ParsedTemplate, UnresolvedTemplateValue } from "./template/types.js"
+import { conditionallyDeepEvaluate, evaluate } from "./template/evaluate.js"
+import { someReferences } from "./template/analysis.js"
+import { parseTemplateCollection } from "./template/templated-collections.js"
+import { deepMap, isPlainObject } from "./util/objects.js"
+import { InputContext } from "./config/template-contexts/input.js"
+import { VariablesContext } from "./config/template-contexts/variables.js"
+
+const { mkdirp, readFile } = fsExtra
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -121,7 +121,7 @@ export class ModuleResolver {
 
     const minimalRoots = await this.garden.vcs.getMinimalRoots(this.log, allPaths)
 
-    const resolvedConfigs: ModuleConfigMap = {}
+    const resolveResults: Record<string, { config: ModuleConfig; context: ModuleConfigContext }> = {}
     const resolvedModules: ModuleMap = {}
     const errors: { [moduleName: string]: GardenError } = {}
 
@@ -136,21 +136,21 @@ export class ModuleResolver {
       inFlight.add(moduleKey)
 
       // Resolve configuration, unless previously resolved.
-      let resolvedConfig = resolvedConfigs[moduleKey]
+      let resolveResult = resolveResults[moduleKey]
       let foundNewDependency = false
 
       const dependencyNames = fullGraph.dependenciesOf(moduleKey)
       const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n]).filter(Boolean)
 
       try {
-        if (!resolvedConfig) {
+        if (!resolveResult) {
           const rawConfig = this.rawConfigsByKey[moduleKey]
 
           this.log.silly(() => `ModuleResolver: Resolve config ${moduleKey}`)
-          resolvedConfig = resolvedConfigs[moduleKey] = await this.resolveModuleConfig(rawConfig, resolvedDependencies)
+          resolveResult = resolveResults[moduleKey] = await this.resolveModuleConfig(rawConfig, resolvedDependencies)
 
           // Check if any new build dependencies were added by the configure handler
-          for (const dep of resolvedConfig.build.dependencies) {
+          for (const dep of resolveResult.config.build.dependencies) {
             const depKey = dep.name
 
             if (!dependencyNames.includes(depKey)) {
@@ -180,15 +180,16 @@ export class ModuleResolver {
         // dependencies.
         if (!foundNewDependency) {
           const shouldResolve =
-            forceResolve || this.shouldResolveInline({ config: resolvedConfig, actionsFilter, fullGraph })
+            forceResolve || this.shouldResolveInline({ config: resolveResult.config, actionsFilter, fullGraph })
 
           if (shouldResolve) {
-            const buildPath = this.garden.buildStaging.getBuildPath(resolvedConfig)
+            const buildPath = this.garden.buildStaging.getBuildPath(resolveResult.config)
             resolvedModules[moduleKey] = await this.resolveModule({
-              resolvedConfig,
+              resolvedConfig: resolveResult.config,
+              variables: resolveResult.context.variables,
               buildPath,
               dependencies: resolvedDependencies,
-              repoRoot: minimalRoots[resolvedConfig.path],
+              repoRoot: minimalRoots[resolveResult.config.path],
             })
           } else {
             this.log.debug(() => `ModuleResolver: Module ${moduleKey} skipped`)
@@ -207,6 +208,11 @@ export class ModuleResolver {
 
     const processLeaves = async (forceResolve: boolean) => {
       if (Object.keys(errors).length > 0) {
+        for (const err of Object.values(errors)) {
+          if (err instanceof InternalError) {
+            throw err
+          }
+        }
         const errorStr = Object.entries(errors)
           .map(([name, err]) => `${styles.highlight.bold(name)}: ${err.message}`)
           .join("\n")
@@ -271,7 +277,7 @@ export class ModuleResolver {
       const taskNames = new Set<string>()
 
       // Add runtime dependencies to the module dependency graph
-      for (const config of Object.values(resolvedConfigs)) {
+      for (const { config } of Object.values(resolveResults)) {
         for (const service of config.serviceConfigs) {
           const key = `deploy.${service.name}`
           runtimeGraph.addNode(key)
@@ -300,7 +306,7 @@ export class ModuleResolver {
         }
       }
 
-      for (const config of Object.values(resolvedConfigs)) {
+      for (const { config } of Object.values(resolveResults)) {
         for (const service of config.serviceConfigs) {
           const key = `deploy.${service.name}`
           for (const dep of service.dependencies || []) {
@@ -329,8 +335,8 @@ export class ModuleResolver {
         // Note: Module names in the graph don't have the build. prefix
         const moduleDepNames = deps.filter((d) => !d.includes("."))
         for (const name of moduleDepNames) {
-          if (!resolvedModules[name] && resolvedConfigs[name]) {
-            needResolve[name] = resolvedConfigs[name]
+          if (!resolvedModules[name] && resolveResults[name]) {
+            needResolve[name] = resolveResults[name].config
           }
         }
       }
@@ -347,7 +353,7 @@ export class ModuleResolver {
     const skipped = new Set<string>()
 
     if (actionsFilter && mayNeedAdditionalResolution) {
-      for (const config of Object.values(resolvedConfigs)) {
+      for (const { config } of Object.values(resolveResults)) {
         if (!resolvedModules[config.name]) {
           skipped.add(`build.${config.name}`)
           for (const s of config.serviceConfigs) {
@@ -395,7 +401,7 @@ export class ModuleResolver {
       delete config["_templateDeps"]
     }
 
-    return { skipped, resolvedModules: Object.values(resolvedModules), resolvedConfigs: Object.values(resolvedConfigs) }
+    return { skipped, resolvedModules: Object.values(resolvedModules), resolvedConfigs: Object.values(resolveResults) }
   }
 
   private addModulesToGraph(graph: DepGraph<string>, configs: ModuleConfig[]) {
@@ -518,14 +524,10 @@ export class ModuleResolver {
       buildPath,
       parentName: rawConfig.parentName,
       templateName: rawConfig.templateName,
-      inputs: {},
+      inputs: InputContext.forModule(this.garden, rawConfig),
       modules: [],
       graphResults: this.graphResults,
-      partialRuntimeResolution: true,
     }
-
-    // Template inputs are commonly used in module deps, so we need to resolve them first
-    contextParams.inputs = this.resolveInputs(rawConfig, new ModuleConfigContext(contextParams))
 
     const configContext = new ModuleConfigContext(contextParams)
 
@@ -536,21 +538,21 @@ export class ModuleResolver {
     rawConfig["_templateDeps"] = templateDeps
 
     // Try resolving template strings if possible
-    let buildDeps: string[] = []
-    const resolvedDeps = resolveTemplateStrings({
-      value: rawConfig.build.dependencies,
+    const buildDeps: string[] = []
+    // @ts-expect-error todo: correct types for unresolved configs
+    const { resolved } = evaluate(rawConfig.build.dependencies, {
       context: configContext,
-      contextOpts: { allowPartial: true, legacyAllowPartial: true },
-      // Note: We're not implementing the YAML source mapping for modules
-      source: undefined,
+      opts: {},
     })
-
     // The build.dependencies field may not resolve at all, in which case we can't extract any deps from there
-    if (isArray(resolvedDeps)) {
-      buildDeps = resolvedDeps
-        // We only collect fully-resolved references here
-        .filter((d) => !mayContainTemplateString(d) && (isString(d) || d.name))
-        .map((d) => (isString(d) ? d : d.name))
+    if (isArray(resolved)) {
+      for (const d of resolved) {
+        if (isString(d)) {
+          buildDeps.push(d)
+        } else if (isPlainObject(d) && isString(d.name)) {
+          buildDeps.push(d.name)
+        }
+      }
     }
 
     const deps = uniq([...templateDeps, ...buildDeps])
@@ -571,126 +573,69 @@ export class ModuleResolver {
     return getLinkedSources(this.garden, "module")
   }
 
-  private resolveInputs(config: ModuleConfig, configContext: ModuleConfigContext) {
-    const inputs = cloneDeep(config.inputs || {})
-
-    if (!config.templateName) {
-      return inputs
-    }
-
-    return resolveTemplateStrings({
-      value: inputs,
-      context: configContext,
-      contextOpts: { allowPartial: true, legacyAllowPartial: true },
-      // Note: We're not implementing the YAML source mapping for modules
-      source: undefined,
-    })
-  }
-
   /**
    * Resolves and validates a single module configuration.
    */
-  async resolveModuleConfig(config: ModuleConfig, dependencies: GardenModule[]): Promise<ModuleConfig> {
+  async resolveModuleConfig(
+    unresolvedConfig: ModuleConfig,
+    dependencies: GardenModule[]
+  ): Promise<{ config: ModuleConfig; context: ModuleConfigContext }> {
     const garden = this.garden
-    let inputs = cloneDeep(config.inputs || {})
 
-    const buildPath = this.garden.buildStaging.getBuildPath(config)
+    const buildPath = this.garden.buildStaging.getBuildPath(unresolvedConfig)
 
     const templateContextParams: ModuleConfigContextParams = {
       garden,
       variables: garden.variables,
       resolvedProviders: this.resolvedProviders,
       modules: dependencies,
-      name: config.name,
-      path: config.path,
+      name: unresolvedConfig.name,
+      path: unresolvedConfig.path,
       buildPath,
-      parentName: config.parentName,
-      templateName: config.templateName,
-      inputs,
+      parentName: unresolvedConfig.parentName,
+      templateName: unresolvedConfig.templateName,
+      inputs: InputContext.forModule(garden, unresolvedConfig),
       graphResults: this.graphResults,
-      partialRuntimeResolution: true,
     }
 
-    // Resolve and validate the inputs field, because template module inputs may not be fully resolved at this
-    // time.
-    // TODO: This whole complicated procedure could be much improved and simplified by implementing lazy resolution on
-    // values... I'll be looking into that. - JE
+    const contextWithoutVariables = new ModuleConfigContext(templateContextParams)
+
+    const context = new ModuleConfigContext({
+      ...templateContextParams,
+      variables: await VariablesContext.forModule(this.garden, unresolvedConfig, contextWithoutVariables),
+    })
+
+    const moduleTypeDefinitions = await garden.getModuleTypes()
+    const description = moduleTypeDefinitions[unresolvedConfig.type]
+
+    if (!description) {
+      const configPath = relative(garden.projectRoot, unresolvedConfig.configPath || unresolvedConfig.path)
+
+      throw new ConfigurationError({
+        message: dedent`
+          Unrecognized module type '${
+            unresolvedConfig.type
+          }' (defined at ${configPath}). Are you missing a provider configuration?
+
+          Currently available module types: ${Object.keys(moduleTypeDefinitions)}
+        `,
+      })
+    }
+
+    // @ts-expect-error todo: correct types for unresolved configs
+    let config: ModuleConfig = partiallyEvaluateModule(unresolvedConfig, context)
+
+    // Validate inputs if those are already resolved
     const templateName = config.templateName
-
-    if (templateName) {
+    if (templateName && !isUnresolved(config.inputs)) {
       const template = this.garden.configTemplates[templateName]
-
-      inputs = this.resolveInputs(config, new ModuleConfigContext(templateContextParams))
-
-      inputs = validateWithPath({
-        config: inputs,
+      config.inputs = validateWithPath<DeepPrimitiveMap>({
+        config: config.inputs,
         configType: `inputs for module ${config.name}`,
         path: config.configPath || config.path,
         schema: template.inputsSchema,
         projectRoot: garden.projectRoot,
         source: undefined,
-      })
-
-      config.inputs = inputs
-    }
-
-    // Resolve the variables field before resolving everything else (overriding with module varfiles if present)
-    const resolvedModuleVariables = await this.resolveVariables(config, templateContextParams)
-
-    // Now resolve just references to inputs on the config
-    config = resolveTemplateStrings({
-      value: cloneDeep(config),
-      context: new GenericContext({ inputs }),
-      contextOpts: {
-        allowPartial: true,
-        legacyAllowPartial: true,
-      },
-      // Note: We're not implementing the YAML source mapping for modules
-      source: undefined,
-    })
-
-    // And finally fully resolve the config.
-    // Template strings in the spec can have references to inputs,
-    // so we also need to pass inputs here along with the available variables.
-    const configContext = new ModuleConfigContext({
-      ...templateContextParams,
-      variables: { ...garden.variables, ...resolvedModuleVariables },
-      inputs: { ...inputs },
-    })
-
-    config = resolveTemplateStrings({
-      value: { ...config, inputs: {}, variables: {} },
-      context: configContext,
-      contextOpts: {
-        allowPartial: false,
-        allowPartialContext: true,
-        // Modules will be converted to actions later, and the actions will be properly unescaped.
-        // We avoid premature un-escaping here,
-        // because otherwise it will strip the escaped value in the module config
-        // to the normal template string in the converted action config.
-        unescape: false,
-      },
-      // Note: We're not implementing the YAML source mapping for modules
-      source: undefined,
-    })
-
-    config.variables = resolvedModuleVariables
-    config.inputs = inputs
-
-    const moduleTypeDefinitions = await garden.getModuleTypes()
-    const description = moduleTypeDefinitions[config.type]
-
-    if (!description) {
-      const configPath = relative(garden.projectRoot, config.configPath || config.path)
-
-      throw new ConfigurationError({
-        message: dedent`
-          Unrecognized module type '${
-            config.type
-          }' (defined at ${configPath}). Are you missing a provider configuration?
-
-          Currently available module types: ${Object.keys(moduleTypeDefinitions)}
-        `,
       })
     }
 
@@ -712,15 +657,18 @@ export class ModuleResolver {
 
     // Validate the module-type specific spec
     if (description.schema) {
-      config.spec = validateWithPath({
-        config: config.spec,
-        configType: "Module",
-        schema: description.schema,
-        name: config.name,
-        path: config.path,
-        projectRoot: garden.projectRoot,
-        source: undefined,
-      })
+      config = {
+        ...config,
+        spec: validateWithPath({
+          config: config.spec,
+          configType: "Module",
+          schema: description.schema,
+          name: config.name,
+          path: config.path,
+          projectRoot: garden.projectRoot,
+          source: undefined,
+        }),
+      }
     }
 
     // Validate the base config schema
@@ -774,7 +722,7 @@ export class ModuleResolver {
 
     delete config["_templateDeps"]
 
-    return config
+    return { config, context }
   }
 
   /**
@@ -792,11 +740,13 @@ export class ModuleResolver {
 
   private async resolveModule({
     resolvedConfig,
+    variables,
     buildPath,
     dependencies,
     repoRoot,
   }: {
     resolvedConfig: ModuleConfig
+    variables: VariablesContext
     buildPath: string
     dependencies: GardenModule[]
     repoRoot: string
@@ -807,16 +757,15 @@ export class ModuleResolver {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
-      variables: { ...this.garden.variables, ...resolvedConfig.variables },
+      variables,
       name: resolvedConfig.name,
       path: resolvedConfig.path,
       buildPath,
       parentName: resolvedConfig.parentName,
       templateName: resolvedConfig.templateName,
-      inputs: resolvedConfig.inputs,
+      inputs: InputContext.forModule(this.garden, resolvedConfig),
       modules: dependencies,
       graphResults: this.graphResults,
-      partialRuntimeResolution: true,
     })
 
     let updatedFiles = false
@@ -839,7 +788,11 @@ export class ModuleResolver {
         }
 
         const resolvedContents = fileSpec.resolveTemplates
-          ? resolveTemplateString({ string: contents, context: configContext, contextOpts: { unescape: true } })
+          ? legacyResolveTemplateString({
+              string: contents,
+              context: configContext,
+              contextOpts: {},
+            })
           : contents
 
         if (typeof resolvedContents !== "string") {
@@ -931,62 +884,6 @@ export class ModuleResolver {
     this.log.debug(() => `ModuleResolver: Module ${resolvedConfig.name} resolved`)
 
     return module
-  }
-
-  /**
-   * Resolves module variables with the following precedence order:
-   *
-   *   garden.variableOverrides > module varfile > config.variables
-   */
-  private async resolveVariables(
-    config: ModuleConfig,
-    templateContextParams: ModuleConfigContextParams
-  ): Promise<DeepPrimitiveMap> {
-    const moduleConfigContext = new ModuleConfigContext(templateContextParams)
-    const resolveOpts = {
-      allowPartial: false,
-      // Modules will be converted to actions later, and the actions will be properly unescaped.
-      // We avoid premature un-escaping here,
-      // because otherwise it will strip the escaped value in the module config
-      // to the normal template string in the converted action config.
-      unescape: false,
-    }
-
-    let varfileVars: DeepPrimitiveMap = {}
-    if (config.varfile) {
-      const varfilePath = resolveTemplateString({
-        string: config.varfile,
-        context: moduleConfigContext,
-        contextOpts: resolveOpts,
-      })
-      if (typeof varfilePath !== "string") {
-        throw new ConfigurationError({
-          message: `Expected varfile template expression in module configuration ${config.name} to resolve to string, actually got ${typeof varfilePath}`,
-        })
-      }
-      varfileVars = await loadVarfile({
-        configRoot: config.path,
-        path: varfilePath,
-        defaultPath: undefined,
-      })
-    }
-
-    const rawVariables = config.variables
-    const moduleVariables = resolveTemplateStrings({
-      value: cloneDeep(rawVariables || {}),
-      context: moduleConfigContext,
-      contextOpts: resolveOpts,
-      // Note: We're not implementing the YAML source mapping for modules
-      source: undefined,
-    })
-
-    // only override the relevant variables
-    const relevantVariableOverrides = pick(
-      this.garden.variableOverrides,
-      union(keys(moduleVariables), keys(varfileVars))
-    )
-    const mergedVariables: DeepPrimitiveMap = <any>merge(moduleVariables, merge(varfileVars, relevantVariableOverrides))
-    return mergedVariables
   }
 }
 
@@ -1103,6 +1000,18 @@ export const convertModules = profileAsync(async function convertModules(
       })
 
       const totalReturned = (result.actions?.length || 0) + (result.group?.actions.length || 0)
+
+      log.debug(`Rehydrating templates for ${totalReturned} action(s) in ${module.name}...`)
+      for (const a of result.actions || []) {
+        for (const k in a) {
+          a[k] = parseTemplateCollection({ value: a[k], source: { path: [k] } })
+        }
+      }
+      for (const a of result.group?.actions || []) {
+        for (const k in a) {
+          a[k] = parseTemplateCollection({ value: a[k], source: { path: [k] } })
+        }
+      }
 
       log.debug(`Module ${module.name} converted to ${totalReturned} action(s)`)
 
@@ -1222,9 +1131,6 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
     action.internal.basePath = module.basePath || module.path
   }
 
-  // Converted actions are fully resolved upfront
-  action.internal.resolved = true
-
   // Enforce some inheritance from module
   action.internal.moduleName = module.name
   action.internal.moduleVersion = module.version
@@ -1308,4 +1214,63 @@ function getTestNames(config: ModuleConfig) {
     names.push(...(config.spec.tests || []).map((t) => config.name + "-" + t.name).filter(Boolean))
   }
   return names
+}
+
+/**
+ * The module resolution flow is special:
+ *
+ * 1. We will fully resolve all values that do not contain runtime references (with `unescape: false`).
+ * 2. We'll call `toJSON` on all `UnresolvedTemplateValue` instances. This will convert template expressions to raw template strings.
+ * 3. Then we'll apply the module schemas and call configure handlers with the partially resolved config. We know that unresolved values can cause validation errors here.
+ * 4. Once the config has been converted to actions, we call `parseTemplateCollection` again.
+ *
+ * This has a number of horrible consequences, e.g. we parse template strings in environment variables and you can't use runtime outputs on template values where the schema expects a number.
+ *
+ * If there was a way to avoid all that, that would definitely be preferred.
+ *
+ * Let's hope that the deprecated module code can be removed at some point.
+ *
+ * This function can be deleted together with `conditionallyDeepEvaluate` and the `unescape` option at that point.
+ */
+function partiallyEvaluateModule<Input extends ParsedTemplate>(config: Input, context: ModuleConfigContext) {
+  /**
+   * Returns false if the unresolved template value contains runtime references, in order to skip resolving it at this point.
+   */
+  const skipRuntimeAndSecretsReferences = (value: UnresolvedTemplateValue) => {
+    if (
+      someReferences({
+        value,
+        context,
+        opts: {},
+        onlyEssential: true,
+        matcher: (ref) => ref.keyPath[0] === "runtime" || ref.keyPath[0] === "secrets",
+      })
+    ) {
+      return false // do not evaluate runtime and secrets references
+    }
+
+    return true
+  }
+
+  const partial = conditionallyDeepEvaluate(
+    config,
+    {
+      context,
+      opts: {
+        // Modules will be converted to actions later, and escape characters will be properly removed then.
+        // We need this as we intend to parse the evaluation result later again.
+        keepEscapingInTemplateStrings: true,
+      },
+    },
+    skipRuntimeAndSecretsReferences
+  )
+
+  // any leftover unresolved template values are now turned back into the raw form
+  // this was necessary because we apply module schemas on the partially resolved config
+  return deepMap(partial, (v) => {
+    if (v instanceof UnresolvedTemplateValue) {
+      return v.toJSON()
+    }
+    return v
+  })
 }

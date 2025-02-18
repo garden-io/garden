@@ -43,6 +43,7 @@ import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultUtilImageRegistryDomain, defaultSystemNamespace } from "./constants.js"
 import type { LocalKubernetesClusterType } from "./local/config.js"
 import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
+import { makeDeprecationMessage } from "../../util/deprecations.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -95,14 +96,17 @@ interface KubernetesStorage {
   builder: KubernetesStorageSpec
 }
 
-export type ContainerBuildMode = "local-docker" | "kaniko" | "cluster-buildkit"
+const containerBuildModes = ["local-docker", "kaniko", "cluster-buildkit"] as const
+export type ContainerBuildMode = (typeof containerBuildModes)[number]
 
 /**
+ * TODO(0.14): remove this
  * To be removed in 0.14
  * @deprecated since 0.13
  */
 export type DefaultDeploymentStrategy = "rolling"
 /**
+ * TODO(0.14): remove this
  * To be removed in 0.14
  * @deprecated since 0.13
  */
@@ -156,6 +160,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
   defaultHostname?: string
   deploymentRegistry?: ContainerRegistryConfig
   /**
+   * TODO(0.14): remove this
    * Deprecated. Has no effect since 0.13. To be removed in 0.14.
    * @deprecated since 0.13
    */
@@ -418,21 +423,24 @@ export const utilImageRegistryDomainSpec = joi.string().default(defaultUtilImage
     Otherwise the utility images are pulled directly from Docker Hub by default.
   `)
 
+const buildModeSchema = () =>
+  joi
+    .string()
+    .valid(...containerBuildModes)
+    .default("local-docker")
+    .description(
+      dedent`
+  Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
+
+  For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](${DOCS_BASE_URL}/kubernetes-plugins/guides/in-cluster-building).
+  `
+    )
+
 export const kubernetesConfigBase = () =>
   providerConfigBaseSchema()
     .keys({
       utilImageRegistryDomain: utilImageRegistryDomainSpec,
-      buildMode: joi
-        .string()
-        .valid("local-docker", "kaniko", "cluster-buildkit")
-        .default("local-docker")
-        .description(
-          dedent`
-        Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
-
-        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](${DOCS_BASE_URL}/kubernetes-plugins/guides/in-cluster-building).
-        `
-        ),
+      buildMode: buildModeSchema(),
       clusterBuildkit: joi
         .object()
         .keys({
@@ -614,17 +622,11 @@ export const kubernetesConfigBase = () =>
         .description(
           dedent`
           Sets the deployment strategy for \`container\` deploy actions.
-
-          Note that this field has been deprecated since 0.13, and has no effect.
-          The \`"rolling"\` will be applied in all cases.
-          The experimental support for blue/green deployments (via the \`"blue-green"\` strategy) has been removed.
-
-          Note that this setting only applies to \`container\` deploy actions (and not, for example,  \`kubernetes\` or \`helm\` deploy actions).
         `
         )
         .meta({
           experimental: true,
-          deprecated: "This field has been deprecated since 0.13, and has no effect.",
+          deprecated: makeDeprecationMessage({ deprecation: "containerDeploymentStrategy" }),
         }),
       sync: joi
         .object()
@@ -728,18 +730,21 @@ export const namespaceSchema = () =>
 
 const kubectlPathExample = "${local.env.GARDEN_KUBECTL_PATH}?"
 
+const deploymentRegistrySchema = () =>
+  containerRegistryConfigSchema().description(
+    dedent`
+The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
+
+Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
+`
+  )
+
 export const configSchema = () =>
   kubernetesConfigBase()
     .keys({
       name: joiProviderName("kubernetes"),
       context: k8sContextSchema().required(),
-      deploymentRegistry: containerRegistryConfigSchema().description(
-        dedent`
-      The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
-
-      Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
-    `
-      ),
+      deploymentRegistry: deploymentRegistrySchema(),
       ingressClass: joi.string().description(dedent`
         The ingress class or ingressClassName to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation or \`spec.ingressClassName\` field depending on the kubernetes version)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.

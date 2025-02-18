@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isArray, isPlainObject, isString, mapValues } from "lodash-es"
+import { isArray, isPlainObject, isString, mapValues, omit } from "lodash-es"
 import stripAnsi from "strip-ansi"
 import { isPrimitive } from "../config/common.js"
 import { deepFilter } from "./objects.js"
@@ -24,6 +24,11 @@ export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
     })
   }
 
+  // TODO-DODDI-0.14: Remove this line once we've removed graphResults from ProcessCommandResult.
+  if (isPlainObject(value) && "graphResults" in value) {
+    value = omit(value, "graphResults")
+  }
+
   if (!_parents) {
     _parents = new WeakSet()
   } else if (_parents.has(value)) {
@@ -32,6 +37,11 @@ export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
 
   if (value === null || value === undefined) {
     return value
+  } else if (value instanceof Error) {
+    return {
+      message: value.message,
+      stack: value.stack,
+    }
   } else if (Buffer.isBuffer(value)) {
     return "<Buffer>"
     // This is hacky but fairly reliably identifies a Joi schema object

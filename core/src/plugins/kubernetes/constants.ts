@@ -48,14 +48,14 @@ function makeImagePath({
 
 export function getK8sUtilImagePath(registryDomain: string): DockerImageWithDigest {
   const k8sUtilImageName: DockerImageWithDigest =
-    "gardendev/k8s-util:0.6.3@sha256:82d3a625c23d5bcd3007d15ffb45755ed8d83e9adfb0c2982d9a02e8288d2f13"
+    "gardendev/k8s-util:0.6.4@sha256:0f41babfcfa216fe23561195c5c096aff6d9c374cd8850da12b6e00bc944491b"
 
   return makeImagePath({ imageName: k8sUtilImageName, registryDomain })
 }
 
 export function getK8sSyncUtilImagePath(registryDomain: string): DockerImageWithDigest {
   const k8sSyncUtilImageName: DockerImageWithDigest =
-    "gardendev/k8s-sync:0.2.3@sha256:840dcb91a62e66b7e0dcdcfe5537a906c219d6bad6b0cc631407b4befab03af1"
+    "gardendev/k8s-sync:0.2.4@sha256:017986bc523c6fcec36be87ceb57e4504a6fdf1b2565eee04616928f56734cee"
 
   return makeImagePath({ imageName: k8sSyncUtilImageName, registryDomain })
 }
@@ -91,6 +91,6 @@ export function getDefaultGardenIngressControllerDefaultBackendImagePath(
 export const defaultKanikoImageName: DockerImageWithDigest =
   "gcr.io/kaniko-project/executor:v1.11.0-debug@sha256:32ba2214921892c2fa7b5f9c4ae6f8f026538ce6b2105a93a36a8b5ee50fe517"
 export const defaultGardenIngressControllerImage: DockerImageWithDigest =
-  "k8s.gcr.io/ingress-nginx/controller:v1.1.3@sha256:31f47c1e202b39fadecf822a9b76370bd4baed199a005b3e7d4d1455f4fd3fe2"
+  "registry.k8s.io/ingress-nginx/controller:v1.12.0@sha256:e6b8de175acda6ca913891f0f727bca4527e797d52688cbe9fec9040d6f6b6fa"
 export const defaultGardenIngressControllerKubeWebhookCertGenImage: DockerImageWithDigest =
-  "k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1@sha256:64d8c73dca984af206adf9d6d7e46aa550362b1d7a01f3a0a91b20cc67868660"
+  "registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.1@sha256:0de05718b59dc33b57ddfb4d8ad5f637cefd13eafdec0e1579d782b3483c27c3"

@@ -35,7 +35,7 @@ import type { DeployState, ForwardablePort, ServiceIngress } from "../types/serv
 import { deployStates, forwardablePortSchema, serviceIngressSchema } from "../types/service.js"
 import type { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from "../graph/results.js"
 import { splitFirst } from "../util/string.js"
-import type { ActionMode } from "../actions/types.js"
+import { actionStates, type ActionMode, type ActionState } from "../actions/types.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
@@ -699,7 +699,7 @@ ${renderCommands(commands)}
 
 // fixme: These interfaces and schemas are mostly copied from their original locations. This is to ensure that
 // dynamically sized or nested fields don't accidentally get introduced to command results. We should find a neater
-// wat to manage all this.
+// way to manage all this.
 
 interface BuildResultForExport extends ProcessResultMetadata {
   buildLog?: string
@@ -730,6 +730,7 @@ interface DeployResultForExport extends ProcessResultMetadata {
   lastMessage?: string
   lastError?: string
   outputs?: PrimitiveMap
+  // TODO-0.14: Rename to deployState
   state: DeployState
 }
 
@@ -756,6 +757,7 @@ const deployResultForExportSchema = createSchema({
     lastError: joi.string().description("Latest error status message of the service (if any)."),
     outputs: joiVariables().description("A map of values output from the deployment."),
     runningReplicas: joi.number().description("How many replicas of the service are currently running."),
+    // TODO-0.14: Rename to deployState
     state: joi
       .string()
       .valid(...deployStates)
@@ -790,8 +792,8 @@ interface TestResultForExport extends ProcessResultMetadata {
 
 const testResultForExportSchema = createSchema({
   name: "test-result-for-export",
-  keys: () => ({}),
   extend: runResultForExportSchema,
+  keys: () => ({}),
 })
 
 export type ProcessResultMetadata = {
@@ -800,20 +802,21 @@ export type ProcessResultMetadata = {
   success: boolean
   error?: string
   inputVersion: string | null
+  actionState: ActionState
 }
 
 export interface ProcessCommandResult {
   aborted: boolean
   success: boolean
-  graphResults: GraphResultMapWithoutTask // TODO: Remove this.
+  graphResults: GraphResultMapWithoutTask // TODO: Remove this in 0.14.
   build: { [name: string]: BuildResultForExport }
   builds: { [name: string]: BuildResultForExport }
   deploy: { [name: string]: DeployResultForExport }
-  deployments: { [name: string]: DeployResultForExport } // alias for backwards-compatibility
+  deployments: { [name: string]: DeployResultForExport } // alias for backwards-compatibility (remove in 0.14)
   test: { [name: string]: TestResultForExport }
   tests: { [name: string]: TestResultForExport }
   run: { [name: string]: RunResultForExport }
-  tasks: { [name: string]: RunResultForExport } // alias for backwards-compatibility
+  tasks: { [name: string]: RunResultForExport } // alias for backwards-compatibility (remove in 0.14)
 }
 
 export const resultMetadataKeys = () => ({
@@ -831,6 +834,7 @@ export const resultMetadataKeys = () => ({
     .description(
       "Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For action tasks, this will generally be the unresolved version."
     ),
+  actionState: joi.string().valid(...actionStates),
   outputs: joiVariables().description("A map of values output from the action's execution."),
 })
 
@@ -842,11 +846,11 @@ export const processCommandResultSchema = createSchema({
     // Hide this field from the docs, since we're planning to remove it.
     graphResults: joi.any().meta({ internal: true }),
     build: joiIdentifierMap(buildResultForExportSchema().keys(resultMetadataKeys()))
-      .description("A map of all executed Builds (or Builds scheduled/attempted) and information about the them.")
+      .description("A map of all executed Builds (or Builds scheduled/attempted) and information about them.")
       .meta({ keyPlaceholder: "<Build name>" }),
     builds: joiIdentifierMap(buildResultForExportSchema().keys(resultMetadataKeys()))
       .description(
-        "Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about the them."
+        "Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them."
       )
       .meta({ keyPlaceholder: "<Build name>", deprecated: true }),
     deploy: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
@@ -929,8 +933,8 @@ function prepareBuildResult(graphResult: GraphResultWithoutTask): BuildResultFor
   if (buildResult) {
     return {
       ...common,
-      buildLog: buildResult && buildResult.buildLog,
-      fresh: buildResult && buildResult.fresh,
+      buildLog: buildResult.buildLog,
+      fresh: buildResult.fresh,
     }
   } else {
     return common
@@ -976,7 +980,9 @@ function prepareDeployResult(graphResult: GraphResultWithoutTask): DeployResultF
 }
 
 function prepareTestResult(graphResult: GraphResultWithoutTask): TestResultForExport & ProcessResultMetadata {
-  const common = commonResultFields(graphResult)
+  const common = {
+    ...commonResultFields(graphResult),
+  }
   const detail = graphResult.result?.detail
   if (detail) {
     return {
@@ -992,7 +998,9 @@ function prepareTestResult(graphResult: GraphResultWithoutTask): TestResultForEx
 }
 
 function prepareRunResult(graphResult: GraphResultWithoutTask): RunResultForExport & ProcessResultMetadata {
-  const common = commonResultFields(graphResult)
+  const common = {
+    ...commonResultFields(graphResult),
+  }
   const detail = graphResult.result?.detail
   if (detail) {
     return {
@@ -1016,6 +1024,7 @@ function commonResultFields(graphResult: GraphResultWithoutTask) {
     inputVersion: graphResult.inputVersion,
     // Here for backwards-compatibility
     version: graphResult.inputVersion,
+    actionState: graphResult.result.state as ActionState,
   }
 }
 
@@ -1051,7 +1060,8 @@ export async function handleProcessResults(
   const result: ProcessCommandResult = {
     aborted: false,
     success,
-    graphResults: graphResultsForExport, // TODO: Remove this.
+    // TODO-0.14: Remove graphResults from this type (will also require refactoring test cases that read from this field)
+    graphResults: graphResultsForExport,
     build: buildResults,
     builds: buildResults, // alias for `build`
     deploy: deployResults,

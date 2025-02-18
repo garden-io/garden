@@ -9,7 +9,14 @@
 import { join } from "path"
 import { deline } from "@garden-io/core/build/src/util/string.js"
 import { terraform } from "./cli.js"
-import { applyStack, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers.js"
+import {
+  applyStack,
+  getStackStatus,
+  getTfOutputs,
+  prepareVariables,
+  ensureWorkspace,
+  ensureTerraformInit,
+} from "./helpers.js"
 import type { TerraformProvider } from "./provider.js"
 import type { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types.js"
 import type { DeployState } from "@garden-io/core/build/src/types/service.js"
@@ -24,6 +31,9 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
 
   const variables = spec.variables
   const workspace = spec.workspace || null
+
+  await ensureWorkspace({ log, ctx, provider, root, workspace })
+  await ensureTerraformInit({ log, ctx, provider, root, backendConfig: spec.backendConfig })
 
   const status = await getStackStatus({
     ctx,
@@ -53,7 +63,9 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
   const root = getModuleStackRoot(action, spec)
 
   if (spec.autoApply) {
-    await applyStack({ log, ctx, provider, root, variables: spec.variables, workspace })
+    await ensureWorkspace({ log, ctx, provider, root, workspace })
+    await ensureTerraformInit({ log, ctx, provider, root, backendConfig: spec.backendConfig })
+    await applyStack({ log, ctx, provider, root, variables: spec.variables, workspace, actionName: action.name })
   } else {
     const templateKey = `\${runtime.services.${action.name}.outputs.*}`
     log.warn(
@@ -65,7 +77,7 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
         `
       )
     )
-    await setWorkspace({ log, ctx, provider, root, workspace })
+    await ensureWorkspace({ log, ctx, provider, root, workspace })
   }
 
   return {
@@ -99,7 +111,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
   const variables = spec.variables
   const workspace = spec.workspace || null
 
-  await setWorkspace({ ctx, provider, root, log, workspace })
+  await ensureWorkspace({ ctx, provider, root, log, workspace })
 
   const args = ["destroy", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
   await terraform(ctx, provider).exec({ log, args, cwd: root })

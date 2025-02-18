@@ -7,18 +7,18 @@
  */
 
 import { mapValues } from "lodash-es"
-import type { DeepPrimitiveMap, PrimitiveMap } from "../common.js"
+import type { PrimitiveMap } from "../common.js"
 import { joiIdentifierMap, joiPrimitive } from "../common.js"
-import type { Provider, ProviderMap } from "../provider.js"
-import type { GenericProviderConfig } from "../provider.js"
+import type { BaseProviderConfig, Provider, ProviderMap } from "../provider.js"
 import type { Garden } from "../../garden.js"
 import { joi } from "../common.js"
 import { deline } from "../../util/string.js"
 import { getProviderUrl } from "../../docs/common.js"
-import { ConfigContext, schema } from "./base.js"
+import { ContextWithSchema, schema } from "./base.js"
 import { WorkflowConfigContext } from "./workflow.js"
+import type { VariablesContext } from "./variables.js"
 
-class ProviderContext extends ConfigContext {
+class ProviderContext extends ContextWithSchema {
   @schema(
     joi
       .object()
@@ -34,7 +34,7 @@ class ProviderContext extends ConfigContext {
       .example({ clusterHostname: "my-cluster.example.com" })
       .meta({ keyPlaceholder: "<config-key>" })
   )
-  public config: GenericProviderConfig
+  public config: BaseProviderConfig
 
   @schema(
     joiIdentifierMap(
@@ -48,10 +48,10 @@ class ProviderContext extends ConfigContext {
       .example({ "cluster-ip": "1.2.3.4" })
       .meta({ keyPlaceholder: "<output-key>" })
   )
-  public outputs: PrimitiveMap
+  public readonly outputs: PrimitiveMap
 
-  constructor(root: ConfigContext, provider: Provider) {
-    super(root)
+  constructor(provider: Provider) {
+    super()
     this.config = provider.config
     this.outputs = provider.status.outputs
   }
@@ -63,11 +63,11 @@ export class ProviderConfigContext extends WorkflowConfigContext {
       .description("Retrieve information about providers that are defined in the project.")
       .meta({ keyPlaceholder: "<provider-name>" })
   )
-  public providers: Map<string, ProviderContext>
+  public readonly providers: Map<string, ProviderContext>
 
-  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: DeepPrimitiveMap) {
+  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: VariablesContext) {
     super(garden, variables)
 
-    this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(this, p))))
+    this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(p))))
   }
 }

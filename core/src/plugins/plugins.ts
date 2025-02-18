@@ -6,7 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-// These plugins are always registered and the providers documented
+import { GardenApiVersion } from "../constants.js"
+import { isDeprecatedPlugin } from "../util/deprecations.js"
+
+/**
+ * These plugins are always registered and the providers documented.
+ */
 export const getSupportedPlugins = () => [
   {
     name: "container",
@@ -75,13 +80,20 @@ export const getSupportedPlugins = () => [
 ]
 
 // These plugins are always registered
-export const getBuiltinPlugins = () =>
-  getSupportedPlugins().concat([
-    {
-      name: "templated",
-      callback: async () => {
-        const plugin = await import("./templated.js")
-        return plugin.gardenPlugin()
+export const getBuiltinPlugins = (projectApiVersion: GardenApiVersion) =>
+  getSupportedPlugins()
+    .filter((p) => {
+      if (projectApiVersion === GardenApiVersion.v2) {
+        return !isDeprecatedPlugin(p.name)
+      }
+      return true
+    })
+    .concat([
+      {
+        name: "templated",
+        callback: async () => {
+          const plugin = await import("./templated.js")
+          return plugin.gardenPlugin()
+        },
       },
-    },
-  ])
+    ])

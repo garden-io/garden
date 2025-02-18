@@ -1280,16 +1280,11 @@ providers:
 {% endhint %}
 
 {% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
+**Deprecated**: The `deploymentStrategy` config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
+Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
 {% endhint %}
 
 Sets the deployment strategy for `container` deploy actions.
-
-Note that this field has been deprecated since 0.13, and has no effect.
-The `"rolling"` will be applied in all cases.
-The experimental support for blue/green deployments (via the `"blue-green"` strategy) has been removed.
-
-Note that this setting only applies to `container` deploy actions (and not, for example,  `kubernetes` or `helm` deploy actions).
 
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |
@@ -1827,7 +1822,7 @@ providers:
 [providers](#providers) > [resources](#providersresources) > sync
 
 {% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
+**Deprecated**: The sync service is only used for the cluster-docker build mode, which is being deprecated.
 {% endhint %}
 
 Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster

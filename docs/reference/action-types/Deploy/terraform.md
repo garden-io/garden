@@ -253,6 +253,12 @@ Whether the varfile is optional.
 
 ### `build`
 
+{% hint style="warning" %}
+**Deprecated**: The `build` config field in runtime action configs is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
+Use `dependencies` config build to define the build dependencies.
+To make sure your configuration does not break when we release Garden 0.14, please follow the steps at https://docs.garden.io/guides/deprecations#buildConfigFieldOnRuntimeActions
+{% endhint %}
+
 Specify a _Build_ action, and resolve this action from the context of that Build.
 
 For example, you might create an `exec` Build which prepares some manifests, and then reference that in a `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
@@ -353,6 +359,32 @@ Use the specified Terraform workspace.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `spec.backendConfig`
+
+[spec](#spec) > backendConfig
+
+Configure the Terraform backend.
+
+The key-value pairs defined here are set as the `-backend-config` options when Garden
+runs `terraform init`.
+
+This can be used to dynamically set a Terraform backend depending on the environment.
+
+If Garden sees that the backend has changes, it'll re-initialize Terraform and set the new values.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+spec:
+  ...
+  backendConfig:
+      "bucket: ${environment.name\\}-bucket\nkey: tf-state/${local.username\\}/terraform.tfstate"
+```
 
 
 ## Outputs

@@ -17,7 +17,11 @@ import { PluginTool } from "../../util/ext-tools.js"
 import { fromPairs, omit, uniqBy } from "lodash-es"
 import { printHeader, printFooter } from "../../logger/util.js"
 import { BooleanParameter } from "../../cli/params.js"
+import type { BaseProviderConfig, Provider } from "../../config/provider.js"
 
+interface PluginConfigWithToolVersion extends BaseProviderConfig {
+  version?: string
+}
 const fetchToolsOpts = {
   "all": new BooleanParameter({
     help: "Fetch all tools for registered plugins, instead of just ones in the current env/project.",
@@ -93,12 +97,21 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
     // No need to fetch the same tools multiple times, if they're used in multiple providers
     const deduplicated = uniqBy(tools, ({ tool }) => tool["versionPath"])
 
-    const versionedConfigs = garden.getRawProviderConfigs({ names: ["pulumi", "terraform"], allowMissing: true })
+    const configuredProviders = garden
+      .getUnresolvedProviderConfigs({ names: ["pulumi", "terraform"], allowMissing: true })
+      .map((c) => c.name)
+
+    const resolvedProviderConfigs: Provider<PluginConfigWithToolVersion>[] = []
+    for (const providerName of configuredProviders) {
+      resolvedProviderConfigs.push(
+        await garden.resolveProvider<PluginConfigWithToolVersion>({ name: providerName, log })
+      )
+    }
 
     // If the version of the tool is configured on the provider,
     // download only that version of the tool.
     const toolsNeeded = deduplicated.filter((tool) => {
-      const pluginToolVersion = versionedConfigs.find((p) => p.name === tool.plugin.name)?.version
+      const pluginToolVersion = resolvedProviderConfigs.find((p) => p.name === tool.plugin.name)?.config.version
       const pluginHasVersionConfigured = !!pluginToolVersion
       if (!pluginHasVersionConfigured) {
         return true

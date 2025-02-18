@@ -21,6 +21,8 @@ import type { ValidResultType } from "../tasks/base.js"
 import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { GardenApiVersion } from "../constants.js"
+import type { ResolvedTemplate } from "../template/types.js"
+import type { VariablesContext } from "../config/template-contexts/variables.js"
 
 // TODO: split this file
 
@@ -63,7 +65,6 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   // -> No templating is allowed on these.
   internal: GardenResourceInternalFields & {
     groupName?: string
-    resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
     treeVersion?: TreeVersion // Set during module resolution to avoid duplicate scanning for Build actions
     // For forwards-compatibility, applied on actions returned from module conversion handlers
     remoteClonePath?: string
@@ -111,8 +112,8 @@ export interface ActionConfigTypes {
  *
  * See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
  */
-export const actionStateTypes = ["ready", "not-ready", "processing", "failed", "unknown"] as const
-export type ActionState = (typeof actionStateTypes)[number]
+export const actionStates = ["ready", "not-ready", "processing", "failed", "unknown"] as const
+export type ActionState = (typeof actionStates)[number]
 
 export interface ActionStatus<
   T extends BaseAction = BaseAction,
@@ -170,7 +171,7 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   remoteSourcePath: string | null
   supportedModes: ActionModes
   treeVersion: TreeVersion
-  variables: DeepPrimitiveMap
+  variables: VariablesContext
 }
 
 export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs extends Record<string, unknown> = any> {
@@ -181,7 +182,8 @@ export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs e
   spec: C["spec"]
   staticOutputs: StaticOutputs
   inputs: DeepPrimitiveMap
-  variables: DeepPrimitiveMap
+  variables: VariablesContext
+  resolvedVariables: Record<string, ResolvedTemplate>
 }
 
 export type ResolvedActionWrapperParams<

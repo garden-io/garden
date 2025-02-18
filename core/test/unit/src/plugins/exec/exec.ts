@@ -953,7 +953,7 @@ describe("exec plugin", () => {
           const moduleA = "module-a"
           const taskCommand = ["echo", moduleA]
           const variables = { FOO: "foo", BAR: "bar" }
-          garden.setModuleConfigs([
+          garden.setPartialModuleConfigs([
             makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
               name: moduleA,
               type: "exec",
@@ -994,7 +994,7 @@ describe("exec plugin", () => {
         it("adds a Build action if build.command is set", async () => {
           const moduleA = "module-a"
           const buildCommand = ["echo", moduleA]
-          garden.setModuleConfigs([
+          garden.setPartialModuleConfigs([
             makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
               name: moduleA,
               type: "exec",
@@ -1034,7 +1034,7 @@ describe("exec plugin", () => {
           const sourcePath = "./module-a.out"
           const targetPath = "a/module-a.out"
 
-          garden.setModuleConfigs([
+          garden.setPartialModuleConfigs([
             makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
               name: moduleNameA,
               type: "exec",
@@ -1109,7 +1109,7 @@ describe("exec plugin", () => {
         describe("sets buildAtSource on Build", () => {
           async function getGraph(name: string, local: boolean) {
             const buildCommand = ["echo", name]
-            garden.setModuleConfigs([
+            garden.setPartialModuleConfigs([
               makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
                 name,
                 type: "exec",
@@ -1195,7 +1195,7 @@ describe("exec plugin", () => {
             },
           })
 
-          garden.setModuleConfigs([moduleConfigA])
+          garden.setPartialModuleConfigs([moduleConfigA])
           // this will produce modules with `serviceConfigs` fields initialized
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -1252,7 +1252,7 @@ describe("exec plugin", () => {
           })
           delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
 
-          garden.setModuleConfigs([moduleConfigA])
+          garden.setPartialModuleConfigs([moduleConfigA])
           // this will produce modules with `serviceConfigs` fields initialized
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -1310,7 +1310,7 @@ describe("exec plugin", () => {
             },
           })
 
-          garden.setModuleConfigs([moduleConfigA])
+          garden.setPartialModuleConfigs([moduleConfigA])
           // this will produce modules with `taskConfigs` fields initialized
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -1367,7 +1367,7 @@ describe("exec plugin", () => {
           })
           delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
 
-          garden.setModuleConfigs([moduleConfigA])
+          garden.setPartialModuleConfigs([moduleConfigA])
           // this will produce modules with `taskConfigs` fields initialized
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -1426,7 +1426,7 @@ describe("exec plugin", () => {
             },
           })
 
-          garden.setModuleConfigs([moduleConfigA])
+          garden.setPartialModuleConfigs([moduleConfigA])
           // this will produce modules with `testConfigs` fields initialized
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -1484,7 +1484,7 @@ describe("exec plugin", () => {
           })
           delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
 
-          garden.setModuleConfigs([moduleConfigA])
+          garden.setPartialModuleConfigs([moduleConfigA])
           // this will produce modules with `testConfigs` fields initialized
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 

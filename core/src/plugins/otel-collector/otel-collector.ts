@@ -7,7 +7,7 @@
  */
 
 import { join } from "path"
-import type { GenericProviderConfig, Provider } from "../../config/provider.js"
+import type { BaseProviderConfig, Provider } from "../../config/provider.js"
 import { dedent } from "../../util/string.js"
 import { sdk } from "../../plugin/sdk.js"
 import { registerCleanupFunction } from "../../util/util.js"
@@ -31,7 +31,7 @@ import { toGardenError } from "../../exceptions.js"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 
-export type OtelCollectorProviderConfig = GenericProviderConfig
+export type OtelCollectorProviderConfig = BaseProviderConfig
 export type OtelCollectorProvider = Provider<OtelCollectorProviderConfig>
 
 export const gardenPlugin = sdk.createGardenPlugin({

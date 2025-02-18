@@ -12,13 +12,9 @@ import type { EnvironmentStatus } from "./getEnvironmentStatus.js"
 import { dedent } from "../../../util/string.js"
 import { joi } from "../../../config/common.js"
 import { environmentStatusSchema } from "../../../config/status.js"
-import type { GenericProviderConfig } from "../../../config/provider.js"
+import type { BaseProviderConfig } from "../../../config/provider.js"
 
-export interface PrepareEnvironmentParams<
-  C extends GenericProviderConfig = any,
-  T extends EnvironmentStatus = EnvironmentStatus,
-> extends PluginActionParamsBase<C> {
-  status: T
+export interface PrepareEnvironmentParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {
   force: boolean
 }
 
@@ -31,7 +27,11 @@ export const prepareEnvironment = () => ({
     Make sure the environment is set up for this plugin. Use this action to do any bootstrapping required
     before deploying services.
 
-    Called ahead of any runtime actions (such as \`deployService\`, and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\`.
+    This handler MUST BE idempotent since it's called with any command that executes runtime
+    actions (such as Deploy and Test actions).
+
+    If the plugin implements the \`getEnvironmentStatus\` handler then it can be used by this
+    handler to determine whether something needs to be done or whether it can return early.
   `,
   paramsSchema: projectActionParamsSchema().keys({
     force: joi.boolean().description("Force re-configuration of the environment."),

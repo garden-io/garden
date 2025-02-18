@@ -32,7 +32,7 @@ describe("BaseActionRouter", () => {
         base: {
           pluginName: params.base?.pluginName,
         },
-        projectName: params.ctx.resolveTemplateStrings("${project.name}"),
+        projectName: params.ctx.legacyResolveTemplateString("${project.name}"),
       },
       state: "ready" as const,
     }
@@ -460,7 +460,7 @@ describe("BaseActionRouter", () => {
 
       const { garden, router } = await createTestRouter([plugin])
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -499,7 +499,7 @@ describe("BaseActionRouter", () => {
 
       const { garden, router } = await createTestRouter([plugin])
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -554,7 +554,7 @@ describe("BaseActionRouter", () => {
 
       const { garden, router } = await createTestRouter([base, plugin])
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",
@@ -594,7 +594,7 @@ describe("BaseActionRouter", () => {
 
       const { garden, router } = await createTestRouter([plugin])
 
-      garden.setActionConfigs([
+      garden.setPartialActionConfigs([
         {
           kind: "Build",
           type: "test",

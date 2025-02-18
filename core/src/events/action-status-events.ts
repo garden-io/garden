@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { actionStateTypes } from "../actions/types.js"
+import { actionStates } from "../actions/types.js"
 import type { BuildState } from "../plugin/handlers/Build/get-status.js"
 import type { ActionRuntime, RunState } from "../plugin/plugin.js"
 import type { DeployState } from "../types/service.js"
@@ -18,7 +18,7 @@ export type ActionStatusDetailedState = DeployState | BuildState | RunState
  * These are the states emitted in status events. Here, we include additional states to help distinguish status event
  * emitted around status/cache checks VS statuses emitted around the execution after a failed status check.
  */
-const actionStateTypesForEvent = [...actionStateTypes, "getting-status", "cached"] as const
+const actionStateTypesForEvent = [...actionStates, "getting-status", "cached"] as const
 /**
  * This type represents the lifecycle of an individual action execution as emitted to Cloud. Note that the
  * internal semantics are slightly different (e.g. Garden uses "ready" instead of "cached" internally).

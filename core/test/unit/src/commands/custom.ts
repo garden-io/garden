@@ -15,6 +15,8 @@ import { expectError } from "../../../../src/util/testing.js"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers.js"
 import { GardenApiVersion } from "../../../../src/constants.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
+import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
+import type { CommandResource } from "../../../../src/config/command.js"
 
 describe("CustomCommandWrapper", () => {
   let garden: TestGarden
@@ -85,21 +87,26 @@ describe("CustomCommandWrapper", () => {
     const short = "Test"
     const long = "Here's the full description"
 
-    const cmd = new CustomCommandWrapper({
-      apiVersion: GardenApiVersion.v0,
-      kind: "Command",
-      name: "test",
-      internal: {
-        basePath: "/tmp",
-      },
-      description: {
-        short,
-        long,
-      },
-      args: [],
-      opts: [],
-      variables: {},
-    })
+    const cmd = new CustomCommandWrapper(
+      parseTemplateCollection({
+        value: {
+          apiVersion: GardenApiVersion.v0,
+          kind: "Command",
+          name: "test",
+          internal: {
+            basePath: "/tmp",
+          },
+          description: {
+            short,
+            long,
+          },
+          args: [],
+          opts: [],
+          variables: {},
+        },
+        source: { path: [] },
+      })
+    )
 
     expect(cmd.name).to.equal("test")
     expect(cmd.help).to.equal(short)
@@ -107,29 +114,34 @@ describe("CustomCommandWrapper", () => {
   })
 
   it("sets the ${args.$rest} variable correctly", async () => {
-    const cmd = new CustomCommandWrapper({
-      apiVersion: GardenApiVersion.v0,
-      kind: "Command",
-      name: "test",
-      internal: {
-        basePath: "/tmp",
-      },
-      description: {
-        short: "Test",
-      },
-      args: [
-        { type: "string", name: "a", description: "Arg A", required: true },
-        { type: "integer", name: "b", description: "Arg B" },
-      ],
-      opts: [
-        { type: "string", name: "a", description: "Opt A", required: true },
-        { type: "boolean", name: "b", description: "Opt B" },
-      ],
-      variables: {},
-      exec: {
-        command: ["echo", "${join(args.$rest, ' ')}"],
-      },
-    })
+    const cmd = new CustomCommandWrapper(
+      parseTemplateCollection({
+        value: {
+          apiVersion: GardenApiVersion.v0,
+          kind: "Command",
+          name: "test",
+          internal: {
+            basePath: "/tmp",
+          },
+          description: {
+            short: "Test",
+          },
+          args: [
+            { type: "string", name: "a", description: "Arg A", required: true },
+            { type: "integer", name: "b", description: "Arg B" },
+          ],
+          opts: [
+            { type: "string", name: "a", description: "Opt A", required: true },
+            { type: "boolean", name: "b", description: "Opt B" },
+          ],
+          variables: {},
+          exec: {
+            command: ["echo", "${join(args.$rest, ' ')}" as string],
+          },
+        } as const,
+        source: { path: [] },
+      })
+    )
 
     const { result } = await cmd.action({
       cli,
@@ -148,25 +160,30 @@ describe("CustomCommandWrapper", () => {
   })
 
   it("resolves template strings in command variables", async () => {
-    const cmd = new CustomCommandWrapper({
-      apiVersion: GardenApiVersion.v0,
-      kind: "Command",
-      name: "test",
-      internal: {
-        basePath: "/tmp",
-      },
-      description: {
-        short: "Test",
-      },
-      args: [],
-      opts: [],
-      variables: {
-        foo: "${project.name}",
-      },
-      exec: {
-        command: ["echo", "${var.foo}"],
-      },
-    })
+    const cmd = new CustomCommandWrapper(
+      parseTemplateCollection({
+        value: {
+          apiVersion: GardenApiVersion.v0,
+          kind: "Command",
+          name: "test",
+          internal: {
+            basePath: "/tmp",
+          },
+          description: {
+            short: "Test",
+          },
+          args: [],
+          opts: [],
+          variables: {
+            foo: "${project.name}",
+          },
+          exec: {
+            command: ["echo", "${var.foo}"],
+          },
+        },
+        source: { path: [] },
+      })
+    )
 
     const { result } = await cmd.action({
       cli,
@@ -181,25 +198,30 @@ describe("CustomCommandWrapper", () => {
   })
 
   it("runs an exec command with resolved templates", async () => {
-    const cmd = new CustomCommandWrapper({
-      apiVersion: GardenApiVersion.v0,
-      kind: "Command",
-      name: "test",
-      internal: {
-        basePath: "/tmp",
-      },
-      description: {
-        short: "Test",
-      },
-      args: [],
-      opts: [],
-      variables: {
-        foo: "test",
-      },
-      exec: {
-        command: ["echo", "${project.name}-${var.foo}"],
-      },
-    })
+    const cmd = new CustomCommandWrapper(
+      parseTemplateCollection({
+        value: {
+          apiVersion: GardenApiVersion.v0,
+          kind: "Command",
+          name: "test",
+          internal: {
+            basePath: "/tmp",
+          },
+          description: {
+            short: "Test",
+          },
+          args: [],
+          opts: [],
+          variables: {
+            foo: "test",
+          },
+          exec: {
+            command: ["echo", "${project.name}-${var.foo}"],
+          },
+        },
+        source: { path: [] },
+      })
+    )
 
     const { result } = await cmd.action({
       cli,
@@ -214,23 +236,28 @@ describe("CustomCommandWrapper", () => {
   })
 
   it("runs a Garden command with resolved templates", async () => {
-    const cmd = new CustomCommandWrapper({
-      apiVersion: GardenApiVersion.v0,
-      kind: "Command",
-      name: "test",
-      internal: {
-        basePath: "/tmp",
-      },
-      description: {
-        short: "Test",
-      },
-      args: [],
-      opts: [],
-      variables: {
-        foo: "test",
-      },
-      gardenCommand: ["validate"],
-    })
+    const cmd = new CustomCommandWrapper(
+      parseTemplateCollection({
+        value: {
+          apiVersion: GardenApiVersion.v0,
+          kind: "Command",
+          name: "test",
+          internal: {
+            basePath: "/tmp",
+          },
+          description: {
+            short: "Test",
+          },
+          args: [],
+          opts: [],
+          variables: {
+            foo: "test",
+          },
+          gardenCommand: ["validate"],
+        },
+        source: { path: [] },
+      })
+    )
 
     const { result } = await cmd.action({
       cli,
@@ -244,24 +271,29 @@ describe("CustomCommandWrapper", () => {
   })
 
   it("runs exec command before Garden command if both are specified", async () => {
-    const cmd = new CustomCommandWrapper({
-      apiVersion: GardenApiVersion.v0,
-      kind: "Command",
-      name: "test",
-      internal: {
-        basePath: "/tmp",
-      },
-      description: {
-        short: "Test",
-      },
-      args: [],
-      opts: [],
-      variables: {},
-      exec: {
-        command: ["sleep", "1"],
-      },
-      gardenCommand: ["validate"],
-    })
+    const cmd = new CustomCommandWrapper(
+      parseTemplateCollection({
+        value: {
+          apiVersion: GardenApiVersion.v0,
+          kind: "Command",
+          name: "test",
+          internal: {
+            basePath: "/tmp",
+          },
+          description: {
+            short: "Test",
+          },
+          args: [],
+          opts: [],
+          variables: {},
+          exec: {
+            command: ["sleep", "1"],
+          },
+          gardenCommand: ["validate"],
+        },
+        source: { path: [] },
+      })
+    )
 
     const { result } = await cmd.action({
       cli,
@@ -275,35 +307,40 @@ describe("CustomCommandWrapper", () => {
   })
 
   it("exposes arguments and options correctly in command templates", async () => {
-    const cmd = new CustomCommandWrapper({
-      apiVersion: GardenApiVersion.v0,
-      kind: "Command",
-      name: "test",
-      internal: {
-        basePath: "/tmp",
-      },
-      description: {
-        short: "Test",
-      },
-      args: [
-        { type: "string", name: "a", description: "Arg A", required: true },
-        { type: "integer", name: "b", description: "Arg B" },
-      ],
-      opts: [
-        { type: "string", name: "a", description: "Opt A", required: true },
-        { type: "boolean", name: "b", description: "Opt B" },
-      ],
-      variables: {
-        foo: "test",
-      },
-      exec: {
-        command: [
-          "sh",
-          "-c",
-          "echo ALL: ${args.$all}\necho ARG A: ${args.a}\necho ARG B: ${args.b}\necho OPT A: ${opts.a}\necho OPT B: ${opts.b}",
-        ],
-      },
-    })
+    const cmd = new CustomCommandWrapper(
+      parseTemplateCollection({
+        value: {
+          apiVersion: GardenApiVersion.v0,
+          kind: "Command",
+          name: "test",
+          internal: {
+            basePath: "/tmp",
+          },
+          description: {
+            short: "Test",
+          },
+          args: [
+            { type: "string", name: "a", description: "Arg A", required: true },
+            { type: "integer", name: "b", description: "Arg B" },
+          ],
+          opts: [
+            { type: "string", name: "a", description: "Opt A", required: true },
+            { type: "boolean", name: "b", description: "Opt B" },
+          ],
+          variables: {
+            foo: "test",
+          },
+          exec: {
+            command: [
+              "sh",
+              "-c",
+              "echo ALL: ${args.$all}\necho ARG A: ${args.a}\necho ARG B: ${args.b}\necho OPT A: ${opts.a}\necho OPT B: ${opts.b}",
+            ],
+          },
+        },
+        source: { path: [] },
+      }) as CommandResource
+    )
 
     const { result } = await cmd.action({
       cli,

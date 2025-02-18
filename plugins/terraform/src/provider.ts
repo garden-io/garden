@@ -9,16 +9,17 @@
 import { dedent } from "@garden-io/sdk/build/src/util/string.js"
 import { defaultTerraformVersion, supportedVersions } from "./cli.js"
 import type { TerraformBaseSpec } from "./helpers.js"
-import { variablesSchema } from "./helpers.js"
+import { terraformBackendConfigSchema, variablesSchema } from "./helpers.js"
 import { docsBaseUrl } from "@garden-io/sdk/build/src/constants.js"
 
-import type { GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
+import type { BaseProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
 import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider.js"
 import { joi } from "@garden-io/core/build/src/config/common.js"
 
-export type TerraformProviderConfig = GenericProviderConfig &
+export type TerraformProviderConfig = BaseProviderConfig &
   TerraformBaseSpec & {
     initRoot?: string
+    streamLogsToCloud: boolean
   }
 
 export type TerraformProvider = Provider<TerraformProviderConfig>
@@ -53,5 +54,12 @@ export const terraformProviderConfigSchema = providerConfigBaseSchema()
         The version of Terraform to use. Set to \`null\` to use whichever version of \`terraform\` that is on your PATH.
       `),
     workspace: joi.string().description("Use the specified Terraform workspace."),
+    streamLogsToCloud: joi
+      .boolean()
+      .default(false)
+      .description(
+        `Set to \`true\` to make logs from Terraform Deploy actions visible in Garden Cloud/Enterprise. Defaults to \`false\``
+      ),
+    backendConfig: terraformBackendConfigSchema(),
   })
   .unknown(false)

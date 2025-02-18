@@ -36,6 +36,17 @@ export const DEFAULT_PORT_PROTOCOL = "TCP"
 export enum GardenApiVersion {
   v0 = "garden.io/v0",
   v1 = "garden.io/v1",
+  v2 = "garden.io/v2",
+}
+
+// TODO(0.14): bump this to v1 (or v2?)
+//  Update the comments and log messages in the placed where it's used.
+export const defaultGardenApiVersion = GardenApiVersion.v0
+
+export const supportedApiVersions: string[] = Object.values(GardenApiVersion).map((v) => v as string)
+
+export function gardenApiSupportsActions(apiVersion: GardenApiVersion): boolean {
+  return apiVersion !== GardenApiVersion.v0
 }
 
 export const DEFAULT_BUILD_TIMEOUT_SEC = 600
@@ -78,7 +89,6 @@ export const gardenEnv = {
   GARDEN_DISABLE_WEB_APP_WARN: env.get("GARDEN_DISABLE_WEB_APP_WARN").required(false).default("false").asBool(),
   GARDEN_ENABLE_PROFILING: env.get("GARDEN_ENABLE_PROFILING").required(false).default("false").asBool(),
   GARDEN_ENVIRONMENT: env.get("GARDEN_ENVIRONMENT").required(false).asString(),
-  GARDEN_EXPERIMENTAL_BUILD_STAGE: env.get("GARDEN_EXPERIMENTAL_BUILD_STAGE").required(false).asBool(),
   GARDEN_GE_SCHEDULED: env.get("GARDEN_GE_SCHEDULED").required(false).asBool(),
   GARDEN_GIT_SCAN_MODE: env
     .get("GARDEN_GIT_SCAN_MODE")
@@ -86,7 +96,7 @@ export const gardenEnv = {
     .default(defaultGitScanMode)
     .asEnum(gitScanModes),
   GARDEN_GIT_LOG_UNTRACKED_FILES: env.get("GARDEN_GIT_LOG_UNTRACKED_FILES").required(false).default("false").asBool(),
-  GARDEN_LEGACY_BUILD_STAGE: env.get("GARDEN_LEGACY_BUILD_STAGE").required(false).asBool(),
+  GARDEN_LEGACY_BUILD_STAGE: env.get("GARDEN_LEGACY_BUILD_STAGE").required(false).default("false").asBool(),
   GARDEN_LOG_LEVEL: env.get("GARDEN_LOG_LEVEL").required(false).asString(),
   GARDEN_LOGGER_TYPE: env.get("GARDEN_LOGGER_TYPE").required(false).asString(),
   GARDEN_PROXY_DEFAULT_ADDRESS: env.get("GARDEN_PROXY_DEFAULT_ADDRESS").required(false).asString(),

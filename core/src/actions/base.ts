@@ -8,7 +8,7 @@
 
 import titleize from "titleize"
 import type { ConfigGraph, GetActionOpts, PickTypeByKind, ResolvedConfigGraph } from "../graph/config-graph.js"
-import type { ActionReference, DeepPrimitiveMap } from "../config/common.js"
+import type { ActionReference } from "../config/common.js"
 import {
   createSchema,
   includeGuideLink,
@@ -23,8 +23,8 @@ import {
   parseActionReference,
   unusedApiVersionSchema,
 } from "../config/common.js"
-import { DOCS_BASE_URL } from "../constants.js"
-import { dedent, naturalList, stableStringify } from "../util/string.js"
+import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
+import { dedent, deline, naturalList, stableStringify } from "../util/string.js"
 import type { ActionVersion, ModuleVersion, TreeVersion } from "../vcs/vcs.js"
 import { getActionSourcePath, hashStrings, versionStringPrefix } from "../vcs/vcs.js"
 import type { BuildAction, ResolvedBuildAction } from "./build.js"
@@ -34,7 +34,6 @@ import { actionOutputsSchema } from "../plugin/handlers/base/base.js"
 import type { GraphResult, GraphResults } from "../graph/results.js"
 import type { RunResult } from "../plugin/base.js"
 import { Memoize } from "typescript-memoize"
-import cloneDeep from "fast-copy"
 import { flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash-es"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
 import { relative } from "path"
@@ -55,7 +54,7 @@ import type {
   ResolvedAction,
   ResolvedActionWrapperParams,
 } from "./types.js"
-import { actionKinds, actionStateTypes } from "./types.js"
+import { actionKinds, actionStates } from "./types.js"
 import { baseInternalFieldsSchema, varfileDescription } from "../config/base.js"
 import type { DeployAction } from "./deploy.js"
 import type { TestAction } from "./test.js"
@@ -67,6 +66,12 @@ import type { LinkedSource } from "../config-store/local.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { styles } from "../logger/styles.js"
 import { dirname } from "node:path"
+import type { ResolvedTemplate } from "../template/types.js"
+import type { WorkflowConfig } from "../config/workflow.js"
+import type { VariablesContext } from "../config/template-contexts/variables.js"
+import { deepMap } from "../util/objects.js"
+import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { RootLogger } from "../logger/logger.js"
 
 // TODO: split this file
 
@@ -114,7 +119,7 @@ const actionSourceSpecSchema = createSchema({
   meta: { name: "action-source", advanced: true, templateContext: ActionConfigContext },
 })
 
-export const includeExcludeSchema = memoize(() => joi.array().items(joi.posixPath().allowGlobs().subPathOnly()))
+export const includeExcludeSchema = memoize(() => joi.sparseArray().items(joi.posixPath().allowGlobs().subPathOnly()))
 
 const varfileName = "my-action.${environment.name}.env"
 
@@ -280,7 +285,10 @@ export const baseRuntimeActionConfigSchema = createSchema({
       `
         )
       )
-      .meta({ templateContext: ActionConfigContext }),
+      .meta({
+        templateContext: ActionConfigContext,
+        deprecated: makeDeprecationMessage({ deprecation: "buildConfigFieldOnRuntimeActions", includeLink: true }),
+      }),
   }),
   extend: baseActionConfigSchema,
 })
@@ -290,7 +298,7 @@ export const actionStatusSchema = createSchema({
   keys: () => ({
     state: joi
       .string()
-      .allow(...actionStateTypes)
+      .allow(...actionStates)
       .only()
       .required()
       .description("The state of the action."),
@@ -370,7 +378,7 @@ export abstract class BaseAction<
   protected readonly projectRoot: string
   protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
-  protected readonly variables: DeepPrimitiveMap
+  protected readonly variables: VariablesContext
 
   constructor(protected readonly params: ActionWrapperParams<C>) {
     this.kind = params.config.kind
@@ -545,12 +553,12 @@ export abstract class BaseAction<
     const dependencyVersions = fromPairs(depPairs)
 
     const configVersion = this.configVersion()
-    const versionString =
-      versionStringPrefix + hashStrings([configVersion, this._treeVersion.contentHash, ...flatten(sortedDeps)])
+    const sourceVersion = this._treeVersion.contentHash
+    const versionString = versionStringPrefix + hashStrings([configVersion, sourceVersion, ...flatten(sortedDeps)])
 
     return {
       configVersion,
-      sourceVersion: this._treeVersion.contentHash,
+      sourceVersion,
       versionString,
       dependencyVersions,
       files: this._treeVersion.files,
@@ -583,7 +591,7 @@ export abstract class BaseAction<
     }
   }
 
-  getVariables(): DeepPrimitiveMap {
+  getVariablesContext(): VariablesContext {
     return this.variables
   }
 
@@ -598,7 +606,9 @@ export abstract class BaseAction<
   getConfig(): C
   getConfig<K extends keyof C>(key: K): C[K]
   getConfig(key?: keyof C["spec"]) {
-    return cloneDeep(key ? this._config[key] : this._config)
+    const res = key ? this._config[key] : this._config
+    // basically a clone that leaves unresolved template values intact as-is, as they are immutable.
+    return deepMap(res, (v) => v) as typeof res
   }
 
   /**
@@ -691,6 +701,30 @@ export abstract class RuntimeAction<
   StaticOutputs extends Record<string, unknown> = any,
   RuntimeOutputs extends Record<string, unknown> = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
+  constructor(params: ActionWrapperParams<C>) {
+    super(params)
+
+    const buildName = this.getConfig("build")
+    if (buildName) {
+      const log = RootLogger.getInstance().createLog()
+      const config = params.config
+      // Report concrete action name for better UX
+      log.warn(
+        deline`Action ${styles.highlight(this.key())}
+        of type ${styles.highlight(config.type)}
+        defined in ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}
+        declares deprecated config field ${styles.highlight("build")}.`
+      )
+      // Report general deprecation warning
+      reportDeprecatedFeatureUsage({
+        // TODO(0.14): change this to v2
+        apiVersion: GardenApiVersion.v1,
+        log,
+        deprecation: "buildConfigFieldOnRuntimeActions",
+      })
+    }
+  }
+
   /**
    * Return the Build action specified on the `build` field if defined, otherwise null
    */
@@ -735,7 +769,9 @@ export interface ResolvedActionExtension<
 
   getOutputs(): StaticOutputs
 
-  getVariables(): DeepPrimitiveMap
+  getVariablesContext(): VariablesContext
+
+  getResolvedVariables(): Record<string, ResolvedTemplate>
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
@@ -766,6 +802,11 @@ export abstract class ResolvedRuntimeAction<
     this.executedDependencies = params.executedDependencies
     this.resolvedDependencies = params.resolvedDependencies
     this._staticOutputs = params.staticOutputs
+    this._config = {
+      ...this._config,
+      // makes sure the variables show up in the `garden get config` command
+      variables: params.resolvedVariables,
+    }
     this._config.spec = params.spec
     this._config.internal.inputs = params.inputs
   }
@@ -806,7 +847,9 @@ export abstract class ResolvedRuntimeAction<
   getSpec(): Config["spec"]
   getSpec<K extends keyof Config["spec"]>(key: K): Config["spec"][K]
   getSpec(key?: keyof Config["spec"]) {
-    return cloneDeep(key ? this._config.spec[key] : this._config.spec)
+    const res = key ? this._config.spec[key] : this._config.spec
+    // basically a clone that leaves unresolved template values intact as-is, as they are immutable.
+    return deepMap(res, (v) => v) as typeof res
   }
 
   getOutput<K extends keyof StaticOutputs>(key: K): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
@@ -815,6 +858,10 @@ export abstract class ResolvedRuntimeAction<
 
   getOutputs() {
     return this._staticOutputs
+  }
+
+  getResolvedVariables(): Record<string, ResolvedTemplate> {
+    return this.params.resolvedVariables
   }
 }
 
@@ -898,7 +945,10 @@ export function getSourceAbsPath(basePath: string, sourceRelPath: string) {
   return joinWithPosix(basePath, sourceRelPath)
 }
 
-export function describeActionConfig(config: ActionConfig) {
+export function describeActionConfig(config: ActionConfig | WorkflowConfig) {
+  if (config.kind === "Workflow") {
+    return `${config.kind} ${config.name}`
+  }
   const d = `${config.type} ${config.kind} ${config.name}`
   if (config.internal?.moduleName) {
     return d + ` (from module ${config.internal?.moduleName})`
@@ -944,8 +994,18 @@ export function actionIsDisabled(config: ActionConfig, environmentName: string):
  *   see {@link VcsHandler.getTreeVersion} and {@link VcsHandler.getFiles}.
  * - The description field is just informational, shouldn't affect execution.
  * - The disabled flag is not relevant to the config version, since it only affects execution.
+ * - The variables and varfiles are only relevant if they have an effect on a relevant piece of configuration and thus can be omitted.
  */
-const nonVersionedActionConfigKeys = ["internal", "source", "include", "exclude", "description", "disabled"] as const
+const nonVersionedActionConfigKeys = [
+  "internal",
+  "source",
+  "include",
+  "exclude",
+  "description",
+  "disabled",
+  "variables",
+  "varfiles",
+] as const
 export type NonVersionedActionConfigKey = keyof Pick<BaseActionConfig, (typeof nonVersionedActionConfigKeys)[number]>
 
 export function getActionConfigVersion<C extends BaseActionConfig>(config: C) {

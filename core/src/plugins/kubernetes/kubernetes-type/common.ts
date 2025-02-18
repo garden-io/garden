@@ -434,10 +434,15 @@ async function readFileManifests(
         // template expressions will be interpreted by the YAML parser later.
         // Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
         // if they reference variables that do not exist.
-        const resolved = ctx.resolveTemplateStrings(str, {
+        const resolved = ctx.legacyResolveTemplateString(str, {
           legacyAllowPartial: true,
-          unescape: true,
         })
+
+        if (typeof resolved !== "string") {
+          throw new ConfigurationError({
+            message: `Expected manifest template expression in file at path ${absPath} to resolve to string; Actually got ${typeof resolved}`,
+          })
+        }
 
         const manifests = await parseKubernetesManifests(
           resolved,

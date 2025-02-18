@@ -10,11 +10,11 @@ import dotenv from "dotenv"
 import { sep, resolve, relative, basename, dirname, join } from "path"
 import { load } from "js-yaml"
 import { lint } from "yaml-lint"
-import { omit, isPlainObject, isArray } from "lodash-es"
+import { omit, isPlainObject } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
 import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
 import { ConfigurationError, FilesystemError, isErrnoException, ParameterError } from "../exceptions.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, defaultGardenApiVersion, GardenApiVersion } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import { validateWithPath } from "./validation.js"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs.js"
@@ -26,15 +26,19 @@ import { createSchema, joi } from "./common.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { ActionKind, BaseActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
-import { mayContainTemplateString } from "../template-string/template-string.js"
+import { isUnresolved } from "../template/templated-strings.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
-import { dedent, deline } from "../util/string.js"
+import { dedent } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
 import { profileAsync } from "../util/profiling.js"
 import { readFile } from "fs/promises"
 import { LRUCache } from "lru-cache"
+import { parseTemplateCollection } from "../template/templated-collections.js"
+import { evaluate } from "../template/evaluate.js"
+import { GenericContext } from "./template-contexts/base.js"
+import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -218,7 +222,16 @@ export async function validateRawConfig({
     .map((s) => {
       const relPath = relative(projectRoot, configPath)
       const description = `config at ${relPath}`
-      return prepareResource({ log, doc: s, configFilePath: configPath, projectRoot, description, allowInvalid })
+      return prepareResource({
+        log,
+        doc: s,
+        spec: s.toJS(),
+        parse: true,
+        configFilePath: configPath,
+        projectRoot,
+        description,
+        allowInvalid,
+      })
     })
     .filter(isNotNull)
   return resources
@@ -240,18 +253,20 @@ export function prepareResource({
   configFilePath,
   projectRoot,
   description,
+  spec,
   allowInvalid = false,
+  parse = false,
 }: {
   log: Log
-  doc: YamlDocumentWithSource
+  spec: any
+  doc: YamlDocumentWithSource | undefined
   configFilePath: string
   projectRoot: string
   description: string
   allowInvalid?: boolean
+  parse?: boolean
 }): GardenResource | ModuleConfig | null {
   const relPath = relative(projectRoot, configFilePath)
-
-  const spec = doc.toJS()
 
   if (spec === null) {
     return null
@@ -263,13 +278,26 @@ export function prepareResource({
     })
   }
 
+  if (parse) {
+    for (const k in spec) {
+      // TODO: should we do this here? would be good to do it as early as possible.
+      spec[k] = parseTemplateCollection({
+        value: spec[k],
+        source: {
+          yamlDoc: doc,
+          path: [k],
+        },
+      })
+    }
+  }
+
   let kind = spec.kind
 
   const basePath = dirname(configFilePath)
 
   if (!allowInvalid) {
     for (const field of noTemplateFields) {
-      if (spec[field] && mayContainTemplateString(spec[field])) {
+      if (spec[field] && isUnresolved(spec[field])) {
         throw new ConfigurationError({
           message: `Resource in ${relPath} has a template string in field '${field}', which does not allow templating.`,
         })
@@ -343,15 +371,17 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
     return projectSpec
   }
 
+  reportDeprecatedFeatureUsage({
+    apiVersion: projectSpec.apiVersion,
+    log,
+    deprecation: "dotIgnoreFiles",
+  })
+
   if (dotIgnoreFiles.length === 0) {
     return { ...projectSpec, dotIgnoreFile: defaultDotIgnoreFile }
   }
 
   if (dotIgnoreFiles.length === 1) {
-    emitNonRepeatableWarning(
-      log,
-      deline`Multi-valued project configuration field \`dotIgnoreFiles\` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued \`dotIgnoreFile\` instead.`
-    )
     return { ...projectSpec, dotIgnoreFile: dotIgnoreFiles[0] }
   }
 
@@ -366,15 +396,16 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
   // Field 'modules' was intentionally removed from the internal interface `ProjectConfig`,
   // but it still can be presented in the runtime if the old config format is used.
   if (projectSpec["modules"]) {
-    emitNonRepeatableWarning(
+    reportDeprecatedFeatureUsage({
+      apiVersion: projectSpec.apiVersion,
       log,
-      "Project configuration field `modules` is deprecated in 0.13 and will be removed in 0.14. Please use the `scan` field instead."
-    )
-    const scanConfig = projectSpec.scan || {}
+      deprecation: "projectConfigModules",
+    })
+    let scanConfig = projectSpec.scan || {}
     for (const key of ["include", "exclude"]) {
       if (projectSpec["modules"][key]) {
         if (!scanConfig[key]) {
-          scanConfig[key] = projectSpec["modules"][key]
+          scanConfig = { ...scanConfig, [key]: projectSpec["modules"][key] }
         } else {
           log.warn(
             `Project-level \`${key}\` is set both in \`modules.${key}\` and \`scan.${key}\`. The value from \`scan.${key}\` will be used (and the value from \`modules.${key}\` will not have any effect).`
@@ -389,35 +420,36 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
   return projectSpec
 }
 
-function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
+function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
+  const projectApiVersion = projectSpec.apiVersion
+
   // We conservatively set the apiVersion to be compatible with 0.12.
-  if (projectSpec["apiVersion"] === undefined) {
+  if (projectApiVersion === undefined) {
     emitNonRepeatableWarning(
       log,
       `"apiVersion" is missing in the Project config. Assuming "${
-        GardenApiVersion.v0
+        defaultGardenApiVersion
       }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLinkStyled("guides/migrating-to-bonsai")}`
     )
 
     return { ...projectSpec, apiVersion: GardenApiVersion.v0 }
-  } else {
-    if (projectSpec["apiVersion"] === GardenApiVersion.v0) {
-      emitNonRepeatableWarning(
-        log,
-        `Project is configured with \`apiVersion: ${GardenApiVersion.v0}\`, running with backwards compatibility.`
-      )
-    } else if (projectSpec["apiVersion"] !== GardenApiVersion.v1) {
-      throw new ConfigurationError({
-        message: `Project configuration with \`apiVersion: ${projectSpec["apiVersion"]}\` is not supported. Valid values are ${GardenApiVersion.v1} or ${GardenApiVersion.v0}.`,
-      })
-    }
   }
+
+  if (projectApiVersion === GardenApiVersion.v0) {
+    reportDeprecatedFeatureUsage({
+      apiVersion: projectApiVersion,
+      log,
+      deprecation: "apiVersionV0",
+    })
+  }
+
+  // TODO(0.14): print a warning if apiVersion: garden.io/v1 is used
 
   return projectSpec
 }
 
 const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [
-  handleMissingApiVersion,
+  handleApiVersion,
   handleDotIgnoreFiles,
   handleProjectModules,
 ]
@@ -431,18 +463,9 @@ export function prepareProjectResource(log: Log, spec: any): ProjectConfig {
 }
 
 export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleConfig {
-  // We allow specifying modules by name only as a shorthand:
-  //   dependencies:
-  //   - foo-module
-  //   - name: foo-module // same as the above
-  // Empty strings and nulls are omitted from the array.
-  let dependencies: BuildDependencyConfig[] = spec.build?.dependencies || []
+  spec.build = evaluate(spec.build, { context: new GenericContext("empty", {}), opts: {} }).resolved
 
-  if (spec.build && spec.build.dependencies && isArray(spec.build.dependencies)) {
-    // We call `prepareBuildDependencies` on `spec.build.dependencies` again in `resolveModuleConfig` to ensure that
-    // any dependency configs whose module names resolved to null get filtered out.
-    dependencies = prepareBuildDependencies(spec.build.dependencies)
-  }
+  const dependencies: BuildDependencyConfig[] = spec.build?.dependencies || []
 
   const cleanedSpec = {
     ...omit(spec, baseModuleSchemaKeys()),

@@ -7,11 +7,13 @@
  */
 
 import { expect } from "chai"
-import type { GenericProviderConfig } from "../../../../src/config/provider.js"
 import { getAllProviderDependencyNames } from "../../../../src/config/provider.js"
 import { expectError } from "../../../helpers.js"
 import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
-import { GenericContext } from "../../../../src/config/template-contexts/base.js"
+import { UnresolvedProviderConfig } from "../../../../src/config/project.js"
+import type { ObjectWithName } from "../../../../src/util/util.js"
+import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
+import { TestContext } from "./template-contexts/base.js"
 
 describe("getProviderDependencies", () => {
   const plugin = createGardenPlugin({
@@ -19,35 +21,39 @@ describe("getProviderDependencies", () => {
   })
 
   it("should extract implicit provider dependencies from template strings", async () => {
-    const config: GenericProviderConfig = {
+    const config = makeUnresolvedProvider({
       name: "my-provider",
       someKey: "${providers.other-provider.foo}",
       anotherKey: "foo-${providers.another-provider.bar}",
-    }
-    expect(getAllProviderDependencyNames(plugin, config, new GenericContext({}))).to.eql([
+    })
+    expect(getAllProviderDependencyNames(plugin, config, new TestContext({}))).to.eql([
       "another-provider",
       "other-provider",
     ])
   })
 
   it("should ignore template strings that don't reference providers", async () => {
-    const config: GenericProviderConfig = {
+    const config = makeUnresolvedProvider({
       name: "my-provider",
       someKey: "${providers.other-provider.foo}",
       anotherKey: "foo-${some.other.ref}",
-    }
-    expect(getAllProviderDependencyNames(plugin, config, new GenericContext({}))).to.eql(["other-provider"])
+    })
+    expect(getAllProviderDependencyNames(plugin, config, new TestContext({}))).to.eql(["other-provider"])
   })
 
   it("should throw on provider-scoped template strings without a provider name", async () => {
-    const config: GenericProviderConfig = {
+    const config = makeUnresolvedProvider({
       name: "my-provider",
       someKey: "${providers}",
-    }
+    })
 
-    await expectError(() => getAllProviderDependencyNames(plugin, config, new GenericContext({})), {
+    await expectError(() => getAllProviderDependencyNames(plugin, config, new TestContext({})), {
       contains:
         "Invalid template key 'providers' in configuration for provider 'my-provider'. You must specify a provider name as well (e.g. \\${providers.my-provider}).",
     })
   })
 })
+
+function makeUnresolvedProvider(o: ObjectWithName) {
+  return new UnresolvedProviderConfig(o.name, [], parseTemplateCollection({ value: o, source: { path: [] } }))
+}

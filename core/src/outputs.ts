@@ -7,19 +7,16 @@
  */
 
 import type { Garden } from "./garden.js"
-import {
-  extractActionReference,
-  extractRuntimeReference,
-  resolveTemplateStrings,
-} from "./template-string/template-string.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import type { Log } from "./logger/log-entry.js"
 import type { OutputSpec } from "./config/project.js"
 import type { ActionReference } from "./config/common.js"
 import { GraphResults } from "./graph/results.js"
-import { getContextLookupReferences, visitAll } from "./template-string/static-analysis.js"
+import { getContextLookupReferences, visitAll } from "./template/analysis.js"
 import { isString } from "lodash-es"
 import type { ObjectWithName } from "./util/util.js"
+import { extractActionReference, extractRuntimeReference } from "./config/references.js"
+import { deepEvaluate } from "./template/evaluate.js"
 
 /**
  * Resolves all declared project outputs. If necessary, this will resolve providers and modules, and ensure services
@@ -38,19 +35,14 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   const generator = getContextLookupReferences(
     visitAll({
       value: garden.rawOutputs as ObjectWithName[],
-      parseTemplateStrings: true,
-      // TODO: What would be the source here?
-      source: {
-        path: [],
-      },
     }),
     new OutputConfigContext({
       garden,
       resolvedProviders: {},
       variables: garden.variables,
       modules: [],
-      partialRuntimeResolution: true,
-    })
+    }),
+    {}
   )
   for (const finding of generator) {
     const keyPath = finding.keyPath
@@ -75,20 +67,16 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   const allRefs = [...needProviders, ...needModules, ...needActions]
 
-  const source = { yamlDoc: garden.getProjectConfig().internal.yamlDoc, path: ["outputs"] }
-
   if (allRefs.length === 0) {
-    // No need to resolve any entities
-    return resolveTemplateStrings({
-      value: garden.rawOutputs,
+    // @ts-expect-error todo: correct types for unresolved configs
+    return deepEvaluate(garden.rawOutputs, {
       context: new OutputConfigContext({
         garden,
         resolvedProviders: {},
         variables: garden.variables,
         modules: [],
-        partialRuntimeResolution: false,
       }),
-      source,
+      opts: {},
     })
   }
 
@@ -117,5 +105,9 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   const configContext = await garden.getOutputConfigContext(log, modules, results)
 
-  return resolveTemplateStrings({ value: garden.rawOutputs, context: configContext, source })
+  // @ts-expect-error todo: correct types for unresolved configs
+  return deepEvaluate(garden.rawOutputs, {
+    context: configContext,
+    opts: {},
+  })
 }

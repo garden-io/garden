@@ -9,16 +9,17 @@
 import type Joi from "@hapi/joi"
 import { readFileSync } from "fs"
 import linewrap from "linewrap"
+import handlebars from "handlebars"
 import { resolve } from "path"
 import { projectSchema } from "../config/project.js"
 import { get, isFunction, isString } from "lodash-es"
-import handlebars from "handlebars"
 import type { JoiDescription } from "../config/common.js"
 import { STATIC_DIR } from "../constants.js"
 import type { BaseKeyDescription, NormalizeOptions } from "./common.js"
 import { indent, renderMarkdownTable, convertMarkdownLinks, flattenSchema, isArrayType } from "./common.js"
 import { JoiKeyDescription } from "./joi-schema.js"
 import { safeDumpYaml } from "../util/serialization.js"
+import stripAnsi from "strip-ansi"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
@@ -84,10 +85,11 @@ function makeMarkdownDescription(description: BaseKeyDescription, { showRequired
 
   const table = renderMarkdownTable(tableData)
 
-  let deprecatedDescription = "This field will be removed in a future release."
+  let deprecatedDescription: string | handlebars.SafeString = "This field will be removed in a future release."
 
-  if (description.deprecated && isString(description.deprecated)) {
-    deprecatedDescription = description.deprecated + " " + deprecatedDescription
+  if (description.deprecated && isString(description.deprecationMessage)) {
+    // we use SafeString so backticks are preserved in the final doc
+    deprecatedDescription = new handlebars.SafeString(stripAnsi(description.deprecationMessage))
   }
 
   return {

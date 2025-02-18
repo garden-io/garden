@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import cloneDeep from "fast-copy"
 import { isEqual, isString, mapValues, memoize, omit, pick, uniq } from "lodash-es"
 import type {
   Action,
@@ -27,6 +26,7 @@ import {
   actionIsDisabled,
   actionReferenceToString,
   addActionDependency,
+  baseActionConfigSchema,
   baseRuntimeActionConfigSchema,
   describeActionConfig,
   describeActionConfigWithPath,
@@ -35,40 +35,39 @@ import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../ac
 import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy.js"
 import { isRunActionConfig, RunAction, runActionConfigSchema } from "../actions/run.js"
 import { isTestActionConfig, TestAction, testActionConfigSchema } from "../actions/test.js"
-import { getEffectiveConfigFileLocation, noTemplateFields } from "../config/base.js"
+import { noTemplateFields } from "../config/base.js"
 import type { ActionReference, JoiDescription } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
-import { validateWithPath } from "../config/validation.js"
-import { ConfigurationError, GardenError, InternalError, PluginError } from "../exceptions.js"
-import { type Garden, overrideVariables } from "../garden.js"
+import { ConfigurationError, GardenError, PluginError } from "../exceptions.js"
+import { type Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ActionTypeDefinition } from "../plugin/action-types.js"
 import type { ActionDefinitionMap } from "../plugins.js"
 import { getActionTypeBases } from "../plugins.js"
 import type { ActionRouter } from "../router/router.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
-import {
-  getActionTemplateReferences,
-  maybeTemplateString,
-  resolveTemplateStrings,
-} from "../template-string/template-string.js"
 import { dedent, deline, naturalList } from "../util/string.js"
-import { DependencyGraph, getVarfileData, mergeVariables } from "./common.js"
+import { DependencyGraph } from "./common.js"
 import type { ConfigGraph } from "./config-graph.js"
 import { MutableConfigGraph } from "./config-graph.js"
 import type { ModuleGraph } from "./modules.js"
 import { isTruthy, type MaybeUndefined } from "../util/util.js"
 import { minimatch } from "minimatch"
-import type { ConfigContext } from "../config/template-contexts/base.js"
+import type { ContextWithSchema } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
 import { relative } from "path"
 import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
-import { isUnresolvableValue } from "../template-string/static-analysis.js"
+import { isUnresolvableValue } from "../template/analysis.js"
+import { getActionTemplateReferences } from "../config/references.js"
+import { deepEvaluate } from "../template/evaluate.js"
+import { type ParsedTemplate } from "../template/types.js"
+import { validateWithPath } from "../config/validation.js"
+import { VariablesContext } from "../config/template-contexts/variables.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -504,19 +503,17 @@ export const processActionConfig = profileAsync(async function processActionConf
     config.internal.treeVersion ||
     (await garden.vcs.getTreeVersion({ log, projectName: garden.projectName, config, scanRoot }))
 
-  const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
-
-  let variables = await mergeVariables({
-    basePath: effectiveConfigFileLocation,
-    variables: config.variables,
-    varfiles: config.varfiles,
-    log,
+  const variablesContext = new ActionConfigContext({
+    garden,
+    config,
+    thisContextParams: {
+      mode,
+      name: config.name,
+    },
+    variables: garden.variables,
   })
 
-  // override the variables if there's any matching variables in variable overrides
-  // passed via --var cli flag. variables passed via --var cli flag have highest precedence
-  const variableOverrides = garden.variableOverrides || {}
-  variables = overrideVariables(variables ?? {}, variableOverrides)
+  const variables = await VariablesContext.forAction(garden, config, variablesContext)
 
   const params: ActionWrapperParams<any> = {
     baseBuildDirectory: garden.buildStaging.buildDirPath,
@@ -659,14 +656,17 @@ export async function executeAction<T extends Action>({
   return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }
 
+// Returns non-templatable keys, and keys that can be resolved using ActionConfigContext.
 const getBuiltinConfigContextKeys = memoize(() => {
   const keys: string[] = []
 
-  for (const schema of [buildActionConfigSchema(), baseRuntimeActionConfigSchema()]) {
+  for (const schema of [buildActionConfigSchema(), baseRuntimeActionConfigSchema(), baseActionConfigSchema()]) {
     const configKeys = schema.describe().keys
 
     for (const [k, v] of Object.entries(configKeys)) {
-      if ((<JoiDescription>v).metas?.find((m) => m.templateContext === ActionConfigContext)) {
+      if (
+        (<JoiDescription>v).metas?.find((m) => m.templateContext === ActionConfigContext || m.templateContext === null)
+      ) {
         keys.push(k)
       }
     }
@@ -725,74 +725,21 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   actionTypes: ActionDefinitionMap
 }): Promise<PreprocessActionResult> {
   const description = describeActionConfig(config)
-  const templateName = config.internal.templateName
 
-  // in pre-processing, only use varfiles that are not template strings
-  const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(getVarfileData(f).path))
-  const variables = await mergeVariables({
-    basePath: config.internal.basePath,
-    variables: config.variables,
-    varfiles: resolvedVarFiles,
-    log,
+  // context for resolving variables (with project & environment level vars)
+  const variableContext = new ActionConfigContext({
+    garden,
+    config,
+    thisContextParams: {
+      mode,
+      name: config.name,
+    },
+    variables: garden.variables,
   })
-
-  const resolvedVariables = resolveTemplateStrings({
-    value: variables,
-    context: new ActionConfigContext({
-      garden,
-      config: { ...config, internal: { ...config.internal, inputs: {} } },
-      thisContextParams: {
-        mode,
-        name: config.name,
-      },
-      variables,
-    }),
-    contextOpts: { allowPartial: true, legacyAllowPartial: true },
-    // TODO: See about mapping this to the original variable sources
-    source: undefined,
-  })
-
-  if (templateName) {
-    // Partially resolve inputs
-    const partiallyResolvedInputs = resolveTemplateStrings({
-      value: config.internal.inputs || {},
-      context: new ActionConfigContext({
-        garden,
-        config: { ...config, internal: { ...config.internal, inputs: {} } },
-        thisContextParams: {
-          mode,
-          name: config.name,
-        },
-        variables: resolvedVariables,
-      }),
-      contextOpts: { allowPartial: true, legacyAllowPartial: true },
-      // TODO: See about mapping this to the original inputs source
-      source: undefined,
-    })
-
-    const template = garden.configTemplates[templateName]
-
-    // Note: This shouldn't happen in normal user flows
-    if (!template) {
-      throw new InternalError({
-        message: `${description} references template '${templateName}' which cannot be found. Available templates: ${
-          naturalList(Object.keys(garden.configTemplates)) || "(none)"
-        }`,
-      })
-    }
-
-    // Validate inputs schema
-    config.internal.inputs = validateWithPath({
-      config: cloneDeep(partiallyResolvedInputs),
-      configType: `inputs for ${description}`,
-      path: config.internal.basePath,
-      schema: template.inputsSchema,
-      projectRoot: garden.projectRoot,
-      source: undefined,
-    })
-  }
 
   const builtinConfigKeys = getBuiltinConfigContextKeys()
+
+  // action context (may be missing some varfiles at this point)
   const builtinFieldContext = new ActionConfigContext({
     garden,
     config,
@@ -800,60 +747,50 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       mode,
       name: config.name,
     },
-    variables: resolvedVariables,
+    variables: await VariablesContext.forAction(garden, config, variableContext),
   })
-
-  const yamlDoc = config.internal.yamlDoc
 
   function resolveTemplates() {
     // Fully resolve built-in fields that only support `ActionConfigContext`.
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
-    const resolvedBuiltin = resolveTemplateStrings({
-      value: pick(config, builtinConfigKeys),
+    const resolvedBuiltin = deepEvaluate(pick(config, builtinConfigKeys) as Record<string, ParsedTemplate>, {
       context: builtinFieldContext,
-      contextOpts: {
-        allowPartial: false,
-      },
-      source: { yamlDoc, path: [] },
+      opts: {},
     })
-    config = { ...config, ...resolvedBuiltin }
     const { spec = {} } = config
 
-    // Validate fully resolved keys (the above + those that don't allow any templating)
-    // TODO-0.13.1: better error messages when something goes wrong here
-    config = validateWithPath({
-      config: {
-        ...config,
-        variables: {},
-        spec: {},
-      },
-      schema: getActionSchema(config.kind),
-      configType: describeActionConfig(config),
-      name: config.name,
-      path: config.internal.basePath,
-      projectRoot: garden.projectRoot,
-      source: { yamlDoc, path: [] },
-    })
-
-    config = { ...config, variables: resolvedVariables, spec }
-
-    // Partially resolve other fields
-    // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
-    const resolvedOther = resolveTemplateStrings({
-      value: omit(config, builtinConfigKeys),
-      context: builtinFieldContext,
-      contextOpts: {
-        allowPartial: true,
-        legacyAllowPartial: true,
-      },
-      source: { yamlDoc, path: [] },
-    })
-    config = { ...config, ...resolvedOther }
+    config = {
+      ...config,
+      // Validate fully resolved keys (the above + those that don't allow any templating)
+      ...validateWithPath({
+        config: {
+          ...resolvedBuiltin,
+          variables: {},
+          spec: {},
+        },
+        schema: getActionSchema(config.kind),
+        configType: describeActionConfig(config),
+        name: config.name,
+        path: config.internal.basePath,
+        projectRoot: garden.projectRoot,
+        source: { yamlDoc: config.internal.yamlDoc, path: [] },
+      }),
+      spec,
+      variables: config.variables,
+    }
   }
 
   resolveTemplates()
 
-  const configureActionResult = await router.configureAction({ config, log })
+  // hack: because variables are partially resolved & that doesn't play well with joi, we do not provide them to the configure handler.
+  const configureActionResult = await router.configureAction({
+    config: {
+      ...config,
+      variables: {},
+    },
+    log,
+  })
+  configureActionResult.config.variables = config.variables
 
   const { config: updatedConfig } = configureActionResult
 
@@ -955,7 +892,7 @@ function dependenciesFromActionConfig({
   config: ActionConfig
   configsByKey: ActionConfigsByKey
   definition: MaybeUndefined<ActionTypeDefinition<any>>
-  templateContext: ConfigContext
+  templateContext: ContextWithSchema
   actionTypes: ActionDefinitionMap
 }) {
   const description = describeActionConfig(config)

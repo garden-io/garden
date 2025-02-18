@@ -9,7 +9,7 @@
 import { terraform } from "./cli.js"
 import type { TerraformProvider } from "./provider.js"
 import { ConfigurationError, ParameterError } from "@garden-io/sdk/build/src/exceptions.js"
-import { prepareVariables, setWorkspace, tfValidate } from "./helpers.js"
+import { prepareVariables, ensureWorkspace, ensureTerraformInit } from "./helpers.js"
 import type { ConfigGraph, PluginCommand, PluginCommandParams } from "@garden-io/sdk/build/src/types.js"
 import { join } from "path"
 import fsExtra from "fs-extra"
@@ -52,8 +52,8 @@ function makeRootCommand(commandName: string): PluginCommand {
       const root = join(ctx.projectRoot, provider.config.initRoot)
       const workspace = provider.config.workspace || null
 
-      await setWorkspace({ ctx, provider, root, log, workspace })
-      await tfValidate({ ctx, provider, root, log })
+      await ensureWorkspace({ ctx, provider, root, log, workspace })
+      await ensureTerraformInit({ ctx, provider, root, log })
 
       args = [commandName, ...(await prepareVariables(root, provider.config.variables)), ...args]
 
@@ -95,8 +95,8 @@ function makeActionCommand(commandName: string): PluginCommand {
       const provider = ctx.provider as TerraformProvider
       const workspace = spec.workspace || null
 
-      await setWorkspace({ ctx, provider, root, log, workspace })
-      await tfValidate({ ctx, provider, root, log })
+      await ensureWorkspace({ ctx, provider, root, log, workspace })
+      await ensureTerraformInit({ ctx, provider, root, log })
 
       args = [commandName, ...(await prepareVariables(root, spec.variables)), ...args.slice(1)]
       await terraform(ctx, provider).spawnAndWait({

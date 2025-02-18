@@ -1,4 +1,65 @@
 
+<a name="0.13.53"></a>
+## [0.13.53](https://github.com/garden-io/garden/compare/0.13.52...0.13.53) (2025-02-06)
+
+### Bug Fixes
+
+* validate secrets before action resolution ([#6822](https://github.com/garden-io/garden/issues/6822)) ([55e7308d2](https://github.com/garden-io/garden/commit/55e7308d2))
+* **cluster-buildkit:** assume image needs rebuild if skopeo command fails and print a warning ([#6810](https://github.com/garden-io/garden/issues/6810)) ([a8918e3c3](https://github.com/garden-io/garden/commit/a8918e3c3))
+
+### Features
+
+* allow cross-referencing variables in the same scope ([#6814](https://github.com/garden-io/garden/issues/6814)) ([463a758f2](https://github.com/garden-io/garden/commit/463a758f2))
+
+### Performance Improvements
+
+* improve preprocess action perf by only resolving template strings when absolutely needed ([#6745](https://github.com/garden-io/garden/issues/6745)) ([c968c6164](https://github.com/garden-io/garden/commit/c968c6164))
+
+<a name="0.13.52"></a>
+## [0.13.52](https://github.com/garden-io/garden/compare/0.13.51...0.13.52) (2025-01-30)
+
+### Bug Fixes
+
+* broken path inside window binary zipped file ([#6812](https://github.com/garden-io/garden/issues/6812)) ([fe2fbdaee](https://github.com/garden-io/garden/commit/fe2fbdaee))
+
+### Improvements
+
+* **k8s:** update ingress controller to 1.12.0 (Helm chart 4.12.0) ([#6789](https://github.com/garden-io/garden/issues/6789)) ([ca9deca68](https://github.com/garden-io/garden/commit/ca9deca68))
+
+<a name="0.13.51"></a>
+## [0.13.51](https://github.com/garden-io/garden/compare/0.13.50...0.13.51) (2025-01-28)
+
+### Improvements
+
+* add better error handling when failing to archive test artifacts ([#6802](https://github.com/garden-io/garden/issues/6802)) ([589cb3926](https://github.com/garden-io/garden/commit/589cb3926))
+
+<a name="0.13.50"></a>
+## [0.13.50](https://github.com/garden-io/garden/compare/0.13.49...0.13.50) (2025-01-24)
+
+### Bug Fixes
+
+* when using create project, the project name is undefined ([#6797](https://github.com/garden-io/garden/issues/6797)) ([39a6345f5](https://github.com/garden-io/garden/commit/39a6345f5))
+* do not crash on missing `deploymentRegistry` for in-cluster builds ([#6768](https://github.com/garden-io/garden/issues/6768)) ([c55486ddd](https://github.com/garden-io/garden/commit/c55486ddd))
+* **container:** respect deployment registry in publishId if not explicitly set ([#6690](https://github.com/garden-io/garden/issues/6690)) ([0c8ec05d4](https://github.com/garden-io/garden/commit/0c8ec05d4))
+* **k8s:** do not throw if paused resource is missing ([#6799](https://github.com/garden-io/garden/issues/6799)) ([62b77ed67](https://github.com/garden-io/garden/commit/62b77ed67))
+* **k8s:** ensure image pull secret is always created for K8s Deploy ([#6795](https://github.com/garden-io/garden/issues/6795)) ([6898536d8](https://github.com/garden-io/garden/commit/6898536d8))
+
+### Improvements
+
+* improvement(framework): always run prepareEnvironment handler [#6706](https://github.com/garden-io/garden/issues/6706) ([0c18a0e97](https://github.com/garden-io/garden/commit/0c18a0e97))
+
+<a name="0.13.49"></a>
+## [0.13.49](https://github.com/garden-io/garden/compare/0.13.48...0.13.49) (2025-01-14)
+
+### Bug Fixes
+
+* use non-legacy build staging file sync on Windows by default ([#6758](https://github.com/garden-io/garden/issues/6758)) ([4c83cd388](https://github.com/garden-io/garden/commit/4c83cd388))
+* **core:** emit namespaceStatus events during provider init ([#6759](https://github.com/garden-io/garden/issues/6759)) ([c704a356e](https://github.com/garden-io/garden/commit/c704a356e))
+
+### Improvements
+
+* **core:** print project name with init log ([#6756](https://github.com/garden-io/garden/issues/6756)) ([67123d158](https://github.com/garden-io/garden/commit/67123d158))
+
 <a name="0.13.48"></a>
 ## [0.13.48](https://github.com/garden-io/garden/compare/0.13.47...0.13.48) (2025-01-09)
 

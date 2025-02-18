@@ -21,7 +21,7 @@ import { GardenIngressComponent } from "./ingress-controller-base.js"
 import { styles } from "../../../logger/styles.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
-const HELM_INGRESS_NGINX_VERSION = "4.0.13"
+const HELM_INGRESS_NGINX_VERSION = "4.12.0"
 const HELM_INGRESS_NGINX_CHART = "ingress-nginx"
 const HELM_INGRESS_NGINX_RELEASE_NAME = "garden-nginx"
 const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
@@ -31,7 +31,7 @@ type _HelmValue = number | string | boolean | object | null | undefined
 export abstract class HelmGardenIngressController extends GardenIngressComponent {
   private readonly defaultBackend = new GardenDefaultBackend()
 
-  override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+  override async ensure(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const ingressControllerReady = await this.ready(ctx, log)
     if (ingressControllerReady) {
       return
@@ -66,7 +66,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
     ]
 
     log.info(`Installing ${styles.highlight("nginx")} in ${styles.highlight(namespace)} namespace...`)
-    await this.defaultBackend.install(ctx, log)
+    await this.defaultBackend.ensure(ctx, log)
     await helm({ ctx, namespace, log, args, emitLogEvents: false })
 
     const nginxHelmMainResource = getNginxHelmMainResource(values)

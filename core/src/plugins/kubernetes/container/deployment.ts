@@ -46,9 +46,9 @@ import type {
 import { syncableKinds } from "../types.js"
 import type { ContainerServiceStatus } from "./status.js"
 import { k8sGetContainerDeployStatus } from "./status.js"
-import { emitNonRepeatableWarning } from "../../../warnings.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run.js"
 import { styles } from "../../../logger/styles.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
@@ -80,10 +80,11 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   }
 
   if (deploymentStrategy === "blue-green") {
-    emitNonRepeatableWarning(
+    reportDeprecatedFeatureUsage({
+      apiVersion: ctx.projectApiVersion,
       log,
-      "The deploymentStrategy configuration option has been deprecated and has no effect. It will be removed iin 0.14. The 'rolling' deployment strategy will be applied."
-    )
+      deprecation: "containerDeploymentStrategy",
+    })
   }
   await deployContainerServiceRolling({ ...params, api, imageId })
 

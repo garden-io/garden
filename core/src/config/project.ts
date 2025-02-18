@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { apply, merge } from "json-merge-patch"
 import { dedent, deline, naturalList } from "../util/string.js"
 import type { DeepPrimitiveMap, Primitive, PrimitiveMap } from "./common.js"
 import {
@@ -21,28 +20,35 @@ import {
   joiVariables,
   joiVariablesDescription,
 } from "./common.js"
+import type { ConfigSource } from "./validation.js"
 import { validateConfig, validateWithPath } from "./validation.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
-import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project.js"
+import { deepEvaluate, evaluate } from "../template/evaluate.js"
+import type { ProjectConfigContext } from "./template-contexts/project.js"
+import { EnvironmentConfigContext } from "./template-contexts/project.js"
 import { findByName, getNames } from "../util/util.js"
-import { ConfigurationError, ParameterError, ValidationError } from "../exceptions.js"
-import cloneDeep from "fast-copy"
+import { ConfigurationError, InternalError, ParameterError, ValidationError } from "../exceptions.js"
 import { memoize } from "lodash-es"
-import type { GenericProviderConfig } from "./provider.js"
 import { providerConfigBaseSchema } from "./provider.js"
 import type { GitScanMode } from "../constants.js"
+import { supportedApiVersions } from "../constants.js"
 import { DOCS_BASE_URL, GardenApiVersion, defaultGitScanMode, gitScanModes } from "../constants.js"
 import { defaultDotIgnoreFile } from "../util/fs.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { VcsInfo } from "../vcs/vcs.js"
 import { profileAsync } from "../util/profiling.js"
 import type { BaseGardenResource } from "./base.js"
-import { baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./base.js"
+import { baseInternalFieldsSchema, varfileDescription } from "./base.js"
 import type { Log } from "../logger/log-entry.js"
 import { renderDivider } from "../logger/util.js"
 import { styles } from "../logger/styles.js"
+import { serialiseUnresolvedTemplates, type ParsedTemplate } from "../template/types.js"
+import { deepResolveContext } from "./template-contexts/base.js"
+import { LazyMergePatch } from "../template/lazy-merge.js"
+import { isArray, isPlainObject } from "../util/objects.js"
+import { VariablesContext } from "./template-contexts/variables.js"
+import { makeDeprecationMessage } from "../util/deprecations.js"
 
-export const defaultVarfilePath = "garden.env"
+export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
 
 export const defaultEnvironment = "default"
@@ -216,11 +222,32 @@ export interface ProjectConfig extends BaseGardenResource {
   environments: EnvironmentConfig[]
   scan?: ProjectScan
   outputs?: OutputSpec[]
-  providers: GenericProviderConfig[]
+  providers: ParsedTemplate[]
   sources?: SourceConfig[]
   varfile?: string
   variables: DeepPrimitiveMap
 }
+
+export const projectApiVersionSchema = memoize(() =>
+  joi.string().valid(...supportedApiVersions).description(dedent`
+      The Garden apiVersion for this project.
+
+      The value ${GardenApiVersion.v0} is the default for backwards compatibility with
+      Garden Acorn (0.12) when not explicitly specified.
+
+      Configuring ${GardenApiVersion.v1} explicitly in your project configuration allows
+      you to start using the new Action configs introduced in Garden Bonsai (0.13).
+
+      Note that the value ${GardenApiVersion.v1} will break compatibility of your project
+      with Garden Acorn (0.12).
+
+      EXPERIMENTAL: Configuring ${GardenApiVersion.v2} explicitly in your project configuration
+      activates the breaking changes introduced in Garden 0.14.
+      The list of breaking changes is not final yet, so use this setting at your own risk.
+
+      Please refer to [the deprecations guide](${DOCS_BASE_URL}/guides/deprecations) for more information.
+    `)
+)
 
 export const projectNameSchema = memoize(() =>
   joiIdentifier().required().description("The name of the project.").example("my-sweet-project")
@@ -298,18 +325,7 @@ export const projectSchema = createSchema({
     "Configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
   required: true,
   keys: () => ({
-    apiVersion: joi.string().valid(GardenApiVersion.v0, GardenApiVersion.v1).description(dedent`
-      The Garden apiVersion for this project.
-
-      The value ${GardenApiVersion.v0} is the default for backwards compatibility with
-      Garden Acorn (0.12) when not explicitly specified.
-
-      Configuring ${GardenApiVersion.v1} explicitly in your project configuration allows
-      you to start using the new Action configs introduced in Garden Bonsai (0.13).
-
-      Note that the value ${GardenApiVersion.v1} will break compatibility of your project
-      with Garden Acorn (0.12).
-    `),
+    apiVersion: projectApiVersionSchema(),
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
     path: projectRootSchema().meta({ internal: true }),
     configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
@@ -352,13 +368,10 @@ export const projectSchema = createSchema({
       .description(
         deline`
       Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-
-      Note: This field has been deprecated in 0.13 in favor of the \`dotIgnoreFile\` field, and as of 0.13 only one filename is allowed here. If a single filename is specified, the conversion is done automatically. If multiple filenames are provided, an error will be thrown.
-      Otherwise, an error will be thrown.
     `
       )
       .meta({
-        deprecated: "Please use `dotIgnoreFile` instead.",
+        deprecated: makeDeprecationMessage({ deprecation: "dotIgnoreFiles" }),
       })
       .example([".gitignore"]),
     dotIgnoreFile: joi
@@ -406,7 +419,7 @@ export const projectSchema = createSchema({
     sources: projectSourcesSchema(),
     varfile: joi
       .posixPath()
-      .default(defaultVarfilePath)
+      .default(defaultProjectVarfilePath)
       .description(
         dedent`
       Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
@@ -458,51 +471,31 @@ export function resolveProjectConfig({
   log,
   defaultEnvironmentName,
   config,
-  artifactsPath,
-  vcsInfo,
-  username,
-  loggedIn,
-  enterpriseDomain,
-  secrets,
-  commandInfo,
+  context,
 }: {
   log: Log
   defaultEnvironmentName: string
   config: ProjectConfig
-  artifactsPath: string
-  vcsInfo: VcsInfo
-  username: string
-  loggedIn: boolean
-  enterpriseDomain: string | undefined
-  secrets: PrimitiveMap
-  commandInfo: CommandInfo
+  context: ProjectConfigContext
 }): ProjectConfig {
   // Resolve template strings for non-environment-specific fields (apart from `sources`).
-  const { environments = [], name, sources = [] } = config
+  const { variables = {}, environments = [], name, sources = [], providers = [], outputs = [] } = config
 
   let globalConfig: any
+
   try {
-    globalConfig = resolveTemplateStrings({
-      value: {
+    globalConfig = deepEvaluate(
+      {
         apiVersion: config.apiVersion,
         varfile: config.varfile,
-        variables: config.variables,
         environments: [],
         sources: [],
       },
-      context: new ProjectConfigContext({
-        projectName: name,
-        projectRoot: config.path,
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn,
-        enterpriseDomain,
-        secrets,
-        commandInfo,
-      }),
-      source: { yamlDoc: config.internal.yamlDoc, path: [] },
-    })
+      {
+        context,
+        opts: {},
+      }
+    )
   } catch (err) {
     log.error("Failed to resolve project configuration.")
     log.error(styles.bold(renderDivider()))
@@ -516,30 +509,41 @@ export function resolveProjectConfig({
       ...globalConfig,
       name,
       defaultEnvironment: defaultEnvironmentName,
-      // environments are validated later
-      environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-inital-load", variables: {} }],
+      // environments, providers and sources are validated later
+      environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-initial-load", variables: {} }],
+      providers: [],
       sources: [],
+      variables: {},
+      // this makes sure that the output declaration shape is valid
+      outputs: serialiseUnresolvedTemplates(outputs),
     },
     schema: projectSchema(),
     projectRoot: config.path,
     yamlDocBasePath: [],
   })
 
-  const providers = config.providers
-
-  // This will be validated separately, after resolving templates
-  config.environments = environments
-
   config = {
     ...config,
-    environments: config.environments,
+    environments,
     providers,
     sources,
+    outputs,
+    variables,
   }
 
   config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
 
   return config
+}
+
+export class UnresolvedProviderConfig {
+  constructor(
+    public readonly name: string,
+    public readonly dependencies: string[],
+    public readonly unresolvedConfig: ParsedTemplate,
+    // TODO: source mapping for better error messages
+    public readonly source?: ConfigSource
+  ) {}
 }
 
 /**
@@ -570,6 +574,7 @@ export function resolveProjectConfig({
  */
 export const pickEnvironment = profileAsync(async function _pickEnvironment({
   projectConfig,
+  variableOverrides,
   envString,
   artifactsPath,
   vcsInfo,
@@ -578,7 +583,10 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   enterpriseDomain,
   secrets,
   commandInfo,
+  projectContext,
 }: {
+  projectContext: ProjectConfigContext
+  variableOverrides: DeepPrimitiveMap
   projectConfig: ProjectConfig
   envString: string
   artifactsPath: string
@@ -615,68 +623,125 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     })
   }
 
-  const projectVarfileVars = await loadVarfile({
-    configRoot: projectConfig.path,
-    path: projectConfig.varfile,
-    defaultPath: defaultVarfilePath,
-  })
-  const projectVariables: DeepPrimitiveMap = <any>merge(projectConfig.variables, projectVarfileVars)
-
   const source = { yamlDoc: projectConfig.internal.yamlDoc, path: ["environments", index] }
 
   // Resolve template strings in the environment config, except providers
-  environmentConfig = resolveTemplateStrings({
-    value: { ...environmentConfig },
-    context: new EnvironmentConfigContext({
-      projectName,
-      projectRoot,
-      artifactsPath,
-      vcsInfo,
-      username,
-      variables: projectVariables,
-      loggedIn,
-      enterpriseDomain,
-      secrets,
-      commandInfo,
-    }),
-    source,
+  const context = new EnvironmentConfigContext({
+    projectName,
+    projectRoot,
+    artifactsPath,
+    vcsInfo,
+    username,
+    variables: await VariablesContext.forProject(projectConfig, variableOverrides, projectContext),
+    loggedIn,
+    enterpriseDomain,
+    secrets,
+    commandInfo,
   })
 
-  environmentConfig = validateWithPath<EnvironmentConfig>({
-    config: environmentConfig,
-    schema: environmentSchema(),
-    configType: `environment ${environment}`,
-    path: projectConfig.path,
-    projectRoot: projectConfig.path,
-    source,
-  })
+  // resolve project variables incl. varfiles
+  deepResolveContext("project", context.variables)
+
+  const config = deepEvaluate(
+    {
+      ...environmentConfig,
+      // we leave variables unresolved, so we can cross-reference them
+      variables: {},
+    },
+    {
+      context,
+      opts: {},
+    }
+  )
+
+  environmentConfig = {
+    ...validateWithPath<EnvironmentConfig>({
+      config,
+      schema: environmentSchema(),
+      configType: `environment ${environment}`,
+      path: projectConfig.path,
+      projectRoot: projectConfig.path,
+      source,
+    }),
+    // we leave variables unresolved, so we can cross-reference them
+    variables: environmentConfig.variables,
+  }
 
   namespace = getNamespace(environmentConfig, namespace)
 
   const fixedProviders = fixedPlugins.map((name) => ({ name }))
   const allProviders = [
     ...fixedProviders,
-    ...projectConfig.providers.filter((p) => !p.environments || p.environments.includes(environment)),
+    ...projectConfig.providers.filter((p) => {
+      const { resolved } = evaluate(p, { context, opts: {} })
+      if (!isPlainObject(resolved)) {
+        throw new ConfigurationError({
+          message: `expected provider config to be an object, actually got ${typeof resolved}`,
+        })
+      }
+      const envs = deepEvaluate(resolved.environments, { context, opts: {} }) as string[] | undefined
+
+      return !envs || envs.includes(environment)
+    }),
   ]
 
-  const mergedProviders: { [name: string]: GenericProviderConfig } = {}
+  const rawProviderConfigs: { [name: string]: ParsedTemplate[] } = {}
 
-  for (const provider of allProviders) {
-    if (!!mergedProviders[provider.name]) {
-      // Merge using a JSON Merge Patch (see https://tools.ietf.org/html/rfc7396)
-      apply(mergedProviders[provider.name], provider)
+  for (const p of allProviders) {
+    const { resolved } = evaluate(p, { context, opts: {} })
+    if (!isPlainObject(resolved)) {
+      throw new ConfigurationError({
+        message: `expected provider config to be an object, actually got ${typeof resolved}`,
+      })
+    }
+
+    const name = deepEvaluate(resolved.name, { context, opts: {} })
+
+    if (typeof name !== "string") {
+      throw new ConfigurationError({
+        message: `expected provider name to be a string, actually got ${typeof resolved}`,
+      })
+    }
+
+    if (!!rawProviderConfigs[name]) {
+      rawProviderConfigs[name].push(p as ParsedTemplate)
     } else {
-      mergedProviders[provider.name] = cloneDeep(provider)
+      rawProviderConfigs[name] = [p as ParsedTemplate]
     }
   }
 
-  const envVarfileVars = await loadVarfile({
-    configRoot: projectConfig.path,
-    path: environmentConfig.varfile,
-    defaultPath: defaultEnvVarfilePath(environment),
-  })
+  const mergedProviders: { [name: string]: UnresolvedProviderConfig } = {}
 
-  const variables: DeepPrimitiveMap = <any>merge(projectVariables, merge(environmentConfig.variables, envVarfileVars))
+  for (const name in rawProviderConfigs) {
+    const unresolvedConfig = new LazyMergePatch(rawProviderConfigs[name])
+    const { resolved: preview } = evaluate(unresolvedConfig, { context, opts: {} })
+
+    if (!isPlainObject(preview)) {
+      throw new InternalError({
+        message: `Provider config evaluated to ${typeof preview}, expected object.`,
+      })
+    }
+
+    const dependencies = deepEvaluate(preview["dependencies"], { context, opts: {} }) as string[] | undefined
+    if (!(dependencies === undefined || (isArray(dependencies) && dependencies.every((d) => typeof d === "string")))) {
+      throw new InternalError({
+        message: `Dependencies in provider config to ${typeof dependencies}, expected string array.`,
+      })
+    }
+
+    mergedProviders[name] = new UnresolvedProviderConfig(name, dependencies || [], unresolvedConfig)
+  }
+
+  const variables = await VariablesContext.forEnvironment(
+    environment,
+    projectConfig,
+    environmentConfig,
+    variableOverrides,
+    context
+  )
+
+  // resolve project and environment-level variables incl. varfiles
+  deepResolveContext("project environment", context.variables)
 
   return {
     environmentName: environment,

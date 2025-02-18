@@ -17,6 +17,7 @@ export abstract class BaseKeyDescription<T = any> {
   abstract description?: string
   abstract example?: T
   abstract deprecated: boolean
+  abstract deprecationMessage: string | undefined
   abstract experimental: boolean
   abstract required: boolean
 

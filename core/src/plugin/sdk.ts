@@ -56,7 +56,7 @@ export type BuildStatus = _BuildStatus
 
 export class GardenSdkPlugin {
   public readonly name: string
-  private spec: GardenPluginSpec
+  private readonly spec: GardenPluginSpec
 
   constructor(spec: GardenSdkPluginSpec) {
     this.name = spec.name

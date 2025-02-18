@@ -21,6 +21,7 @@ import type { WorkflowConfig } from "../../../../../src/config/workflow.js"
 import { defaultWorkflowResources } from "../../../../../src/config/workflow.js"
 import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig.js"
 import type { ModuleConfig } from "../../../../../src/config/module.js"
+import { serialiseUnresolvedTemplates } from "../../../../../src/template/types.js"
 
 describe("GetConfigCommand", () => {
   const command = new GetConfigCommand()
@@ -102,7 +103,7 @@ describe("GetConfigCommand", () => {
         steps: [{ command: ["run", "foo"] }],
       },
     ]
-    garden.setWorkflowConfigs(workflowConfigs)
+    garden.setRawWorkflowConfigs(workflowConfigs)
 
     const res = await command.action({
       garden,
@@ -120,7 +121,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         allowPublish: false,
@@ -187,7 +188,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         allowPublish: false,
@@ -245,7 +246,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         allowPublish: false,
@@ -301,7 +302,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setModuleConfigs([
+    garden.setPartialModuleConfigs([
       {
         apiVersion: GardenApiVersion.v0,
         allowPublish: false,
@@ -366,7 +367,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           allowPublish: false,
@@ -431,7 +432,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           allowPublish: false,
@@ -491,7 +492,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           allowPublish: false,
@@ -566,7 +567,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setModuleConfigs([
+      garden.setPartialModuleConfigs([
         {
           apiVersion: GardenApiVersion.v0,
           allowPublish: false,
@@ -678,7 +679,7 @@ describe("GetConfigCommand", () => {
         },
       ]
 
-      garden.setModuleConfigs(rawConfigs)
+      garden.setPartialModuleConfigs(rawConfigs)
 
       const res = await command.action({
         garden,
@@ -687,7 +688,7 @@ describe("GetConfigCommand", () => {
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })
 
-      expect(res.result?.moduleConfigs).to.deep.equal(rawConfigs)
+      expect(serialiseUnresolvedTemplates(res.result?.moduleConfigs)).to.deep.equal(rawConfigs)
     })
 
     it("should return raw provider configs instead of fully resolved providers", async () => {
@@ -701,7 +702,10 @@ describe("GetConfigCommand", () => {
         opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
       })
 
-      expect(res.result!.providers).to.eql(garden.getRawProviderConfigs())
+      const unresolvedProviderConfigs = garden
+        .getUnresolvedProviderConfigs()
+        .map((c) => serialiseUnresolvedTemplates(c.unresolvedConfig))
+      expect(res.result!.providers).to.eql(unresolvedProviderConfigs)
     })
 
     it("should not resolve providers", async () => {

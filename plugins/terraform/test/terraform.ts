@@ -7,6 +7,8 @@
  */
 
 import { dirname, join, resolve } from "node:path"
+import http from "node:http"
+import getPort from "get-port"
 
 import { expect } from "chai"
 import fsExtra from "fs-extra"
@@ -21,15 +23,95 @@ import { LogLevel } from "@garden-io/sdk/build/src/types.js"
 import { gardenPlugin } from "../src/index.js"
 import type { TerraformProvider } from "../src/provider.js"
 import { DeployTask } from "@garden-io/core/build/src/tasks/deploy.js"
-import { getWorkspaces, setWorkspace } from "../src/helpers.js"
+import { getWorkspaces, ensureWorkspace } from "../src/helpers.js"
 import { resolveAction } from "@garden-io/core/build/src/graph/actions.js"
 import { RunTask } from "@garden-io/core/build/src/tasks/run.js"
 import { defaultTerraformVersion } from "../src/cli.js"
 import { fileURLToPath } from "node:url"
 import { resolveMsg } from "@garden-io/core/build/src/logger/log-entry.js"
+import { getRootLogger, type Logger } from "@garden-io/core/build/src/logger/logger.js"
+import { type TerraformDeploy } from "../src/action.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
+/**
+ * A mock http server that intercepts Terraform calls for getting/posting state
+ * to an "http" backend.
+ *
+ * Used for testing the `backendConfig` logic.
+ */
+export class TerraformMockBackendServer {
+  private server: http.Server
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private interceptedRequests: any[] = []
+  private port: number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private state: any = null
+
+  constructor(port: number = 9090) {
+    this.port = port
+
+    this.server = http.createServer((req, res) => {
+      let body = ""
+      req.on("data", (chunk) => (body += chunk))
+
+      req.on("end", () => {
+        // Log the request
+        const request = {
+          method: req.method,
+          url: req.url,
+          headers: req.headers,
+          body: body ? JSON.parse(body) : null,
+          timestamp: new Date(),
+        }
+        this.interceptedRequests.push(request)
+
+        const mockState = {
+          version: 4,
+          terraform_version: "1.5.0",
+          serial: 1,
+          lineage: "123e4567-e89b-12d3-a456-426614174000",
+          outputs: {},
+          resources: [],
+          check_results: null,
+        }
+
+        // Handle different state operations
+        if (req.method === "GET") {
+          res.writeHead(200, { "Content-Type": "application/json" })
+          res.end(JSON.stringify(mockState))
+        } else if (req.method === "POST") {
+          res.writeHead(200, { "Content-Type": "application/json" })
+          res.end(JSON.stringify({ status: "success" }))
+        }
+      })
+    })
+  }
+
+  start(): Promise<void> {
+    return new Promise((res) => {
+      this.server.listen(this.port, () => {
+        res()
+      })
+    })
+  }
+
+  stop(): Promise<void> {
+    return new Promise((res) => {
+      this.server.close(() => {
+        res()
+      })
+    })
+  }
+
+  getInterceptedRequests() {
+    return this.interceptedRequests
+  }
+
+  clearInterceptedRequests() {
+    this.interceptedRequests = []
+  }
+}
 for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   describe(`Terraform provider with terraform ${terraformVersion}`, () => {
     const testRoot = resolve(moduleDirName, "../../test/", "test-project")
@@ -47,6 +129,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       if (tfRoot && (await pathExists(testFilePath))) {
         await remove(testFilePath)
       }
+
       if (stateDirPath && (await pathExists(stateDirPath))) {
         await remove(stateDirPath)
       }
@@ -275,9 +358,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         expect(
           garden.log.root
             .getLogEntries()
-            .filter((l) =>
-              resolveMsg(l)?.match(/Provider not ready. Current command only checks status, not preparing environment/)
-            ).length
+            .filter((l) => resolveMsg(l)?.match(/Provider is not ready \(only checking status\)/)).length
         ).to.be.greaterThan(0)
       })
 
@@ -317,12 +398,122 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
       })
     })
+
+    context("backendConfig defined", () => {
+      const testRootBackendConfig = resolve(moduleDirName, "../../test/", "test-project-backendconfig")
+      tfRoot = join(testRootBackendConfig, "tf")
+      stateDirPath = join(tfRoot, ".terraform")
+
+      let server: TerraformMockBackendServer
+      let port: number
+
+      before(async () => {
+        port = await getPort()
+        server = new TerraformMockBackendServer(port)
+        await server.start()
+      })
+
+      beforeEach(async () => {
+        await reset()
+        server.clearInterceptedRequests()
+      })
+
+      afterEach(async () => {
+        getRootLogger()["entries"] = []
+      })
+
+      after(async () => {
+        await server.stop()
+      })
+
+      it("should dynamically set backend config", async () => {
+        const testGarden = await makeTestGarden(testRootBackendConfig, {
+          plugins: [gardenPlugin()],
+          environmentString: "local",
+          forceRefresh: true,
+          variableOverrides: {
+            "tf-version": terraformVersion,
+            "address": `http://localhost:${port}/terraform/state?some-dynamic-key`,
+          },
+        })
+        await testGarden.resolveProvider({ log: testGarden.log, name: "terraform" })
+
+        const requests = server.getInterceptedRequests()
+        const requestUrl = requests[0].url
+        const messages = getRootLogMessages(testGarden.log, (e) => e.level === LogLevel.info)
+
+        expect(requestUrl).to.eql("/terraform/state?some-dynamic-key")
+        expect(messages).to.not.include(
+          "Detected change in backend config, will re-initialize Terraform with '-reconfigure' flag"
+        )
+      })
+
+      it("should NOT re-initialize Terraform if no state file present", async () => {
+        const testGarden = await makeTestGarden(testRootBackendConfig, {
+          plugins: [gardenPlugin()],
+          environmentString: "local",
+          forceRefresh: true,
+          variableOverrides: {
+            "tf-version": terraformVersion,
+            "address": `http://localhost:${port}/terraform/state?some-dynamic-key`,
+          },
+        })
+        await testGarden.resolveProvider({ log: testGarden.log, name: "terraform" })
+
+        const messages = getRootLogMessages(testGarden.log, (e) => e.level === LogLevel.info)
+        // A fresh test project won't have a statefile
+        expect(messages).to.not.include(
+          "Detected change in backend config, will re-initialize Terraform with '-reconfigure' flag"
+        )
+      })
+
+      it("should re-initialize Terraform with -reconfigure flag if backendConfig changes", async () => {
+        const testGardenA = await makeTestGarden(testRootBackendConfig, {
+          plugins: [gardenPlugin()],
+          environmentString: "local",
+          forceRefresh: true,
+          variableOverrides: {
+            "tf-version": terraformVersion,
+            "address": `http://localhost:${port}/terraform/state?some-dynamic-key`,
+          },
+        })
+        await testGardenA.resolveProvider({ log: testGardenA.log, name: "terraform" })
+
+        // Reset logger before running Garden again
+        const logger: Logger = getRootLogger()
+        logger["entries"] = []
+
+        const testGardenB = await makeTestGarden(testRootBackendConfig, {
+          plugins: [gardenPlugin()],
+          environmentString: "local",
+          forceRefresh: true,
+          variableOverrides: {
+            "tf-version": terraformVersion,
+            "address": `http://localhost:${port}/terraform/state?some-other-dynamic-key`,
+          },
+        })
+        //
+        await testGardenB.resolveProvider({ log: testGardenB.log, name: "terraform" })
+
+        const requests = server.getInterceptedRequests()
+        const messages = getRootLogMessages(testGardenB.log, (e) => e.level === LogLevel.info)
+        const requestUrlForGardenA = requests[0].url
+        // Grab the last request to get one from the second Garden run
+        const requestUrlForGardenB = requests[requests.length - 1].url
+
+        expect(requestUrlForGardenA).to.eql("/terraform/state?some-dynamic-key")
+        expect(requestUrlForGardenB).to.eql("/terraform/state?some-other-dynamic-key")
+        expect(messages).to.include(
+          "Detected change in backend config, will re-initialize Terraform with '-reconfigure' flag"
+        )
+      })
+    })
   })
 
   describe("Terraform action type", () => {
     const testRoot = resolve(moduleDirName, "../../test/", "test-project-action")
-    const tfRoot = join(testRoot, "tf")
-    const stateDirPath = join(tfRoot, "terraform.tfstate")
+    let tfRoot = join(testRoot, "tf")
+    let stateDirPath = join(tfRoot, "terraform.tfstate")
     const backupStateDirPath = join(tfRoot, "terraform.tfstate.backup")
     const stateDirPathWithWorkspaces = join(tfRoot, "terraform.tfstate.d")
     const testFilePath = join(tfRoot, "test.log")
@@ -346,6 +537,9 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     }
 
     beforeEach(async () => {
+      tfRoot = join(testRoot, "tf")
+      stateDirPath = join(tfRoot, "terraform.tfstate")
+
       await reset()
       garden = await makeTestGarden(testRoot, {
         plugins: [gardenPlugin()],
@@ -435,7 +629,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -480,7 +674,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const _ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -525,7 +719,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: _garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -649,6 +843,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     context("autoApply=true", () => {
       it("should apply a stack on init and use configured variables", async () => {
         await runTestTask(true)
+
         expect(
           garden.log.root
             .getLogEntries()
@@ -762,12 +957,183 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           log: _garden.log,
         })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         await actions.deploy.delete({ action: _action, log: _action.createLog(_garden.log), graph: _graph })
 
         const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
         expect(selected).to.equal("foo")
+      })
+    })
+
+    context("backendConfig defined", () => {
+      const testRootBackendConfigAction = resolve(moduleDirName, "../../test/", "test-project-backendconfig-action")
+      tfRoot = join(testRootBackendConfigAction, "tf")
+      stateDirPath = join(tfRoot, ".terraform")
+
+      let server: TerraformMockBackendServer
+      let port: number
+
+      before(async () => {
+        port = await getPort()
+        server = new TerraformMockBackendServer(port)
+        await server.start()
+      })
+
+      beforeEach(async () => {
+        tfRoot = join(testRootBackendConfigAction, "tf")
+        stateDirPath = join(tfRoot, ".terraform")
+        await reset()
+        server.clearInterceptedRequests()
+      })
+
+      afterEach(async () => {
+        getRootLogger()["entries"] = []
+      })
+
+      after(async () => {
+        await server.stop()
+      })
+
+      it("should dynamically set backend config", async () => {
+        const testGarden = await makeTestGarden(testRootBackendConfigAction, {
+          plugins: [gardenPlugin()],
+          environmentString: "local",
+          forceRefresh: true,
+          variableOverrides: {
+            "tf-version": terraformVersion,
+          },
+        })
+        graph = await testGarden.getConfigGraph({ log: testGarden.log, emit: false })
+        const action = graph.getDeploy("tf-backendconfig-deploy") as TerraformDeploy
+        action._config.spec.backendConfig = {
+          address: `http://localhost:${port}/terraform/state?some-dynamic-key-for-action`,
+        }
+        const resolvedAction = await resolveAction<TerraformDeploy>({
+          garden: testGarden,
+          graph,
+          action,
+          log: garden.log,
+        })
+        const deployTask = new DeployTask({
+          garden: testGarden,
+          graph,
+          action: resolvedAction,
+          log: testGarden.log,
+          force: false,
+          forceBuild: false,
+        })
+        await testGarden.processTasks({ tasks: [deployTask], throwOnError: true })
+
+        const requests = server.getInterceptedRequests()
+        const requestUrl = requests[0].url
+
+        expect(requestUrl).to.eql("/terraform/state?some-dynamic-key-for-action")
+      })
+
+      it("should NOT re-initialize Terraform if no state file present", async () => {
+        const testGarden = await makeTestGarden(testRootBackendConfigAction, {
+          plugins: [gardenPlugin()],
+          environmentString: "local",
+          forceRefresh: true,
+          variableOverrides: {
+            "tf-version": terraformVersion,
+          },
+        })
+        graph = await testGarden.getConfigGraph({ log: testGarden.log, emit: false })
+        const action = graph.getDeploy("tf-backendconfig-deploy") as TerraformDeploy
+        action._config.spec.backendConfig = {
+          address: `http://localhost:${port}/terraform/state?some-dynamic-key-for-action`,
+        }
+        const resolvedAction = await resolveAction<TerraformDeploy>({
+          garden: testGarden,
+          graph,
+          action,
+          log: garden.log,
+        })
+        const deployTask = new DeployTask({
+          garden: testGarden,
+          graph,
+          action: resolvedAction,
+          log: testGarden.log,
+          force: false,
+          forceBuild: false,
+        })
+        await testGarden.processTasks({ tasks: [deployTask], throwOnError: true })
+
+        const messages = getRootLogMessages(testGarden.log, (e) => e.level === LogLevel.info)
+        // A fresh test project won't have a statefile
+        expect(messages).to.not.include(
+          "Detected change in backend config, will re-initialize Terraform with '-reconfigure' flag"
+        )
+      })
+
+      it("should re-initialize Terraform with -reconfigure flag if backendConfig changes", async () => {
+        const testGarden = await makeTestGarden(testRootBackendConfigAction, {
+          plugins: [gardenPlugin()],
+          environmentString: "local",
+          forceRefresh: true,
+          variableOverrides: {
+            "tf-version": terraformVersion,
+          },
+        })
+
+        graph = await testGarden.getConfigGraph({ log: testGarden.log, emit: false })
+        const action = graph.getDeploy("tf-backendconfig-deploy") as TerraformDeploy
+
+        action._config.spec.backendConfig = {
+          address: `http://localhost:${port}/terraform/state?some-dynamic-key-for-action`,
+        }
+        const resolvedActionA = await resolveAction<TerraformDeploy>({
+          garden: testGarden,
+          graph,
+          action,
+          log: garden.log,
+        })
+        const deployTaskA = new DeployTask({
+          garden: testGarden,
+          graph,
+          action: resolvedActionA,
+          log: testGarden.log,
+          force: false,
+          forceBuild: false,
+        })
+        await testGarden.processTasks({ tasks: [deployTaskA], throwOnError: true })
+
+        // Reset logger before running Garden again since it's a singleton
+        const logger: Logger = getRootLogger()
+        logger["entries"] = []
+
+        action._config.spec.backendConfig = {
+          address: `http://localhost:${port}/terraform/state?some-other-dynamic-key-for-action`,
+        }
+        const resolvedActionB = await resolveAction<TerraformDeploy>({
+          garden: testGarden,
+          graph,
+          action,
+          log: garden.log,
+        })
+        const deployTaskB = new DeployTask({
+          garden: testGarden,
+          graph,
+          action: resolvedActionB,
+          log: testGarden.log,
+          force: false,
+          forceBuild: false,
+        })
+        await testGarden.processTasks({ tasks: [deployTaskB], throwOnError: true })
+
+        const requests = server.getInterceptedRequests()
+        const messages = getRootLogMessages(testGarden.log, (e) => e.level === LogLevel.info)
+        const firstRequestUrl = requests[0].url
+        // Grab the last request to get one from the second Garden run
+        const lastRequestUrl = requests[requests.length - 1].url
+
+        expect(firstRequestUrl).to.eql("/terraform/state?some-dynamic-key-for-action")
+        expect(lastRequestUrl).to.eql("/terraform/state?some-other-dynamic-key-for-action")
+        expect(messages).to.include(
+          "Detected change in backend config, will re-initialize Terraform with '-reconfigure' flag"
+        )
       })
     })
   })
@@ -880,7 +1246,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -925,7 +1291,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const _ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -970,7 +1336,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         const provider = (await _garden.resolveProvider({ log: _garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
@@ -1206,7 +1572,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           log: _garden.log,
         })
 
-        await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
+        await ensureWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
         await actions.deploy.delete({ action: _action, log: _action.createLog(_garden.log), graph: _graph })
 
