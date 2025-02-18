@@ -2889,6 +2889,50 @@ describe("getContextLookupReferences", () => {
         },
       ],
     },
+
+    // if block expression
+    {
+      name: "if block expression - true",
+      expression: "${if true}${reachableConsequent}${else}${unreachableAlternate}${endif}",
+      expectedReferences: [
+        {
+          keyPath: ["reachableConsequent"],
+        },
+      ],
+    },
+    {
+      name: "if block expression - false",
+      expression: "${if false}${unreachableConsequent}${else}${reachableAlternate}${endif}",
+      expectedReferences: [
+        {
+          keyPath: ["reachableAlternate"],
+        },
+      ],
+    },
+    {
+      name: "if block expression - failed lookup",
+      expression: "${if doesNotExist}${reachableConsequent}${else}${reachableAlternate}${endif}",
+      expectedReferences: [
+        {
+          keyPath: ["doesNotExist"],
+        },
+        {
+          keyPath: ["reachableConsequent"],
+        },
+        {
+          keyPath: ["reachableAlternate"],
+        },
+      ],
+    },
+    {
+      name: "if block expression without consequent",
+      expression: "${if doesNotExist}",
+      expectedReferences: [
+        {
+          keyPath: ["doesNotExist"],
+        },
+      ],
+    },
   ]
   for (const testCase of branchTestCases) {
     it(`correctly avoids dead code branches (test case: ${testCase.name})`, () => {

@@ -18,6 +18,7 @@ import { type ConfigSource, validateSchema } from "../config/validation.js"
 import type { Branch } from "./analysis.js"
 import { TemplateStringError } from "./errors.js"
 import { styles } from "../logger/styles.js"
+import { r } from "tar"
 
 type ASTEvaluateArgs = EvaluateTemplateArgs & {
   yamlSource: ConfigSource
@@ -618,7 +619,7 @@ export class BlockExpression extends AbstractBlockExpression {
   }
 }
 
-export class IfBlockExpression extends AbstractBlockExpression {
+export class IfBlockExpression extends AbstractBlockExpression implements Branch<TemplateExpression> {
   // `buildConditionalTree` in parser.pegjs will fill these in
   public consequent: TemplateExpression | undefined
   public else: ElseBlockExpression | undefined
@@ -638,6 +639,31 @@ export class IfBlockExpression extends AbstractBlockExpression {
     return [this.condition, this.consequent, this.else, this.alternate, this.endIf].filter(
       (e): e is TemplateExpression => !!e
     )
+  }
+
+  public override isBranch(): this is Branch<TemplateExpression> {
+    return true
+  }
+
+  public getActiveBranchChildren(
+    context: ConfigContext,
+    opts: ContextResolveOpts,
+    yamlSource: ConfigSource
+  ): TemplateExpression[] {
+    const condition = this.condition.evaluate({ context, opts, yamlSource, optional: true })
+
+    // if the condition fails, we cannot determine the branches yet.
+    // In that case we consider all branches active.
+    if (typeof condition === "symbol") {
+      return this.getChildren()
+    }
+
+    const activeBranch = isTruthy(condition) ? this.consequent : this.alternate
+    if (!activeBranch) {
+      return [this.condition]
+    } else {
+      return [this.condition, activeBranch]
+    }
   }
 
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
