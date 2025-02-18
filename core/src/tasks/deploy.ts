@@ -55,6 +55,8 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     return this.action.longDescription()
   }
 
+  override readonly needsStatus = true
+
   @OtelTraced({
     name(_params) {
       return `${this.action.key()}.getDeployStatus`
