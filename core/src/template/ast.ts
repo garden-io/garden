@@ -898,7 +898,7 @@ export class FunctionCallExpression extends TemplateExpression {
   }
 }
 
-export class TernaryExpression extends TemplateExpression {
+export class TernaryExpression extends TemplateExpression implements Branch<TemplateExpression> {
   constructor(
     public readonly rawText: string,
     public readonly loc: Location,
@@ -907,6 +907,27 @@ export class TernaryExpression extends TemplateExpression {
     public readonly alternate: TemplateExpression
   ) {
     super()
+  }
+
+  override isBranch(): this is Branch<TemplateExpression> {
+    return true
+  }
+
+  public getActiveBranchChildren(
+    context: ConfigContext,
+    opts: ContextResolveOpts,
+    yamlSource: ConfigSource
+  ): TemplateExpression[] {
+    const conditionResult = this.condition.evaluate({
+      context,
+      opts,
+      yamlSource,
+      optional: true,
+    })
+
+    const activeBranch = !isNotFound(conditionResult) && isTruthy(conditionResult) ? this.consequent : this.alternate
+
+    return [this.condition, activeBranch]
   }
 
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {

@@ -31,6 +31,7 @@ import { TestContext } from "./config/template-contexts/base.js"
 import type { Collection } from "../../../src/util/objects.js"
 import type { ParsedTemplate } from "../../../src/template/types.js"
 import type { ConfigContext } from "../../../src/config/template-contexts/base.js"
+import { expression } from "@hapi/joi"
 
 describe("template string access protection", () => {
   it("should crash when an unresolved value is accidentally treated as resolved", () => {
@@ -2804,13 +2805,14 @@ describe("getContextLookupReferences", () => {
   }
 
   const branchTestCases = [
+    // logical OR
     {
-      name: "logicalOrTrue",
+      name: "logical OR - true",
       expression: "${true || unreachable}",
       expectedReferences: [],
     },
     {
-      name: "logicalOrFalse",
+      name: "logical OR - false",
       expression: "${false || reachable}",
       expectedReferences: [
         {
@@ -2819,7 +2821,7 @@ describe("getContextLookupReferences", () => {
       ],
     },
     {
-      name: "logicalOrDoesNotExist",
+      name: "logical OR - failed lookup",
       expression: "${doesNotExist || reachable}",
       expectedReferences: [
         {
@@ -2830,13 +2832,15 @@ describe("getContextLookupReferences", () => {
         },
       ],
     },
+
+    // logical AND
     {
-      name: "logicalAndFalse",
+      name: "logical AND - false",
       expression: "${false && unreachable}",
       expectedReferences: [],
     },
     {
-      name: "logicalAndTrue",
+      name: "logical AND - true",
       expression: "${true && reachable}",
       expectedReferences: [
         {
@@ -2845,11 +2849,43 @@ describe("getContextLookupReferences", () => {
       ],
     },
     {
-      name: "logicalAndDoesNotExist",
+      name: "logical AND - failed lookup",
       expression: "${doesNotExist && unreachable}",
       expectedReferences: [
         {
           keyPath: ["doesNotExist"],
+        },
+      ],
+    },
+
+    // ternary expression
+    {
+      name: "ternary expression - true",
+      expression: "${ true ? reachableConsequent : unreachableAlternate }",
+      expectedReferences: [
+        {
+          keyPath: ["reachableConsequent"],
+        },
+      ],
+    },
+    {
+      name: "ternary expression - false",
+      expression: "${ false ? unreachableConsequent : reachableAlternate }",
+      expectedReferences: [
+        {
+          keyPath: ["reachableAlternate"],
+        },
+      ],
+    },
+    {
+      name: "ternary expression - failed lookup",
+      expression: "${ doesNotExist ? unreachableConsequent : reachableAlternate }",
+      expectedReferences: [
+        {
+          keyPath: ["doesNotExist"],
+        },
+        {
+          keyPath: ["reachableAlternate"],
         },
       ],
     },
