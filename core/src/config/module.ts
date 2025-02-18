@@ -298,6 +298,7 @@ export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends 
   // set by ModuleTemplates for templated modules
   parentName?: string
   templateName?: string
+  templatePath?: string
   inputs?: DeepPrimitiveMap
 
   // Plugins can add custom fields that are kept here

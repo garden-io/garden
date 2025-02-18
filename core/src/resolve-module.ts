@@ -524,6 +524,7 @@ export class ModuleResolver {
       buildPath,
       parentName: rawConfig.parentName,
       templateName: rawConfig.templateName,
+      templatePath: relative(this.garden.projectRoot, rawConfig.path),
       inputs: InputContext.forModule(this.garden, rawConfig),
       modules: [],
       graphResults: this.graphResults,
@@ -594,6 +595,7 @@ export class ModuleResolver {
       buildPath,
       parentName: unresolvedConfig.parentName,
       templateName: unresolvedConfig.templateName,
+      templatePath: unresolvedConfig.path,
       inputs: InputContext.forModule(garden, unresolvedConfig),
       graphResults: this.graphResults,
     }
@@ -763,6 +765,7 @@ export class ModuleResolver {
       buildPath,
       parentName: resolvedConfig.parentName,
       templateName: resolvedConfig.templateName,
+      templatePath: resolvedConfig.path,
       inputs: InputContext.forModule(this.garden, resolvedConfig),
       modules: dependencies,
       graphResults: this.graphResults,
