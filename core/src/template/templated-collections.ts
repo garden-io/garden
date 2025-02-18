@@ -7,7 +7,8 @@
  */
 
 import type { ObjectPath } from "../config/base.js"
-import { ConfigContext, ContextResolveOpts, GenericContext } from "../config/template-contexts/base.js"
+import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
+import { GenericContext } from "../config/template-contexts/base.js"
 import type { ConfigSource } from "../config/validation.js"
 import { InternalError } from "../exceptions.js"
 import { deepMap, isArray, isPlainObject, type CollectionOrValue } from "../util/objects.js"
@@ -32,7 +33,7 @@ import { LayeredContext } from "../config/template-contexts/base.js"
 import { parseTemplateString } from "./templated-strings.js"
 import { TemplateError } from "./errors.js"
 import type { Branch, VisitorOpts } from "./analysis.js"
-import { canEvaluateSuccessfully, visitAll, type VisitorFindingGenerator } from "./analysis.js"
+import { canEvaluateSuccessfully } from "./analysis.js"
 import { capture } from "./capture.js"
 
 export function pushYamlPath(part: ObjectPath[0], configSource: ConfigSource): ConfigSource {
@@ -495,7 +496,7 @@ export type ConditionalClause = {
   [conditionalElseKey]?: ParsedTemplate
 }
 
-export class ConditionalLazyValue extends StructuralTemplateOperator {
+export class ConditionalLazyValue extends StructuralTemplateOperator implements Branch<ParsedTemplate> {
   static allowedConditionalKeys = [conditionalKey, conditionalThenKey, conditionalElseKey]
 
   constructor(
@@ -526,6 +527,31 @@ export class ConditionalLazyValue extends StructuralTemplateOperator {
     }
 
     return Object.values(this.yaml)
+  }
+
+  override isBranch(): this is Branch<ParsedTemplate> {
+    return true
+  }
+
+  getActiveBranchChildren(context: ConfigContext, opts: ContextResolveOpts): ParsedTemplate[] {
+    if (
+      this.yaml[conditionalKey] instanceof UnresolvedTemplateValue &&
+      !canEvaluateSuccessfully({ value: this.yaml[conditionalKey], context, opts, onlyEssential: true })
+    ) {
+      // if context lookup fails in the conditional key, we consider all branches active.
+      return Object.values(this.yaml)
+    }
+
+    const { resolved } = evaluate(this.yaml[conditionalKey], { context, opts })
+
+    if (typeof resolved !== "boolean") {
+      // evaluation will fail so no children are active
+      return [this.yaml[conditionalKey]]
+    }
+
+    const branch = isTruthy(resolved) ? this.yaml[conditionalThenKey] : this.yaml[conditionalElseKey]
+
+    return [this.yaml[conditionalKey], branch]
   }
 
   override evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult {

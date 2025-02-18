@@ -31,7 +31,6 @@ import { TestContext } from "./config/template-contexts/base.js"
 import type { Collection } from "../../../src/util/objects.js"
 import type { ParsedTemplate } from "../../../src/template/types.js"
 import type { ConfigContext } from "../../../src/config/template-contexts/base.js"
-import { expression } from "@hapi/joi"
 
 describe("template string access protection", () => {
   it("should crash when an unresolved value is accidentally treated as resolved", () => {
@@ -2930,6 +2929,62 @@ describe("getContextLookupReferences", () => {
       expectedReferences: [
         {
           keyPath: ["doesNotExist"],
+        },
+      ],
+    },
+
+    // if structural operator
+    {
+      name: "if structural operator - true",
+      expression: {
+        $if: "${true}",
+        $then: "${reachableConsequent}",
+        $else: "${unreachableAlternate}",
+      },
+      expectedReferences: [
+        {
+          keyPath: ["reachableConsequent"],
+        },
+      ],
+    },
+    {
+      name: "if structural operator - false",
+      expression: {
+        $if: "${false}",
+        $then: "${unreachableConsequent}",
+        $else: "${reachableAlternate}",
+      },
+      expectedReferences: [
+        {
+          keyPath: ["reachableAlternate"],
+        },
+      ],
+    },
+    {
+      name: "if structural operator - non-boolean",
+      expression: {
+        $if: "non-boolean value",
+        $then: "${unreachableConsequent}",
+        $else: "${unreachableAlternate}",
+      },
+      expectedReferences: [],
+    },
+    {
+      name: "if structural operator - failed lookup",
+      expression: {
+        $if: "${doesNotExist}",
+        $then: "${reachableConsequent}",
+        $else: "${reachableAlternate}",
+      },
+      expectedReferences: [
+        {
+          keyPath: ["doesNotExist"],
+        },
+        {
+          keyPath: ["reachableConsequent"],
+        },
+        {
+          keyPath: ["reachableAlternate"],
         },
       ],
     },
