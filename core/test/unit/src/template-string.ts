@@ -11,7 +11,12 @@ import repeat from "lodash-es/repeat.js"
 import stripAnsi from "strip-ansi"
 import { loadAndValidateYaml } from "../../../src/config/base.js"
 import type { ContextLookupReferenceFinding } from "../../../src/template/analysis.js"
-import { getContextLookupReferences, UnresolvableValue, visitAll } from "../../../src/template/analysis.js"
+import {
+  defaultVisitorOpts,
+  getContextLookupReferences,
+  UnresolvableValue,
+  visitAll,
+} from "../../../src/template/analysis.js"
 import { legacyResolveTemplateString } from "../../../src/template/templated-strings.js"
 import { dedent } from "../../../src/util/string.js"
 import type { TestGarden } from "../../helpers.js"
@@ -2629,6 +2634,7 @@ describe("getContextLookupReferences", () => {
       getContextLookupReferences(
         visitAll({
           value: obj,
+          opts: defaultVisitorOpts,
         }),
         new TestContext({}),
         {}
@@ -2674,96 +2680,202 @@ describe("getContextLookupReferences", () => {
     expect(result.map((r) => pick(r, "keyPath", "type", "yamlSource"))).to.eql(expected)
   })
 
-  it("should handle keys with dots and unresolvable member expressions correctly", async () => {
-    const obj = parseTemplateCollection({
-      value: {
-        a: "some ${templated['key.with.dots']}",
-        b: "${more.stuff}",
-        c: "${keyThatIs[unresolvable]}",
-        d: '${keyThatIs["${unresolvable}"]}',
-        e: "${optionalAndUnresolvable}?",
+  const unresolvableMemberTestCases = [
+    {
+      name: "templated key with dots",
+      expression: "some ${templated['key.with.dots']}",
+      expectation: () => [
+        {
+          type: "resolvable",
+          keyPath: ["templated", "key.with.dots"],
+          yamlSource: {
+            path: [],
+          },
+        },
+      ],
+    },
+    {
+      name: "unresolvable property",
+      expression: "${more.stuff}",
+      expectation: () => [
+        {
+          type: "resolvable",
+          keyPath: ["more", "stuff"],
+          yamlSource: {
+            path: [],
+          },
+        },
+      ],
+    },
+    {
+      name: "direct unresolvable indexed access",
+      expression: "${keyThatIs[unresolvable]}",
+      expectation: (foundKeys: ContextLookupReferenceFinding[]) => {
+        const unresolvable = foundKeys[0].keyPath[1] as UnresolvableValue
+        expect(unresolvable).to.be.instanceOf(UnresolvableValue)
+        expectFuzzyMatch(
+          unresolvable.getError().message,
+          "invalid template string (${keythatis[unresolvable]}): could not find key unresolvable."
+        )
+
+        return [
+          {
+            type: "unresolvable",
+            keyPath: ["keyThatIs", foundKeys[0].keyPath[1]],
+            yamlSource: {
+              path: [],
+            },
+          },
+          {
+            type: "resolvable",
+            keyPath: ["unresolvable"],
+            yamlSource: {
+              path: [],
+            },
+          },
+        ]
       },
-      source: {
-        path: [],
+    },
+    {
+      name: "nested unresolvable indexed access",
+      expression: '${keyThatIs["${unresolvable}"]}',
+      expectation: (foundKeys: ContextLookupReferenceFinding[]) => {
+        const unresolvable = foundKeys[0].keyPath[1] as UnresolvableValue
+        expect(unresolvable).to.be.instanceOf(UnresolvableValue)
+        expectFuzzyMatch(
+          unresolvable.getError().message,
+          "invalid template string (${unresolvable}): could not find key unresolvable."
+        )
+
+        return [
+          {
+            type: "unresolvable",
+            keyPath: ["keyThatIs", foundKeys[0].keyPath[1]],
+            yamlSource: {
+              path: [],
+            },
+          },
+          {
+            type: "resolvable",
+            keyPath: ["unresolvable"],
+            yamlSource: {
+              path: [],
+            },
+          },
+        ]
       },
-    })
-    const foundKeys = Array.from(
-      getContextLookupReferences(
-        visitAll({
-          value: obj,
-        }),
-        new TestContext({}),
-        {}
+    },
+    {
+      name: "optional and unresolvable",
+      expression: "${optionalAndUnresolvable}?",
+      expectation: () => [
+        {
+          type: "resolvable",
+          keyPath: ["optionalAndUnresolvable"],
+          yamlSource: {
+            path: [],
+          },
+        },
+      ],
+    },
+  ]
+
+  for (const testCase of unresolvableMemberTestCases) {
+    it(`should handle keys with dots and unresolvable member expressions correctly (${testCase.name})`, async () => {
+      const obj = parseTemplateCollection({
+        value: testCase.expression,
+        source: {
+          path: [],
+        },
+      })
+      const foundKeys = Array.from(
+        getContextLookupReferences(
+          visitAll({
+            value: obj,
+            opts: defaultVisitorOpts,
+          }),
+          new TestContext({}),
+          {}
+        )
       )
-    )
 
-    const expected: Partial<ContextLookupReferenceFinding>[] = [
-      {
-        type: "resolvable",
-        keyPath: ["templated", "key.with.dots"],
-        yamlSource: {
-          path: ["a"],
-        },
-      },
-      {
-        type: "resolvable",
-        keyPath: ["more", "stuff"],
-        yamlSource: {
-          path: ["b"],
-        },
-      },
-      {
-        type: "resolvable",
-        keyPath: ["unresolvable"],
-        yamlSource: {
-          path: ["c"],
-        },
-      },
-      {
-        type: "unresolvable",
-        keyPath: ["keyThatIs", foundKeys[3].keyPath[1]],
-        yamlSource: {
-          path: ["c"],
-        },
-      },
-      {
-        type: "resolvable",
-        keyPath: ["unresolvable"],
-        yamlSource: {
-          path: ["d"],
-        },
-      },
-      {
-        type: "unresolvable",
-        keyPath: ["keyThatIs", foundKeys[5].keyPath[1]],
-        yamlSource: {
-          path: ["d"],
-        },
-      },
-      {
-        type: "resolvable",
-        keyPath: ["optionalAndUnresolvable"],
-        yamlSource: {
-          path: ["e"],
-        },
-      },
-    ]
-    expect(foundKeys.map((r) => pick(r, "keyPath", "type", "yamlSource"))).to.eql(expected)
+      expect(foundKeys.map((r) => pick(r, "keyPath", "type", "yamlSource"))).to.eql(testCase.expectation(foundKeys))
+    })
+  }
 
-    const unresolvable1 = foundKeys[3].keyPath[1] as UnresolvableValue
-    expect(unresolvable1).to.be.instanceOf(UnresolvableValue)
-    expectFuzzyMatch(
-      unresolvable1.getError().message,
-      "invalid template string (${keythatis[unresolvable]}) at path c: could not find key unresolvable."
-    )
+  const branchTestCases = [
+    {
+      name: "logicalOrTrue",
+      expression: "${true || unreachable}",
+      expectedReferences: [],
+    },
+    {
+      name: "logicalOrFalse",
+      expression: "${false || reachable}",
+      expectedReferences: [
+        {
+          keyPath: ["reachable"],
+        },
+      ],
+    },
+    {
+      name: "logicalOrDoesNotExist",
+      expression: "${doesNotExist || reachable}",
+      expectedReferences: [
+        {
+          keyPath: ["doesNotExist"],
+        },
+        {
+          keyPath: ["reachable"],
+        },
+      ],
+    },
+    {
+      name: "logicalAndFalse",
+      expression: "${false && unreachable}",
+      expectedReferences: [],
+    },
+    {
+      name: "logicalAndTrue",
+      expression: "${true && reachable}",
+      expectedReferences: [
+        {
+          keyPath: ["reachable"],
+        },
+      ],
+    },
+    {
+      name: "logicalAndDoesNotExist",
+      expression: "${doesNotExist && unreachable}",
+      expectedReferences: [
+        {
+          keyPath: ["doesNotExist"],
+        },
+      ],
+    },
+  ]
+  for (const testCase of branchTestCases) {
+    it(`correctly avoids dead code branches (test case: ${testCase.name})`, () => {
+      const obj = parseTemplateCollection({
+        value: testCase.expression,
+        source: {
+          path: [],
+        },
+      })
+      const foundKeys = Array.from(
+        getContextLookupReferences(
+          visitAll({
+            value: obj,
+            opts: defaultVisitorOpts,
+          }),
+          new TestContext({}),
+          {}
+        )
+      )
 
-    const unresolvable2 = foundKeys[5].keyPath[1] as UnresolvableValue
-    expect(unresolvable2).to.be.instanceOf(UnresolvableValue)
-    expectFuzzyMatch(
-      unresolvable2.getError().message,
-      "invalid template string (${unresolvable}) at path d: could not find key unresolvable."
-    )
-  })
+      expect(foundKeys.map((r) => pick(r, "keyPath"))).to.eql(testCase.expectedReferences)
+    })
+  }
 })
 
 describe("getActionTemplateReferences", () => {

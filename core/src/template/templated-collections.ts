@@ -7,7 +7,7 @@
  */
 
 import type { ObjectPath } from "../config/base.js"
-import { GenericContext } from "../config/template-contexts/base.js"
+import { ConfigContext, ContextResolveOpts, GenericContext } from "../config/template-contexts/base.js"
 import type { ConfigSource } from "../config/validation.js"
 import { InternalError } from "../exceptions.js"
 import { deepMap, isArray, isPlainObject, type CollectionOrValue } from "../util/objects.js"
@@ -31,7 +31,8 @@ import { evaluate } from "./evaluate.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
 import { parseTemplateString } from "./templated-strings.js"
 import { TemplateError } from "./errors.js"
-import { canEvaluateSuccessfully, visitAll, type TemplateExpressionGenerator } from "./analysis.js"
+import type { Branch, VisitorOpts } from "./analysis.js"
+import { canEvaluateSuccessfully, visitAll, type VisitorFindingGenerator } from "./analysis.js"
 import { capture } from "./capture.js"
 
 export function pushYamlPath(part: ObjectPath[0], configSource: ConfigSource): ConfigSource {
@@ -259,11 +260,16 @@ export class ConcatLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
-  override *visitAll({ onlyEssential = false }): TemplateExpressionGenerator {
-    if (!onlyEssential) {
-      yield* visitAll({ value: this.yaml })
-    } else if (this.yaml[arrayConcatKey] instanceof UnresolvedTemplateValue) {
-      yield* this.yaml[arrayConcatKey].visitAll({ onlyEssential })
+  override getChildren(opts: VisitorOpts): ParsedTemplate[] {
+    if (opts.onlyEssential) {
+      if (this.yaml instanceof ForEachLazyValue) {
+        return [this.yaml]
+      } else if (this.yaml[arrayConcatKey] instanceof UnresolvedTemplateValue) {
+        return [this.yaml[arrayConcatKey]]
+      }
+      return []
+    } else {
+      return [this.yaml]
     }
   }
 
@@ -342,16 +348,21 @@ export class ForEachLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
-  public override *visitAll({ onlyEssential = false }): TemplateExpressionGenerator {
-    if (!onlyEssential) {
-      return yield* visitAll({ value: this.yaml })
-    }
+  public override getChildren(opts: VisitorOpts): ParsedTemplate[] {
+    if (opts.onlyEssential) {
+      const children: ParsedTemplate[] = []
 
-    // let's assume that the array must be fully resolved for now
-    yield* visitAll({ value: this.yaml[arrayForEachKey] })
+      // let's assume that the array must be fully resolved for now, as it's difficult
+      // to understand which values in the collection will be accessed in the $return key
+      children.push(this.yaml[arrayForEachKey])
 
-    if (this.yaml[arrayForEachFilterKey] instanceof UnresolvedTemplateValue) {
-      yield* this.yaml[arrayForEachFilterKey].visitAll({ onlyEssential })
+      if (this.yaml[arrayForEachFilterKey] instanceof UnresolvedTemplateValue) {
+        children.push(this.yaml[arrayForEachFilterKey])
+      }
+
+      return children
+    } else {
+      return Object.values(this.yaml)
     }
   }
 
@@ -420,11 +431,15 @@ export class ObjectSpreadLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
-  public override *visitAll({ onlyEssential = false }): TemplateExpressionGenerator {
-    if (!onlyEssential) {
-      yield* visitAll({ value: this.yaml })
-    } else if (this.yaml[objectSpreadKey] instanceof UnresolvedTemplateValue) {
-      yield* this.yaml[objectSpreadKey].visitAll({ onlyEssential })
+  public override getChildren(opts: VisitorOpts): ParsedTemplate[] {
+    if (opts.onlyEssential) {
+      // if the spread key is a collection, it not essential for the evaluation of the object spread operator.
+      if (this.yaml[objectSpreadKey] instanceof UnresolvedTemplateValue) {
+        return [this.yaml[objectSpreadKey]]
+      }
+      return []
+    } else {
+      return Object.values(this.yaml)
     }
   }
 
@@ -490,22 +505,27 @@ export class ConditionalLazyValue extends StructuralTemplateOperator {
     super(source, yaml)
   }
 
-  public override *visitAll({ onlyEssential = false }): TemplateExpressionGenerator {
-    if (!onlyEssential) {
-      return yield* visitAll({ value: this.yaml })
+  public override getChildren(opts: VisitorOpts): ParsedTemplate[] {
+    // we don't have access to the context, so we assume all branches are essential
+    if (opts.onlyEssential) {
+      const children: ParsedTemplate[] = []
+
+      if (this.yaml[conditionalKey] instanceof UnresolvedTemplateValue) {
+        children.push(this.yaml[conditionalKey])
+      }
+
+      if (this.yaml[conditionalThenKey] instanceof UnresolvedTemplateValue) {
+        children.push(this.yaml[conditionalThenKey])
+      }
+
+      if (this.yaml[conditionalElseKey] instanceof UnresolvedTemplateValue) {
+        children.push(this.yaml[conditionalElseKey])
+      }
+
+      return children
     }
 
-    if (this.yaml[conditionalKey] instanceof UnresolvedTemplateValue) {
-      yield* this.yaml[conditionalKey].visitAll({ onlyEssential })
-    }
-
-    if (this.yaml[conditionalThenKey] instanceof UnresolvedTemplateValue) {
-      yield* this.yaml[conditionalThenKey].visitAll({ onlyEssential })
-    }
-
-    if (this.yaml[conditionalElseKey] instanceof UnresolvedTemplateValue) {
-      yield* this.yaml[conditionalElseKey].visitAll({ onlyEssential })
-    }
+    return Object.values(this.yaml)
   }
 
   override evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult {

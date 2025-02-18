@@ -7,6 +7,7 @@
  */
 
 import { isArray, isNumber, isString } from "lodash-es"
+import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 import { ContextResolveError, getUnavailableReason, renderKeyPath } from "../config/template-contexts/base.js"
 import { ConfigurationError, InternalError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions/index.js"
@@ -14,7 +15,7 @@ import type { EvaluateTemplateArgs } from "./types.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
 import { type ConfigSource, validateSchema } from "../config/validation.js"
-import type { TemplateExpressionGenerator } from "./analysis.js"
+import type { Branch } from "./analysis.js"
 import { TemplateStringError } from "./errors.js"
 import { styles } from "../logger/styles.js"
 
@@ -54,49 +55,36 @@ export type Location = {
   source: TemplateStringSource
 }
 
-function* astVisitAll(
-  e: TemplateExpression,
-  source: ConfigSource,
-  root: TemplateExpression,
-  parent: TemplateExpression
-): TemplateExpressionGenerator {
-  for (const key in e) {
-    if (key === "loc") {
-      continue
-    }
-    const propertyValue = e[key]
-    if (propertyValue instanceof TemplateExpression) {
-      yield* astVisitAll(propertyValue, source, root, propertyValue)
-      yield {
-        type: "template-expression",
-        value: propertyValue,
-        yamlSource: source,
-        root,
-        parent,
+export abstract class TemplateExpression {
+  public abstract readonly rawText: string
+  public abstract readonly loc: Location
+
+  public isBranch(): this is Branch<TemplateExpression> {
+    return false
+  }
+
+  public getChildren(): TemplateExpression[] {
+    const children: TemplateExpression[] = []
+
+    for (const k in this) {
+      if (k === "loc" || k === "rawText") {
+        continue
       }
-    } else if (Array.isArray(propertyValue)) {
-      for (const item of propertyValue) {
-        if (item instanceof TemplateExpression) {
-          yield* astVisitAll(item, source, root, item)
-          yield {
-            type: "template-expression",
-            value: item,
-            yamlSource: source,
-            root,
-            parent,
+
+      const propertyValue = this[k]
+
+      if (propertyValue instanceof TemplateExpression) {
+        children.push(propertyValue)
+      } else if (isArray(propertyValue)) {
+        for (const item of propertyValue) {
+          if (item instanceof TemplateExpression) {
+            children.push(item)
           }
         }
       }
     }
-  }
-}
 
-export abstract class TemplateExpression {
-  public abstract readonly rawText: string
-  public abstract readonly loc: Location;
-
-  *visitAll(source: ConfigSource): TemplateExpressionGenerator {
-    yield* astVisitAll(this, source, this, this)
+    return children
   }
 
   abstract evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>>
@@ -224,7 +212,7 @@ export class NotExpression extends UnaryExpression {
   }
 }
 
-export abstract class LogicalExpression extends TemplateExpression {
+export abstract class LogicalExpression extends TemplateExpression implements Branch<TemplateExpression> {
   constructor(
     public readonly rawText: string,
     public readonly loc: Location,
@@ -234,6 +222,15 @@ export abstract class LogicalExpression extends TemplateExpression {
   ) {
     super()
   }
+  override isBranch(): this is Branch<TemplateExpression> {
+    return true
+  }
+
+  abstract getActiveBranchChildren(
+    context: ConfigContext,
+    opts: ContextResolveOpts,
+    yamlSource: ConfigSource
+  ): TemplateExpression[]
 }
 
 export function isNotFound(
@@ -253,6 +250,25 @@ export function isTruthy(v: TemplatePrimitive | Collection<unknown>): boolean {
 }
 
 export class LogicalOrExpression extends LogicalExpression {
+  override getActiveBranchChildren(
+    context: ConfigContext,
+    opts: ContextResolveOpts,
+    yamlSource: ConfigSource
+  ): TemplateExpression[] {
+    const left = this.left.evaluate({
+      context,
+      opts,
+      yamlSource,
+      optional: true,
+    })
+
+    if (!isNotFound(left) && isTruthy(left)) {
+      return [this.left]
+    }
+
+    return [this.left, this.right]
+  }
+
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const left = this.left.evaluate({
       ...args,
@@ -268,6 +284,25 @@ export class LogicalOrExpression extends LogicalExpression {
 }
 
 export class LogicalAndExpression extends LogicalExpression {
+  override getActiveBranchChildren(
+    context: ConfigContext,
+    opts: ContextResolveOpts,
+    yamlSource: ConfigSource
+  ): TemplateExpression[] {
+    const left = this.left.evaluate({
+      context,
+      opts,
+      yamlSource,
+      optional: true,
+    })
+
+    if (isNotFound(left) || !isTruthy(left)) {
+      return [this.left]
+    }
+
+    return [this.left, this.right]
+  }
+
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const left = this.left.evaluate({
       ...args,

@@ -7,7 +7,8 @@
  */
 
 import { deepMap, isArray, type CollectionOrValue } from "../util/objects.js"
-import { visitAll, type TemplateExpressionGenerator } from "./analysis.js"
+import type { VisitorOpts } from "./analysis.js"
+import { visitAll, type VisitorFindingGenerator } from "./analysis.js"
 import { evaluate } from "./evaluate.js"
 import type { EvaluateTemplateArgs, ParsedTemplate, TemplateEvaluationResult, TemplatePrimitive } from "./types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "./types.js"
@@ -74,7 +75,7 @@ export class LazyMergePatch extends UnresolvedTemplateValue {
     return deepMap(this.items, (v) => (v instanceof UnresolvedTemplateValue ? v.toJSON() : v))
   }
 
-  public override *visitAll(): TemplateExpressionGenerator {
-    yield* visitAll({ value: this.items })
+  public override getChildren(): ParsedTemplate[] {
+    return this.items
   }
 }
