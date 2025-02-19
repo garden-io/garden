@@ -29,7 +29,7 @@ import type { ActionState } from "../actions/types.js"
 import type { ValidResultType } from "../tasks/base.js"
 import { uuidv4 } from "../util/random.js"
 import { s } from "./zod.js"
-import { getContextLookupReferences, visitAll } from "../template/analysis.js"
+import { defaultVisitorOpts, getContextLookupReferences, visitAll } from "../template/analysis.js"
 import type { ConfigContext } from "./template-contexts/base.js"
 import type { UnresolvedProviderConfig } from "./project.js"
 
@@ -184,6 +184,7 @@ export function getProviderTemplateReferences(config: UnresolvedProviderConfig, 
   const generator = getContextLookupReferences(
     visitAll({
       value: config.unresolvedConfig,
+      opts: defaultVisitorOpts,
     }),
     context,
     {}

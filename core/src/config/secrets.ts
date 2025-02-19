@@ -8,7 +8,7 @@
 
 import isString from "lodash-es/isString.js"
 import type { Log } from "../logger/log-entry.js"
-import { getContextLookupReferences, visitAll } from "../template/analysis.js"
+import { defaultVisitorOpts, getContextLookupReferences, visitAll } from "../template/analysis.js"
 import { dedent, deline } from "../util/string.js"
 import type { ObjectWithName } from "../util/util.js"
 import type { StringMap } from "./common.js"
@@ -123,6 +123,7 @@ export function detectMissingSecretKeys({
   const generator = getContextLookupReferences(
     visitAll({
       value: obj,
+      opts: defaultVisitorOpts,
     }),
     context,
     {}

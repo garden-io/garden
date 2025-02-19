@@ -12,7 +12,7 @@ import type { Log } from "./logger/log-entry.js"
 import type { OutputSpec } from "./config/project.js"
 import type { ActionReference } from "./config/common.js"
 import { GraphResults } from "./graph/results.js"
-import { getContextLookupReferences, visitAll } from "./template/analysis.js"
+import { defaultVisitorOpts, getContextLookupReferences, visitAll } from "./template/analysis.js"
 import { isString } from "lodash-es"
 import type { ObjectWithName } from "./util/util.js"
 import { extractActionReference, extractRuntimeReference } from "./config/references.js"
@@ -35,6 +35,7 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   const generator = getContextLookupReferences(
     visitAll({
       value: garden.rawOutputs as ObjectWithName[],
+      opts: defaultVisitorOpts,
     }),
     new OutputConfigContext({
       garden,

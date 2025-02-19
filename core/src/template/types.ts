@@ -11,7 +11,7 @@ import { isPrimitive } from "utility-types"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
 import { deepMap } from "../util/objects.js"
 import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
-import type { TemplateExpressionGenerator } from "./analysis.js"
+import type { Branch, VisitorOpts } from "./analysis.js"
 import { InternalError } from "../exceptions.js"
 
 export function isTemplatePrimitive(value: unknown): value is TemplatePrimitive {
@@ -103,9 +103,15 @@ export abstract class UnresolvedTemplateValue {
     })
   }
 
+  public isBranch(): this is Branch<ParsedTemplate> {
+    return false
+  }
+
   public abstract evaluate(args: EvaluateTemplateArgs): TemplateEvaluationResult
 
   public abstract toJSON(): CollectionOrValue<TemplatePrimitive>
+
+  public abstract getChildren(opts: VisitorOpts): ParsedTemplate[]
 
   /**
    * @see sanitizeValue
@@ -113,19 +119,6 @@ export abstract class UnresolvedTemplateValue {
   public toSanitizedValue() {
     return this.toJSON()
   }
-
-  public abstract visitAll(opts: {
-    /**
-     * If true, the returned template expression generator will only yield template expressions that
-     * will be evaluated when calling `evaluate`.
-     *
-     * If `evaluate` returns `partial: true`, and `onlyEssential` is set to true, then the unresolved
-     * expressions returned by evaluate will not be emitted by the returned generator.
-     *
-     * @default false
-     */
-    onlyEssential?: boolean
-  }): TemplateExpressionGenerator
 
   public toString(): string {
     return `UnresolvedTemplateValue(${this.constructor.name})`

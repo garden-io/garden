@@ -16,45 +16,136 @@ import type { ContextResolveOpts } from "../config/template-contexts/base.js"
 import { type ConfigContext } from "../config/template-contexts/base.js"
 import { GardenError, InternalError } from "../exceptions.js"
 import { type ConfigSource } from "../config/validation.js"
+import { ParsedTemplateString } from "./templated-strings.js"
 
-export type TemplateExpressionGenerator = Generator<
+export type VisitorFinding = (
   | {
-      type: "template-expression"
-      value: TemplateExpression
-      yamlSource: ConfigSource
-      parent: TemplateExpression
-      root: TemplateExpression
+      readonly type: "template-expression"
+      readonly value: TemplateExpression
+      readonly yamlSource: ConfigSource
+      readonly parent: TemplateExpression
+      readonly root: TemplateExpression
+
+      /**
+       * The consumer of the generator override this if they're not interested in certain children
+       */
+      childrenEligibleForRecursion?: TemplateExpression[]
     }
   | {
-      type: "unresolved-template"
-      value: UnresolvedTemplateValue
-      yamlSource: undefined
-    },
-  void,
-  undefined
->
+      readonly type: "unresolved-template"
+      readonly value: UnresolvedTemplateValue
+      readonly yamlSource: undefined
 
-export function* visitAll({ value }: { value: ParsedTemplate }): TemplateExpressionGenerator {
+      /**
+       * The consumer of the generator override this if they're not interested in certain children
+       */
+      childrenEligibleForRecursion?: ParsedTemplate[]
+    }
+) & {
+  /**
+   * The consumer of the generator may set this to false if they aren't interested in the children of this finding.
+   *
+   * @default true
+   */
+  continueRecursion: boolean
+}
+
+export type VisitorFindingGenerator = Generator<VisitorFinding, void, undefined>
+
+export type VisitorOpts = {
+  /**
+   * If true, the returned template expression generator will only yield template expressions that
+   * will be evaluated when calling `evaluate`.
+   *
+   * If `evaluate` returns `partial: true`, and `onlyEssential` is set to true, then the unresolved
+   * expressions returned by evaluate will not be emitted by the returned generator.
+   *
+   * @default false
+   */
+  readonly onlyEssential: boolean
+}
+// we need to pass visitor opts recursively, so to ensure that we always do that, the visitor opts are required
+export const defaultVisitorOpts: VisitorOpts = {
+  onlyEssential: false,
+}
+
+export function* visitAll({ value, opts }: { value: ParsedTemplate; opts: VisitorOpts }): VisitorFindingGenerator {
   if (isArray(value)) {
     for (const v of value) {
       yield* visitAll({
         value: v,
+        opts,
       })
     }
   } else if (isPlainObject(value)) {
     for (const k of Object.keys(value)) {
       yield* visitAll({
         value: value[k],
+        opts,
       })
     }
   } else if (value instanceof UnresolvedTemplateValue) {
-    yield {
-      type: "unresolved-template",
+    const finding: VisitorFinding = {
+      type: "unresolved-template" as const,
       value,
       yamlSource: undefined,
+      continueRecursion: true,
     }
-    yield* value.visitAll({})
+    yield finding
+    if (finding.continueRecursion) {
+      if (value instanceof ParsedTemplateString) {
+        yield* value.visitTemplateExpressions()
+      } else {
+        // the consumer of this generator may reduce eligible children e.g. to eliminate dead branches.
+        // By default visit everything, so we default to all children if the consumer doesn't care.
+        const children = finding.childrenEligibleForRecursion || value.getChildren(opts)
+        yield* visitAll({ value: children, opts })
+      }
+    }
   }
+}
+
+export function* astVisitAll(
+  value: TemplateExpression,
+  source: ConfigSource,
+  root: TemplateExpression,
+  parent: TemplateExpression
+): VisitorFindingGenerator {
+  const finding: VisitorFinding = {
+    type: "template-expression" as const,
+    value,
+    yamlSource: source,
+    root,
+    parent,
+    continueRecursion: true,
+  }
+  yield finding
+  if (finding.continueRecursion) {
+    // the consumer of this generator may reduce eligible children e.g. to eliminate dead branches.
+    // By default visit everything, so we default to all children if the consumer doesn't care.
+    const children = finding.childrenEligibleForRecursion || value.getChildren()
+    for (const item of children) {
+      yield* astVisitAll(
+        item,
+        source,
+        root,
+        // current value is the new parent
+        value
+      )
+    }
+  }
+}
+
+export interface Branch<T extends TemplateExpression | ParsedTemplate> {
+  /**
+   * Returns the children that are in the active part of the branch;
+   *
+   * If a branch expression is decidable and evaluates to true, returns the "consequent" children
+   * If a branch expression is decidable and evaluates to false, returns the "alternate" children
+   *
+   * If a branch expression is not decidable, all children are considered positive.
+   */
+  getActiveBranchChildren(context: ConfigContext, opts: ContextResolveOpts, yamlSource: ConfigSource | undefined): T[]
 }
 
 export class UnresolvableValue {
@@ -99,20 +190,26 @@ function captureError(arg: () => void): () => GardenError {
 }
 
 export function* getContextLookupReferences(
-  generator: TemplateExpressionGenerator,
+  generator: VisitorFindingGenerator,
   context: ConfigContext,
   opts: ContextResolveOpts
 ): Generator<ContextLookupReferenceFinding, void, undefined> {
   for (const finding of generator) {
+    // When encountering branches, we are only interested in recursing into the active part of the branch
+    // This makes sure that we ignore references in dead code branches.
+    if (finding.value.isBranch()) {
+      finding.childrenEligibleForRecursion = finding.value.getActiveBranchChildren(context, opts, finding.yamlSource)
+    }
+
+    // we are only interested in template expressions
     if (finding.type !== "template-expression") {
-      // we are only interested in template expressions here
       continue
     }
 
     const { value, yamlSource, parent, root } = finding
 
+    // we are only interested in ContextLookupExpression instances
     if (!(value instanceof ContextLookupExpression)) {
-      // we are only interested in ContextLookupExpression instances
       continue
     }
 
@@ -191,7 +288,11 @@ export function someReferences({
 }: {
   matcher: (ref: ContextLookupReferenceFinding) => boolean
 } & ReferenceMatchArgs) {
-  const generator = getContextLookupReferences(value.visitAll({ onlyEssential }), context, opts)
+  const generator = getContextLookupReferences(
+    visitAll({ value, opts: { ...defaultVisitorOpts, onlyEssential } }),
+    context,
+    opts
+  )
 
   for (const ref of generator) {
     const isMatch = matcher(ref)
@@ -208,7 +309,11 @@ export function someReferences({
  * If `onlyEssential: false`, and this function returns `true`, then `deepEvaluate` will not throw an error due to missing context keys.
  */
 export function canEvaluateSuccessfully({ value, context, opts, onlyEssential = false }: ReferenceMatchArgs) {
-  const generator = getContextLookupReferences(value.visitAll({ onlyEssential }), context, opts)
+  const generator = getContextLookupReferences(
+    visitAll({ value, opts: { ...defaultVisitorOpts, onlyEssential } }),
+    context,
+    opts
+  )
 
   // find all essential root expressions containing context lookups
   for (const finding of generator) {
