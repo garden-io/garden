@@ -1024,7 +1024,7 @@ function commonResultFields(graphResult: GraphResultWithoutTask) {
     inputVersion: graphResult.inputVersion,
     // Here for backwards-compatibility
     version: graphResult.inputVersion,
-    actionState: graphResult.result.state as ActionState,
+    actionState: graphResult.result ? (graphResult.result.state as ActionState) : "unknown",
   }
 }
 
