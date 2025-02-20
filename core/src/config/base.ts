@@ -657,7 +657,16 @@ export const loadVarfile = profileAsync(async function loadVarfile({
           version: "1.2",
           sourceDescription: `varfile at ${relPath}`,
         })
-        if (loaded.length !== 1) {
+        if (loaded.length === 0) {
+          // We treat empty documents as an empty object mapping
+          return {
+            data: {},
+            source: {
+              path: [],
+            },
+          }
+        }
+        if (loaded.length > 1) {
           throw new ConfigurationError({
             message: `Configured variable file ${relPath} must be a single YAML document. Got multiple (${loaded.length}) YAML documents`,
           })
