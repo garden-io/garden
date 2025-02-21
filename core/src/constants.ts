@@ -39,9 +39,24 @@ export enum GardenApiVersion {
   v2 = "garden.io/v2",
 }
 
-// TODO(0.14): bump this to v1 (or v2?)
-//  Update the comments and log messages in the placed where it's used.
-export const defaultGardenApiVersion = GardenApiVersion.v0
+/**
+ * The default version to be used across the codebase
+ * in config-generating commands and deprecation warnings.
+ *
+ * Defines the feature-compatibility for the current major version.
+ *
+ * TODO(0.14): change this to v2
+ */
+export const defaultGardenApiVersion = GardenApiVersion.v1
+
+/**
+ * The version to be used if the project-level `apiVersion` is not defined
+ * in the Garden config file.
+ *
+ * TODO(0.14): bump this to v1
+ * TODO(0.14): update the comments and log messages in the placed where it's used
+ */
+export const fallbackGardenApiVersion = GardenApiVersion.v0
 
 export const supportedApiVersions: string[] = Object.values(GardenApiVersion).map((v) => v as string)
 

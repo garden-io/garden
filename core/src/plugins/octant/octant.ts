@@ -13,7 +13,7 @@ import { execa } from "execa"
 import getPort from "get-port"
 import { getK8sProvider } from "../kubernetes/util.js"
 import { createGardenPlugin } from "../../plugin/plugin.js"
-import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { reportApiV1DeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 let octantProc: ExecaChildProcess
 let octantPort: number
@@ -37,7 +37,7 @@ export const gardenPlugin = () =>
     ],
     handlers: {
       async getDashboardPage({ ctx, log }: GetDashboardPageParams) {
-        reportDeprecatedFeatureUsage({
+        reportApiV1DeprecatedFeatureUsage({
           apiVersion: ctx.projectApiVersion,
           log,
           deprecation: "octantPlugin",

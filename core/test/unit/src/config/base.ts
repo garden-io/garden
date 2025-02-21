@@ -18,7 +18,7 @@ import {
 } from "../../../../src/config/base.js"
 import { resolve, join } from "path"
 import { expectError, expectFuzzyMatch, getDataDir, getDefaultProjectConfig } from "../../../helpers.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, defaultGardenApiVersion, GardenApiVersion } from "../../../../src/constants.js"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs.js"
 import { safeDumpYaml } from "../../../../src/util/serialization.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
@@ -44,7 +44,7 @@ const log = logger.createLog()
 // TODO-0.14: remove this describe block in 0.14
 describe("prepareProjectResource", () => {
   const projectResourceTemplate = {
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: defaultGardenApiVersion,
     kind: "Project",
     name: "test",
     path: "/tmp/", // the path does not matter in this test suite
@@ -227,7 +227,7 @@ describe("loadConfigResources", () => {
     expect(parsed.length).to.equal(1)
 
     expect(omit(parsed[0], "internal")).to.eql({
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: defaultGardenApiVersion,
       kind: "Project",
       path: projectPathA,
       configPath,
@@ -379,7 +379,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed.map((p) => omit(p, "internal"))).to.eql([
       {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: defaultGardenApiVersion,
         kind: "Project",
         configPath,
         path: projectPathMultipleModules,
@@ -512,7 +512,7 @@ describe("loadConfigResources", () => {
     expect(parsed.length).to.equal(1)
 
     expect(omit(parsed[0], "internal")).to.eql({
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: defaultGardenApiVersion,
       kind: "Project",
       path: projectPath,
       configPath,
@@ -534,7 +534,7 @@ describe("loadConfigResources", () => {
     const parsed = await loadConfigResources(log, path, configPath)
 
     expect(omit(parsed[0], "internal")).to.eql({
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: defaultGardenApiVersion,
       kind: "Project",
       name: "foo",
       environments: [{ name: "local" }],
