@@ -1,4 +1,24 @@
 
+<a name="0.13.54"></a>
+## [0.13.54](https://github.com/garden-io/garden/compare/0.13.53...0.13.54) (2025-02-20)
+
+### Bug Fixes
+
+* correct source mapping in varfiles ([#6870](https://github.com/garden-io/garden/issues/6870)) ([994d78fb4](https://github.com/garden-io/garden/commit/994d78fb4))
+* fix regression in cmd result processing ([#6867](https://github.com/garden-io/garden/issues/6867)) ([f2f80ca64](https://github.com/garden-io/garden/commit/f2f80ca64))
+* do not consider implicit dependencies from action references in dead code branches ([#6862](https://github.com/garden-io/garden/issues/6862)) ([b4ee79178](https://github.com/garden-io/garden/commit/b4ee79178))
+* dependency error message rendering ([#6847](https://github.com/garden-io/garden/issues/6847)) ([c7da2f2ac](https://github.com/garden-io/garden/commit/c7da2f2ac))
+* mute false-positive deprecation warning for `deploymentStrategy` ([#6845](https://github.com/garden-io/garden/issues/6845)) ([583354785](https://github.com/garden-io/garden/commit/583354785))
+* **dev:** fix unresolved templates in cmd results ([#6850](https://github.com/garden-io/garden/issues/6850)) ([4a2cd9c25](https://github.com/garden-io/garden/commit/4a2cd9c25))
+* **k8s:** crash if `spec.files` in a `kubernetes` `Deploy` action is a template value ([#6868](https://github.com/garden-io/garden/issues/6868)) ([74f2efde6](https://github.com/garden-io/garden/commit/74f2efde6))
+* **template:** propagate condition recursively in `conditionallyDeepEvaluate` ([#6852](https://github.com/garden-io/garden/issues/6852)) ([9ad03742e](https://github.com/garden-io/garden/commit/9ad03742e))
+* **template:** parse template strings in varfiles ([#6844](https://github.com/garden-io/garden/issues/6844)) ([f855d91c1](https://github.com/garden-io/garden/commit/f855d91c1))
+
+### Improvements
+
+* **terraform:** support dynamic backends ([#6828](https://github.com/garden-io/garden/issues/6828)) ([9cb1c1ec3](https://github.com/garden-io/garden/commit/9cb1c1ec3))
+* **terraform:** enable streaming logs to cloud ([#6829](https://github.com/garden-io/garden/issues/6829)) ([0fac9d064](https://github.com/garden-io/garden/commit/0fac9d064))
+
 <a name="0.13.53"></a>
 ## [0.13.53](https://github.com/garden-io/garden/compare/0.13.52...0.13.53) (2025-02-06)
 
