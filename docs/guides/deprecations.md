@@ -146,7 +146,7 @@ For more information, please refer to the [Migration guide for action configs](#
 
 <h3 id="rsyncBuildStaging">The `legacy rsync-based file syncing` for build staging</h3>
 
-Do not use `GARDEN_LEGACY_BUILD_STAGE` environment variable in 0.14.
+Do not use `GARDEN_LEGACY_BUILD_STAGE`.
 
 ## Garden action types
 
