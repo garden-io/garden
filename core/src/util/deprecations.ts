@@ -119,7 +119,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     rsyncBuildStaging: {
       contextDesc: "Build Staging",
       featureDesc: `The ${style("legacy rsync-based file syncing")} for build staging`,
-      hint: `Do not use ${style("`GARDEN_LEGACY_BUILD_STAGE`")} environment variable in 0.14.`,
+      hint: `Do not use ${style(`GARDEN_LEGACY_BUILD_STAGE`)} environment variable in 0.14.`,
       hintReferenceLink: null,
     },
     configmapDeployAction: makeDeployActionTypeDeprecation("configmap", style),
