@@ -7,7 +7,7 @@
  */
 
 import type { TestGarden } from "../../../helpers.js"
-import { makeGarden, makeTempDir, noOpTestPlugin } from "../../../helpers.js"
+import { expectError, makeGarden, makeTempDir, noOpTestPlugin } from "../../../helpers.js"
 import { preprocessActionConfig } from "../../../../src/graph/actions.js"
 import type { RunActionConfig } from "../../../../src/actions/run.js"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../src/constants.js"
@@ -15,7 +15,6 @@ import type tmp from "tmp-promise"
 import { expect } from "chai"
 import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 
-// TODO: add more tests
 describe("preprocessActionConfig", () => {
   let tmpDir: tmp.DirectoryResult
   let garden: TestGarden
@@ -27,6 +26,46 @@ describe("preprocessActionConfig", () => {
 
   after(async () => {
     await tmpDir.cleanup()
+  })
+
+  context("validation", () => {
+    it("should reject unknown keys in action configs", async () => {
+      const config: RunActionConfig = parseTemplateCollection({
+        value: {
+          internal: { basePath: tmpDir.path },
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
+          kind: "Run" as const,
+          type: "exec",
+          name: "run",
+          spec: { command: ["echo", "foo"] },
+          foo: "this should cause a validation error", // <-- we expect the action schema to reject this
+        },
+        source: { path: [] },
+      })
+
+      const router = await garden.getActionRouter()
+      const actionTypes = await garden.getActionTypes()
+      const definition = actionTypes[config.kind][config.type]?.spec
+
+      await expectError(
+        async () => {
+          return preprocessActionConfig({
+            garden,
+            config,
+            configsByKey: { "run.run": config },
+            actionTypes,
+            definition,
+            router,
+            linkedSources: {},
+            mode: "default",
+            log: garden.log,
+          })
+        },
+        {
+          contains: ["Error validating exec Run run 'run'", 'key "foo" is not allowed at path [foo]'],
+        }
+      )
+    })
   })
 
   context("template strings", () => {
