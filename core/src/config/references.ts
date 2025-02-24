@@ -8,6 +8,7 @@
 
 import isString from "lodash-es/isString.js"
 import {
+  defaultVisitorOpts,
   getContextLookupReferences,
   isUnresolvableValue,
   visitAll,
@@ -167,6 +168,7 @@ export function* getActionTemplateReferences(
   const generator = getContextLookupReferences(
     visitAll({
       value: config as ObjectWithName,
+      opts: defaultVisitorOpts,
     }),
     context,
     {}
@@ -190,6 +192,7 @@ export function getModuleTemplateReferences(config: ModuleConfig, context: Modul
   const generator = getContextLookupReferences(
     visitAll({
       value: config as ObjectWithName,
+      opts: defaultVisitorOpts,
     }),
     context,
     {}

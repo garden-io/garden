@@ -16,7 +16,8 @@ import type { EvaluateTemplateArgs, ParsedTemplate, ResolvedTemplate } from "./t
 import { UnresolvedTemplateValue, type TemplatePrimitive } from "./types.js"
 import * as ast from "./ast.js"
 import { LRUCache } from "lru-cache"
-import { visitAll, type TemplateExpressionGenerator } from "./analysis.js"
+import type { VisitorFindingGenerator } from "./analysis.js"
+import { astVisitAll, defaultVisitorOpts, visitAll } from "./analysis.js"
 import { TemplateStringError } from "./errors.js"
 
 const escapePrefix = "$${"
@@ -31,7 +32,7 @@ const parseTemplateStringCache = new LRUCache<string, string | ast.TemplateExpre
   max: 1000,
 })
 
-class ParsedTemplateString extends UnresolvedTemplateValue {
+export class ParsedTemplateString extends UnresolvedTemplateValue {
   constructor(
     private readonly source: ConfigSource,
     private readonly rootNode: ast.TemplateExpression
@@ -64,8 +65,14 @@ class ParsedTemplateString extends UnresolvedTemplateValue {
     return `UnresolvedTemplateValue(${this.rootNode.rawText})`
   }
 
-  public override *visitAll(): TemplateExpressionGenerator {
-    yield* this.rootNode.visitAll(this.source)
+  // ParsedTemplateString has no other UnresolvedTemplateValue instances as children;
+  // visitAll() will identify `ParsedTemplateString` and make sure to call the `visitTemplateExpressions` method instead.
+  public override getChildren(): never[] {
+    return []
+  }
+
+  public *visitTemplateExpressions(): VisitorFindingGenerator {
+    yield* astVisitAll(this.rootNode, this.source, this.rootNode, this.rootNode)
   }
 }
 
@@ -175,7 +182,7 @@ export function legacyResolveTemplateString({
  * Returns `true` if the given value may be or contain instances of `UnresolvedTemplateValue`.
  */
 export function isUnresolved(value: ParsedTemplate) {
-  const generator = visitAll({ value })
+  const generator = visitAll({ value, opts: defaultVisitorOpts })
   for (const _ of generator) {
     return true
   }

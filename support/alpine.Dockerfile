@@ -4,7 +4,7 @@ ARG VARIANT=root
 
 # NOTE: This is not the node version Garden itself will run in. Garden binaries have node "built in" and the version installed on the system does not matter.
 # The main reason we base these images off of the Node image is for Azure DevOps Support.
-FROM node:23.7.0-alpine@sha256:70eca392e3d52cb7d133b52d52e8600d8c410a5eaee6105c11324b28868f9ac9 as garden-base-root
+FROM node:23.8.0-alpine@sha256:0a29d8a047149079bf48dab598f287815e39867d547e8f3935cfdece0a4379cc as garden-base-root
 
 RUN apk add --no-cache \
   bash \
@@ -100,7 +100,7 @@ COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/b
 #
 # gcloud base
 #
-FROM google/cloud-sdk:509.0.0-alpine@sha256:9a77c6865401e6f80d9a693a6ee4b05fc9fc509e104a92c493d90e1f172eb8ba as gcloud-base
+FROM google/cloud-sdk:510.0.0-alpine@sha256:9ad259397860aed208bcdd92af34b270d095e5d79659c05ba55d59d436657b1b as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet && gcloud components remove gsutil --quiet
 

@@ -10,7 +10,7 @@ import type { ConfigContext, ContextResolveOpts } from "../config/template-conte
 import { LayeredContext } from "../config/template-contexts/base.js"
 import type { Collection } from "../util/objects.js"
 import { deepMap } from "../util/objects.js"
-import { visitAll, type TemplateExpressionGenerator } from "./analysis.js"
+import type { VisitorOpts } from "./analysis.js"
 import { evaluate } from "./evaluate.js"
 import type {
   EvaluateTemplateArgs,
@@ -77,13 +77,12 @@ export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
     })
   }
 
-  override *visitAll({ onlyEssential = false }): TemplateExpressionGenerator {
-    if (this.wrapped instanceof UnresolvedTemplateValue) {
-      this.wrapped.visitAll({ onlyEssential })
-    } else if (!onlyEssential) {
-      // wrapped is either a primitive or a collection.
-      // Thus, we only visit all if onlyEssential is false.
-      yield* visitAll({ value: this.wrapped })
+  override getChildren(opts: VisitorOpts): ParsedTemplate[] {
+    if (opts.onlyEssential && !(this.wrapped instanceof UnresolvedTemplateValue)) {
+      // if wrapped is UnresolvedTemplateValue, it's essential - if it is a collection, it's not
+      return []
     }
+
+    return [this.wrapped]
   }
 }

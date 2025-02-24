@@ -12,7 +12,7 @@ import type { KubernetesPluginContext } from "../config.js"
 import { getPortForwardHandler } from "../port-forward.js"
 import { getActionNamespace } from "../namespace.js"
 import type { KubernetesDeployAction } from "./config.js"
-import { kubernetesDeploySchema } from "./config.js"
+import { kubernetesDeploySchema, kubernetesFilesSchema } from "./config.js"
 import { execInKubernetesDeploy } from "./exec.js"
 import {
   deleteKubernetesDeploy,
@@ -25,7 +25,7 @@ import { uniq } from "lodash-es"
 import { DOCS_BASE_URL } from "../../../constants.js"
 import { kubernetesGetSyncStatus, kubernetesStartSync } from "./sync.js"
 import { k8sContainerStopSync } from "../container/sync.js"
-import { isTruthy } from "../../../util/util.js"
+import { validateSchema } from "../../../config/validation.js"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -44,19 +44,15 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
     configure: async ({ ctx, config }) => {
-      // The `spec` field hasn't been validated here yet,
-      // so the value of `files` might be `undefined` instead of a default empty array
-      // also we discard any falsy file values in files array
-      let files = (config.spec.files || []).filter(isTruthy)
-
-      if (files.length > 0 && !config.spec.kustomize) {
+      if (!config.spec.kustomize) {
         if (!config.include) {
           config.include = []
         }
 
+        let evaluatedFiles: unknown
+
         try {
-          // @ts-expect-error todo: correct types for unresolved configs
-          files = ctx.deepEvaluate(files)
+          evaluatedFiles = ctx.deepEvaluate(config.spec.files)
         } catch (error) {
           if (!(error instanceof GardenError)) {
             throw error
@@ -66,6 +62,14 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
             wrappedErrors: [error],
           })
         }
+
+        const files = validateSchema<string[]>(evaluatedFiles, kubernetesFilesSchema(), {
+          source: {
+            yamlDoc: config.internal.yamlDoc,
+            path: ["spec", "files"],
+          },
+        })
+
         config.include = uniq([...config.include, ...files])
       }
 

@@ -131,8 +131,8 @@ export class VariablesContext extends LayeredContext {
       defaultPath: defaultProjectVarfilePath,
     })
     const projectVarfileVars = parseTemplateCollection({
-      value: rawProjectVarfileVars,
-      source: { path: ["varfile"], yamlDoc: projectConfig.internal.yamlDoc },
+      value: rawProjectVarfileVars.data,
+      source: rawProjectVarfileVars.source,
     })
 
     return new this(`project ${projectConfig.name}`, {
@@ -155,8 +155,8 @@ export class VariablesContext extends LayeredContext {
       defaultPath: defaultEnvVarfilePath(environment),
     })
     const envVarfileVars = parseTemplateCollection({
-      value: rawEnvVarfileVars,
-      source: { path: ["varfile"], yamlDoc: projectConfig.internal.yamlDoc },
+      value: rawEnvVarfileVars.data,
+      source: rawEnvVarfileVars.source,
     })
 
     return new this(`environment ${environmentConfig.name}`, {
@@ -172,7 +172,7 @@ export class VariablesContext extends LayeredContext {
    *   garden.variableOverrides > module varfile > config.variables
    */
   public static async forModule(garden: Garden, config: ModuleConfig, context: ModuleConfigContext) {
-    let varfileVars: DeepPrimitiveMap = {}
+    let varfileVars: ParsedTemplate = {}
     if (config.varfile) {
       const varfilePath = deepEvaluate(config.varfile, {
         context,
@@ -183,11 +183,15 @@ export class VariablesContext extends LayeredContext {
           message: `Expected varfile template expression in module configuration ${config.name} to resolve to string, actually got ${typeof varfilePath}`,
         })
       }
-      varfileVars = await loadVarfile({
+      const rawVarfileVars = await loadVarfile({
         configRoot: config.path,
         path: varfilePath,
         defaultPath: undefined,
         log: garden.log,
+      })
+      varfileVars = parseTemplateCollection({
+        value: rawVarfileVars.data,
+        source: rawVarfileVars.source,
       })
     }
 
@@ -205,21 +209,13 @@ export class VariablesContext extends LayeredContext {
     group?: GroupConfig
   ) {
     const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
-    const rawActionVarfileVars = await loadVarfiles(garden, effectiveConfigFileLocation, config.varfiles || [])
-    const actionVarfileVars = parseTemplateCollection({
-      value: rawActionVarfileVars,
-      source: { path: ["varfiles"], yamlDoc: config.internal.yamlDoc },
-    })
+    const actionVarfileVars = await loadVarfiles(garden, effectiveConfigFileLocation, config.varfiles || [])
     const actionVariables = [config.variables, ...actionVarfileVars]
 
     let groupVarfileVars: ParsedTemplate[] = []
     let groupVariables: ParsedTemplate[] = []
     if (group) {
-      const rawGroupVarfileVars = await loadVarfiles(garden, group.path, group.varfiles || [])
-      groupVarfileVars = parseTemplateCollection({
-        value: rawGroupVarfileVars,
-        source: { path: [] },
-      })
+      groupVarfileVars = await loadVarfiles(garden, group.path, group.varfiles || [])
       groupVariables = [group.variables, ...groupVarfileVars]
     }
 
@@ -294,14 +290,18 @@ async function loadVarfiles(garden: Garden, configRoot: string, varfiles: Varfil
   )
 
   const varsByFile = await Promise.all(
-    (resolvedVarFiles || []).map((varfile) => {
+    (resolvedVarFiles || []).map(async (varfile) => {
       const { path, optional } = getVarfileData(varfile)
-      return loadVarfile({
+      const loaded = await loadVarfile({
         configRoot,
         path,
         defaultPath: undefined,
         optional,
         log: garden.log,
+      })
+      return parseTemplateCollection({
+        value: loaded.data,
+        source: loaded.source,
       })
     })
   )
