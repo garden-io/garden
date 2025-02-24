@@ -202,7 +202,7 @@ TemplateStrings
   }
 
 FormatString
-  = EscapeStart (!FormatEndWithOptional SourceCharacter)* FormatEndWithOptional {
+  = EscapeStart (!FormatEnd SourceCharacter)* FormatEnd {
     const isEscapedValue = true
     return new ast.LiteralExpression(text(), location(), text(), isEscapedValue)
   }
@@ -218,7 +218,7 @@ FormatString
         throw new TemplateStringError({ message: `Unrecognized block operator: ${op}`, loc: location() })
     }
   }
-  / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
+  / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEnd {
       const isEscapedValue = pre[0] === escapePrefix
       if (isEscapedValue) {
         return new ast.LiteralExpression(text(), location(), text(), isEscapedValue)
@@ -256,13 +256,6 @@ FormatStartWithEscape
 
 FormatEnd
   = __ "}"
-
-OptionalFormatEnd
-  = __ "}?"
-
-FormatEndWithOptional
-  = OptionalFormatEnd
-  / FormatEnd
 
 BlockOperator
   = "else"
