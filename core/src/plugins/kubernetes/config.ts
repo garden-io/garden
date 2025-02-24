@@ -617,7 +617,6 @@ export const kubernetesConfigBase = () =>
         .example("api.mydomain.com"),
       deploymentStrategy: joi
         .string()
-        .default("rolling")
         .allow("rolling", "blue-green")
         .description(
           dedent`

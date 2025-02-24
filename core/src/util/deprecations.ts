@@ -40,7 +40,7 @@ function makeDeployActionTypeDeprecation(actionType: DeprecatedDeployActionType,
   return {
     contextDesc: "Garden action types",
     featureDesc: `The ${style(`${actionType} Deploy`)} action type`,
-    hint: "Do not use this action in Garden 0.14.",
+    hint: `Use the ${style(`kubernetes Deploy`)} action type instead.`,
     hintReferenceLink: null,
   }
 }
@@ -119,7 +119,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     rsyncBuildStaging: {
       contextDesc: "Build Staging",
       featureDesc: `The ${style("legacy rsync-based file syncing")} for build staging`,
-      hint: `Do not use ${style("`GARDEN_LEGACY_BUILD_STAGE`")} environment variable in 0.14.`,
+      hint: `Do not use ${style(`GARDEN_LEGACY_BUILD_STAGE`)}.`,
       hintReferenceLink: null,
     },
     configmapDeployAction: makeDeployActionTypeDeprecation("configmap", style),

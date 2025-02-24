@@ -146,14 +146,14 @@ For more information, please refer to the [Migration guide for action configs](#
 
 <h3 id="rsyncBuildStaging">The `legacy rsync-based file syncing` for build staging</h3>
 
-Do not use ``GARDEN_LEGACY_BUILD_STAGE`` environment variable in 0.14.
+Do not use `GARDEN_LEGACY_BUILD_STAGE`.
 
 ## Garden action types
 
 <h3 id="configmapDeployAction">The `configmap Deploy` action type</h3>
 
-Do not use this action in Garden 0.14.
+Use the `kubernetes Deploy` action type instead.
 
 <h3 id="persistentvolumeclaimDeployAction">The `persistentvolumeclaim Deploy` action type</h3>
 
-Do not use this action in Garden 0.14.
+Use the `kubernetes Deploy` action type instead.
