@@ -1231,9 +1231,9 @@ Do not use this config field. It has no effect as the experimental support for b
 
 Sets the deployment strategy for `container` deploy actions.
 
-| Type     | Default     | Required |
-| -------- | ----------- | -------- |
-| `string` | `"rolling"` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `providers[].sync`
 
