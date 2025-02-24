@@ -121,7 +121,9 @@ export function renderMsg(entry: LogEntry): string {
 
   const origin = context.origin ? `[${styles.italic(context.origin)}] ` : ""
 
-  return style(`${logLevelName}${origin}${msg}`)
+  const fullMsg = `${logLevelName}${origin}${msg}`
+
+  return fullMsg ? style(fullMsg) : ""
 }
 
 export function renderData(entry: LogEntry): string {
@@ -137,7 +139,7 @@ export function renderData(entry: LogEntry): string {
 }
 
 export function renderSection(entry: LogEntry): string {
-  const { msg } = entry
+  const msg = renderMsg(entry)
   const section = getSection(entry)
 
   if (section && msg) {
