@@ -171,7 +171,7 @@ Use the `kubernetes Deploy` action type instead.
 
 ## Template strings
 
-<h3 id="optionalTemplateValueSyntax">The optional template value syntax</h3>
+<h3 id="optionalTemplateValueSyntax">The optional template value syntax (like `${var.foo}?`)</h3>
 
 Use explicit fallback values instead.
 

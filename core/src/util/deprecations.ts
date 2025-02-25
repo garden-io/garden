@@ -126,7 +126,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     persistentvolumeclaimDeployAction: makeDeployActionTypeDeprecation("persistentvolumeclaim", style),
     optionalTemplateValueSyntax: {
       contextDesc: "Template strings",
-      featureDesc: `The optional template value syntax`,
+      featureDesc: `The optional template value syntax (like ${style(`\${var.foo}?`)})`,
       hint: `Use explicit fallback values instead.`,
       hintReferenceLink: {
         name: "Migration guide for optional values in template strings",
