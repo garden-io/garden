@@ -78,7 +78,7 @@ For example, if you have defined variable `baseUrl: http://example.com`,
 then the template string `${var.baseUrl}?foo=bar` will result in `http://example.com?foo=bar`.
 
 If you need to reference a potentially undefined variable,
-please use an explicit fallback value like ${var.baseUrl || 'defaultValue'} instead.
+please use an explicit fallback value like `${var.baseUrl || 'defaultValue'}` instead.
 
 # Breaking changes
 
