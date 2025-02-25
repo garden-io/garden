@@ -22,11 +22,11 @@ export function getProjectApiVersion(): GardenApiVersion {
   return projectApiVersionGlobal
 }
 
-export function setProjectApiVersion(projectConfig: ProjectConfig, log: Log) {
+export function setProjectApiVersion(projectConfig: Partial<ProjectConfig>, log: Log) {
   projectApiVersionGlobal = resolveApiVersion(projectConfig, log)
 }
 
-export function resolveApiVersion(projectSpec: ProjectConfig, log: Log): GardenApiVersion {
+export function resolveApiVersion(projectSpec: Partial<ProjectConfig>, log: Log): GardenApiVersion {
   const projectApiVersion = projectSpec.apiVersion
 
   // We conservatively set the apiVersion to be compatible with 0.12.
