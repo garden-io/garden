@@ -20,6 +20,9 @@ import { TemplateStringError } from "./errors.js"
 import { styles } from "../logger/styles.js"
 import { GardenApiVersion } from "../constants.js"
 import { getProjectApiVersion } from "../project-api-version.js"
+import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { RootLogger } from "../logger/logger.js"
+import { emitNonRepeatableWarning } from "../warnings.js"
 
 type ASTEvaluateArgs = EvaluateTemplateArgs & {
   readonly yamlSource: ConfigSource
@@ -526,6 +529,21 @@ export class FormatStringExpression extends TemplateExpression {
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const apiVersion = getProjectApiVersion()
     const isOptional = this.isOptional(apiVersion)
+
+    if (apiVersion === GardenApiVersion.v1 && isOptional) {
+      const log = RootLogger.getInstance().createLog()
+
+      reportDeprecatedFeatureUsage({
+        apiVersion: GardenApiVersion.v1,
+        log,
+        deprecation: "optionalTemplateValueSyntax",
+      })
+
+      emitNonRepeatableWarning(
+        log,
+        `Found deprecated optional template value syntax in ${styles.highlight(this.rawText)}`
+      )
+    }
 
     const result = this.innerExpression.evaluate({
       ...args,
