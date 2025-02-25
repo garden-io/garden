@@ -73,14 +73,56 @@ describe("parse and evaluate template strings", () => {
     expect(res).to.equal("value")
   })
 
-  it("should correctly resolve if ? suffix is present but value exists", () => {
-    const res = legacyResolveTemplateString({ string: "${foo}?", context: new TestContext({ foo: "bar" }) })
-    expect(res).to.equal("bar")
-  })
+  describe("should resolve ? suffix as a regular character", () => {
+    it("should resolve ? as a regular character if the referenced template value exists", () => {
+      const res = legacyResolveTemplateString({ string: "${foo}?", context: new TestContext({ foo: "bar" }) })
+      expect(res).to.equal("bar?")
+    })
 
-  it("should allow undefined values if ? suffix is present", () => {
-    const res = legacyResolveTemplateString({ string: "${foo}?", context: new TestContext({}) })
-    expect(res).to.equal(undefined)
+    it("should throw the referenced template value with ? does not exists", () => {
+      void expectError(
+        () =>
+          legacyResolveTemplateString({
+            string: "${foo}?",
+            context: new TestContext({}),
+          }),
+        { contains: "Invalid template string (${foo}?): Could not find key foo. Available keys: (none)." }
+      )
+    })
+
+    it("should throw the referenced template value with ? does not exists and surrounded with a prefix and a suffix", () => {
+      void expectError(
+        () =>
+          legacyResolveTemplateString({
+            string: "prefix-${some}?-suffix",
+            context: new TestContext({}),
+          }),
+        {
+          contains:
+            "Invalid template string (prefix-${some}?-suffix): Could not find key some. Available keys: (none).",
+        }
+      )
+    })
+
+    it("should throw if an expression with ? in member expression cannot be resolved", async () => {
+      await expectError(
+        () =>
+          legacyResolveTemplateString({
+            string: '${actions.build["${parent.name}?"]}',
+            context: new TestContext({
+              actions: {
+                build: {},
+              },
+            }),
+            contextOpts: {},
+          }),
+        {
+          contains:
+            //  'invalid template string (${parent.name}?): could not find key parent. available keys: actions.'
+            "Invalid template string (${parent.name}?): Could not find key parent. Available keys: actions.",
+        }
+      )
+    })
   })
 
   it("should evaluate to undefined if legacyAllowPartial=true", () => {
@@ -110,25 +152,6 @@ describe("parse and evaluate template strings", () => {
       })
       expect(res).to.equal(input)
     }
-  })
-
-  it("should fail if optional expression in member expression cannot be resolved", async () => {
-    await expectError(
-      () =>
-        legacyResolveTemplateString({
-          string: '${actions.build["${parent.name}?"]}',
-          context: new TestContext({
-            actions: {
-              build: {},
-            },
-          }),
-          contextOpts: {},
-        }),
-      {
-        contains:
-          'Invalid template string (${actions.build["${parent.name}?"]}): Expression in brackets must resolve to a string or number (got undefined).',
-      }
-    )
   })
 
   it("should support a string literal in a template string as a means to escape it", () => {
@@ -316,11 +339,6 @@ describe("parse and evaluate template strings", () => {
       context: new TestContext({ some: "value" }),
     })
     expect(res).to.equal("prefix-value-suffix")
-  })
-
-  it("should interpolate an optional format string with a prefix and a suffix", () => {
-    const res = legacyResolveTemplateString({ string: "prefix-${some}?-suffix", context: new TestContext({}) })
-    expect(res).to.equal("prefix--suffix")
   })
 
   it("should interpolate a format string with a prefix with whitespace", () => {
