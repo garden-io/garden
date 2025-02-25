@@ -420,7 +420,7 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
   return projectSpec
 }
 
-function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
+function resolveApiVersion(log: Log, projectSpec: ProjectConfig): GardenApiVersion {
   const projectApiVersion = projectSpec.apiVersion
 
   // We conservatively set the apiVersion to be compatible with 0.12.
@@ -432,7 +432,7 @@ function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
       }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLinkStyled("guides/migrating-to-bonsai")}`
     )
 
-    return { ...projectSpec, apiVersion: GardenApiVersion.v0 }
+    return defaultGardenApiVersion
   }
 
   if (projectApiVersion === GardenApiVersion.v0) {
@@ -444,8 +444,11 @@ function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
   }
 
   // TODO(0.14): print a warning if apiVersion: garden.io/v1 is used
+  return projectApiVersion
+}
 
-  return projectSpec
+function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
+  return { ...projectSpec, apiVersion: resolveApiVersion(log, projectSpec) }
 }
 
 const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [
