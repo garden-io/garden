@@ -18,13 +18,15 @@ import { type ConfigSource, validateSchema } from "../config/validation.js"
 import type { Branch } from "./analysis.js"
 import { TemplateStringError } from "./errors.js"
 import { styles } from "../logger/styles.js"
+import { GardenApiVersion } from "../constants.js"
+import { getProjectApiVersion } from "../project-api-version.js"
 
 type ASTEvaluateArgs = EvaluateTemplateArgs & {
-  yamlSource: ConfigSource
+  readonly yamlSource: ConfigSource
 
   /**
-   * Whether or not to throw an error if ContextLookupExpression fails to resolve variable.
-   * The FormatStringExpression will set this parameter based on wether the OptionalSuffix (?) is present or not.
+   * Whether to throw an error if {@link ContextLookupExpression} fails to resolve variable.
+   * The FormatStringExpression will set this parameter based on whether the OptionalSuffix (?) is present or not.
    */
   readonly optional?: boolean
 }
@@ -222,6 +224,7 @@ export abstract class LogicalExpression extends TemplateExpression implements Br
   ) {
     super()
   }
+
   override isBranch(): this is Branch<TemplateExpression> {
     return true
   }
@@ -510,13 +513,20 @@ export class FormatStringExpression extends TemplateExpression {
   constructor(
     public readonly rawText: string,
     public readonly loc: Location,
-    public readonly innerExpression: TemplateExpression,
-    public readonly isOptional: boolean
+    private readonly innerExpression: TemplateExpression,
+    private readonly hasOptionalSuffix: boolean
   ) {
     super()
   }
 
+  private isOptional(apiVersion: GardenApiVersion) {
+    return apiVersion === GardenApiVersion.v2 ? false : this.hasOptionalSuffix
+  }
+
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
+    const apiVersion = getProjectApiVersion()
+    const isOptional = this.isOptional(apiVersion)
+
     const result = this.innerExpression.evaluate({
       ...args,
       opts: {
@@ -526,13 +536,22 @@ export class FormatStringExpression extends TemplateExpression {
         // TODO(0.14): remove legacyAllowPartial
         legacyAllowPartial: false,
       },
-      optional: args.optional || this.isOptional,
+      optional: args.optional || isOptional,
     })
 
     // Only if this expression is optional we return undefined instead of symbol.
     // If merely optional is true in EvaluateArgs, we must return symbol.
-    if (this.isOptional && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    if (isOptional && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
       return undefined
+    }
+
+    if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+      return result
+    }
+
+    // TODO(0.14): remove the optional support in grammar
+    if (apiVersion === GardenApiVersion.v2 && this.hasOptionalSuffix) {
+      return result + "?"
     }
 
     return result
