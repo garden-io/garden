@@ -69,6 +69,17 @@ image: ${actions.build.backend.outputs.deploymentImageId}
 ...
 ```
 
+## Using optional value syntax in template strings
+
+The optional value syntax in template strings is no longer supported in 0.14.
+
+The question mark is now considered as a regular character in the template strings.
+For example, if you have defined variable `baseUrl: http://example.com`,
+then the template string `${var.baseUrl}?foo=bar` will result in `http://example.com?foo=bar`.
+
+If you need to reference a potentially undefined variable,
+please use an explicit fallback value like `${var.baseUrl || 'defaultValue'}` instead.
+
 # Breaking changes
 
 <!-- DO NOT CHANGE BELOW - AUTO-GENERATED -->
@@ -157,3 +168,11 @@ Use the `kubernetes Deploy` action type instead.
 <h3 id="persistentvolumeclaimDeployAction">The `persistentvolumeclaim Deploy` action type</h3>
 
 Use the `kubernetes Deploy` action type instead.
+
+## Template strings
+
+<h3 id="optionalTemplateValueSyntax">The optional template value syntax (like `${var.foo}?`)</h3>
+
+Use explicit fallback values instead.
+
+For more information, please refer to the [Migration guide for optional values in template strings](#using-optional-value-syntax-in-template-strings).

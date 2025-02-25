@@ -124,6 +124,15 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     configmapDeployAction: makeDeployActionTypeDeprecation("configmap", style),
     persistentvolumeclaimDeployAction: makeDeployActionTypeDeprecation("persistentvolumeclaim", style),
+    optionalTemplateValueSyntax: {
+      contextDesc: "Template strings",
+      featureDesc: `The optional template value syntax (like ${style(`\${var.foo}?`)})`,
+      hint: `Use explicit fallback values instead.`,
+      hintReferenceLink: {
+        name: "Migration guide for optional values in template strings",
+        link: "#using-optional-value-syntax-in-template-strings",
+      },
+    },
   } as const
 }
 
