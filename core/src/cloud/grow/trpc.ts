@@ -46,6 +46,8 @@ class GrowCloudError extends GardenError implements TRPCClientErrorBase<never> {
 export type RouterOutput = inferRouterOutputs<AppRouter>
 export type RouterInput = inferRouterInputs<AppRouter>
 
+export type DockerBuildReport = RouterInput["dockerBuild"]["create"]
+
 export const errorLogger: TRPCLink<AppRouter> = () => {
   return ({ next, op }) => {
     return observable((observer) => {
