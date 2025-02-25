@@ -31,6 +31,9 @@ import { TestContext } from "./config/template-contexts/base.js"
 import type { Collection } from "../../../src/util/objects.js"
 import type { ParsedTemplate } from "../../../src/template/types.js"
 import type { ConfigContext } from "../../../src/config/template-contexts/base.js"
+import { setProjectApiVersion } from "../../../src/project-api-version.js"
+import { GardenApiVersion } from "../../../src/constants.js"
+import { RootLogger } from "../../../src/logger/logger.js"
 
 describe("template string access protection", () => {
   it("should crash when an unresolved value is accidentally treated as resolved", () => {
@@ -48,6 +51,90 @@ describe("template string access protection", () => {
     const parsed = parseTemplateCollection({ value: { foo: "${bar}" } as const, source: { path: [] } })
     const foo = parsed.foo as any
     expect(() => ({ ...foo })).to.throw()
+  })
+})
+
+describe("parse and evaluate template strings with apiVersion: garden.io/v2", () => {
+  const log = RootLogger.getInstance().createLog()
+
+  beforeEach(() => {
+    setProjectApiVersion({ apiVersion: GardenApiVersion.v2 }, log)
+  })
+
+  describe("should resolve ? suffix as a regular character", () => {
+    it("should resolve ? as a regular character if the referenced template value exists", () => {
+      const res = legacyResolveTemplateString({ string: "${foo}?", context: new TestContext({ foo: "bar" }) })
+      expect(res).to.equal("bar?")
+    })
+
+    it("should throw the referenced template value with ? does not exists", () => {
+      void expectError(
+        () =>
+          legacyResolveTemplateString({
+            string: "${foo}?",
+            context: new TestContext({}),
+          }),
+        { contains: "Invalid template string (${foo}?): Could not find key foo. Available keys: (none)." }
+      )
+    })
+
+    it("should throw the referenced template value with ? does not exists but other keys are defined", () => {
+      const obj = {
+        some: "${key}?",
+        other: "${missing}?",
+      }
+      const context = new TestContext({
+        key: "value",
+      })
+
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+
+      void expectError(
+        () =>
+          deepEvaluate(parsed, {
+            context,
+            opts: {},
+          }),
+        {
+          contains:
+            "Invalid template string (${missing}?) at path other: Could not find key missing. Available keys: key.",
+        }
+      )
+    })
+
+    it("should throw the referenced template value with ? does not exists and surrounded with a prefix and a suffix", () => {
+      void expectError(
+        () =>
+          legacyResolveTemplateString({
+            string: "prefix-${some}?-suffix",
+            context: new TestContext({}),
+          }),
+        {
+          contains:
+            "Invalid template string (prefix-${some}?-suffix): Could not find key some. Available keys: (none).",
+        }
+      )
+    })
+
+    it("should throw if an expression with ? in member expression cannot be resolved", async () => {
+      await expectError(
+        () =>
+          legacyResolveTemplateString({
+            string: '${actions.build["${parent.name}?"]}',
+            context: new TestContext({
+              actions: {
+                build: {},
+              },
+            }),
+            contextOpts: {},
+          }),
+        {
+          contains:
+            //  'invalid template string (${parent.name}?): could not find key parent. available keys: actions.'
+            "Invalid template string (${parent.name}?): Could not find key parent. Available keys: actions.",
+        }
+      )
+    })
   })
 })
 
