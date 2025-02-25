@@ -182,6 +182,7 @@ import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
 import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
+import { getProjectApiVersion, setProjectApiVersion } from "./project-api-version.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -1915,6 +1916,8 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     }
   }
 
+  setProjectApiVersion(config, log)
+
   gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
   const artifactsPath = resolve(gardenDirPath, "artifacts")
 
@@ -2079,7 +2082,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     await ensureDir(gardenDirPath)
     await ensureDir(artifactsPath)
 
-    const projectApiVersion = projectConfig.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
@@ -2217,7 +2219,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       forceRefresh: opts.forceRefresh,
       cache: treeCache,
-      projectApiVersion,
+      projectApiVersion: getProjectApiVersion(),
     }
   })
 })
