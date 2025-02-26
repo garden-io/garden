@@ -8,10 +8,12 @@
 
 import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
 import { styles } from "../logger/styles.js"
-import { GardenError } from "../exceptions.js"
+import { GardenError, RuntimeError } from "../exceptions.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
+import { deline } from "./string.js"
+import type { SyncCommandName } from "../commands/sync/sync.js"
 
 const deprecatedPluginNames = ["conftest", "conftest-container", "conftest-kubernetes", "hadolint", "octant"] as const
 export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
@@ -90,12 +92,34 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     syncStartCommand: {
       contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync-start")} command.`,
-      hint: dedent`Behaviour of ${style(
-        "sync start"
-      )} is now deprecated and will be changed in a future breaking change release.
-        Instead, we recommend running ${style("garden deploy --sync")} or starting syncs inside the dev console
-        with either ${style("deploy --sync")} or ${style("sync start")}.`,
+      featureDesc: `The ${style("sync start")} command`,
+      hint: deline`The command ${style("sync start")} will only be available inside dev console in a future breaking change release.
+        Do not use it as a standalone Garden command.
+        Instead, we recommend running ${style("garden deploy --sync")} or starting syncs inside the dev console with either ${style("deploy --sync")} or ${style("sync start")}.`,
+      hintReferenceLink: null,
+    },
+    syncStopCommand: {
+      contextDesc: "Sync mode",
+      featureDesc: `The ${style("sync stop")} command`,
+      hint: deline`The command ${style("sync stop")} will only be available inside dev console in a future breaking change release.
+        Do not use it as a standalone Garden command.
+        Instead, we recommend stopping syncs inside the dev console with ${style("sync stop")}.`,
+      hintReferenceLink: null,
+    },
+    syncRestartCommand: {
+      contextDesc: "Sync mode",
+      featureDesc: `The ${style("sync restart")} command`,
+      hint: deline`The command ${style("sync restart")} will only be available inside dev console in a future breaking change release.
+        Do not use it as a standalone Garden command.
+        Instead, we recommend restarting syncs inside the dev console with ${style("sync restart")}.`,
+      hintReferenceLink: null,
+    },
+    syncStatusCommand: {
+      contextDesc: "Sync mode",
+      featureDesc: `The ${style("sync status")} command`,
+      hint: deline`The command ${style("sync status")} will only be available inside dev console in a future breaking change release.
+        Do not use it as a standalone Garden command.
+        Instead, we recommend getting sync statuses inside the dev console with ${style("sync status")}.`,
       hintReferenceLink: null,
     },
     hadolintPlugin: makePluginDeprecation("hadolint", style),
@@ -205,4 +229,30 @@ export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: D
 
   const warnMessage = makeDeprecationMessage({ deprecation, includeLink: true, style: true })
   emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
+}
+
+export function reportDeprecatedSyncCommandUsage({
+  apiVersion,
+  log,
+  deprecation,
+  syncCommandName,
+}: {
+  apiVersion: GardenApiVersion
+  log: Log
+  deprecation: Deprecation
+  syncCommandName: SyncCommandName
+}) {
+  if (apiVersion === GardenApiVersion.v2) {
+    const message = deline`
+    Command ${styles.command(`sync ${syncCommandName}`)} can only be executed in the dev console.
+    Please, use start the dev console with ${styles.command("garden dev")}. Aborting.
+    `
+    throw new RuntimeError({ message })
+  }
+
+  reportDeprecatedFeatureUsage({
+    apiVersion,
+    log,
+    deprecation,
+  })
 }
