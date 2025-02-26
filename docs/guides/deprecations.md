@@ -131,6 +131,10 @@ The command `sync stop` will only be available inside dev console in a future br
 
 The command `sync restart` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend restarting syncs inside the dev console with `sync restart`.
 
+<h3 id="syncStatusCommand">The `sync status` command.</h3>
+
+The command `sync status` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend getting sync statuses inside the dev console with `sync status`.
+
 ## Garden Plugins
 
 <h3 id="hadolintPlugin">The plugin `hadolint`</h3>

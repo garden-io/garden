@@ -113,6 +113,14 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Instead, we recommend restarting syncs inside the dev console with ${style("sync restart")}.`,
       hintReferenceLink: null,
     },
+    syncStatusCommand: {
+      contextDesc: "Sync mode",
+      featureDesc: `The ${style("sync status")} command.`,
+      hint: deline`The command ${style("sync status")} will only be available inside dev console in a future breaking change release.
+        Do not use it as a standalone Garden command.
+        Instead, we recommend getting sync statuses inside the dev console with ${style("sync status")}.`,
+      hintReferenceLink: null,
+    },
     hadolintPlugin: makePluginDeprecation("hadolint", style),
     octantPlugin: makePluginDeprecation("octant", style),
     conftestPlugin: makePluginDeprecation("conftest", style),
