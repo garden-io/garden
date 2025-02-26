@@ -13,6 +13,7 @@ import { dedent, naturalList } from "../../util/string.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { createActionLog } from "../../logger/log-entry.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 const syncStopArgs = {
   names: new StringsParameter({
@@ -59,6 +60,14 @@ export class SyncStopCommand extends Command<Args, Opts> {
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     const { garden, log, args } = params
+
+    if (!params.parentCommand) {
+      reportDeprecatedFeatureUsage({
+        apiVersion: garden.projectApiVersion,
+        log,
+        deprecation: "syncStopCommand",
+      })
+    }
 
     // We default to stopping all syncs.
     const names = args.names || ["*"]

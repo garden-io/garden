@@ -121,9 +121,11 @@ Do not use this command. It has no effect.
 
 <h3 id="syncStartCommand">The `sync start` command.</h3>
 
-Behaviour of `sync start` is now deprecated and will be changed in a future breaking change release.
-Instead, we recommend running `garden deploy --sync` or starting syncs inside the dev console
-with either `deploy --sync` or `sync start`.
+The command `sync start` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend running `garden deploy --sync` or starting syncs inside the dev console with either `deploy --sync` or `sync start`.
+
+<h3 id="syncStopCommand">The `sync stop` command.</h3>
+
+The command `sync stop` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend stopping syncs inside the dev console with `sync stop`.
 
 ## Garden Plugins
 
