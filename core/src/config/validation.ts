@@ -217,15 +217,10 @@ function improveZodValidationErrorMessage(item: Joi.ValidationErrorItem, yamlBas
   }
 }
 
-export function addYamlContext({
-  source: { yamlDoc, path },
-  message,
-}: {
-  source: ConfigSource
-  message: string
-}): string {
+export function getYamlContext(source: ConfigSource): string | undefined {
+  const { yamlDoc, path } = source
   if (!yamlDoc) {
-    return message
+    return undefined
   }
 
   const node = yamlDoc.getIn(path, true) as ParsedNode | undefined
@@ -233,7 +228,7 @@ export function addYamlContext({
   const rawYaml = yamlDoc.source
 
   if (!node || !range || !rawYaml) {
-    return message
+    return undefined
   }
 
   // Get one line before the error location start, and the line including the error location end
@@ -273,5 +268,14 @@ export function addYamlContext({
   const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
   const marker = styles.error("-".repeat(errorLineOffset)) + styles.error.bold("^")
 
-  return `${yamlDoc.filename ? `${styles.secondary(`${yamlDoc.filename}:${lineNumber - (snippetLines - 1)}`)}\n` : ""}${snippet}\n${marker}\n${styles.error.bold(message)}`
+  return `${yamlDoc.filename ? `${styles.secondary(`${yamlDoc.filename}:${lineNumber - (snippetLines - 1)}`)}\n` : ""}${snippet}\n${marker}`
+}
+
+export function addYamlContext({ source, message }: { source: ConfigSource; message: string }): string {
+  const yamlContext = getYamlContext(source)
+  if (!yamlContext) {
+    return message
+  }
+
+  return `${yamlContext}\n${styles.error.bold(message)}`
 }
