@@ -90,7 +90,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     syncStartCommand: {
       contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync-start")} command.`,
+      featureDesc: `The ${style("sync start")} command.`,
       hint: dedent`Behaviour of ${style(
         "sync start"
       )} is now deprecated and will be changed in a future breaking change release.

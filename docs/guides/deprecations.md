@@ -119,7 +119,7 @@ Do not use this command. It has no effect.
 
 ## Sync mode
 
-<h3 id="syncStartCommand">The `sync-start` command.</h3>
+<h3 id="syncStartCommand">The `sync start` command.</h3>
 
 Behaviour of `sync start` is now deprecated and will be changed in a future breaking change release.
 Instead, we recommend running `garden deploy --sync` or starting syncs inside the dev console
