@@ -14,9 +14,9 @@ import { getHelperFunctions } from "./functions/index.js"
 import type { EvaluateTemplateArgs } from "./types.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
-import { type ConfigSource, validateSchema } from "../config/validation.js"
+import { type ConfigSource, getYamlContext, validateSchema } from "../config/validation.js"
 import type { Branch } from "./analysis.js"
-import { TemplateStringError } from "./errors.js"
+import { TemplateStringError, truncateRawTemplateString } from "./errors.js"
 import { styles } from "../logger/styles.js"
 import { GardenApiVersion } from "../constants.js"
 import { getProjectApiVersion } from "../project-api-version.js"
@@ -539,10 +539,10 @@ export class FormatStringExpression extends TemplateExpression {
         deprecation: "optionalTemplateValueSyntax",
       })
 
-      emitNonRepeatableWarning(
-        log,
-        `Found deprecated optional template value syntax in ${styles.highlight(this.rawText)}`
-      )
+      const yamlContext = getYamlContext(args.yamlSource)
+      const locationDesc = yamlContext || styles.highlight(truncateRawTemplateString(this.rawText))
+      const delimiter = !!yamlContext ? "\n" : " "
+      emitNonRepeatableWarning(log, `Found deprecated optional template value syntax in${delimiter}${locationDesc}`)
     }
 
     const result = this.innerExpression.evaluate({
