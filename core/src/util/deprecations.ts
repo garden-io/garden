@@ -91,7 +91,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     syncStartCommand: {
       contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync start")} command.`,
+      featureDesc: `The ${style("sync start")} command`,
       hint: deline`The command ${style("sync start")} will only be available inside dev console in a future breaking change release.
         Do not use it as a standalone Garden command.
         Instead, we recommend running ${style("garden deploy --sync")} or starting syncs inside the dev console with either ${style("deploy --sync")} or ${style("sync start")}.`,
@@ -99,7 +99,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     syncStopCommand: {
       contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync stop")} command.`,
+      featureDesc: `The ${style("sync stop")} command`,
       hint: deline`The command ${style("sync stop")} will only be available inside dev console in a future breaking change release.
         Do not use it as a standalone Garden command.
         Instead, we recommend stopping syncs inside the dev console with ${style("sync stop")}.`,
@@ -107,7 +107,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     syncRestartCommand: {
       contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync restart")} command.`,
+      featureDesc: `The ${style("sync restart")} command`,
       hint: deline`The command ${style("sync restart")} will only be available inside dev console in a future breaking change release.
         Do not use it as a standalone Garden command.
         Instead, we recommend restarting syncs inside the dev console with ${style("sync restart")}.`,
@@ -115,7 +115,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     syncStatusCommand: {
       contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync status")} command.`,
+      featureDesc: `The ${style("sync status")} command`,
       hint: deline`The command ${style("sync status")} will only be available inside dev console in a future breaking change release.
         Do not use it as a standalone Garden command.
         Instead, we recommend getting sync statuses inside the dev console with ${style("sync status")}.`,

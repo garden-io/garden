@@ -119,19 +119,19 @@ Do not use this command. It has no effect.
 
 ## Sync mode
 
-<h3 id="syncStartCommand">The `sync start` command.</h3>
+<h3 id="syncStartCommand">The `sync start` command</h3>
 
 The command `sync start` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend running `garden deploy --sync` or starting syncs inside the dev console with either `deploy --sync` or `sync start`.
 
-<h3 id="syncStopCommand">The `sync stop` command.</h3>
+<h3 id="syncStopCommand">The `sync stop` command</h3>
 
 The command `sync stop` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend stopping syncs inside the dev console with `sync stop`.
 
-<h3 id="syncRestartCommand">The `sync restart` command.</h3>
+<h3 id="syncRestartCommand">The `sync restart` command</h3>
 
 The command `sync restart` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend restarting syncs inside the dev console with `sync restart`.
 
-<h3 id="syncStatusCommand">The `sync status` command.</h3>
+<h3 id="syncStatusCommand">The `sync status` command</h3>
 
 The command `sync status` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend getting sync statuses inside the dev console with `sync status`.
 
