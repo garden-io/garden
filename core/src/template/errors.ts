@@ -19,12 +19,7 @@ export class TemplateError extends GardenError {
   type = "template"
 
   constructor(params: GardenErrorParams & { source: ConfigSource }) {
-    let enriched: string = params.message
-    try {
-      enriched = addYamlContext({ source: params.source, message: params.message })
-    } catch {
-      // ignore
-    }
+    const enriched = addYamlContext({ source: params.source, message: params.message })
 
     super({ ...params, message: enriched })
   }
@@ -40,13 +35,8 @@ export class TemplateStringError extends GardenError {
   constructor(
     params: GardenErrorParams & { loc: Location; yamlSource: ConfigSource; lookupResult?: ContextResolveOutputNotFound }
   ) {
-    let enriched: string = params.message
-    try {
-      // TODO: Use Location information from parser to point to the specific part
-      enriched = addYamlContext({ source: params.yamlSource, message: params.message })
-    } catch {
-      // ignore
-    }
+    // TODO: Use Location information from parser to point to the specific part
+    let enriched = addYamlContext({ source: params.yamlSource, message: params.message })
 
     if (enriched === params.message) {
       const { path } = params.yamlSource

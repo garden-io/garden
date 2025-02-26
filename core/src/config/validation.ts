@@ -231,44 +231,50 @@ export function getYamlContext(source: ConfigSource): string | undefined {
     return undefined
   }
 
-  // Get one line before the error location start, and the line including the error location end
-  const toStart = rawYaml.slice(0, range[0])
-  const lineNumber = toStart.split("\n").length + 1
-  let snippetLines = 1
+  try {
+    // Get one line before the error location start, and the line including the error location end
+    const toStart = rawYaml.slice(0, range[0])
+    const lineNumber = toStart.split("\n").length + 1
+    let snippetLines = 1
 
-  const errorLineStart = toStart.lastIndexOf("\n") + 1
+    const errorLineStart = toStart.lastIndexOf("\n") + 1
 
-  let snippetStart = errorLineStart
-  if (snippetStart > 0) {
-    snippetStart = rawYaml.slice(0, snippetStart - 1).lastIndexOf("\n") + 1
+    let snippetStart = errorLineStart
+    if (snippetStart > 0) {
+      snippetStart = rawYaml.slice(0, snippetStart - 1).lastIndexOf("\n") + 1
+    }
+    if (snippetStart === 0) {
+      snippetStart = errorLineStart
+    } else {
+      snippetLines++
+    }
+
+    const snippetEnd = rawYaml.indexOf("\n", range[1] - 1) || rawYaml.length
+
+    const linePrefixLength = lineNumber.toString().length + 2
+    let snippet = rawYaml
+      .slice(snippetStart, snippetEnd)
+      .trimEnd()
+      .split("\n")
+      .map(
+        (l, i) =>
+          styles.primary(padEnd("" + (lineNumber - snippetLines + i), linePrefixLength) + "| ") + styles.highlight(l)
+      )
+      .join("\n")
+
+    if (snippetStart > 0) {
+      snippet = styles.primary("...\n") + snippet
+    }
+
+    const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
+    const marker = styles.error("-".repeat(errorLineOffset)) + styles.error.bold("^")
+
+    return `${yamlDoc.filename ? `${styles.secondary(`${yamlDoc.filename}:${lineNumber - (snippetLines - 1)}`)}\n` : ""}${snippet}\n${marker}`
+  } catch {
+    // ignore
   }
-  if (snippetStart === 0) {
-    snippetStart = errorLineStart
-  } else {
-    snippetLines++
-  }
 
-  const snippetEnd = rawYaml.indexOf("\n", range[1] - 1) || rawYaml.length
-
-  const linePrefixLength = lineNumber.toString().length + 2
-  let snippet = rawYaml
-    .slice(snippetStart, snippetEnd)
-    .trimEnd()
-    .split("\n")
-    .map(
-      (l, i) =>
-        styles.primary(padEnd("" + (lineNumber - snippetLines + i), linePrefixLength) + "| ") + styles.highlight(l)
-    )
-    .join("\n")
-
-  if (snippetStart > 0) {
-    snippet = styles.primary("...\n") + snippet
-  }
-
-  const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
-  const marker = styles.error("-".repeat(errorLineOffset)) + styles.error.bold("^")
-
-  return `${yamlDoc.filename ? `${styles.secondary(`${yamlDoc.filename}:${lineNumber - (snippetLines - 1)}`)}\n` : ""}${snippet}\n${marker}`
+  return undefined
 }
 
 export function addYamlContext({ source, message }: { source: ConfigSource; message: string }): string {
