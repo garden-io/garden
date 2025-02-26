@@ -26,7 +26,7 @@ import { styles } from "../../logger/styles.js"
 import { makeDocsLinkStyled } from "../../docs/common.js"
 
 import { syncGuideRelPath } from "../../plugins/kubernetes/constants.js"
-import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { reportDeprecatedSyncCommandUsage } from "../../util/deprecations.js"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -63,7 +63,7 @@ interface SyncStatusCommandResult {
 }
 
 export class SyncStatusCommand extends Command<Args, Opts> {
-  name = "status"
+  name = "status" as const
   help = "Get sync statuses."
 
   override protected = true
@@ -102,10 +102,11 @@ export class SyncStatusCommand extends Command<Args, Opts> {
     parentCommand,
   }: CommandParams<Args, Opts>): Promise<SyncStatusCommandResult> {
     if (!parentCommand) {
-      reportDeprecatedFeatureUsage({
+      reportDeprecatedSyncCommandUsage({
         apiVersion: garden.projectApiVersion,
         log,
         deprecation: "syncStatusCommand",
+        syncCommandName: this.name,
       })
     }
 

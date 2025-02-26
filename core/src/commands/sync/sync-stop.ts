@@ -13,7 +13,7 @@ import { dedent, naturalList } from "../../util/string.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { createActionLog } from "../../logger/log-entry.js"
-import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { reportDeprecatedSyncCommandUsage } from "../../util/deprecations.js"
 
 const syncStopArgs = {
   names: new StringsParameter({
@@ -33,7 +33,7 @@ const syncStopOpts = {
 type Opts = typeof syncStopOpts
 
 export class SyncStopCommand extends Command<Args, Opts> {
-  name = "stop"
+  name = "stop" as const
   help = "Stop any active syncs to the given Deploy action(s)."
 
   override protected = true
@@ -58,14 +58,13 @@ export class SyncStopCommand extends Command<Args, Opts> {
     printHeader(log, "Stopping sync(s)", "🔁")
   }
 
-  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
-    const { garden, log, args } = params
-
-    if (!params.parentCommand) {
-      reportDeprecatedFeatureUsage({
+  async action({ garden, log, args, parentCommand }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
+    if (!parentCommand) {
+      reportDeprecatedSyncCommandUsage({
         apiVersion: garden.projectApiVersion,
         log,
         deprecation: "syncStopCommand",
+        syncCommandName: this.name,
       })
     }
 

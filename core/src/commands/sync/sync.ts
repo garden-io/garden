@@ -18,3 +18,5 @@ export class SyncCommand extends CommandGroup {
 
   subCommands = [SyncStartCommand, SyncStopCommand, SyncRestartCommand, SyncStatusCommand]
 }
+
+export type SyncCommandName = SyncCommand["subCommands"][number]["name"]

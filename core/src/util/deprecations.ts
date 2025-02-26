@@ -8,11 +8,12 @@
 
 import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
 import { styles } from "../logger/styles.js"
-import { GardenError } from "../exceptions.js"
+import { GardenError, RuntimeError } from "../exceptions.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
 import { deline } from "./string.js"
+import type { SyncCommandName } from "../commands/sync/sync.js"
 
 const deprecatedPluginNames = ["conftest", "conftest-container", "conftest-kubernetes", "hadolint", "octant"] as const
 export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
@@ -228,4 +229,30 @@ export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: D
 
   const warnMessage = makeDeprecationMessage({ deprecation, includeLink: true, style: true })
   emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
+}
+
+export function reportDeprecatedSyncCommandUsage({
+  apiVersion,
+  log,
+  deprecation,
+  syncCommandName,
+}: {
+  apiVersion: GardenApiVersion
+  log: Log
+  deprecation: Deprecation
+  syncCommandName: SyncCommandName
+}) {
+  if (apiVersion === GardenApiVersion.v2) {
+    const message = deline`
+    Command ${styles.command(`sync ${syncCommandName}`)} can only be executed in the dev console.
+    Please, use start the dev console with ${styles.command("garden dev")}. Aborting.
+    `
+    throw new RuntimeError({ message })
+  }
+
+  reportDeprecatedFeatureUsage({
+    apiVersion,
+    log,
+    deprecation,
+  })
 }

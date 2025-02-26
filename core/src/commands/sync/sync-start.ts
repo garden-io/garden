@@ -20,7 +20,7 @@ import { createActionLog } from "../../logger/log-entry.js"
 import type { DeployAction } from "../../actions/deploy.js"
 import type { ConfigGraph } from "../../graph/config-graph.js"
 import type { Garden } from "../../index.js"
-import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { reportDeprecatedSyncCommandUsage } from "../../util/deprecations.js"
 
 const syncStartArgs = {
   names: new StringsParameter({
@@ -49,7 +49,7 @@ const syncStartOpts = {
 type Opts = typeof syncStartOpts
 
 export class SyncStartCommand extends Command<Args, Opts> {
-  name = "start"
+  name = "start" as const
   help = "Start any configured syncs to the given Deploy action(s)."
 
   override protected = true
@@ -93,14 +93,20 @@ export class SyncStartCommand extends Command<Args, Opts> {
     return !!opts.monitor
   }
 
-  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
-    const { garden, log, args, opts } = params
-
-    if (!params.parentCommand) {
-      reportDeprecatedFeatureUsage({
+  async action({
+    garden,
+    log,
+    args,
+    opts,
+    commandLine,
+    parentCommand,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
+    if (!parentCommand) {
+      reportDeprecatedSyncCommandUsage({
         apiVersion: garden.projectApiVersion,
         log,
         deprecation: "syncStartCommand",
+        syncCommandName: this.name,
       })
     }
 
@@ -108,7 +114,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
     const names = args.names || ["*"]
 
     // We want to stop any started syncs on exit if we're calling `sync start` from inside the `dev` command.
-    const stopOnExit = !!params.commandLine
+    const stopOnExit = !!commandLine
 
     const graph = await garden.getConfigGraph({
       log,
