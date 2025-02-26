@@ -14,6 +14,7 @@ import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { createActionLog } from "../../logger/log-entry.js"
 import { startSyncWithoutDeploy } from "./sync-start.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 const syncRestartArgs = {
   names: new StringsParameter({
@@ -58,6 +59,14 @@ export class SyncRestartCommand extends Command<Args, Opts> {
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     const { garden, log, args } = params
+
+    if (!params.parentCommand) {
+      reportDeprecatedFeatureUsage({
+        apiVersion: garden.projectApiVersion,
+        log,
+        deprecation: "syncRestartCommand",
+      })
+    }
 
     const names = args.names || []
 
