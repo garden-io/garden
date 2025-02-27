@@ -1,0 +1,7 @@
+apiVersion: garden.io/v1
+kind: Project
+name: container-module-test-project
+environments:
+  - name: local
+providers:
+  - name: test-plugin
