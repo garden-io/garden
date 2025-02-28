@@ -301,5 +301,5 @@ export function reportDefaultConfigValueChange({ apiVersion, log, deprecation }:
   }
 
   const warnMessage = makeDefaultConfigChangeMessage({ deprecation, includeLink: true, style: true })
-  emitNonRepeatableWarning(log, `\nDEFAULT CONFIGURATION CHANGE WARNING: ${warnMessage}\n`)
+  emitNonRepeatableWarning(log, `\nDEFAULT VALUE WILL CHANGE: ${warnMessage}\n`)
 }
