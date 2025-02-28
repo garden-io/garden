@@ -149,11 +149,9 @@ This plugin is still enabled by default in Garden 0.13, but will be removed in G
 
 This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.
 
-## Garden providers
-
 <h3 id="ephemeralKubernetesProvider">The `ephemeral-kubernetes` provider</h3>
 
-Use `kubernetes` provider instead.
+Use `kubernetes` or `local-kubernetes` providers instead. We are currently exploring how to improve and offer a new hosted Kubernetes experience in the future – reach out on GitHub or Discord if you are interested or have any feedback!
 
 ## Local mode
 

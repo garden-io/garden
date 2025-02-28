@@ -126,9 +126,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     octantPlugin: makePluginDeprecation("octant", style),
     conftestPlugin: makePluginDeprecation("conftest", style),
     ephemeralKubernetesProvider: {
-      contextDesc: "Garden providers",
+      contextDesc: "Garden plugins",
       featureDesc: `The ${style("ephemeral-kubernetes")} provider`,
-      hint: `Use ${style("kubernetes")} provider instead.`,
+      hint: deline`
+      Use ${style("kubernetes")} or ${style("local-kubernetes")} providers instead.
+      We are currently exploring how to improve and offer a new hosted Kubernetes experience in the future – reach out on GitHub or Discord if you are interested or have any feedback!
+      `,
       hintReferenceLink: null, // TODO: add link and update tutorials and guides
     },
     localMode: {
