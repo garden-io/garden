@@ -81,12 +81,13 @@ export async function createIngressResources(
         // make sure the TLS secrets exist in this namespace
         await ensureSecret(api, cert.secretRef, namespace, log)
       }
-      if (!findByName(ports, ingress.spec.port)) {
+      const portForIngress = findByName(ports, ingress.spec.port)
+      if (!portForIngress) {
         throw new ConfigurationError({
-          message: `Port with name ${ingress.port} not found in service ports for ${action.name}. Did you reference the port by its name?`,
+          message: `Port with name ${ingress.spec.port} not found in service ports for ${action.name}. Did you reference the port by its name?`,
         })
       }
-      const servicePortNumber = findByName(ports, ingress.spec.port)!.servicePort
+      const servicePortNumber = portForIngress.servicePort
       if (apiVersion === "networking.k8s.io/v1") {
         // The V1 API has a different shape than the beta API
         const ingressResource: KubernetesResource<V1Ingress> = {
