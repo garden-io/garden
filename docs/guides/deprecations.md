@@ -135,7 +135,7 @@ The command `sync restart` will only be available inside dev console in a future
 
 The command `sync status` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend getting sync statuses inside the dev console with `sync status`.
 
-## Garden Plugins
+## Garden plugins
 
 <h3 id="hadolintPlugin">The plugin `hadolint`</h3>
 
