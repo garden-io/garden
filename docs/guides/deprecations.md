@@ -189,6 +189,6 @@ For more information, please refer to the [Migration guide for optional values i
 
 ## Default configuration values
 
-<h3 id="waitForJobs">`spec.waitForJobs` kubernetes Deploy</h3>
+<h3 id="waitForJobs">`spec.waitForJobs` of `kubernetes Deploy`</h3>
 
 The new default value is `true`
