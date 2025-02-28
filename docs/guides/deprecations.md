@@ -186,3 +186,9 @@ Use the `kubernetes Deploy` action type instead.
 Use explicit fallback values instead.
 
 For more information, please refer to the [Migration guide for optional values in template strings](#using-optional-value-syntax-in-template-strings).
+
+## Default configuration values
+
+<h3 id="waitForJobs">`spec.waitForJobs` kubernetes Deploy</h3>
+
+The new default value is `true`

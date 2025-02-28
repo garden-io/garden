@@ -35,9 +35,8 @@ import { dedent } from "../../../util/string.js"
 import type { ApplyParams } from "../kubectl.js"
 import { getProjectApiVersion } from "../../../project-api-version.js"
 import { GardenApiVersion } from "../../../constants.js"
-import { emitNonRepeatableWarning } from "../../../warnings.js"
 import type { Log } from "../../../logger/log-entry.js"
-import { styles } from "../../../logger/styles.js"
+import { reportDefaultConfigValueChange } from "../../../util/deprecations.js"
 
 export interface KubernetesTypeCommonDeploySpec {
   files: string[]
@@ -65,11 +64,8 @@ export function getDefaultWaitForJobs() {
 
 export function getWaitForJobs(spec: KubernetesDeployActionSpec, log: Log): boolean {
   const { projectApiVersion, defaultValue } = getDefaultWaitForJobs()
-  if (spec.waitForJobs === undefined && projectApiVersion !== GardenApiVersion.v2) {
-    emitNonRepeatableWarning(
-      log,
-      `The default value of ${styles.highlight("spec.waitForJobs")} of kubernetes Deploy action will be flipped to ${styles.highlight("true")}`
-    )
+  if (spec.waitForJobs === undefined) {
+    reportDefaultConfigValueChange({ apiVersion: projectApiVersion, log, deprecation: "waitForJobs" })
   }
 
   return spec.waitForJobs ?? defaultValue
