@@ -83,7 +83,7 @@ export const buildActionConfigSchema = createSchema({
 
     buildAtSource: joi
       .boolean()
-      .default(false)
+      //.default(false)
       .description(
         dedent`
         By default, builds are _staged_ in \`.garden/build/<build name>\` and that directory is used as the build context. This is done to avoid builds contaminating the source tree, which can end up confusing version computation, or a build including files that are not intended to be part of it. In most scenarios, the default behavior is desired and leads to the most predictable and verifiable builds, as well as avoiding potential confusion around file watching.

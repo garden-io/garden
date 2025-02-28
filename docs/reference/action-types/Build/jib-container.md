@@ -239,9 +239,9 @@ Additionally, any `exec` runtime actions (and potentially others) that reference
 
 While there may be good reasons to do this in some situations, please be aware that this increases the potential for side-effects and variability in builds. **You must take extra care**, including making sure that files generated during builds are excluded with e.g. `.gardenignore` files or `exclude` fields on potentially affected actions. Another potential issue is causing infinite loops when running with file-watching enabled, basically triggering a new build during the build.
 
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
 
 ### `copyFrom[]`
 
