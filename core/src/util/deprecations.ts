@@ -29,7 +29,7 @@ export function isDeprecatedPlugin(pluginName: string): pluginName is Deprecated
 
 function makePluginDeprecation(pluginName: DeprecatedPluginName, style: (s: string) => string) {
   return {
-    contextDesc: "Garden Plugins",
+    contextDesc: "Garden plugins",
     featureDesc: `The plugin ${style(pluginName)}`,
     hint: "This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.",
     hintReferenceLink: null,
@@ -132,7 +132,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hintReferenceLink: null,
     },
     buildConfigFieldOnRuntimeActions: {
-      contextDesc: "Acton configs",
+      contextDesc: "Action configs",
       featureDesc: `The ${style("build")} config field in runtime action configs`,
       hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
       hintReferenceLink: {
