@@ -24,6 +24,7 @@ import type { GardenModule } from "../../../types/module.js"
 import { dedent } from "../../../util/string.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl.js"
 import type { KubernetesDeployActionConfig } from "../kubernetes-type/config.js"
+import { getDefaultWaitForJobs } from "../kubernetes-type/config.js"
 import { deleteKubernetesDeploy, getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers.js"
 import type { KubernetesResource } from "../types.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
@@ -225,6 +226,7 @@ function getKubernetesAction(action: Resolved<PersistentVolumeClaimAction>) {
       namespace: action.getSpec("namespace"),
       files: [],
       manifests: [pvcManifest],
+      waitForJobs: getDefaultWaitForJobs().defaultValue,
     },
   }
 

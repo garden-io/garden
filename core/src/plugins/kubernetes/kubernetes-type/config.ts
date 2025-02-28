@@ -7,8 +7,8 @@
  */
 
 import { joi, joiSparseArray } from "../../../config/common.js"
-import type { PortForwardSpec, KubernetesTargetResourceSpec } from "../config.js"
-import { portForwardsSchema, k8sDeploymentTimeoutSchema, namespaceNameSchema } from "../config.js"
+import type { KubernetesTargetResourceSpec, PortForwardSpec } from "../config.js"
+import { k8sDeploymentTimeoutSchema, namespaceNameSchema, portForwardsSchema } from "../config.js"
 import type { KubernetesDeploySyncSpec } from "../sync.js"
 import { kubernetesDeploySyncSchema } from "../sync.js"
 import type { KubernetesKustomizeSpec } from "./kustomize.js"
@@ -33,6 +33,11 @@ import type {
 } from "./kubernetes-exec.js"
 import { dedent } from "../../../util/string.js"
 import type { ApplyParams } from "../kubectl.js"
+import { getProjectApiVersion } from "../../../project-api-version.js"
+import { GardenApiVersion } from "../../../constants.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
+import type { Log } from "../../../logger/log-entry.js"
+import { styles } from "../../../logger/styles.js"
 
 export interface KubernetesTypeCommonDeploySpec {
   files: string[]
@@ -48,7 +53,26 @@ export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySp
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
   localMode?: KubernetesLocalModeSpec
+  // TODO(0.14) make this non-optional with schema-level default values
   waitForJobs?: boolean
+}
+
+export function getDefaultWaitForJobs() {
+  const projectApiVersion = getProjectApiVersion()
+  const defaultValue = projectApiVersion === GardenApiVersion.v2
+  return { projectApiVersion, defaultValue }
+}
+
+export function getWaitForJobs(spec: KubernetesDeployActionSpec, log: Log): boolean {
+  const { projectApiVersion, defaultValue } = getDefaultWaitForJobs()
+  if (spec.waitForJobs === undefined && projectApiVersion !== GardenApiVersion.v2) {
+    emitNonRepeatableWarning(
+      log,
+      `The default value of ${styles.highlight("spec.waitForJobs")} of kubernetes Deploy action will be flipped to ${styles.highlight("true")}`
+    )
+  }
+
+  return spec.waitForJobs ?? defaultValue
 }
 
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>
@@ -128,12 +152,11 @@ export const kubernetesCommonDeploySpecKeys = () => ({
   portForwards: portForwardsSchema(),
   timeout: k8sDeploymentTimeoutSchema(),
   applyArgs: kubernetesApplyArgsSchema(),
-  // TODO-0.14: flip this to true and change default behavior to
-  // wait for the jobs
+  // TODO-0.14: flip this to true and change default behavior to wait for the jobs
   waitForJobs: joi
     .boolean()
     .optional()
-    .default(false)
+    // .default(false)
     .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
 })
 

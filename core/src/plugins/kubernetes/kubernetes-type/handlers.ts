@@ -34,6 +34,8 @@ import { configureKubernetesModule } from "./module-config.js"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode.js"
 import type { ExecBuildConfig } from "../../exec/build.js"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config.js"
+import { getDefaultWaitForJobs } from "./config.js"
+import { getWaitForJobs } from "./config.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
 import type { ActionLog } from "../../../logger/log-entry.js"
 import type { ActionMode, Resolved } from "../../../actions/types.js"
@@ -75,6 +77,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         files,
         manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
+        // TODO(0.14): remove this because the default value will be set by schema
+        waitForJobs: getDefaultWaitForJobs().defaultValue,
       },
     }
 
@@ -385,7 +389,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       resources: namespaceManifests,
       log,
       timeoutSec: action.getConfig("timeout"),
-      waitForJobs: spec.waitForJobs,
+      waitForJobs: getWaitForJobs(spec, log),
     })
   }
 
@@ -426,7 +430,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       resources: preparedManifests,
       log,
       timeoutSec: action.getConfig("timeout"),
-      waitForJobs: spec.waitForJobs,
+      waitForJobs: getWaitForJobs(spec, log),
     })
   }
   const status = await getKubernetesDeployStatus(<any>params)
