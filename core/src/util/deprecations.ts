@@ -132,7 +132,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hintReferenceLink: null,
     },
     buildConfigFieldOnRuntimeActions: {
-      contextDesc: "Acton configs",
+      contextDesc: "Action configs",
       featureDesc: `The ${style("build")} config field in runtime action configs`,
       hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
       hintReferenceLink: {

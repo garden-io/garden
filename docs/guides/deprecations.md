@@ -155,7 +155,7 @@ This plugin is still enabled by default in Garden 0.13, but will be removed in G
 
 Please do not use this in Garden 0.14
 
-## Acton configs
+## Action configs
 
 <h3 id="buildConfigFieldOnRuntimeActions">The `build` config field in runtime action configs</h3>
 
