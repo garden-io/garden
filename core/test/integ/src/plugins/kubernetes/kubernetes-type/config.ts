@@ -80,7 +80,9 @@ describe("configureKubernetesModule", () => {
             dependencies: [],
             timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
-          waitForJobs: false,
+          // this field is not defined in KubernetesServiceSpec and seems to be unused
+          // the default value was coming from kubernetesCommonDeploySpecKeys
+          // waitForJobs: false,
           dependencies: [],
           files: [],
           manifests: [
