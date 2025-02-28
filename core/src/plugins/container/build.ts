@@ -402,13 +402,13 @@ export async function sendBuildReport({
       dockerLogs,
       dockerMetadata,
     }
+
     const growCloudApi = ctx.cloudApiV2
     if (!growCloudApi) {
-      // Will be caught below and only result in a warning in the log
-      throw new InternalError({
-        message: "Cloud API v2 not available. Are you logged in?",
-      })
+      log.warn("Garden Cloud v2 not available. Are you logged in?")
+      return { timeSaved: 0 }
     }
+
     return await growCloudApi.api.dockerBuild.create.mutate(dockerBuildReport)
   } catch (err) {
     log.debug(`Failed to send build report to Garden Cloud: ${err}`)
