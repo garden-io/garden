@@ -39,7 +39,6 @@ import type { DockerBuildReport } from "../../cloud/grow/trpc.js"
 import type { ActionRuntime } from "../../plugin/base.js"
 import { formatDuration, intervalToDuration } from "date-fns"
 import { gardenEnv } from "../../constants.js"
-import type { GrowCloudApi } from "../../cloud/grow/api.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -346,7 +345,7 @@ async function getDockerMetadata(filePath: string, log: ActionLog) {
 }
 
 function getBuilderName(dockerMetadata: DockerBuildReport["dockerMetadata"]) {
-  if (dockerMetadata && typeof dockerMetadata?.["buildx.build.ref"] === "string") {
+  if (dockerMetadata && typeof dockerMetadata["buildx.build.ref"] === "string") {
     return dockerMetadata["buildx.build.ref"].split("/")[0]
   }
   return "unknown"
@@ -403,7 +402,13 @@ export async function sendBuildReport({
       dockerLogs,
       dockerMetadata,
     }
-    const growCloudApi = ctx.cloudApiV2 as GrowCloudApi
+    const growCloudApi = ctx.cloudApiV2
+    if (!growCloudApi) {
+      // Will be caught below and only result in a warning in the log
+      throw new InternalError({
+        message: "Cloud API v2 not available. Are you logged in?",
+      })
+    }
     return await growCloudApi.api.dockerBuild.create.mutate(dockerBuildReport)
   } catch (err) {
     log.debug(`Failed to send build report to Garden Cloud: ${err}`)
