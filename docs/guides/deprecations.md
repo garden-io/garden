@@ -23,7 +23,7 @@ Once the list of breaking changes is final, we will make this known here.
 
 ## Updating action configs
 
-To get rid of the [deprecated `build`](#acton-configs) usages,
+To get rid of the [deprecated `build`](#action-configs) usages,
 you need to replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
 
 For example, a configuration like
