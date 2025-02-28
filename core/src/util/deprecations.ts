@@ -125,6 +125,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     hadolintPlugin: makePluginDeprecation("hadolint", style),
     octantPlugin: makePluginDeprecation("octant", style),
     conftestPlugin: makePluginDeprecation("conftest", style),
+    ephemeralKubernetesProvider: {
+      contextDesc: "Garden providers",
+      featureDesc: `The ${style("ephemeral-kubernetes")} provider`,
+      hint: `Use ${style("kubernetes")} provider instead.`,
+      hintReferenceLink: null, // TODO: add link and update tutorials and guides
+    },
     localMode: {
       contextDesc: "Local mode",
       featureDesc: `The ${style("local mode")} feature for container, kubernetes and helm deploys`,

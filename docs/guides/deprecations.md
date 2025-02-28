@@ -149,6 +149,12 @@ This plugin is still enabled by default in Garden 0.13, but will be removed in G
 
 This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.
 
+## Garden providers
+
+<h3 id="ephemeralKubernetesProvider">The `ephemeral-kubernetes` provider</h3>
+
+Use `kubernetes` provider instead.
+
 ## Local mode
 
 <h3 id="localMode">The `local mode` feature for container, kubernetes and helm deploys</h3>
