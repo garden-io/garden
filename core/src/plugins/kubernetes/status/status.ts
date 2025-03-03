@@ -43,6 +43,7 @@ import type { DeployState } from "../../../types/service.js"
 import { combineStates } from "../../../types/service.js"
 import { isTruthy, sleep } from "../../../util/util.js"
 import dedent from "dedent"
+import { getWaitForJobs } from "../kubernetes-type/config.js"
 
 export const k8sManifestHashAnnotationKey = gardenAnnotationKey("manifest-hash")
 
@@ -131,7 +132,7 @@ const objHandlers: { [kind: string]: StatusHandler } = {
     return { state: "ready", resource }
   },
 
-  Job: async ({ resource, waitForJobs }: StatusHandlerParams<V1Job>) => {
+  Job: async ({ resource, waitForJobs, log }: StatusHandlerParams<V1Job>) => {
     if (
       resource.status?.failed &&
       resource.spec?.backoffLimit &&
@@ -153,9 +154,12 @@ const objHandlers: { [kind: string]: StatusHandler } = {
       return { state: "ready", resource }
     }
 
+    // default value of the waitForJobs flag now depends on `apiVersion`
+    const effectiveWaitForJob = getWaitForJobs({ waitForJobs, log })
+
     // wait for job only if waitForJobs is set, otherwise
     // mark it as ready and proceed.
-    if (waitForJobs) {
+    if (effectiveWaitForJob) {
       return { state: "deploying", resource }
     } else {
       return { state: "ready", resource }

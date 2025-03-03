@@ -157,6 +157,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         link: "#using-optional-value-syntax-in-template-strings",
       },
     },
+    waitForJobs: {
+      contextDesc: "Default configuration values",
+      featureDesc: `${style("spec.waitForJobs")} of ${style("kubernetes Deploy")}`,
+      hint: `The new default value is ${style("true")}`,
+      hintReferenceLink: null,
+    },
   } as const
 }
 
@@ -255,4 +261,45 @@ export function reportDeprecatedSyncCommandUsage({
     log,
     deprecation,
   })
+}
+
+export function makeDefaultConfigChangeMessage({
+  deprecation,
+  includeLink,
+  style,
+}: {
+  deprecation: Deprecation
+  includeLink?: boolean
+  style?: boolean
+}) {
+  const { featureDesc, hint } = getDeprecations(style ? styles.highlight : (s) => `\`${s}\``)[deprecation]
+
+  const lines = [
+    `The default value of ${featureDesc} configuration will be changed in the next major release, Garden 0.14.`,
+  ]
+
+  if (hint) {
+    lines.push(hint)
+  }
+
+  if (includeLink) {
+    let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation}`
+    if (style) {
+      link = styles.link(link)
+    }
+    lines.push(
+      `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${link}`
+    )
+  }
+
+  return lines.join("\n")
+}
+
+export function reportDefaultConfigValueChange({ apiVersion, log, deprecation }: DeprecationWarningParams) {
+  if (apiVersion === GardenApiVersion.v2) {
+    return
+  }
+
+  const warnMessage = makeDefaultConfigChangeMessage({ deprecation, includeLink: true, style: true })
+  emitNonRepeatableWarning(log, `\nDEFAULT VALUE WILL CHANGE: ${warnMessage}\n`)
 }
