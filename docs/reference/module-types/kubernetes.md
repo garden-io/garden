@@ -263,7 +263,7 @@ timeout: 300
 applyArgs:
 
 # Wait until the jobs have been completed. Garden will wait for as long as `timeout`.
-waitForJobs: false
+waitForJobs:
 
 # The names of any services that this service depends on at runtime, and the names of any tasks that should be
 # executed before this service is deployed.
@@ -1154,9 +1154,9 @@ Additional arguments to pass to `kubectl apply`.
 
 Wait until the jobs have been completed. Garden will wait for as long as `timeout`.
 
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
 
 ### `dependencies[]`
 
