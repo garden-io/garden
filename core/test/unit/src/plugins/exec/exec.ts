@@ -16,18 +16,17 @@ import type { ActionLog } from "../../../../../src/logger/log-entry.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import { keyBy, omit } from "lodash-es"
 import {
-  getDataDir,
-  expectError,
   createProjectConfig,
-  TestGarden,
+  expectError,
+  getDataDir,
   makeModuleConfig,
   makeTempDir,
+  makeTestGarden,
+  TestGarden,
 } from "../../../../helpers.js"
 import { RunTask } from "../../../../../src/tasks/run.js"
-import { makeTestGarden } from "../../../../helpers.js"
 import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 import fsExtra from "fs-extra"
-const { pathExists, emptyDir, readFile, remove } = fsExtra
 import { TestTask } from "../../../../../src/tasks/test.js"
 import { dedent } from "../../../../../src/util/string.js"
 import { sleep } from "../../../../../src/util/util.js"
@@ -50,6 +49,8 @@ import {
 } from "../../../../../src/constants.js"
 import { isRunning, killRecursive } from "../../../../../src/process.js"
 import { ACTION_RUNTIME_LOCAL } from "../../../../../src/plugin/base.js"
+
+const { pathExists, emptyDir, readFile, remove } = fsExtra
 
 describe("exec plugin", () => {
   context("test-project based tests", () => {
@@ -1107,7 +1108,7 @@ describe("exec plugin", () => {
         })
 
         describe("sets buildAtSource on Build", () => {
-          async function getGraph(name: string, local: boolean) {
+          async function getGraph(name: string, local: boolean | undefined) {
             const buildCommand = ["echo", name]
             garden.setPartialModuleConfigs([
               makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
@@ -1152,6 +1153,15 @@ describe("exec plugin", () => {
           it("does not set buildAtSource on Build if local:false", async () => {
             const moduleA = "module-a"
             const tmpGraph = await getGraph(moduleA, false)
+            const module = tmpGraph.getModule(moduleA)
+            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+
+            assertBuildAtSource(module.name, result, false)
+          })
+
+          it("does not set buildAtSource on Build if local:undefined", async () => {
+            const moduleA = "module-a"
+            const tmpGraph = await getGraph(moduleA, undefined)
             const module = tmpGraph.getModule(moduleA)
             const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
 
