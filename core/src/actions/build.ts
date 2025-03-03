@@ -287,6 +287,6 @@ export function isBuildAction(action: Action): action is BuildAction {
   return action.kind === "Build"
 }
 
-export function isBuildActionConfig(config: BaseActionConfig): config is BuildActionConfig {
+export function isBuildActionConfig(config: any): config is BuildActionConfig {
   return config.kind === "Build"
 }
