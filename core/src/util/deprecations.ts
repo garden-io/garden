@@ -160,7 +160,13 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     waitForJobs: {
       contextDesc: "Default configuration values",
       featureDesc: `${style("spec.waitForJobs")} of ${style("kubernetes Deploy")}`,
-      hint: `The new default value is ${style("true")}`,
+      hint: `The new default value is ${style("true")}.`,
+      hintReferenceLink: null,
+    },
+    buildAtSource: {
+      contextDesc: "Default configuration values",
+      featureDesc: `${style("buildAtSource")} of ${style("exec Build")}`,
+      hint: `The new default value is ${style("true")}.`,
       hintReferenceLink: null,
     },
   } as const

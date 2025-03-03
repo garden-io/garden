@@ -33,6 +33,8 @@ import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
 import type { ResolvedTemplate } from "../template/types.js"
 import { getProjectApiVersion } from "../project-api-version.js"
+import { reportDefaultConfigValueChange } from "../util/deprecations.js"
+import { RootLogger } from "../logger/logger.js"
 
 export interface BuildCopyFrom {
   build: string
@@ -53,9 +55,15 @@ export interface BuildActionConfig<T extends string = string, S extends object =
 
 export function getBuildAtSource(config: BuildActionConfig): boolean {
   const projectApiVersion = getProjectApiVersion()
-  // Enable `buildAtSource` by default for exec Build actions if use `apiVersion: garden.io/v2`
+  const buildAtSource = config.buildAtSource
+  if (buildAtSource === undefined && config.type === "exec") {
+    const log = RootLogger.getInstance().createLog()
+    reportDefaultConfigValueChange({ apiVersion: projectApiVersion, log, deprecation: "buildAtSource" })
+  }
+
+  // Enable `buildAtSource` by default for exec Build actions when use `apiVersion: garden.io/v2`
   const defaultValue = projectApiVersion === GardenApiVersion.v2 && config.type === "exec"
-  return config.buildAtSource ?? defaultValue
+  return buildAtSource ?? defaultValue
 }
 
 export const copyFromSchema = createSchema({
