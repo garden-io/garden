@@ -191,6 +191,7 @@ export const baseModuleSpecKeys = memoize(() => ({
   build: baseBuildSpecSchema().unknown(true),
   local: joi
     .boolean()
+    // .default(false)
     .description(
       dedent`
       If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
@@ -205,8 +206,7 @@ export const baseModuleSpecKeys = memoize(() => ({
 
       Note: This maps to the \`buildAtSource\` option in this module's generated Build action (if any).
       `
-    )
-    .default(false),
+    ),
   description: joi.string().description("A description of the module."),
   disabled: joi
     .boolean()

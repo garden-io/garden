@@ -1135,7 +1135,7 @@ describe("exec plugin", () => {
           function assertBuildAtSourceInRawConfig(
             moduleName: string,
             result: ConvertModulesResult,
-            buildAtSource: boolean
+            buildAtSource: boolean | undefined
           ) {
             expect(result.groups).to.exist
 
@@ -1184,7 +1184,7 @@ describe("exec plugin", () => {
                 const module = tmpGraph.getModule(moduleA)
                 const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
 
-                assertBuildAtSourceInRawConfig(module.name, result, false)
+                assertBuildAtSourceInRawConfig(module.name, result, undefined)
 
                 const defaultBuildAtSource = apiVersion === GardenApiVersion.v2
                 const build = tmpGraph.getBuild(moduleA)
