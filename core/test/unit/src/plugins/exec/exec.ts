@@ -46,9 +46,11 @@ import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
+  GardenApiVersion,
 } from "../../../../../src/constants.js"
 import { isRunning, killRecursive } from "../../../../../src/process.js"
 import { ACTION_RUNTIME_LOCAL } from "../../../../../src/plugin/base.js"
+import { setProjectApiVersion } from "../../../../../src/project-api-version.js"
 
 const { pathExists, emptyDir, readFile, remove } = fsExtra
 
@@ -946,6 +948,7 @@ describe("exec plugin", () => {
       })
 
       after(async () => {
+        garden.close()
         await tmpDir.cleanup()
       })
 
@@ -1129,7 +1132,11 @@ describe("exec plugin", () => {
             return garden.getConfigGraph({ log: garden.log, emit: false })
           }
 
-          function assertBuildAtSource(moduleName: string, result: ConvertModulesResult, buildAtSource: boolean) {
+          function assertBuildAtSourceInRawConfig(
+            moduleName: string,
+            result: ConvertModulesResult,
+            buildAtSource: boolean
+          ) {
             expect(result.groups).to.exist
 
             const group = findGroupConfig(result, moduleName)!
@@ -1141,32 +1148,50 @@ describe("exec plugin", () => {
             expect(build.buildAtSource).to.eql(buildAtSource)
           }
 
-          it("sets buildAtSource on Build if local:true", async () => {
-            const moduleA = "module-a"
-            const tmpGraph = await getGraph(moduleA, true)
-            const module = tmpGraph.getModule(moduleA)
-            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+          // Test raw configs and actions
+          const apiVersions = [GardenApiVersion.v0, GardenApiVersion.v1, GardenApiVersion.v2]
+          for (const apiVersion of apiVersions) {
+            describe(`when apiVersion: ${apiVersion}`, () => {
+              beforeEach(() => {
+                setProjectApiVersion({ apiVersion }, garden.log)
+              })
 
-            assertBuildAtSource(module.name, result, true)
-          })
+              it("sets buildAtSource on Build if local:true", async () => {
+                const moduleA = "module-a"
+                const tmpGraph = await getGraph(moduleA, true)
+                const module = tmpGraph.getModule(moduleA)
+                const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
 
-          it("does not set buildAtSource on Build if local:false", async () => {
-            const moduleA = "module-a"
-            const tmpGraph = await getGraph(moduleA, false)
-            const module = tmpGraph.getModule(moduleA)
-            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+                assertBuildAtSourceInRawConfig(module.name, result, true)
+                const build = tmpGraph.getBuild(moduleA)
+                expect(build.buildAtSource).to.eql(true)
+              })
 
-            assertBuildAtSource(module.name, result, false)
-          })
+              it("does not set buildAtSource on Build if local:false", async () => {
+                const moduleA = "module-a"
+                const tmpGraph = await getGraph(moduleA, false)
+                const module = tmpGraph.getModule(moduleA)
+                const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
 
-          it("does not set buildAtSource on Build if local:undefined", async () => {
-            const moduleA = "module-a"
-            const tmpGraph = await getGraph(moduleA, undefined)
-            const module = tmpGraph.getModule(moduleA)
-            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+                assertBuildAtSourceInRawConfig(module.name, result, false)
+                const build = tmpGraph.getBuild(moduleA)
+                expect(build.buildAtSource).to.eql(false)
+              })
 
-            assertBuildAtSource(module.name, result, false)
-          })
+              it("sets default buildAtSource on Build if local:undefined", async () => {
+                const moduleA = "module-a"
+                const tmpGraph = await getGraph(moduleA, undefined)
+                const module = tmpGraph.getModule(moduleA)
+                const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+
+                assertBuildAtSourceInRawConfig(module.name, result, false)
+
+                const defaultBuildAtSource = apiVersion === GardenApiVersion.v2
+                const build = tmpGraph.getBuild(moduleA)
+                expect(build.buildAtSource).to.eql(defaultBuildAtSource)
+              })
+            })
+          }
         })
       })
 
