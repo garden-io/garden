@@ -27,11 +27,12 @@ import { baseActionConfigSchema, BaseAction, includeExcludeSchema, actionReferen
 import type { ResolvedConfigGraph } from "../graph/config-graph.js"
 import type { ActionVersion } from "../vcs/vcs.js"
 import { Memoize } from "typescript-memoize"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
 import { createBuildTask } from "../tasks/build.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
 import type { ResolvedTemplate } from "../template/types.js"
+import { getProjectApiVersion } from "../project-api-version.js"
 
 export interface BuildCopyFrom {
   build: string
@@ -43,8 +44,18 @@ export interface BuildActionConfig<T extends string = string, S extends object =
   extends BaseActionConfig<"Build", T, S> {
   type: T
   allowPublish?: boolean
+  /**
+   * This must be accessed via `getBuildAtSource` helper to ensure the correct default value.
+   */
   buildAtSource?: boolean
   copyFrom?: BuildCopyFrom[]
+}
+
+export function getBuildAtSource(config: BuildActionConfig): boolean {
+  const projectApiVersion = getProjectApiVersion()
+  // Enable `buildAtSource` by default for exec Build actions if use `apiVersion: garden.io/v2`
+  const defaultValue = projectApiVersion === GardenApiVersion.v2 && config.type === "exec"
+  return config.buildAtSource ?? defaultValue
 }
 
 export const copyFromSchema = createSchema({
@@ -171,12 +182,16 @@ export class BuildAction<
     return actionVersion
   }
 
+  get buildAtSource(): boolean {
+    return getBuildAtSource(this._config)
+  }
+
   /**
    * Returns the build path for the action. The path is generally `<project root>/.garden/build/<action name>`.
    * If `buildAtSource: true` is set on the config, the path is the base path of the action.
    */
   getBuildPath() {
-    if (this._config.buildAtSource) {
+    if (this.buildAtSource) {
       return this.sourcePath()
     } else {
       return join(this.baseBuildDirectory, this.name)

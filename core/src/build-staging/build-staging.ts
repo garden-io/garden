@@ -18,9 +18,11 @@ import { FileStatsHelper, syncFileAsync, cloneFile, scanDirectoryForClone } from
 import { difference } from "lodash-es"
 import { unlink } from "fs"
 import type { BuildAction, BuildActionConfig } from "../actions/build.js"
+import { getBuildAtSource } from "../actions/build.js"
 import { isBuildActionConfig } from "../actions/build.js"
 import type { ModuleConfig } from "../config/module.js"
 import fsExtra from "fs-extra"
+import { styles } from "../logger/styles.js"
 
 const { emptyDir, ensureDir, mkdirp, pathExists, remove } = fsExtra
 
@@ -58,8 +60,11 @@ export class BuildStaging {
 
   async syncFromSrc({ action, log, withDelete = true }: { action: BuildAction; log: Log; withDelete?: boolean }) {
     // We don't sync local exec modules to the build dir
-    if (action.getConfig("buildAtSource")) {
-      log.silly(() => `Skipping syncing from source, action ${action.longDescription()} has buildAtSource set to true`)
+    if (action.buildAtSource) {
+      log.silly(
+        () =>
+          `Skipping syncing from source, action ${action.longDescription()} has ${styles.highlight("buildAtSource")} set to true`
+      )
       return
     }
 
@@ -140,7 +145,7 @@ export class BuildStaging {
     }
 
     if (isBuildActionConfig(config)) {
-      if (config.buildAtSource) {
+      if (getBuildAtSource(config)) {
         return config.internal.basePath
       }
     }
