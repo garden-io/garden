@@ -169,6 +169,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: `The new default value is ${style("true")}.`,
       hintReferenceLink: null,
     },
+    moduleLocalField: {
+      contextDesc: "Module configuration",
+      featureDesc: `The ${style("local")} config field.`,
+      hint: `Use action-level ${style("buildAtSource")} field instead.`,
+      hintReferenceLink: null,
+    },
   } as const
 }
 

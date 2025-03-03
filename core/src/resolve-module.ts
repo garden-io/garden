@@ -61,6 +61,9 @@ import { parseTemplateCollection } from "./template/templated-collections.js"
 import { deepMap, isPlainObject } from "./util/objects.js"
 import { InputContext } from "./config/template-contexts/input.js"
 import { VariablesContext } from "./config/template-contexts/variables.js"
+import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
+import { GardenApiVersion } from "./constants.js"
+import { RootLogger } from "./logger/logger.js"
 
 const { mkdirp, readFile } = fsExtra
 
@@ -1139,6 +1142,13 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   }
   action.internal.basePath = module.path
   if (isBuildActionConfig(action)) {
+    if (module.local !== undefined) {
+      reportDeprecatedFeatureUsage({
+        apiVersion: GardenApiVersion.v1,
+        log: RootLogger.getInstance().createLog(),
+        deprecation: "moduleLocalField",
+      })
+    }
     action.buildAtSource = module.local
   }
   if (module.configPath) {

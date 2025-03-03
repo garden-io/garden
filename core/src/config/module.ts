@@ -30,6 +30,7 @@ import { dedent, stableStringify } from "../util/string.js"
 import { configTemplateKind, varfileDescription } from "./base.js"
 import type { GardenApiVersion } from "../constants.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants.js"
+import { makeDeprecationMessage } from "../util/deprecations.js"
 
 interface BuildCopySpec {
   source: string
@@ -206,7 +207,10 @@ export const baseModuleSpecKeys = memoize(() => ({
 
       Note: This maps to the \`buildAtSource\` option in this module's generated Build action (if any).
       `
-    ),
+    )
+    .meta({
+      deprecated: makeDeprecationMessage({ deprecation: "moduleLocalField" }),
+    }),
   description: joi.string().description("A description of the module."),
   disabled: joi
     .boolean()

@@ -196,3 +196,9 @@ The new default value is `true`.
 <h3 id="buildAtSource">`buildAtSource` of `exec Build`</h3>
 
 The new default value is `true`.
+
+## Module configuration
+
+<h3 id="moduleLocalField">The `local` config field.</h3>
+
+Use action-level `buildAtSource` field instead.
