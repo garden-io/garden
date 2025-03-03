@@ -62,13 +62,13 @@ export function getDefaultWaitForJobs() {
   return { projectApiVersion, defaultValue }
 }
 
-export function getWaitForJobs(spec: KubernetesDeployActionSpec, log: Log): boolean {
+export function getWaitForJobs({ waitForJobs, log }: { waitForJobs: boolean | undefined; log: Log }): boolean {
   const { projectApiVersion, defaultValue } = getDefaultWaitForJobs()
-  if (spec.waitForJobs === undefined) {
+  if (waitForJobs === undefined) {
     reportDefaultConfigValueChange({ apiVersion: projectApiVersion, log, deprecation: "waitForJobs" })
   }
 
-  return spec.waitForJobs ?? defaultValue
+  return waitForJobs ?? defaultValue
 }
 
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>

@@ -21,7 +21,6 @@ import type { DeployActionDefinition } from "../../../plugin/action-types.js"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy.js"
 import { ResolvedDeployAction } from "../../../actions/deploy.js"
 import type { KubernetesDeployActionConfig } from "../kubernetes-type/config.js"
-import { getDefaultWaitForJobs } from "../kubernetes-type/config.js"
 import type { Resolved } from "../../../actions/types.js"
 import { makeDocsLinkPlain } from "../../../docs/common.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl.js"
@@ -178,7 +177,6 @@ function getKubernetesAction(action: Resolved<ConfigmapAction>) {
       namespace: action.getSpec("namespace"),
       files: [],
       manifests: [configMapManifest],
-      waitForJobs: getDefaultWaitForJobs().defaultValue,
     },
   }
 
