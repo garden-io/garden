@@ -7,7 +7,7 @@
  */
 
 import { getActionState, getRelativeActionConfigPath } from "../../actions/helpers.js"
-import type { ActionKind, ActionState, ResolvedAction } from "../../actions/types.js"
+import type { ActionKind, ActionState, ActionVersion, ResolvedAction } from "../../actions/types.js"
 import { actionKinds, actionStates } from "../../actions/types.js"
 import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params.js"
 import { createSchema, joi, joiArray } from "../../config/common.js"
@@ -25,6 +25,9 @@ interface GetActionsCommandResultItem {
   state?: ActionState
   path?: string
   disabled?: boolean
+  version?: ActionVersion
+  allowPublish?: boolean
+  publishId?: string
   moduleName?: string
   dependencies?: string[]
   dependents?: string[]
@@ -215,6 +218,9 @@ export class GetActionsCommand extends Command {
             .getDependants({ kind: a.kind, name: a.name, recursive: false })
             .map((d) => d.key())
             .sort(),
+          version: a.getFullVersion(),
+          allowPublish: a.getConfig().allowPublish ?? undefined,
+          publishId: a.getSpec("publishId") ?? undefined,
           disabled: a.isDisabled(),
           moduleName: a.moduleName() ?? undefined,
         }
