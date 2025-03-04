@@ -1509,21 +1509,6 @@ providers:
           # Maximum time in seconds to wait for build to finish.
           timeout:
 
-        # If set to true, Garden will run the build command, services, tests, and tasks in the module source
-        # directory,
-        # instead of in the Garden build directory (under .garden/build/<module-name>).
-        #
-        # Garden will therefore not stage the build for local modules. This means that include/exclude filters
-        # and ignore files are not applied to local modules, except to calculate the module/action versions.
-        #
-        # If you use use `build.dependencies[].copy` for one or more build dependencies of this module, the copied
-        # files
-        # will be copied to the module source directory (instead of the build directory, as is the default case when
-        # `local = false`).
-        #
-        # Note: This maps to the `buildAtSource` option in this module's generated Build action (if any).
-        local:
-
         # A description of the module.
         description:
 
@@ -2436,19 +2421,6 @@ moduleConfigs:
       # Maximum time in seconds to wait for build to finish.
       timeout:
 
-    # If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
-    # instead of in the Garden build directory (under .garden/build/<module-name>).
-    #
-    # Garden will therefore not stage the build for local modules. This means that include/exclude filters
-    # and ignore files are not applied to local modules, except to calculate the module/action versions.
-    #
-    # If you use use `build.dependencies[].copy` for one or more build dependencies of this module, the copied files
-    # will be copied to the module source directory (instead of the build directory, as is the default case when
-    # `local = false`).
-    #
-    # Note: This maps to the `buildAtSource` option in this module's generated Build action (if any).
-    local:
-
     # A description of the module.
     description:
 
@@ -3007,19 +2979,6 @@ modules:
 
       # Maximum time in seconds to wait for build to finish.
       timeout:
-
-    # If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
-    # instead of in the Garden build directory (under .garden/build/<module-name>).
-    #
-    # Garden will therefore not stage the build for local modules. This means that include/exclude filters
-    # and ignore files are not applied to local modules, except to calculate the module/action versions.
-    #
-    # If you use use `build.dependencies[].copy` for one or more build dependencies of this module, the copied files
-    # will be copied to the module source directory (instead of the build directory, as is the default case when
-    # `local = false`).
-    #
-    # Note: This maps to the `buildAtSource` option in this module's generated Build action (if any).
-    local:
 
     # A description of the module.
     description:

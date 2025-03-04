@@ -191,4 +191,14 @@ For more information, please refer to the [Migration guide for optional values i
 
 <h3 id="waitForJobs">`spec.waitForJobs` of `kubernetes Deploy`</h3>
 
-The new default value is `true`
+The new default value is `true`.
+
+<h3 id="buildAtSource">`buildAtSource` of `exec Build`</h3>
+
+The new default value is `true`.
+
+## Module configuration
+
+<h3 id="moduleLocalField">The `local` config field.</h3>
+
+Use action-level `buildAtSource` field instead.

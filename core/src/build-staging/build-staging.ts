@@ -18,8 +18,11 @@ import { FileStatsHelper, syncFileAsync, cloneFile, scanDirectoryForClone } from
 import { difference } from "lodash-es"
 import { unlink } from "fs"
 import type { BuildAction, BuildActionConfig } from "../actions/build.js"
+import { getBuildAtSource } from "../actions/build.js"
+import { isBuildActionConfig } from "../actions/build.js"
 import type { ModuleConfig } from "../config/module.js"
 import fsExtra from "fs-extra"
+import { styles } from "../logger/styles.js"
 
 const { emptyDir, ensureDir, mkdirp, pathExists, remove } = fsExtra
 
@@ -57,8 +60,11 @@ export class BuildStaging {
 
   async syncFromSrc({ action, log, withDelete = true }: { action: BuildAction; log: Log; withDelete?: boolean }) {
     // We don't sync local exec modules to the build dir
-    if (action.getConfig("buildAtSource")) {
-      log.silly(() => `Skipping syncing from source, action ${action.longDescription()} has buildAtSource set to true`)
+    if (action.buildAtSource) {
+      log.silly(
+        () =>
+          `Skipping syncing from source, action ${action.longDescription()} has ${styles.highlight("buildAtSource")} set to true`
+      )
       return
     }
 
@@ -132,21 +138,23 @@ export class BuildStaging {
     this.createdPaths.clear()
   }
 
-  getBuildPath(config: BuildActionConfig<string, any> | ModuleConfig): string {
+  getBuildPath(config: BuildActionConfig | ModuleConfig): string {
     // We don't stage the build for local modules, so the module path is effectively the build path.
-    if (config.kind === "Module" && config["local"] === true) {
+    if (config.kind === "Module" && config.local === true) {
       return config.path
     }
 
-    if (config["buildAtSource"]) {
-      return config["internal"].basePath
+    if (isBuildActionConfig(config)) {
+      if (getBuildAtSource(config)) {
+        return config.internal.basePath
+      }
     }
 
     // This returns the same result for modules and module configs
     return join(this.buildDirPath, config.name)
   }
 
-  async ensureBuildPath(config: BuildActionConfig<string, any>): Promise<string> {
+  async ensureBuildPath(config: BuildActionConfig): Promise<string> {
     const path = this.getBuildPath(config)
     await this.ensureDir(path)
     return path
