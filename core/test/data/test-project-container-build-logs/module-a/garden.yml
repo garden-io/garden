@@ -1,0 +1,4 @@
+kind: Build
+name: simple-build
+type: container
+
