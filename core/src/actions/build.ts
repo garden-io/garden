@@ -11,7 +11,7 @@ import type { ActionReference } from "../config/common.js"
 import { createSchema, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
 import type { GraphResult, GraphResults } from "../graph/results.js"
-import { dedent } from "../util/string.js"
+import { dedent, deline } from "../util/string.js"
 import type {
   BaseActionConfig,
   ResolvedActionWrapperParams,
@@ -35,6 +35,8 @@ import type { ResolvedTemplate } from "../template/types.js"
 import { getProjectApiVersion } from "../project-api-version.js"
 import { reportDefaultConfigValueChange } from "../util/deprecations.js"
 import { RootLogger } from "../logger/logger.js"
+import { emitNonRepeatableWarning } from "../warnings.js"
+import { styles } from "../logger/styles.js"
 
 export interface BuildCopyFrom {
   build: string
@@ -58,6 +60,13 @@ export function getBuildAtSource(config: BuildActionConfig): boolean {
   const buildAtSource = config.buildAtSource
   if (buildAtSource === undefined && config.type === "exec") {
     const log = RootLogger.getInstance().createLog()
+    emitNonRepeatableWarning(
+      log,
+      deline`Action ${styles.highlight(actionReferenceToString(config))}
+        of type ${styles.highlight(config.type)}
+        defined in ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}
+        relies on the default value of ${styles.highlight("buildAtSource")}.`
+    )
     reportDefaultConfigValueChange({ apiVersion: projectApiVersion, log, deprecation: "buildAtSource" })
   }
 
