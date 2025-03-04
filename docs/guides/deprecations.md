@@ -23,7 +23,7 @@ Once the list of breaking changes is final, we will make this known here.
 
 ## Updating action configs
 
-To get rid of the [deprecated `build`](#acton-configs) usages,
+To get rid of the [deprecated `build`](#action-configs) usages,
 you need to replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
 
 For example, a configuration like
@@ -135,7 +135,7 @@ The command `sync restart` will only be available inside dev console in a future
 
 The command `sync status` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend getting sync statuses inside the dev console with `sync status`.
 
-## Garden Plugins
+## Garden plugins
 
 <h3 id="hadolintPlugin">The plugin `hadolint`</h3>
 
@@ -155,7 +155,7 @@ This plugin is still enabled by default in Garden 0.13, but will be removed in G
 
 Please do not use this in Garden 0.14
 
-## Acton configs
+## Action configs
 
 <h3 id="buildConfigFieldOnRuntimeActions">The `build` config field in runtime action configs</h3>
 
@@ -186,3 +186,9 @@ Use the `kubernetes Deploy` action type instead.
 Use explicit fallback values instead.
 
 For more information, please refer to the [Migration guide for optional values in template strings](#using-optional-value-syntax-in-template-strings).
+
+## Default configuration values
+
+<h3 id="waitForJobs">`spec.waitForJobs` of `kubernetes Deploy`</h3>
+
+The new default value is `true`

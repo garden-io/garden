@@ -62,7 +62,7 @@
     "node-jsonl": "^0.1.0",
     "npm-license-crawler": "^0.2.1",
     "prettier": "3.3.3",
-    "replace-in-file": "^8.2.0",
+    "replace-in-file": "^8.3.0",
     "semver": "^7.6.3",
     "shx": "^0.3.2",
     "split2": "^4.1.0",
