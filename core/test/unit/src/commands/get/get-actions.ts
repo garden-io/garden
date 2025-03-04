@@ -52,6 +52,9 @@ export const getActionsToDetailedOutput = (a: Action, garden: TestGarden, graph:
       .getDependants({ kind: a.kind, name: a.name, recursive: false })
       .map((d) => d.key())
       .sort(),
+    version: a.getFullVersion(),
+    allowPublish: a.getConfig().allowPublish ?? undefined,
+    publishId: a.getConfig().spec.publishId ?? undefined,
     disabled: a.isDisabled(),
     moduleName: a.moduleName() ?? undefined,
   }
@@ -79,6 +82,9 @@ export const getActionsToDetailedWithStateOutput = async (
         .getDependants({ kind: a.kind, name: a.name, recursive: false })
         .map((d) => d.key())
         .sort(),
+      version: a.getFullVersion(),
+      allowPublish: a.getConfig().allowPublish ?? undefined,
+      publishId: a.getConfig().spec.publishId ?? undefined,
       disabled: a.isDisabled(),
       moduleName: a.moduleName() ?? undefined,
     }
