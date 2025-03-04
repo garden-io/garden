@@ -304,6 +304,7 @@ describe("resolveWorkflowConfig", () => {
       configFilePath: join(_garden.projectRoot, "workflows.garden.yml"),
       parentName: "foo",
       templateName: "workflows",
+      templatePath: "templates.garden.yml",
       inputs: {
         name: "test",
         envName: "${environment.name}", // unresolved
