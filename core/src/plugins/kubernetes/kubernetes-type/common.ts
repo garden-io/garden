@@ -525,6 +525,25 @@ export async function readManifestsFromPaths({
   )
 }
 
+const resolveTemplateStrings = (ctx: PluginContext) => (rawManifestContent: string, filePath: string) => {
+  // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
+  //   First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
+  //   template expressions will be interpreted by the YAML parser later.
+  //   Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
+  //   if they reference variables that do not exist.
+  const resolved = ctx.legacyResolveTemplateString(rawManifestContent, {
+    legacyAllowPartial: true,
+  })
+
+  if (typeof resolved !== "string") {
+    throw new ConfigurationError({
+      message: `Expected manifest template expression in file at path ${filePath} to resolve to string; Actually got ${typeof resolved}`,
+    })
+  }
+
+  return resolved
+}
+
 async function readFileManifests(
   ctx: PluginContext,
   action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
@@ -534,30 +553,11 @@ async function readFileManifests(
   // TODO: process manifestFiles
   const { manifestTemplates } = getSpecFiles({ actionRef: action, log, fileSources: action.getSpec() })
 
-  const resolveTemplateStrings = (rawManifestContent: string, filePath: string) => {
-    // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
-    //   First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
-    //   template expressions will be interpreted by the YAML parser later.
-    //   Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
-    //   if they reference variables that do not exist.
-    const resolved = ctx.legacyResolveTemplateString(rawManifestContent, {
-      legacyAllowPartial: true,
-    })
-
-    if (typeof resolved !== "string") {
-      throw new ConfigurationError({
-        message: `Expected manifest template expression in file at path ${filePath} to resolve to string; Actually got ${typeof resolved}`,
-      })
-    }
-
-    return resolved
-  }
-
   return readManifestsFromPaths({
     action,
     manifestDirPath,
     manifestPaths: manifestTemplates,
-    transformFn: resolveTemplateStrings,
+    transformFn: resolveTemplateStrings(ctx),
     log,
   })
 }
