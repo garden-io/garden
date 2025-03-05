@@ -1098,6 +1098,26 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
+### `spec.manifestFiles[]`
+
+[spec](#spec) > manifestFiles
+
+POSIX-style paths to YAML files to load manifests from. These files *can not* contain any Garden template strings. Each file can contain multiple manifests.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
+### `spec.manifestTemplates[]`
+
+[spec](#spec) > manifestTemplates
+
+POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
 
 ## Outputs
 

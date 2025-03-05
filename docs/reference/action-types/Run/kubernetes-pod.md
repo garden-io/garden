@@ -574,6 +574,26 @@ POSIX-style paths to YAML files to load manifests from. Each can contain multipl
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
 
+### `spec.manifestFiles[]`
+
+[spec](#spec) > manifestFiles
+
+POSIX-style paths to YAML files to load manifests from. These files *can not* contain any Garden template strings. Each file can contain multiple manifests.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
+### `spec.manifestTemplates[]`
+
+[spec](#spec) > manifestTemplates
+
+POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the Run.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
 ### `spec.resource`
 
 [spec](#spec) > resource
