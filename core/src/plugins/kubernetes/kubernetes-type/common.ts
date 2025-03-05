@@ -432,40 +432,56 @@ export function getSpecFiles({
   return { manifestTemplates: effectiveManifestTemplates, manifestFiles }
 }
 
-async function readFileManifests(
-  ctx: PluginContext,
-  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
-  log: Log,
-  manifestPath: string
-): Promise<DeclaredManifest[]> {
-  // TODO: process manifestFiles
-  const { manifestTemplates } = getSpecFiles({ actionRef: action, log, fileSources: action.getSpec() })
-  const regularPaths = manifestTemplates.filter((f) => !isGlob(f))
+export async function validateFilePaths({
+  action,
+  manifestDirPath,
+  manifestPaths,
+}: {
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>
+  manifestDirPath: string
+  manifestPaths: string[]
+}) {
+  const regularPaths = manifestPaths.filter((f) => !isGlob(f))
   const missingPaths = await pFilter(regularPaths, async (regularPath) => {
-    const resolvedPath = resolve(manifestPath, regularPath)
+    const resolvedPath = resolve(manifestDirPath, regularPath)
     return !(await pathExists(resolvedPath))
   })
+
   if (missingPaths.length) {
     throw new ConfigurationError({
       message: `Invalid manifest file path(s) declared in ${action.longDescription()}. Cannot find manifest file(s) at ${naturalList(
         missingPaths
-      )} in ${manifestPath} directory.`,
+      )} in ${manifestDirPath} directory.`,
     })
   }
 
-  const resolvedFiles = await glob(manifestTemplates, { cwd: manifestPath })
-  if (manifestTemplates.length > 0 && resolvedFiles.length === 0) {
+  const resolvedPaths = await glob(manifestPaths, { cwd: manifestDirPath })
+  if (manifestPaths.length > 0 && resolvedPaths.length === 0) {
     throw new ConfigurationError({
       message: `Invalid manifest file path(s) declared in ${action.longDescription()}. Cannot find any manifest files for paths ${naturalList(
-        manifestTemplates
-      )} in ${manifestPath} directory.`,
+        manifestPaths
+      )} in ${manifestDirPath} directory.`,
     })
   }
+
+  return resolvedPaths
+}
+
+async function readFileManifests(
+  ctx: PluginContext,
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
+  log: Log,
+  manifestDirPath: string
+): Promise<DeclaredManifest[]> {
+  // TODO: process manifestFiles
+  const { manifestTemplates } = getSpecFiles({ actionRef: action, log, fileSources: action.getSpec() })
+
+  const manifestTemplatePaths = await validateFilePaths({ action, manifestDirPath, manifestPaths: manifestTemplates })
 
   return flatten(
     await Promise.all(
-      resolvedFiles.map(async (path): Promise<DeclaredManifest[]> => {
-        const absPath = resolve(manifestPath, path)
+      manifestTemplatePaths.map(async (path): Promise<DeclaredManifest[]> => {
+        const absPath = resolve(manifestDirPath, path)
         log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
         const str = (await readFile(absPath)).toString()
 
