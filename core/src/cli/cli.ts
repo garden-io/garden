@@ -421,6 +421,7 @@ ${renderCommands(commands)}
         level: parseLogLevel(logLevelStr),
         storeEntries: false,
         displayWriterType: getTerminalWriterType({ silent, output, loggerType }),
+        outputRenderer: output,
         useEmoji: emoji,
         showTimestamps,
         force: this.initLogger,

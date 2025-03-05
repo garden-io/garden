@@ -7,19 +7,49 @@
  */
 
 import { expect } from "chai"
-import type { Logger } from "../../../../src/logger/logger.js"
+import type { Logger, LoggerInitParams } from "../../../../src/logger/logger.js"
 import { getRootLogger, LogLevel, RootLogger } from "../../../../src/logger/logger.js"
 import type { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream.js"
 import { freezeTime } from "../../../helpers.js"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer.js"
 import { ConfigurationError } from "../../../../src/exceptions.js"
 import { styles } from "../../../../src/logger/styles.js"
+import { gardenEnv } from "../../../../src/constants.js"
 
 const logger: Logger = getRootLogger()
 
 describe("Logger", () => {
   beforeEach(() => {
     logger["entries"] = []
+  })
+
+  describe("applyEnvToLoggerConfig", () => {
+    const loggerTypeFromEnv = gardenEnv.GARDEN_LOGGER_TYPE
+    const loggerConfig: LoggerInitParams = {
+      level: LogLevel.info,
+      displayWriterType: "default",
+    }
+
+    afterEach(() => {
+      // Leave the env as we found it.
+      gardenEnv.GARDEN_LOGGER_TYPE = loggerTypeFromEnv
+    })
+
+    it("should apply logger type from env", async () => {
+      gardenEnv.GARDEN_LOGGER_TYPE = "json"
+      const updatedConfig = RootLogger.applyEnvToLoggerConfig(loggerConfig)
+      expect(updatedConfig.displayWriterType).to.eql("json")
+    })
+
+    it("should not apply logger type from env when the --output option is used", async () => {
+      gardenEnv.GARDEN_LOGGER_TYPE = "json"
+      const updatedConfig = RootLogger.applyEnvToLoggerConfig({
+        ...loggerConfig,
+        outputRenderer: "json",
+        displayWriterType: "quiet",
+      })
+      expect(updatedConfig.displayWriterType).to.eql("quiet")
+    })
   })
 
   describe("events", () => {
