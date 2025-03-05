@@ -37,6 +37,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: `Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the ${style(`blue-green`)} strategy) has been removed.`,
       docs: null,
     },
+    kubernetesActionSpecFiles: {
+      contextDesc: "Action configs",
+      featureDesc: `The ${style("spec.files")} config field in ${style("kubernetes Deploy")}`,
+      hint: `Use ${style("spec.manifestTemplates")} and ${style("spec.manifestFiles")} instead.`,
+      docs: null,
+    },
     dotIgnoreFiles: {
       contextDesc: "Project configuration",
       featureDesc: `The ${style("dotIgnoreFiles")} config field`,

@@ -30,6 +30,61 @@ Once the list of breaking changes is final, we will make this known here.
 
 Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
 
+## Action configs
+
+<h3 id="kubernetesActionSpecFiles">The <code>spec.files</code> config field in <code>kubernetes Deploy</code></h3>
+
+Use `spec.manifestTemplates` and `spec.manifestFiles` instead.
+
+<h3 id="buildConfigFieldOnRuntimeActions">The <code>build</code> config field in runtime action configs</h3>
+
+Use `dependencies` config build to define the build dependencies.
+
+Please replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
+
+For example, a configuration like
+
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+build: backend # <-- old config style uses `build` field
+
+spec:
+image: ${actions.build.backend.outputs.deploymentImageId}
+...
+```
+
+should be replaced with
+
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+
+# use `dependencies` field instead of the `build`
+dependencies:
+- build.backend
+
+spec:
+image: ${actions.build.backend.outputs.deploymentImageId}
+...
+```
+
 ## Project configuration
 
 <h3 id="dotIgnoreFiles">The <code>dotIgnoreFiles</code> config field</h3>
@@ -159,57 +214,6 @@ See also:
 - [`spec.localMode` in the `kubernetes` deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
 - [`spec.localMode` in the `helm` deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
 - [`spec.localMode` in the `container` deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
-
-## Action configs
-
-<h3 id="buildConfigFieldOnRuntimeActions">The <code>build</code> config field in runtime action configs</h3>
-
-Use `dependencies` config build to define the build dependencies.
-
-Please replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
-
-For example, a configuration like
-
-```yaml
-kind: Build
-name: backend
-description: Backend service container image
-type: container
-
----
-kind: Deploy
-name: backend
-description: Backend service container
-type: container
-build: backend # <-- old config style uses `build` field
-
-spec:
-image: ${actions.build.backend.outputs.deploymentImageId}
-...
-```
-
-should be replaced with
-
-```yaml
-kind: Build
-name: backend
-description: Backend service container image
-type: container
-
----
-kind: Deploy
-name: backend
-description: Backend service container
-type: container
-
-# use `dependencies` field instead of the `build`
-dependencies:
-- build.backend
-
-spec:
-image: ${actions.build.backend.outputs.deploymentImageId}
-...
-```
 
 ## Build Staging
 
