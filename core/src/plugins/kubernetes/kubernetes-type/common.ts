@@ -550,16 +550,23 @@ async function readFileManifests(
   log: Log,
   manifestDirPath: string
 ): Promise<DeclaredManifest[]> {
-  // TODO: process manifestFiles
-  const { manifestTemplates } = getSpecFiles({ actionRef: action, log, fileSources: action.getSpec() })
+  const { manifestFiles, manifestTemplates } = getSpecFiles({ actionRef: action, log, fileSources: action.getSpec() })
 
-  return readManifestsFromPaths({
+  const manifestsFromFiles = await readManifestsFromPaths({
+    action,
+    manifestDirPath,
+    manifestPaths: manifestFiles,
+    log,
+  })
+  const manifestsFromTemplates = await readManifestsFromPaths({
     action,
     manifestDirPath,
     manifestPaths: manifestTemplates,
     transformFn: resolveTemplateStrings(ctx),
     log,
   })
+
+  return [...manifestsFromFiles, ...manifestsFromTemplates]
 }
 
 /**
