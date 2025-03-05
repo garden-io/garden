@@ -39,6 +39,7 @@ import type { Log } from "../../../logger/log-entry.js"
 import { reportDefaultConfigValueChange } from "../../../util/deprecations.js"
 
 export interface KubernetesTypeCommonDeploySpec {
+  // TODO(0.14): remove this field
   files: string[]
   kustomize?: KubernetesKustomizeSpec
   patchResources?: KubernetesPatchResource[]
@@ -56,6 +57,12 @@ export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySp
   waitForJobs?: boolean
   manifestFiles: string[]
   manifestTemplates: string[]
+  /**
+   * TODO(0.14): remove this field
+   * Overridden to deprecate it only for actions, not for modules.
+   * @deprecated in action configs, use {@link #manifestTemplates} instead.
+   */
+  files: string[]
 }
 
 export function getDefaultWaitForJobs() {
