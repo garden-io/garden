@@ -521,18 +521,20 @@ async function readFileManifests(
 /**
  * Correctly parses Kubernetes manifests: Kubernetes uses the YAML 1.1 spec by default and not YAML 1.2, which is the default for most libraries.
  *
- * @throws ConfigurationError on parser errors.
  * @param str raw string containing Kubernetes manifests in YAML format
  * @param sourceDescription description of where the YAML string comes from, e.g. "foo.yaml in directory /bar"
+ * @param sourceFilePath the path of the source YAML file, to be used for syntax highlighting
+ *
+ * @throws ConfigurationError on parser errors
  */
 async function parseKubernetesManifests(
   str: string,
   sourceDescription: string,
-  filename: string | undefined
+  sourceFilePath: string | undefined
 ): Promise<KubernetesResource[]> {
   // parse yaml with version 1.1 by default, as Kubernetes still uses this version.
   // See also https://github.com/kubernetes/kubernetes/issues/34146
-  const docs = await loadAndValidateYaml({ content: str, sourceDescription, filename, version: "1.1" })
+  const docs = await loadAndValidateYaml({ content: str, sourceDescription, filename: sourceFilePath, version: "1.1" })
 
   // TODO: We should use schema validation to make sure that apiVersion, kind and metadata are always defined as required by the type.
   const manifests = docs.map((d) => d.toJS()) as KubernetesResource[]
@@ -588,21 +590,24 @@ export function convertServiceResource(
  * or a {@code podSelector}.
  * The {@code podSelector} takes precedence over the {@code (kind, name)}, see {@link getTargetResource}.
  *
- * @param module the current module
  * @param serviceResourceSpec the input service resource spec in 0.12 format
+ * @param moduleName the current module name
  * @return the 0.13 compatible kubernetes service resource spec
  * @see targetResourceSpecSchema
  * @see getTargetResource
  */
-export function convertServiceResourceSpec(s: ServiceResourceSpec, moduleName: string): KubernetesTargetResourceSpec {
+export function convertServiceResourceSpec(
+  serviceResourceSpec: ServiceResourceSpec,
+  moduleName: string
+): KubernetesTargetResourceSpec {
   // Set only the necessary fields to satisfy the schema restrictions defined for KubernetesTargetResourceSpec.
   const result: KubernetesTargetResourceSpec =
-    s.podSelector && !isEmpty(s.podSelector)
-      ? { podSelector: s.podSelector }
-      : { kind: s.kind, name: s.name || moduleName }
+    serviceResourceSpec.podSelector && !isEmpty(serviceResourceSpec.podSelector)
+      ? { podSelector: serviceResourceSpec.podSelector }
+      : { kind: serviceResourceSpec.kind, name: serviceResourceSpec.name || moduleName }
 
-  if (s.containerName) {
-    result.containerName = s.containerName
+  if (serviceResourceSpec.containerName) {
+    result.containerName = serviceResourceSpec.containerName
   }
 
   return result
