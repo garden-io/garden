@@ -87,25 +87,25 @@ please use an explicit fallback value like `${var.baseUrl || 'defaultValue'}` in
 
 ## Kubernetes provider configuration
 
-<h3 id="containerDeploymentStrategy">The `deploymentStrategy` config field</h3>
+<h3 id="containerDeploymentStrategy">The <code>deploymentStrategy</code> config field</h3>
 
 Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
 
 ## Project configuration
 
-<h3 id="dotIgnoreFiles">The `dotIgnoreFiles` config field</h3>
+<h3 id="dotIgnoreFiles">The <code>dotIgnoreFiles</code> config field</h3>
 
 Use the `dotIgnoreFile` field instead. It only allows specifying one filename.
 
 For more information, please refer to the [`dotIgnoreFile` reference documentation](../reference/project-config.md#dotignorefile).
 
-<h3 id="apiVersionV0">Using `apiVersion: garden.io/v0` in the project config</h3>
+<h3 id="apiVersionV0">Using <code>apiVersion: garden.io/v0</code> in the project config</h3>
 
 Use `apiVersion: garden.io/v1` or higher instead.
 
 For more information, please refer to the [`apiVersion` reference documentation](../reference/project-config.md#apiVersion).
 
-<h3 id="projectConfigModules">The `modules` config field</h3>
+<h3 id="projectConfigModules">The <code>modules</code> config field</h3>
 
 Please use the `scan` field instead.
 
@@ -113,51 +113,51 @@ For more information, please refer to the [`scan` reference documentation](../re
 
 ## Garden commands
 
-<h3 id="kubernetesClusterInitCommand">The Kubernetes plugin command `cluster-init`</h3>
+<h3 id="kubernetesClusterInitCommand">The Kubernetes plugin command <code>cluster-init</code></h3>
 
 Do not use this command. It has no effect.
 
 ## Sync mode
 
-<h3 id="syncStartCommand">The `sync start` command</h3>
+<h3 id="syncStartCommand">The <code>sync start</code> command</h3>
 
 The command `sync start` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend running `garden deploy --sync` or starting syncs inside the dev console with either `deploy --sync` or `sync start`.
 
-<h3 id="syncStopCommand">The `sync stop` command</h3>
+<h3 id="syncStopCommand">The <code>sync stop</code> command</h3>
 
 The command `sync stop` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend stopping syncs inside the dev console with `sync stop`.
 
-<h3 id="syncRestartCommand">The `sync restart` command</h3>
+<h3 id="syncRestartCommand">The <code>sync restart</code> command</h3>
 
 The command `sync restart` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend restarting syncs inside the dev console with `sync restart`.
 
-<h3 id="syncStatusCommand">The `sync status` command</h3>
+<h3 id="syncStatusCommand">The <code>sync status</code> command</h3>
 
 The command `sync status` will only be available inside dev console in a future breaking change release. Do not use it as a standalone Garden command. Instead, we recommend getting sync statuses inside the dev console with `sync status`.
 
 ## Garden plugins
 
-<h3 id="hadolintPlugin">The plugin `hadolint`</h3>
+<h3 id="hadolintPlugin">The plugin <code>hadolint</code></h3>
 
 This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.
 
-<h3 id="octantPlugin">The plugin `octant`</h3>
+<h3 id="octantPlugin">The plugin <code>octant</code></h3>
 
 This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.
 
-<h3 id="conftestPlugin">The plugin `conftest`</h3>
+<h3 id="conftestPlugin">The plugin <code>conftest</code></h3>
 
 This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.
 
 ## Local mode
 
-<h3 id="localMode">The `local mode` feature for container, kubernetes and helm deploys</h3>
+<h3 id="localMode">The <code>local mode</code> feature for container, kubernetes and helm deploys</h3>
 
 Please do not use this in Garden 0.14
 
 ## Action configs
 
-<h3 id="buildConfigFieldOnRuntimeActions">The `build` config field in runtime action configs</h3>
+<h3 id="buildConfigFieldOnRuntimeActions">The <code>build</code> config field in runtime action configs</h3>
 
 Use `dependencies` config build to define the build dependencies.
 
@@ -165,23 +165,23 @@ For more information, please refer to the [Migration guide for action configs](#
 
 ## Build Staging
 
-<h3 id="rsyncBuildStaging">The `legacy rsync-based file syncing` for build staging</h3>
+<h3 id="rsyncBuildStaging">The <code>legacy rsync-based file syncing</code> for build staging</h3>
 
 Do not use `GARDEN_LEGACY_BUILD_STAGE`.
 
 ## Garden action types
 
-<h3 id="configmapDeployAction">The `configmap Deploy` action type</h3>
+<h3 id="configmapDeployAction">The <code>configmap Deploy</code> action type</h3>
 
 Use the `kubernetes Deploy` action type instead.
 
-<h3 id="persistentvolumeclaimDeployAction">The `persistentvolumeclaim Deploy` action type</h3>
+<h3 id="persistentvolumeclaimDeployAction">The <code>persistentvolumeclaim Deploy</code> action type</h3>
 
 Use the `kubernetes Deploy` action type instead.
 
 ## Template strings
 
-<h3 id="optionalTemplateValueSyntax">The optional template value syntax (like `${var.foo}?`)</h3>
+<h3 id="optionalTemplateValueSyntax">The optional template value syntax (like <code>${var.foo}?</code>)</h3>
 
 Use explicit fallback values instead.
 
@@ -189,7 +189,7 @@ For more information, please refer to the [Migration guide for optional values i
 
 ## Default configuration values
 
-<h3 id="waitForJobs">`spec.waitForJobs` of `kubernetes Deploy`</h3>
+<h3 id="waitForJobs"><code>spec.waitForJobs</code> of <code>kubernetes Deploy</code></h3>
 
 The new default value is `true`.
 
