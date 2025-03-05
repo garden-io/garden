@@ -12,13 +12,13 @@ import { flatten, isEmpty, keyBy, set } from "lodash-es"
 import type { KubernetesModule } from "./module-config.js"
 import type { KubernetesResource } from "../types.js"
 import { KubeApi } from "../api.js"
-import { dedent, gardenAnnotationKey, naturalList, stableStringify } from "../../../util/string.js"
+import { dedent, deline, gardenAnnotationKey, naturalList, stableStringify } from "../../../util/string.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { PluginContext } from "../../../plugin-context.js"
 import { ConfigurationError, GardenError, PluginError } from "../../../exceptions.js"
 import type { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config.js"
 import type { HelmModule } from "../helm/module-config.js"
-import type { KubernetesDeployAction } from "./config.js"
+import type { KubernetesDeployAction, KubernetesDeployActionSpec } from "./config.js"
 import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
 import { runAndCopy } from "../run.js"
 import { getResourceContainer, getResourceKey, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
@@ -30,6 +30,12 @@ import isGlob from "is-glob"
 import pFilter from "p-filter"
 import { kubectl } from "../kubectl.js"
 import { loadAndValidateYaml } from "../../../config/base.js"
+import { styles } from "../../../logger/styles.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { getProjectApiVersion } from "../../../project-api-version.js"
+import type { ActionReference } from "../../../config/common.js"
+import { actionReferenceToString } from "../../../actions/base.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
 
 const { pathExists, readFile } = fsExtra
 
@@ -392,15 +398,49 @@ async function readKustomizeManifests(
   }
 }
 
+export type KubernetesDeployActionSpecFileSources = Pick<
+  KubernetesDeployActionSpec,
+  "files" | "manifestFiles" | "manifestTemplates"
+>
+
+export function getSpecFiles({
+  actionRef,
+  log,
+  fileSources: { files, manifestFiles, manifestTemplates },
+}: {
+  actionRef: ActionReference
+  log: Log
+  fileSources: KubernetesDeployActionSpecFileSources
+}): { manifestFiles: string[]; manifestTemplates: string[] } {
+  if (files.length > 0) {
+    reportDeprecatedFeatureUsage({ apiVersion: getProjectApiVersion(), log, deprecation: "kubernetesActionSpecFiles" })
+
+    if (manifestTemplates.length > 0) {
+      emitNonRepeatableWarning(
+        log,
+        deline`
+        Action ${styles.highlight(actionReferenceToString(actionRef))} declares both ${styles.highlight("files")} and ${styles.highlight("manifestTemplates")} fields in its ${styles.highlight("spec")}.
+        The value from ${styles.highlight("manifestTemplates")} will be used,
+        and the value from ${styles.highlight("files")} will have no effect.
+        `
+      )
+    }
+  }
+
+  const effectiveManifestTemplates = manifestTemplates.length > 0 ? manifestTemplates : files
+
+  return { manifestTemplates: effectiveManifestTemplates, manifestFiles }
+}
+
 async function readFileManifests(
   ctx: PluginContext,
   action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
   log: Log,
   manifestPath: string
 ): Promise<DeclaredManifest[]> {
-  const spec = action.getSpec()
-  const specFiles = spec.files
-  const regularPaths = specFiles.filter((f) => !isGlob(f))
+  // TODO: process manifestFiles
+  const { manifestTemplates } = getSpecFiles({ actionRef: action, log, fileSources: action.getSpec() })
+  const regularPaths = manifestTemplates.filter((f) => !isGlob(f))
   const missingPaths = await pFilter(regularPaths, async (regularPath) => {
     const resolvedPath = resolve(manifestPath, regularPath)
     return !(await pathExists(resolvedPath))
@@ -413,11 +453,11 @@ async function readFileManifests(
     })
   }
 
-  const resolvedFiles = await glob(specFiles, { cwd: manifestPath })
-  if (specFiles.length > 0 && resolvedFiles.length === 0) {
+  const resolvedFiles = await glob(manifestTemplates, { cwd: manifestPath })
+  if (manifestTemplates.length > 0 && resolvedFiles.length === 0) {
     throw new ConfigurationError({
       message: `Invalid manifest file path(s) declared in ${action.longDescription()}. Cannot find any manifest files for paths ${naturalList(
-        specFiles
+        manifestTemplates
       )} in ${manifestPath} directory.`,
     })
   }

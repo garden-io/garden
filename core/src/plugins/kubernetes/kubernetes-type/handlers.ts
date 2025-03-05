@@ -56,7 +56,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const service = services[0] // There is always exactly one service in kubernetes modules
     const serviceResource = module.spec.serviceResource
 
-    const files = module.spec.files || []
+    const manifestTemplates = module.spec.files || []
     const manifests = module.spec.manifests || []
 
     const deployAction: KubernetesDeployActionConfig = {
@@ -67,14 +67,14 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       build: dummyBuild?.name,
       dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
-      include: files,
+      include: manifestTemplates,
       timeout: service.spec.timeout,
 
       spec: {
         ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
-        files,
+        files: [], // do not init deprecated field when convert module to action
         manifestFiles: [],
-        manifestTemplates: files,
+        manifestTemplates,
         manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
       },
@@ -114,9 +114,9 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
           resource,
-          files,
+          files: [], // do not init deprecated field when convert module to action
           manifestFiles: [],
-          manifestTemplates: files,
+          manifestTemplates,
           manifests,
           namespace: module.spec.namespace,
         },
@@ -144,9 +144,9 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
-          files,
+          files: [], // do not init deprecated field when convert module to action
           manifestFiles: [],
-          manifestTemplates: files,
+          manifestTemplates,
           manifests,
           namespace: module.spec.namespace,
         },
