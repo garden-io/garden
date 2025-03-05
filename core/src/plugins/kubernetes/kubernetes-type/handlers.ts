@@ -67,12 +67,14 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       build: dummyBuild?.name,
       dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
-      include: module.spec.files,
+      include: files,
       timeout: service.spec.timeout,
 
       spec: {
         ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
         files,
+        manifestFiles: [],
+        manifestTemplates: files,
         manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
       },
@@ -113,6 +115,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
           ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
           resource,
           files,
+          manifestFiles: [],
+          manifestTemplates: files,
           manifests,
           namespace: module.spec.namespace,
         },
@@ -141,6 +145,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
           files,
+          manifestFiles: [],
+          manifestTemplates: files,
           manifests,
           namespace: module.spec.namespace,
         },

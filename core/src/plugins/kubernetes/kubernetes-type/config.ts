@@ -54,6 +54,8 @@ export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySp
   localMode?: KubernetesLocalModeSpec
   // TODO(0.14) make this non-optional with schema-level default values
   waitForJobs?: boolean
+  manifestFiles: string[]
+  manifestTemplates: string[]
 }
 
 export function getDefaultWaitForJobs() {
@@ -116,6 +118,11 @@ export const kubernetesManifestTemplatesSchema = () =>
     "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
   )
 
+export const kubernetesManifestFilesSchema = () =>
+  joiSparseArray(joi.posixPath().subPathOnly().allowGlobs()).description(
+    "POSIX-style paths to YAML files to load manifests from. These files *can not* contain any Garden template strings. Each file can contain multiple manifests."
+  )
+
 export const kubernetesManifestsSchema = () =>
   joiSparseArray(kubernetesResourceSchema()).description(
     "List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests read from the files."
@@ -164,6 +171,8 @@ export const kubernetesDeploySchema = () =>
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
       localMode: kubernetesLocalModeSchema(),
+      manifestFiles: kubernetesManifestFilesSchema(),
+      manifestTemplates: kubernetesManifestTemplatesSchema(),
     })
     .rename("devMode", "sync")
 
