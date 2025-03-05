@@ -467,44 +467,51 @@ export async function validateFilePaths({
   return resolvedPaths
 }
 
-async function readFileManifests(
-  ctx: PluginContext,
-  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
-  log: Log,
+/**
+ * Helper function to read the manifests from the given fise-system paths.
+ *
+ *
+ * It does the following steps:
+ * 1. Read the manifest files from disk as raw strings
+ * 2. Optionally transforms the manifest strings
+ * 3. Parses the manifest strings to valid object representation of the kubernetes resources
+ *
+ * @param action the current action
+ * @param manifestDirPath the location of the manifests
+ * @param manifestPaths the paths of the manifest files relative to {@code manifestDirPath}
+ * @param transformFn the optional transformation function to be applied to the raw manifest strings read from the disk
+ * @param log the logger
+ */
+export async function readManifestsFromPaths({
+  action,
+  manifestDirPath,
+  manifestPaths,
+  transformFn,
+  log,
+}: {
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>
   manifestDirPath: string
-): Promise<DeclaredManifest[]> {
-  // TODO: process manifestFiles
-  const { manifestTemplates } = getSpecFiles({ actionRef: action, log, fileSources: action.getSpec() })
-
-  const manifestTemplatePaths = await validateFilePaths({ action, manifestDirPath, manifestPaths: manifestTemplates })
+  manifestPaths: string[]
+  transformFn?: (rawManifestStr: string, filePath: string) => string
+  log: Log
+}): Promise<DeclaredManifest[]> {
+  const validManifestPaths = await validateFilePaths({ action, manifestDirPath, manifestPaths })
 
   return flatten(
     await Promise.all(
-      manifestTemplatePaths.map(async (path): Promise<DeclaredManifest[]> => {
+      validManifestPaths.map(async (path): Promise<DeclaredManifest[]> => {
         const absPath = resolve(manifestDirPath, path)
         log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
         const str = (await readFile(absPath)).toString()
 
-        // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
-        // First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
-        // template expressions will be interpreted by the YAML parser later.
-        // Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
-        // if they reference variables that do not exist.
-        const resolved = ctx.legacyResolveTemplateString(str, {
-          legacyAllowPartial: true,
-        })
-
-        if (typeof resolved !== "string") {
-          throw new ConfigurationError({
-            message: `Expected manifest template expression in file at path ${absPath} to resolve to string; Actually got ${typeof resolved}`,
-          })
-        }
+        const transformed = transformFn ? transformFn(str, absPath) : str
 
         const manifests = await parseKubernetesManifests(
-          resolved,
+          transformed,
           `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`,
           absPath
         )
+
         return manifests.map((manifest, index) => ({
           declaration: {
             type: "file",
@@ -516,6 +523,43 @@ async function readFileManifests(
       })
     )
   )
+}
+
+async function readFileManifests(
+  ctx: PluginContext,
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
+  log: Log,
+  manifestDirPath: string
+): Promise<DeclaredManifest[]> {
+  // TODO: process manifestFiles
+  const { manifestTemplates } = getSpecFiles({ actionRef: action, log, fileSources: action.getSpec() })
+
+  const resolveTemplateStrings = (rawManifestContent: string, filePath: string) => {
+    // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
+    //   First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
+    //   template expressions will be interpreted by the YAML parser later.
+    //   Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
+    //   if they reference variables that do not exist.
+    const resolved = ctx.legacyResolveTemplateString(rawManifestContent, {
+      legacyAllowPartial: true,
+    })
+
+    if (typeof resolved !== "string") {
+      throw new ConfigurationError({
+        message: `Expected manifest template expression in file at path ${filePath} to resolve to string; Actually got ${typeof resolved}`,
+      })
+    }
+
+    return resolved
+  }
+
+  return readManifestsFromPaths({
+    action,
+    manifestDirPath,
+    manifestPaths: manifestTemplates,
+    transformFn: resolveTemplateStrings,
+    log,
+  })
 }
 
 /**
