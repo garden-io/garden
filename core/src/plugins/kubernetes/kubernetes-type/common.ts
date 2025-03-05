@@ -374,11 +374,11 @@ async function readKustomizeManifests(
       log,
       args: ["build", kustomizePath, ...extraArgs],
     })
-    const manifests = await parseKubernetesManifests(
-      kustomizeOutput,
-      `kustomize output of ${action.longDescription()}`,
-      undefined
-    )
+    const manifests = await parseKubernetesManifests({
+      str: kustomizeOutput,
+      sourceDescription: `kustomize output of ${action.longDescription()}`,
+      sourceFilePath: undefined,
+    })
     return manifests.map((manifest, index) => ({
       declaration: {
         type: "kustomize",
@@ -506,11 +506,11 @@ export async function readManifestsFromPaths({
 
         const transformed = transformFn ? transformFn(str, absPath) : str
 
-        const manifests = await parseKubernetesManifests(
-          transformed,
-          `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`,
-          absPath
-        )
+        const manifests = await parseKubernetesManifests({
+          str: transformed,
+          sourceDescription: `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`,
+          sourceFilePath: absPath,
+        })
 
         return manifests.map((manifest, index) => ({
           declaration: {
@@ -571,11 +571,15 @@ async function readFileManifests(
  *
  * @throws ConfigurationError on parser errors
  */
-async function parseKubernetesManifests(
-  str: string,
-  sourceDescription: string,
+async function parseKubernetesManifests({
+  str,
+  sourceDescription,
+  sourceFilePath,
+}: {
+  str: string
+  sourceDescription: string
   sourceFilePath: string | undefined
-): Promise<KubernetesResource[]> {
+}): Promise<KubernetesResource[]> {
   // parse yaml with version 1.1 by default, as Kubernetes still uses this version.
   // See also https://github.com/kubernetes/kubernetes/issues/34146
   const docs = await loadAndValidateYaml({ content: str, sourceDescription, filename: sourceFilePath, version: "1.1" })
