@@ -11,7 +11,8 @@ import { dedent } from "../../../util/string.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getPortForwardHandler } from "../port-forward.js"
 import { getActionNamespace } from "../namespace.js"
-import type { KubernetesDeployAction, KubernetesDeployActionConfig, KubernetesDeployActionSpec } from "./config.js"
+import type { KubernetesDeployAction, KubernetesDeployActionConfig } from "./config.js"
+import { kubernetesManifestFilesSchema } from "./config.js"
 import { kubernetesDeploySchema, kubernetesManifestTemplatesSchema } from "./config.js"
 import { execInKubernetesDeploy } from "./exec.js"
 import {
@@ -29,6 +30,8 @@ import { validateSchema } from "../../../config/validation.js"
 import type { PluginContext } from "../../../plugin-context.js"
 import type { ResolvedTemplate } from "../../../template/types.js"
 import type { ArraySchema } from "@hapi/joi"
+import type { KubernetesDeployActionSpecFileSources } from "./common.js"
+import { getSpecFiles } from "./common.js"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -48,7 +51,7 @@ export function evaluateKubernetesDeploySpecFiles({
 }: {
   ctx: PluginContext
   config: KubernetesDeployActionConfig
-  filesFieldName: keyof Pick<KubernetesDeployActionSpec, "files" | "manifestFiles" | "manifestTemplates">
+  filesFieldName: keyof KubernetesDeployActionSpecFileSources
   filesFieldSchema: () => ArraySchema
 }): string[] {
   let evaluatedFiles: ResolvedTemplate
@@ -72,27 +75,54 @@ export function evaluateKubernetesDeploySpecFiles({
   })
 }
 
+export function getFileSources({
+  ctx,
+  config,
+}: {
+  ctx: PluginContext
+  config: KubernetesDeployActionConfig
+}): KubernetesDeployActionSpecFileSources {
+  const files = evaluateKubernetesDeploySpecFiles({
+    ctx,
+    config,
+    filesFieldName: "files",
+    filesFieldSchema: kubernetesManifestTemplatesSchema,
+  })
+  const manifestFiles = evaluateKubernetesDeploySpecFiles({
+    ctx,
+    config,
+    filesFieldName: "manifestFiles",
+    filesFieldSchema: kubernetesManifestFilesSchema,
+  })
+  const manifestTemplates = evaluateKubernetesDeploySpecFiles({
+    ctx,
+    config,
+    filesFieldName: "manifestTemplates",
+    filesFieldSchema: kubernetesManifestTemplatesSchema,
+  })
+
+  return { files, manifestFiles, manifestTemplates }
+}
+
 export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesDeployAction> => ({
   name: "kubernetes",
   docs: kubernetesDeployDocs,
   schema: kubernetesDeploySchema(),
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
-    configure: async ({ ctx, config }) => {
+    configure: async ({ ctx, log, config }) => {
       if (!config.spec.kustomize) {
         if (!config.include) {
           config.include = []
         }
 
-        // TODO: evaluate manifestFiles and manifestTemplates
-        const files = evaluateKubernetesDeploySpecFiles({
-          ctx,
-          config,
-          filesFieldName: "files",
-          filesFieldSchema: kubernetesManifestTemplatesSchema,
+        const { manifestFiles, manifestTemplates } = getSpecFiles({
+          actionRef: config,
+          log,
+          fileSources: getFileSources({ ctx, config }),
         })
 
-        config.include = uniq([...config.include, ...files])
+        config.include = uniq([...config.include, ...manifestTemplates, ...manifestFiles])
       }
 
       return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
