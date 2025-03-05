@@ -317,7 +317,7 @@ describe("getManifests", () => {
         graph,
       })
       // Pre-check to ensure that the test project has a correct default glob file pattern.
-      expect(executedAction.getSpec().files).to.eql(["*.yaml"])
+      expect(executedAction.getSpec().manifestTemplates).to.eql(["*.yaml"])
 
       const manifests = await getManifests({ ctx, api, action: executedAction, log: garden.log, defaultNamespace })
       expect(manifests).to.exist
@@ -335,14 +335,14 @@ describe("getManifests", () => {
     it("should support both regular paths and glob patterns with deduplication", async () => {
       const action = graph.getDeploy("with-build-action")
       // Append a valid filename that results to the default glob pattern '*.yaml'.
-      action["_config"]["spec"]["files"].push("deployment.yaml")
+      action["_config"]["spec"]["manifestTemplates"].push("deployment.yaml")
       const executedAction = await garden.resolveAction<KubernetesDeployAction>({
         action,
         log: garden.log,
         graph,
       })
       // Pre-check to ensure that the list of files in the test project config is correct.
-      expect(executedAction.getSpec().files).to.eql(["*.yaml", "deployment.yaml"])
+      expect(executedAction.getSpec().manifestTemplates).to.eql(["*.yaml", "deployment.yaml"])
 
       const manifests = await getManifests({ ctx, api, action: executedAction, log: garden.log, defaultNamespace })
       expect(manifests).to.exist
@@ -359,7 +359,7 @@ describe("getManifests", () => {
 
     it("should throw on missing regular path", async () => {
       const action = graph.getDeploy("with-build-action")
-      action["_config"]["spec"]["files"].push("missing-file.yaml")
+      action["_config"]["spec"]["manifestTemplates"].push("missing-file.yaml")
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
         action,
         log: garden.log,
@@ -384,7 +384,7 @@ describe("getManifests", () => {
     it("should throw when no files found from glob pattens", async () => {
       const action = graph.getDeploy("with-build-action")
       // Rewrite the whole files array to have a glob pattern that results to an empty list of files.
-      action["_config"]["spec"]["files"] = ["./**/manifests/*.yaml"]
+      action["_config"]["spec"]["manifestTemplates"] = ["./**/manifests/*.yaml"]
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
         action,
         log: garden.log,

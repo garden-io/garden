@@ -3,7 +3,7 @@ kind: Deploy
 type: kubernetes
 name: legacypartial-ifblock-doesnotexist
 spec:
-  files:
+  manifestTemplates:
    - ./k8s/ifblock-doesnotexist.yaml
 
 ---
@@ -12,7 +12,7 @@ kind: Deploy
 type: kubernetes
 name: legacypartial-ifblock-true
 spec:
-  files:
+  manifestTemplates:
    - ./k8s/ifblock-true.yaml
 
 ---
@@ -21,7 +21,7 @@ kind: Deploy
 type: kubernetes
 name: legacypartial-ifblock-false
 spec:
-  files:
+  manifestTemplates:
    - ./k8s/ifblock-false.yaml
 
 ---
@@ -30,6 +30,6 @@ kind: Deploy
 type: kubernetes
 name: legacypartial-ifblock-indentation
 spec:
-  files:
+  manifestTemplates:
    - ./k8s/ifblock-indentation.yaml
 
