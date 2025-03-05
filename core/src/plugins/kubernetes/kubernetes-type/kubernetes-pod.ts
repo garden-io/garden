@@ -19,7 +19,7 @@ import { runOrTestWithPod } from "./common.js"
 import { runResultToActionState } from "../../../actions/base.js"
 import type { KubernetesRunOutputs, KubernetesTestOutputs } from "./config.js"
 import {
-  kubernetesFilesSchema,
+  kubernetesManifestTemplatesSchema,
   kubernetesManifestsSchema,
   kubernetesPatchResourcesSchema,
   kubernetesRunOutputsSchema,
@@ -62,7 +62,7 @@ export const kubernetesRunPodSchema = (kind: string) => {
       manifests: kubernetesManifestsSchema().description(
         `List of Kubernetes resource manifests to be searched (using \`resource\`e for the pod spec for the ${kind}. If \`files\` is also specified, this is combined with the manifests read from the files.`
       ),
-      files: kubernetesFilesSchema().description(
+      files: kubernetesManifestTemplatesSchema().description(
         `POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the ${kind}.`
       ),
       resource: runPodResourceSchema(kind),

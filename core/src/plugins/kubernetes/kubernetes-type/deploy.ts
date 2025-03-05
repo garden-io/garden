@@ -12,7 +12,7 @@ import type { KubernetesPluginContext } from "../config.js"
 import { getPortForwardHandler } from "../port-forward.js"
 import { getActionNamespace } from "../namespace.js"
 import type { KubernetesDeployAction } from "./config.js"
-import { kubernetesDeploySchema, kubernetesFilesSchema } from "./config.js"
+import { kubernetesDeploySchema, kubernetesManifestTemplatesSchema } from "./config.js"
 import { execInKubernetesDeploy } from "./exec.js"
 import {
   deleteKubernetesDeploy,
@@ -63,7 +63,7 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
           })
         }
 
-        const files = validateSchema<string[]>(evaluatedFiles, kubernetesFilesSchema(), {
+        const files = validateSchema<string[]>(evaluatedFiles, kubernetesManifestTemplatesSchema(), {
           source: {
             yamlDoc: config.internal.yamlDoc,
             path: ["spec", "files"],

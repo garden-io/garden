@@ -111,7 +111,7 @@ const kubernetesPatchResourceSchema = () =>
     patch: joi.object().required().description("The patch to apply.").unknown(true),
   })
 
-export const kubernetesFilesSchema = () =>
+export const kubernetesManifestTemplatesSchema = () =>
   joiSparseArray(joi.posixPath().subPathOnly().allowGlobs()).description(
     "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
   )
@@ -140,7 +140,7 @@ export const kubernetesApplyArgsSchema = () =>
   joi.sparseArray().items(joi.string()).description("Additional arguments to pass to `kubectl apply`.")
 
 export const kubernetesCommonDeploySpecKeys = () => ({
-  files: kubernetesFilesSchema(),
+  files: kubernetesManifestTemplatesSchema(),
   kustomize: kustomizeSpecSchema(),
   manifests: kubernetesManifestsSchema(),
   patchResources: kubernetesPatchResourcesSchema(),
