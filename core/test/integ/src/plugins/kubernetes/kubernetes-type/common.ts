@@ -305,6 +305,14 @@ describe("getManifests", () => {
         actionName: "with-build-action",
         manifestSourceFieldName: "manifestTemplates",
       },
+      {
+        actionName: "with-build-action-manifests-in-deprecated-files",
+        manifestSourceFieldName: "files",
+      },
+      {
+        actionName: "with-build-action-manifests-in-manifest-files",
+        manifestSourceFieldName: "manifestFiles",
+      },
     ]
 
     for (const testCaseConfig of testCaseConfigs) {
