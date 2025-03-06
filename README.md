@@ -1,6 +1,3 @@
-> [!WARNING]  
-> **Garden 0.12.x EOL:** Garden Acorn (`0.12.x`) will receive security updates until the 30th of June, 2024. After that it will be deprecated and we'll stop support. See [announcement](https://github.com/garden-io/garden/issues/6119).
-
 # Garden
 
 _If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](https://go.garden.io/discord)._

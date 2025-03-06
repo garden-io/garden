@@ -58,8 +58,8 @@ file_folder=$(dirname $file_path) # extract folder from full path
 # Rename file based on the version
 # We want to make sure the file name is unique before uploading it to the signing bucket, in order to avoid
 # downloading an old file with the same name.
-if [[ "$version" == "edge-bonsai" ]]; then
-  file_name="garden-edge-bonsai-${CIRCLE_SHA1}.exe"
+if [[ "$version" == "edge-cedar" ]]; then
+  file_name="garden-edge-cedar-${CIRCLE_SHA1}.exe"
   mv $file_path "$file_folder/$file_name"
 else
   file_name="garden-$version.exe"

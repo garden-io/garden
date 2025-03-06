@@ -12,7 +12,7 @@ jobs:
   test:
     uses: ./.github/workflows/reusable-create-homebrew-pr.yml
     with:
-      release-version: edge-bonsai
+      release-version: edge-cedar
       commit-message: |
         This is just a test. DO NOT MERGE
 
@@ -25,7 +25,7 @@ jobs:
     uses: ./.github/workflows/reusable-create-homebrew-pr.yml
     with:
       release-condition: false
-      release-version: edge-bonsai
+      release-version: edge-cedar
       commit-message: |
         Do not merge. This PR should not exist.
 
