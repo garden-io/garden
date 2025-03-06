@@ -5,3 +5,5 @@ environments:
   - name: local
 providers:
   - name: local-kubernetes
+variables:
+  greeting: "world"

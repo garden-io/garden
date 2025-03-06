@@ -10,10 +10,8 @@ import { expect } from "chai"
 
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import type { PluginContext } from "../../../../../../src/plugin-context.js"
-import {
-  getManifests,
-  KubernetesDeployActionSpecFileSources,
-} from "../../../../../../src/plugins/kubernetes/kubernetes-type/common.js"
+import type { KubernetesDeployActionSpecFileSources } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common.js"
+import { getManifests, readManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common.js"
 import type { TestGarden } from "../../../../../helpers.js"
 import { expectError, getDataDir, getExampleDir, makeTestGarden } from "../../../../../helpers.js"
 import type { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config.js"
@@ -825,6 +823,138 @@ describe("getManifests", () => {
       } finally {
         action["_config"]["spec"] = originalSpec
       }
+    })
+  })
+})
+
+describe("readManifests", () => {
+  let garden: TestGarden
+  let ctx: PluginContext
+  let graph: ConfigGraph
+
+  before(async () => {
+    garden = await getKubernetesTestGarden()
+    const provider = (await garden.resolveProvider({
+      log: garden.log,
+      name: "local-kubernetes",
+    })) as KubernetesProvider
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+  })
+
+  beforeEach(async () => {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+  })
+
+  context("with mixed manifest sources", () => {
+    it("should read manifests from both spec.manifestFiles and spec.manifestTemplates", async () => {
+      const actionName = "with-manifest-templates-and-manifest-files"
+      const deployAction = graph.getDeploy(actionName)
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action: deployAction,
+        log: garden.log,
+        graph,
+      })
+
+      const declaredManifests = await readManifests(ctx, resolvedAction, garden.log)
+      expect(declaredManifests).to.exist
+
+      const manifests = declaredManifests.map((dm) => dm.manifest)
+      expect(manifests).to.exist
+
+      manifests.sort((left, right) => left.metadata.name.localeCompare(right.metadata.name))
+      expect(manifests).to.eql([
+        {
+          apiVersion: "v1",
+          data: {
+            hello: "world", // <-- resolve template strings for manifests defined in spec.manifestTemplates
+          },
+          kind: "ConfigMap",
+          metadata: {
+            name: "test-configmap-1",
+          },
+        },
+        {
+          apiVersion: "v1",
+          data: {
+            hello: "${var.greeting}", // <-- do NOT resolve template strings for manifests defined in spec.manifestFiles
+          },
+          kind: "ConfigMap",
+          metadata: {
+            name: "test-configmap-2",
+          },
+        },
+      ])
+    })
+
+    it("should read manifests from both spec.files and spec.manifestFiles", async () => {
+      const actionName = "with-legacy-files-and-manifest-files"
+      const deployAction = graph.getDeploy(actionName)
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action: deployAction,
+        log: garden.log,
+        graph,
+      })
+
+      const declaredManifests = await readManifests(ctx, resolvedAction, garden.log)
+      expect(declaredManifests).to.exist
+
+      const manifests = declaredManifests.map((dm) => dm.manifest)
+      expect(manifests).to.exist
+
+      manifests.sort((left, right) => left.metadata.name.localeCompare(right.metadata.name))
+      expect(manifests).to.eql([
+        {
+          apiVersion: "v1",
+          data: {
+            hello: "world", // <-- resolve template strings for manifests defined in deprecated spec.files
+          },
+          kind: "ConfigMap",
+          metadata: {
+            name: "test-configmap-1",
+          },
+        },
+        {
+          apiVersion: "v1",
+          data: {
+            hello: "${var.greeting}", // <-- do NOT resolve template strings for manifests defined in spec.manifestFiles
+          },
+          kind: "ConfigMap",
+          metadata: {
+            name: "test-configmap-2",
+          },
+        },
+      ])
+    })
+
+    it("spec.manifestTemplates should take precedence over deprecated spec.files if both are defined", async () => {
+      const actionName = "with-manifest-templates-and-legacy-files"
+      const deployAction = graph.getDeploy(actionName)
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action: deployAction,
+        log: garden.log,
+        graph,
+      })
+
+      const declaredManifests = await readManifests(ctx, resolvedAction, garden.log)
+      expect(declaredManifests).to.exist
+
+      const manifests = declaredManifests.map((dm) => dm.manifest)
+      expect(manifests).to.exist
+
+      manifests.sort((left, right) => left.metadata.name.localeCompare(right.metadata.name))
+      // no other ConfigMap expected here because it's defined in the deprecated `spec.files` that co-exists with `spec.manifestTemplates`
+      expect(manifests).to.eql([
+        {
+          apiVersion: "v1",
+          data: {
+            hello: "world", // <-- resolve template strings for manifests defined in spec.manifestTemplates
+          },
+          kind: "ConfigMap",
+          metadata: {
+            name: "test-configmap-1",
+          },
+        },
+      ])
     })
   })
 })
