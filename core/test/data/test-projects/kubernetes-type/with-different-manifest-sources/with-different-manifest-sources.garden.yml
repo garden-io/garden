@@ -20,3 +20,18 @@ name: with-manifest-templates-and-legacy-files
 spec:
   manifestTemplates: ["configmap-1.yaml"]
   files: ["configmap-2.yaml"]
+
+---
+kind: Deploy
+type: kubernetes
+name: legacy-files-with-missing-variables
+spec:
+  files: ["configmap-missing.yaml"]
+
+
+---
+kind: Deploy
+type: kubernetes
+name: manifest-templates-with-missing-variables
+spec:
+  manifestTemplates: ["configmap-missing.yaml"]

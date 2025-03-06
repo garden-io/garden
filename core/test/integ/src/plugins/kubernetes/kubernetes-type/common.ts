@@ -965,5 +965,51 @@ describe("readManifests", () => {
         },
       ])
     })
+
+    context("with missing references to missing variables in manifest files", () => {
+      it("should read manifests from deprecated spec.files and retain original template expression if a referenced variable is not defined (backed by legacyAllowPartial=true)", async () => {
+        const actionName = "legacy-files-with-missing-variables"
+        const deployAction = graph.getDeploy(actionName)
+        const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+          action: deployAction,
+          log: garden.log,
+          graph,
+        })
+
+        const declaredManifests = await readManifests(ctx, resolvedAction, garden.log)
+        expect(declaredManifests).to.exist
+
+        const manifests = declaredManifests.map((dm) => dm.manifest)
+        expect(manifests).to.exist
+
+        manifests.sort((left, right) => left.metadata.name.localeCompare(right.metadata.name))
+        expect(manifests).to.eql([
+          {
+            apiVersion: "v1",
+            data: {
+              hello: "${var.missing}", // <-- do NOT resolve template strings for manifests defined in spec.manifestFiles
+            },
+            kind: "ConfigMap",
+            metadata: {
+              name: "test-configmap-missing",
+            },
+          },
+        ])
+      })
+
+      it("should read manifests from spec.manifestTemplates and retain original template expression if a referenced variable is not defined", async () => {
+        const actionName = "manifest-templates-with-missing-variables"
+        const deployAction = graph.getDeploy(actionName)
+        const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+          action: deployAction,
+          log: garden.log,
+          graph,
+        })
+
+        await expectError(() => readManifests(ctx, resolvedAction, garden.log), {
+          contains: "Could not find key missing under var. Available keys: greeting.",
+        })
+      })
+    })
   })
 })
