@@ -372,7 +372,7 @@ async function readKustomizeManifests(
       args: ["build", kustomizePath, ...extraArgs],
     })
     const manifests = await parseKubernetesManifests({
-      str: kustomizeOutput,
+      rawSourceContent: kustomizeOutput,
       sourceDescription: `kustomize output of ${action.longDescription()}`,
       sourceFilePath: undefined,
     })
@@ -490,7 +490,7 @@ export async function readManifestsFromPaths({
         const transformed = transformFn ? transformFn(str, absPath) : str
 
         const manifests = await parseKubernetesManifests({
-          str: transformed,
+          rawSourceContent: transformed,
           sourceDescription: `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`,
           sourceFilePath: absPath,
         })
@@ -572,17 +572,22 @@ async function readFileManifests(
  * @throws ConfigurationError on parser errors
  */
 async function parseKubernetesManifests({
-  str,
+  rawSourceContent,
   sourceDescription,
   sourceFilePath,
 }: {
-  str: string
+  rawSourceContent: string
   sourceDescription: string
   sourceFilePath: string | undefined
 }): Promise<KubernetesResource[]> {
   // parse yaml with version 1.1 by default, as Kubernetes still uses this version.
   // See also https://github.com/kubernetes/kubernetes/issues/34146
-  const docs = await loadAndValidateYaml({ content: str, sourceDescription, filename: sourceFilePath, version: "1.1" })
+  const docs = await loadAndValidateYaml({
+    content: rawSourceContent,
+    sourceDescription,
+    filename: sourceFilePath,
+    version: "1.1",
+  })
 
   // TODO: We should use schema validation to make sure that apiVersion, kind and metadata are always defined as required by the type.
   const manifests = docs.map((d) => d.toJS()) as KubernetesResource[]
