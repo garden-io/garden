@@ -86,19 +86,22 @@ You can also start the dev dev console by running `garden dev` and then use the 
 
 The command `garden sync stop` will only be available inside the dev console (`garden dev`) in the next major version of Garden, 0.14. Do not use it as a standalone Garden command. Instead, we recommend running `garden deploy --sync`, or alternatively starting syncs inside the dev console (`garden dev`) using `sync stop`.
 
-See also [the deprecation notice for the `garden sync start` command](#syncStartCommand)
+<!-- markdown-link-check-disable-next-line -->
+See also [the deprecation notice for the `garden sync start` command](#syncStartCommand).
 
 <h3 id="syncRestartCommand"><code>garden sync restart</code></h3>
 
 The command `garden sync restart` will only be available inside the dev console (`garden dev`) in the next major version of Garden, 0.14. Do not use it as a standalone Garden command.
 
-See also [the deprecation notice for the `garden sync start` command](#syncStartCommand)
+<!-- markdown-link-check-disable-next-line -->
+See also [the deprecation notice for the `garden sync start` command](#syncStartCommand).
 
 <h3 id="syncStatusCommand"><code>garden sync status</code></h3>
 
 The command `garden sync status` will only be available inside the dev console (`garden dev`) in the next major version of Garden, 0.14. Do not use it as a standalone Garden command.
 
-See also [the deprecation notice for the `garden sync start` command](#syncStartCommand)
+<!-- markdown-link-check-disable-next-line -->
+See also [the deprecation notice for the `garden sync start` command](#syncStartCommand).
 
 ## Garden Plugins
 

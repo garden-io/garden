@@ -102,14 +102,20 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: deline`The command ${style("garden sync stop")} will only be available inside the dev console (${style("garden dev")}) in the next major version of Garden, 0.14.
         Do not use it as a standalone Garden command.
         Instead, we recommend running ${style("garden deploy --sync")}, or alternatively starting syncs inside the dev console (${style("garden dev")}) using ${style("sync stop")}.`,
-      docs: `See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand)`,
+      docs: dedent`
+        <!-- markdown-link-check-disable-next-line -->
+        See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand).
+      `,
     },
     syncRestartCommand: {
       contextDesc: "Garden commands",
       featureDesc: `${style("garden sync restart")}`,
       hint: deline`The command ${style("garden sync restart")} will only be available inside the dev console (${style("garden dev")}) in the next major version of Garden, 0.14.
         Do not use it as a standalone Garden command.`,
-      docs: `See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand)`,
+      docs: dedent`
+        <!-- markdown-link-check-disable-next-line -->
+        See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand).
+      `,
     },
     syncStatusCommand: {
       contextDesc: "Garden commands",
@@ -117,7 +123,10 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       hint: deline`The command ${style("garden sync status")} will only be available inside the dev console (${style("garden dev")}) in the next major version of Garden, 0.14.
         Do not use it as a standalone Garden command.
       `,
-      docs: `See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand)`,
+      docs: dedent`
+        <!-- markdown-link-check-disable-next-line -->
+        See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand).
+      `,
     },
     hadolintPlugin: {
       contextDesc: "Garden Plugins",
