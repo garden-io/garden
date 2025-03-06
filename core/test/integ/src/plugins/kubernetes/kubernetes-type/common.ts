@@ -299,6 +299,20 @@ describe("getManifests", () => {
   })
 
   context("kubernetes manifest files resolution", () => {
+    before(async () => {
+      garden = await getKubernetesTestGarden()
+      const provider = (await garden.resolveProvider({
+        log: garden.log,
+        name: "local-kubernetes",
+      })) as KubernetesProvider
+      ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+      api = await KubeApi.factory(garden.log, ctx, provider)
+    })
+
+    beforeEach(async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    })
+
     type TestCaseConfig = { actionName: string; manifestSourceFieldName: keyof KubernetesDeployActionSpecFileSources }
     const testCaseConfigs: TestCaseConfig[] = [
       {
@@ -318,20 +332,6 @@ describe("getManifests", () => {
     for (const testCaseConfig of testCaseConfigs) {
       const { actionName, manifestSourceFieldName } = testCaseConfig
       context(`with manifests defined in spec.${manifestSourceFieldName}`, () => {
-        before(async () => {
-          garden = await getKubernetesTestGarden()
-          const provider = (await garden.resolveProvider({
-            log: garden.log,
-            name: "local-kubernetes",
-          })) as KubernetesProvider
-          ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-          api = await KubeApi.factory(garden.log, ctx, provider)
-        })
-
-        beforeEach(async () => {
-          graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        })
-
         it("should support regular files paths", async () => {
           const executedAction = await garden.executeAction<KubernetesDeployAction>({
             action: graph.getDeploy(actionName),
