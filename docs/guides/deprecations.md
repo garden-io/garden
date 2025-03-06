@@ -286,3 +286,15 @@ When using `apiVersion: garden.io/v2`, the question mark operator has been remov
 The new default value is `true`
 
 This means that deploy actions will wait for jobs to complete by default when applying Job manifests. For more information about jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
+
+<h3 id="buildAtSource"><code>buildAtSource</code> of <code>exec Build</code></h3>
+
+The new default value is `true`.
+
+This means that deploy actions will wait for jobs to complete by default when applying Job manifests. For more information about jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
+
+## Module configuration
+
+<h3 id="moduleLocalField">The <code>local</code> config field.</h3>
+
+Use action-level `buildAtSource` field instead.
