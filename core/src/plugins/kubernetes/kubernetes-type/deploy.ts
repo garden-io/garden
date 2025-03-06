@@ -116,13 +116,13 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
           config.include = []
         }
 
-        const { manifestFiles, manifestTemplates } = getSpecFiles({
+        const { files, manifestFiles, manifestTemplates } = getSpecFiles({
           actionRef: config,
           log,
           fileSources: getFileSources({ ctx, config }),
         })
 
-        config.include = uniq([...config.include, ...manifestTemplates, ...manifestFiles])
+        config.include = uniq([...config.include, ...files, ...manifestTemplates, ...manifestFiles])
       }
 
       return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }

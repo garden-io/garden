@@ -12,7 +12,7 @@ import { flatten, isEmpty, keyBy, set } from "lodash-es"
 import type { KubernetesModule } from "./module-config.js"
 import type { KubernetesResource } from "../types.js"
 import { KubeApi } from "../api.js"
-import { dedent, deline, gardenAnnotationKey, naturalList, stableStringify } from "../../../util/string.js"
+import { dedent, gardenAnnotationKey, naturalList, stableStringify } from "../../../util/string.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { PluginContext } from "../../../plugin-context.js"
 import { ConfigurationError, GardenError, PluginError } from "../../../exceptions.js"
@@ -30,12 +30,9 @@ import isGlob from "is-glob"
 import pFilter from "p-filter"
 import { kubectl } from "../kubectl.js"
 import { loadAndValidateYaml } from "../../../config/base.js"
-import { styles } from "../../../logger/styles.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 import { getProjectApiVersion } from "../../../project-api-version.js"
 import type { ActionReference } from "../../../config/common.js"
-import { actionReferenceToString } from "../../../actions/base.js"
-import { emitNonRepeatableWarning } from "../../../warnings.js"
 
 const { pathExists, readFile } = fsExtra
 
@@ -404,32 +401,18 @@ export type KubernetesDeployActionSpecFileSources = Pick<
 >
 
 export function getSpecFiles({
-  actionRef,
   log,
   fileSources: { files, manifestFiles, manifestTemplates },
 }: {
   actionRef: ActionReference
   log: Log
   fileSources: KubernetesDeployActionSpecFileSources
-}): { manifestFiles: string[]; manifestTemplates: string[] } {
+}): { files: string[]; manifestFiles: string[]; manifestTemplates: string[] } {
   if (files.length > 0) {
     reportDeprecatedFeatureUsage({ apiVersion: getProjectApiVersion(), log, deprecation: "kubernetesActionSpecFiles" })
-
-    if (manifestTemplates.length > 0) {
-      emitNonRepeatableWarning(
-        log,
-        deline`
-        Action ${styles.highlight(actionReferenceToString(actionRef))} declares both ${styles.highlight("files")} and ${styles.highlight("manifestTemplates")} fields in its ${styles.highlight("spec")}.
-        The value from ${styles.highlight("manifestTemplates")} will be used,
-        and the value from ${styles.highlight("files")} will have no effect.
-        `
-      )
-    }
   }
 
-  const effectiveManifestTemplates = manifestTemplates.length > 0 ? manifestTemplates : files
-
-  return { manifestTemplates: effectiveManifestTemplates, manifestFiles }
+  return { files, manifestTemplates, manifestFiles }
 }
 
 export async function validateFilePaths({
@@ -525,24 +508,23 @@ export async function readManifestsFromPaths({
   )
 }
 
-const resolveTemplateStrings = (ctx: PluginContext) => (rawManifestContent: string, filePath: string) => {
-  // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
-  //   First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
-  //   template expressions will be interpreted by the YAML parser later.
-  //   Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
-  //   if they reference variables that do not exist.
-  const resolved = ctx.legacyResolveTemplateString(rawManifestContent, {
-    legacyAllowPartial: true,
-  })
+const resolveTemplateStrings =
+  (ctx: PluginContext, legacyAllowPartial?: boolean) => (rawManifestContent: string, filePath: string) => {
+    // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
+    //   First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
+    //   template expressions will be interpreted by the YAML parser later.
+    //   Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
+    //   if they reference variables that do not exist.
+    const resolved = ctx.legacyResolveTemplateString(rawManifestContent, { legacyAllowPartial })
 
-  if (typeof resolved !== "string") {
-    throw new ConfigurationError({
-      message: `Expected manifest template expression in file at path ${filePath} to resolve to string; Actually got ${typeof resolved}`,
-    })
+    if (typeof resolved !== "string") {
+      throw new ConfigurationError({
+        message: `Expected manifest template expression in file at path ${filePath} to resolve to string; Actually got ${typeof resolved}`,
+      })
+    }
+
+    return resolved
   }
-
-  return resolved
-}
 
 async function readFileManifests(
   ctx: PluginContext,
@@ -550,8 +532,19 @@ async function readFileManifests(
   log: Log,
   manifestDirPath: string
 ): Promise<DeclaredManifest[]> {
-  const { manifestFiles, manifestTemplates } = getSpecFiles({ actionRef: action, log, fileSources: action.getSpec() })
+  const { files, manifestFiles, manifestTemplates } = getSpecFiles({
+    actionRef: action,
+    log,
+    fileSources: action.getSpec(),
+  })
 
+  const manifestsFromDeprecatedFiles = await readManifestsFromPaths({
+    action,
+    manifestDirPath,
+    manifestPaths: files,
+    transformFn: resolveTemplateStrings(ctx, true),
+    log,
+  })
   const manifestsFromFiles = await readManifestsFromPaths({
     action,
     manifestDirPath,
@@ -566,7 +559,7 @@ async function readFileManifests(
     log,
   })
 
-  return [...manifestsFromFiles, ...manifestsFromTemplates]
+  return [...manifestsFromDeprecatedFiles, ...manifestsFromFiles, ...manifestsFromTemplates]
 }
 
 /**
