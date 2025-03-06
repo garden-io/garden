@@ -572,7 +572,7 @@ POSIX-style paths to YAML files to load manifests from. Each file may contain mu
 
 Garden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.
 
-Then it will find the resource matching the Pod spec for the Run ([See also `spec.resource`](#spec.resource)).
+Then it will find the resource matching the Pod spec for the Run ([See also `spec.resource`](#specresource)).
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
@@ -596,7 +596,7 @@ POSIX-style paths to YAML files to load manifests from. Each file may contain mu
 
 Garden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.
 
-Then it will find the resource matching the Pod spec for the Run ([See also `spec.resource`](#spec.resource)).
+Then it will find the resource matching the Pod spec for the Run ([See also `spec.resource`](#specresource)).
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |

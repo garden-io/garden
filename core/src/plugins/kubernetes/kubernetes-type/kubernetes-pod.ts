@@ -63,7 +63,7 @@ const kubernetesPodManifestTemplatesSchema = (kind: string) =>
 
     Garden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.
 
-    Then it will find the resource matching the Pod spec for the ${kind} ([See also \`spec.resource\`](#spec.resource)).
+    Then it will find the resource matching the Pod spec for the ${kind} ([See also \`spec.resource\`](#specresource)).
     `
   )
 
