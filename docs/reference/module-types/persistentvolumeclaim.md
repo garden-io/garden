@@ -60,7 +60,7 @@ build:
 # Garden will therefore not stage the build for local modules. This means that include/exclude filters
 # and ignore files are not applied to local modules, except to calculate the module/action versions.
 #
-# If you use use `build.dependencies[].copy` for one or more build dependencies of this module, the copied files
+# If you use `build.dependencies[].copy` for one or more build dependencies of this module, the copied files
 # will be copied to the module source directory (instead of the build directory, as is the default case when
 # `local = false`).
 #
@@ -367,7 +367,7 @@ instead of in the Garden build directory (under .garden/build/<module-name>).
 Garden will therefore not stage the build for local modules. This means that include/exclude filters
 and ignore files are not applied to local modules, except to calculate the module/action versions.
 
-If you use use `build.dependencies[].copy` for one or more build dependencies of this module, the copied files
+If you use `build.dependencies[].copy` for one or more build dependencies of this module, the copied files
 will be copied to the module source directory (instead of the build directory, as is the default case when
 `local = false`).
 
