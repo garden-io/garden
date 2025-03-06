@@ -47,7 +47,7 @@ Using `apiVersion: garden.io/v0`, or not specifying `apiVersion` at all in the p
 To indicate that your configuration has been written for Garden 0.13 (Bonsai), use `apiVersion: garden.io/v1` instead.
 
 Full Example:
-```
+```yaml
 # project.garden.yml
 apiVersion: garden.io/v1 # <-- This indicates that the configuration has been written for Garden 0.13 (Bonsai).
 kind: Project
@@ -80,7 +80,7 @@ The command `garden sync start` will only be available inside the dev console (`
 
 Please run `garden deploy --sync` instead, to start the dev console.
 
-You can also start the dev dev console by running `garden dev` and then use the `sync start` command inside the dev shell. The same applies to all other sync commands.
+You can also start the dev console by running `garden dev` and then use the `sync start` command inside the dev shell. The same applies to all other sync commands.
 
 <h3 id="syncStopCommand"><code>garden sync stop</code></h3>
 
@@ -113,7 +113,7 @@ Do not use the `hadolint` plugin explicitly, as it will be removed in the next v
 
 If you want to keep using hadolint, you can use an `exec` action instead:
 
-```
+```yaml
 kind: test
 type: exec
 name: dockerfile-hadolint
@@ -136,7 +136,7 @@ Do not use the `conftest` plugin explicitly, as it will be removed in the next v
 
 If you want to keep using conftest, you can use an `exec` action instead:
 
-```
+```yaml
 kind: test
 type: exec
 name: conftest
@@ -229,7 +229,7 @@ The `configmap` deploy action type will be removed in the next major version of 
 
 Example:
 
-```
+```yaml
 # garden.yml
 kind: Deploy
 type: kubernetes
@@ -268,7 +268,8 @@ There were some issues with the syntax for optional template values in the templ
 
 For example, what do you expect the following template to evaluate to:
 
-```
+```yaml
+# ...
 variables:
  baseUrl: https://example.com/
  fullUrl: ${var.baseUrl}?param=xyz # <-- users expect this to evaluate to https://example.com/?param=xyz

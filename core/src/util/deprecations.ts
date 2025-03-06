@@ -57,7 +57,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         To indicate that your configuration has been written for Garden 0.13 (Bonsai), use \`apiVersion: garden.io/v1\` instead.
 
         Full Example:
-        \`\`\`
+        \`\`\`yaml
         # project.garden.yml
         apiVersion: garden.io/v1 # <-- This indicates that the configuration has been written for Garden 0.13 (Bonsai).
         kind: Project
@@ -94,7 +94,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Do not use it as a standalone Garden command.`,
       docs: dedent`Please run ${style("garden deploy --sync")} instead, to start the dev console.
 
-      You can also start the dev dev console by running ${style("garden dev")} and then use the ${style("sync start")} command inside the dev shell. The same applies to all other sync commands.`,
+      You can also start the dev console by running ${style("garden dev")} and then use the ${style("sync start")} command inside the dev shell. The same applies to all other sync commands.`,
     },
     syncStopCommand: {
       contextDesc: "Garden commands",
@@ -137,7 +137,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         If you want to keep using hadolint, you can use an ${style("exec")} action instead:
 
-        \`\`\`
+        \`\`\`yaml
         kind: test
         type: exec
         name: dockerfile-hadolint
@@ -162,7 +162,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         If you want to keep using conftest, you can use an ${style("exec")} action instead:
 
-        \`\`\`
+        \`\`\`yaml
         kind: test
         type: exec
         name: conftest
@@ -255,7 +255,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       docs: dedent`
         Example:
 
-        \`\`\`
+        \`\`\`yaml
         # garden.yml
         kind: Deploy
         type: kubernetes
@@ -296,7 +296,8 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         For example, what do you expect the following template to evaluate to:
 
-        \`\`\`
+        \`\`\`yaml
+        # ...
         variables:
           baseUrl: https://example.com/
           fullUrl: \${var.baseUrl}?param=xyz # <-- users expect this to evaluate to https://example.com/?param=xyz
