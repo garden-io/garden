@@ -1,27 +1,1495 @@
+# CircleCI 2.1 configuration file
 version: 2.1
 
-setup: true
-
 orbs:
-  path-filtering: circleci/path-filtering@0.0.2
+  win: circleci/windows@5.0.0
+  rok8s-scripts: fairwinds/rok8s-scripts@14.1.0
+  macos: circleci/macos@2.5.2
+  aws-cli: circleci/aws-cli@5.1.2
 
-# We are using a setup workflow here to filter based on the path of changed resources
-# and then continue the workflow with continue-config.yml based on the filters.
-# So far we only exclude dockerhub tests from running on PRs unless files in ./support changed.
+parameters:
+  run-test-dockerhub:
+    type: boolean
+    default: false
+
+# Shared config to use between jobs
+# These can be used to inject shared variables
+# see https://blog.daemonl.com/2016/02/yaml.html
+.references:
+  shared-env-config: &shared-env-config
+    GARDEN_DISABLE_VERSION_CHECK: "true"
+    GARDEN_DISABLE_ANALYTICS: "true"
+    GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
+
+  ubuntu-vm-runner: &ubuntu-vm-runner
+    image: "ubuntu-2404:2024.08.1"
+    docker_layer_caching: true
+
+  remote-docker: &remote-docker
+    setup_remote_docker:
+      version: default # pull the latest stable Remote Docker version
+      docker_layer_caching: true
+
+  runner-image: &runner-image
+    image: gardendev/circleci-runner:22.9.0-0@sha256:758f4be031cb663fdaa62919972bd34be72781cebb11c37ecff2f13741f87d7f
+
+  # Configuration for our node jobs
+  docker-runner: &docker-runner
+    docker:
+      - <<: *runner-image
+        environment:
+          <<: *shared-env-config
+    resource_class: medium
+
+  # Configuration for release jobs
+  release-config: &release-config
+    docker:
+      - <<: *runner-image
+
+  # Attaches the current saved workspace
+  attach-workspace: &attach-workspace
+    attach_workspace:
+      at: ./
+
+  only-prs: &only-prs
+    filters:
+      branches:
+        ignore: /^main|0\.13$/
+      tags:
+        ignore: /.*/
+
+  ignore-main: &ignore-main
+    filters:
+      branches:
+        ignore: /^main|0\.13$/
+
+  # Only run jobs on 0.13 branch
+  only-bonsai: &only-bonsai
+    filters:
+      branches:
+        only:
+          - "0.13"
+      tags:
+        ignore: /.*/
+
+  # Only run on versioned bonsai tags
+  only-bonsai-tags: &only-bonsai-tags
+    filters:
+      branches:
+        ignore: /.*/
+      tags:
+        only: /0\.13\.\d+(-[a-zA-Z0-9]+)?/
+
+  # Only run for PRs from core team
+  only-internal-prs: &only-internal-prs
+    filters:
+      branches:
+        # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
+        ignore: /pull\/[0-9]+/
+
+# Reuseable commands to execute in jobs
+# see https://circleci.com/docs/2.0/configuration-reference/#commands-requires-version21
+# and example https://github.com/mapbox/mapbox-gl-native/blob/master/circle.yml
+commands:
+  npm_install:
+    description: |
+      Installs npm packages and loads and saves the caches as appropriate
+    parameters:
+      context:
+        description: Set this to vm if installing in a VM, to avoid conflicting caches with the docker runs
+        type: string
+      node_version:
+        description: The node version to use
+        type: string
+        default: v22.9.0
+    steps:
+      # See also https://github.com/CircleCI-Public/node-orb/issues/158#issuecomment-1461095390
+      - run: rm -rf ~/.npm ~/.fnm
+
+      - restore_cache:
+          keys:
+            # Prefer using the NPM cache for the package-lock hash, but fall back to any other cache too
+            - npm-v7-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            # If you uncomment the next line, we also restore caches if package-lock.json changed in case there is no exact match.
+            # We decided not to do that for now for enhanced safety: Every time we update the lock file, we build the caches from scratch. Might be a little paranoid, but hardens against possible NPM bugs.
+            #- npm-v7-<<parameters.context>>
+
+      - run:
+          name: Install NodeJS
+          command: |
+            if [[ "$(node --version)" != "<<parameters.node_version>>" ]]; then
+              export PATH="$HOME/.fnm:$PATH"
+              echo 'export PATH="$HOME/.fnm:$PATH"' >> $BASH_ENV
+
+              # Install fnm if it's not already installed
+              if which fnm; then
+                echo "Using cached fnm installation"
+              else
+                curl -fsSL https://raw.githubusercontent.com/Schniz/fnm/9d0dd1b04521ac4a1c25bb91a65323dbb691e40c/.ci/install.sh | bash -s -- --install-dir "$HOME/.fnm" --force-install --skip-shell
+              fi
+
+              eval "`fnm env --fnm-dir "$HOME/.fnm-cache"`"
+              fnm env --fnm-dir "$HOME/.fnm-cache" >> $BASH_ENV
+
+              fnm use "<<parameters.node_version>>" --fnm-dir "$HOME/.fnm-cache" --install-if-missing
+              fnm default "<<parameters.node_version>>" --fnm-dir "$HOME/.fnm-cache"
+            fi
+      - run:
+          name: Test NodeJS version
+          command: |
+            if [[ "$(node --version)" != "<<parameters.node_version>>" ]]; then
+              echo "NodeJS installation failed. Expected version: <<parameters.node_version>>; Actually got: $(node --version)"
+              exit 1
+            fi
+
+      - run: npm ci --prefer-offline --cache ~/.npm --no-audit
+
+      - save_cache:
+          key: npm-v7-<<parameters.context>>-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
+            - ~/.fnm
+            - ~/.fnm-cache
+            - node_modules
+            - cli/node_modules
+            - core/node_modules
+            - e2e/node_modules
+            - plugins/conftest/node_modules
+            - plugins/conftest-container/node_modules
+            - plugins/conftest-kubernetes/node_modules
+            - plugins/jib/node_modules
+            - plugins/maven-container/node_modules
+            - plugins/pulumi/node_modules
+            - plugins/terraform/node_modules
+            - sdk/node_modules
+
+  configure_git:
+    description: Configure git (needed for some tests)
+    steps:
+      - run:
+          name: Configure git
+          # ensure that file transfer protocol is allowed, see https://vielmetti.typepad.com/logbook/2022/10/git-security-fixes-lead-to-fatal-transport-file-not-allowed-error-in-ci-systems-cve-2022-39253.html
+          command: |
+            git config --global user.name "Garden CI"
+            git config --global user.email "admin@garden.io"
+            git config --global protocol.file.allow "always"
+
+  install_kubectl:
+    description: Install kubectl
+    steps:
+      - run:
+          name: Install binary dependencies
+          command: |
+            mkdir -p $HOME/bin
+            cd $HOME/bin
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.17.0/bin/linux/amd64/kubectl
+            chmod +x kubectl
+            echo 'export PATH=$HOME/bin:$PATH' >> $BASH_ENV
+
+  docker_login:
+    description: Login to Docker Hub
+    steps:
+      - run:
+          name: docker login
+          command: |
+            if [ -n "$DOCKER_PASS" ]; then
+              echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            else
+              echo "Skipping, no login available"
+            fi
+
+  install_kind:
+    description: Install Kind
+    parameters:
+      kindNodeImage:
+        description: The kind node image to use
+        type: string
+    steps:
+      - run:
+          name: Install kind
+          command: |
+            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.18.0/kind-linux-amd64
+            chmod +x kind-linux-amd64
+            sudo mv kind-linux-amd64 /usr/local/bin/kind
+      - run:
+          name: Start kind cluster
+          command: |
+            # Create the kind cluster with a custom config to enable the default ingress controller
+            cat \<<EOF | kind create cluster \
+                --image <<parameters.kindNodeImage>> \
+                --wait=600s \
+                --config=-
+
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              kubeadmConfigPatches:
+              - |
+                kind: InitConfiguration
+                nodeRegistration:
+                  kubeletExtraArgs:
+                    node-labels: "ingress-ready=true"
+                    authorization-mode: "AlwaysAllow"
+              extraPortMappings:
+              - containerPort: 80
+                hostPort: 80
+                protocol: TCP
+              - containerPort: 443
+                hostPort: 443
+                protocol: TCP
+            EOF
+
+            kubectl config set-context kind-kind
+
+  configure_remote_cluster:
+    description: Configure the kubectl context via gcloud so that we can access our remote cluster. Used for e2e testing.
+    steps:
+      - run:
+          name: Configure kubectl context via gcloud and authenticate to Google Container Registry
+          command: |
+            export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+            echo "export USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $BASH_ENV
+            export GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud-key.json
+            echo "export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS" >> $BASH_ENV
+            echo $GCLOUD_SERVICE_KEY > $GOOGLE_APPLICATION_CREDENTIALS
+            gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+            gcloud --quiet config set project $GOOGLE_PROJECT_ID
+            gcloud --quiet config set compute/zone $GOOGLE_COMPUTE_ZONE
+            gcloud --quiet container clusters get-credentials $GOOGLE_CLUSTER_ID --zone $GOOGLE_COMPUTE_ZONE
+            gcloud --quiet auth configure-docker
+
+  cleanup_remote_cluster:
+    description: Clean up namespaces in the ci cluster on gcloud (to be used with configure_remote_cluster)
+    parameters:
+      filter:
+        description: What to grep namespaces by to select the current namespace to delete
+        type: string
+    steps:
+      - run:
+          name: Delete current namespace(s)
+          command: kubectl get ns | grep <<parameters.filter>> | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          when: always
+      - run:
+          name: Delete namespaces older than 1 hour
+          # hack: find namespaces that contain '-testing' and their age ends with:
+          # 1) h or d, e.g. 1d5h or 24h
+          # 2) m and has some h, e.g. 3h30m
+          # 3) m and is longer than 100 mins
+          command: kubectl get ns | grep -E -e '(d|h)$' -e '(\d+h\d+m)$' -e '(\d{3}m)$' | grep -- '-testing' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          when: always
+
+  install_rust:
+    description: Installs Rust
+    steps:
+      - run:
+          name: "Install Rust and Cross"
+          command: |
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+            # To be able to run cargo
+            source "$HOME/.cargo/env"
+            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $BASH_ENV
+
+            # Install the latest stable Rust version
+            # We maintain it manually to avoid unexpected breaking changes like we faced in Rust 1.78 for Windows builds.
+            # See https://blog.rust-lang.org/2024/05/02/Rust-1.78.0.html for details.
+            RUST_VERSION="1.83.0"
+            rustup install $RUST_VERSION
+            rustup default $RUST_VERSION
+
+            # Cargo builds the other targets in Docker
+            # Install the latest stable version of Cross
+            # Make sure it's compatible with the Rust version installed above
+            cargo install cross --git https://github.com/cross-rs/cross#v0.2.5
+
+  run_npm_dist:
+    description: Package built code into executables and persist to dist directory
+    parameters:
+      version:
+        description: |
+          The version tag used when building. Use to set the version string in the generated zip file names,
+          e.g. when creating unstable releases. The script defaults to using the version from core/package.json.
+        type: string
+        default: ""
+      targets:
+        description: |
+          The version tag used when building. Use to set the version string in the generated zip file names,
+          e.g. when creating unstable releases. The script defaults to using the version from core/package.json.
+        type: string
+        default: ""
+      cargocommand:
+        description: |
+          Use Cross for cross-platform builds, or Cargo directly. Useful for macos which is not supported by cross.
+        type: string
+        default: "cross"
+      context:
+        description: Set this to the operating system, to avoid conflicting caches with the docker runs
+        type: string
+    steps:
+      - *attach-workspace
+
+      - npm_install:
+          context: <<parameters.context>>
+
+      - restore_cache:
+          keys:
+            - node-cache-v2-<<parameters.context>>-{{ checksum "cli/src/build-pkg.ts" }}
+            # Nuke caches fully on every change; Otherwise weird things can happen if the cache is poisoned.
+            # - node-cache-v2-<<parameters.context>>
+
+      - run:
+          name: Run dist script
+          command: |
+            npm run dist -- --version "<<parameters.version>>" --cargocommand "<<parameters.cargocommand>>" <<parameters.targets>>
+
+      # We cache the node archives because the NodeJS download mirror is unreliable
+      - save_cache:
+          key: node-cache-v2-<<parameters.context>>-{{ checksum "cli/src/build-pkg.ts" }}
+          paths:
+            - garden-sea/tmp/node
+
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - dist/
+      - run:
+          # No need to store the raw files as artifacts, we just want the archives
+          name: Cleanup
+          command: rm -rf dist/*-amd64 && rm -rf dist/*-arm64
+      - store_artifacts:
+          path: dist
+          destination: dist
+
+  update_buildx:
+    description: Update buildx to a version that supports syntax in bakefile
+    steps:
+      - run:
+          name: Update buildx
+          command: |
+            mkdir -p ~/.docker/cli-plugins
+            wget -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.11.1/buildx-v0.11.1.linux-amd64
+            echo "34927047282ef9052f57809fe94783b2dc0ab556fdd60c2c0b7f4e6e5f05a53b  ${HOME}/.docker/cli-plugins/docker-buildx" | sha256sum -c
+            chmod +x ~/.docker/cli-plugins/docker-buildx
+  fail_fast:
+    description: Fail the whole workflow if this job fails in the merge queue
+    steps:
+      - run:
+          name: Fail Fast
+          when: on_fail
+          command: |
+            if [[ "${CIRCLE_BRANCH}" == "gh-readonly-queue"*  ]]; then
+              echo "Canceling workflow as a step resulted in failure"
+              curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${CIRCLE_TOKEN}"
+            else
+              echo "Not canceling workflow as not running in merge queue"
+            fi
+
+#
+# Jobs section
+#
+jobs:
+  build:
+    <<: *docker-runner
+    steps:
+      - checkout
+      - npm_install:
+          context: docker
+      - run:
+          name: build
+          command: |
+            npm run build
+      # Save the built output to be used for the docker image and for the release steps
+      - persist_to_workspace:
+          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
+          # taken to be the root directory of the workspace.
+          root: ./
+          # Must be relative path from root
+          paths:
+            # Save the built output for future
+            - cli/build/
+            - core/build/
+            - static/
+            # TODO: see if we can make this somewhat more specific
+            - sdk/
+            - plugins/
+            - e2e/
+      - fail_fast
+
+  build-dist-macos:
+    macos:
+      xcode: 15.0.0
+    resource_class: macos.m1.medium.gen1
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
+        default: ""
+    steps:
+      - checkout
+      - install_rust
+      # We need rosetta for running the tests for x86_64
+      - macos/install-rosetta
+      - run:
+          name: "Install darwin rustup targets"
+          command: |
+            # We build these on real Apple hardware as we would otherwise violate the Apple Licensing Agreement for Xcode
+            rustup target add x86_64-apple-darwin
+            rustup target add aarch64-apple-darwin
+      - run_npm_dist:
+          version: <<parameters.version>>
+          targets: "macos-amd64 macos-arm64"
+          cargocommand: cargo
+          context: vm-macos
+      - fail_fast
+
+  build-dist-linux-windows:
+    machine:
+      <<: *ubuntu-vm-runner
+    resource_class: large
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
+        default: ""
+    steps:
+      - checkout
+      - install_rust
+      - run_npm_dist:
+          version: <<parameters.version>>
+          targets: "linux-amd64 linux-arm64 alpine-amd64 windows-amd64"
+          cargocommand: cross
+          context: vm-ubuntu
+      - fail_fast
+
+  sign-windows-binary:
+    machine:
+      <<: *ubuntu-vm-runner
+    resource_class: medium
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
+        default: ""
+    steps:
+      - checkout
+      - *attach-workspace
+      - aws-cli/setup:
+          aws_access_key_id: GARDEN_CODE_SIGNING_AWS_ACCESS_KEY_ID # This is the string of the env variable containing the key, not the value itself
+          aws_secret_access_key: GARDEN_CODE_SIGNING_AWS_SECRET_ACCESS_KEY # This is the string of the env variable containing the key, not the value itself
+          configure_profile_region: true
+          region: eu-central-1
+          profile_name: windows-code-signing-ib
+      - run:
+          name: Run script to sign Windows binaries
+          command: |
+            ./scripts/sign-windows-binary.sh --version <<parameters.version>> --file dist/windows-amd64/garden.exe --profile windows-code-signing-ib
+      - run:
+          name: Prepare the windows binary zip and cleanup
+          command: |
+            rm dist/garden-<<parameters.version>>-windows-amd64.zip
+            cd dist
+            zip -r garden-<<parameters.version>>-windows-amd64.zip windows-amd64
+            cd ..
+            sha256sum dist/garden-<<parameters.version>>-windows-amd64.zip | cut -d ' ' -f1 > dist/garden-<<parameters.version>>-windows-amd64.zip.sha256
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - dist/
+      - fail_fast
+
+  lint:
+    <<: *docker-runner
+    resource_class: large
+    steps:
+      - checkout
+      - npm_install:
+          context: docker
+      - *attach-workspace
+      - run:
+          name: lint
+          command: npm run lint
+      - fail_fast
+
+  check-docs:
+    <<: *docker-runner
+    steps:
+      - checkout
+      - npm_install:
+          context: docker
+      - *attach-workspace
+      - run:
+          name: Make sure generated docs are up-to-date
+          command: npm run check-docs
+      - fail_fast
+
+  check-package-licenses:
+    <<: *docker-runner
+    steps:
+      - checkout
+      - npm_install:
+          context: docker
+      - *attach-workspace
+      - run:
+          name: Make sure dependency licenses are okay
+          command: |
+            mkdir tmp
+            npm run check-package-licenses
+      - fail_fast
+
+  test-framework:
+    <<: *docker-runner
+    resource_class: large
+    steps:
+      - checkout
+      - *remote-docker
+      - npm_install:
+          context: docker
+      - *attach-workspace
+      - configure_git
+      - restore_cache:
+          keys:
+            - test-framework-tool-cache-v1
+      - run:
+          name: Unit test framework components
+          command: |
+            npm run test:framework:unit
+          environment:
+            CHOKIDAR_USEPOLLING: "1"
+            NODE_OPTIONS: --max_old_space_size=4096
+      # We add the package.json to ensure that we invalidate the cache from time to time.
+      # This is to ensure that we pick up newly added tools in the test directory.
+      # It would be better to generate a checksum for all the files containing tool specs, but this is a good enough approximation for now.
+      - save_cache:
+          key: test-framework-tool-cache-v1-{{ checksum "package.json" }}
+          paths:
+            - .test-tools-verification-cache
+      - fail_fast
+
+  e2e-project:
+    <<: *docker-runner
+    parameters:
+      project:
+        description: The example project to test
+        type: string
+      environment:
+        description: The project environment to use
+        type: string
+        default: testing
+    steps:
+      - checkout
+      - npm_install:
+          context: docker
+      - configure_remote_cluster
+      - docker_login
+      - *attach-workspace
+      - run:
+          name: Run e2e test
+          command: |
+            cd e2e/projects/<<parameters.project>>
+            git checkout .
+            cd ~/project
+            npm run e2e-project -- --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
+      - cleanup_remote_cluster:
+          filter: <<parameters.project>>-testing-ci-$CIRCLE_BUILD_NUM-e2e
+      - fail_fast
+
+  test-dockerhub:
+    machine:
+      <<: *ubuntu-vm-runner
+    resource_class: xlarge
+    steps:
+      # Only run test-dockerhub if path-filter noticed changes in ./support/*
+      - when:
+          condition: <<pipeline.parameters.run-test-dockerhub>>
+          steps:
+            - update_buildx
+            - checkout
+            # This is to copy the pre-built code from a previous step
+            - *attach-workspace
+            - run:
+                name: Build and test docker images
+                command: |
+                  bash support/docker-bake-test.sh $CIRCLE_BRANCH
+            - fail_fast
+      - unless:
+          condition: <<pipeline.parameters.run-test-dockerhub>>
+          steps:
+            - run: echo "Skipping test-dockerhub because no changes in ./support/*"
+
+  dockerhub-release:
+    machine:
+      <<: *ubuntu-vm-runner
+    resource_class: xlarge
+    steps:
+      - update_buildx
+      - checkout
+      # This is to copy the pre-built code from a previous step
+      - *attach-workspace
+      - docker_login
+      # TODO: use garden publish here
+      - run:
+          name: Release docker images
+          command: |
+            # TODO: read minor version from package.json file, instead of hardcoding.
+            export MAJOR_VERSION=0
+            export MINOR_VERSION=13
+            export CODENAME=bonsai
+
+            if [[ "${CIRCLE_TAG}" = "" ]]; then
+              # If we don't have a tag, this is an edge release
+              export PRERELEASE=edge
+            else
+              # We have a tag.
+
+              # Double check that this is an 0.13 version number, because otherwise
+              # it would be inconsistent with the hardcoded CODENAME export above.
+              if ! [[ ${CIRCLE_TAG} =~ ^0.13 ]]; then
+                echo "This pipeline should only build 0.13 releases"
+                exit 1
+              fi
+
+              # Parse SemVer tag into different parts
+              regex="^([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9A-Za-z-]+))?(\+([0-9A-Za-z-]+))?$"
+
+              # production release, or prerelease
+              if [[ ${CIRCLE_TAG} =~ $regex ]]; then
+                  export MAJOR_VERSION=${BASH_REMATCH[1]}
+                  export MINOR_VERSION=${BASH_REMATCH[2]}
+                  export PATCH_VERSION=${BASH_REMATCH[3]}
+                  export PRERELEASE=${BASH_REMATCH[5]}
+              else
+                  echo "Invalid SemVer tag."
+                  exit 1
+              fi
+            fi
+
+            # Build and publish
+            docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
+      - fail_fast
+
+  test-docker-gcloud:
+    docker:
+      # We do not use a specific digest here on purpose, to use the latest build from the previous job
+      - image: gardendev/garden-gcloud:bonsai-edge-alpine
+        environment:
+          <<: *shared-env-config
+          GARDEN_TASK_CONCURRENCY_LIMIT: "10"
+    steps:
+      # Need to checkout to run example project
+      - checkout
+      - configure_remote_cluster
+      - *attach-workspace
+      - run:
+          name: Deploy demo-project with container
+          # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker /garden/garden build --root examples/demo-project --env remote --logger-type basic
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-docker
+      - fail_fast
+
+  github-release-tag:
+    <<: *release-config
+    steps:
+      # Need to checkout to read version from core/package.json
+      - checkout
+      - *attach-workspace
+      - run:
+          name: Create a release on GitHub. If the release is a pre-release we publish it right away, otherwise we make a draft.
+          command: |
+            VERSION="$(cat package.json | jq -r .version)"
+            PRERELEASE=""
+            DRAFT=-draft
+            # If pre-release, we flag it as pre-release and not as a draft
+            if [[ $VERSION == *"-"* ]]; then DRAFT=""; PRERELEASE=-prerelease; fi
+            ghr \
+              -t ${GITHUB_TOKEN} \
+              -u ${CIRCLE_PROJECT_USERNAME} \
+              -r ${CIRCLE_PROJECT_REPONAME} \
+              -c ${CIRCLE_SHA1} \
+              -n ${VERSION} \
+              -delete \
+              ${PRERELEASE} \
+              ${DRAFT} \
+              ${VERSION} ./dist
+      - fail_fast
+
+  github-edge-prerelease:
+    <<: *release-config
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
+    steps:
+      - checkout
+      - *attach-workspace
+      - run:
+          name: Publish a pre-release on GitHub with the valid edge tag
+          command: |
+            # We assume that the tag already exists. We update the existing tag
+            # using the gh cli, and then we upload the artifacts using ghr.
+            # We do not create a new release here, as this would spam our fellow coder's
+            # GitHub timelines
+            VERSION=<<parameters.version>>
+
+            # Update the prerelease tag to the current sha
+            # Github's release edit only changes metadata
+            # but does not update the underlying tag itself
+            git tag -f ${VERSION} ${CIRCLE_SHA1}
+            git push origin --tags --force
+
+            # Update the release to the now updated tag and target
+            gh release edit ${VERSION} \
+              -R ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} \
+              --prerelease \
+              --target ${CIRCLE_SHA1} \
+              --tag ${VERSION}
+
+            # Replace release artifacts
+            ghr \
+              -t ${GITHUB_TOKEN} \
+              -u ${CIRCLE_PROJECT_USERNAME} \
+              -r ${CIRCLE_PROJECT_REPONAME} \
+              -c ${CIRCLE_SHA1} \
+              -n ${VERSION} \
+              -replace \
+              -prerelease \
+              ${VERSION} ./dist
+      - fail_fast
+
+  test-dist:
+    <<: *docker-runner
+    steps:
+      # Need to checkout to run example project
+      - checkout
+      - configure_remote_cluster
+      - *attach-workspace
+      - run:
+          name: Test that the binary works with the fancy logger enabled
+          command: dist/linux-amd64/garden options
+      - run:
+          name: Test the create commands
+          command: |
+            mkdir -p /tmp/create-test
+            cd /tmp/create-test
+            ~/project/dist/linux-amd64/garden create project --name test-project
+      - run:
+          name: Deploy demo-project with binary
+          # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic --var userId=$CIRCLE_BUILD_NUM-dist
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-dist
+      - fail_fast
+
+  test-plugins:
+    machine:
+      <<: *ubuntu-vm-runner
+    parameters:
+      kindNodeImage:
+        description: The kind node image to use
+        type: string
+    environment:
+      <<: *shared-env-config
+      GARDEN_LOG_LEVEL: debug
+    steps:
+      - checkout
+      - docker_login
+      - install_kubectl
+      - install_kind:
+          kindNodeImage: <<parameters.kindNodeImage>>
+      - configure_git
+      - npm_install:
+          context: vm-ubuntu
+      - *attach-workspace
+      # Restore Maven cache
+      - restore_cache:
+          keys:
+            - m2-v1
+
+      # Restore plugins tool cache
+      - restore_cache:
+          keys:
+            - test-plugins-tool-cache-v1
+
+      # Run tests
+      - run:
+          name: Plugin tests
+          command: npm run test:plugins
+
+      # We add the package.json to ensure that we invalidate the cache from time to time.
+      # This is to ensure that we pick up newly added tools in the test directory.
+      # It would be better to generate a checksum for all the files containing tool specs, but this is a good enough approximation for now.
+      - save_cache:
+          key: test-plugins-tool-cache-v1-{{ checksum "package.json" }}
+          paths:
+            - .test-tools-verification-cache
+
+      # Persist Maven cache
+      - save_cache:
+          key: m2-v1
+          paths:
+            - ~/.m2
+      - fail_fast
+
+  test-kind:
+    machine:
+      <<: *ubuntu-vm-runner
+    parameters:
+      kindNodeImage:
+        description: The kind node image to use
+        type: string
+    environment:
+      <<: *shared-env-config
+      GARDEN_LOG_LEVEL: debug
+    steps:
+      - checkout
+      - install_kubectl
+      - docker_login
+      - install_kind:
+          kindNodeImage: <<parameters.kindNodeImage>>
+      - configure_git
+      - npm_install:
+          context: vm-ubuntu
+      - *attach-workspace
+      - run:
+          name: Integ tests
+          command: |
+            cd core
+            # Notes:
+            # - We skip tests that only work for remote environments
+            # - We currently don't support in-cluster building on kind.
+            npm run integ-kind
+      - run:
+          name: Deploy demo-project
+          command: ./bin/garden deploy --root examples/demo-project --logger-type basic
+      - fail_fast
+
+  test-microk8s:
+    machine:
+      <<: *ubuntu-vm-runner
+    resource_class: large
+    parameters:
+      kubernetesVersion:
+        description: The Kubernetes version to run
+        type: string
+    environment:
+      <<: *shared-env-config
+      K8S_VERSION: <<parameters.kubernetesVersion>>
+      GARDEN_LOG_LEVEL: debug
+    steps:
+      - checkout
+      - run:
+          name: Install system dependencies
+          command: |
+            sudo apt update
+            sudo apt install snapd nfs-common
+      - docker_login
+      - run:
+          name: Install and start microk8s
+          command: |
+            # create microk8s and snap_microk8s as group aliases for the circleci group
+            # https://github.com/canonical/microk8s/issues/3608#issuecomment-1383838198
+            sudo groupadd --non-unique --gid "$(getent group circleci | cut -f3 -d:)" microk8s
+            sudo groupadd --non-unique --gid "$(getent group circleci | cut -f3 -d:)" snap_microk8s
+
+            # install microk8s from snap
+            sudo snap install microk8s --classic --channel=<<parameters.kubernetesVersion>>/stable
+            sudo microk8s.status --wait-ready --timeout=300
+
+            # Workaround for some issue with snap/microk8s
+            sudo microk8s.enable storage || true
+            sudo microk8s.enable registry || true
+            sudo microk8s.enable dns || true
+            sleep 10
+            sudo microk8s.enable storage
+            sudo microk8s.enable registry
+            sudo microk8s.enable dns
+
+            echo "********* microk8s ready! ************"
+
+            # Set up kubeconfig and environment
+            mkdir -p /home/circleci/.kube
+            sudo sh -c 'microk8s.kubectl config view --raw > /home/circleci/.kube/config'
+            sudo chown -R circleci:circleci /home/circleci/.kube
+            echo 'export PATH=/snap/bin:$PATH' >> $BASH_ENV
+            echo "********* env prepped! *********"
+      - configure_git
+      - npm_install:
+          context: vm-ubuntu
+      - *attach-workspace
+      - run:
+          name: Integ tests
+          command: |
+            cd core
+            # Notes:
+            # - We skip tests that only work for remote environments
+            # - We currently don't support in-cluster building on microk8s.
+            GARDEN_SKIP_TESTS="kaniko remote-only" npm run _integ
+      - run:
+          name: Deploy demo-project
+          command: ./bin/garden deploy --root examples/demo-project --logger-type basic
+      - fail_fast
+
+  test-minikube:
+    machine:
+      <<: *ubuntu-vm-runner
+    resource_class: large
+    parameters:
+      minikubeVersion:
+        description: The Minikube version to use
+        type: string
+        default: v1.32.0
+      kubernetesVersion:
+        description: The Kubernetes version to run
+        type: string
+      skipTests:
+        description: Integ test groups to skip
+        type: string
+        # Note: By default, we skip tests that only work for remote environments
+        default: "kaniko remote-only"
+      remoteCluster:
+        description: "Configure remote cluster"
+        type: boolean
+        default: false
+    environment:
+      <<: *shared-env-config
+      K8S_VERSION: <<parameters.kubernetesVersion>>
+      MINIKUBE_VERSION: <<parameters.minikubeVersion>>
+      GARDEN_LOG_LEVEL: debug
+    steps:
+      - checkout
+      - install_kubectl
+      - run:
+          name: Install system dependencies
+          command: |
+            sudo apt-get update
+            # Install conntrack
+            sudo apt install nfs-common conntrack
+            # Install crictl
+            CRICTL_VERSION="v1.29.0" # check latest version in /releases page
+            distr_name="crictl-${CRICTL_VERSION}-linux-amd64.tar.gz"
+            curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/${distr_name} --output ${distr_name}
+            sudo tar -zxvf ${distr_name} -C /usr/local/bin
+            rm -f ${distr_name}
+            # Install Docker CRI
+            CRI_DOCKERD_VERSION="0.3.10"
+            cri_dockerd_dirname="cri-dockerd"
+            cri_dockerd_distr_name="${cri_dockerd_dirname}-${CRI_DOCKERD_VERSION}.amd64.tgz"
+            curl -L https://github.com/Mirantis/cri-dockerd/releases/download/v${CRI_DOCKERD_VERSION}/${cri_dockerd_distr_name} --output ${cri_dockerd_distr_name}
+            sudo tar -zxvf ${cri_dockerd_distr_name}
+            cd ${cri_dockerd_dirname}
+            sudo install -o root -g root -m 0755 cri-dockerd /usr/local/bin/cri-dockerd
+            cd ..
+            sudo rm -f ${cri_dockerd_distr_name}
+            sudo rm -rf ${cri_dockerd_dirname}
+            # Need to download the sources to install `cri-docker.service` file
+            cri_sources_dirname="cri-dockerd-${CRI_DOCKERD_VERSION}"
+            cri_sources_distr_name="${cri_sources_dirname}.tar.gz"
+            curl -L https://github.com/Mirantis/cri-dockerd/archive/refs/tags/v${CRI_DOCKERD_VERSION}.tar.gz --output ${cri_sources_distr_name}
+            sudo tar -zxf ${cri_sources_distr_name}
+            cd ${cri_sources_dirname}
+            sudo install packaging/systemd/* /etc/systemd/system
+            cd ..
+            sudo rm -f ${cri_sources_distr_name}
+            sudo rm -rf ${cri_sources_dirname}
+            sudo sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable --now cri-docker.socket
+            # Install CNI plugin
+            CNI_PLUGIN_VERSION="v1.4.0"
+            CNI_PLUGIN_TAR="cni-plugins-linux-amd64-$CNI_PLUGIN_VERSION.tgz" # change arch if not on amd64
+            CNI_PLUGIN_INSTALL_DIR="/opt/cni/bin"
+            curl -LO "https://github.com/containernetworking/plugins/releases/download/$CNI_PLUGIN_VERSION/$CNI_PLUGIN_TAR"
+            sudo mkdir -p "$CNI_PLUGIN_INSTALL_DIR"
+            sudo tar -xf "$CNI_PLUGIN_TAR" -C "$CNI_PLUGIN_INSTALL_DIR"
+            rm "$CNI_PLUGIN_TAR"
+      - docker_login
+      - configure_git
+      - npm_install:
+          context: vm-ubuntu
+      - *attach-workspace
+      - run:
+          name: Install Minikube Executable
+          command: |
+            curl -Lo minikube https://github.com/kubernetes/minikube/releases/download/${MINIKUBE_VERSION}/minikube-linux-amd64
+            chmod +x minikube
+            sudo mv minikube /usr/local/bin
+      - run:
+          name: Start Minikube Cluster
+          command: |
+            sudo -E minikube start \
+              --extra-config=kubeadm.ignore-preflight-errors=NumCPU \
+              --extra-config=kubeadm.ignore-preflight-errors=RSRC_INSUFFICIENT_CORES \
+              --kubernetes-version=$K8S_VERSION \
+              --driver=none \
+              --container-runtime=docker \
+              --cpus 3 \
+              --memory 4096
+            sudo chown -R circleci:circleci /home/circleci/.kube /home/circleci/.minikube /etc/kubernetes
+            # Work around annoying issue on recent minikubes where namespaces take a long time to generate default service account
+            kubectl create namespace container-default
+            sleep 10
+      - when:
+          condition: <<parameters.remoteCluster>>
+          steps:
+            - configure_remote_cluster
+      - run:
+          name: Integ tests
+          command: |
+            cd core
+            GARDEN_SKIP_TESTS="<<parameters.skipTests>>" npm run _integ
+      - run:
+          name: Deploy demo-project
+          command: ./bin/garden deploy --root examples/demo-project
+      - when:
+          condition: <<parameters.remoteCluster>>
+          steps:
+            # NOTE: currently we do not create a namespace in the remote ci cluster during remote integ tests.
+            # If we start doing that, we need to use the environment variable CIRCLE_BUILD_NUM in the tests.
+            - cleanup_remote_cluster:
+                filter: $CIRCLE_BUILD_NUM-remote
+      - fail_fast
+
+  test-k3s:
+    machine:
+      <<: *ubuntu-vm-runner
+    resource_class: large
+    parameters:
+      k3sVersion:
+        description: The k3s version to use
+        type: string
+        default: v1.31.1+k3s1
+      skipTests:
+        description: Integ test groups to skip
+        type: string
+        default: "kaniko remote-only"
+    environment:
+      <<: *shared-env-config
+      INSTALL_K3S_VERSION: <<parameters.k3sVersion>>
+      KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      GARDEN_LOG_LEVEL: debug
+    steps:
+      - checkout
+      - install_kubectl
+      - docker_login
+      - configure_git
+      - npm_install:
+          context: vm-ubuntu
+      - *attach-workspace
+      - run:
+          name: Install K3s and start cluster
+          command: |
+            curl -sfL https://get.k3s.io | sh -s - --docker --disable=traefik --write-kubeconfig-mode=644
+      - run:
+          name: Integ tests
+          # Note: We skip tests that only work for remote environments
+          command: |
+            cd core
+            GARDEN_SKIP_TESTS="<<parameters.skipTests>>" npm run _integ
+      - run:
+          name: Deploy demo-project
+          command: ./bin/garden deploy --root examples/demo-project
+      - fail_fast
+
+  test-macos-x86-rosetta:
+    macos:
+      xcode: "15.4.0"
+    # We are testing x86 binaries under rosetta because CircleCI stopped supporting x86 macs.
+    resource_class: macos.m1.medium.gen1
+    steps:
+      # We are testing x86 binaries under rosetta because CircleCI stopped supporting x86 macs.
+      - macos/install-rosetta
+      - checkout
+      - *attach-workspace
+      - run:
+          name: brew install
+          command: brew install docker kubectl git
+      # Upgrade git to the latest version.
+      # This step ensures that Garden is always tested to be compatible with the latest git.
+      - run:
+          name: Upgrade git
+          command: brew upgrade git
+      - run:
+          name: Install gcloud SDK
+          command: |
+            cd $HOME
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-498.0.0-darwin-x86_64.tar.gz
+            tar xzf google-cloud-sdk-498.0.0-darwin-x86_64.tar.gz
+            echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+      - docker_login
+      - run:
+          name: Install gke-gcloud-auth-plugin
+          command: |
+            gcloud --quiet components install gke-gcloud-auth-plugin
+            echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >> $BASH_ENV
+      - configure_remote_cluster
+      - run:
+          name: Deploy demo-project
+          command: dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=$CIRCLE_BUILD_NUM-macos
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-macos
+      - fail_fast
+
+  test-macos-arm:
+    macos:
+      xcode: "15.4.0"
+    resource_class: macos.m1.medium.gen1
+    steps:
+      - checkout
+      - *attach-workspace
+      - run:
+          name: brew install
+          command: brew install docker kubectl git
+      # Upgrade git to the latest version.
+      # This step ensures that Garden is always tested to be compatible with the latest git.
+      - run:
+          name: Upgrade git
+          command: brew upgrade git
+      - run:
+          name: Install gcloud SDK
+          command: |
+            cd $HOME
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-498.0.0-darwin-arm.tar.gz
+            tar xzf google-cloud-sdk-498.0.0-darwin-arm.tar.gz
+            echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+      - docker_login
+      - run:
+          name: Install gke-gcloud-auth-plugin
+          command: |
+            gcloud --quiet components install gke-gcloud-auth-plugin
+            echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >> $BASH_ENV
+      - configure_remote_cluster
+      - run:
+          name: Deploy demo-project
+          command: dist/macos-arm64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=$CIRCLE_BUILD_NUM-macos-arm
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-macos-arm
+      - fail_fast
+
+  test-windows:
+    executor:
+      name: win/server-2022
+      size: large
+    steps:
+      - checkout
+      - *attach-workspace
+      - run:
+          # Print PowerShell version for diagnostics
+          name: Print PowerShell versions
+          command: $PSVersionTable
+      - run:
+          # Print Chocolatey version for diagnostics
+          name: Print Chocolatey versions
+          command: choco --version
+      - run:
+          name: Install Deps
+          command: |
+            Import-Module "$Env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+            choco install --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
+            $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
+            gcloud components install gke-gcloud-auth-plugin --quiet
+            $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
+            refreshenv
+      - run:
+          name: Write gcloud credentials to file
+          command: $env:GCLOUD_SERVICE_KEY | Set-Content key.json
+      - run:
+          name: Setup remote K8s
+          command: |
+            gcloud auth activate-service-account --key-file=key.json
+            $env:GOOGLE_APPLICATION_CREDENTIALS = (Get-Location) + '\key.json'
+            gcloud --quiet config set project $env:GOOGLE_PROJECT_ID
+            gcloud --quiet config set compute/zone $env:GOOGLE_COMPUTE_ZONE
+            gcloud --quiet container clusters get-credentials $env:GOOGLE_CLUSTER_ID --zone $env:GOOGLE_COMPUTE_ZONE
+            gcloud --quiet auth configure-docker
+      - run:
+          name: Deploy demo-project
+          command: |
+            .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
+      - run:
+          name: Cleanup demo-project
+          command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+          when: always
+      - run:
+          name: Validate vote-helm project # to validate the sync mode paths on Windows with action-based configs
+          command: |
+            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
+      - run:
+          name: Cleanup vote-helm project
+          command: (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+          when: always
+      - run:
+          name: Validate vote-helm-modules project # to validate the sync mode paths on Windows with module-based configs
+          command: |
+            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm-modules\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
+      - run:
+          name: Cleanup vote-helm-modules project
+          command: (kubectl delete namespace --wait=false vote-helm-modules-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+          when: always
+      - fail_fast
+
 workflows:
-  setup-workflow:
+  version: 2
+
+  commit:
     jobs:
-      - path-filtering/filter:
-          base-revision: main
-          config-path: .circleci/continue-config.yml
-          mapping: |
-            support/.* run-test-dockerhub true
-            .circleci/.* run-test-dockerhub true
-          # By default circleci runs on all branches, but not on all tags.
-          # This filter adds all tags to trigger the workflows defined in continue-config.yml
-          # Adding the branch filter is necessary to first filter for tags.
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
+      ### ALL BRANCHES ###
+
+      - build:
+          # We only want to run tests on branches (e.g. for the merge queue) and pull requests.
+          # On main we do not need to re-run all the tests, as the merge queue guarantees that tests already passed.
+          # For the edge release we declare the `build-edge` job below that only runs on main.
+          <<: *ignore-main
+      - build-dist-macos:
+          requires: [build]
+      - build-dist-linux-windows:
+          requires: [build]
+      - lint:
+          requires: [build]
+      - check-docs:
+          requires: [build]
+      - check-package-licenses:
+          requires: [build]
+      - test-framework:
+          requires: [build]
+      - test-dist:
+          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+          <<: *only-internal-prs
+          requires: [build-dist-macos, build-dist-linux-windows]
+      - test-macos-x86-rosetta:
+          <<: *only-internal-prs
+          requires: [build-dist-macos]
+      - test-macos-arm:
+          <<: *only-internal-prs
+          requires: [build-dist-macos]
+      - test-dockerhub:
+          <<: *only-prs
+          requires: [build-dist-linux-windows]
+      - test-windows:
+          <<: *only-internal-prs
+          requires: [build-dist-linux-windows]
+
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-code-synchronization
+      #     project: code-synchronization
+      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-demo-project
+          project: demo-project
+          environment: remote
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-demo-project-modules
+          project: demo-project-modules
+          environment: remote
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-gke-kaniko
+          project: gke
+          environment: gke-kaniko
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-gke-buildkit
+          project: gke
+          environment: gke-buildkit
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-hadolint
+          project: hadolint
+          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-hadolint-modules
+      #     project: hadolint-modules
+      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-jib-container
+          project: jib-container
+          environment: remote
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-jib-container-modules
+          project: jib-container-modules
+          environment: remote
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-kustomize
+          project: kustomize
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-kustomize-modules
+          project: kustomize-modules
+          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-remote-sources
+      #     project: remote-sources
+      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-remote-sources-modules
+          project: remote-sources-modules
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-run-actions
+          project: run-actions
+          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-tasks-modules
+      #     project: tasks-modules
+      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-templated-k8s-container
+          project: templated-k8s-container
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-templated-k8s-container-modules
+          project: templated-k8s-container-modules
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-vote
+          project: vote
+          environment: remote
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-vote-modules
+          project: vote-modules
+          environment: remote
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-vote-helm
+          project: vote-helm
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-open-telemetry
+          project: open-telemetry
+          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote-helm-modules
+      #     project: vote-helm-modules
+      #     requires: [build]
+
+      ### REMOTE TESTS ###
+      # The remote tests (e.g. kaniko and buildkit) still require a local kubernetes cluster for some reason…
+      - test-minikube:
+          <<: *only-internal-prs
+          name: test-remote
+          requires: [build]
+          kubernetesVersion: "v1.31.0"
+          minikubeVersion: "v1.34.0"
+          skipTests: "local-only"
+          remoteCluster: true
+
+      ### VM TESTS ###
+
+      # Note: The below is a not-quite-random mix of local k8s variants and k8s versions. Doing a full matrix of every
+      # variant and k8s version would be quite expensive, so we try and make sure each of the officially maintained
+      # k8s versions is tested, and that the most recent versions are broadly tested.
+      # The kind tests are the cheapest to run so we use many of those,
+      # but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
+      - test-kind:
+          name: vm-1.29-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.29.8@sha256:d46b7aa29567e93b27f7531d258c372e829d7224b25e3fc6ffdefed12476d3aa
+      - test-microk8s:
+          name: vm-1.30-microk8s
+          requires: [build]
+          kubernetesVersion: "1.30"
+      - test-k3s:
+          name: vm-1.31-k3s
+          requires: [build]
+          k3sVersion: v1.31.1+k3s1
+      - test-minikube:
+          name: vm-1.31-minikube
+          requires: [ build ]
+          kubernetesVersion: "v1.31.0"
+          minikubeVersion: "v1.34.0"
+
+      - test-plugins:
+          <<: *only-internal-prs
+          requires: [build]
+          kindNodeImage: kindest/node:1.29.8@sha256:d46b7aa29567e93b27f7531d258c372e829d7224b25e3fc6ffdefed12476d3aa
+
+      # This is only for edge release (Overrides version to edge-bonsai)
+      - build:
+          <<: *only-bonsai
+          name: build-edge
+
+      - build-dist-macos:
+          <<: *only-bonsai
+          name: build-dist-macos-edge
+          version: edge-bonsai
+          requires: [build-edge]
+
+      - build-dist-linux-windows:
+          <<: *only-bonsai
+          name: build-dist-linux-windows-edge
+          version: edge-bonsai
+          requires: [build-edge]
+
+      - sign-windows-binary:
+          <<: *only-bonsai
+          name: sign-windows-binary-edge
+          context: garden-core-code-signing
+          requires: [build-dist-linux-windows-edge]
+          version: edge-bonsai
+
+      - github-edge-prerelease:
+          <<: *only-bonsai
+          version: edge-bonsai
+          requires: [build-dist-macos-edge, build-dist-linux-windows-edge, sign-windows-binary-edge]
+
+      - dockerhub-release:
+          <<: *only-bonsai
+          context: docker
+          requires: [build-dist-macos-edge, build-dist-linux-windows-edge]
+
+      - test-docker-gcloud:
+          context: docker
+          requires: [dockerhub-release]
+  tags:
+    jobs:
+      - build:
+          <<: *only-bonsai-tags
+
+      - build-dist-macos:
+          <<: *only-bonsai-tags
+          requires: [build]
+
+      - build-dist-linux-windows:
+          <<: *only-bonsai-tags
+          requires: [build]
+
+      - sign-windows-binary:
+          <<: *only-bonsai-tags
+          context: garden-core-code-signing
+          requires: [build-dist-linux-windows]
+          version: ${CIRCLE_TAG}
+
+      - dockerhub-release:
+          <<: *only-bonsai-tags
+          context: docker
+          requires: [build-dist-macos, build-dist-linux-windows]
+
+      - github-release-tag:
+          <<: *only-bonsai-tags
+          requires: [build-dist-macos, build-dist-linux-windows, sign-windows-binary]
