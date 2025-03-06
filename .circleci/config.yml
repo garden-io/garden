@@ -12,7 +12,7 @@ workflows:
   setup-workflow:
     jobs:
       - path-filtering/filter:
-          base-revision: main
+          base-revision: "0.13"
           config-path: .circleci/continue-config.yml
           mapping: |
             support/.* run-test-dockerhub true

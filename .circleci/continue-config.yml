@@ -54,31 +54,31 @@ parameters:
   only-prs: &only-prs
     filters:
       branches:
-        ignore: main
+        ignore: /^main|0\.13$/
       tags:
         ignore: /.*/
 
   ignore-main: &ignore-main
     filters:
       branches:
-        ignore: main
+        ignore: /^main|0\.13$/
 
-  # Only run jobs on main branch
-  only-main: &only-main
+  # Only run jobs on 0.13 branch
+  only-bonsai: &only-bonsai
     filters:
       branches:
         only:
-          - main
+          - "0.13"
       tags:
         ignore: /.*/
 
-  # Only run on versioned tags
-  only-tags: &only-tags
+  # Only run on versioned bonsai tags
+  only-bonsai-tags: &only-bonsai-tags
     filters:
       branches:
         ignore: /.*/
       tags:
-        only: /\d+\.\d+\.\d+(-[a-zA-Z0-9]+)?/
+        only: /0\.13\.\d+(-[a-zA-Z0-9]+)?/
 
   # Only run for PRs from core team
   only-internal-prs: &only-internal-prs
@@ -1431,35 +1431,35 @@ workflows:
 
       # This is only for edge release (Overrides version to edge-bonsai)
       - build:
-          <<: *only-main
+          <<: *only-bonsai
           name: build-edge
 
       - build-dist-macos:
-          <<: *only-main
+          <<: *only-bonsai
           name: build-dist-macos-edge
           version: edge-bonsai
           requires: [build-edge]
 
       - build-dist-linux-windows:
-          <<: *only-main
+          <<: *only-bonsai
           name: build-dist-linux-windows-edge
           version: edge-bonsai
           requires: [build-edge]
 
       - sign-windows-binary:
-          <<: *only-main
+          <<: *only-bonsai
           name: sign-windows-binary-edge
           context: garden-core-code-signing
           requires: [build-dist-linux-windows-edge]
           version: edge-bonsai
 
       - github-edge-prerelease:
-          <<: *only-main
+          <<: *only-bonsai
           version: edge-bonsai
           requires: [build-dist-macos-edge, build-dist-linux-windows-edge, sign-windows-binary-edge]
 
       - dockerhub-release:
-          <<: *only-main
+          <<: *only-bonsai
           context: docker
           requires: [build-dist-macos-edge, build-dist-linux-windows-edge]
 
@@ -1469,27 +1469,27 @@ workflows:
   tags:
     jobs:
       - build:
-          <<: *only-tags
+          <<: *only-bonsai-tags
 
       - build-dist-macos:
-          <<: *only-tags
+          <<: *only-bonsai-tags
           requires: [build]
 
       - build-dist-linux-windows:
-          <<: *only-tags
+          <<: *only-bonsai-tags
           requires: [build]
 
       - sign-windows-binary:
-          <<: *only-tags
+          <<: *only-bonsai-tags
           context: garden-core-code-signing
           requires: [build-dist-linux-windows]
           version: ${CIRCLE_TAG}
 
       - dockerhub-release:
-          <<: *only-tags
+          <<: *only-bonsai-tags
           context: docker
           requires: [build-dist-macos, build-dist-linux-windows]
 
       - github-release-tag:
-          <<: *only-tags
+          <<: *only-bonsai-tags
           requires: [build-dist-macos, build-dist-linux-windows, sign-windows-binary]
