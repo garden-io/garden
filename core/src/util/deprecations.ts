@@ -40,8 +40,67 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     kubernetesActionSpecFiles: {
       contextDesc: "Action configs",
       featureDesc: `The ${style("spec.files")} config field in ${style("kubernetes Deploy")}`,
-      hint: `Use ${style("spec.manifestTemplates")} and ${style("spec.manifestFiles")} instead.`,
-      docs: null,
+      hint: `Use ${style("spec.manifestTemplates")} and/or ${style("spec.manifestFiles")} instead.`,
+      docs: dedent`
+
+        If you want to keep using the Garden template language in your Kubernetes manifest files, use \`spec.manifestTemplates\`. This
+        means that your Kubernetes manifests won't be applicable using \`kubectl\` (without Garden) anymore.
+
+        If you need to keep your Kubernetes manifests files compatible with \`kubectl\`, in other words, you don't want to use the Garden template language in your manifest files, use \`spec.manifestFiles\` instead.
+
+        Example:
+
+        \`\`\`yaml
+        # garden.yml
+        kind: Deploy
+        type: kubernetes
+        name: my-app
+        spec:
+          manifestFiles:
+            - manifests/**/*.yml # <-- Treat these files as pure Kubernetes manifest files
+          manifestTemplates:
+            - manifests/**/*.yml.tpl # <-- Use the Garden template language in files that end with \`.yml.tpl\`.
+        \`\`\`
+
+        The following paragraphs go into more detail as to why this change was necessary.
+
+        Until now there wasn't a choice: Garden would always attempt to resolve template strings like ${style("${fooBar}")} in Kubernetes manifest files.
+
+        This becomes problematic when, for example, the Kubernetes manifest contains a bash script:
+        
+        \`\`\`yaml
+        # manifests/bash-script.yml
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name:  bash-scripts
+        data:
+            important-bash-script.sh: |
+              #!/bin/bash
+              echo "hello \${USERNAME:=world}"
+        \`\`\`
+
+        This manifest file is 100% valid and works when applied using \`kubectl apply < manifests/bash-script.yml\`.
+
+        Using this manifest file like so will not work as expected, but throw a template syntax error:
+
+        \`\`\`yaml
+        # garden.yml
+        kind: Deploy
+        type: kubernetes
+        name: bash-scripts
+        spec:
+          files:
+            - manifests/bash-script.yml # <-- Garden will parse template strings in \`manifests/bash-script.yml\` and fail with a syntax error.
+        \`\`\`
+
+        The only way to work around this problem in the past was to escape the template string by prepending a \`$\` sign in the script; But this work-around also means that the manifest isn't compatible with \`kubectl apply\` anymore:
+
+        \`\`\`bash
+        #!/bin/bash
+        echo "hello $\${USERNAME:=world}" # <-- This is not a working bash script anymore  :(
+        \`\`\`        
+      `,
     },
     dotIgnoreFiles: {
       contextDesc: "Project configuration",
