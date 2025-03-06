@@ -299,120 +299,128 @@ describe("getManifests", () => {
   })
 
   context("kubernetes manifest files resolution", () => {
-    const actionName = "with-build-action"
-    const manifestSourceFieldName: keyof KubernetesDeployActionSpecFileSources = "manifestTemplates"
+    type TestCaseConfig = { actionName: string; manifestSourceFieldName: keyof KubernetesDeployActionSpecFileSources }
+    const testCaseConfigs: TestCaseConfig[] = [
+      {
+        actionName: "with-build-action",
+        manifestSourceFieldName: "manifestTemplates",
+      },
+    ]
 
-    context(`with manifests defined in spec.${manifestSourceFieldName}`, () => {
-      before(async () => {
-        garden = await getKubernetesTestGarden()
-        const provider = (await garden.resolveProvider({
-          log: garden.log,
-          name: "local-kubernetes",
-        })) as KubernetesProvider
-        ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-        api = await KubeApi.factory(garden.log, ctx, provider)
-      })
-
-      beforeEach(async () => {
-        graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      })
-
-      it("should support regular files paths", async () => {
-        const executedAction = await garden.executeAction<KubernetesDeployAction>({
-          action: graph.getDeploy(actionName),
-          log: garden.log,
-          graph,
-        })
-        // Pre-check to ensure that the test project has a correct default glob file pattern.
-        expect(executedAction.getSpec()[manifestSourceFieldName]).to.eql(["*.yaml"])
-
-        const manifests = await getManifests({ ctx, api, action: executedAction, log: garden.log, defaultNamespace })
-        expect(manifests).to.exist
-        const names = manifests.map((m) => ({ kind: m.kind, name: m.metadata?.name }))
-        // Now `getManifests` also returns a ConfigMap with internal metadata
-        expect(names).to.eql([
-          { kind: "Deployment", name: "busybox-deployment" },
-          {
-            kind: "ConfigMap",
-            name: `garden-meta-deploy-${actionName}`,
-          },
-        ])
-      })
-
-      it("should support both regular paths and glob patterns with deduplication", async () => {
-        const action = graph.getDeploy(actionName) as KubernetesDeployAction
-        // Append a valid filename that results to the default glob pattern '*.yaml'.
-        action["_config"]["spec"][manifestSourceFieldName].push("deployment.yaml")
-        const executedAction = await garden.resolveAction<KubernetesDeployAction>({
-          action,
-          log: garden.log,
-          graph,
-        })
-        // Pre-check to ensure that the list of files in the test project config is correct.
-        expect(executedAction.getSpec()[manifestSourceFieldName]).to.eql(["*.yaml", "deployment.yaml"])
-
-        const manifests = await getManifests({ ctx, api, action: executedAction, log: garden.log, defaultNamespace })
-        expect(manifests).to.exist
-        const names = manifests.map((m) => ({ kind: m.kind, name: m.metadata?.name }))
-        // Now `getManifests` also returns a ConfigMap with internal metadata
-        expect(names).to.eql([
-          { kind: "Deployment", name: "busybox-deployment" },
-          {
-            kind: "ConfigMap",
-            name: `garden-meta-deploy-${actionName}`,
-          },
-        ])
-      })
-
-      it("should throw on missing regular path", async () => {
-        const action = graph.getDeploy(actionName) as KubernetesDeployAction
-        action["_config"]["spec"][manifestSourceFieldName].push("missing-file.yaml")
-        const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-          action,
-          log: garden.log,
-          graph,
+    for (const testCaseConfig of testCaseConfigs) {
+      const { actionName, manifestSourceFieldName } = testCaseConfig
+      context(`with manifests defined in spec.${manifestSourceFieldName}`, () => {
+        before(async () => {
+          garden = await getKubernetesTestGarden()
+          const provider = (await garden.resolveProvider({
+            log: garden.log,
+            name: "local-kubernetes",
+          })) as KubernetesProvider
+          ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+          api = await KubeApi.factory(garden.log, ctx, provider)
         })
 
-        await expectError(
-          () =>
-            getManifests({
-              ctx,
-              api,
-              action: resolvedAction,
-              log: garden.log,
-              defaultNamespace,
-            }),
-          {
-            contains: `Invalid manifest file path(s) declared in ${action.longDescription()}`,
-          }
-        )
-      })
-
-      it("should throw when no files found from glob pattens", async () => {
-        const action = graph.getDeploy(actionName) as KubernetesDeployAction
-        // Rewrite the whole files array to have a glob pattern that results to an empty list of files.
-        action["_config"]["spec"][manifestSourceFieldName] = ["./**/manifests/*.yaml"]
-        const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-          action,
-          log: garden.log,
-          graph,
+        beforeEach(async () => {
+          graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         })
 
-        await expectError(
-          () =>
-            getManifests({
-              ctx,
-              api,
-              action: resolvedAction,
-              log: garden.log,
-              defaultNamespace,
-            }),
-          {
-            contains: `Invalid manifest file path(s) declared in ${action.longDescription()}`,
-          }
-        )
+        it("should support regular files paths", async () => {
+          const executedAction = await garden.executeAction<KubernetesDeployAction>({
+            action: graph.getDeploy(actionName),
+            log: garden.log,
+            graph,
+          })
+          // Pre-check to ensure that the test project has a correct default glob file pattern.
+          expect(executedAction.getSpec()[manifestSourceFieldName]).to.eql(["*.yaml"])
+
+          const manifests = await getManifests({ ctx, api, action: executedAction, log: garden.log, defaultNamespace })
+          expect(manifests).to.exist
+          const names = manifests.map((m) => ({ kind: m.kind, name: m.metadata?.name }))
+          // Now `getManifests` also returns a ConfigMap with internal metadata
+          expect(names).to.eql([
+            { kind: "Deployment", name: "busybox-deployment" },
+            {
+              kind: "ConfigMap",
+              name: `garden-meta-deploy-${actionName}`,
+            },
+          ])
+        })
+
+        it("should support both regular paths and glob patterns with deduplication", async () => {
+          const action = graph.getDeploy(actionName) as KubernetesDeployAction
+          // Append a valid filename that results to the default glob pattern '*.yaml'.
+          action["_config"]["spec"][manifestSourceFieldName].push("deployment.yaml")
+          const executedAction = await garden.resolveAction<KubernetesDeployAction>({
+            action,
+            log: garden.log,
+            graph,
+          })
+          // Pre-check to ensure that the list of files in the test project config is correct.
+          expect(executedAction.getSpec()[manifestSourceFieldName]).to.eql(["*.yaml", "deployment.yaml"])
+
+          const manifests = await getManifests({ ctx, api, action: executedAction, log: garden.log, defaultNamespace })
+          expect(manifests).to.exist
+          const names = manifests.map((m) => ({ kind: m.kind, name: m.metadata?.name }))
+          // Now `getManifests` also returns a ConfigMap with internal metadata
+          expect(names).to.eql([
+            { kind: "Deployment", name: "busybox-deployment" },
+            {
+              kind: "ConfigMap",
+              name: `garden-meta-deploy-${actionName}`,
+            },
+          ])
+        })
+
+        it("should throw on missing regular path", async () => {
+          const action = graph.getDeploy(actionName) as KubernetesDeployAction
+          action["_config"]["spec"][manifestSourceFieldName].push("missing-file.yaml")
+          const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+            action,
+            log: garden.log,
+            graph,
+          })
+
+          await expectError(
+            () =>
+              getManifests({
+                ctx,
+                api,
+                action: resolvedAction,
+                log: garden.log,
+                defaultNamespace,
+              }),
+            {
+              contains: `Invalid manifest file path(s) declared in ${action.longDescription()}`,
+            }
+          )
+        })
+
+        it("should throw when no files found from glob pattens", async () => {
+          const action = graph.getDeploy(actionName) as KubernetesDeployAction
+          // Rewrite the whole files array to have a glob pattern that results to an empty list of files.
+          action["_config"]["spec"][manifestSourceFieldName] = ["./**/manifests/*.yaml"]
+          const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+            action,
+            log: garden.log,
+            graph,
+          })
+
+          await expectError(
+            () =>
+              getManifests({
+                ctx,
+                api,
+                action: resolvedAction,
+                log: garden.log,
+                defaultNamespace,
+              }),
+            {
+              contains: `Invalid manifest file path(s) declared in ${action.longDescription()}`,
+            }
+          )
+        })
       })
-    })
+    }
   })
 
   context("resource patches", () => {
