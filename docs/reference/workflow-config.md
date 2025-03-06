@@ -125,7 +125,8 @@ steps:
     #
     # `never`: This step will always be ignored.
     #
-    # See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+    # See the [workflows guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options)
+    # for details
     # and examples.
     when: onSuccess
 
@@ -480,7 +481,7 @@ If the next step has `when: onError`, it will also be run. Otherwise, all subseq
 
 `never`: This step will always be ignored.
 
-See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+See the [workflows guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options) for details
 and examples.
 
 | Type     | Default       | Required |

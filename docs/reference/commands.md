@@ -1548,7 +1548,7 @@ providers:
         #
         # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
         # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-        # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Also note that specifying an empty list here means _no sources_ should be included.
@@ -1561,7 +1561,7 @@ providers:
         # Note that you can also explicitly _include_ files using the `include` field. If you also specify the
         # `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
         # [Configuration Files
-        # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -1802,7 +1802,8 @@ actionConfigs:
       # You can override the directory that is used for the build context by setting `source.path`.
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
-      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
+      # actions, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -1949,7 +1950,7 @@ actionConfigs:
       #
       # You can _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree,
       # which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -1987,7 +1988,8 @@ actionConfigs:
       # You can override the directory that is used for the build context by setting `source.path`.
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
-      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
+      # actions, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -2048,7 +2050,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2058,7 +2060,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2133,7 +2135,8 @@ actionConfigs:
       # You can override the directory that is used for the build context by setting `source.path`.
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
-      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
+      # actions, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -2194,7 +2197,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2204,7 +2207,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2279,7 +2282,8 @@ actionConfigs:
       # You can override the directory that is used for the build context by setting `source.path`.
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
-      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
+      # actions, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -2340,7 +2344,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2350,7 +2354,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2471,8 +2475,8 @@ moduleConfigs:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
     include:
@@ -2484,8 +2488,8 @@ moduleConfigs:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
     # directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
@@ -2778,8 +2782,8 @@ workflowConfigs:
         #
         # `never`: This step will always be ignored.
         #
-        # See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for
-        # details
+        # See the [workflows
+        # guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options) for details
         # and examples.
         when:
 
@@ -3043,8 +3047,8 @@ modules:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
     include:
@@ -3056,8 +3060,8 @@ modules:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
     # directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
