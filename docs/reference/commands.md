@@ -3547,6 +3547,30 @@ actions:
     # Flag to identify if action is disabled.
     disabled:
 
+    # Object with the full version information of the action.
+    version:
+      # The version string of the action's config.
+      configVersion:
+
+      # The version string of the action's source.
+      sourceVersion:
+
+      # The version string of the action.
+      versionString:
+
+      # Map with the version strings of the action's dependencies.
+      dependencyVersions:
+        <name>:
+
+      # List of the files included in the action.
+      files:
+
+    # Flag to identify whether publishing the build is enabled. Only available for build actions.
+    allowPublish:
+
+    # The image ID used to publish the image of the action. Only available for build actions.
+    publishId:
+
     # The name of the module the action is derived from. Only available for converted actions.
     moduleName:
 
@@ -3609,6 +3633,30 @@ actions:
 
     # Flag to identify if action is disabled.
     disabled:
+
+    # Object with the full version information of the action.
+    version:
+      # The version string of the action's config.
+      configVersion:
+
+      # The version string of the action's source.
+      sourceVersion:
+
+      # The version string of the action.
+      versionString:
+
+      # Map with the version strings of the action's dependencies.
+      dependencyVersions:
+        <name>:
+
+      # List of the files included in the action.
+      files:
+
+    # Flag to identify whether publishing the build is enabled. Only available for build actions.
+    allowPublish:
+
+    # The image ID used to publish the image of the action. Only available for build actions.
+    publishId:
 
     # The name of the module the action is derived from. Only available for converted actions.
     moduleName:
@@ -3673,6 +3721,30 @@ actions:
     # Flag to identify if action is disabled.
     disabled:
 
+    # Object with the full version information of the action.
+    version:
+      # The version string of the action's config.
+      configVersion:
+
+      # The version string of the action's source.
+      sourceVersion:
+
+      # The version string of the action.
+      versionString:
+
+      # Map with the version strings of the action's dependencies.
+      dependencyVersions:
+        <name>:
+
+      # List of the files included in the action.
+      files:
+
+    # Flag to identify whether publishing the build is enabled. Only available for build actions.
+    allowPublish:
+
+    # The image ID used to publish the image of the action. Only available for build actions.
+    publishId:
+
     # The name of the module the action is derived from. Only available for converted actions.
     moduleName:
 
@@ -3736,6 +3808,30 @@ actions:
     # Flag to identify if action is disabled.
     disabled:
 
+    # Object with the full version information of the action.
+    version:
+      # The version string of the action's config.
+      configVersion:
+
+      # The version string of the action's source.
+      sourceVersion:
+
+      # The version string of the action.
+      versionString:
+
+      # Map with the version strings of the action's dependencies.
+      dependencyVersions:
+        <name>:
+
+      # List of the files included in the action.
+      files:
+
+    # Flag to identify whether publishing the build is enabled. Only available for build actions.
+    allowPublish:
+
+    # The image ID used to publish the image of the action. Only available for build actions.
+    publishId:
+
     # The name of the module the action is derived from. Only available for converted actions.
     moduleName:
 
@@ -3798,6 +3894,30 @@ actions:
 
     # Flag to identify if action is disabled.
     disabled:
+
+    # Object with the full version information of the action.
+    version:
+      # The version string of the action's config.
+      configVersion:
+
+      # The version string of the action's source.
+      sourceVersion:
+
+      # The version string of the action.
+      versionString:
+
+      # Map with the version strings of the action's dependencies.
+      dependencyVersions:
+        <name>:
+
+      # List of the files included in the action.
+      files:
+
+    # Flag to identify whether publishing the build is enabled. Only available for build actions.
+    allowPublish:
+
+    # The image ID used to publish the image of the action. Only available for build actions.
+    publishId:
 
     # The name of the module the action is derived from. Only available for converted actions.
     moduleName:
