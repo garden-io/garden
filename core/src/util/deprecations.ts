@@ -67,13 +67,13 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Until now there wasn't a choice: Garden would always attempt to resolve template strings like ${style("${fooBar}")} in Kubernetes manifest files.
 
         This becomes problematic when, for example, the Kubernetes manifest contains a bash script:
-        
+
         \`\`\`yaml
         # manifests/bash-script.yml
         apiVersion: v1
         kind: ConfigMap
         metadata:
-          name:  bash-scripts
+          name: bash-scripts
         data:
             important-bash-script.sh: |
               #!/bin/bash
@@ -98,8 +98,8 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         \`\`\`bash
         #!/bin/bash
-        echo "hello $\${USERNAME:=world}" # <-- This is not a working bash script anymore  :(
-        \`\`\`        
+        echo "hello $\${USERNAME:=world}" # <-- This is not a working bash script anymore :(
+        \`\`\`
       `,
     },
     dotIgnoreFiles: {
