@@ -926,7 +926,7 @@ describe("readManifests", () => {
       ])
     })
 
-    it("spec.manifestTemplates should take precedence over deprecated spec.files if both are defined", async () => {
+    it("should read manifests from both spec.files and spec.manifestTemplates", async () => {
       const actionName = "with-manifest-templates-and-legacy-files"
       const deployAction = graph.getDeploy(actionName)
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
@@ -942,7 +942,6 @@ describe("readManifests", () => {
       expect(manifests).to.exist
 
       manifests.sort((left, right) => left.metadata.name.localeCompare(right.metadata.name))
-      // no other ConfigMap expected here because it's defined in the deprecated `spec.files` that co-exists with `spec.manifestTemplates`
       expect(manifests).to.eql([
         {
           apiVersion: "v1",
@@ -952,6 +951,16 @@ describe("readManifests", () => {
           kind: "ConfigMap",
           metadata: {
             name: "test-configmap-1",
+          },
+        },
+        {
+          apiVersion: "v1",
+          data: {
+            hello: "world", // <-- resolve template strings for manifests defined in spec.files
+          },
+          kind: "ConfigMap",
+          metadata: {
+            name: "test-configmap-2",
           },
         },
       ])
