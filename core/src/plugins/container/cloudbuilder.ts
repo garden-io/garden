@@ -35,7 +35,7 @@ import { stableStringify } from "../../util/string.js"
 import { homedir } from "os"
 import { getCloudDistributionName, isGardenCommunityEdition } from "../../cloud/util.js"
 import { TRPCClientError } from "@trpc/client"
-import type { GrowCloudBuilderRegisterBuildResponse } from "../../cloud/grow/trpc.js"
+import type { DockerBuildReport, GrowCloudBuilderRegisterBuildResponse } from "../../cloud/grow/trpc.js"
 import type { GrowCloudApi } from "../../cloud/grow/api.js"
 
 const { mkdirp, rm, writeFile, stat } = fsExtra
@@ -266,6 +266,21 @@ class CloudBuilder {
     }
 
     return availability
+  }
+
+  transformRuntime(runtime: ActionRuntime): DockerBuildReport["runtime"] {
+    const { actual, preferred, fallbackReason } = runtime
+    let actualNewFormat: DockerBuildReport["runtime"]["actual"] = "buildx"
+    if (actual.kind === "remote") {
+      actualNewFormat = actual.type === "garden-cloud" ? "cloud-builder" : "buildx"
+    }
+    if (preferred && preferred.kind === "remote" && preferred.type) {
+      return {
+        actual: actualNewFormat,
+        preferred: { runtime: preferred.type === "garden-cloud" ? "cloud-builder" : "buildx", fallbackReason },
+      }
+    }
+    return { actual: actualNewFormat }
   }
 
   getActionRuntime(ctx: PluginContext, availability: CloudBuilderAvailabilityV2): ActionRuntime {

@@ -34,6 +34,8 @@ export const OUTPUT_RENDERERS = {
   },
 }
 
+export type OutputRenderer = keyof typeof OUTPUT_RENDERERS
+
 export const validDurationUnits = ["d", "h", "m", "s"]
 
 function splitDuration(duration: string) {
@@ -399,7 +401,7 @@ export const globalDisplayOptions = {
   "output": new ChoicesParameter({
     aliases: ["o"],
     choices: Object.keys(OUTPUT_RENDERERS),
-    help: "Output command result in specified format (note: disables progress logging and interactive functionality).",
+    help: "Output command result in the specified format. When used, this option disables line-by-line logging, even if the GARDEN_LOGGER_TYPE environment variable is used.",
   }),
   "emoji": new BooleanParameter({
     help: "Enable emoji in output (defaults to true if the environment supports it).",

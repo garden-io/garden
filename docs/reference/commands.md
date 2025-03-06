@@ -116,6 +116,8 @@ build:
     outputs:
       <name>:
 
+# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+builds:
   <Build name>:
     # The full log from the build.
     buildLog:
@@ -246,6 +248,8 @@ deploy:
     outputs:
       <name>:
 
+# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
@@ -353,6 +357,8 @@ test:
     # The output log from the run.
     log:
 
+# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+tests:
   <Test name>:
     # Whether the module was successfully run.
     success:
@@ -387,6 +393,8 @@ run:
     # The output log from the run.
     log:
 
+# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+tasks:
   <Run name>:
     # Whether the module was successfully run.
     success:
@@ -1077,6 +1085,8 @@ build:
     outputs:
       <name>:
 
+# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+builds:
   <Build name>:
     # The full log from the build.
     buildLog:
@@ -1207,6 +1217,8 @@ deploy:
     outputs:
       <name>:
 
+# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
@@ -1314,6 +1326,8 @@ test:
     # The output log from the run.
     log:
 
+# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+tests:
   <Test name>:
     # Whether the module was successfully run.
     success:
@@ -1348,6 +1362,8 @@ run:
     # The output log from the run.
     log:
 
+# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+tasks:
   <Run name>:
     # Whether the module was successfully run.
     success:
@@ -1533,7 +1549,7 @@ providers:
         #
         # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
         # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-        # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Also note that specifying an empty list here means _no sources_ should be included.
@@ -1546,7 +1562,7 @@ providers:
         # Note that you can also explicitly _include_ files using the `include` field. If you also specify the
         # `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
         # [Configuration Files
-        # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -1787,7 +1803,8 @@ actionConfigs:
       # You can override the directory that is used for the build context by setting `source.path`.
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
-      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
+      # actions, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -1934,7 +1951,7 @@ actionConfigs:
       #
       # You can _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree,
       # which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -1972,7 +1989,8 @@ actionConfigs:
       # You can override the directory that is used for the build context by setting `source.path`.
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
-      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
+      # actions, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -2033,7 +2051,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2043,7 +2061,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2094,6 +2112,15 @@ actionConfigs:
 
       # The spec for the specific action type.
       spec:
+
+      # Specify a _Build_ action, and resolve this action from the context of that Build.
+      #
+      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
+      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
+      #
+      # This would mean that instead of looking for manifest files relative to this action's location in your project
+      # structure, the output directory for the referenced `exec` Build would be the source.
+      build:
 
       kind:
 
@@ -2118,7 +2145,8 @@ actionConfigs:
       # You can override the directory that is used for the build context by setting `source.path`.
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
-      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
+      # actions, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -2179,7 +2207,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2189,7 +2217,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2240,6 +2268,15 @@ actionConfigs:
 
       # The spec for the specific action type.
       spec:
+
+      # Specify a _Build_ action, and resolve this action from the context of that Build.
+      #
+      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
+      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
+      #
+      # This would mean that instead of looking for manifest files relative to this action's location in your project
+      # structure, the output directory for the referenced `exec` Build would be the source.
+      build:
 
       kind:
 
@@ -2264,7 +2301,8 @@ actionConfigs:
       # You can override the directory that is used for the build context by setting `source.path`.
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
-      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
+      # actions, please refer to the [Remote Sources
+      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -2325,7 +2363,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2335,7 +2373,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2386,6 +2424,15 @@ actionConfigs:
 
       # The spec for the specific action type.
       spec:
+
+      # Specify a _Build_ action, and resolve this action from the context of that Build.
+      #
+      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
+      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
+      #
+      # This would mean that instead of looking for manifest files relative to this action's location in your project
+      # structure, the output directory for the referenced `exec` Build would be the source.
+      build:
 
       kind:
 
@@ -2443,8 +2490,8 @@ moduleConfigs:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
     include:
@@ -2456,8 +2503,8 @@ moduleConfigs:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
     # directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
@@ -2690,6 +2737,7 @@ workflowConfigs:
         # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
         memory:
 
+    limits:
       # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
       cpu:
 
@@ -2750,8 +2798,8 @@ workflowConfigs:
         #
         # `never`: This step will always be ignored.
         #
-        # See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for
-        # details
+        # See the [workflows
+        # guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options) for details
         # and examples.
         when:
 
@@ -3002,8 +3050,8 @@ modules:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
     include:
@@ -3015,8 +3063,8 @@ modules:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-    # details.
+    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # for details.
     #
     # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
     # directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
@@ -3506,6 +3554,30 @@ actions:
     # Flag to identify if action is disabled.
     disabled:
 
+    # Object with the full version information of the action.
+    version:
+      # The version string of the action's config.
+      configVersion:
+
+      # The version string of the action's source.
+      sourceVersion:
+
+      # The version string of the action.
+      versionString:
+
+      # Map with the version strings of the action's dependencies.
+      dependencyVersions:
+        <name>:
+
+      # List of the files included in the action.
+      files:
+
+    # Flag to identify whether publishing the build is enabled. Only available for build actions.
+    allowPublish:
+
+    # The image ID used to publish the image of the action. Only available for build actions.
+    publishId:
+
     # The name of the module the action is derived from. Only available for converted actions.
     moduleName:
 
@@ -3568,6 +3640,30 @@ actions:
 
     # Flag to identify if action is disabled.
     disabled:
+
+    # Object with the full version information of the action.
+    version:
+      # The version string of the action's config.
+      configVersion:
+
+      # The version string of the action's source.
+      sourceVersion:
+
+      # The version string of the action.
+      versionString:
+
+      # Map with the version strings of the action's dependencies.
+      dependencyVersions:
+        <name>:
+
+      # List of the files included in the action.
+      files:
+
+    # Flag to identify whether publishing the build is enabled. Only available for build actions.
+    allowPublish:
+
+    # The image ID used to publish the image of the action. Only available for build actions.
+    publishId:
 
     # The name of the module the action is derived from. Only available for converted actions.
     moduleName:
@@ -3632,6 +3728,30 @@ actions:
     # Flag to identify if action is disabled.
     disabled:
 
+    # Object with the full version information of the action.
+    version:
+      # The version string of the action's config.
+      configVersion:
+
+      # The version string of the action's source.
+      sourceVersion:
+
+      # The version string of the action.
+      versionString:
+
+      # Map with the version strings of the action's dependencies.
+      dependencyVersions:
+        <name>:
+
+      # List of the files included in the action.
+      files:
+
+    # Flag to identify whether publishing the build is enabled. Only available for build actions.
+    allowPublish:
+
+    # The image ID used to publish the image of the action. Only available for build actions.
+    publishId:
+
     # The name of the module the action is derived from. Only available for converted actions.
     moduleName:
 
@@ -3695,6 +3815,30 @@ actions:
     # Flag to identify if action is disabled.
     disabled:
 
+    # Object with the full version information of the action.
+    version:
+      # The version string of the action's config.
+      configVersion:
+
+      # The version string of the action's source.
+      sourceVersion:
+
+      # The version string of the action.
+      versionString:
+
+      # Map with the version strings of the action's dependencies.
+      dependencyVersions:
+        <name>:
+
+      # List of the files included in the action.
+      files:
+
+    # Flag to identify whether publishing the build is enabled. Only available for build actions.
+    allowPublish:
+
+    # The image ID used to publish the image of the action. Only available for build actions.
+    publishId:
+
     # The name of the module the action is derived from. Only available for converted actions.
     moduleName:
 
@@ -3757,6 +3901,30 @@ actions:
 
     # Flag to identify if action is disabled.
     disabled:
+
+    # Object with the full version information of the action.
+    version:
+      # The version string of the action's config.
+      configVersion:
+
+      # The version string of the action's source.
+      sourceVersion:
+
+      # The version string of the action.
+      versionString:
+
+      # Map with the version strings of the action's dependencies.
+      dependencyVersions:
+        <name>:
+
+      # List of the files included in the action.
+      files:
+
+    # Flag to identify whether publishing the build is enabled. Only available for build actions.
+    allowPublish:
+
+    # The image ID used to publish the image of the action. Only available for build actions.
+    publishId:
 
     # The name of the module the action is derived from. Only available for converted actions.
     moduleName:
@@ -4232,6 +4400,8 @@ build:
     outputs:
       <name>:
 
+# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+builds:
   <Build name>:
     # The full log from the build.
     buildLog:
@@ -4362,6 +4532,8 @@ deploy:
     outputs:
       <name>:
 
+# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
@@ -4469,6 +4641,8 @@ test:
     # The output log from the run.
     log:
 
+# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+tests:
   <Test name>:
     # Whether the module was successfully run.
     success:
@@ -4503,6 +4677,8 @@ run:
     # The output log from the run.
     log:
 
+# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+tasks:
   <Run name>:
     # Whether the module was successfully run.
     success:
@@ -4652,6 +4828,8 @@ build:
     outputs:
       <name>:
 
+# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+builds:
   <Build name>:
     # The full log from the build.
     buildLog:
@@ -4782,6 +4960,8 @@ deploy:
     outputs:
       <name>:
 
+# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
@@ -4889,6 +5069,8 @@ test:
     # The output log from the run.
     log:
 
+# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+tests:
   <Test name>:
     # Whether the module was successfully run.
     success:
@@ -4923,6 +5105,8 @@ run:
     # The output log from the run.
     log:
 
+# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+tasks:
   <Run name>:
     # Whether the module was successfully run.
     success:
@@ -5228,6 +5412,8 @@ build:
     outputs:
       <name>:
 
+# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+builds:
   <Build name>:
     # The full log from the build.
     buildLog:
@@ -5358,6 +5544,8 @@ deploy:
     outputs:
       <name>:
 
+# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
@@ -5465,6 +5653,8 @@ test:
     # The output log from the run.
     log:
 
+# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+tests:
   <Test name>:
     # Whether the module was successfully run.
     success:
@@ -5499,6 +5689,8 @@ run:
     # The output log from the run.
     log:
 
+# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+tasks:
   <Run name>:
     # Whether the module was successfully run.
     success:

@@ -68,6 +68,7 @@ resources:
     # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
     memory:
 
+limits:
   # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
   cpu:
 
@@ -125,7 +126,8 @@ steps:
     #
     # `never`: This step will always be ignored.
     #
-    # See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+    # See the [workflows guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options)
+    # for details
     # and examples.
     when: onSuccess
 
@@ -480,7 +482,7 @@ If the next step has `when: onError`, it will also be run. Otherwise, all subseq
 
 `never`: This step will always be ignored.
 
-See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+See the [workflows guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options) for details
 and examples.
 
 | Type     | Default       | Required |
