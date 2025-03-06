@@ -58,7 +58,7 @@ By default, the directory where the action is defined is used as the source for 
 
 You can override the directory that is used for the build context by setting `source.path`.
 
-You can use `source.repository` to get the source from an external repository. For more information on remote actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
+You can use `source.repository` to get the source from an external repository. For more information on remote actions, please refer to the [Remote Sources guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
 
 | Type     | Required |
 | -------- | -------- |
@@ -288,7 +288,7 @@ Specify a list of POSIX-style paths or globs that should be included as the buil
 
 If nothing is specified here, the whole directory may be assumed to be included in the build. Providers are sometimes able to infer the list of paths, e.g. from a Dockerfile, but often this is inaccurate (say, if a Dockerfile has an `ADD .` statement) so it may be important to set `include` and/or `exclude` to define the build context. Otherwise you may find unrelated files being included in the build context and the build version, which may result in unnecessarily repeated builds.
 
-You can _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+You can _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 | Type               | Required |
 | ------------------ | -------- |

@@ -227,16 +227,13 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
     breakingChanges.push(`## ${context}`)
 
     const matchingDeprecations = Object.entries(deprecations).filter(([_, { contextDesc }]) => contextDesc === context)
-    for (const [id, { hint, hintReferenceLink }] of matchingDeprecations) {
+    for (const [id, { hint, docs }] of matchingDeprecations) {
       // NOTE: We are using HTML tags rather than using markdown syntax here, so we can control the `id` of the link (As we are deeplinking from the deprecation warnings in core)
       const headline = getDeprecations((s) => `<code>${s}</code>`)[id].featureDesc
       breakingChanges.push(`<h3 id="${id}">${headline}</h3>`)
       breakingChanges.push(hint)
-      if (hintReferenceLink) {
-        const linkPrefix = hintReferenceLink.link.startsWith("#") ? "" : "../"
-        breakingChanges.push(
-          `For more information, please refer to the [${hintReferenceLink.name}](${linkPrefix}${hintReferenceLink.link}).`
-        )
+      if (docs) {
+        breakingChanges.push(docs)
       }
     }
   }
