@@ -149,9 +149,16 @@ spec:
 
 ## Local mode
 
-<h3 id="localMode">The <code>local mode</code></h3>
+<h3 id="localMode">Using <code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> deploy actions</h3>
 
-The `local mode` will be removed in the next major version of Garden, 0.14.
+The local mode will be removed in the next major version of Garden, 0.14.
+
+Use the `sync mode` instead. You can also consider using [mirrord](https://mirrord.dev/) or [telepresence](https://www.telepresence.io/).
+
+See also:
+- [`spec.localMode` in the `kubernetes` deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
+- [`spec.localMode` in the `helm` deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
+- [`spec.localMode` in the `container` deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
 
 ## Action configs
 

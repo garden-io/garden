@@ -116,6 +116,8 @@ build:
     outputs:
       <name>:
 
+# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+builds:
   <Build name>:
     # The full log from the build.
     buildLog:
@@ -246,6 +248,8 @@ deploy:
     outputs:
       <name>:
 
+# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
@@ -353,6 +357,8 @@ test:
     # The output log from the run.
     log:
 
+# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+tests:
   <Test name>:
     # Whether the module was successfully run.
     success:
@@ -387,6 +393,8 @@ run:
     # The output log from the run.
     log:
 
+# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+tasks:
   <Run name>:
     # Whether the module was successfully run.
     success:
@@ -1077,6 +1085,8 @@ build:
     outputs:
       <name>:
 
+# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+builds:
   <Build name>:
     # The full log from the build.
     buildLog:
@@ -1207,6 +1217,8 @@ deploy:
     outputs:
       <name>:
 
+# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
@@ -1314,6 +1326,8 @@ test:
     # The output log from the run.
     log:
 
+# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+tests:
   <Test name>:
     # Whether the module was successfully run.
     success:
@@ -1348,6 +1362,8 @@ run:
     # The output log from the run.
     log:
 
+# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+tasks:
   <Run name>:
     # Whether the module was successfully run.
     success:
@@ -2112,6 +2128,15 @@ actionConfigs:
       # The spec for the specific action type.
       spec:
 
+      # Specify a _Build_ action, and resolve this action from the context of that Build.
+      #
+      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
+      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
+      #
+      # This would mean that instead of looking for manifest files relative to this action's location in your project
+      # structure, the output directory for the referenced `exec` Build would be the source.
+      build:
+
       kind:
 
       # Timeout for the deploy to complete, in seconds.
@@ -2259,6 +2284,15 @@ actionConfigs:
       # The spec for the specific action type.
       spec:
 
+      # Specify a _Build_ action, and resolve this action from the context of that Build.
+      #
+      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
+      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
+      #
+      # This would mean that instead of looking for manifest files relative to this action's location in your project
+      # structure, the output directory for the referenced `exec` Build would be the source.
+      build:
+
       kind:
 
       # Set a timeout for the run to complete, in seconds.
@@ -2405,6 +2439,15 @@ actionConfigs:
 
       # The spec for the specific action type.
       spec:
+
+      # Specify a _Build_ action, and resolve this action from the context of that Build.
+      #
+      # For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
+      # `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
+      #
+      # This would mean that instead of looking for manifest files relative to this action's location in your project
+      # structure, the output directory for the referenced `exec` Build would be the source.
+      build:
 
       kind:
 
@@ -2722,6 +2765,7 @@ workflowConfigs:
         # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
         memory:
 
+    limits:
       # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
       cpu:
 
@@ -4277,6 +4321,8 @@ build:
     outputs:
       <name>:
 
+# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+builds:
   <Build name>:
     # The full log from the build.
     buildLog:
@@ -4407,6 +4453,8 @@ deploy:
     outputs:
       <name>:
 
+# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
@@ -4514,6 +4562,8 @@ test:
     # The output log from the run.
     log:
 
+# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+tests:
   <Test name>:
     # Whether the module was successfully run.
     success:
@@ -4548,6 +4598,8 @@ run:
     # The output log from the run.
     log:
 
+# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+tasks:
   <Run name>:
     # Whether the module was successfully run.
     success:
@@ -4697,6 +4749,8 @@ build:
     outputs:
       <name>:
 
+# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+builds:
   <Build name>:
     # The full log from the build.
     buildLog:
@@ -4827,6 +4881,8 @@ deploy:
     outputs:
       <name>:
 
+# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
@@ -4934,6 +4990,8 @@ test:
     # The output log from the run.
     log:
 
+# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+tests:
   <Test name>:
     # Whether the module was successfully run.
     success:
@@ -4968,6 +5026,8 @@ run:
     # The output log from the run.
     log:
 
+# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+tasks:
   <Run name>:
     # Whether the module was successfully run.
     success:
@@ -5273,6 +5333,8 @@ build:
     outputs:
       <name>:
 
+# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+builds:
   <Build name>:
     # The full log from the build.
     buildLog:
@@ -5403,6 +5465,8 @@ deploy:
     outputs:
       <name>:
 
+# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
     createdAt:
@@ -5510,6 +5574,8 @@ test:
     # The output log from the run.
     log:
 
+# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+tests:
   <Test name>:
     # Whether the module was successfully run.
     success:
@@ -5544,6 +5610,8 @@ run:
     # The output log from the run.
     log:
 
+# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+tasks:
   <Run name>:
     # Whether the module was successfully run.
     success:

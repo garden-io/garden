@@ -250,7 +250,6 @@ Whether the varfile is optional.
 {% hint style="warning" %}
 **Deprecated**: The `build` config field in runtime action configs is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
 Use `dependencies` config build to define the build dependencies.
-To make sure your configuration does not break when we release Garden 0.14, please follow the steps at https://docs.garden.io/bonsai-0.13/guides/deprecations#buildConfigFieldOnRuntimeActions
 {% endhint %}
 
 Specify a _Build_ action, and resolve this action from the context of that Build.
@@ -717,6 +716,11 @@ Set the default group on files and directories at the target. Specify either an 
 ### `spec.localMode`
 
 [spec](#spec) > localMode
+
+{% hint style="warning" %}
+**Deprecated**: Using `spec.localMode` in `helm`, `kubernetes` and `container` deploy actions is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
+The local mode will be removed in the next major version of Garden, 0.14.
+{% endhint %}
 
 [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
 

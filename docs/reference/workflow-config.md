@@ -68,6 +68,7 @@ resources:
     # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
     memory:
 
+limits:
   # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
   cpu:
 

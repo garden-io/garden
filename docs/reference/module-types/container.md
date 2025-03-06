@@ -477,6 +477,14 @@ services:
     # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
     timeout: 300
 
+    # Specify resource limits for the service.
+    limits:
+      # The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
+      cpu:
+
+      # The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
+      memory:
+
     # List of ports that the service container exposes.
     ports:
       - # The name of the port (used when referencing the port elsewhere in the service configuration).
@@ -507,6 +515,8 @@ services:
         # The service port maps to the container port:
         # `servicePort:80 -> containerPort:8080 -> process:8080`
         servicePort:
+
+        hostPort:
 
         # Set this to expose the service on the specified port on the host node (may not be supported by all
         # providers). Set to `true` to have the cluster pick a port automatically, which is most often advisable if
@@ -1610,6 +1620,11 @@ Set the default group on files and directories at the target. Specify either an 
 ### `services[].localMode`
 
 [services](#services) > localMode
+
+{% hint style="warning" %}
+**Deprecated**: Using `spec.localMode` in `helm`, `kubernetes` and `container` deploy actions is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
+The local mode will be removed in the next major version of Garden, 0.14.
+{% endhint %}
 
 [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
 

@@ -316,6 +316,9 @@ providers:
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
+    # Sets the deployment strategy for `container` deploy actions.
+    deploymentStrategy:
+
     # Configuration options for code synchronization.
     sync:
       # Specifies default settings for syncs (e.g. for `container`, `kubernetes` and `helm` services).
@@ -431,6 +434,30 @@ providers:
 
           # Memory request in megabytes.
           memory: 512
+
+          # Ephemeral storage request in megabytes.
+          ephemeralStorage:
+
+      # Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
+      # ahead of building images. This generally is not resource intensive, but you might want to adjust the
+      # defaults if you have many concurrent users.
+      sync:
+        limits:
+          # CPU limit in millicpu.
+          cpu: 500
+
+          # Memory limit in megabytes.
+          memory: 512
+
+          # Ephemeral storage limit in megabytes.
+          ephemeralStorage:
+
+        requests:
+          # CPU request in millicpu.
+          cpu: 100
+
+          # Memory request in megabytes.
+          memory: 90
 
           # Ephemeral storage request in megabytes.
           ephemeralStorage:
