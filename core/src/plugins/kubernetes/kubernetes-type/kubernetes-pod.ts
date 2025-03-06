@@ -58,7 +58,13 @@ const runSchemas: { [name: string]: ObjectSchema } = {}
 
 const kubernetesPodManifestTemplatesSchema = (kind: string) =>
   kubernetesManifestTemplatesSchema().description(
-    `POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the ${kind}.`
+    dedent`
+    POSIX-style paths to YAML files to load manifests from. Each file may contain multiple manifests.
+
+    Garden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.
+
+    Then it will find the resource matching the Pod spec for the ${kind} ([See also \`spec.resource\`](#spec.resource)).
+    `
   )
 
 export const kubernetesRunPodSchema = (kind: string) => {

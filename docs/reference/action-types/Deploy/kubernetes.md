@@ -1102,7 +1102,7 @@ The name of a container in the target. Specify this if the target contains more 
 
 [spec](#spec) > manifestFiles
 
-POSIX-style paths to YAML files to load manifests from. These files *can not* contain any Garden template strings. Each file can contain multiple manifests.
+POSIX-style paths to YAML files to load manifests from. Garden will *not* use the Garden Template Language to transform manifests in these files. Each file can contain multiple manifests.
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
