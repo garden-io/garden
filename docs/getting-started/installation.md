@@ -169,10 +169,10 @@ To install Garden at a specific version, say 0.13.22, you can run:
 garden self-update 0.13.22
 ```
 
-To install the latest edge release of Garden you can run:
+To install the latest edge release of Garden Cedar you can run:
 
 ```
-garden self-update edge-bonsai
+garden self-update edge-cedar
 ```
 
 You can learn more about the different options by running:

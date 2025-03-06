@@ -1,10 +1,16 @@
 # Release process
 
-We have a dedicated release branch, `latest-release`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/main/scripts/release.ts). Once we're ready to release, we reset the `latest-release` branch to `main` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `main` and cherry-pick them to the `latest-release` branch. We repeat this process until all issues have been resolved and we can make a proper release.
+We have a dedicated release branches, `latest-release` and `latest-release-0.13` etc. off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/main/scripts/release.ts). Once we're ready to release, we reset the `latest-release` branch to `main` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `main` and cherry-pick them to the `latest-release` branch. We repeat this process until all issues have been resolved and we can make a proper release.
 
 This procedure allows us to continue merging features into `main` without them being included in the release.
 
-On every merge to `main` we also publish an **unstable** release with the version `edge-bonsai` that is always flagged as a pre-release.
+On every merge to `main` we also publish an **unstable** release with the version `edge-cedar` that is always flagged as a pre-release.
+
+## Releasing older versions of Garden
+
+If we're creating a release for older versions of Garden, for example `0.13`, we use `latest-release-0.13` and use the `0.13` branch instead of `main`.
+
+On every merge to the `0.13` branch, we also publish an **unstable** release with the version `edge-bonsai` that is always flagged as a pre-release.
 
 ## Release script
 

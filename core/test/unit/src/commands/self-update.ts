@@ -40,14 +40,17 @@ describe("version helpers", () => {
 
     it("should be true for a version name starting with 'edge-'", () => {
       expect(isEdgeVersion("edge-bonsai")).to.be.true
+      expect(isEdgeVersion("edge-cedar")).to.be.true
     })
 
     it("should be false for a pre-release version name", () => {
       expect(isEdgeVersion("0.13.0-0")).to.be.false
+      expect(isEdgeVersion("0.14.0-0")).to.be.false
     })
 
     it("should be false for a stable version name", () => {
       expect(isEdgeVersion("0.13.0")).to.be.false
+      expect(isEdgeVersion("0.14.0")).to.be.false
     })
   })
 
@@ -58,18 +61,24 @@ describe("version helpers", () => {
     })
 
     it("should be false for a version name starting with 'edge-'", () => {
-      const version = semver.parse("edge-bonsai")
-      expect(isPreReleaseVersion(version)).to.be.false
+      const bonsai = semver.parse("edge-bonsai")
+      expect(isPreReleaseVersion(bonsai)).to.be.false
+      const cedar = semver.parse("edge-cedar")
+      expect(isPreReleaseVersion(cedar)).to.be.false
     })
 
     it("should be true for a pre-release version name", () => {
-      const version = semver.parse("0.13.0-0")
-      expect(isPreReleaseVersion(version)).to.be.true
+      const bonsai = semver.parse("0.13.0-0")
+      expect(isPreReleaseVersion(bonsai)).to.be.true
+      const cedar = semver.parse("0.14.0-0")
+      expect(isPreReleaseVersion(cedar)).to.be.true
     })
 
     it("should be false for a stable version name", () => {
-      const version = semver.parse("0.13.0")
-      expect(isPreReleaseVersion(version)).to.be.false
+      const bonsai = semver.parse("0.13.0")
+      expect(isPreReleaseVersion(bonsai)).to.be.false
+      const cedar = semver.parse("0.14.0")
+      expect(isPreReleaseVersion(cedar)).to.be.false
     })
   })
 })
@@ -598,6 +607,7 @@ describe("SelfUpdateCommand", () => {
 
       it("should skip edge-* versions", () => {
         expectSkipped({ tag_name: "edge-bonsai", draft: false, prerelease: false }, semver.parse("0.13.0")!, "patch")
+        expectSkipped({ tag_name: "edge-cedar", draft: false, prerelease: false }, semver.parse("0.14.0")!, "patch")
       })
     })
   })

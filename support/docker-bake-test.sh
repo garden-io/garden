@@ -66,11 +66,11 @@ TEST() {
 }
 
 TEST "test cloud provider tool availability"
-  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+  MAJOR_VERSION=0 MINOR_VERSION=14 PATCH_VERSION=0 CODENAME=cedar \
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" all
 
   # aws
-  for variant in bonsai{-alpine,-bookworm}{,-rootless}
+  for variant in cedar{-alpine,-bookworm}{,-rootless}
     do
     echo "gardendev/garden-aws-gcloud-azure:$variant"
     should_succeed aws --version gardendev/garden-aws-gcloud-azure:$variant
@@ -98,10 +98,10 @@ TEST "test cloud provider tool availability"
   done
 
 TEST "run all binaries"
-  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+  MAJOR_VERSION=0 MINOR_VERSION=14 PATCH_VERSION=0 CODENAME=cedar \
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" all
 
-  for variant in bonsai{-alpine,-bookworm}{,-rootless}
+  for variant in cedar{-alpine,-bookworm}{,-rootless}
     do
     # Garden on vanilla images
     should_succeed garden version gardendev/garden:$variant
@@ -130,105 +130,105 @@ TEST "run all binaries"
   done
 
 TEST "edge tags for debian"
-  MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
+  MAJOR_VERSION=0 MINOR_VERSION=14 PRERELEASE=edge CODENAME=cedar \
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" bookworm
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
     should_not_exist $image latest
-    should_not_exist $image 0.13-bookworm
-    should_not_exist $image 0.13-bookworm-rootless
-    should_exist $image 0.13-edge-bookworm
-    should_exist $image 0.13-edge-bookworm-rootless
-    should_exist $image bonsai-edge-bookworm
-    should_exist $image bonsai-edge-bookworm-rootless
+    should_not_exist $image 0.14-bookworm
+    should_not_exist $image 0.14-bookworm-rootless
+    should_exist $image 0.14-edge-bookworm
+    should_exist $image 0.14-edge-bookworm-rootless
+    should_exist $image cedar-edge-bookworm
+    should_exist $image cedar-edge-bookworm-rootless
   done
 
 TEST "edge tags for alpine"
-  MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
+  MAJOR_VERSION=0 MINOR_VERSION=14 PRERELEASE=edge CODENAME=cedar \
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
     should_not_exist $image latest
-    should_not_exist $image 0.13-alpine
-    should_not_exist $image 0.13-alpine-rootless
-    should_exist $image 0.13-edge-alpine
-    should_exist $image 0.13-edge-alpine-rootless
-    should_exist $image bonsai-edge-alpine
-    should_exist $image bonsai-edge-alpine-rootless
+    should_not_exist $image 0.14-alpine
+    should_not_exist $image 0.14-alpine-rootless
+    should_exist $image 0.14-edge-alpine
+    should_exist $image 0.14-edge-alpine-rootless
+    should_exist $image cedar-edge-alpine
+    should_exist $image cedar-edge-alpine-rootless
   done
 
 TEST "prerelase tags for debian"
-  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=bonsai \
+  MAJOR_VERSION=0 MINOR_VERSION=14 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=cedar \
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" bookworm
 
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
     should_not_exist $image latest
-    should_not_exist $image 0.13-bookworm
-    should_not_exist $image 0.13-bookworm-rootless
-    should_not_exist $image 0.13-alpha1-bookworm
-    should_not_exist $image 0.13-alpha1-bookworm-rootless
-    should_not_exist $image bonsai-alpha1-bookworm
-    should_not_exist $image bonsai-alpha1-bookworm-rootless
-    should_exist gardendev/garden 0.13.0-alpha1-bookworm
-    should_exist gardendev/garden 0.13.0-alpha1-bookworm-rootless
+    should_not_exist $image 0.14-bookworm
+    should_not_exist $image 0.14-bookworm-rootless
+    should_not_exist $image 0.14-alpha1-bookworm
+    should_not_exist $image 0.14-alpha1-bookworm-rootless
+    should_not_exist $image cedar-alpha1-bookworm
+    should_not_exist $image cedar-alpha1-bookworm-rootless
+    should_exist gardendev/garden 0.14.0-alpha1-bookworm
+    should_exist gardendev/garden 0.14.0-alpha1-bookworm-rootless
   done
 
 TEST "prerelease tags for alpine"
-  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=bonsai \
+  MAJOR_VERSION=0 MINOR_VERSION=14 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=cedar \
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
     should_not_exist $image latest
-    should_not_exist $image 0.13-alpine
-    should_not_exist $image 0.13-alpine-rootless
-    should_not_exist $image 0.13-alpha1-alpine
-    should_not_exist $image 0.13-alpha1-alpine-rootless
-    should_not_exist $image bonsai-alpha1-alpine
-    should_not_exist $image bonsai-alpha1-alpine-rootless
-    should_exist gardendev/garden 0.13.0-alpha1-alpine
-    should_exist gardendev/garden 0.13.0-alpha1-alpine-rootless
+    should_not_exist $image 0.14-alpine
+    should_not_exist $image 0.14-alpine-rootless
+    should_not_exist $image 0.14-alpha1-alpine
+    should_not_exist $image 0.14-alpha1-alpine-rootless
+    should_not_exist $image cedar-alpha1-alpine
+    should_not_exist $image cedar-alpha1-alpine-rootless
+    should_exist gardendev/garden 0.14.0-alpha1-alpine
+    should_exist gardendev/garden 0.14.0-alpha1-alpine-rootless
   done
 
 TEST "production release tags for debian"
-  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+  MAJOR_VERSION=0 MINOR_VERSION=14 PATCH_VERSION=0 CODENAME=cedar \
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" bookworm
 
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
     should_not_exist $image latest
-    should_exist $image 0.13-bookworm
-    should_exist $image 0.13-bookworm-rootless
-    should_exist $image 0.13.0-bookworm
-    should_exist $image 0.13.0-bookworm-rootless
-    should_exist $image bonsai-bookworm
-    should_exist $image bonsai-bookworm-rootless
-    should_not_exist $image 0.13-edge-bookworm
-    should_not_exist $image 0.13-edge-bookworm-rootless
-    should_not_exist $image bonsai-edge-bookworm
-    should_not_exist $image bonsai-edge-bookworm-rootless
+    should_exist $image 0.14-bookworm
+    should_exist $image 0.14-bookworm-rootless
+    should_exist $image 0.14.0-bookworm
+    should_exist $image 0.14.0-bookworm-rootless
+    should_exist $image cedar-bookworm
+    should_exist $image cedar-bookworm-rootless
+    should_not_exist $image 0.14-edge-bookworm
+    should_not_exist $image 0.14-edge-bookworm-rootless
+    should_not_exist $image cedar-edge-bookworm
+    should_not_exist $image cedar-edge-bookworm-rootless
   done
 
 TEST "production release tags for alpine"
-  MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
+  MAJOR_VERSION=0 MINOR_VERSION=14 PATCH_VERSION=0 CODENAME=cedar \
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
     should_exist $image latest
-    should_exist $image 0.13-alpine
-    should_exist $image 0.13-alpine-rootless
-    should_exist $image 0.13.0-alpine
-    should_exist $image 0.13.0-alpine-rootless
-    should_exist $image bonsai-alpine
-    should_exist $image bonsai-alpine-rootless
-    should_not_exist $image 0.13-edge-alpine
-    should_not_exist $image 0.13-edge-alpine-rootless
-    should_not_exist $image bonsai-edge-alpine
-    should_not_exist $image bonsai-edge-alpine-rootless
+    should_exist $image 0.14-alpine
+    should_exist $image 0.14-alpine-rootless
+    should_exist $image 0.14.0-alpine
+    should_exist $image 0.14.0-alpine-rootless
+    should_exist $image cedar-alpine
+    should_exist $image cedar-alpine-rootless
+    should_not_exist $image 0.14-edge-alpine
+    should_not_exist $image 0.14-edge-alpine-rootless
+    should_not_exist $image cedar-edge-alpine
+    should_not_exist $image cedar-edge-alpine-rootless
   done
