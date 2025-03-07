@@ -568,6 +568,10 @@ The name of the resource.
 
 [spec](#spec) > files
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 POSIX-style paths to YAML files to load manifests from. Each file may contain multiple manifests.
 
 Garden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.
