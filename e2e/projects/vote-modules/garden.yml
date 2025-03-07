@@ -9,7 +9,6 @@ environments:
     variables:
       baseHostname: ${project.name}-testing-${var.userId}.dev-1.sys.garden
 providers:
-  - name: octant
   - name: local-kubernetes
     environments: [local]
   - name: kubernetes

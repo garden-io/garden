@@ -1,7 +1,4 @@
 kind: Project
 name: bundled-projects
 providers:
-  - name: conftest
-  - name: conftest-container
-  - name: conftest-kubernetes
   - name: jib

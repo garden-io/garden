@@ -61,16 +61,11 @@ export async function writeConfigReferenceDocs(
   const referenceDir = resolve(docsRoot, "reference")
 
   const providers = [
-    { name: "conftest" },
-    { name: "conftest-container" },
-    { name: "conftest-kubernetes" },
     { name: "container" },
     { name: "exec" },
-    { name: "hadolint" },
     { name: "jib" },
     { name: "kubernetes" },
     { name: "local-kubernetes" },
-    { name: "octant" },
     { name: "terraform" },
     { name: "pulumi" },
   ]
