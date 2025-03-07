@@ -320,10 +320,16 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     waitForJobs: {
       contextDesc: "Default configuration values",
       featureDesc: `${style("spec.waitForJobs")} of ${style("kubernetes Deploy")}`,
-      hint: `The new default value is ${style("true")}`,
+      hint: `The new default value is ${style("true")}.`,
       docs: dedent`
         This means that deploy actions will wait for jobs to complete by default when applying Job manifests. For more information about jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
       `,
+    },
+    gardenCloudBuilder: {
+      contextDesc: "Garden Plugins",
+      featureDesc: `${style("gardenCloudBuilder")} of ${style("container")} provider`,
+      hint: `Use ${style("gardenContainerBuilder")} instead.`,
+      docs: null,
     },
   } as const
 }
