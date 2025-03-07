@@ -610,8 +610,7 @@ export class Garden {
 
   getProjectConfigContext() {
     const loggedIn = this.isLoggedIn()
-    const enterpriseDomain = this.cloudApi?.domain
-    return new ProjectConfigContext({ ...this, loggedIn, enterpriseDomain })
+    return new ProjectConfigContext({ ...this, loggedIn, cloudBackendDomain: this.cloudDomain })
   }
 
   async clearBuilds() {
@@ -2086,10 +2085,10 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
 
-    const cloudDomain = getCloudDomain(projectConfig.domain)
+    const cloudBackendDomain = getCloudDomain(projectConfig.domain)
     const cloudApi = await initCloudApi({
       cloudApiFactory,
-      cloudDomain,
+      cloudDomain: cloudBackendDomain,
       globalConfigStore,
       log,
       projectConfig,
@@ -2098,7 +2097,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const loggedIn = !!cloudApi
 
     // Use this to interact with Cloud Backend V2
-    const cloudApiV2 = await initCloudApiV2({ cloudDomain, globalConfigStore, log })
+    const cloudApiV2 = await initCloudApiV2({ cloudDomain: cloudBackendDomain, globalConfigStore, log })
 
     const { secrets, cloudProject } = await initCloudProject({
       cloudApi,
@@ -2118,7 +2117,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: projectConfig.domain,
+      cloudBackendDomain,
       secrets,
       commandInfo,
     })
@@ -2141,7 +2140,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: projectConfig.domain,
+      cloudBackendDomain,
       secrets,
       commandInfo,
     })
@@ -2184,7 +2183,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       artifactsPath,
       vcsInfo,
       sessionId,
-      cloudDomain,
+      cloudDomain: cloudBackendDomain,
       cloudApi,
       cloudApiV2,
       // If the user is logged in and a cloud project exists we use that ID
