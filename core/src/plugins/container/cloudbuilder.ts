@@ -24,7 +24,7 @@ import type {
 } from "../../cloud/api.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
-import { gardenEnv } from "../../constants.js"
+import { GardenApiVersion, gardenEnv } from "../../constants.js"
 import type { ActionRuntime, ActionRuntimeKind } from "../../plugin/base.js"
 import crypto from "crypto"
 import { promisify } from "util"
@@ -37,6 +37,7 @@ import { getCloudDistributionName, isGardenCommunityEdition } from "../../cloud/
 import { TRPCClientError } from "@trpc/client"
 import type { DockerBuildReport, GrowCloudBuilderRegisterBuildResponse } from "../../cloud/grow/trpc.js"
 import type { GrowCloudApi } from "../../cloud/grow/api.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 const { mkdirp, rm, writeFile, stat } = fsExtra
 
@@ -366,6 +367,12 @@ function isContainerBuilderEnabled({
   ctx: PluginContext
   containerProviderConfig: ContainerProviderConfig
 }) {
+  const apiVersion = ctx.projectApiVersion
+
+  if (containerProviderConfig.gardenCloudBuilder !== undefined) {
+    reportDeprecatedFeatureUsage({ apiVersion, log: ctx.log, deprecation: "gardenCloudBuilder" })
+  }
+
   let isCloudBuilderEnabled = containerProviderConfig.gardenCloudBuilder?.enabled || false
 
   // The env variable GARDEN_CLOUD_BUILDER can be used to override the cloudbuilder.enabled config setting.

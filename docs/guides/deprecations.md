@@ -151,6 +151,10 @@ spec:
 
 Use `kubernetes` or `local-kubernetes` providers instead. We are currently exploring how to improve and offer a new hosted Kubernetes experience in the future – reach out on GitHub or Discord if you are interested or have any feedback!
 
+<h3 id="gardenCloudBuilder"><code>gardenCloudBuilder</code> of <code>container</code> provider</h3>
+
+Use `gardenContainerBuilder` instead.
+
 ## Local mode
 
 <h3 id="localMode">Using <code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> deploy actions</h3>
@@ -287,6 +291,6 @@ When using `apiVersion: garden.io/v2`, the question mark operator has been remov
 
 <h3 id="waitForJobs"><code>spec.waitForJobs</code> of <code>kubernetes Deploy</code></h3>
 
-The new default value is `true`
+The new default value is `true`.
 
 This means that deploy actions will wait for jobs to complete by default when applying Job manifests. For more information about jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
