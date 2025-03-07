@@ -1,9 +1,0 @@
-apiVersion: garden.io/v1
-kind: Project
-name: conftest
-environments:
-  - name: local
-providers:
-  - name: local-kubernetes
-  # Auto-inject tests for kubernetes and helm modules
-  - name: conftest-kubernetes
