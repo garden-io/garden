@@ -91,7 +91,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -110,7 +110,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -128,7 +128,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: { foo: "banana" },
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -147,7 +147,7 @@ describe("ProjectConfigContext", () => {
         vcsInfo,
         username: "some-user",
         loggedIn: false, // <-----
-        enterpriseDomain,
+        cloudBackendDomain: enterpriseDomain,
         secrets: { foo: "banana" },
         commandInfo: { name: "test", args: {}, opts: {} },
       })
@@ -167,7 +167,7 @@ describe("ProjectConfigContext", () => {
           vcsInfo,
           username: "some-user",
           loggedIn: true,
-          enterpriseDomain,
+          cloudBackendDomain: enterpriseDomain,
           secrets: {}, // <-----
           commandInfo: { name: "test", args: {}, opts: {} },
         })
@@ -189,7 +189,7 @@ describe("ProjectConfigContext", () => {
           vcsInfo,
           username: "some-user",
           loggedIn: true,
-          enterpriseDomain,
+          cloudBackendDomain: enterpriseDomain,
           secrets: { foo: "banana " }, // <-----
           commandInfo: { name: "test", args: {}, opts: {} },
         })
@@ -213,7 +213,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -233,7 +233,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -253,7 +253,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -271,7 +271,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -289,7 +289,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "SomeUser",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -311,7 +311,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "SomeUser",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -329,7 +329,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "SomeUser",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: {},
       commandInfo: { name: "deploy", args: {}, opts: { sync: ["my-service"] } },
     })
@@ -349,7 +349,7 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "SomeUser",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })

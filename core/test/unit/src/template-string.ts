@@ -3331,6 +3331,7 @@ describe("getActionTemplateReferences", () => {
 })
 
 describe("throwOnMissingSecretKeys", () => {
+  const cloudBackendDomain = "https://example.com"
   it("should not throw an error if no secrets are referenced", () => {
     const configs = parseTemplateCollection({
       value: [
@@ -3350,6 +3351,7 @@ describe("throwOnMissingSecretKeys", () => {
         secrets: {},
         prefix: "Module",
         isLoggedIn: true,
+        cloudBackendDomain,
       })
       throwOnMissingSecretKeys({
         configs,
@@ -3357,6 +3359,7 @@ describe("throwOnMissingSecretKeys", () => {
         secrets: { someSecret: "123" },
         prefix: "Module",
         isLoggedIn: true,
+        cloudBackendDomain,
       })
     } catch (err) {
       expect.fail("Expected throwOnMissingSecretKeys not to throw")
@@ -3382,6 +3385,7 @@ describe("throwOnMissingSecretKeys", () => {
         secrets: {},
         prefix: "Module",
         isLoggedIn: true,
+        cloudBackendDomain,
       })
       throwOnMissingSecretKeys({
         configs,
@@ -3389,6 +3393,7 @@ describe("throwOnMissingSecretKeys", () => {
         secrets: { someSecret: "123" },
         prefix: "Module",
         isLoggedIn: true,
+        cloudBackendDomain,
       })
     } catch (err) {
       expect.fail("Expected throwOnMissingSecretKeys not to throw")
@@ -3422,6 +3427,7 @@ describe("throwOnMissingSecretKeys", () => {
           secrets: { b: "123" },
           prefix: "Module",
           isLoggedIn: true,
+          cloudBackendDomain,
         }),
       (err) => {
         expect(err.message).to.match(/Module moduleA: a/)
@@ -3439,6 +3445,7 @@ describe("throwOnMissingSecretKeys", () => {
           secrets: {},
           prefix: "Module",
           isLoggedIn: true,
+          cloudBackendDomain,
         }),
       (err) => {
         expect(err.message).to.match(/Module moduleA: a, b/)

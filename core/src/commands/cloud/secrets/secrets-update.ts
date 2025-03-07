@@ -26,6 +26,7 @@ import type {
   Secret,
   SingleUpdateSecretRequest,
 } from "../../../cloud/api.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/secrets.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -104,6 +105,8 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
+    handleSecretsUnavailableInNewBackend({ cloudBackendDomain: garden.cloudDomain })
+
     // Apparently TS thinks that optional params are always defined so we need to cast them to their
     // true type here.
     const environmentName = opts["scope-to-env"] as string | undefined

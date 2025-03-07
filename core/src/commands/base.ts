@@ -298,7 +298,7 @@ export abstract class Command<
         const skipRegistration =
           !["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand
 
-        if (!skipRegistration && garden.isLoggedIn() && garden.projectId && this.streamEvents) {
+        if (!skipRegistration && garden.isOldBackendAvailable() && garden.projectId && this.streamEvents) {
           cloudSession = await garden.cloudApi.registerSession({
             parentSessionId: parentSessionId || undefined,
             sessionId: garden.sessionId,

@@ -375,6 +375,11 @@ export const globalDisplayOptions = {
     defaultValue: false,
     cliOnly: true,
   }),
+  "offline": new BooleanParameter({
+    help: "Use the --offline option when you can't log in right now. Some features won't be available in offline mode.",
+    defaultValue: false,
+    cliOnly: true,
+  }),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
     help: deline`

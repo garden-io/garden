@@ -84,6 +84,7 @@ export function throwOnMissingSecretKeys({
   secrets: StringMap
   prefix: string
   isLoggedIn: boolean
+  cloudBackendDomain: string
   log?: Log
 }) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]

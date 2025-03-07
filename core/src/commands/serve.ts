@@ -159,7 +159,7 @@ export class ServeCommand<
       throw err
     }
 
-    if (defaultGarden && defaultGarden.isLoggedIn()) {
+    if (defaultGarden && defaultGarden.isOldBackendAvailable()) {
       const cloudApi = defaultGarden.cloudApi
       const effectiveGardenProjectConfig = defaultGarden.getProjectConfig()
 

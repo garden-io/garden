@@ -37,16 +37,11 @@ export function getGardenCloudDistributionName(domain: string): CloudDistroName 
 /**
  * Returns the name of the effective Cloud backend (either Grow or Garden).
  */
-export function getCloudDistributionName(domain: string | undefined): CloudDistroName {
+export function getCloudDistributionName(domain: string): CloudDistroName {
   if (gardenEnv.USE_GARDEN_CLOUD_V2) {
     return getGrowCloudDistributionName()
   }
 
-  // FIXME: Remove this ugly hack.
-  //  Domain is required only for Garden Cloud, not for Grow Cloud.
-  if (domain === undefined) {
-    throw new InternalError({ message: "Cloud domain must be defined when using Garden Cloud." })
-  }
   return getGardenCloudDistributionName(domain)
 }
 

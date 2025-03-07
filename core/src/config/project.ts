@@ -580,7 +580,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   vcsInfo,
   username,
   loggedIn,
-  enterpriseDomain,
+  cloudBackendDomain,
   secrets,
   commandInfo,
   projectContext,
@@ -593,7 +593,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   vcsInfo: VcsInfo
   username: string
   loggedIn: boolean
-  enterpriseDomain: string | undefined
+  cloudBackendDomain: string
   secrets: PrimitiveMap
   commandInfo: CommandInfo
 }) {
@@ -634,7 +634,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     username,
     variables: await VariablesContext.forProject(projectConfig, variableOverrides, projectContext),
     loggedIn,
-    enterpriseDomain,
+    cloudBackendDomain,
     secrets,
     commandInfo,
   })
