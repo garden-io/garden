@@ -1,3 +1,0 @@
-kind: Deploy
-type: helm
-name: helm-chart
