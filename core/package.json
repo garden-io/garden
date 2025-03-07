@@ -162,7 +162,7 @@
     "ws": "^8.18.1",
     "yaml": "^2.5.1",
     "yaml-lint": "^1.2.4",
-    "zod": "^3.23.8",
+    "zod": "^3.24.2",
     "zod-to-json-schema": "^3.23.5"
   },
   "devDependencies": {
@@ -250,7 +250,7 @@
     "utility-types": "^3.11.0"
   },
   "scripts": {
-    "build": "mkdir -p build/src/template && peggy src/template/parser.pegjs --output build/src/template/parser.js --format es",
+    "build": "shx mkdir -p build/src/template && peggy src/template/parser.pegjs --output build/src/template/parser.js --format es",
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "check-types": "tsc -p . --noEmit",
     "clean": "shx rm -rf build",

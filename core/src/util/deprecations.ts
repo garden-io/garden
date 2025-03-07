@@ -27,25 +27,7 @@ export function isDeprecatedPlugin(pluginName: string): pluginName is Deprecated
   return false
 }
 
-function makePluginDeprecation(pluginName: DeprecatedPluginName, style: (s: string) => string) {
-  return {
-    contextDesc: "Garden plugins",
-    featureDesc: `The plugin ${style(pluginName)}`,
-    hint: "This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.",
-    hintReferenceLink: null,
-  }
-}
-
 export type DeprecatedDeployActionType = "configmap" | "persistentvolumeclaim"
-
-function makeDeployActionTypeDeprecation(actionType: DeprecatedDeployActionType, style: (s: string) => string) {
-  return {
-    contextDesc: "Garden action types",
-    featureDesc: `The ${style(`${actionType} Deploy`)} action type`,
-    hint: `Use the ${style(`kubernetes Deploy`)} action type instead.`,
-    hintReferenceLink: null,
-  }
-}
 
 export function getDeprecations(style: (s: string) => string = styles.highlight) {
   return {
@@ -53,124 +35,295 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       contextDesc: "Kubernetes provider configuration",
       featureDesc: `The ${style("deploymentStrategy")} config field`,
       hint: `Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the ${style(`blue-green`)} strategy) has been removed.`,
-      hintReferenceLink: null,
+      docs: null,
     },
     dotIgnoreFiles: {
       contextDesc: "Project configuration",
       featureDesc: `The ${style("dotIgnoreFiles")} config field`,
       hint: `Use the ${style("dotIgnoreFile")} field instead. It only allows specifying one filename.`,
-      hintReferenceLink: {
-        name: `${style("dotIgnoreFile")} reference documentation`,
-        link: `reference/project-config.md#dotignorefile`,
-      },
+      docs: dedent`
+      For more information, please refer to the [${style("dotIgnoreFile")} reference documentation](../reference/project-config.md#dotIgnoreFile).
+      `,
     },
     apiVersionV0: {
       contextDesc: "Project configuration",
       featureDesc: `Using ${style(`apiVersion: ${GardenApiVersion.v0}`)} in the project config`,
       hint: dedent`
-      Use ${style(`apiVersion: ${GardenApiVersion.v1}`)} or higher instead.
+        Use ${style(`apiVersion: ${GardenApiVersion.v1}`)} or higher instead.
       `,
-      hintReferenceLink: {
-        name: `${style("apiVersion")} reference documentation`,
-        link: `reference/project-config.md#apiVersion`,
-      },
+      docs: dedent`
+        Using \`apiVersion: garden.io/v0\`, or not specifying \`apiVersion\` at all in the project configuration, indicates the configuration has been written for Garden version 0.12 (Acorn).
+
+        To indicate that your configuration has been written for Garden 0.13 (Bonsai), use \`apiVersion: garden.io/v1\` instead.
+
+        Full Example:
+        \`\`\`yaml
+        # project.garden.yml
+        apiVersion: garden.io/v1 # <-- This indicates that the configuration has been written for Garden 0.13 (Bonsai).
+        kind: Project
+        name: garden-core
+
+        environments:
+         - name: dev
+
+        providers:
+         - name: local-kubernetes
+        \`\`\`
+
+        For more information, please refer to the [${style("apiVersion")} reference documentation](../reference/project-config.md#apiVersion).
+      `,
     },
     projectConfigModules: {
       contextDesc: "Project configuration",
       featureDesc: `The ${style("modules")} config field`,
-      hint: `Please use the ${style("scan")} field instead.`,
-      hintReferenceLink: {
-        name: `${style("scan")} reference documentation`,
-        link: `reference/project-config.md#scan`,
-      },
+      hint: `Do not use the ${style("modules")} field, as it has been renamed to ${style("scan")}. Please use the ${style("scan")} field instead.`,
+      docs: dedent`
+        For more information, please refer to the [${style("scan")} reference documentation](../reference/project-config.md#scan).
+      `,
     },
     kubernetesClusterInitCommand: {
       contextDesc: "Garden commands",
-      featureDesc: `The Kubernetes plugin command ${style("cluster-init")}`,
+      featureDesc: `${style("garden kubernetes cluster-init")}`,
       hint: "Do not use this command. It has no effect.",
-      hintReferenceLink: null,
+      docs: null,
     },
     syncStartCommand: {
-      contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync start")} command`,
-      hint: deline`The command ${style("sync start")} will only be available inside dev console in a future breaking change release.
-        Do not use it as a standalone Garden command.
-        Instead, we recommend running ${style("garden deploy --sync")} or starting syncs inside the dev console with either ${style("deploy --sync")} or ${style("sync start")}.`,
-      hintReferenceLink: null,
+      contextDesc: "Garden commands",
+      featureDesc: `${style("garden sync start")}`,
+      hint: deline`The command ${style("garden sync start")} will only be available inside the dev console (${style("garden dev")}) in the next major version of Garden, 0.14.
+        Do not use it as a standalone Garden command.`,
+      docs: dedent`Please run ${style("garden deploy --sync")} instead, to start the dev console.
+
+      You can also start the dev console by running ${style("garden dev")} and then use the ${style("sync start")} command inside the dev shell. The same applies to all other sync commands.`,
     },
     syncStopCommand: {
-      contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync stop")} command`,
-      hint: deline`The command ${style("sync stop")} will only be available inside dev console in a future breaking change release.
+      contextDesc: "Garden commands",
+      featureDesc: `${style("garden sync stop")}`,
+      hint: deline`The command ${style("garden sync stop")} will only be available inside the dev console (${style("garden dev")}) in the next major version of Garden, 0.14.
         Do not use it as a standalone Garden command.
-        Instead, we recommend stopping syncs inside the dev console with ${style("sync stop")}.`,
-      hintReferenceLink: null,
+        Instead, we recommend running ${style("garden deploy --sync")}, or alternatively starting syncs inside the dev console (${style("garden dev")}) using ${style("sync stop")}.`,
+      docs: dedent`
+        <!-- markdown-link-check-disable-next-line -->
+        See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand).
+      `,
     },
     syncRestartCommand: {
-      contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync restart")} command`,
-      hint: deline`The command ${style("sync restart")} will only be available inside dev console in a future breaking change release.
-        Do not use it as a standalone Garden command.
-        Instead, we recommend restarting syncs inside the dev console with ${style("sync restart")}.`,
-      hintReferenceLink: null,
+      contextDesc: "Garden commands",
+      featureDesc: `${style("garden sync restart")}`,
+      hint: deline`The command ${style("garden sync restart")} will only be available inside the dev console (${style("garden dev")}) in the next major version of Garden, 0.14.
+        Do not use it as a standalone Garden command.`,
+      docs: dedent`
+        <!-- markdown-link-check-disable-next-line -->
+        See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand).
+      `,
     },
     syncStatusCommand: {
-      contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync status")} command`,
-      hint: deline`The command ${style("sync status")} will only be available inside dev console in a future breaking change release.
+      contextDesc: "Garden commands",
+      featureDesc: `${style("garden sync status")}`,
+      hint: deline`The command ${style("garden sync status")} will only be available inside the dev console (${style("garden dev")}) in the next major version of Garden, 0.14.
         Do not use it as a standalone Garden command.
-        Instead, we recommend getting sync statuses inside the dev console with ${style("sync status")}.`,
-      hintReferenceLink: null,
+      `,
+      docs: dedent`
+        <!-- markdown-link-check-disable-next-line -->
+        See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand).
+      `,
     },
-    hadolintPlugin: makePluginDeprecation("hadolint", style),
-    octantPlugin: makePluginDeprecation("octant", style),
-    conftestPlugin: makePluginDeprecation("conftest", style),
+    hadolintPlugin: {
+      contextDesc: "Garden Plugins",
+      featureDesc: `The ${style("hadolint")} plugin`,
+      hint: `Do not use the ${style("hadolint")} plugin explicitly, as it will be removed in the next version of Garden, 0.14.`,
+      docs: dedent`
+        [Hadolint](https://github.com/hadolint/hadolint) is a Dockerfile linter written in Haskell. It can be used to enforce best practices.
+
+        If you want to keep using hadolint, you can use an ${style("exec")} action instead:
+
+        \`\`\`yaml
+        kind: test
+        type: exec
+        name: dockerfile-hadolint
+        include: ["Dockerfile"]
+        spec:
+          command: [hadolint, "Dockerfile"]
+        \`\`\`
+      `,
+    },
+    octantPlugin: {
+      contextDesc: "Garden Plugins",
+      featureDesc: `The ${style("octant")} plugin`,
+      hint: `Do not use the ${style("octant")} plugin explicitly, as it will be removed in the next version of Garden, 0.14.`,
+      docs: `The ${style("octant")} plugin does not have any effect since the integrated dashboard has been removed in Garden 0.13.0.`,
+    },
+    conftestPlugin: {
+      contextDesc: "Garden Plugins",
+      featureDesc: `The ${style("conftest")} plugin`,
+      hint: `Do not use the ${style("conftest")} plugin explicitly, as it will be removed in the next version of Garden, 0.14.`,
+      docs: dedent`
+        [Conftest](https://www.conftest.dev/) is a utility to help you write tests against structured configuration data.
+
+        If you want to keep using conftest, you can use an ${style("exec")} action instead:
+
+        \`\`\`yaml
+        kind: test
+        type: exec
+        name: conftest
+        include:
+        - "policy/**/*.rego"
+        - deployment.yaml
+        spec:
+          command: [conftest, test, deployment.yaml]
+        \`\`\`
+      `,
+    },
     ephemeralKubernetesProvider: {
       contextDesc: "Garden plugins",
-      featureDesc: `The ${style("ephemeral-kubernetes")} provider`,
+      featureDesc: `The ${style("ephemeral-kubernetes")} provider of the ${style("kubernetes")} plugin`,
       hint: deline`
       Use ${style("kubernetes")} or ${style("local-kubernetes")} providers instead.
       We are currently exploring how to improve and offer a new hosted Kubernetes experience in the future – reach out on GitHub or Discord if you are interested or have any feedback!
       `,
-      hintReferenceLink: null, // TODO: add link and update tutorials and guides
+      docs: null, // TODO: add link and update tutorials and guides
     },
     localMode: {
       contextDesc: "Local mode",
-      featureDesc: `The ${style("local mode")} feature for container, kubernetes and helm deploys`,
-      hint: "Please do not use this in Garden 0.14",
-      hintReferenceLink: null,
+      featureDesc: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} deploy actions`,
+      hint: dedent`The local mode will be removed in the next major version of Garden, 0.14.`,
+      docs: dedent`
+        Use the ${style("sync mode")} instead. You can also consider using [mirrord](https://mirrord.dev/) or [telepresence](https://www.telepresence.io/).
+
+        See also:
+        - [${style("spec.localMode")} in the ${style("kubernetes")} deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
+        - [${style("spec.localMode")} in the ${style("helm")} deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
+        - [${style("spec.localMode")} in the ${style("container")} deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
+      `,
     },
     buildConfigFieldOnRuntimeActions: {
       contextDesc: "Action configs",
       featureDesc: `The ${style("build")} config field in runtime action configs`,
       hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
-      hintReferenceLink: {
-        name: "Migration guide for action configs",
-        link: "#updating-action-configs",
-      },
+      docs: dedent`
+        Please replace all root-level configuration entries like \`build: my-app\` with the \`dependencies: [build.my-app]\`.
+
+        For example, a configuration like
+
+        \`\`\`yaml
+        kind: Build
+        name: backend
+        description: Backend service container image
+        type: container
+
+        ---
+        kind: Deploy
+        name: backend
+        description: Backend service container
+        type: container
+        build: backend # <-- old config style uses \`build\` field
+
+        spec:
+        image: \${actions.build.backend.outputs.deploymentImageId}
+        ...
+        \`\`\`
+
+        should be replaced with
+
+        \`\`\`yaml
+        kind: Build
+        name: backend
+        description: Backend service container image
+        type: container
+
+        ---
+        kind: Deploy
+        name: backend
+        description: Backend service container
+        type: container
+
+        # use \`dependencies\` field instead of the \`build\`
+        dependencies:
+        - build.backend
+
+        spec:
+        image: \${actions.build.backend.outputs.deploymentImageId}
+        ...
+        \`\`\`
+      `,
     },
     rsyncBuildStaging: {
       contextDesc: "Build Staging",
-      featureDesc: `The ${style("legacy rsync-based file syncing")} for build staging`,
-      hint: `Do not use ${style(`GARDEN_LEGACY_BUILD_STAGE`)}.`,
-      hintReferenceLink: null,
+      featureDesc: `${style("rsync")}-based build staging`,
+      hint: `Do not use ${style("GARDEN_LEGACY_BUILD_STAGE")} environment variable in 0.14.`,
+      docs: dedent`
+        Using the ${style("rsync")}-based build staging is not necessary when using the latest versions of Garden.
+
+        If you still need to use this environment variable for some reason, please reach out to us on GitHub, Discord or via the customer support.
+      `,
     },
-    configmapDeployAction: makeDeployActionTypeDeprecation("configmap", style),
-    persistentvolumeclaimDeployAction: makeDeployActionTypeDeprecation("persistentvolumeclaim", style),
+    configmapDeployAction: {
+      contextDesc: "Garden action types",
+      featureDesc: `The ${style("configmap")} deploy action type`,
+      hint: `The ${style("configmap")} deploy action type will be removed in the next major version of Garden, 0.14. Please use the ${style("kubernetes")} deploy action type with a ${style("configmap")} Kubernetes manifest instead.`,
+      docs: dedent`
+        Example:
+
+        \`\`\`yaml
+        # garden.yml
+        kind: Deploy
+        type: kubernetes
+        name: game-demo-configmap
+        spec:
+          manifests:
+            - apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: game-demo
+              data:
+                player_initial_lives: "3"
+                ui_properties_file_name: "user-interface.properties"
+                game.properties: |
+                  enemy.types=aliens,monsters
+                  player.maximum-lives=5
+                user-interface.properties: |
+                  color.good=purple
+                  color.bad=yellow
+                  allow.textmode=true
+        \`\`\`
+      `,
+    },
+    persistentvolumeclaimDeployAction: {
+      contextDesc: "Garden action types",
+      featureDesc: `The ${style("persistentvolumeclaim")} deploy action type`,
+      hint: `The ${style("persistentvolumeclaim")} deploy action type will be removed in the next major version of Garden, 0.14. Please use the ${style("kubernetes")} deploy action type instead.`,
+      docs: dedent`
+        For more information how to use Persistent Volume Claims using Kubernetes manifests, refer to the [official Kubernetes documentation on configuring persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/).
+      `,
+    },
     optionalTemplateValueSyntax: {
-      contextDesc: "Template strings",
+      contextDesc: "Template Language",
       featureDesc: `The optional template value syntax (like ${style(`\${var.foo}?`)})`,
-      hint: `Use explicit fallback values instead.`,
-      hintReferenceLink: {
-        name: "Migration guide for optional values in template strings",
-        link: "#using-optional-value-syntax-in-template-strings",
-      },
+      hint: `Use explicit fallback values instead, e.g. ${style(`\${var.foo || "defaultValue"}`)}.`,
+      docs: dedent`
+        There were some issues with the syntax for optional template values in the template language.
+
+        For example, what do you expect the following template to evaluate to:
+
+        \`\`\`yaml
+        # ...
+        variables:
+          baseUrl: https://example.com/
+          fullUrl: \${var.baseUrl}?param=xyz # <-- users expect this to evaluate to https://example.com/?param=xyz
+        \`\`\`
+
+        When using \`apiVersion: garden.io/v1\`, the question mark is considered part of the template expression and thus \`fullUrl\` evaluates to \`https://example.com/param=xyz\` and there is no error if \`var.baseUrl\` doesn't exist.
+
+        When using \`apiVersion: garden.io/v2\`, the question mark operator has been removed and thus \`fullUrl\` evaluates to \`https://example.com/?param=xyz\` and resolving the action will fail if \`var.baseUrl\` doesn't exist.
+      `,
     },
     waitForJobs: {
       contextDesc: "Default configuration values",
       featureDesc: `${style("spec.waitForJobs")} of ${style("kubernetes Deploy")}`,
       hint: `The new default value is ${style("true")}`,
-      hintReferenceLink: null,
+      docs: dedent`
+        This means that deploy actions will wait for jobs to complete by default when applying Job manifests. For more information about jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
+      `,
     },
   } as const
 }

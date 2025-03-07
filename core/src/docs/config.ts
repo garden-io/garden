@@ -237,6 +237,7 @@ export function renderSchemaDescriptionYaml(
 
     // Render key name and value
     const children = desc.getChildren()
+
     const formattedName = name
     const stringifiedValue = JSON.stringify(value)
     const exceptionallyTreatAsPrimitive =
@@ -349,11 +350,7 @@ export function renderConfigReference(
   const normalizedDescriptions = flattenSchema(desc, normalizeOpts)
   normalizedDescriptions.forEach((d) => (d.description = normalizeTemplateStrings(d.description)))
 
-  const yaml = renderSchemaDescriptionYaml(
-    // Skip deprecated fields in the YAML description
-    normalizedDescriptions.filter((d) => !d.deprecated),
-    { renderBasicDescription: true, ...yamlOpts }
-  )
+  const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { renderBasicDescription: true, ...yamlOpts })
   const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
