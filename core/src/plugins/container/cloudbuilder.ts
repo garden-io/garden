@@ -359,6 +359,25 @@ class CloudBuilder {
 
 export const cloudBuilder = new CloudBuilder()
 
+function isContainerBuilderEnabled({
+  ctx,
+  containerProviderConfig,
+}: {
+  ctx: PluginContext
+  containerProviderConfig: ContainerProviderConfig
+}) {
+  let isCloudBuilderEnabled = containerProviderConfig.gardenCloudBuilder?.enabled || false
+
+  // The env variable GARDEN_CLOUD_BUILDER can be used to override the cloudbuilder.enabled config setting.
+  // It will be undefined, if the variable is not set and true/false if GARDEN_CLOUD_BUILDER=1 or GARDEN_CLOUD_BUILDER=0.
+  const overrideFromEnv = gardenEnv.GARDEN_CLOUD_BUILDER
+  if (overrideFromEnv !== undefined) {
+    isCloudBuilderEnabled = overrideFromEnv
+  }
+
+  return isCloudBuilderEnabled
+}
+
 function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
   let containerProvider: ContainerProvider
   let isInClusterBuildingConfigured: boolean
@@ -375,14 +394,7 @@ function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
     })
   }
 
-  let isCloudBuilderEnabled = containerProvider.config.gardenCloudBuilder?.enabled || false
-
-  // The env variable GARDEN_CLOUD_BUILDER can be used to override the cloudbuilder.enabled config setting.
-  // It will be undefined, if the variable is not set and true/false if GARDEN_CLOUD_BUILDER=1 or GARDEN_CLOUD_BUILDER=0.
-  const overrideFromEnv = gardenEnv.GARDEN_CLOUD_BUILDER
-  if (overrideFromEnv !== undefined) {
-    isCloudBuilderEnabled = overrideFromEnv
-  }
+  const isCloudBuilderEnabled = isContainerBuilderEnabled({ ctx, containerProviderConfig: containerProvider.config })
 
   return {
     isInClusterBuildingConfigured,
