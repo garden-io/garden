@@ -175,7 +175,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
     },
     ephemeralKubernetesProvider: {
-      contextDesc: "Garden plugins",
+      contextDesc: "Garden Plugins",
       featureDesc: `The ${style("ephemeral-kubernetes")} provider of the ${style("kubernetes")} plugin`,
       hint: deline`
       Use ${style("kubernetes")} or ${style("local-kubernetes")} providers instead.
