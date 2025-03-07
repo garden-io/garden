@@ -4,5 +4,5 @@ name: "config-map-list"
 variables:
   foo: false
 spec:
-  files:
+  manifestTemplates:
     - "${var.foo ? 'manifests.yaml' : null}"

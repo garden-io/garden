@@ -17,7 +17,7 @@ dependencies:
   - run.db-init
 
 spec:
-  files:
+  manifestTemplates:
     - manifests/deployment.yaml
     - manifests/service.yaml
 

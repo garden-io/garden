@@ -18,7 +18,7 @@ import type { PluginContext } from "../../../plugin-context.js"
 import { ConfigurationError, GardenError, PluginError } from "../../../exceptions.js"
 import type { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config.js"
 import type { HelmModule } from "../helm/module-config.js"
-import type { KubernetesDeployAction } from "./config.js"
+import type { KubernetesDeployAction, KubernetesDeployActionSpec } from "./config.js"
 import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
 import { runAndCopy } from "../run.js"
 import { getResourceContainer, getResourceKey, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
@@ -30,6 +30,9 @@ import isGlob from "is-glob"
 import pFilter from "p-filter"
 import { kubectl } from "../kubectl.js"
 import { loadAndValidateYaml } from "../../../config/base.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { getProjectApiVersion } from "../../../project-api-version.js"
+import type { ActionReference } from "../../../config/common.js"
 
 const { pathExists, readFile } = fsExtra
 
@@ -368,11 +371,11 @@ async function readKustomizeManifests(
       log,
       args: ["build", kustomizePath, ...extraArgs],
     })
-    const manifests = await parseKubernetesManifests(
-      kustomizeOutput,
-      `kustomize output of ${action.longDescription()}`,
-      undefined
-    )
+    const manifests = await parseKubernetesManifests({
+      rawSourceContent: kustomizeOutput,
+      sourceDescription: `kustomize output of ${action.longDescription()}`,
+      sourceFilePath: undefined,
+    })
     return manifests.map((manifest, index) => ({
       declaration: {
         type: "kustomize",
@@ -392,63 +395,106 @@ async function readKustomizeManifests(
   }
 }
 
-async function readFileManifests(
-  ctx: PluginContext,
-  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
-  log: Log,
-  manifestPath: string
-): Promise<DeclaredManifest[]> {
-  const spec = action.getSpec()
-  const specFiles = spec.files
-  const regularPaths = specFiles.filter((f) => !isGlob(f))
+export type KubernetesDeployActionSpecFileSources = Pick<
+  KubernetesDeployActionSpec,
+  "files" | "manifestFiles" | "manifestTemplates"
+>
+
+export function getSpecFiles({
+  log,
+  fileSources: { files, manifestFiles, manifestTemplates },
+}: {
+  actionRef: ActionReference
+  log: Log
+  fileSources: KubernetesDeployActionSpecFileSources
+}): { files: string[]; manifestFiles: string[]; manifestTemplates: string[] } {
+  if (files.length > 0) {
+    reportDeprecatedFeatureUsage({ apiVersion: getProjectApiVersion(), log, deprecation: "kubernetesActionSpecFiles" })
+  }
+
+  return { files, manifestTemplates, manifestFiles }
+}
+
+export async function validateFilePaths({
+  action,
+  manifestDirPath,
+  manifestPaths,
+}: {
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>
+  manifestDirPath: string
+  manifestPaths: string[]
+}) {
+  const regularPaths = manifestPaths.filter((f) => !isGlob(f))
   const missingPaths = await pFilter(regularPaths, async (regularPath) => {
-    const resolvedPath = resolve(manifestPath, regularPath)
+    const resolvedPath = resolve(manifestDirPath, regularPath)
     return !(await pathExists(resolvedPath))
   })
+
   if (missingPaths.length) {
     throw new ConfigurationError({
       message: `Invalid manifest file path(s) declared in ${action.longDescription()}. Cannot find manifest file(s) at ${naturalList(
         missingPaths
-      )} in ${manifestPath} directory.`,
+      )} in ${manifestDirPath} directory.`,
     })
   }
 
-  const resolvedFiles = await glob(specFiles, { cwd: manifestPath })
-  if (specFiles.length > 0 && resolvedFiles.length === 0) {
+  const resolvedPaths = await glob(manifestPaths, { cwd: manifestDirPath })
+  if (manifestPaths.length > 0 && resolvedPaths.length === 0) {
     throw new ConfigurationError({
       message: `Invalid manifest file path(s) declared in ${action.longDescription()}. Cannot find any manifest files for paths ${naturalList(
-        specFiles
-      )} in ${manifestPath} directory.`,
+        manifestPaths
+      )} in ${manifestDirPath} directory.`,
     })
   }
+
+  return resolvedPaths
+}
+
+/**
+ * Helper function to read the manifests from the given fise-system paths.
+ *
+ *
+ * It does the following steps:
+ * 1. Read the manifest files from disk as raw strings
+ * 2. Optionally transforms the manifest strings
+ * 3. Parses the manifest strings to valid object representation of the kubernetes resources
+ *
+ * @param action the current action
+ * @param manifestDirPath the location of the manifests
+ * @param manifestPaths the paths of the manifest files relative to {@code manifestDirPath}
+ * @param transformFn the optional transformation function to be applied to the raw manifest strings read from the disk
+ * @param log the logger
+ */
+export async function readManifestsFromPaths({
+  action,
+  manifestDirPath,
+  manifestPaths,
+  transformFn,
+  log,
+}: {
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>
+  manifestDirPath: string
+  manifestPaths: string[]
+  transformFn?: (rawManifestStr: string, filePath: string) => string
+  log: Log
+}): Promise<DeclaredManifest[]> {
+  const validManifestPaths = await validateFilePaths({ action, manifestDirPath, manifestPaths })
 
   return flatten(
     await Promise.all(
-      resolvedFiles.map(async (path): Promise<DeclaredManifest[]> => {
-        const absPath = resolve(manifestPath, path)
+      validManifestPaths.map(async (path): Promise<DeclaredManifest[]> => {
+        const absPath = resolve(manifestDirPath, path)
         log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
         const str = (await readFile(absPath)).toString()
 
-        // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
-        // First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
-        // template expressions will be interpreted by the YAML parser later.
-        // Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
-        // if they reference variables that do not exist.
-        const resolved = ctx.legacyResolveTemplateString(str, {
-          legacyAllowPartial: true,
+        const transformed = transformFn ? transformFn(str, absPath) : str
+
+        const manifests = await parseKubernetesManifests({
+          rawSourceContent: transformed,
+          sourceDescription: `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`,
+          sourceFilePath: absPath,
         })
 
-        if (typeof resolved !== "string") {
-          throw new ConfigurationError({
-            message: `Expected manifest template expression in file at path ${absPath} to resolve to string; Actually got ${typeof resolved}`,
-          })
-        }
-
-        const manifests = await parseKubernetesManifests(
-          resolved,
-          `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`,
-          absPath
-        )
         return manifests.map((manifest, index) => ({
           declaration: {
             type: "file",
@@ -462,21 +508,86 @@ async function readFileManifests(
   )
 }
 
+const resolveTemplateStrings =
+  (ctx: PluginContext, legacyAllowPartial?: boolean) => (rawManifestContent: string, filePath: string) => {
+    // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
+    //   First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
+    //   template expressions will be interpreted by the YAML parser later.
+    //   Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
+    //   if they reference variables that do not exist.
+    const resolved = ctx.legacyResolveTemplateString(rawManifestContent, { legacyAllowPartial })
+
+    if (typeof resolved !== "string") {
+      throw new ConfigurationError({
+        message: `Expected manifest template expression in file at path ${filePath} to resolve to string; Actually got ${typeof resolved}`,
+      })
+    }
+
+    return resolved
+  }
+
+async function readFileManifests(
+  ctx: PluginContext,
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
+  log: Log,
+  manifestDirPath: string
+): Promise<DeclaredManifest[]> {
+  const { files, manifestFiles, manifestTemplates } = getSpecFiles({
+    actionRef: action,
+    log,
+    fileSources: action.getSpec(),
+  })
+
+  const manifestsFromDeprecatedFiles = await readManifestsFromPaths({
+    action,
+    manifestDirPath,
+    manifestPaths: files,
+    transformFn: resolveTemplateStrings(ctx, true),
+    log,
+  })
+  const manifestsFromFiles = await readManifestsFromPaths({
+    action,
+    manifestDirPath,
+    manifestPaths: manifestFiles,
+    log,
+  })
+  const manifestsFromTemplates = await readManifestsFromPaths({
+    action,
+    manifestDirPath,
+    manifestPaths: manifestTemplates,
+    transformFn: resolveTemplateStrings(ctx),
+    log,
+  })
+
+  return [...manifestsFromDeprecatedFiles, ...manifestsFromFiles, ...manifestsFromTemplates]
+}
+
 /**
  * Correctly parses Kubernetes manifests: Kubernetes uses the YAML 1.1 spec by default and not YAML 1.2, which is the default for most libraries.
  *
- * @throws ConfigurationError on parser errors.
  * @param str raw string containing Kubernetes manifests in YAML format
  * @param sourceDescription description of where the YAML string comes from, e.g. "foo.yaml in directory /bar"
+ * @param sourceFilePath the path of the source YAML file, to be used for syntax highlighting
+ *
+ * @throws ConfigurationError on parser errors
  */
-async function parseKubernetesManifests(
-  str: string,
-  sourceDescription: string,
-  filename: string | undefined
-): Promise<KubernetesResource[]> {
+async function parseKubernetesManifests({
+  rawSourceContent,
+  sourceDescription,
+  sourceFilePath,
+}: {
+  rawSourceContent: string
+  sourceDescription: string
+  sourceFilePath: string | undefined
+}): Promise<KubernetesResource[]> {
   // parse yaml with version 1.1 by default, as Kubernetes still uses this version.
   // See also https://github.com/kubernetes/kubernetes/issues/34146
-  const docs = await loadAndValidateYaml({ content: str, sourceDescription, filename, version: "1.1" })
+  const docs = await loadAndValidateYaml({
+    content: rawSourceContent,
+    sourceDescription,
+    filename: sourceFilePath,
+    version: "1.1",
+  })
 
   // TODO: We should use schema validation to make sure that apiVersion, kind and metadata are always defined as required by the type.
   const manifests = docs.map((d) => d.toJS()) as KubernetesResource[]
@@ -532,21 +643,24 @@ export function convertServiceResource(
  * or a {@code podSelector}.
  * The {@code podSelector} takes precedence over the {@code (kind, name)}, see {@link getTargetResource}.
  *
- * @param module the current module
  * @param serviceResourceSpec the input service resource spec in 0.12 format
+ * @param moduleName the current module name
  * @return the 0.13 compatible kubernetes service resource spec
  * @see targetResourceSpecSchema
  * @see getTargetResource
  */
-export function convertServiceResourceSpec(s: ServiceResourceSpec, moduleName: string): KubernetesTargetResourceSpec {
+export function convertServiceResourceSpec(
+  serviceResourceSpec: ServiceResourceSpec,
+  moduleName: string
+): KubernetesTargetResourceSpec {
   // Set only the necessary fields to satisfy the schema restrictions defined for KubernetesTargetResourceSpec.
   const result: KubernetesTargetResourceSpec =
-    s.podSelector && !isEmpty(s.podSelector)
-      ? { podSelector: s.podSelector }
-      : { kind: s.kind, name: s.name || moduleName }
+    serviceResourceSpec.podSelector && !isEmpty(serviceResourceSpec.podSelector)
+      ? { podSelector: serviceResourceSpec.podSelector }
+      : { kind: serviceResourceSpec.kind, name: serviceResourceSpec.name || moduleName }
 
-  if (s.containerName) {
-    result.containerName = s.containerName
+  if (serviceResourceSpec.containerName) {
+    result.containerName = serviceResourceSpec.containerName
   }
 
   return result

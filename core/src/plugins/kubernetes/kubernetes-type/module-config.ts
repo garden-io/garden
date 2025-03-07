@@ -57,7 +57,7 @@ export const kubernetesModuleSpecSchema = () =>
   joi
     .object()
     .keys({
-      ...kubernetesCommonDeploySpecKeys(),
+      ...kubernetesCommonDeploySpecKeys({ deprecateFiles: false }),
       build: baseBuildSpecSchema(),
       dependencies: dependenciesSchema(),
       sync: kubernetesModuleSyncSchema(),

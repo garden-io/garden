@@ -30,6 +30,119 @@ Once the list of breaking changes is final, we will make this known here.
 
 Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
 
+## Action configs
+
+<h3 id="kubernetesActionSpecFiles">The <code>spec.files</code> config field in <code>kubernetes Deploy</code></h3>
+
+Use `spec.manifestTemplates` and/or `spec.manifestFiles` instead.
+
+If you want to keep using the Garden template language in your Kubernetes manifest files, use `spec.manifestTemplates`. This
+means that your Kubernetes manifests won't be applicable using `kubectl` (without Garden) anymore.
+
+If you need to keep your Kubernetes manifests files compatible with `kubectl`, in other words, you don't want to use the Garden template language in your manifest files, use `spec.manifestFiles` instead.
+
+Example:
+
+```yaml
+# garden.yml
+kind: Deploy
+type: kubernetes
+name: my-app
+spec:
+ manifestFiles:
+   - manifests/**/*.yml # <-- Treat these files as pure Kubernetes manifest files
+ manifestTemplates:
+   - manifests/**/*.yml.tpl # <-- Use the Garden template language in files that end with `.yml.tpl`.
+```
+
+The following paragraphs go into more detail as to why this change was necessary.
+
+Until now there wasn't a choice: Garden would always attempt to resolve template strings like `${fooBar}` in Kubernetes manifest files.
+
+This becomes problematic when, for example, the Kubernetes manifest contains a bash script:
+
+```yaml
+# manifests/bash-script.yml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: bash-scripts
+data:
+   important-bash-script.sh: |
+     #!/bin/bash
+     echo "hello ${USERNAME:=world}"
+```
+
+This manifest file is 100% valid and works when applied using `kubectl apply < manifests/bash-script.yml`.
+
+Using this manifest file like so will not work as expected, but throw a template syntax error:
+
+```yaml
+# garden.yml
+kind: Deploy
+type: kubernetes
+name: bash-scripts
+spec:
+ files:
+   - manifests/bash-script.yml # <-- Garden will parse template strings in `manifests/bash-script.yml` and fail with a syntax error.
+```
+
+The only way to work around this problem in the past was to escape the template string by prepending a `$` sign in the script; But this work-around also means that the manifest isn't compatible with `kubectl apply` anymore:
+
+```bash
+#!/bin/bash
+echo "hello $${USERNAME:=world}" # <-- This is not a working bash script anymore :(
+```
+
+<h3 id="buildConfigFieldOnRuntimeActions">The <code>build</code> config field in runtime action configs</h3>
+
+Use `dependencies` config build to define the build dependencies.
+
+Please replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
+
+For example, a configuration like
+
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+build: backend # <-- old config style uses `build` field
+
+spec:
+image: ${actions.build.backend.outputs.deploymentImageId}
+...
+```
+
+should be replaced with
+
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+
+# use `dependencies` field instead of the `build`
+dependencies:
+- build.backend
+
+spec:
+image: ${actions.build.backend.outputs.deploymentImageId}
+...
+```
+
 ## Project configuration
 
 <h3 id="dotIgnoreFiles">The <code>dotIgnoreFiles</code> config field</h3>
@@ -163,57 +276,6 @@ See also:
 - [`spec.localMode` in the `kubernetes` deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
 - [`spec.localMode` in the `helm` deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
 - [`spec.localMode` in the `container` deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
-
-## Action configs
-
-<h3 id="buildConfigFieldOnRuntimeActions">The <code>build</code> config field in runtime action configs</h3>
-
-Use `dependencies` config build to define the build dependencies.
-
-Please replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
-
-For example, a configuration like
-
-```yaml
-kind: Build
-name: backend
-description: Backend service container image
-type: container
-
----
-kind: Deploy
-name: backend
-description: Backend service container
-type: container
-build: backend # <-- old config style uses `build` field
-
-spec:
-image: ${actions.build.backend.outputs.deploymentImageId}
-...
-```
-
-should be replaced with
-
-```yaml
-kind: Build
-name: backend
-description: Backend service container image
-type: container
-
----
-kind: Deploy
-name: backend
-description: Backend service container
-type: container
-
-# use `dependencies` field instead of the `build`
-dependencies:
-- build.backend
-
-spec:
-image: ${actions.build.backend.outputs.deploymentImageId}
-...
-```
 
 ## Build Staging
 

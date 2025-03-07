@@ -2,6 +2,6 @@ kind: Deploy
 type: kubernetes
 name: kubernetes-module
 spec:
-  files:
+  manifestTemplates:
     - deployment.yaml
     - service.yaml

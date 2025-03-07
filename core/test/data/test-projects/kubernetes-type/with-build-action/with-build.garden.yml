@@ -3,4 +3,20 @@ type: kubernetes
 name: with-build-action
 build: exec-build
 spec:
+  manifestTemplates: ["*.yaml"]
+
+---
+kind: Deploy
+type: kubernetes
+name: with-build-action-manifests-in-deprecated-files
+build: exec-build
+spec:
   files: ["*.yaml"]
+
+---
+kind: Deploy
+type: kubernetes
+name: with-build-action-manifests-in-manifest-files
+build: exec-build
+spec:
+  manifestFiles: ["*.yaml"]

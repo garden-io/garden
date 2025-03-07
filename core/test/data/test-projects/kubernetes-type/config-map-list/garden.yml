@@ -2,5 +2,5 @@ kind: "Deploy"
 type: "kubernetes"
 name: "config-map-list"
 spec:
-  files:
+  manifestTemplates:
     - manifests.yaml

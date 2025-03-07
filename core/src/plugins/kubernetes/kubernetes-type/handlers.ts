@@ -27,7 +27,7 @@ import {
   waitForResources,
 } from "../status/status.js"
 import type { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types.js"
-import type { ManifestMetadata, ParsedMetadataManifestData } from "./common.js"
+import type { KubernetesDeployActionSpecFileSources, ManifestMetadata, ParsedMetadataManifestData } from "./common.js"
 import { convertServiceResource, getManifests, getMetadataManifest, parseMetadataResource } from "./common.js"
 import type { KubernetesModule } from "./module-config.js"
 import { configureKubernetesModule } from "./module-config.js"
@@ -41,12 +41,14 @@ import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-st
 import type { ResolvedDeployAction } from "../../../actions/deploy.js"
 import { isSha256 } from "../../../util/hashing.js"
 import { prepareSecrets } from "../secrets.js"
+import { GardenApiVersion } from "../../../constants.js"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
 
   convert: async (params) => {
-    const { module, services, tasks, tests, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
+    const { ctx, module, services, tasks, tests, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } =
+      params
     const actions: (ExecBuildConfig | KubernetesActionConfig)[] = []
 
     if (dummyBuild) {
@@ -59,6 +61,22 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const files = module.spec.files || []
     const manifests = module.spec.manifests || []
 
+    const apiVersion = ctx.projectApiVersion
+    let fileSources: KubernetesDeployActionSpecFileSources
+    if (apiVersion === GardenApiVersion.v2) {
+      fileSources = {
+        files: [],
+        manifestFiles: [],
+        manifestTemplates: files,
+      }
+    } else {
+      fileSources = {
+        files,
+        manifestFiles: [],
+        manifestTemplates: [],
+      }
+    }
+
     const deployAction: KubernetesDeployActionConfig = {
       kind: "Deploy",
       type: "kubernetes",
@@ -67,12 +85,12 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       build: dummyBuild?.name,
       dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
-      include: module.spec.files,
+      include: files,
       timeout: service.spec.timeout,
 
       spec: {
         ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
-        files,
+        ...fileSources,
         manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
       },
@@ -112,7 +130,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
           resource,
-          files,
+          ...fileSources,
           manifests,
           namespace: module.spec.namespace,
         },
@@ -140,7 +158,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
-          files,
+          ...fileSources,
           manifests,
           namespace: module.spec.namespace,
         },
