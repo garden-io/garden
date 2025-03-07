@@ -76,6 +76,7 @@ export const IGNORE_UNCAUGHT_EXCEPTION_VARNAME = "GARDEN_IGNORE_UNCAUGHT_EXCEPTI
  * We set this up as a map to facilitate overriding values in tests.
  */
 export const gardenEnv = {
+  GARDEN_OFFLINE: env.get("GARDEN_OFFLINE").required(false).default("false").asBool(),
   ANALYTICS_DEV: env.get("ANALYTICS_DEV").required(false).asBool(),
   // Support the NO_COLOR env var (see https://no-color.org/)
   NO_COLOR: env.get("NO_COLOR").required(false).default("false").asBool(),

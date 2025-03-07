@@ -2026,6 +2026,8 @@ async function initCloudApi({
   } catch (err) {
     if (err instanceof CloudApiTokenRefreshError) {
       const distroName = getCloudDistributionName(cloudDomain)
+
+      // TODO(0.14): Remove this warning, as login is required when connecting projects to Cloud.
       log.warn(dedent`
             The current ${distroName} session is not valid or it's expired.
             Command results for this command run will not be available in ${distroName}.
@@ -2268,17 +2270,6 @@ async function initCloudProject({
   const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
 
   if (!cloudApi) {
-    const msg = `You are not logged in. To use ${distroName}, log in with the ${styles.command(
-      "garden login"
-    )} command.`
-
-    if (isCommunityEdition) {
-      cloudLog.info(msg)
-      cloudLog.info(`Learn more at: ${makeDocsLinkStyled("using-garden/dashboard")}`)
-    } else {
-      cloudLog.warn(msg)
-    }
-
     return {
       secrets: {},
       cloudProject: undefined,

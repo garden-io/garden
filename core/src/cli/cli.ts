@@ -38,7 +38,7 @@ import { enforceLogin } from "../cloud/auth.js"
 import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
 import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
 import type { ProjectConfig } from "../config/project.js"
-import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants.js"
+import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv } from "../constants.js"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
@@ -286,6 +286,7 @@ ${renderCommands(commands)}
           await enforceLogin({
             garden,
             log,
+            isOfflineModeEnabled: parsedOpts.offline || gardenEnv.GARDEN_OFFLINE,
           })
 
           gardenLog.info(
