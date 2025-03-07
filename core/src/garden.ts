@@ -268,8 +268,7 @@ interface ResolveProviderParams {
 }
 
 type GardenType = typeof Garden.prototype
-// TODO: add more fields that are known to be defined when logged in to Cloud
-export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
+export type GardenWithOldBackend = GardenType & Required<Pick<GardenType, "cloudApi">>
 
 function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
   const projectApiVersion = params.projectApiVersion
@@ -828,6 +827,7 @@ export class Garden {
         secrets: this.secrets,
         prefix: "Provider",
         isLoggedIn: this.isLoggedIn(),
+        cloudBackendDomain: this.cloudDomain,
         log,
       })
 
@@ -1888,8 +1888,12 @@ export class Garden {
   }
 
   /** Returns whether the user is logged in to the Garden Cloud */
-  public isLoggedIn(): this is LoggedInGarden {
+  public isOldBackendAvailable(): this is GardenWithOldBackend {
     return !!this.cloudApi
+  }
+
+  public isLoggedIn(): boolean {
+    return !!this.cloudApi || !!this.cloudApiV2
   }
 }
 
@@ -2094,10 +2098,11 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       projectConfig,
       skipCloudConnect,
     })
-    const loggedIn = !!cloudApi
 
     // Use this to interact with Cloud Backend V2
     const cloudApiV2 = await initCloudApiV2({ cloudDomain: cloudBackendDomain, globalConfigStore, log })
+
+    const loggedIn = !!cloudApi || !!cloudApiV2
 
     const { secrets, cloudProject } = await initCloudProject({
       cloudApi,

@@ -33,8 +33,8 @@ import {
   checkRequirements,
   renderCommandErrors,
   cliStyles,
-  emitLoginWarning,
 } from "./helpers.js"
+import { enforceLogin } from "../cloud/auth.js"
 import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
 import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
 import type { ProjectConfig } from "../config/project.js"
@@ -283,11 +283,9 @@ ${renderCommands(commands)}
         } else {
           garden = await wrapActiveSpan("initializeGarden", () => this.getGarden(workingDir, contextOpts))
 
-          await emitLoginWarning({
+          await enforceLogin({
             garden,
             log,
-            isLoggedIn: garden.isLoggedIn(),
-            isCommunityEdition: isGardenCommunityEdition(garden.cloudDomain),
           })
 
           gardenLog.info(
