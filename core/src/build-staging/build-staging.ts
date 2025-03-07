@@ -18,7 +18,6 @@ import { FileStatsHelper, syncFileAsync, cloneFile, scanDirectoryForClone } from
 import { difference } from "lodash-es"
 import { unlink } from "fs"
 import type { BuildAction, BuildActionConfig } from "../actions/build.js"
-import { getBuildAtSource } from "../actions/build.js"
 import { isBuildActionConfig } from "../actions/build.js"
 import type { ModuleConfig } from "../config/module.js"
 import fsExtra from "fs-extra"
@@ -145,7 +144,7 @@ export class BuildStaging {
     }
 
     if (isBuildActionConfig(config)) {
-      if (getBuildAtSource(config)) {
+      if (config.buildAtSource) {
         return config.internal.basePath
       }
     }

@@ -11,7 +11,7 @@ import type { ActionReference } from "../config/common.js"
 import { createSchema, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
 import type { GraphResult, GraphResults } from "../graph/results.js"
-import { dedent, deline } from "../util/string.js"
+import { dedent } from "../util/string.js"
 import type {
   BaseActionConfig,
   ResolvedActionWrapperParams,
@@ -27,16 +27,11 @@ import { baseActionConfigSchema, BaseAction, includeExcludeSchema, actionReferen
 import type { ResolvedConfigGraph } from "../graph/config-graph.js"
 import type { ActionVersion } from "../vcs/vcs.js"
 import { Memoize } from "typescript-memoize"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants.js"
 import { createBuildTask } from "../tasks/build.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
 import type { ResolvedTemplate } from "../template/types.js"
-import { getProjectApiVersion } from "../project-api-version.js"
-import { reportDefaultConfigValueChange } from "../util/deprecations.js"
-import { RootLogger } from "../logger/logger.js"
-import { emitNonRepeatableWarning } from "../warnings.js"
-import { styles } from "../logger/styles.js"
 
 export interface BuildCopyFrom {
   build: string
@@ -48,31 +43,8 @@ export interface BuildActionConfig<T extends string = string, S extends object =
   extends BaseActionConfig<"Build", T, S> {
   type: T
   allowPublish?: boolean
-  /**
-   * This must be accessed via `getBuildAtSource` helper to ensure the correct default value.
-   */
   buildAtSource?: boolean
   copyFrom?: BuildCopyFrom[]
-}
-
-export function getBuildAtSource(config: BuildActionConfig): boolean {
-  const projectApiVersion = getProjectApiVersion()
-  const buildAtSource = config.buildAtSource
-  if (buildAtSource === undefined && config.type === "exec") {
-    const log = RootLogger.getInstance().createLog()
-    emitNonRepeatableWarning(
-      log,
-      deline`Action ${styles.highlight(actionReferenceToString(config))}
-        of type ${styles.highlight(config.type)}
-        defined in ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}
-        relies on the default value of ${styles.highlight("buildAtSource")}.`
-    )
-    reportDefaultConfigValueChange({ apiVersion: projectApiVersion, log, deprecation: "buildAtSource" })
-  }
-
-  // Enable `buildAtSource` by default for exec Build actions when use `apiVersion: garden.io/v2`
-  const defaultValue = projectApiVersion === GardenApiVersion.v2 && config.type === "exec"
-  return buildAtSource ?? defaultValue
 }
 
 export const copyFromSchema = createSchema({
@@ -200,7 +172,8 @@ export class BuildAction<
   }
 
   get buildAtSource(): boolean {
-    return getBuildAtSource(this._config)
+    // default value can be overridden in the plugin level configure-handlers
+    return this._config.buildAtSource || false
   }
 
   /**

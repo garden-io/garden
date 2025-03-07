@@ -18,6 +18,14 @@ import { execRunCommand } from "./common.js"
 import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
 import { ACTION_RUNTIME_LOCAL } from "../../plugin/base.js"
+import { getProjectApiVersion } from "../../project-api-version.js"
+import { emitNonRepeatableWarning } from "../../warnings.js"
+import { deline } from "../../util/string.js"
+import { actionReferenceToString } from "../../actions/base.js"
+import { reportDefaultConfigValueChange } from "../../util/deprecations.js"
+import { GardenApiVersion } from "../../constants.js"
+import type { BuildActionConfig } from "../../actions/build.js"
+import type { Log } from "../../logger/log-entry.js"
 
 const s = sdk.schema
 
@@ -51,6 +59,32 @@ export const execBuild = execProvider.createActionType({
 
 export type ExecBuildConfig = GardenSdkActionDefinitionConfigType<typeof execBuild>
 export type ExecBuild = GardenSdkActionDefinitionActionType<typeof execBuild>
+
+function setDefaultBuildAtSource(config: BuildActionConfig, log: Log) {
+  const projectApiVersion = getProjectApiVersion()
+  const buildAtSource = config.buildAtSource
+  if (buildAtSource !== undefined) {
+    return
+  }
+
+  emitNonRepeatableWarning(
+    log,
+    deline`Action ${styles.highlight(actionReferenceToString(config))}
+        of type ${styles.highlight(config.type)}
+        defined in ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}
+        relies on the default value of ${styles.highlight("buildAtSource")}.`
+  )
+  reportDefaultConfigValueChange({ apiVersion: projectApiVersion, log, deprecation: "buildAtSource" })
+
+  // Enable `buildAtSource` by default for exec Build actions when use `apiVersion: garden.io/v2`
+  const defaultValue = projectApiVersion === GardenApiVersion.v2
+  config.buildAtSource = defaultValue
+}
+
+execBuild.addHandler("configure", async ({ config, log }) => {
+  setDefaultBuildAtSource(config, log)
+  return { config, supportedModes: { sync: false } }
+})
 
 export const execBuildHandler = execBuild.addHandler("build", async ({ action, log, ctx }) => {
   const output: BuildStatus = {
