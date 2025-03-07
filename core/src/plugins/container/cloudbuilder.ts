@@ -24,14 +24,14 @@ import type {
 } from "../../cloud/api.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
-import { GardenApiVersion, gardenEnv } from "../../constants.js"
+import { gardenEnv } from "../../constants.js"
 import type { ActionRuntime, ActionRuntimeKind } from "../../plugin/base.js"
 import crypto from "crypto"
 import { promisify } from "util"
 import AsyncLock from "async-lock"
 import { containerHelpers } from "./helpers.js"
 import { hashString } from "../../util/util.js"
-import { stableStringify } from "../../util/string.js"
+import { deline, stableStringify } from "../../util/string.js"
 import { homedir } from "os"
 import { getCloudDistributionName, isGardenCommunityEdition } from "../../cloud/util.js"
 import { TRPCClientError } from "@trpc/client"
@@ -373,16 +373,44 @@ function isContainerBuilderEnabled({
     reportDeprecatedFeatureUsage({ apiVersion, log: ctx.log, deprecation: "gardenCloudBuilder" })
   }
 
-  let isCloudBuilderEnabled = containerProviderConfig.gardenCloudBuilder?.enabled || false
-
-  // The env variable GARDEN_CLOUD_BUILDER can be used to override the cloudbuilder.enabled config setting.
-  // It will be undefined, if the variable is not set and true/false if GARDEN_CLOUD_BUILDER=1 or GARDEN_CLOUD_BUILDER=0.
-  const overrideFromEnv = gardenEnv.GARDEN_CLOUD_BUILDER
-  if (overrideFromEnv !== undefined) {
-    isCloudBuilderEnabled = overrideFromEnv
+  if (!!containerProviderConfig.gardenContainerBuilder && !!containerProviderConfig.gardenCloudBuilder) {
+    throw new ConfigurationError({
+      message: deline`
+      Provider configuration declares both ${styles.highlight("gardenContainerBuilder")} and ${styles.highlight("gardenCloudBuilder")} fields.
+      Please use only ${styles.highlight("gardenContainerBuilder")}.
+      `,
+    })
   }
 
-  return isCloudBuilderEnabled
+  // handle new config
+  if (!!containerProviderConfig.gardenContainerBuilder) {
+    let isCloudBuilderEnabled = containerProviderConfig.gardenContainerBuilder.enabled || false
+
+    // The env variable GARDEN_CONTAINER_BUILDER can be used to override the gardenContainerBuilder.enabled config setting.
+    // It will be undefined, if the variable is not set and true/false if GARDEN_CONTAINER_BUILDER=1 or GARDEN_CONTAINER_BUILDER=0.
+    const overrideFromEnv = gardenEnv.GARDEN_CONTAINER_BUILDER
+    if (overrideFromEnv !== undefined) {
+      isCloudBuilderEnabled = overrideFromEnv
+    }
+
+    return isCloudBuilderEnabled
+  }
+
+  // handle old config
+  if (!!containerProviderConfig.gardenCloudBuilder) {
+    let isCloudBuilderEnabled = containerProviderConfig.gardenCloudBuilder.enabled || false
+
+    // The env variable GARDEN_CLOUD_BUILDER can be used to override the gardenCloudBuilder.enabled config setting.
+    // It will be undefined, if the variable is not set and true/false if GARDEN_CLOUD_BUILDER=1 or GARDEN_CLOUD_BUILDER=0.
+    const overrideFromEnv = gardenEnv.GARDEN_CLOUD_BUILDER
+    if (overrideFromEnv !== undefined) {
+      isCloudBuilderEnabled = overrideFromEnv
+    }
+
+    return isCloudBuilderEnabled
+  }
+
+  return false
 }
 
 function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
