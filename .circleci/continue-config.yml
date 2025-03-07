@@ -1300,16 +1300,6 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-hadolint
-          project: hadolint
-          requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-hadolint-modules
-      #     project: hadolint-modules
-      #     requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
           name: e2e-jib-container
           project: jib-container
           environment: remote
