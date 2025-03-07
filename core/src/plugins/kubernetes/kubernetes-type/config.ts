@@ -153,8 +153,10 @@ export const kubernetesPatchResourcesSchema = () =>
 export const kubernetesApplyArgsSchema = () =>
   joi.sparseArray().items(joi.string()).description("Additional arguments to pass to `kubectl apply`.")
 
-export const kubernetesCommonDeploySpecKeys = () => ({
-  files: kubernetesManifestTemplatesSchema(),
+type KubernetesCommonDeployKeyDeprecations = { deprecateFiles: boolean }
+
+export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => ({
+  files: kubernetesManifestTemplatesSchema().meta({ deprecated: deprecations.deprecateFiles }),
   kustomize: kustomizeSpecSchema(),
   manifests: kubernetesManifestsSchema(),
   patchResources: kubernetesPatchResourcesSchema(),
@@ -174,7 +176,7 @@ export const kubernetesDeploySchema = () =>
   joi
     .object()
     .keys({
-      ...kubernetesCommonDeploySpecKeys(),
+      ...kubernetesCommonDeploySpecKeys({ deprecateFiles: true }),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
       localMode: kubernetesLocalModeSchema(),
