@@ -58,27 +58,25 @@ export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRE
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER = 20
 
-export interface ContainerProviderConfig extends BaseProviderConfig {
-  dockerBuildExtraFlags?: string[]
-  gardenCloudBuilder?: {
-    enabled: boolean
-  }
+export type GardenContainerBuilderConfig = {
+  enabled: boolean
 }
 
-export const configSchema = () =>
-  providerConfigBaseSchema()
-    .keys({
-      dockerBuildExtraFlags: joi.sparseArray().items(joi.string()).description(dedent`
-          **Stability: Experimental**. Subject to breaking changes within minor releases.
+export interface ContainerProviderConfig extends BaseProviderConfig {
+  dockerBuildExtraFlags?: string[]
+  /**
+   * @deprecated use {@link #gardenContainerBuilder} instead
+   */
+  gardenCloudBuilder?: GardenContainerBuilderConfig
+  gardenContainerBuilder?: GardenContainerBuilderConfig
+}
 
-          Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
-          `),
-      // Cloud builder
-      gardenCloudBuilder: joi
-        .object()
-        .optional()
-        .keys({
-          enabled: joi.boolean().default(false).description(dedent`
+export const gardenContainerBuilderSchema = () =>
+  joi
+    .object()
+    .optional()
+    .keys({
+      enabled: joi.boolean().default(false).description(dedent`
             **Stability: Experimental**. Subject to breaking changes within minor releases.
 
             Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast caching.
@@ -92,9 +90,20 @@ export const configSchema = () =>
 
             Please note that when enabling Cloud Builder together with in-cluster building, you need to authenticate to your \`deploymentRegistry\` from the local machine (e.g. by running \`docker login\`).
             `),
-        }).description(dedent`
-        **Stability: Experimental**. Subject to breaking changes within minor releases.
-        `),
+    })
+
+export const configSchema = () =>
+  providerConfigBaseSchema()
+    .keys({
+      dockerBuildExtraFlags: joi.sparseArray().items(joi.string()).description(dedent`
+          **Stability: Experimental**. Subject to breaking changes within minor releases.
+
+          Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
+          `),
+      // Deprecate old config syntax
+      gardenCloudBuilder: gardenContainerBuilderSchema().meta({ deprecated: true }),
+      // Garden Container builder
+      gardenContainerBuilder: gardenContainerBuilderSchema(),
     })
     .unknown(false)
 
