@@ -112,7 +112,7 @@
 
 * [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
-* [Deprecations and major-version updates](./guides/deprecations.md)
+* [Deprecations and updating to Cedar](./guides/deprecations.md)
 * [Code Synchronization](./guides/code-synchronization.md)
 * [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Environments and namespaces](./guides/namespaces.md)

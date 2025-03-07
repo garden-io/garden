@@ -1,9 +1,9 @@
 ---
 order: 1
-title: Deprecations and major-version updates
+title: Deprecations and updating to Cedar
 ---
 
-# Migrating to
+# Deprecations and updating to Cedar
 
 The next major version of Garden, 0.14 (Cedar), will contain breaking changes. To make the update as seamless as possible for
 your team, avoid functionality that has been deprecated in Garden 0.13.
