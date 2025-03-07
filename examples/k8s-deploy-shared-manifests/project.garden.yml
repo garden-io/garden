@@ -41,5 +41,3 @@ providers:
       namespace: garden-ci
     namespace: ${environment.namespace}
     defaultHostname: ${var.baseHostname}
-  - name: octant
-    environments: [ci, preview, dev]
