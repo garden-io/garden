@@ -127,8 +127,6 @@ function sortTree(tree: FileTree) {
   }
 }
 
-const emojiList = ["🌸", "🌳", "🌻", "💐", "🌿", "🌺", "☘️", "🌹", "🌼", "🌷", "🪷", "🎋"]
-
 function generateMarkdown({
   tree,
   docsRoot,
@@ -150,12 +148,7 @@ function generateMarkdown({
   const path = tree.path.replace(docsRoot, ".")
   let output: string
 
-  if (depth === 0) {
-    const emoji = emojiList[topLevelPageIdx % emojiList.length]
-    output = `\n## ${emoji} ${tree.title}\n\n`
-  } else {
-    output = repeat(indent, depth - 1) + `* [${tree.title}](${path})\n`
-  }
+  output = repeat(indent, depth) + `* [${tree.title}](${path})\n`
 
   // We don't want the root directory of the docs to be a TOC item.
   if (tree.topLevel) {
