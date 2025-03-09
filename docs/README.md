@@ -181,6 +181,7 @@
   * [FAQ](./misc/faq.md)
   * [Troubleshooting](./misc/troubleshooting.md)
   * [Telemetry](./misc/telemetry.md)
+  * [New Garden Cloud Version](./misc/cloud-announcement.md)
 * [Contributing to Garden](./contributing/README.md)
   * [Contributor Covenant Code of Conduct](./contributing/CODE_OF_CONDUCT.md)
   * [Contributing to the Docs](./contributing/contributing-docs.md)

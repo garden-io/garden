@@ -28,7 +28,7 @@ The following option flags can be used with any of the CLI commands:
   | `--silent` |  | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--logger-type` |  | `quiet` `default` `basic` `json` `ink`  | Set logger type. default The default Garden logger, basic: [DEPRECATED] An alias for &quot;default&quot;. json: Renders log lines as JSON. quiet: Suppresses all log output, same as --silent.
   | `--log-level` |  | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5. From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).
-  | `--output` |  | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
+  | `--output` |  | `json` `yaml`  | Output command result in the specified format. When used, this option disables line-by-line logging, even if the GARDEN_LOGGER_TYPE environment variable is used.
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
   | `--show-timestamps` |  | boolean | Show timestamps with log output. When enabled, Garden will use the basic logger. I.e., log status changes are rendered as new lines instead of being updated in-place.
   | `--version` |  | boolean | Show the current CLI version.
