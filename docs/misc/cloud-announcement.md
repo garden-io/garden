@@ -3,8 +3,9 @@ order: 4
 title: New Garden Cloud Version
 ---
 
-> [!NOTE]
-> This is an early draft that we're sharing with our community. We'll also publish a more formal announcements around the launch itself.
+{% hint style="info" %}
+This is an early draft that we're sharing with our community. We'll also publish a more formal announcements around the launch itself.
+{% endhint %}
 
 On **March 17th** (tentatively), we’re rolling out a brand-new version of **Garden Cloud** on [app.garden.io](http://app.garden.io/)!
 
