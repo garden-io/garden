@@ -96,7 +96,7 @@ function makeNotLoggedInError({ isInClusterBuildingConfigured }: CloudBuilderCon
     message: dedent`
         You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
 
-        If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUD_BUILDER=0")}. ${fallbackDescription}`,
+        If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CONTAINER_BUILDER=0")}. ${fallbackDescription}`,
   })
 }
 
