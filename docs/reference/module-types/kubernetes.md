@@ -501,9 +501,9 @@ tasks:
       # type.
       podSelector:
 
-    # Set to false if you don't want the Run's result to be cached. Use this if the Run needs to be run any time your
-    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
-    # changes, or when you run `garden run`.
+    # Set to false if you don't want the Run action result to be cached. Use this if the Run needs to be run any time
+    # your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its
+    # version changes, or when you run `garden run`.
     cacheResult: true
 
     # The command/entrypoint used to run inside the container.
@@ -1704,7 +1704,7 @@ A map of string key/value labels to match on any Pods in the namespace. When spe
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the Run's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
+Set to false if you don't want the Run action result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

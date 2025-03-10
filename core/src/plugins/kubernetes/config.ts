@@ -906,7 +906,7 @@ export const runPodSpecWhitelistDescription = () => runPodSpecIncludeFields.map(
 export const runCacheResultSchema = (kind: ActionKind) =>
   cacheResultSchema().description(
     dedent`
-Set to false if you don't want the ${kind}'s result to be cached. Use this if the ${kind} needs to be run any time your project (or one or more of the ${kind}'s dependants) is deployed. Otherwise the ${kind} is only re-run when its version changes, or when you run \`garden run\`.
+Set to false if you don't want the ${kind} action result to be cached. Use this if the ${kind} needs to be run any time your project (or one or more of the ${kind}'s dependants) is deployed. Otherwise the ${kind} is only re-run when its version changes, or when you run \`garden run\`.
 `
   )
 
