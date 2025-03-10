@@ -54,7 +54,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
 
 export function getRunResultKey(ctx: PluginContext, action: Action) {
   // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
-  const resultFormatVersion = 1
+  const resultFormatVersion = 2
   const key = `${ctx.projectName}--${action.type}.${action.name}--${action.versionString()}--${resultFormatVersion}`
   const hash = hashSync(key, { algorithm: "sha1" })
   return `run-result--${hash.slice(0, 32)}`
