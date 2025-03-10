@@ -248,8 +248,7 @@ Whether the varfile is optional.
 ### `build`
 
 {% hint style="warning" %}
-**Deprecated**: The `build` config field in runtime action configs is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-Use `dependencies` config build to define the build dependencies.
+**Deprecated**: Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
 {% endhint %}
 
 Specify a _Build_ action, and resolve this action from the context of that Build.
@@ -588,6 +587,16 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `spec.cacheResult`
+
+[spec](#spec) > cacheResult
+
+Set to false if you don't want the Test action result to be cached. Use this if the Test action needs to be run any time your project (or one or more of the Test action's dependants) is deployed. Otherwise the Test action is only re-run when its version changes, or when you run `garden run`.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 
 ## Outputs
