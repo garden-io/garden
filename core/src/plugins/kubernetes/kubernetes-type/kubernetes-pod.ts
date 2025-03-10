@@ -42,6 +42,7 @@ export interface KubernetesPodRunActionSpec extends KubernetesCommonRunSpec {
   resource?: KubernetesTargetResourceSpec
   podSpec?: V1PodSpec
 }
+
 export type KubernetesPodRunActionConfig = RunActionConfig<"kubernetes-pod", KubernetesPodRunActionSpec>
 export type KubernetesPodRunAction = RunAction<KubernetesPodRunActionConfig, KubernetesRunOutputs>
 
@@ -157,12 +158,14 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
         ...res,
       }
 
-      await storeTestResult({
-        ctx: k8sCtx,
-        log,
-        action,
-        result: detail,
-      })
+      if (action.getSpec("cacheResult")) {
+        await storeTestResult({
+          ctx: k8sCtx,
+          log,
+          action,
+          result: detail,
+        })
+      }
 
       return { state: runResultToActionState(detail), detail, outputs: { log: res.log } }
     },
