@@ -46,7 +46,7 @@ class LoginRequiredWhenConnected extends GardenError {
   }
 }
 
-export async function enforceLogin({
+export function enforceLogin({
   garden,
   log,
   isOfflineModeEnabled,
@@ -62,8 +62,8 @@ export async function enforceLogin({
 
   const distroName = getCloudDistributionName(garden.cloudDomain)
 
-  if (isConnectedToCloud && !isLoggedIn) {
-    if (apiVersion === GardenApiVersion.v2 && !isOfflineModeEnabled) {
+  if (isConnectedToCloud && !isLoggedIn && !isOfflineModeEnabled) {
+    if (apiVersion === GardenApiVersion.v2) {
       throw new LoginRequiredWhenConnected()
     }
 
@@ -77,7 +77,7 @@ export async function enforceLogin({
   }
 
   // TODO(0.14): Remove this branch as it is now unreachable.
-  if (!isLoggedIn) {
+  if (!isLoggedIn && !isOfflineModeEnabled) {
     const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
     const msg = `You are not logged in. To use ${distroName}, log in with the ${styles.command(
@@ -87,8 +87,7 @@ export async function enforceLogin({
     const isCommunityEdition = isGardenCommunityEdition(garden.cloudDomain)
 
     if (isCommunityEdition) {
-      cloudLog.info(msg)
-      cloudLog.info(`Learn more at: ${makeDocsLinkStyled("using-garden/dashboard")}`)
+      cloudLog.info(`${msg}\nLearn more at: ${makeDocsLinkStyled("using-garden/dashboard")}`)
     } else {
       cloudLog.warn(msg)
     }

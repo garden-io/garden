@@ -282,7 +282,7 @@ ${renderCommands(commands)}
         } else {
           garden = await wrapActiveSpan("initializeGarden", () => this.getGarden(workingDir, contextOpts))
 
-          await enforceLogin({
+          enforceLogin({
             garden,
             log,
             isOfflineModeEnabled: parsedOpts.offline || gardenEnv.GARDEN_OFFLINE,
