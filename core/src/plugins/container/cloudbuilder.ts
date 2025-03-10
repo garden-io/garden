@@ -406,7 +406,7 @@ function isContainerBuilderEnabled({
 
     // The env variable GARDEN_CLOUD_BUILDER can be used to override the gardenCloudBuilder.enabled config setting.
     // It will be undefined, if the variable is not set and true/false if GARDEN_CLOUD_BUILDER=1 or GARDEN_CLOUD_BUILDER=0.
-    const overrideFromEnv = gardenEnv.GARDEN_CLOUD_BUILDER
+    const overrideFromEnv = gardenEnv.GARDEN_CONTAINER_BUILDER || gardenEnv.GARDEN_CLOUD_BUILDER
     if (overrideFromEnv !== undefined) {
       isCloudBuilderEnabled = overrideFromEnv
     }
