@@ -153,21 +153,24 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
       const res = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
       const detail = {
-        testName: action.name,
-        namespaceStatus,
         ...res,
+        namespaceStatus,
+        testName: action.name,
+        outputs: {
+          log: res.log || "", // include outputs as it's done for Run action and for similar helm-pod actions
+        },
       }
 
       if (action.getSpec("cacheResult")) {
         await storeTestResult({
-          ctx: k8sCtx,
+          ctx,
           log,
           action,
           result: detail,
         })
       }
 
-      return { state: runResultToActionState(detail), detail, outputs: { log: res.log } }
+      return { state: runResultToActionState(detail), detail, outputs: detail.outputs }
     },
 
     getResult: k8sGetTestResult,
