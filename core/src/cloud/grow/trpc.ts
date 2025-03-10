@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CreateTRPCClient, TRPCClientError, TRPCClientErrorBase, TRPCLink } from "@trpc/client"
+import type { CreateTRPCClient, TRPCClientErrorBase, TRPCLink } from "@trpc/client"
+import { TRPCClientError } from "@trpc/client"
 import { createTRPCClient, httpLink, loggerLink } from "@trpc/client"
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import { observable } from "@trpc/server/observable"
@@ -121,3 +122,7 @@ export type ApiClient = CreateTRPCClient<AppRouter>
 export type GrowCloudBuilderRegisterBuildResponse = Awaited<
   ReturnType<ApiClient["cloudBuilder"]["registerBuild"]["mutate"]>
 >
+
+export function isTRPCClientError(cause: unknown): cause is TRPCClientError<AppRouter> {
+  return cause instanceof TRPCClientError
+}
