@@ -357,12 +357,14 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     optionalTemplateValueSyntax: {
       docsSection: "Template Language",
-      docsHeadline: `The optional template value syntax (like ${style(`\${var.foo}?`)})`,
-      warnHint: `The optional template value syntax will be removed in Garden 0.14. Use explicit fallback values instead, e.g. ${style(`\${var.foo || null}`)}.`,
+      docsHeadline: `Optional template expressions`,
+      warnHint: `The optional template expression syntax will be removed in Garden 0.14. Use explicit fallback values instead, e.g. ${style(`\${var.foo || null}`)}.`,
       docs: dedent`
-        There were some issues with the syntax for optional template values in the template language.
+        The optional template expression syntax can be used to mark a template expression as optional, meaning there will not be an error when looking up a variable inside the template expression fails.
 
-        For example, what do you expect the following template to evaluate to:
+        Using a question mark (\`?\`) following a template expression to mark it as optional led to surprising and/or undesired behaviour in some cases.
+
+        In the following example, users would expect \`var.fullUrl\` to evaluate to \`https://example.com/?param=xyz\`.
 
         \`\`\`yaml
         # ...
@@ -371,9 +373,13 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
           fullUrl: \${var.baseUrl}?param=xyz # <-- users expect this to evaluate to https://example.com/?param=xyz
         \`\`\`
 
-        When using \`apiVersion: garden.io/v1\`, the question mark is considered part of the template expression and thus \`fullUrl\` evaluates to \`https://example.com/param=xyz\` and there is no error if \`var.baseUrl\` doesn't exist.
+        Due to the optional template expression syntax, the value behind \`var.fullUrl\` actually evaluates to \`https://example.com/param=xyz\` (Notice the missing question mark after the value of \`var.baseUrl\`) when using \`apiVersion: garden.io/v1\`.
 
-        When using \`apiVersion: garden.io/v2\`, the question mark operator has been removed and thus \`fullUrl\` evaluates to \`https://example.com/?param=xyz\` and resolving the action will fail if \`var.baseUrl\` doesn't exist.
+        For this reason, we will remove the optional template expression syntax. You can adopt the new behaviour and prepare your configuration files for the release of Garden 0.14 by using \`apiVersion: garden.io/v2\` in the project-level configuration.
+
+        When using \`apiVersion: garden.io/v2\`, the optional template syntax has been removed and thus \`var.fullUrl\` evaluates to \`https://example.com/?param=xyz\` and resolving the action will fail if \`var.baseUrl\` doesn't exist.
+
+        You can use explicit fallback values using the logical or operator in case you've been relying on the optional template expression syntax.
       `,
     },
     waitForJobs: {

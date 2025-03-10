@@ -31,7 +31,7 @@ This means the cache is only available when connecting your project with Garden 
 
 Logging in also enables you to use our Managed Container Builder which can significantly improve your Docker build performance.
 
-To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project level Garden configuration has `id` and `domain` fields set.
+To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has `id` and `domain` fields set.
 
 **We don't want to be in your way if you can't log in right now**, be it because you are lacking permissions or because you're offline.
 
@@ -311,13 +311,15 @@ For more information how to use Persistent Volume Claims using Kubernetes manife
 
 ## Template Language
 
-<h3 id="optionalTemplateValueSyntax">The optional template value syntax (like <code>${var.foo}?</code>)</h3>
+<h3 id="optionalTemplateValueSyntax">Optional template expressions</h3>
 
-The optional template value syntax will be removed in Garden 0.14. Use explicit fallback values instead, e.g. `${var.foo || null}`.
+The optional template expression syntax will be removed in Garden 0.14. Use explicit fallback values instead, e.g. `${var.foo || null}`.
 
-There were some issues with the syntax for optional template values in the template language.
+The optional template expression syntax can be used to mark a template expression as optional, meaning there will not be an error when looking up a variable inside the template expression fails.
 
-For example, what do you expect the following template to evaluate to:
+Using a question mark (`?`) following a template expression to mark it as optional led to surprising and/or undesired behaviour in some cases.
+
+In the following example, users would expect `var.fullUrl` to evaluate to `https://example.com/?param=xyz`.
 
 ```yaml
 # ...
@@ -326,9 +328,13 @@ variables:
  fullUrl: ${var.baseUrl}?param=xyz # <-- users expect this to evaluate to https://example.com/?param=xyz
 ```
 
-When using `apiVersion: garden.io/v1`, the question mark is considered part of the template expression and thus `fullUrl` evaluates to `https://example.com/param=xyz` and there is no error if `var.baseUrl` doesn't exist.
+Due to the optional template expression syntax, the value behind `var.fullUrl` actually evaluates to `https://example.com/param=xyz` (Notice the missing question mark after the value of `var.baseUrl`) when using `apiVersion: garden.io/v1`.
 
-When using `apiVersion: garden.io/v2`, the question mark operator has been removed and thus `fullUrl` evaluates to `https://example.com/?param=xyz` and resolving the action will fail if `var.baseUrl` doesn't exist.
+For this reason, we will remove the optional template expression syntax. You can adopt the new behaviour and prepare your configuration files for the release of Garden 0.14 by using `apiVersion: garden.io/v2` in the project-level configuration.
+
+When using `apiVersion: garden.io/v2`, the optional template syntax has been removed and thus `var.fullUrl` evaluates to `https://example.com/?param=xyz` and resolving the action will fail if `var.baseUrl` doesn't exist.
+
+You can use explicit fallback values using the logical or operator in case you've been relying on the optional template expression syntax.
 
 ## Default configuration values
 
