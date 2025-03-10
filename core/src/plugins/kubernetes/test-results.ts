@@ -12,7 +12,6 @@ import type { ContainerTestAction } from "../container/moduleConfig.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "./config.js"
 import type { Log } from "../../logger/log-entry.js"
-import type { TestResult } from "../../types/test.js"
 import { hashSync } from "hasha"
 import { gardenAnnotationKey } from "../../util/string.js"
 import { upsertConfigMap } from "./util.js"
@@ -23,6 +22,8 @@ import { runResultToActionState } from "../../actions/base.js"
 import type { HelmPodTestAction } from "./helm/config.js"
 import type { KubernetesTestAction } from "./kubernetes-type/config.js"
 import { GardenError } from "../../exceptions.js"
+import type { RunResult } from "../../plugin/base.js"
+import type { NamespaceStatus } from "../../types/namespace.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -35,12 +36,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
 
   try {
     const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: testResultNamespace })
-    const result: any = deserializeValues(res.data!)
-
-    // Backwards compatibility for modified result schema
-    if (result.version?.versionString) {
-      result.version = result.version.versionString
-    }
+    const result = deserializeValues(res.data!) as CacheableTestResult
 
     return { state: runResultToActionState(result), detail: result, outputs: { log: result.log || "" } }
   } catch (err) {
@@ -67,7 +63,19 @@ interface StoreTestResultParams {
   ctx: PluginContext
   log: Log
   action: ContainerTestAction | KubernetesTestAction | HelmPodTestAction
-  result: TestResult
+  result: CacheableTestResult
+}
+
+export type CacheableTestResult = RunResult & {
+  namespaceStatus: NamespaceStatus
+  actionName: string
+  /**
+   * @deprecated use {@link #actionName} instead
+   */
+  testName: string
+  outputs: {
+    log: string
+  }
 }
 
 /**
@@ -75,7 +83,12 @@ interface StoreTestResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeTestResult({ ctx, log, action, result }: StoreTestResultParams): Promise<TestResult> {
+export async function storeTestResult({
+  ctx,
+  log,
+  action,
+  result,
+}: StoreTestResultParams): Promise<CacheableTestResult> {
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = ctx.provider as KubernetesProvider
   const api = await KubeApi.factory(log, k8sCtx, provider)

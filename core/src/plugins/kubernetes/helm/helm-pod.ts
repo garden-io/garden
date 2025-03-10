@@ -22,6 +22,7 @@ import type { HelmPodRunAction, HelmPodTestAction } from "./config.js"
 import { helmPodRunSchema } from "./config.js"
 import { runAndCopy } from "../run.js"
 import { filterManifests, prepareManifests, prepareTemplates } from "./common.js"
+import type { CacheableTestResult } from "../test-results.js"
 import { storeTestResult } from "../test-results.js"
 import { kubernetesRunOutputsSchema } from "../kubernetes-type/config.js"
 
@@ -100,9 +101,10 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
 
       const res = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = {
+      const detail: CacheableTestResult = {
         ...res,
         namespaceStatus,
+        actionName: action.name,
         testName: action.name,
         outputs: {
           log: res.log || "",
