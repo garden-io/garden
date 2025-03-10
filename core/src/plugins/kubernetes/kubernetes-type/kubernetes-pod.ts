@@ -10,7 +10,7 @@ import type { KubernetesCommonRunSpec, KubernetesPluginContext, KubernetesTarget
 import { kubernetesCommonRunSchemaKeys, runPodResourceSchema, runPodSpecSchema } from "../config.js"
 import { k8sGetRunResult, storeRunResult } from "../run-results.js"
 import { getActionNamespaceStatus } from "../namespace.js"
-import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
+import type { ActionKind, RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
 import { dedent } from "../../../util/string.js"
 import type { RunAction, RunActionConfig } from "../../../actions/run.js"
 import { createSchema } from "../../../config/common.js"
@@ -49,7 +49,7 @@ export type KubernetesPodRunAction = RunAction<KubernetesPodRunActionConfig, Kub
 // Maintaining this cache to avoid errors when `kubernetesRunPodSchema` is called more than once with the same `kind`.
 const runSchemas: { [name: string]: ObjectSchema } = {}
 
-export const kubernetesRunPodSchema = (kind: string) => {
+export const kubernetesRunPodSchema = (kind: ActionKind) => {
   const name = `${kind}:kubernetes-pod`
   if (runSchemas[name]) {
     return runSchemas[name]
@@ -57,7 +57,7 @@ export const kubernetesRunPodSchema = (kind: string) => {
   const schema = createSchema({
     name,
     keys: () => ({
-      ...kubernetesCommonRunSchemaKeys(),
+      ...kubernetesCommonRunSchemaKeys(kind),
       kustomize: kustomizeSpecSchema(),
       patchResources: kubernetesPatchResourcesSchema(),
       manifests: kubernetesManifestsSchema().description(
