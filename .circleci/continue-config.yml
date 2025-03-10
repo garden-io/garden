@@ -1185,7 +1185,7 @@ jobs:
           name: Install Deps
           command: |
             Import-Module "$Env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-            choco install --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
+            choco install --limit-output --no-progress -y git gcloudsdk kubernetes-cli
             $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
             gcloud components install gke-gcloud-auth-plugin --quiet
             $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
