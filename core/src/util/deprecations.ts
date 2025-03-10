@@ -41,7 +41,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         <!-- markdown-link-check-disable-next-line -->
         To suppress this warning and adopt the new behaviour described below, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiVersion)).
 
-        #### Why
+        ### Why
 
         <!-- markdown-link-check-disable-next-line -->
         Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds (See also [${style("ConfigMap")}-based cache for Kubernetes actions](#configMapBasedCache)).
@@ -52,7 +52,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         To prevent your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has \`id\` and \`domain\` fields set.
 
-        #### Offline mode
+        ### Offline mode
 
         **We don't want to be in your way if you can't log in right now**, be it because you are lacking permissions or because you're offline.
 
@@ -71,7 +71,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         <!-- markdown-link-check-disable-next-line -->
         To suppress this warning, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiVersion)).
 
-        #### Why
+        ### Why
 
         We are making this change because \`ConfigMap\` resources in your Kubernetes cluster are not designed for storing \`Test\` and \`Run\` action statuses and have limitations on the amount of data that can be stored for each cache entry.
 
@@ -79,7 +79,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         Additionally, the storage location of the cache limits the functionality: it's impossible, for instance, to share test results across multiple Kubernetes clusters. If your team is using the \`local-kubernetes\` provider, they cannot benefit from the cache of other team members.
 
-        #### Team Cache backend
+        ### Team Cache backend
 
         With Garden 0.14, we are offering a **Team Cache** option with a new storage backend in Garden Cloud/Enterprise, putting us in the position of bringing Garden caching capabilities to the next level.
 
@@ -88,7 +88,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         <!-- markdown-link-check-disable-next-line -->
         We'll also introduce a login requirement for these projects. See also [Login Requirement](#loginRequirement) for more information.
 
-        #### File-based backend
+        ### File-based backend
 
         For projects that aren't connected to Garden Cloud/Enterprise, or when you're using the \`--offline\` option, we will automatically fall back to a file-based cache backend.
 
@@ -126,7 +126,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
             - manifests/**/*.yml.tpl # <-- Use the Garden template language in files that end with \`.yml.tpl\`.
         \`\`\`
 
-        #### Why
+        ### Why
 
         Until now there wasn't a choice: Garden would always attempt to resolve template strings like ${style("${fooBar}")} in Kubernetes manifest files.
 
