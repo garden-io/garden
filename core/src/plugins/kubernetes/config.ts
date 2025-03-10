@@ -44,6 +44,7 @@ import { defaultKanikoImageName, defaultUtilImageRegistryDomain, defaultSystemNa
 import type { LocalKubernetesClusterType } from "./local/config.js"
 import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
 import { makeDeprecationMessage } from "../../util/deprecations.js"
+import type { ActionKind } from "../../plugin/action-types.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -902,15 +903,15 @@ export const portForwardsSchema = () =>
 
 export const runPodSpecWhitelistDescription = () => runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
-export const runCacheResultSchema = () =>
+export const runCacheResultSchema = (kind: ActionKind) =>
   cacheResultSchema().description(
     dedent`
-Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run \`garden run\`.
+Set to false if you don't want the ${kind}'s result to be cached. Use this if the ${kind} needs to be run any time your project (or one or more of the ${kind}'s dependants) is deployed. Otherwise the ${kind} is only re-run when its version changes, or when you run \`garden run\`.
 `
   )
 
-export const kubernetesCommonRunSchemaKeys = () => ({
-  cacheResult: runCacheResultSchema(),
+export const kubernetesCommonRunSchemaKeys = (kind: ActionKind) => ({
+  cacheResult: runCacheResultSchema(kind),
   command: joi
     .sparseArray()
     .items(joi.string().allow(""))
@@ -971,7 +972,7 @@ export const kubernetesTaskSchema = () =>
         **Warning**: Garden will retain \`configMaps\` and \`secrets\` as volumes, but remove \`persistentVolumeClaim\` volumes from the Pod spec, as they might already be mounted.
         ${runPodSpecWhitelistDescription()}`
       ),
-      ...kubernetesCommonRunSchemaKeys(),
+      ...kubernetesCommonRunSchemaKeys("Run"),
     })
     .description("The task definitions for this module.")
 
