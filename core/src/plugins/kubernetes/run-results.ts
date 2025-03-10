@@ -30,11 +30,11 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
   const action = <ContainerRunAction>params.action
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const runResultNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const resultKey = getRunResultKey(ctx, action)
 
   try {
-    const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: ns })
+    const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: runResultNamespace })
     const result: any = deserializeValues(res.data!)
 
     // Backwards compatibility for modified result schema
@@ -50,7 +50,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
       result.version = result.version.versionString
     }
 
-    return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
+    return { state: runResultToActionState(result), detail: result, outputs: { log: result.log || "" } }
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
@@ -84,9 +84,10 @@ interface StoreTaskResultParams {
  * TODO: Implement a CRD for this.
  */
 export async function storeRunResult({ ctx, log, action, result }: StoreTaskResultParams): Promise<RunResult> {
-  const provider = <KubernetesProvider>ctx.provider
-  const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getAppNamespace(ctx as KubernetesPluginContext, log, provider)
+  const k8sCtx = ctx as KubernetesPluginContext
+  const provider = ctx.provider as KubernetesProvider
+  const api = await KubeApi.factory(log, k8sCtx, provider)
+  const runResultNamespace = await getAppNamespace(k8sCtx, log, provider)
 
   // FIXME: We should store the logs separately, because of the 1MB size limit on ConfigMaps.
   const data = trimRunOutput(result)
@@ -94,7 +95,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
   try {
     await upsertConfigMap({
       api,
-      namespace,
+      namespace: runResultNamespace,
       key: getRunResultKey(ctx, action),
       labels: {
         [gardenAnnotationKey("action")]: action.key(),
