@@ -286,7 +286,7 @@ Set a timeout for the test to complete, in seconds.
 
 [spec](#spec) > cacheResult
 
-Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
+Set to false if you don't want the Test's result to be cached. Use this if the Test needs to be run any time your project (or one or more of the Test's dependants) is deployed. Otherwise the Test is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -536,11 +536,11 @@ this action config's directory.
 
 [spec](#spec) > resource
 
-Specify a Kubernetes resource to derive the Pod spec from for the Run.
+Specify a Kubernetes resource to derive the Pod spec from for the Test.
 
-This resource will be selected from the manifests provided in this Run's `files` or `manifests` config field.
+This resource will be selected from the manifests provided in this Test's `files` or `manifests` config field.
 
-The following fields from the Pod will be used (if present) when executing the Run:
+The following fields from the Pod will be used (if present) when executing the Test:
 
 **Warning**: Garden will retain `configMaps` and `secrets` as volumes, but remove `persistentVolumeClaim` volumes from the Pod spec, as they might already be mounted.
 * `affinity`
