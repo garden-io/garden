@@ -401,6 +401,7 @@ describe("plugins.container", () => {
             name: "unit",
             args: ["echo", "OK"],
             artifacts: [],
+            cacheResult: true,
             dependencies: [],
             disabled: false,
             env: {
@@ -739,6 +740,7 @@ describe("plugins.container", () => {
               name: "test-a",
               args: [],
               artifacts: [],
+              cacheResult: true,
               dependencies: [],
               disabled: false,
               env: {},
@@ -827,6 +829,7 @@ describe("plugins.container", () => {
               name: "unit",
               args: ["echo", "OK"],
               artifacts: [],
+              cacheResult: true,
               dependencies: [],
               disabled: false,
               env: {},
