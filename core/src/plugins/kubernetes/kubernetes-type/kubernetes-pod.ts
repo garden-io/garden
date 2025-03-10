@@ -31,7 +31,7 @@ import type { KubernetesKustomizeSpec } from "./kustomize.js"
 import { kustomizeSpecSchema } from "./kustomize.js"
 import type { ObjectSchema } from "@hapi/joi"
 import type { TestActionConfig, TestAction } from "../../../actions/test.js"
-import type { CacheableTestResult } from "../test-results.js"
+import { composeCacheableTestResult } from "../test-results.js"
 import { storeTestResult, k8sGetTestResult } from "../test-results.js"
 
 // RUN //
@@ -145,17 +145,9 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
       })
       const namespace = namespaceStatus.namespaceName
 
-      const res = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
-      const detail: CacheableTestResult = {
-        ...res,
-        namespaceStatus,
-        actionName: action.name,
-        testName: action.name,
-        outputs: {
-          log: res.log || "", // include outputs as it's done for Run action and for similar helm-pod actions
-        },
-      }
+      const detail = composeCacheableTestResult({ result, action, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         await storeTestResult({
