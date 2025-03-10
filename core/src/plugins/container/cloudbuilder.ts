@@ -57,7 +57,7 @@ type CloudBuilderConfiguration = {
 }
 
 // This means that Core will ask Cloud for availability every 5 minutes.
-// It might well be that we plan to use Cloud Builder for an action, and then we fall back to building locally.
+// It might well be that we plan to use Container Builder for an action, and then we fall back to building locally.
 const cloudBuilderAvailability = new LRUCache<string, CloudBuilderAvailabilityV2>({
   max: 1000,
   // 5 minutes
@@ -94,17 +94,17 @@ function makeNotLoggedInError({ isInClusterBuildingConfigured }: CloudBuilderCon
 
   return new ConfigurationError({
     message: dedent`
-        You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
+        You are not logged in. Run ${styles.command("garden login")} so Garden Container Builder can speed up your container builds.
 
-        If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CONTAINER_BUILDER=0")}. ${fallbackDescription}`,
+        If you can't log in right now, disable Garden Container Builder using the environment variable ${styles.bold("GARDEN_CONTAINER_BUILDER=0")}. ${fallbackDescription}`,
   })
 }
 
 function makeVersionMismatchWarning({ isInClusterBuildingConfigured }: CloudBuilderConfiguration) {
   return dedent`
-    ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
+    ${styles.bold("Update Garden to continue to benefit from Garden Container Builder.")}
 
-    Your current Garden version is not supported anymore by Garden Cloud Builder. Please update Garden to the latest version.
+    Your current Garden version is not supported anymore by Garden Container Builder. Please update Garden to the latest version.
 
     Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
 
@@ -229,7 +229,7 @@ class CloudBuilder {
   }
 
   /**
-   * @returns false if Cloud Builder is not configured or not available, otherwise it returns the availability (a required parameter for withBuilder)
+   * @returns false if Container Builder is not configured or not available, otherwise it returns the availability (a required parameter for withBuilder)
    */
   async getAvailability(
     ctx: PluginContext,
@@ -241,11 +241,11 @@ class CloudBuilder {
     if (!isCloudBuilderEnabled) {
       return {
         available: false,
-        reason: "Cloud Builder is not enabled",
+        reason: "Container Builder is not enabled",
       }
     }
 
-    // Cache the Cloud Builder availability response from Backend for 5 minutes in LRU cache
+    // Cache the Container Builder availability response from Backend for 5 minutes in LRU cache
     const fromCache = cloudBuilderAvailability.get(action.uid)
     if (fromCache) {
       return fromCache
@@ -258,7 +258,7 @@ class CloudBuilder {
       emitNonRepeatableWarning(
         ctx.log,
         dedent`
-          ${styles.bold("Garden Cloud Builder is not available.")}
+          ${styles.bold("Garden Container Builder is not available.")}
 
           Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
 
@@ -298,7 +298,7 @@ class CloudBuilder {
         { kind: "local" }
 
     const preferred: ActionRuntimeKind = isCloudBuilderEnabled
-      ? // If cloud builder is configured, we prefer using cloud builder
+      ? // If Container Builder is configured, we prefer using Container Builder
         {
           kind: "remote",
           type: "garden-cloud",
@@ -306,7 +306,7 @@ class CloudBuilder {
       : // Otherwise we fall back to in-cluster building or building locally, whatever is configured.
         fallback
 
-    // if cloud builder is configured AND available, that's our actual runtime. Otherwise we fall back to whatever is configured in the plugin.
+    // if Container Builder is configured AND available, that's our actual runtime. Otherwise we fall back to whatever is configured in the plugin.
     const actual = availability.available ? preferred : fallback
 
     if (actual === preferred) {
@@ -316,7 +316,7 @@ class CloudBuilder {
     } else {
       if (availability.available) {
         throw new InternalError({
-          message: `Inconsistent state: Should only fall back if Cloud Builder is not available`,
+          message: `Inconsistent state: Should only fall back if Container Builder is not available`,
         })
       }
       return {
