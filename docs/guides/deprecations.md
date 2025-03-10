@@ -5,16 +5,13 @@ title: Deprecations and updating to Cedar
 
 # Deprecations and updating to Cedar
 
-The next major version of Garden, 0.14 (Cedar), will contain breaking changes. To make the update as seamless as possible for
-your team, avoid functionality that has been deprecated in Garden 0.13.
+The next major version of Garden, 0.14 (Cedar), will contain breaking changes. To make the update as seamless as possible for your team, avoid functionality that has been deprecated in Garden 0.13.
 
-When using `apiVersion: garden.io/v1` in your project configuration file, Garden will warn you if your configuration
-depends on features that will be removed in Garden 0.14.
+When using `apiVersion: garden.io/v1` in your project configuration file, Garden will warn you if your configuration depends on features that will be removed in Garden 0.14.
 
-We recommend to opt-in to the new behaviour in Garden 0.14 by using `apiVersion: garden.io/v2`. This setting
-will make Garden throw errors whenever it detects use of deprecated functionality.
+We recommend to opt-in to the new behaviour in Garden 0.14 by using `apiVersion: garden.io/v2` which you can do already on the latest Garden 0.13 version. This setting will make Garden throw errors whenever it detects use of deprecated functionality.
 
-If your config is using `apiVersion: garden.io/v2`, you can safely update to 0.14 without the update affecting your workflows.
+If your config is using `apiVersion: garden.io/v2` and you don't see any errors, you can safely update to 0.14 without the update affecting your workflows.
 
 # Breaking changes
 

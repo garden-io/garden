@@ -35,17 +35,17 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       docsSection: "Garden commands",
       docsHeadline: "Login requirement",
       warnHint: dedent`
-        For projects that are connected to Garden Cloud, Garden 0.14 will require you to login.
+        For projects that are connected to Garden Cloud/Enterprise, Garden 0.14 will require you to login.
       `,
       docs: dedent`
         <!-- markdown-link-check-disable-next-line -->
-        Garden 0.14 will use the Garden Cloud backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds (See also [${style("ConfigMap")}-based cache for Kubernetes actions](#configMapBasedCache)).
+        Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds (See also [${style("ConfigMap")}-based cache for Kubernetes actions](#configMapBasedCache)).
 
-        This means the cache is only available when connecting your project with Garden Cloud.
+        This means the cache is only available when connecting your project with Garden Cloud/Enterprise.
 
         We'll also celebrate general availability of the Container Builder. It can significantly improve your Docker build performance.
 
-        To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud.
+        To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project level Garden configuration has \`id\` and \`domain\` fields set.
 
         **We don't want to be in your way if you can't log in right now**, be it because you are lacking permissions or because you're offline.
 
@@ -59,21 +59,21 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         The ${style("ConfigMap")}-based cache will not be available anymore in Garden 0.14.
       `,
       docs: dedent`
-        Garden 0.14 will use the Garden Cloud backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds, instead using your Kubernetes cluster as a database by storing \`ConfigMap\` objects.
+        Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds, instead using your Kubernetes cluster as a database by storing \`ConfigMap\` objects.
 
-        This means the cache is only available when connecting your project with Garden Cloud.
+        This means the cache is only available when connecting your project with Garden Cloud/Enterprise.
 
         We are doing this because \`ConfigMap\` manifests in your Kubernetes cluster are not designed for storing \`Test\` and \`Run\` action statuses.
 
-        We've seen Kubernetes clusters where the number of \`ConfigMap\` manifests grew very large and causing reliability issues.
+        We've seen Kubernetes clusters where the number of \`ConfigMap\` manifests grew very large and that in turn causing reliability issues.
 
         Also, the storage location for the cache limits the functionality: It's not possible, for instance, to share test caches across multiple Kubernetes clusters.
 
-        This meant, for example, that if your team us using the \`local-kubernetes\` provider, you wouldn't be able to benefit from the cache of other team members.
+        This meant, for example, that if your team is using the \`local-kubernetes\` provider, you wouldn't be able to benefit from the cache of other team members.
 
         The \`ConfigMap\`-based storage also limited the amount of data we can store for each cache entry.
 
-        With Garden 0.14, we are offering a **Team Cache** option with a new storage backend in Garden Cloud. It will put us in a position where we can bring Gardens cache capabilities to the next level.
+        With Garden 0.14, we are offering a **Team Cache** option with a new storage backend in Garden Cloud/Enterprise. It will put us in a position where we can bring Gardens cache capabilities to the next level.
 
         <!-- markdown-link-check-disable-next-line -->
         See also: [Login requirement in Garden 0.14](#loginRequirement)
@@ -383,7 +383,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       docs: dedent`
         This means that deploy actions will wait for jobs to complete by default when applying Job manifests.
 
-        For more information about jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
+        For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
       `,
     },
   } as const
