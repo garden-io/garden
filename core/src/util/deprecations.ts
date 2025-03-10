@@ -45,7 +45,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         Logging in also enables you to use our Managed Container Builder which can significantly improve your Docker build performance.
 
-        To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project level Garden configuration has \`id\` and \`domain\` fields set.
+        To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has \`id\` and \`domain\` fields set.
 
         **We don't want to be in your way if you can't log in right now**, be it because you are lacking permissions or because you're offline.
 
@@ -427,20 +427,16 @@ export function makeDeprecationMessage({
 class FeatureNotAvailable extends GardenError {
   override type = "deprecated-feature-unavailable" as const
 
-  constructor({ deprecation, apiVersion }: { deprecation: Deprecation; apiVersion: GardenApiVersion }) {
-    const { docsHeadline, warnHint } = getDeprecations()[deprecation]
-    const lines = [
-      `${docsHeadline} has been deprecated and is not available when using ${styles.highlight(`apiVersion: ${apiVersion}`)} in your project configuration file.`,
+  constructor({ deprecation }: { deprecation: Deprecation }) {
+    const { warnHint } = getDeprecations()[deprecation]
+    const lines: string[] = [
+      `Configuration error: Rejecting use of deprecated functionality due to the \`apiVersion\` setting in your project-level configuration.`,
     ]
 
-    if (warnHint) {
-      lines.push(warnHint)
-    }
+    lines.push(warnHint)
 
     const link = styles.link(DOCS_DEPRECATION_GUIDE)
-    lines.push(
-      `Avoiding to use this feature will ensure that your configuration does not break when we release Garden 0.14. For more information, see ${link}`
-    )
+    lines.push(`Please follow the steps at ${link} to solve this problem.`)
 
     super({ message: lines.join("\n") })
   }
@@ -454,11 +450,11 @@ type DeprecationWarningParams = {
 
 export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: DeprecationWarningParams) {
   if (apiVersion === GardenApiVersion.v2) {
-    throw new FeatureNotAvailable({ apiVersion, deprecation })
+    throw new FeatureNotAvailable({ deprecation })
   }
 
   const warnMessage = makeDeprecationMessage({ deprecation, includeLink: true, style: true })
-  emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
+  emitNonRepeatableWarning(log, `\nWARNING: ${warnMessage}\n`)
 }
 
 export function reportDeprecatedSyncCommandUsage({
@@ -487,43 +483,11 @@ export function reportDeprecatedSyncCommandUsage({
   })
 }
 
-export function makeDefaultConfigChangeMessage({
-  deprecation,
-  includeLink,
-  style,
-}: {
-  deprecation: Deprecation
-  includeLink?: boolean
-  style?: boolean
-}) {
-  const { docsHeadline, warnHint } = getDeprecations(style ? styles.highlight : (s) => `\`${s}\``)[deprecation]
-
-  const lines = [
-    `The default value of ${docsHeadline} configuration will be changed in the next major release, Garden 0.14.`,
-  ]
-
-  if (warnHint) {
-    lines.push(warnHint)
-  }
-
-  if (includeLink) {
-    let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation}`
-    if (style) {
-      link = styles.link(link)
-    }
-    lines.push(
-      `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${link}`
-    )
-  }
-
-  return lines.join("\n")
-}
-
 export function reportDefaultConfigValueChange({ apiVersion, log, deprecation }: DeprecationWarningParams) {
+  // Avoids throwing an error in `reportDeprecatedFeatureUsage`
   if (apiVersion === GardenApiVersion.v2) {
     return
   }
 
-  const warnMessage = makeDefaultConfigChangeMessage({ deprecation, includeLink: true, style: true })
-  emitNonRepeatableWarning(log, `\nDEFAULT VALUE WILL CHANGE: ${warnMessage}\n`)
+  reportDeprecatedFeatureUsage({ apiVersion, log, deprecation })
 }
