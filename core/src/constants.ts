@@ -117,9 +117,11 @@ export const gardenEnv = {
     .required(false)
     .default("https://get.garden.io/releases")
     .asUrlString(),
-  // GARDEN_CLOUD_BUILDER will always override the config; That's why it doesn't have a default.
+  // GARDEN_CLOUD_BUILDER and GARDEN_CONTAINER_BUILDER will always override the config.
+  // That's why those don't have a default.
   // FIXME: If the environment variable is not set, asBool returns undefined, unlike the type suggests. That's why we cast to `boolean | undefined`.
   GARDEN_CLOUD_BUILDER: env.get("GARDEN_CLOUD_BUILDER").required(false).asBool() as boolean | undefined,
+  GARDEN_CONTAINER_BUILDER: env.get("GARDEN_CONTAINER_BUILDER").required(false).asBool() as boolean | undefined,
   GARDEN_ENABLE_PARTIAL_RESOLUTION: env.get("GARDEN_ENABLE_PARTIAL_RESOLUTION").required(false).asBool(),
   GARDEN_IGNORE_UNCAUGHT_EXCEPTION: env
     .get(IGNORE_UNCAUGHT_EXCEPTION_VARNAME)

@@ -58,12 +58,37 @@ export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRE
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER = 20
 
+export type GardenContainerBuilderConfig = {
+  enabled: boolean
+}
+
 export interface ContainerProviderConfig extends BaseProviderConfig {
   dockerBuildExtraFlags?: string[]
-  gardenCloudBuilder?: {
-    enabled: boolean
-  }
+  /**
+   * @deprecated use {@link #gardenContainerBuilder} instead
+   */
+  gardenCloudBuilder?: GardenContainerBuilderConfig
+  gardenContainerBuilder?: GardenContainerBuilderConfig
 }
+
+export const gardenContainerBuilderSchema = () =>
+  joi
+    .object()
+    .optional()
+    .keys({
+      enabled: joi.boolean().default(false).description(dedent`
+            Enable Garden Container Builder, which can speed up builds significantly using fast machines and extremely fast caching.
+
+            by running \`GARDEN_CONTAINER_BUILDER=1 garden build\` you can try Garden Container Builder temporarily without any changes to your Garden configuration.
+            The environment variable \`GARDEN_CONTAINER_BUILDER\` can also be used to override this setting, if enabled in the configuration. Set it to \`false\` or \`0\` to temporarily disable Garden Container Builder.
+
+            Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
+
+            If service limits are reached, or Garden Container Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
+
+            Please note that when enabling Container Builder together with in-cluster building, you need to authenticate to your \`deploymentRegistry\` from the local machine (e.g. by running \`docker login\`).
+            `),
+    })
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -73,28 +98,10 @@ export const configSchema = () =>
 
           Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
           `),
-      // Cloud builder
-      gardenCloudBuilder: joi
-        .object()
-        .optional()
-        .keys({
-          enabled: joi.boolean().default(false).description(dedent`
-            **Stability: Experimental**. Subject to breaking changes within minor releases.
-
-            Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast caching.
-
-            by running \`GARDEN_CLOUD_BUILDER=1 garden build\` you can try Garden Cloud Builder temporarily without any changes to your Garden configuration.
-            The environment variable \`GARDEN_CLOUD_BUILDER\` can also be used to override this setting, if enabled in the configuration. Set it to \`false\` or \`0\` to temporarily disable Garden Cloud Builder.
-
-            Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
-
-            If service limits are reached, or Garden Cloud Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
-
-            Please note that when enabling Cloud Builder together with in-cluster building, you need to authenticate to your \`deploymentRegistry\` from the local machine (e.g. by running \`docker login\`).
-            `),
-        }).description(dedent`
-        **Stability: Experimental**. Subject to breaking changes within minor releases.
-        `),
+      // Deprecate old config syntax
+      gardenCloudBuilder: gardenContainerBuilderSchema().meta({ deprecated: true }),
+      // Garden Container builder
+      gardenContainerBuilder: gardenContainerBuilderSchema(),
     })
     .unknown(false)
 

@@ -113,7 +113,7 @@ export const runBaseParams = () => ({
   artifactsPath: artifactsPathSchema(),
 })
 
-// Action runtime type and schema. Used for the Cloud Builder UI, and maybe in the future Cloud Runner UI, etc.
+// Action runtime type and schema. Used for the Container Builder UI, and maybe in the future Cloud Runner UI, etc.
 export type ActionRuntime =
   | {
       actual: ActionRuntimeKind

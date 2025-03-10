@@ -408,8 +408,8 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
     },
     waitForJobs: {
-      docsSection: "Default configuration values",
-      docsHeadline: `${style("spec.waitForJobs")} of ${style("kubernetes Deploy")}`,
+      docsSection: "Action configs",
+      docsHeadline: `${style("spec.waitForJobs")} in ${style("kubernetes")} Deploy actions`,
       warnHint: `In Garden 0.14, the default value of ${style("spec.waitForJobs")} will change to ${style("true")}.`,
       docs: dedent`
         This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
@@ -419,6 +419,18 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
       `,
+    },
+    gardenCloudBuilder: {
+      docsSection: "Garden Container Builder",
+      docsHeadline: `${style("container")} provider configuration`,
+      warnHint: `The ${style("gardenCloudBuilder")} setting in the ${style("container")} provider configuration has been renamed to ${style("gardenContainerBuilder")}. Use the setting ${style("gardenContainerBuilder")} instead of ${style("gardenCloudBuilder")}.`,
+      docs: null,
+    },
+    gardenCloudBuilderEnvVar: {
+      docsSection: "Garden Container Builder",
+      docsHeadline: `${style("GARDEN_CLOUD_BUILDER")} environment variable`,
+      warnHint: `The ${style("GARDEN_CLOUD_BUILDER")} environment variable will be removed in Garden 0.14. Use ${style("GARDEN_CONTAINER_BUILDER")} instead.`,
+      docs: null,
     },
   } as const
 }

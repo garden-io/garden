@@ -36,7 +36,7 @@ While we also introduce a local file-based cache backend, this means the cache r
 
 Logging in also enables you to use our Managed Container Builder which can significantly improve your Docker build performance.
 
-To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has `id` and `domain` fields set.
+To prevent your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has `id` and `domain` fields set.
 
 #### Offline mode
 
@@ -282,6 +282,17 @@ image: ${actions.build.backend.outputs.deploymentImageId}
 ...
 ```
 
+<h3 id="waitForJobs"><code>spec.waitForJobs</code> in <code>kubernetes</code> Deploy actions</h3>
+
+In Garden 0.14, the default value of `spec.waitForJobs` will change to `true`.
+
+This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
+
+<!-- markdown-link-check-disable-next-line -->
+To suppress this warning and adopt the new behaviour, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiVersion)).
+
+For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
+
 ## Build Staging
 
 <h3 id="rsyncBuildStaging"><code>rsync</code>-based build staging</h3>
@@ -356,15 +367,12 @@ When using `apiVersion: garden.io/v2`, the optional template syntax has been rem
 
 You can use explicit fallback values using the logical or operator in case you've been relying on the optional template expression syntax.
 
-## Default configuration values
+## Garden Container Builder
 
-<h3 id="waitForJobs"><code>spec.waitForJobs</code> of <code>kubernetes Deploy</code></h3>
+<h3 id="gardenCloudBuilder"><code>container</code> provider configuration</h3>
 
-In Garden 0.14, the default value of `spec.waitForJobs` will change to `true`.
+The `gardenCloudBuilder` setting in the `container` provider configuration has been renamed to `gardenContainerBuilder`. Use the setting `gardenContainerBuilder` instead of `gardenCloudBuilder`.
 
-This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
+<h3 id="gardenCloudBuilderEnvVar"><code>GARDEN_CLOUD_BUILDER</code> environment variable</h3>
 
-<!-- markdown-link-check-disable-next-line -->
-To suppress this warning and adopt the new behaviour, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiVersion)).
-
-For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
+The `GARDEN_CLOUD_BUILDER` environment variable will be removed in Garden 0.14. Use `GARDEN_CONTAINER_BUILDER` instead.
