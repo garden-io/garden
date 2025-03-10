@@ -57,7 +57,6 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
 import type minimist from "minimist"
 import { styles } from "../logger/styles.js"
-import { isGardenCommunityEdition } from "../cloud/util.js"
 
 const { pathExists } = fsExtra
 

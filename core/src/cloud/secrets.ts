@@ -8,7 +8,7 @@
 
 import { getGrowCloudDistributionName } from "./grow/util.js"
 import { gardenEnv } from "../constants.js"
-import { ConfigurationError, GardenError } from "../exceptions.js"
+import { GardenError } from "../exceptions.js"
 
 class SecretsUnavailableInNewBackend extends GardenError {
   override type = "secrets-unavailable-in-new-backend"

@@ -9,7 +9,6 @@ import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import type { GrowCloudDistroName, GrowCloudLogSectionName } from "./grow/util.js"
 import { getGrowCloudDomain } from "./grow/util.js"
 import { getGrowCloudDistributionName, getGrowCloudLogSectionName } from "./grow/util.js"
-import { InternalError } from "../exceptions.js"
 
 export type GardenCloudDistroName = "the Garden dashboard" | "Garden Enterprise" | "Garden Cloud"
 

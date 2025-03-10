@@ -564,5 +564,3 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
     errorLog.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
   }
 }
-
-

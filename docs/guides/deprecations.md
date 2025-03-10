@@ -22,16 +22,16 @@ If your config is using `apiVersion: garden.io/v2` and you don't see any errors,
 
 <h3 id="loginRequirement">Login requirement</h3>
 
-For projects that are connected to Garden Cloud, Garden 0.14 will require you to login.
+For projects that are connected to Garden Cloud/Enterprise, Garden 0.14 will require you to login.
 
 <!-- markdown-link-check-disable-next-line -->
-Garden 0.14 will use the Garden Cloud backend for determining the cache status of Kubernetes `Test` and `Run` actions kinds (See also [`ConfigMap`-based cache for Kubernetes actions](#configMapBasedCache)).
+Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes `Test` and `Run` actions kinds (See also [`ConfigMap`-based cache for Kubernetes actions](#configMapBasedCache)).
 
-This means the cache is only available when connecting your project with Garden Cloud.
+This means the cache is only available when connecting your project with Garden Cloud/Enterprise.
 
-We'll also celebrate general availability of the Container Builder. It can significantly improve your Docker build performance.
+Logging in also enables you to use our Managed Container Builder which can significantly improve your Docker build performance.
 
-To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud.
+To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project level Garden configuration has `id` and `domain` fields set.
 
 **We don't want to be in your way if you can't log in right now**, be it because you are lacking permissions or because you're offline.
 
@@ -41,21 +41,21 @@ This is why we also offer an escape hatch: If you want to proceed without loggin
 
 The `ConfigMap`-based cache will not be available anymore in Garden 0.14.
 
-Garden 0.14 will use the Garden Cloud backend for determining the cache status of Kubernetes `Test` and `Run` actions kinds, instead using your Kubernetes cluster as a database by storing `ConfigMap` objects.
+Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes `Test` and `Run` actions kinds, instead of using your Kubernetes cluster as a database by storing `ConfigMap` objects.
 
-This means the cache is only available when connecting your project with Garden Cloud.
+This means the cache is only available when connecting your project with Garden Cloud/Enterprise.
 
-We are doing this because `ConfigMap` manifests in your Kubernetes cluster are not designed for storing `Test` and `Run` action statuses.
+We are making this change because `ConfigMap` manifests in your Kubernetes cluster are not designed for storing `Test` and `Run` action statuses.
 
-We've seen Kubernetes clusters where the number of `ConfigMap` manifests grew very large and causing reliability issues.
+We've seen Kubernetes clusters where the number of `ConfigMap` manifests grew very large and caused reliability issues.
 
 Also, the storage location for the cache limits the functionality: It's not possible, for instance, to share test caches across multiple Kubernetes clusters.
 
-This meant, for example, that if your team us using the `local-kubernetes` provider, you wouldn't be able to benefit from the cache of other team members.
+This meant, for example, that if your team is using the `local-kubernetes` provider, you wouldn't be able to benefit from the cache of other team members.
 
 The `ConfigMap`-based storage also limited the amount of data we can store for each cache entry.
 
-With Garden 0.14, we are offering a **Team Cache** option with a new storage backend in Garden Cloud. It will put us in a position where we can bring Gardens cache capabilities to the next level.
+With Garden 0.14, we are offering a **Team Cache** option with a new storage backend in Garden Cloud/Enterprise. It will put us in a position where we can bring Gardens cache capabilities to the next level.
 
 <!-- markdown-link-check-disable-next-line -->
 See also: [Login requirement in Garden 0.14](#loginRequirement)
@@ -200,16 +200,16 @@ spec:
 
 ## Local mode
 
-<h3 id="localMode">Using <code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> deploy actions</h3>
+<h3 id="localMode">Using <code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> Deploy actions</h3>
 
 The local mode will be removed in the next major version of Garden, 0.14.
 
 Use the `sync mode` instead. You can also consider using [mirrord](https://mirrord.dev/) or [telepresence](https://www.telepresence.io/).
 
 See also:
-- [`spec.localMode` in the `kubernetes` deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
-- [`spec.localMode` in the `helm` deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
-- [`spec.localMode` in the `container` deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
+- [`spec.localMode` in the `kubernetes` Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
+- [`spec.localMode` in the `helm` Deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
+- [`spec.localMode` in the `container` Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
 
 ## Action configs
 
@@ -274,9 +274,9 @@ If you still need to use this environment variable for some reason, please reach
 
 ## Garden action types
 
-<h3 id="configmapDeployAction">The <code>configmap</code> deploy action type</h3>
+<h3 id="configmapDeployAction">The <code>configmap</code> Deploy action type</h3>
 
-The `configmap` deploy action type will be removed in the next major version of Garden, 0.14. Please use the `kubernetes` deploy action type with a `configmap` Kubernetes manifest instead.
+The `configmap` Deploy action type will be removed in the next major version of Garden, 0.14. Please use the `kubernetes` Deploy action type with a `configmap` Kubernetes manifest instead.
 
 Example:
 
@@ -303,9 +303,9 @@ spec:
          allow.textmode=true
 ```
 
-<h3 id="persistentvolumeclaimDeployAction">The <code>persistentvolumeclaim</code> deploy action type</h3>
+<h3 id="persistentvolumeclaimDeployAction">The <code>persistentvolumeclaim</code> Deploy action type</h3>
 
-The `persistentvolumeclaim` deploy action type will be removed in the next major version of Garden, 0.14. Please use the `kubernetes` deploy action type instead.
+The `persistentvolumeclaim` Deploy action type will be removed in the next major version of Garden, 0.14. Please use the `kubernetes` Deploy action type instead.
 
 For more information how to use Persistent Volume Claims using Kubernetes manifests, refer to the [official Kubernetes documentation on configuring persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/).
 
@@ -336,6 +336,6 @@ When using `apiVersion: garden.io/v2`, the question mark operator has been remov
 
 In Garden 0.14, the default value of `spec.waitForJobs` will change to `true`. You can adopt the new behaviour by declaring `apiVersion: garden.io/v2` in your project configuraiton.
 
-This means that deploy actions will wait for jobs to complete by default when applying Job manifests.
+This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
 
-For more information about jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
+For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
