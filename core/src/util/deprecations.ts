@@ -50,7 +50,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         Logging in also enables you to use our Managed Container Builder which can significantly improve your Docker build performance.
 
-        To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has \`id\` and \`domain\` fields set.
+        To prevent your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has \`id\` and \`domain\` fields set.
 
         #### Offline mode
 
