@@ -1627,8 +1627,7 @@ Set the default group on files and directories at the target. Specify either an 
 [services](#services) > localMode
 
 {% hint style="warning" %}
-**Deprecated**: Using `spec.localMode` in `helm`, `kubernetes` and `container` deploy actions is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-The local mode will be removed in the next major version of Garden, 0.14.
+**Deprecated**: The local mode will be removed in the next major version of Garden, 0.14.
 {% endhint %}
 
 [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.

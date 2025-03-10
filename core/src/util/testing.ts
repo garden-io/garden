@@ -10,7 +10,7 @@ import env from "env-var"
 import type { GlobalOptions, ParameterValues } from "../cli/params.js"
 import { globalOptions } from "../cli/params.js"
 import cloneDeep from "fast-copy"
-import { isEqual, keyBy, mapValues, round, set } from "lodash-es"
+import { isEqual, isFunction, keyBy, mapValues, round, set } from "lodash-es"
 import type { GardenOpts, GardenParams, GetConfigGraphParams } from "../garden.js"
 import { Garden, resolveGardenParams } from "../garden.js"
 import type { StringMap } from "../config/common.js"
@@ -453,8 +453,13 @@ export class TestGarden extends Garden {
   }
 }
 
-export function expectFuzzyMatch(str: string, sample: string | string[], extraMessage?: string) {
-  const actualErrorMsgLowercase = stripAnsi(str).toLowerCase()
+export function expectFuzzyMatch(
+  str: string | undefined | (() => string | undefined),
+  sample: string | string[],
+  extraMessage?: string
+) {
+  const actualErrorMsg = isFunction(str) ? str() : str
+  const actualErrorMsgLowercase = actualErrorMsg ? stripAnsi(actualErrorMsg).toLowerCase() : actualErrorMsg
   const samples = typeof sample === "string" ? [sample] : sample
   const samplesNonAnsi = samples.map(stripAnsi)
   for (const s of samplesNonAnsi) {

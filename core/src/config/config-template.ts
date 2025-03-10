@@ -68,8 +68,7 @@ export async function resolveConfigTemplate(
     configs: [],
   }
   const loggedIn = garden.isLoggedIn()
-  const enterpriseDomain = garden.cloudApi?.domain
-  const context = new ProjectConfigContext({ ...garden, loggedIn, enterpriseDomain })
+  const context = new ProjectConfigContext({ ...garden, loggedIn, cloudBackendDomain: garden.cloudDomain })
 
   // @ts-expect-error todo: correct types for unresolved configs
   const resolved: BaseGardenResource = deepEvaluate(partial, {
