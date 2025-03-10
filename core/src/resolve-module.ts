@@ -524,6 +524,7 @@ export class ModuleResolver {
       buildPath,
       parentName: rawConfig.parentName,
       templateName: rawConfig.templateName,
+      templatePath: rawConfig.templatePath,
       inputs: InputContext.forModule(this.garden, rawConfig),
       modules: [],
       graphResults: this.graphResults,
@@ -594,6 +595,7 @@ export class ModuleResolver {
       buildPath,
       parentName: unresolvedConfig.parentName,
       templateName: unresolvedConfig.templateName,
+      templatePath: unresolvedConfig.templatePath,
       inputs: InputContext.forModule(garden, unresolvedConfig),
       graphResults: this.graphResults,
     }
@@ -763,6 +765,7 @@ export class ModuleResolver {
       buildPath,
       parentName: resolvedConfig.parentName,
       templateName: resolvedConfig.templateName,
+      templatePath: resolvedConfig.templatePath,
       inputs: InputContext.forModule(this.garden, resolvedConfig),
       modules: dependencies,
       graphResults: this.graphResults,
@@ -1146,6 +1149,9 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   }
   if (module.templateName) {
     action.internal.templateName = module.templateName
+  }
+  if (module.templatePath) {
+    action.internal.templatePath = module.templatePath
   }
   if (module.parentName) {
     action.internal.parentName = module.parentName

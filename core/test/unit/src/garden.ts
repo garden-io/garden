@@ -2896,6 +2896,7 @@ describe("Garden", () => {
         ],
         parentName: "foo",
         templateName: "combo",
+        templatePath: "templates.garden.yml",
         inputs: {
           name: "test",
           value: "${providers.test-plugin.outputs.testKey}",
@@ -2926,6 +2927,7 @@ describe("Garden", () => {
         ],
         parentName: "foo",
         templateName: "combo",
+        templatePath: "templates.garden.yml",
         inputs: {
           name: "test",
           value: "${providers.test-plugin.outputs.testKey}",
@@ -2948,6 +2950,7 @@ describe("Garden", () => {
         configFilePath: join(garden.projectRoot, "actions.garden.yml"),
         parentName: "foo",
         templateName: "combo",
+        templatePath: "templates.garden.yml",
         inputs: {
           name: "test",
           envName: "${environment.name}",
@@ -3023,6 +3026,7 @@ describe("Garden", () => {
         configFilePath: join(garden.projectRoot, "runs.garden.yml"),
         parentName: "my-runs",
         templateName: "template-runs",
+        templatePath: "template.garden.yml",
         inputs: { names: [runNameA, runNameB] },
       }
 
@@ -3062,6 +3066,7 @@ describe("Garden", () => {
         configFilePath: join(garden.projectRoot, "workflows.garden.yml"),
         parentName: "foo",
         templateName: "workflows",
+        templatePath: "templates.garden.yml",
         inputs: {
           name: "test",
           envName: "${environment.name}",
@@ -4320,6 +4325,7 @@ describe("Garden", () => {
         configFilePath: join(garden.projectRoot, "actions.garden.yml"),
         parentName: "foo",
         templateName: "combo",
+        templatePath: "templates.garden.yml",
         inputs: {
           name: "test",
           // these need to be resolved later
