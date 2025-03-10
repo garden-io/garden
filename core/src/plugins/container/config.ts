@@ -950,7 +950,7 @@ export type ContainerRunAction = RunAction<ContainerRunActionConfig, ContainerRu
 
 export const containerRunSpecKeys = memoize(() => ({
   ...containerTestSpecKeys(),
-  cacheResult: runCacheResultSchema(),
+  cacheResult: runCacheResultSchema("Run"),
 }))
 
 export const containerRunActionSchema = createSchema({

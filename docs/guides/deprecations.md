@@ -260,6 +260,10 @@ spec:
  command: [conftest, test, deployment.yaml]
 ```
 
+<h3 id="ephemeralKubernetesProvider">The <code>ephemeral-kubernetes</code> provider of the <code>kubernetes</code> plugin</h3>
+
+Use `kubernetes` or `local-kubernetes` providers instead. We are currently exploring how to improve and offer a new hosted Kubernetes experience in the future – reach out on GitHub or Discord if you are interested or have any feedback!
+
 ## Local mode
 
 <h3 id="localMode">Using <code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> deploy actions</h3>

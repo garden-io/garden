@@ -24,6 +24,7 @@ import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { defaultSystemNamespace } from "../constants.js"
 import { styles } from "../../../logger/styles.js"
 import { isGardenCommunityEdition } from "../../../cloud/util.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export type EphemeralKubernetesClusterType = "ephemeral"
 
@@ -48,6 +49,8 @@ export const configSchema = () =>
 
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, ctx, config: baseConfig } = params
+
+  reportDeprecatedFeatureUsage({ apiVersion: ctx.projectApiVersion, log, deprecation: "ephemeralKubernetesProvider" })
 
   if (!ctx.cloudApi) {
     throw new ConfigurationError({

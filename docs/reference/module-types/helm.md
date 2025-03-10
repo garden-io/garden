@@ -431,9 +431,9 @@ tasks:
     # Maximum duration (in seconds) of the task's execution.
     timeout: 600
 
-    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
-    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
-    # changes, or when you run `garden run`.
+    # Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run
+    # any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is
+    # only re-run when its version changes, or when you run `garden run`.
     cacheResult: true
 
     # The command/entrypoint used to run inside the container.
@@ -1576,7 +1576,7 @@ Maximum duration (in seconds) of the task's execution.
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
+Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
