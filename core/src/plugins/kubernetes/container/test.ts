@@ -7,6 +7,7 @@
  */
 
 import type { ContainerTestAction } from "../../container/moduleConfig.js"
+import { composeCacheableTestResult } from "../test-results.js"
 import { storeTestResult } from "../test-results.js"
 import { runAndCopy } from "../run.js"
 import { makePodName } from "../util.js"
@@ -26,7 +27,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
   const image = getDeployedImageId(action)
   const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
-  const testResult = await runAndCopy({
+  const result = await runAndCopy({
     ...params,
     command,
     args,
@@ -43,10 +44,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     dropCapabilities,
   })
 
-  const detail = {
-    ...testResult,
-    namespaceStatus,
-  }
+  const detail = composeCacheableTestResult({ result, action, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
     await storeTestResult({

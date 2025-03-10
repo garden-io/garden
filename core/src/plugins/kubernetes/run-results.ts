@@ -24,6 +24,7 @@ import type { RunActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodRunAction } from "./helm/config.js"
 import type { KubernetesRunAction } from "./kubernetes-type/config.js"
 import { GardenError } from "../../exceptions.js"
+import type { NamespaceStatus } from "../../types/namespace.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
@@ -36,20 +37,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
 
   try {
     const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: runResultNamespace })
-    const result: any = deserializeValues(res.data!)
-
-    // Backwards compatibility for modified result schema
-    if (!result.outputs) {
-      result.outputs = {}
-    }
-
-    if (!result.outputs.log) {
-      result.outputs.log = result.log || ""
-    }
-
-    if (result.version?.versionString) {
-      result.version = result.version.versionString
-    }
+    const result = deserializeValues(res.data!) as CacheableRunResult
 
     return { state: runResultToActionState(result), detail: result, outputs: { log: result.log || "" } }
   } catch (err) {
@@ -76,7 +64,39 @@ interface StoreTaskResultParams {
   ctx: PluginContext
   log: Log
   action: ContainerRunAction | KubernetesRunAction | HelmPodRunAction
+  result: CacheableRunResult
+}
+
+export type CacheableRunResult = RunResult & {
+  namespaceStatus: NamespaceStatus
+  actionName: string
+  /**
+   * @deprecated use {@link #actionName} instead
+   */
+  taskName: string
+  outputs: {
+    log: string
+  }
+}
+
+export function composeCacheableRunResult({
+  result,
+  action,
+  namespaceStatus,
+}: {
   result: RunResult
+  action: Action
+  namespaceStatus: NamespaceStatus
+}): CacheableRunResult {
+  return {
+    ...result,
+    namespaceStatus,
+    actionName: action.name,
+    taskName: action.name,
+    outputs: {
+      log: result.log || "",
+    },
+  }
 }
 
 /**
@@ -84,7 +104,7 @@ interface StoreTaskResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeRunResult({ ctx, log, action, result }: StoreTaskResultParams): Promise<RunResult> {
+export async function storeRunResult({ ctx, log, action, result }: StoreTaskResultParams): Promise<CacheableRunResult> {
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = ctx.provider as KubernetesProvider
   const api = await KubeApi.factory(log, k8sCtx, provider)
