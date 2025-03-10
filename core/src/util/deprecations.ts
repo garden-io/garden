@@ -43,7 +43,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         This means the cache is only available when connecting your project with Garden Cloud/Enterprise.
 
-        We'll also celebrate general availability of the Container Builder. It can significantly improve your Docker build performance.
+        Logging in also enables you to use our Managed Container Builder which can significantly improve your Docker build performance.
 
         To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project level Garden configuration has \`id\` and \`domain\` fields set.
 
@@ -59,13 +59,13 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         The ${style("ConfigMap")}-based cache will not be available anymore in Garden 0.14.
       `,
       docs: dedent`
-        Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds, instead using your Kubernetes cluster as a database by storing \`ConfigMap\` objects.
+        Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds, instead of using your Kubernetes cluster as a database by storing \`ConfigMap\` objects.
 
         This means the cache is only available when connecting your project with Garden Cloud/Enterprise.
 
-        We are doing this because \`ConfigMap\` manifests in your Kubernetes cluster are not designed for storing \`Test\` and \`Run\` action statuses.
+        We are making this change because \`ConfigMap\` manifests in your Kubernetes cluster are not designed for storing \`Test\` and \`Run\` action statuses.
 
-        We've seen Kubernetes clusters where the number of \`ConfigMap\` manifests grew very large and that in turn causing reliability issues.
+        We've seen Kubernetes clusters where the number of \`ConfigMap\` manifests grew very large and caused reliability issues.
 
         Also, the storage location for the cache limits the functionality: It's not possible, for instance, to share test caches across multiple Kubernetes clusters.
 
@@ -244,15 +244,15 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     localMode: {
       docsSection: "Local mode",
-      docsHeadline: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} deploy actions`,
+      docsHeadline: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
       warnHint: dedent`The local mode will be removed in the next major version of Garden, 0.14.`,
       docs: dedent`
         Use the ${style("sync mode")} instead. You can also consider using [mirrord](https://mirrord.dev/) or [telepresence](https://www.telepresence.io/).
 
         See also:
-        - [${style("spec.localMode")} in the ${style("kubernetes")} deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
-        - [${style("spec.localMode")} in the ${style("helm")} deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
-        - [${style("spec.localMode")} in the ${style("container")} deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
+        - [${style("spec.localMode")} in the ${style("kubernetes")} Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
+        - [${style("spec.localMode")} in the ${style("helm")} Deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
+        - [${style("spec.localMode")} in the ${style("container")} Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
       `,
     },
     buildConfigFieldOnRuntimeActions: {
@@ -318,8 +318,8 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     configmapDeployAction: {
       docsSection: "Garden action types",
-      docsHeadline: `The ${style("configmap")} deploy action type`,
-      warnHint: `The ${style("configmap")} deploy action type will be removed in the next major version of Garden, 0.14. Please use the ${style("kubernetes")} deploy action type with a ${style("configmap")} Kubernetes manifest instead.`,
+      docsHeadline: `The ${style("configmap")} Deploy action type`,
+      warnHint: `The ${style("configmap")} Deploy action type will be removed in the next major version of Garden, 0.14. Please use the ${style("kubernetes")} Deploy action type with a ${style("configmap")} Kubernetes manifest instead.`,
       docs: dedent`
         Example:
 
@@ -349,8 +349,8 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     persistentvolumeclaimDeployAction: {
       docsSection: "Garden action types",
-      docsHeadline: `The ${style("persistentvolumeclaim")} deploy action type`,
-      warnHint: `The ${style("persistentvolumeclaim")} deploy action type will be removed in the next major version of Garden, 0.14. Please use the ${style("kubernetes")} deploy action type instead.`,
+      docsHeadline: `The ${style("persistentvolumeclaim")} Deploy action type`,
+      warnHint: `The ${style("persistentvolumeclaim")} Deploy action type will be removed in the next major version of Garden, 0.14. Please use the ${style("kubernetes")} Deploy action type instead.`,
       docs: dedent`
         For more information how to use Persistent Volume Claims using Kubernetes manifests, refer to the [official Kubernetes documentation on configuring persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/).
       `,
@@ -381,7 +381,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       docsHeadline: `${style("spec.waitForJobs")} of ${style("kubernetes Deploy")}`,
       warnHint: `In Garden 0.14, the default value of ${style("spec.waitForJobs")} will change to ${style("true")}. You can adopt the new behaviour by declaring ${style("apiVersion: garden.io/v2")} in your project configuraiton.`,
       docs: dedent`
-        This means that deploy actions will wait for jobs to complete by default when applying Job manifests.
+        This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
 
         For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
       `,
