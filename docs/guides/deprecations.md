@@ -116,6 +116,129 @@ See also [the deprecation notice for the `garden sync start` command](#syncStart
 The `deploymentStrategy` config field will be removed in Garden 0.14.
 Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
 
+## Action configs
+
+<h3 id="kubernetesActionSpecFiles"><code>spec.files</code> in <code>kubernetes</code> Deploy actions</h3>
+
+`spec.files` in `kubernetes` Deploy actions will be removed in Garden 0.14. Use `spec.manifestTemplates` and/or `spec.manifestFiles` instead.
+
+If you want to keep using the Garden template language in your Kubernetes manifest files, use `spec.manifestTemplates`.
+
+If you need to keep your Kubernetes manifests files compatible with `kubectl`, in other words, you don't want to use the Garden template language in your manifest files, use `spec.manifestFiles` instead.
+
+Example:
+
+```yaml
+# garden.yml
+kind: Deploy
+type: kubernetes
+name: my-app
+spec:
+ manifestFiles:
+   - manifests/**/*.yml # <-- Treat these files as pure Kubernetes manifest files
+ manifestTemplates:
+   - manifests/**/*.yml.tpl # <-- Use the Garden template language in files that end with `.yml.tpl`.
+```
+
+#### Why
+
+Until now there wasn't a choice: Garden would always attempt to resolve template strings like `${fooBar}` in Kubernetes manifest files.
+
+This becomes problematic when, for example, the Kubernetes manifest contains a bash script:
+
+```yaml
+# manifests/bash-script.yml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: bash-scripts
+data:
+   important-bash-script.sh: |
+     #!/bin/bash
+     echo "hello ${USERNAME:=world}"
+```
+
+This manifest file is valid and works when applied using `kubectl apply < manifests/bash-script.yml`.
+
+Using this manifest file like so will not work as expected, but throw a template syntax error:
+
+```yaml
+# garden.yml
+kind: Deploy
+type: kubernetes
+name: bash-scripts
+spec:
+ files:
+   - manifests/bash-script.yml # <-- Garden will parse template strings in `manifests/bash-script.yml` and fail with a syntax error.
+```
+
+One way to work around this problem in the past was to escape the template string by prepending a `$` sign in the script; But this work-around also means that the manifest isn't compatible with `kubectl apply` anymore:
+
+```bash
+#!/bin/bash
+echo "hello $${USERNAME:=world}" # <-- This is not a working bash script anymore :(
+```
+
+<h3 id="buildConfigFieldOnRuntimeActions">The <code>build</code> config field in runtime action configs</h3>
+
+Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
+
+Please replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
+
+For example, a configuration like
+
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+build: backend # <-- old config style uses `build` field
+
+spec:
+ image: ${actions.build.backend.outputs.deploymentImageId}
+...
+```
+
+should be replaced with
+
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+
+# use `dependencies` field instead of the `build`
+dependencies:
+- build.backend
+
+spec:
+ image: ${actions.build.backend.outputs.deploymentImageId}
+...
+```
+
+<h3 id="waitForJobs"><code>spec.waitForJobs</code> in <code>kubernetes</code> Deploy actions</h3>
+
+In Garden 0.14, the default value of `spec.waitForJobs` will change to `true`.
+
+This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
+
+<!-- markdown-link-check-disable-next-line -->
+To suppress this warning and adopt the new behaviour, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiVersion)).
+
+For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
+
 ## Project configuration
 
 <h3 id="dotIgnoreFiles">The <code>dotIgnoreFiles</code> config field</h3>
@@ -230,68 +353,6 @@ See also:
 - [`spec.localMode` in the `kubernetes` Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
 - [`spec.localMode` in the `helm` Deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
 - [`spec.localMode` in the `container` Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
-
-## Action configs
-
-<h3 id="buildConfigFieldOnRuntimeActions">The <code>build</code> config field in runtime action configs</h3>
-
-Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
-
-Please replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
-
-For example, a configuration like
-
-```yaml
-kind: Build
-name: backend
-description: Backend service container image
-type: container
-
----
-kind: Deploy
-name: backend
-description: Backend service container
-type: container
-build: backend # <-- old config style uses `build` field
-
-spec:
-image: ${actions.build.backend.outputs.deploymentImageId}
-...
-```
-
-should be replaced with
-
-```yaml
-kind: Build
-name: backend
-description: Backend service container image
-type: container
-
----
-kind: Deploy
-name: backend
-description: Backend service container
-type: container
-
-# use `dependencies` field instead of the `build`
-dependencies:
-- build.backend
-
-spec:
-image: ${actions.build.backend.outputs.deploymentImageId}
-...
-```
-
-<h3 id="waitForJobs"><code>spec.waitForJobs</code> in <code>kubernetes</code> Deploy actions</h3>
-
-In Garden 0.14, the default value of `spec.waitForJobs` will change to `true`.
-
-This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
-
-<!-- markdown-link-check-disable-next-line -->
-To suppress this warning and adopt the new behaviour, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiVersion)).
-
-For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
 
 ## Build Staging
 

@@ -176,6 +176,8 @@ function getKubernetesAction(action: Resolved<ConfigmapAction>) {
     spec: {
       namespace: action.getSpec("namespace"),
       files: [],
+      manifestFiles: [],
+      manifestTemplates: [],
       manifests: [configMapManifest],
     },
   }

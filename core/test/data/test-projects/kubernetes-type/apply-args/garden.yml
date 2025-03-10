@@ -5,5 +5,5 @@ type: kubernetes
 spec:
   applyArgs:
     - --unknown-apply-flag
-  files:
+  manifestTemplates:
     - manifests.yaml

@@ -11,8 +11,9 @@ import { dedent } from "../../../util/string.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getPortForwardHandler } from "../port-forward.js"
 import { getActionNamespace } from "../namespace.js"
-import type { KubernetesDeployAction } from "./config.js"
-import { kubernetesDeploySchema, kubernetesFilesSchema } from "./config.js"
+import type { KubernetesDeployAction, KubernetesDeployActionConfig } from "./config.js"
+import { kubernetesManifestFilesSchema } from "./config.js"
+import { kubernetesDeploySchema, kubernetesManifestTemplatesSchema } from "./config.js"
 import { execInKubernetesDeploy } from "./exec.js"
 import {
   deleteKubernetesDeploy,
@@ -26,6 +27,11 @@ import { DOCS_BASE_URL } from "../../../constants.js"
 import { kubernetesGetSyncStatus, kubernetesStartSync } from "./sync.js"
 import { k8sContainerStopSync } from "../container/sync.js"
 import { validateSchema } from "../../../config/validation.js"
+import type { PluginContext } from "../../../plugin-context.js"
+import type { ResolvedTemplate } from "../../../template/types.js"
+import type { ArraySchema } from "@hapi/joi"
+import type { KubernetesDeployActionSpecFileSources } from "./common.js"
+import { getSpecFiles } from "./common.js"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -37,40 +43,86 @@ export const kubernetesDeployDocs = dedent`
   If you need more advanced templating features you can use the [helm](./helm.md) Deploy type.
 `
 
+export function evaluateKubernetesDeploySpecFiles({
+  ctx,
+  config,
+  filesFieldName,
+  filesFieldSchema,
+}: {
+  ctx: PluginContext
+  config: KubernetesDeployActionConfig
+  filesFieldName: keyof KubernetesDeployActionSpecFileSources
+  filesFieldSchema: () => ArraySchema
+}): string[] {
+  let evaluatedFiles: ResolvedTemplate
+  try {
+    evaluatedFiles = ctx.deepEvaluate(config.spec[filesFieldName])
+  } catch (error) {
+    if (!(error instanceof GardenError)) {
+      throw error
+    }
+    throw new ConfigurationError({
+      message: `The spec.${filesFieldName} field in Deploy action ${config.name} contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
+      wrappedErrors: [error],
+    })
+  }
+
+  return validateSchema<string[]>(evaluatedFiles, filesFieldSchema(), {
+    source: {
+      yamlDoc: config.internal.yamlDoc,
+      path: ["spec", filesFieldName],
+    },
+  })
+}
+
+export function getFileSources({
+  ctx,
+  config,
+}: {
+  ctx: PluginContext
+  config: KubernetesDeployActionConfig
+}): KubernetesDeployActionSpecFileSources {
+  const files = evaluateKubernetesDeploySpecFiles({
+    ctx,
+    config,
+    filesFieldName: "files",
+    filesFieldSchema: kubernetesManifestTemplatesSchema,
+  })
+  const manifestFiles = evaluateKubernetesDeploySpecFiles({
+    ctx,
+    config,
+    filesFieldName: "manifestFiles",
+    filesFieldSchema: kubernetesManifestFilesSchema,
+  })
+  const manifestTemplates = evaluateKubernetesDeploySpecFiles({
+    ctx,
+    config,
+    filesFieldName: "manifestTemplates",
+    filesFieldSchema: kubernetesManifestTemplatesSchema,
+  })
+
+  return { files, manifestFiles, manifestTemplates }
+}
+
 export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesDeployAction> => ({
   name: "kubernetes",
   docs: kubernetesDeployDocs,
   schema: kubernetesDeploySchema(),
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
-    configure: async ({ ctx, config }) => {
+    configure: async ({ ctx, log, config }) => {
       if (!config.spec.kustomize) {
         if (!config.include) {
           config.include = []
         }
 
-        let evaluatedFiles: unknown
-
-        try {
-          evaluatedFiles = ctx.deepEvaluate(config.spec.files)
-        } catch (error) {
-          if (!(error instanceof GardenError)) {
-            throw error
-          }
-          throw new ConfigurationError({
-            message: `The spec.files field in Deploy action ${config.name} contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
-            wrappedErrors: [error],
-          })
-        }
-
-        const files = validateSchema<string[]>(evaluatedFiles, kubernetesFilesSchema(), {
-          source: {
-            yamlDoc: config.internal.yamlDoc,
-            path: ["spec", "files"],
-          },
+        const { files, manifestFiles, manifestTemplates } = getSpecFiles({
+          actionRef: config,
+          log,
+          fileSources: getFileSources({ ctx, config }),
         })
 
-        config.include = uniq([...config.include, ...files])
+        config.include = uniq([...config.include, ...files, ...manifestTemplates, ...manifestFiles])
       }
 
       return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }

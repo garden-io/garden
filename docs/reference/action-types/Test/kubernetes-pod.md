@@ -567,7 +567,39 @@ The name of the resource.
 
 [spec](#spec) > files
 
-POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the Test.
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+POSIX-style paths to YAML files to load manifests from. Each file may contain multiple manifests.
+
+Garden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.
+
+Then it will find the resource matching the Pod spec for the Test ([See also `spec.resource`](#specresource)).
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
+### `spec.manifestFiles[]`
+
+[spec](#spec) > manifestFiles
+
+POSIX-style paths to YAML files to load manifests from. Garden will *not* use the Garden Template Language to transform manifests in these files. Each file can contain multiple manifests.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
+### `spec.manifestTemplates[]`
+
+[spec](#spec) > manifestTemplates
+
+POSIX-style paths to YAML files to load manifests from. Each file may contain multiple manifests.
+
+Garden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.
+
+Then it will find the resource matching the Pod spec for the Test ([See also `spec.resource`](#specresource)).
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |

@@ -39,6 +39,7 @@ import type { Log } from "../../../logger/log-entry.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export interface KubernetesTypeCommonDeploySpec {
+  // TODO(0.14): remove this field
   files: string[]
   kustomize?: KubernetesKustomizeSpec
   patchResources?: KubernetesPatchResource[]
@@ -54,6 +55,14 @@ export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySp
   localMode?: KubernetesLocalModeSpec
   // TODO(0.14) make this non-optional with schema-level default values
   waitForJobs?: boolean
+  manifestFiles: string[]
+  manifestTemplates: string[]
+  /**
+   * TODO(0.14): remove this field
+   * Overridden to deprecate it only for actions, not for modules.
+   * @deprecated in action configs, use {@link #manifestTemplates} instead.
+   */
+  files: string[]
 }
 
 export function getDefaultWaitForJobs() {
@@ -111,9 +120,14 @@ const kubernetesPatchResourceSchema = () =>
     patch: joi.object().required().description("The patch to apply.").unknown(true),
   })
 
-export const kubernetesFilesSchema = () =>
+export const kubernetesManifestTemplatesSchema = () =>
   joiSparseArray(joi.posixPath().subPathOnly().allowGlobs()).description(
     "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
+  )
+
+export const kubernetesManifestFilesSchema = () =>
+  joiSparseArray(joi.posixPath().subPathOnly().allowGlobs()).description(
+    "POSIX-style paths to YAML files to load manifests from. Garden will *not* use the Garden Template Language to transform manifests in these files. Each file can contain multiple manifests."
   )
 
 export const kubernetesManifestsSchema = () =>
@@ -139,8 +153,10 @@ export const kubernetesPatchResourcesSchema = () =>
 export const kubernetesApplyArgsSchema = () =>
   joi.sparseArray().items(joi.string()).description("Additional arguments to pass to `kubectl apply`.")
 
-export const kubernetesCommonDeploySpecKeys = () => ({
-  files: kubernetesFilesSchema(),
+type KubernetesCommonDeployKeyDeprecations = { deprecateFiles: boolean }
+
+export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => ({
+  files: kubernetesManifestTemplatesSchema().meta({ deprecated: deprecations.deprecateFiles }),
   kustomize: kustomizeSpecSchema(),
   manifests: kubernetesManifestsSchema(),
   patchResources: kubernetesPatchResourcesSchema(),
@@ -160,10 +176,12 @@ export const kubernetesDeploySchema = () =>
   joi
     .object()
     .keys({
-      ...kubernetesCommonDeploySpecKeys(),
+      ...kubernetesCommonDeploySpecKeys({ deprecateFiles: true }),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
       localMode: kubernetesLocalModeSchema(),
+      manifestFiles: kubernetesManifestFilesSchema(),
+      manifestTemplates: kubernetesManifestTemplatesSchema(),
     })
     .rename("devMode", "sync")
 
