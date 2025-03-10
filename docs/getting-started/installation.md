@@ -23,7 +23,6 @@ If you want to install Garden from source, see the instructions in our [contribu
 You need the following dependencies on your local machine to use Garden:
 
 - Git (v2.14 or newer)
-- _[Windows only]_ rsync (v3.1.0 or newer)
 
 And if you'd like to build and run services locally, you need [a local installation of Kubernetes](https://kubernetes.io/docs/tutorials/hello-minikube/). Garden is committed to supporting [the _latest officially supported_ versions](https://kubernetes.io/releases/).
 The information on the Kubernetes support and EOL timelines can be found [here](https://endoflife.date/kubernetes).
@@ -94,7 +93,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 The things the script will check for are the following:
 
 - The [Chocolatey](https://chocolatey.org) package manager. The script installs it automatically if necessary.
-- _git_ and _rsync_ . The script will install or upgrade those via Chocolatey.
+- _git_. The script will install or upgrade those via Chocolatey.
 
 To later upgrade to the newest version, simply re-run the above script.
 
@@ -112,7 +111,7 @@ Note that you must run Powershell with elevated permissions when you execute thi
 
 ### Step 1: Install core dependencies
 
-Use your preferred method or package manager to install `git` and `rsync`. On Ubuntu, that's `sudo apt install git rsync`, on Alpine `apk add --no-cache git rsync`
+Use your preferred method or package manager to install `git`. On Ubuntu, that's `sudo apt install git`, on Alpine `apk add --no-cache git`
 
 The Alpine linux distribution also requires `gcc` to be installed: `apk add --no-cache gcc`.
 
