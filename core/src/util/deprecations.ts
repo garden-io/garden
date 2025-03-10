@@ -39,13 +39,20 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: dedent`
         <!-- markdown-link-check-disable-next-line -->
+        To suppress this warning and adopt the new behaviour described below, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiVersion)).
+
+        #### Why
+
+        <!-- markdown-link-check-disable-next-line -->
         Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds (See also [${style("ConfigMap")}-based cache for Kubernetes actions](#configMapBasedCache)).
 
-        This means the cache is only available when connecting your project with Garden Cloud/Enterprise.
+        While we also introduce a local file-based cache backend, this means the cache results from other team members will only be available when you're logged in to Garden Cloud/Enterprise.
 
         Logging in also enables you to use our Managed Container Builder which can significantly improve your Docker build performance.
 
         To avoid your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has \`id\` and \`domain\` fields set.
+
+        #### Offline mode
 
         **We don't want to be in your way if you can't log in right now**, be it because you are lacking permissions or because you're offline.
 
@@ -59,24 +66,33 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         The ${style("ConfigMap")}-based cache will not be available anymore in Garden 0.14.
       `,
       docs: dedent`
-        Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds, instead of using your Kubernetes cluster as a database by storing \`ConfigMap\` objects.
-
-        This means the cache is only available when connecting your project with Garden Cloud/Enterprise.
-
-        We are making this change because \`ConfigMap\` manifests in your Kubernetes cluster are not designed for storing \`Test\` and \`Run\` action statuses.
-
-        We've seen Kubernetes clusters where the number of \`ConfigMap\` manifests grew very large and caused reliability issues.
-
-        Also, the storage location for the cache limits the functionality: It's not possible, for instance, to share test caches across multiple Kubernetes clusters.
-
-        This meant, for example, that if your team is using the \`local-kubernetes\` provider, you wouldn't be able to benefit from the cache of other team members.
-
-        The \`ConfigMap\`-based storage also limited the amount of data we can store for each cache entry.
-
-        With Garden 0.14, we are offering a **Team Cache** option with a new storage backend in Garden Cloud/Enterprise. It will put us in a position where we can bring Gardens cache capabilities to the next level.
+        Instead, Garden 0.14 will introduce two new cache storage options: A local file-based cache and a Team Cache as part of Garden Cloud/Enterprise.
 
         <!-- markdown-link-check-disable-next-line -->
-        See also: [Login requirement in Garden 0.14](#loginRequirement)
+        To suppress this warning, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiVersion)).
+
+        #### Why
+
+        We are making this change because \`ConfigMap\` resources in your Kubernetes cluster are not designed for storing \`Test\` and \`Run\` action statuses and have limitations on the amount of data that can be stored for each cache entry.
+
+        We've seen Kubernetes clusters where the number of \`ConfigMap\` resources grew significantly and caused reliability issues.
+
+        Additionally, the storage location of the cache limits the functionality: it's impossible, for instance, to share test results across multiple Kubernetes clusters. If your team is using the \`local-kubernetes\` provider, they cannot benefit from the cache of other team members.
+
+        #### Team Cache backend
+
+        With Garden 0.14, we are offering a **Team Cache** option with a new storage backend in Garden Cloud/Enterprise, putting us in the position of bringing Garden caching capabilities to the next level.
+
+        The Team Cache backend will be enabled by default for all projects that are connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has \`id\` and \`domain\` fields set.
+
+        <!-- markdown-link-check-disable-next-line -->
+        We'll also introduce a login requirement for these projects. See also [Login Requirement](#loginRequirement) for more information.
+
+        #### File-based backend
+
+        For projects that aren't connected to Garden Cloud/Enterprise, or when you're using the \`--offline\` option, we will automatically fall back to a file-based cache backend.
+
+        Garden will skip \`Test\` and \`Run\` actions that already ran from your local machine, but team members and CI workflows won't be able to benefit from the cache entries on your local machine.
       `,
     },
     containerDeploymentStrategy: {
@@ -102,7 +118,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       docsSection: "Project configuration",
       docsHeadline: `The ${style(`apiVersion`)} config field`,
       warnHint: dedent`
-        Update your Garden configuration, so breaking changes in Garden 0.14 will not affect your workflows.
+        Garden 0.14 will introduce breaking changes.
       `,
       docs: dedent`
         Garden uses the \`apiVersion\` setting in your project configuration to understand which version of Garden your configuration has been written for.
@@ -385,9 +401,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     waitForJobs: {
       docsSection: "Default configuration values",
       docsHeadline: `${style("spec.waitForJobs")} of ${style("kubernetes Deploy")}`,
-      warnHint: `In Garden 0.14, the default value of ${style("spec.waitForJobs")} will change to ${style("true")}. You can adopt the new behaviour by declaring ${style("apiVersion: garden.io/v2")} in your project configuraiton.`,
+      warnHint: `In Garden 0.14, the default value of ${style("spec.waitForJobs")} will change to ${style("true")}.`,
       docs: dedent`
         This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
+
+        <!-- markdown-link-check-disable-next-line -->
+        To suppress this warning and adopt the new behaviour, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiVersion)).
 
         For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
       `,
