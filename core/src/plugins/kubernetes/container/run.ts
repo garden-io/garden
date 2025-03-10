@@ -18,19 +18,8 @@ import { runResultToActionState } from "../../../actions/base.js"
 
 export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params
-  const {
-    args,
-    command,
-    cacheResult,
-    artifacts,
-    env,
-    cpu,
-    memory,
-    volumes,
-    privileged,
-    addCapabilities,
-    dropCapabilities,
-  } = action.getSpec()
+  const { command, args, artifacts, env, cpu, memory, volumes, privileged, addCapabilities, dropCapabilities } =
+    action.getSpec()
 
   const timeout = action.getConfig("timeout")
   const k8sCtx = ctx as KubernetesPluginContext
@@ -54,7 +43,12 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     dropCapabilities,
   })
 
-  if (cacheResult) {
+  const detail = {
+    ...runResult,
+    namespaceStatus,
+  }
+
+  if (action.getSpec("cacheResult")) {
     await storeRunResult({
       ctx,
       log,
@@ -63,9 +57,5 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     })
   }
 
-  return {
-    state: runResultToActionState(runResult),
-    detail: { ...runResult, namespaceStatus },
-    outputs: { log: runResult.log },
-  }
+  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }
