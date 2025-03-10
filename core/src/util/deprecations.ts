@@ -258,6 +258,15 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         \`\`\`
       `,
     },
+    ephemeralKubernetesProvider: {
+      docsSection: "Garden Plugins",
+      docsHeadline: `The ${style("ephemeral-kubernetes")} provider`,
+      warnHint: deline`
+        Use the ${style("kubernetes")} or ${style("local-kubernetes")} providers instead.
+        We are currently exploring how to improve and offer a new hosted Kubernetes experience in the future – reach out on GitHub or Discord if you are interested or have any feedback!
+      `,
+      docs: null, // TODO: add link and update tutorials and guides
+    },
     localMode: {
       docsSection: "Local mode",
       docsHeadline: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
