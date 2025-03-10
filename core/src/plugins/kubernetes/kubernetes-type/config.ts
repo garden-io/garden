@@ -24,6 +24,7 @@ import type {
 } from "./kubernetes-pod.js"
 import type { KubernetesLocalModeSpec } from "../local-mode.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
+import type { ContainerRunOutputs } from "../../container/config.js"
 import { containerRunOutputSchema } from "../../container/config.js"
 import type {
   KubernetesExecRunAction,
@@ -167,9 +168,7 @@ export const kubernetesDeploySchema = () =>
     })
     .rename("devMode", "sync")
 
-export type KubernetesRunOutputs = {
-  log: string
-}
+export type KubernetesRunOutputs = ContainerRunOutputs
 
 export const kubernetesRunOutputsSchema = () => containerRunOutputSchema()
 
