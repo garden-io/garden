@@ -52,6 +52,8 @@ describe("getForwardablePorts", () => {
       getSpec(): KubernetesDeployActionSpec {
         return {
           files: [],
+          manifestFiles: [],
+          manifestTemplates: [],
           manifests: [],
           portForwards: [
             {

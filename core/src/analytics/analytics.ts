@@ -508,7 +508,7 @@ export class AnalyticsHandler {
 
     let cloudUser: UserResult | undefined
     let cloudProject: CloudProject | undefined
-    if (garden.isLoggedIn()) {
+    if (garden.isOldBackendAvailable()) {
       try {
         cloudUser = await garden.cloudApi.getProfile()
       } catch (err) {

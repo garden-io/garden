@@ -15,13 +15,84 @@ import Router from "koa-router"
 import getPort from "get-port"
 import cloneDeep from "fast-copy"
 import type { Log } from "../logger/log-entry.js"
-import { gardenEnv } from "../constants.js"
+import { GardenApiVersion, gardenEnv } from "../constants.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import { dedent, deline } from "../util/string.js"
-import { CloudApiError, InternalError } from "../exceptions.js"
+import { CloudApiError, GardenError, InternalError } from "../exceptions.js"
 import { add } from "date-fns"
-import { getCloudDistributionName } from "./util.js"
+import { getCloudDistributionName, getCloudLogSectionName, isGardenCommunityEdition } from "./util.js"
 import type { ParsedUrlQuery } from "node:querystring"
+import type { Garden } from "../index.js"
+import { styles } from "../logger/styles.js"
+import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { makeDocsLinkStyled } from "../docs/common.js"
+
+class LoginRequiredWhenConnected extends GardenError {
+  override type = "login-required"
+
+  constructor() {
+    super({
+      message: dedent`
+        ${styles.primary(
+          // TODO(0.14): advertise team cache and container builder here as benefit for logging in
+          `Login required: This project is connected to Garden Cloud. Please run ${styles.command("garden login")} to authenticate or set the ${styles.highlight("GARDEN_AUTH_TOKEN")} environment variable.`
+        )}
+
+        ${styles.secondary(
+          `NOTE: If you cannot log in right now, use the option ${styles.command("--offline")} or the environment variable ${styles.command("GARDEN_OFFLINE=true")} to enable offline mode. Garden Cloud features won't be available in the offline mode.`
+        )}
+      `,
+    })
+  }
+}
+
+export function enforceLogin({
+  garden,
+  log,
+  isOfflineModeEnabled,
+}: {
+  garden: Garden
+  log: Log
+  isOfflineModeEnabled: boolean
+}) {
+  const apiVersion = garden.getProjectConfig().apiVersion
+  const isConnectedToCloud = !!garden.getProjectConfig().id
+
+  const isLoggedIn = garden.isLoggedIn()
+
+  const distroName = getCloudDistributionName(garden.cloudDomain)
+
+  if (isConnectedToCloud && !isLoggedIn && !isOfflineModeEnabled) {
+    if (apiVersion === GardenApiVersion.v2) {
+      throw new LoginRequiredWhenConnected()
+    }
+
+    reportDeprecatedFeatureUsage({ apiVersion, log, deprecation: "loginRequirement" })
+  }
+
+  if (!isConnectedToCloud && apiVersion !== GardenApiVersion.v2) {
+    reportDeprecatedFeatureUsage({ apiVersion, log, deprecation: "configMapBasedCache" })
+
+    // TODO(0.14): Nudge the user with a message at the end of the command, instead of a warning in the middle of the logs somewhere.
+  }
+
+  // TODO(0.14): Remove this branch as it is now unreachable.
+  if (!isLoggedIn && !isOfflineModeEnabled) {
+    const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
+
+    const msg = `You are not logged in. To use ${distroName}, log in with the ${styles.command(
+      "garden login"
+    )} command.`
+
+    const isCommunityEdition = isGardenCommunityEdition(garden.cloudDomain)
+
+    if (isCommunityEdition) {
+      cloudLog.info(`${msg}\nLearn more at: ${makeDocsLinkStyled("using-garden/dashboard")}`)
+    } else {
+      cloudLog.warn(msg)
+    }
+  }
+}
 
 export interface AuthToken {
   token: string

@@ -41,7 +41,6 @@ const projectPathMultipleProjects = getDataDir("test-project-multiple-project-co
 const logger = getRootLogger()
 const log = logger.createLog()
 
-// TODO-0.14: remove this describe block in 0.14
 describe("prepareProjectResource", () => {
   const projectResourceTemplate = {
     apiVersion: GardenApiVersion.v1,
@@ -150,12 +149,44 @@ describe("prepareProjectResource", () => {
     const logEntry = log.getLatestEntry()
     const sanitizedMsg = stripAnsi((logEntry.msg as string) || "")
     const expectedMessages = [
-      "Deprecation warning:",
-      `apiVersion: ${GardenApiVersion.v0} in the project config is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.`,
-      `Use apiVersion: ${GardenApiVersion.v1} or higher instead.`,
+      "WARNING:",
+      `update your garden configuration, so breaking changes in garden 0.14 will not affect your workflows.`,
       `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${DOCS_DEPRECATION_GUIDE}`,
     ]
     expectFuzzyMatch(sanitizedMsg, expectedMessages)
+  })
+  it("should log a warning if the apiVersion is garden.io/v1", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: GardenApiVersion.v1,
+    }
+
+    const returnedProjectResource = prepareProjectResource(log, projectResource)
+    expect(returnedProjectResource).to.eql(projectResource)
+
+    const logEntry = log.getLatestEntry()
+    const sanitizedMsg = stripAnsi((logEntry.msg as string) || "")
+    const expectedMessages = [
+      "WARNING:",
+      `update your garden configuration, so breaking changes in garden 0.14 will not affect your workflows.`,
+      `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${DOCS_DEPRECATION_GUIDE}`,
+    ]
+    expectFuzzyMatch(sanitizedMsg, expectedMessages)
+  })
+  it("should not log a warning if the apiVersion is garden.io/v2", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: GardenApiVersion.v2,
+    }
+
+    const latestBefore = log.getLatestEntry()
+    const returnedProjectResource = prepareProjectResource(log, projectResource)
+    const latestAfter = log.getLatestEntry()
+
+    expect(returnedProjectResource).to.eql(projectResource)
+
+    // Expect that we didn't print a warning
+    expect(latestBefore).to.equal(latestAfter)
   })
 })
 

@@ -8,4 +8,4 @@ spec:
   defaultTarget:
     kind: Deployment
     name: redis-slave
-  files: [ redis.yml ]
+  manifestTemplates: [ "redis.yml" ]

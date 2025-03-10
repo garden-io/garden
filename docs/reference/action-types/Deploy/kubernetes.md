@@ -252,8 +252,7 @@ Whether the varfile is optional.
 ### `build`
 
 {% hint style="warning" %}
-**Deprecated**: The `build` config field in runtime action configs is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-Use `dependencies` config build to define the build dependencies.
+**Deprecated**: Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
 {% endhint %}
 
 Specify a _Build_ action, and resolve this action from the context of that Build.
@@ -289,6 +288,10 @@ Timeout for the deploy to complete, in seconds.
 ### `spec.files[]`
 
 [spec](#spec) > files
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
 
@@ -956,8 +959,7 @@ Override the image of the matched container.
 [spec](#spec) > localMode
 
 {% hint style="warning" %}
-**Deprecated**: Using `spec.localMode` in `helm`, `kubernetes` and `container` deploy actions is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-The local mode will be removed in the next major version of Garden, 0.14.
+**Deprecated**: The local mode will be removed in the next major version of Garden, 0.14.
 {% endhint %}
 
 [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
@@ -1097,6 +1099,26 @@ The name of a container in the target. Specify this if the target contains more 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `spec.manifestFiles[]`
+
+[spec](#spec) > manifestFiles
+
+POSIX-style paths to YAML files to load manifests from. Garden will *not* use the Garden Template Language to transform manifests in these files. Each file can contain multiple manifests.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
+### `spec.manifestTemplates[]`
+
+[spec](#spec) > manifestTemplates
+
+POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
 
 
 ## Outputs
