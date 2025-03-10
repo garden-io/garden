@@ -48,12 +48,14 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     ...res,
   }
 
-  await storeTestResult({
-    ctx,
-    log,
-    action,
-    result,
-  })
+  if (action.getSpec("cacheResult")) {
+    await storeTestResult({
+      ctx,
+      log,
+      action,
+      result,
+    })
+  }
 
   return { state: runResultToActionState(result), detail: result, outputs: { log: res.log } }
 }

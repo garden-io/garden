@@ -707,6 +707,11 @@ tests:
     # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
     image:
 
+    # Set to false if you don't want the Test action result to be cached. Use this if the Test action needs to be run
+    # any time your project (or one or more of the Test action's dependants) is deployed. Otherwise the Test action is
+    # only re-run when its version changes, or when you run `garden run`.
+    cacheResult: true
+
 # A list of tasks that can be run from this container module. These can be used as dependencies for services (executed
 # before the service is deployed) or for other tasks.
 tasks:
@@ -2643,6 +2648,16 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `tests[].cacheResult`
+
+[tests](#tests) > cacheResult
+
+Set to false if you don't want the Test action result to be cached. Use this if the Test action needs to be run any time your project (or one or more of the Test action's dependants) is deployed. Otherwise the Test action is only re-run when its version changes, or when you run `garden run`.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `tasks[]`
 
