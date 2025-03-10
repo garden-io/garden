@@ -79,6 +79,26 @@ export type CacheableRunResult = RunResult & {
   }
 }
 
+export function composeCacheableRunResult({
+  result,
+  action,
+  namespaceStatus,
+}: {
+  result: RunResult
+  action: Action
+  namespaceStatus: NamespaceStatus
+}): CacheableRunResult {
+  return {
+    ...result,
+    namespaceStatus,
+    actionName: action.name,
+    taskName: action.name,
+    outputs: {
+      log: result.log || "",
+    },
+  }
+}
+
 /**
  * Store a task run result as a ConfigMap in the cluster.
  *

@@ -15,7 +15,7 @@ import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/
 import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getActionNamespaceStatus } from "../namespace.js"
-import type { CacheableRunResult } from "../run-results.js"
+import { composeCacheableRunResult } from "../run-results.js"
 import { k8sGetRunResult, storeRunResult } from "../run-results.js"
 import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./config.js"
@@ -50,17 +50,9 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
       })
       const namespace = namespaceStatus.namespaceName
 
-      const res = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
+      const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
 
-      const detail: CacheableRunResult = {
-        ...res,
-        namespaceStatus,
-        actionName: action.name,
-        taskName: action.name,
-        outputs: {
-          log: res.log || "",
-        },
-      }
+      const detail = composeCacheableRunResult({ result, action, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         await storeRunResult({
