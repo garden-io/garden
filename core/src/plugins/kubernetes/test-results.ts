@@ -10,7 +10,7 @@ import { deserializeValues } from "../../util/serialization.js"
 import { KubeApi, KubernetesError } from "./api.js"
 import type { ContainerTestAction } from "../container/moduleConfig.js"
 import type { PluginContext } from "../../plugin-context.js"
-import type { KubernetesPluginContext } from "./config.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "./config.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { TestResult } from "../../types/test.js"
 import { hashSync } from "hasha"
@@ -31,7 +31,6 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
-
   const resultKey = getTestResultKey(k8sCtx, action)
 
   try {
@@ -43,7 +42,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
       result.version = result.version.versionString
     }
 
-    return { state: runResultToActionState(result), detail: <TestResult>result, outputs: { log: result.log || "" } }
+    return { state: runResultToActionState(result), detail: result, outputs: { log: result.log || "" } }
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
@@ -77,9 +76,10 @@ interface StoreTestResultParams {
  * TODO: Implement a CRD for this.
  */
 export async function storeTestResult({ ctx, log, action, result }: StoreTestResultParams): Promise<TestResult> {
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
+  const k8sCtx = ctx as KubernetesPluginContext
+  const provider = ctx.provider as KubernetesProvider
+  const api = await KubeApi.factory(log, k8sCtx, provider)
+  const testResultNamespace = await getSystemNamespace(k8sCtx, provider, log)
 
   const data = trimRunOutput(result)
 
