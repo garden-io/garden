@@ -47,15 +47,21 @@ describe("kubernetes Run results", () => {
         // module: task.module,
         action,
         result: {
-          // moduleName: task.module.name,
-          // taskName: task.name,
-          // outputs: { log: data },
+          // command: [],
           log: data,
           startedAt: new Date(),
           completedAt: new Date(),
-          // command: [],
-          // version: task.version,
           success: true,
+          actionName: action.name,
+          taskName: action.name,
+          outputs: { log: data },
+          // mock data
+          namespaceStatus: {
+            pluginName: provider.name,
+            namespaceName: ctx.namespace,
+            state: "ready",
+          },
+          // version: task.version,
         },
       })
 
