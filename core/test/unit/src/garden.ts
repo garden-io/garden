@@ -620,8 +620,6 @@ describe("Garden", () => {
       }
     })
     context("user is NOT logged in", () => {
-      const log = getRootLogger().createLog()
-
       it("should have domain and id if set in project config", async () => {
         const projectId = uuidv4()
         const projectName = "test"
