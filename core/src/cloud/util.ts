@@ -9,7 +9,6 @@ import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import type { GrowCloudDistroName, GrowCloudLogSectionName } from "./grow/util.js"
 import { getGrowCloudDomain } from "./grow/util.js"
 import { getGrowCloudDistributionName, getGrowCloudLogSectionName } from "./grow/util.js"
-import { InternalError } from "../exceptions.js"
 
 export type GardenCloudDistroName = "the Garden dashboard" | "Garden Enterprise" | "Garden Cloud"
 
@@ -37,16 +36,11 @@ export function getGardenCloudDistributionName(domain: string): CloudDistroName 
 /**
  * Returns the name of the effective Cloud backend (either Grow or Garden).
  */
-export function getCloudDistributionName(domain: string | undefined): CloudDistroName {
+export function getCloudDistributionName(domain: string): CloudDistroName {
   if (gardenEnv.USE_GARDEN_CLOUD_V2) {
     return getGrowCloudDistributionName()
   }
 
-  // FIXME: Remove this ugly hack.
-  //  Domain is required only for Garden Cloud, not for Grow Cloud.
-  if (domain === undefined) {
-    throw new InternalError({ message: "Cloud domain must be defined when using Garden Cloud." })
-  }
   return getGardenCloudDistributionName(domain)
 }
 

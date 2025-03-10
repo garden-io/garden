@@ -1253,7 +1253,7 @@ providers:
 {% endhint %}
 
 {% hint style="warning" %}
-**Deprecated**: The `deploymentStrategy` config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
+**Deprecated**: The `deploymentStrategy` config field will be removed in Garden 0.14.
 Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
 {% endhint %}
 

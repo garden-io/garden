@@ -36,7 +36,7 @@ import type { ApplyParams } from "../kubectl.js"
 import { getProjectApiVersion } from "../../../project-api-version.js"
 import { GardenApiVersion } from "../../../constants.js"
 import type { Log } from "../../../logger/log-entry.js"
-import { reportDefaultConfigValueChange } from "../../../util/deprecations.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export interface KubernetesTypeCommonDeploySpec {
   // TODO(0.14): remove this field
@@ -74,7 +74,7 @@ export function getDefaultWaitForJobs() {
 export function getWaitForJobs({ waitForJobs, log }: { waitForJobs: boolean | undefined; log: Log }): boolean {
   const { projectApiVersion, defaultValue } = getDefaultWaitForJobs()
   if (waitForJobs === undefined) {
-    reportDefaultConfigValueChange({ apiVersion: projectApiVersion, log, deprecation: "waitForJobs" })
+    reportDeprecatedFeatureUsage({ apiVersion: projectApiVersion, log, deprecation: "waitForJobs" })
   }
 
   return waitForJobs ?? defaultValue

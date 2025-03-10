@@ -56,7 +56,7 @@ async function getBuildMode({
   availability: CloudBuilderAvailabilityV2
 }): Promise<ContainerBuildMode> {
   if (availability.available) {
-    // Local build mode knows how to build using Cloud Builder
+    // Local build mode knows how to build using Container Builder
     return "local-docker"
   } else {
     const provider = ctx.provider

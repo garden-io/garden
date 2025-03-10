@@ -104,7 +104,7 @@ spec:
 ```
 
 Garden interacts with several local and remote builders. Currently support for multi-platform builds varies based on the builder backend.
-The following build backends support multi-platform builds out of the box: [Garden Cloud Builder](../reference/providers/container.md), `cluster-buildkit`, `kaniko`.
+The following build backends support multi-platform builds out of the box: [Garden Container Builder](../reference/providers/container.md), `cluster-buildkit`, `kaniko`.
 
 In-cluster building with `kaniko` does *not* support multi-platform builds.
 

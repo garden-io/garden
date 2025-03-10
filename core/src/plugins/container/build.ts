@@ -308,7 +308,7 @@ async function buildContainerInCloudBuilder(params: {
     // we add --push in the Kubernetes local-docker handler when using the Kubernetes plugin with a deploymentRegistry setting.
     // If we have --push, no need to --load.
     if (!getDockerBuildFlags(params.action, params.ctx.provider.config).includes("--push")) {
-      // This action makes sure to download the image from the cloud builder, and make it available locally.
+      // This action makes sure to download the image from the Container Builder, and make it available locally.
       extraDockerOpts.push("--load")
     }
 
@@ -319,7 +319,7 @@ async function buildContainerInCloudBuilder(params: {
     name: `build.${params.action.name}`,
   })
   if (res.timeSaved > 0) {
-    log.success(`${styles.bold("Accelerated by Garden Cloud Builder - saved", formatDurationMs(res.timeSaved))}`)
+    log.success(`${styles.bold("Accelerated by Garden Container Builder - saved", formatDurationMs(res.timeSaved))}`)
   }
   return res
 }

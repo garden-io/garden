@@ -36,27 +36,44 @@ providers:
     # Build action.
     dockerBuildExtraFlags:
 
-    # **Stability: Experimental**. Subject to breaking changes within minor releases.
     gardenCloudBuilder:
-      # **Stability: Experimental**. Subject to breaking changes within minor releases.
+      # Enable Garden Container Builder, which can speed up builds significantly using fast machines and extremely
+      # fast caching.
       #
-      # Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast
-      # caching.
-      #
-      # by running `GARDEN_CLOUD_BUILDER=1 garden build` you can try Garden Cloud Builder temporarily without any
-      # changes to your Garden configuration.
-      # The environment variable `GARDEN_CLOUD_BUILDER` can also be used to override this setting, if enabled in the
-      # configuration. Set it to `false` or `0` to temporarily disable Garden Cloud Builder.
+      # by running `GARDEN_CONTAINER_BUILDER=1 garden build` you can try Garden Container Builder temporarily without
+      # any changes to your Garden configuration.
+      # The environment variable `GARDEN_CONTAINER_BUILDER` can also be used to override this setting, if enabled in
+      # the configuration. Set it to `false` or `0` to temporarily disable Garden Container Builder.
       #
       # Under the hood, enabling this option means that Garden will install a remote buildx driver on your local
       # Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
       #
-      # If service limits are reached, or Garden Cloud Builder is not available, Garden will fall back to building
+      # If service limits are reached, or Garden Container Builder is not available, Garden will fall back to building
       # images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is
       # configured in the Kubernetes provider configuration.
       #
-      # Please note that when enabling Cloud Builder together with in-cluster building, you need to authenticate to
-      # your `deploymentRegistry` from the local machine (e.g. by running `docker login`).
+      # Please note that when enabling Container Builder together with in-cluster building, you need to authenticate
+      # to your `deploymentRegistry` from the local machine (e.g. by running `docker login`).
+      enabled: false
+
+    gardenContainerBuilder:
+      # Enable Garden Container Builder, which can speed up builds significantly using fast machines and extremely
+      # fast caching.
+      #
+      # by running `GARDEN_CONTAINER_BUILDER=1 garden build` you can try Garden Container Builder temporarily without
+      # any changes to your Garden configuration.
+      # The environment variable `GARDEN_CONTAINER_BUILDER` can also be used to override this setting, if enabled in
+      # the configuration. Set it to `false` or `0` to temporarily disable Garden Container Builder.
+      #
+      # Under the hood, enabling this option means that Garden will install a remote buildx driver on your local
+      # Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
+      #
+      # If service limits are reached, or Garden Container Builder is not available, Garden will fall back to building
+      # images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is
+      # configured in the Kubernetes provider configuration.
+      #
+      # Please note that when enabling Container Builder together with in-cluster building, you need to authenticate
+      # to your `deploymentRegistry` from the local machine (e.g. by running `docker login`).
       enabled: false
 ```
 ## Configuration Keys
@@ -137,7 +154,9 @@ Extra flags to pass to the `docker build` command. Will extend the `spec.extraFl
 
 [providers](#providers) > gardenCloudBuilder
 
-**Stability: Experimental**. Subject to breaking changes within minor releases.
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 | Type     | Required |
 | -------- | -------- |
@@ -147,18 +166,43 @@ Extra flags to pass to the `docker build` command. Will extend the `spec.extraFl
 
 [providers](#providers) > [gardenCloudBuilder](#providersgardencloudbuilder) > enabled
 
-**Stability: Experimental**. Subject to breaking changes within minor releases.
+Enable Garden Container Builder, which can speed up builds significantly using fast machines and extremely fast caching.
 
-Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast caching.
-
-by running `GARDEN_CLOUD_BUILDER=1 garden build` you can try Garden Cloud Builder temporarily without any changes to your Garden configuration.
-The environment variable `GARDEN_CLOUD_BUILDER` can also be used to override this setting, if enabled in the configuration. Set it to `false` or `0` to temporarily disable Garden Cloud Builder.
+by running `GARDEN_CONTAINER_BUILDER=1 garden build` you can try Garden Container Builder temporarily without any changes to your Garden configuration.
+The environment variable `GARDEN_CONTAINER_BUILDER` can also be used to override this setting, if enabled in the configuration. Set it to `false` or `0` to temporarily disable Garden Container Builder.
 
 Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
 
-If service limits are reached, or Garden Cloud Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
+If service limits are reached, or Garden Container Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
 
-Please note that when enabling Cloud Builder together with in-cluster building, you need to authenticate to your `deploymentRegistry` from the local machine (e.g. by running `docker login`).
+Please note that when enabling Container Builder together with in-cluster building, you need to authenticate to your `deploymentRegistry` from the local machine (e.g. by running `docker login`).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
+### `providers[].gardenContainerBuilder`
+
+[providers](#providers) > gardenContainerBuilder
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].gardenContainerBuilder.enabled`
+
+[providers](#providers) > [gardenContainerBuilder](#providersgardencontainerbuilder) > enabled
+
+Enable Garden Container Builder, which can speed up builds significantly using fast machines and extremely fast caching.
+
+by running `GARDEN_CONTAINER_BUILDER=1 garden build` you can try Garden Container Builder temporarily without any changes to your Garden configuration.
+The environment variable `GARDEN_CONTAINER_BUILDER` can also be used to override this setting, if enabled in the configuration. Set it to `false` or `0` to temporarily disable Garden Container Builder.
+
+Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
+
+If service limits are reached, or Garden Container Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
+
+Please note that when enabling Container Builder together with in-cluster building, you need to authenticate to your `deploymentRegistry` from the local machine (e.g. by running `docker login`).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
