@@ -77,8 +77,6 @@ export const gardenContainerBuilderSchema = () =>
     .optional()
     .keys({
       enabled: joi.boolean().default(false).description(dedent`
-            **Stability: Experimental**. Subject to breaking changes within minor releases.
-
             Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast caching.
 
             by running \`GARDEN_CLOUD_BUILDER=1 garden build\` you can try Garden Cloud Builder temporarily without any changes to your Garden configuration.

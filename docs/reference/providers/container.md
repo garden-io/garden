@@ -37,8 +37,6 @@ providers:
     dockerBuildExtraFlags:
 
     gardenCloudBuilder:
-      # **Stability: Experimental**. Subject to breaking changes within minor releases.
-      #
       # Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast
       # caching.
       #
@@ -59,8 +57,6 @@ providers:
       enabled: false
 
     gardenContainerBuilder:
-      # **Stability: Experimental**. Subject to breaking changes within minor releases.
-      #
       # Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast
       # caching.
       #
@@ -170,8 +166,6 @@ Extra flags to pass to the `docker build` command. Will extend the `spec.extraFl
 
 [providers](#providers) > [gardenCloudBuilder](#providersgardencloudbuilder) > enabled
 
-**Stability: Experimental**. Subject to breaking changes within minor releases.
-
 Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast caching.
 
 by running `GARDEN_CLOUD_BUILDER=1 garden build` you can try Garden Cloud Builder temporarily without any changes to your Garden configuration.
@@ -198,8 +192,6 @@ Please note that when enabling Cloud Builder together with in-cluster building, 
 ### `providers[].gardenContainerBuilder.enabled`
 
 [providers](#providers) > [gardenContainerBuilder](#providersgardencontainerbuilder) > enabled
-
-**Stability: Experimental**. Subject to breaking changes within minor releases.
 
 Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast caching.
 
