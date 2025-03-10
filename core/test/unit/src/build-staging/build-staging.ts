@@ -7,9 +7,11 @@
  */
 
 import readdirModule from "@jsdevtools/readdir-enhanced"
+
 const readdir = readdirModule.default
 import { join, basename } from "path"
 import fsExtra from "fs-extra"
+
 const { pathExists, createFile, realpath, readFile, ensureFile, writeFile, ensureDir } = fsExtra
 import { expect } from "chai"
 import type { TestGarden } from "../../../helpers.js"
@@ -19,11 +21,7 @@ import { defaultConfigFilename, makeTempDir, joinWithPosix } from "../../../../s
 import type { BuildStaging, SyncParams } from "../../../../src/build-staging/build-staging.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import type { TestGardenOpts } from "../../../../src/util/testing.js"
-import { BuildStagingRsync, minRsyncVersion } from "../../../../src/build-staging/rsync.js"
 import { BuildTask } from "../../../../src/tasks/build.js"
-import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
-import type { BuildAction } from "../../../../src/actions/build.js"
-import { DOCS_BASE_URL } from "../../../../src/constants.js"
 import { lstat, readlink, rm, symlink } from "fs/promises"
 
 // TODO-G2: rename test cases to match the new graph model semantics
@@ -321,94 +319,6 @@ describe("BuildStaging", () => {
           contains: `Build staging: Attempting to copy directory from ${tmpPath} to ${tmpPath}/a, but a file exists at target path`,
         }
       )
-    })
-  })
-})
-
-describe("BuildStagingRsync", () => {
-  let garden: TestGarden
-
-  before(async () => {
-    garden = await makeGarden({ legacyBuildSync: true })
-  })
-
-  afterEach(async () => {
-    await garden.buildStaging.clear()
-  })
-
-  it("should have ensured the existence of the build dir when Garden was initialized", async () => {
-    const buildDirExists = await pathExists(garden.buildStaging.buildDirPath)
-    expect(buildDirExists).to.eql(true)
-  })
-
-  describe("(common)", () => commonSyncTests(false))
-
-  describe("sync", () => {
-    let buildStaging: BuildStagingRsync
-    let graph: ConfigGraph
-    let action: BuildAction
-
-    beforeEach(async () => {
-      buildStaging = new BuildStagingRsync(garden.projectRoot, garden.gardenDirPath)
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      action = graph.getBuild("module-a")
-    })
-
-    it("should not sync symlinks that point outside the module root", async () => {
-      const actionWithSymlink = graph.getBuild("symlink-outside-module")
-
-      await garden.buildStaging.syncFromSrc({ action: actionWithSymlink, log: garden.log })
-
-      const buildDir = garden.buildStaging.getBuildPath(actionWithSymlink.getConfig())
-      expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.false
-    })
-
-    it("should throw if rsync is not on PATH", async () => {
-      const orgPath = process.env.PATH
-
-      try {
-        process.env.PATH = ""
-        await expectError(() => buildStaging.syncFromSrc({ action, log: garden.log }), {
-          contains: [
-            "Could not find rsync binary",
-            "Please make sure rsync (version 3.1.0 or later) is installed and on your PATH.",
-          ],
-        })
-      } finally {
-        process.env.PATH = orgPath
-      }
-    })
-
-    it(`should work with rsync v${minRsyncVersion}`, async () => {
-      buildStaging.setRsyncPath(getDataDir("dummy-rsync", "min-version", "rsync"))
-      await buildStaging.validate()
-    })
-
-    it("should work with rsync v3.2.3", async () => {
-      buildStaging.setRsyncPath(getDataDir("dummy-rsync", "new-version", "rsync"))
-      await buildStaging.validate()
-    })
-
-    it("should throw if rsync is too old", async () => {
-      buildStaging.setRsyncPath(getDataDir("dummy-rsync", "old-version", "rsync"))
-      await expectError(() => buildStaging.syncFromSrc({ action, log: garden.log }), {
-        contains: [
-          "found rsync binary but the version is too old",
-          "please make sure rsync",
-          `more about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/getting-started/installation`,
-        ],
-      })
-    })
-
-    it("should throw if rsync returns invalid version", async () => {
-      buildStaging.setRsyncPath(getDataDir("dummy-rsync", "invalid", "rsync"))
-      await expectError(() => buildStaging.syncFromSrc({ action, log: garden.log }), {
-        contains: [
-          "could not detect rsync binary version in the version command",
-          "please make sure rsync",
-          `more about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/getting-started/installation`,
-        ],
-      })
     })
   })
 })
