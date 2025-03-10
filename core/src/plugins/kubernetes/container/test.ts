@@ -7,6 +7,7 @@
  */
 
 import type { ContainerTestAction } from "../../container/moduleConfig.js"
+import { composeCacheableTestResult } from "../test-results.js"
 import { storeTestResult } from "../test-results.js"
 import { runAndCopy } from "../run.js"
 import { makePodName } from "../util.js"
@@ -17,16 +18,16 @@ import { getDeployedImageId } from "./util.js"
 import { runResultToActionState } from "../../../actions/base.js"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
-  const { ctx, action, log } = params
+  const { ctx, log, action } = params
   const { command, args, artifacts, env, cpu, memory, volumes, privileged, addCapabilities, dropCapabilities } =
     action.getSpec()
+
   const timeout = action.getConfig("timeout")
   const k8sCtx = ctx as KubernetesPluginContext
-
   const image = getDeployedImageId(action)
   const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
-  const res = await runAndCopy({
+  const result = await runAndCopy({
     ...params,
     command,
     args,
@@ -43,19 +44,16 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     dropCapabilities,
   })
 
-  const result = {
-    namespaceStatus,
-    ...res,
-  }
+  const detail = composeCacheableTestResult({ result, action, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
     await storeTestResult({
       ctx,
       log,
       action,
-      result,
+      result: detail,
     })
   }
 
-  return { state: runResultToActionState(result), detail: result, outputs: { log: res.log } }
+  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }

@@ -8,6 +8,7 @@
 
 import type { KubernetesCommonRunSpec, KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
 import { kubernetesCommonRunSchemaKeys, runPodResourceSchema, runPodSpecSchema } from "../config.js"
+import { composeCacheableRunResult } from "../run-results.js"
 import { k8sGetRunResult, storeRunResult } from "../run-results.js"
 import { getActionNamespaceStatus } from "../namespace.js"
 import type { ActionKind, RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
@@ -31,6 +32,7 @@ import type { KubernetesKustomizeSpec } from "./kustomize.js"
 import { kustomizeSpecSchema } from "./kustomize.js"
 import type { ObjectSchema } from "@hapi/joi"
 import type { TestActionConfig, TestAction } from "../../../actions/test.js"
+import { composeCacheableTestResult } from "../test-results.js"
 import { storeTestResult, k8sGetTestResult } from "../test-results.js"
 
 // RUN //
@@ -114,16 +116,9 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
       })
       const namespace = namespaceStatus.namespaceName
 
-      const res = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = {
-        ...res,
-        namespaceStatus,
-        taskName: action.name,
-        outputs: {
-          log: res.log || "",
-        },
-      }
+      const detail = composeCacheableRunResult({ result, action, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         await storeRunResult({
@@ -168,24 +163,20 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
       })
       const namespace = namespaceStatus.namespaceName
 
-      const res = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = {
-        testName: action.name,
-        namespaceStatus,
-        ...res,
-      }
+      const detail = composeCacheableTestResult({ result, action, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         await storeTestResult({
-          ctx: k8sCtx,
+          ctx,
           log,
           action,
           result: detail,
         })
       }
 
-      return { state: runResultToActionState(detail), detail, outputs: { log: res.log } }
+      return { state: runResultToActionState(detail), detail, outputs: detail.outputs }
     },
 
     getResult: k8sGetTestResult,

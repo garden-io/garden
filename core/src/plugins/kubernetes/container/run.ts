@@ -9,6 +9,7 @@
 import type { ContainerRunAction } from "../../container/moduleConfig.js"
 import { runAndCopy } from "../run.js"
 import type { KubernetesPluginContext } from "../config.js"
+import { composeCacheableRunResult } from "../run-results.js"
 import { storeRunResult } from "../run-results.js"
 import { makePodName } from "../util.js"
 import { getNamespaceStatus } from "../namespace.js"
@@ -18,26 +19,15 @@ import { runResultToActionState } from "../../../actions/base.js"
 
 export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params
-  const {
-    args,
-    command,
-    cacheResult,
-    artifacts,
-    env,
-    cpu,
-    memory,
-    volumes,
-    privileged,
-    addCapabilities,
-    dropCapabilities,
-  } = action.getSpec()
+  const { command, args, artifacts, env, cpu, memory, volumes, privileged, addCapabilities, dropCapabilities } =
+    action.getSpec()
 
   const timeout = action.getConfig("timeout")
   const k8sCtx = ctx as KubernetesPluginContext
   const image = getDeployedImageId(action)
   const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
-  const runResult = await runAndCopy({
+  const result = await runAndCopy({
     ...params,
     command,
     args,
@@ -54,18 +44,16 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     dropCapabilities,
   })
 
-  if (cacheResult) {
+  const detail = composeCacheableRunResult({ result, action, namespaceStatus })
+
+  if (action.getSpec("cacheResult")) {
     await storeRunResult({
       ctx,
       log,
       action,
-      result: runResult,
+      result: detail,
     })
   }
 
-  return {
-    state: runResultToActionState(runResult),
-    detail: { ...runResult, namespaceStatus },
-    outputs: { log: runResult.log },
-  }
+  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }
