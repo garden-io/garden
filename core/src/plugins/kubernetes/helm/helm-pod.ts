@@ -101,7 +101,7 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
       const detail = {
         ...res,
         namespaceStatus,
-        taskName: action.name,
+        testName: action.name,
         outputs: {
           log: res.log || "",
         },
