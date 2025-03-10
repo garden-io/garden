@@ -151,9 +151,13 @@ spec:
 
 Use `kubernetes` or `local-kubernetes` providers instead. We are currently exploring how to improve and offer a new hosted Kubernetes experience in the future – reach out on GitHub or Discord if you are interested or have any feedback!
 
-<h3 id="gardenCloudBuilder"><code>gardenCloudBuilder</code> of <code>container</code> provider</h3>
+<h3 id="gardenCloudBuilder"><code>gardenCloudBuilder</code> config field of <code>container</code> provider</h3>
 
 Use `gardenContainerBuilder` instead.
+
+<h3 id="gardenCloudBuilderEnvVar"><code>GARDEN_CLOUD_BUILDER</code> environment variable for <code>container</code> provider</h3>
+
+Use `GARDEN_CONTAINER_BUILDER` instead.
 
 ## Local mode
 

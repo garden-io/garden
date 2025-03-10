@@ -373,6 +373,10 @@ function isContainerBuilderEnabled({
     reportDeprecatedFeatureUsage({ apiVersion, log: ctx.log, deprecation: "gardenCloudBuilder" })
   }
 
+  if (gardenEnv.GARDEN_CLOUD_BUILDER !== undefined) {
+    reportDeprecatedFeatureUsage({ apiVersion, log: ctx.log, deprecation: "gardenCloudBuilderEnvVar" })
+  }
+
   if (!!containerProviderConfig.gardenContainerBuilder && !!containerProviderConfig.gardenCloudBuilder) {
     throw new ConfigurationError({
       message: deline`

@@ -327,8 +327,14 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     gardenCloudBuilder: {
       contextDesc: "Garden Plugins",
-      featureDesc: `${style("gardenCloudBuilder")} of ${style("container")} provider`,
+      featureDesc: `${style("gardenCloudBuilder")} config field of ${style("container")} provider`,
       hint: `Use ${style("gardenContainerBuilder")} instead.`,
+      docs: null,
+    },
+    gardenCloudBuilderEnvVar: {
+      contextDesc: "Garden Plugins",
+      featureDesc: `${style("GARDEN_CLOUD_BUILDER")} environment variable for ${style("container")} provider`,
+      hint: `Use ${style("GARDEN_CONTAINER_BUILDER")} instead.`,
       docs: null,
     },
   } as const
