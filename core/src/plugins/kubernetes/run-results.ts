@@ -12,7 +12,6 @@ import { KubeApi, KubernetesError } from "./api.js"
 import { getAppNamespace } from "./namespace.js"
 import { deserializeValues } from "../../util/serialization.js"
 import type { PluginContext } from "../../plugin-context.js"
-import type { Log } from "../../logger/log-entry.js"
 import { gardenAnnotationKey } from "../../util/string.js"
 import { hashSync } from "hasha"
 import { upsertConfigMap } from "./util.js"
@@ -25,6 +24,8 @@ import type { HelmPodRunAction } from "./helm/config.js"
 import type { KubernetesRunAction } from "./kubernetes-type/config.js"
 import { GardenError } from "../../exceptions.js"
 import type { NamespaceStatus } from "../../types/namespace.js"
+import type { CacheableResult, ClearResultParams, LoadResultParams, StoreResultParams } from "./results-cache.js"
+import { composeCacheableResult } from "./results-cache.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
@@ -38,7 +39,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
   return toRunActionStatus(cachedResult)
 }
 
-export function getRunResultKey(ctx: PluginContext, action: Action) {
+export function getRunResultKey(ctx: PluginContext, action: CacheableRunAction) {
   // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
   const resultFormatVersion = 2
   const key = `${ctx.projectName}--${action.type}.${action.name}--${action.versionString()}--${resultFormatVersion}`
@@ -48,13 +49,9 @@ export function getRunResultKey(ctx: PluginContext, action: Action) {
 
 export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
 
-interface LoadRunResultParams {
-  ctx: PluginContext
-  log: Log
-  action: CacheableRunAction
-}
-
-export async function loadRunResult(params: LoadRunResultParams): Promise<CacheableRunResult | undefined> {
+export async function loadRunResult(
+  params: LoadResultParams<CacheableRunAction>
+): Promise<CacheableRunResult | undefined> {
   const { action, ctx, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
@@ -77,36 +74,22 @@ export async function loadRunResult(params: LoadRunResultParams): Promise<Cachea
   }
 }
 
-interface StoreRunResultParams {
-  ctx: PluginContext
-  log: Log
-  action: CacheableRunAction
-  result: CacheableRunResult
-}
-
-export type CacheableRunResult = RunResult & {
-  namespaceStatus: NamespaceStatus
-  actionName: string
+export type CacheableRunResult = CacheableResult & {
   /**
    * @deprecated use {@link #actionName} instead
    */
   taskName: string
 }
 
-export function composeCacheableRunResult({
-  result,
-  action,
-  namespaceStatus,
-}: {
+export function composeCacheableRunResult(params: {
   result: RunResult
   action: Action
   namespaceStatus: NamespaceStatus
 }): CacheableRunResult {
+  const result = composeCacheableResult(params)
   return {
     ...result,
-    namespaceStatus,
-    actionName: action.name,
-    taskName: action.name,
+    taskName: result.actionName,
   }
 }
 
@@ -119,7 +102,12 @@ export function toRunActionStatus(detail: CacheableRunResult): ActionStatus {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeRunResult({ ctx, log, action, result }: StoreRunResultParams): Promise<CacheableRunResult> {
+export async function storeRunResult({
+  ctx,
+  log,
+  action,
+  result,
+}: StoreResultParams<CacheableRunAction, CacheableRunResult>): Promise<CacheableRunResult> {
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = ctx.provider as KubernetesProvider
   const api = await KubeApi.factory(log, k8sCtx, provider)
@@ -153,15 +141,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreRunResul
 /**
  * Clear the stored result for the given task. No-op if no result had been stored for it.
  */
-export async function clearRunResult({
-  ctx,
-  log,
-  action,
-}: {
-  ctx: PluginContext
-  log: Log
-  action: Action
-}): Promise<void> {
+export async function clearRunResult({ ctx, log, action }: ClearResultParams<CacheableRunAction>): Promise<void> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = await getAppNamespace(ctx as KubernetesPluginContext, log, provider)

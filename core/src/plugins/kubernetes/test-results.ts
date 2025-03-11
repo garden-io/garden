@@ -11,7 +11,6 @@ import { KubeApi, KubernetesError } from "./api.js"
 import type { ContainerTestAction } from "../container/moduleConfig.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "./config.js"
-import type { Log } from "../../logger/log-entry.js"
 import { hashSync } from "hasha"
 import { gardenAnnotationKey } from "../../util/string.js"
 import { upsertConfigMap } from "./util.js"
@@ -25,6 +24,8 @@ import { GardenError } from "../../exceptions.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { NamespaceStatus } from "../../types/namespace.js"
 import type { Action, ActionStatus } from "../../actions/types.js"
+import type { CacheableResult, LoadResultParams, StoreResultParams } from "./results-cache.js"
+import { composeCacheableResult } from "./results-cache.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -38,7 +39,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   return toTestActionStatus(cachedResult)
 }
 
-export function getTestResultKey(ctx: PluginContext, action: StoreTestResultParams["action"]) {
+export function getTestResultKey(ctx: PluginContext, action: CacheableTestAction) {
   // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
   const resultFormatVersion = 3
   const key = `${ctx.projectName}--${action.name}--${action.versionString()}--${resultFormatVersion}`
@@ -48,13 +49,9 @@ export function getTestResultKey(ctx: PluginContext, action: StoreTestResultPara
 
 export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
 
-interface LoadTestResultParams {
-  ctx: PluginContext
-  log: Log
-  action: CacheableTestAction
-}
-
-export async function loadTestResult(params: LoadTestResultParams): Promise<CacheableTestResult | undefined> {
+export async function loadTestResult(
+  params: LoadResultParams<CacheableTestAction>
+): Promise<CacheableTestResult | undefined> {
   const { action, ctx, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
@@ -78,36 +75,22 @@ export async function loadTestResult(params: LoadTestResultParams): Promise<Cach
   }
 }
 
-interface StoreTestResultParams {
-  ctx: PluginContext
-  log: Log
-  action: CacheableTestAction
-  result: CacheableTestResult
-}
-
-export type CacheableTestResult = RunResult & {
-  namespaceStatus: NamespaceStatus
-  actionName: string
+export type CacheableTestResult = CacheableResult & {
   /**
    * @deprecated use {@link #actionName} instead
    */
   testName: string
 }
 
-export function composeCacheableTestResult({
-  result,
-  action,
-  namespaceStatus,
-}: {
+export function composeCacheableTestResult(params: {
   result: RunResult
   action: Action
   namespaceStatus: NamespaceStatus
 }): CacheableTestResult {
+  const result = composeCacheableResult(params)
   return {
     ...result,
-    namespaceStatus,
-    actionName: action.name,
-    testName: action.name,
+    testName: result.actionName,
   }
 }
 
@@ -125,7 +108,7 @@ export async function storeTestResult({
   log,
   action,
   result,
-}: StoreTestResultParams): Promise<CacheableTestResult> {
+}: StoreResultParams<CacheableTestAction, CacheableTestResult>): Promise<CacheableTestResult> {
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = ctx.provider as KubernetesProvider
   const api = await KubeApi.factory(log, k8sCtx, provider)
