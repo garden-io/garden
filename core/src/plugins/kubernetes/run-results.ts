@@ -18,64 +18,100 @@ import { hashSync } from "hasha"
 import { upsertConfigMap } from "./util.js"
 import { trimRunOutput } from "./helm/common.js"
 import { runResultToActionState } from "../../actions/base.js"
-import type { Action } from "../../actions/types.js"
+import type { Action, ActionStatus } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { RunActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodRunAction } from "./helm/config.js"
 import type { KubernetesRunAction } from "./kubernetes-type/config.js"
+import { GardenError } from "../../exceptions.js"
+import type { NamespaceStatus } from "../../types/namespace.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
-  const { ctx, log } = params
-  const action = <ContainerRunAction>params.action
+  const { action, ctx, log } = params
+  const cachedResult = await loadRunResult({ action, ctx, log })
+
+  if (!cachedResult) {
+    return { state: "not-ready", detail: null, outputs: { log: "" } }
+  }
+
+  return toRunActionStatus(cachedResult)
+}
+
+export function getRunResultKey(ctx: PluginContext, action: Action) {
+  // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
+  const resultFormatVersion = 2
+  const key = `${ctx.projectName}--${action.type}.${action.name}--${action.versionString()}--${resultFormatVersion}`
+  const hash = hashSync(key, { algorithm: "sha1" })
+  return `run-result--${hash.slice(0, 32)}`
+}
+
+export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
+
+interface LoadRunResultParams {
+  ctx: PluginContext
+  log: Log
+  action: CacheableRunAction
+}
+
+export async function loadRunResult(params: LoadRunResultParams): Promise<CacheableRunResult | undefined> {
+  const { action, ctx, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const runResultNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const resultKey = getRunResultKey(ctx, action)
 
   try {
-    const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: ns })
-    const result: any = deserializeValues(res.data!)
-
-    // Backwards compatibility for modified result schema
-    if (!result.outputs) {
-      result.outputs = {}
-    }
-
-    if (!result.outputs.log) {
-      result.outputs.log = result.log || ""
-    }
-
-    if (result.version?.versionString) {
-      result.version = result.version.versionString
-    }
-
-    return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
+    const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: runResultNamespace })
+    const result = deserializeValues(res.data!)
+    return result as CacheableRunResult
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }
     if (err.responseStatusCode === 404) {
-      return { state: "not-ready", detail: null, outputs: {} }
+      return undefined
     } else {
       throw err
     }
   }
 }
 
-export function getRunResultKey(ctx: PluginContext, action: Action) {
-  // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
-  const resultFormatVersion = 1
-  const key = `${ctx.projectName}--${action.type}.${action.name}--${action.versionString()}--${resultFormatVersion}`
-  const hash = hashSync(key, { algorithm: "sha1" })
-  return `run-result--${hash.slice(0, 32)}`
-}
-
-interface StoreTaskResultParams {
+interface StoreRunResultParams {
   ctx: PluginContext
   log: Log
-  action: ContainerRunAction | KubernetesRunAction | HelmPodRunAction
+  action: CacheableRunAction
+  result: CacheableRunResult
+}
+
+export type CacheableRunResult = RunResult & {
+  namespaceStatus: NamespaceStatus
+  actionName: string
+  /**
+   * @deprecated use {@link #actionName} instead
+   */
+  taskName: string
+}
+
+export function composeCacheableRunResult({
+  result,
+  action,
+  namespaceStatus,
+}: {
   result: RunResult
+  action: Action
+  namespaceStatus: NamespaceStatus
+}): CacheableRunResult {
+  return {
+    ...result,
+    namespaceStatus,
+    actionName: action.name,
+    taskName: action.name,
+  }
+}
+
+export function toRunActionStatus(detail: CacheableRunResult): ActionStatus {
+  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }
 
 /**
@@ -83,10 +119,11 @@ interface StoreTaskResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeRunResult({ ctx, log, action, result }: StoreTaskResultParams): Promise<RunResult> {
-  const provider = <KubernetesProvider>ctx.provider
-  const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getAppNamespace(ctx as KubernetesPluginContext, log, provider)
+export async function storeRunResult({ ctx, log, action, result }: StoreRunResultParams): Promise<CacheableRunResult> {
+  const k8sCtx = ctx as KubernetesPluginContext
+  const provider = ctx.provider as KubernetesProvider
+  const api = await KubeApi.factory(log, k8sCtx, provider)
+  const runResultNamespace = await getAppNamespace(k8sCtx, log, provider)
 
   // FIXME: We should store the logs separately, because of the 1MB size limit on ConfigMaps.
   const data = trimRunOutput(result)
@@ -94,7 +131,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
   try {
     await upsertConfigMap({
       api,
-      namespace,
+      namespace: runResultNamespace,
       key: getRunResultKey(ctx, action),
       labels: {
         [gardenAnnotationKey("action")]: action.key(),
@@ -104,7 +141,10 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       data,
     })
   } catch (err) {
-    log.warn(`Unable to store Run result: ${err}`)
+    if (!(err instanceof GardenError)) {
+      throw err
+    }
+    log.warn(`Unable to store run result: ${err}`)
   }
 
   return data
