@@ -28,7 +28,7 @@ To suppress this warning and adopt the new behaviour described below, change the
 ### Why
 
 <!-- markdown-link-check-disable-next-line -->
-Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes `Test` and `Run` actions kinds (See also [`ConfigMap`-based cache for Kubernetes actions](#configmapbasedCache)).
+Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes `Test` and `Run` actions kinds (See also [`ConfigMap`-based cache for Kubernetes actions](#configmapbasedcache)).
 
 While we also introduce a local file-based cache backend, this means the cache results from other team members will only be available when you're logged in to Garden Cloud/Enterprise.
 
@@ -66,7 +66,7 @@ With Garden 0.14, we are offering a **Team Cache** option with a new storage bac
 The Team Cache backend will be enabled by default for all projects that are connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has `id` and `domain` fields set.
 
 <!-- markdown-link-check-disable-next-line -->
-We'll also introduce a login requirement for these projects. See also [Login Requirement](#loginRequirement) for more information.
+We'll also introduce a login requirement for these projects. See also [Login Requirement](#loginrequirement) for more information.
 
 ### File-based backend
 
@@ -291,7 +291,7 @@ The `modules` config field will be removed in Garden 0.14. Do not use the `modul
 
 For more information, please refer to the [`scan` reference documentation](../reference/project-config.md#scan).
 
-# Garden Plugins
+# Garden plugins
 
 <h2 id="hadolintplugin">The <code>hadolint</code> plugin</h2>
 

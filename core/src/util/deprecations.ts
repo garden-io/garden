@@ -44,7 +44,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         ### Why
 
         <!-- markdown-link-check-disable-next-line -->
-        Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds (See also [${style("ConfigMap")}-based cache for Kubernetes actions](#configmapbasedCache)).
+        Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds (See also [${style("ConfigMap")}-based cache for Kubernetes actions](#configmapbasedcache)).
 
         While we also introduce a local file-based cache backend, this means the cache results from other team members will only be available when you're logged in to Garden Cloud/Enterprise.
 
@@ -86,7 +86,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         The Team Cache backend will be enabled by default for all projects that are connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has \`id\` and \`domain\` fields set.
 
         <!-- markdown-link-check-disable-next-line -->
-        We'll also introduce a login requirement for these projects. See also [Login Requirement](#loginRequirement) for more information.
+        We'll also introduce a login requirement for these projects. See also [Login Requirement](#loginrequirement) for more information.
 
         ### File-based backend
 
@@ -276,7 +276,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
     },
     hadolintPlugin: {
-      docsSection: "Garden Plugins",
+      docsSection: "Garden plugins",
       docsHeadline: `The ${style("hadolint")} plugin`,
       warnHint: `Do not use the ${style("hadolint")} plugin explicitly, as it will be removed in the next version of Garden, 0.14.`,
       docs: dedent`
@@ -295,13 +295,13 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
     },
     octantPlugin: {
-      docsSection: "Garden Plugins",
+      docsSection: "Garden plugins",
       docsHeadline: `The ${style("octant")} plugin`,
       warnHint: `Do not use the ${style("octant")} plugin explicitly, as it will be removed in the next version of Garden, 0.14.`,
       docs: `The ${style("octant")} plugin does not have any effect since the integrated dashboard has been removed in Garden 0.13.0.`,
     },
     conftestPlugin: {
-      docsSection: "Garden Plugins",
+      docsSection: "Garden plugins",
       docsHeadline: `The ${style("conftest")} plugin`,
       warnHint: `Do not use the ${style("conftest")} plugin explicitly, as it will be removed in the next version of Garden, 0.14.`,
       docs: dedent`
@@ -322,7 +322,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
     },
     ephemeralKubernetesProvider: {
-      docsSection: "Garden Plugins",
+      docsSection: "Garden plugins",
       docsHeadline: `The ${style("ephemeral-kubernetes")} provider`,
       warnHint: deline`
         Use the ${style("kubernetes")} or ${style("local-kubernetes")} providers instead.
@@ -484,7 +484,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
     },
     gardenCloudBuilder: {
-      docsSection: "Garden Plugins",
+      docsSection: "Garden plugins",
       docsHeadline: `${style("container")} provider configuration`,
       warnHint: `The ${style("gardenCloudBuilder")} setting in the ${style("container")} provider configuration has been renamed to ${style("gardenContainerBuilder")}. Use the setting ${style("gardenContainerBuilder")} instead of ${style("gardenCloudBuilder")}.`,
       docs: null,
