@@ -9,12 +9,12 @@
 import type { ContainerRunAction } from "../../container/moduleConfig.js"
 import { runAndCopy } from "../run.js"
 import type { KubernetesPluginContext } from "../config.js"
-import { composeCacheableRunResult, toRunActionStatus } from "../run-results.js"
-import { storeRunResult } from "../run-results.js"
+import { composeCacheableRunResult, runResultCache } from "../run-results.js"
 import { makePodName } from "../util.js"
 import { getNamespaceStatus } from "../namespace.js"
 import type { RunActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
+import { toActionStatus } from "../results-cache.js"
 
 export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params
@@ -46,7 +46,7 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
   const detail = composeCacheableRunResult({ result, action, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
-    await storeRunResult({
+    await runResultCache.store({
       ctx,
       log,
       action,
@@ -54,5 +54,5 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     })
   }
 
-  return toRunActionStatus(detail)
+  return toActionStatus(detail)
 }
