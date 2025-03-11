@@ -16,8 +16,7 @@ import { gardenAnnotationKey } from "../../util/string.js"
 import { hashSync } from "hasha"
 import { upsertConfigMap } from "./util.js"
 import { trimRunOutput } from "./helm/common.js"
-import { runResultToActionState } from "../../actions/base.js"
-import type { Action, ActionStatus } from "../../actions/types.js"
+import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { RunActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodRunAction } from "./helm/config.js"
@@ -31,6 +30,7 @@ import type {
   ResultCache,
   StoreResultParams,
 } from "./results-cache.js"
+import { toActionStatus } from "./results-cache.js"
 import { composeCacheableResult } from "./results-cache.js"
 
 // TODO: figure out how to get rid of the any cast here
@@ -42,7 +42,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
     return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
 
-  return toRunActionStatus(cachedResult)
+  return toActionStatus(cachedResult)
 }
 
 export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
@@ -158,7 +158,3 @@ export class RunResultCache implements ResultCache<CacheableRunAction, Cacheable
 }
 
 export const runResultCache = new RunResultCache()
-
-export function toRunActionStatus(detail: CacheableRunResult): ActionStatus {
-  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
-}

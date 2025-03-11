@@ -17,13 +17,12 @@ import { upsertConfigMap } from "./util.js"
 import { trimRunOutput } from "./helm/common.js"
 import { getSystemNamespace } from "./namespace.js"
 import type { TestActionHandler } from "../../plugin/action-types.js"
-import { runResultToActionState } from "../../actions/base.js"
 import type { HelmPodTestAction } from "./helm/config.js"
 import type { KubernetesTestAction } from "./kubernetes-type/config.js"
 import { GardenError } from "../../exceptions.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { NamespaceStatus } from "../../types/namespace.js"
-import type { Action, ActionStatus } from "../../actions/types.js"
+import type { Action } from "../../actions/types.js"
 import type {
   CacheableResult,
   ClearResultParams,
@@ -31,6 +30,7 @@ import type {
   ResultCache,
   StoreResultParams,
 } from "./results-cache.js"
+import { toActionStatus } from "./results-cache.js"
 import { composeCacheableResult } from "./results-cache.js"
 
 // TODO: figure out how to get rid of the any cast
@@ -42,7 +42,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
     return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
 
-  return toTestActionStatus(cachedResult)
+  return toActionStatus(cachedResult)
 }
 
 export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
@@ -143,7 +143,3 @@ export class TestResultCache implements ResultCache<CacheableTestAction, Cacheab
 }
 
 export const testResultCache = new TestResultCache()
-
-export function toTestActionStatus(detail: CacheableTestResult): ActionStatus {
-  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
-}

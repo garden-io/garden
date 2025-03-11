@@ -8,11 +8,12 @@
 
 import type { PluginContext } from "../../plugin-context.js"
 import type { Log } from "../../logger/log-entry.js"
-import type { Action } from "../../actions/types.js"
+import type { Action, ActionStatus } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { NamespaceStatus } from "../../types/namespace.js"
 import type { RunAction } from "../../actions/run.js"
 import type { TestAction } from "../../actions/test.js"
+import { runResultToActionState } from "../../actions/base.js"
 
 export type CacheableResult = RunResult & {
   namespaceStatus: NamespaceStatus
@@ -48,6 +49,10 @@ export function composeCacheableResult({
     namespaceStatus,
     actionName: action.name,
   }
+}
+
+export function toActionStatus<T extends CacheableResult>(detail: T): ActionStatus {
+  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }
 
 export interface ResultCache<A extends RunAction | TestAction, R extends CacheableResult> {
