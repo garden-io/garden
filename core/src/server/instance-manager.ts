@@ -191,7 +191,7 @@ export class GardenInstanceManager {
   }
 
   async getCloudApi(garden: Garden) {
-    if (!garden.isLoggedIn()) {
+    if (!garden.isOldBackendAvailable()) {
       return undefined
     }
 

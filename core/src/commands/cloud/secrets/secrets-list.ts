@@ -17,6 +17,7 @@ import { StringsParameter } from "../../../cli/params.js"
 import { styles } from "../../../logger/styles.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/secrets.js"
 
 export const secretsListOpts = {
   "filter-envs": new StringsParameter({
@@ -52,6 +53,8 @@ export class SecretsListCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<SecretResult[]>> {
+    handleSecretsUnavailableInNewBackend({ cloudBackendDomain: garden.cloudDomain })
+
     const envFilter = opts["filter-envs"] || []
     const nameFilter = opts["filter-names"] || []
     const userFilter = opts["filter-user-ids"] || []

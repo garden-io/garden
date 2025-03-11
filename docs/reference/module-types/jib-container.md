@@ -707,6 +707,11 @@ tests:
     # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
     image:
 
+    # Set to false if you don't want the Test action result to be cached. Use this if the Test action needs to be run
+    # any time your project (or one or more of the Test action's dependants) is deployed. Otherwise the Test action is
+    # only re-run when its version changes, or when you run `garden run`.
+    cacheResult: true
+
 # A list of tasks that can be run from this container module. These can be used as dependencies for services (executed
 # before the service is deployed) or for other tasks.
 tasks:
@@ -826,9 +831,9 @@ tasks:
     # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
     image:
 
-    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
-    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
-    # changes, or when you run `garden run`.
+    # Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run
+    # any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is
+    # only re-run when its version changes, or when you run `garden run`.
     cacheResult: true
 ```
 
@@ -1837,8 +1842,7 @@ Set the default group on files and directories at the target. Specify either an 
 [services](#services) > localMode
 
 {% hint style="warning" %}
-**Deprecated**: Using `spec.localMode` in `helm`, `kubernetes` and `container` deploy actions is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-The local mode will be removed in the next major version of Garden, 0.14.
+**Deprecated**: The local mode will be removed in the next major version of Garden, 0.14.
 {% endhint %}
 
 [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
@@ -2644,6 +2648,16 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 | -------- | -------- |
 | `string` | No       |
 
+### `tests[].cacheResult`
+
+[tests](#tests) > cacheResult
+
+Set to false if you don't want the Test action result to be cached. Use this if the Test action needs to be run any time your project (or one or more of the Test action's dependants) is deployed. Otherwise the Test action is only re-run when its version changes, or when you run `garden run`.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
+
 ### `tasks[]`
 
 A list of tasks that can be run from this container module. These can be used as dependencies for services (executed before the service is deployed) or for other tasks.
@@ -3012,7 +3026,7 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
+Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

@@ -501,9 +501,9 @@ tasks:
       # type.
       podSelector:
 
-    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
-    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
-    # changes, or when you run `garden run`.
+    # Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run
+    # any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is
+    # only re-run when its version changes, or when you run `garden run`.
     cacheResult: true
 
     # The command/entrypoint used to run inside the container.
@@ -1340,8 +1340,7 @@ Optionally specify the name of a specific container to sync to. If not specified
 ### `localMode`
 
 {% hint style="warning" %}
-**Deprecated**: Using `spec.localMode` in `helm`, `kubernetes` and `container` deploy actions is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-The local mode will be removed in the next major version of Garden, 0.14.
+**Deprecated**: The local mode will be removed in the next major version of Garden, 0.14.
 {% endhint %}
 
 [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
@@ -1704,7 +1703,7 @@ A map of string key/value labels to match on any Pods in the namespace. When spe
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
+Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

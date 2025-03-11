@@ -74,7 +74,7 @@ spec:
         selector:
           app: silly-demo
 
-  files:
+  manifestTemplates:
    - ./k8s/manifest.yaml
 
 ---
@@ -85,6 +85,6 @@ name: duplicates-files-kustomize
 spec:
   kustomize:
     path: ./k8s
-  files:
+  manifestTemplates:
    - ./k8s/manifest.yaml
 

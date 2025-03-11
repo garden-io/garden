@@ -26,6 +26,7 @@ The following option flags can be used with any of the CLI commands:
   | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.
   | `--yes` |  | boolean | Automatically approve any yes/no prompts during execution, and allow running protected commands against production environments.
   | `--silent` |  | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
+  | `--offline` |  | boolean | Use the --offline option when you can&#x27;t log in right now. Some features won&#x27;t be available in offline mode.
   | `--logger-type` |  | `quiet` `default` `basic` `json` `ink`  | Set logger type. default The default Garden logger, basic: [DEPRECATED] An alias for &quot;default&quot;. json: Renders log lines as JSON. quiet: Suppresses all log output, same as --silent.
   | `--log-level` |  | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5. From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).
   | `--output` |  | `json` `yaml`  | Output command result in the specified format. When used, this option disables line-by-line logging, even if the GARDEN_LOGGER_TYPE environment variable is used.
@@ -5198,9 +5199,10 @@ Defaults to the latest minor release version, but you can also request a specifi
 Examples:
 
    garden self-update               # update to the latest minor Garden CLI version
-   garden self-update edge-acorn    # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
-   garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13) (which is created anytime a PR is merged to main)
-   garden self-update 0.12.24       # switch to the exact version 0.12.24 of the CLI
+   garden self-update edge-acorn    # switch to the latest edge build of garden Acorn (0.12)
+   garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13)
+   garden self-update edge-cedar    # switch to the latest edge build of garden Cedar (0.14)
+   garden self-update 0.13.55       # switch to the exact version 0.13.55 of the CLI
    garden self-update --major       # install the latest version, even if it's a major bump
    garden self-update --force       # re-install even if the same version is detected
    garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
