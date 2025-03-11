@@ -18,7 +18,7 @@ import { hashSync } from "hasha"
 import { upsertConfigMap } from "./util.js"
 import { trimRunOutput } from "./helm/common.js"
 import { runResultToActionState } from "../../actions/base.js"
-import type { Action } from "../../actions/types.js"
+import type { Action, ActionStatus } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { RunActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodRunAction } from "./helm/config.js"
@@ -91,6 +91,10 @@ export function composeCacheableRunResult({
     actionName: action.name,
     taskName: action.name,
   }
+}
+
+export function toRunActionStatus(detail: CacheableRunResult): ActionStatus {
+  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }
 
 /**

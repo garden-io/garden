@@ -24,7 +24,7 @@ import type { KubernetesTestAction } from "./kubernetes-type/config.js"
 import { GardenError } from "../../exceptions.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { NamespaceStatus } from "../../types/namespace.js"
-import type { Action } from "../../actions/types.js"
+import type { Action, ActionStatus } from "../../actions/types.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -91,6 +91,10 @@ export function composeCacheableTestResult({
     actionName: action.name,
     testName: action.name,
   }
+}
+
+export function toTestActionStatus(detail: CacheableTestResult): ActionStatus {
+  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }
 
 /**

@@ -7,7 +7,6 @@
  */
 
 import dedent from "dedent"
-import { runResultToActionState } from "../../../actions/base.js"
 import type { Resolved } from "../../../actions/types.js"
 import { ConfigurationError } from "../../../exceptions.js"
 import type { Log } from "../../../logger/log-entry.js"
@@ -15,14 +14,14 @@ import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/
 import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getActionNamespaceStatus } from "../namespace.js"
-import { composeCacheableRunResult } from "../run-results.js"
+import { composeCacheableRunResult, toRunActionStatus } from "../run-results.js"
 import { k8sGetRunResult, storeRunResult } from "../run-results.js"
 import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./config.js"
 import { helmPodRunSchema } from "./config.js"
 import { runAndCopy } from "../run.js"
 import { filterManifests, prepareManifests, prepareTemplates } from "./common.js"
-import { composeCacheableTestResult } from "../test-results.js"
+import { composeCacheableTestResult, toTestActionStatus } from "../test-results.js"
 import { storeTestResult } from "../test-results.js"
 import { kubernetesRunOutputsSchema } from "../kubernetes-type/config.js"
 
@@ -63,7 +62,7 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
         })
       }
 
-      return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
+      return toRunActionStatus(detail)
     },
 
     getResult: k8sGetRunResult,
@@ -104,7 +103,7 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
         })
       }
 
-      return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
+      return toTestActionStatus(detail)
     },
 
     getResult: k8sGetRunResult,
