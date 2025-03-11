@@ -150,7 +150,6 @@ describe("prepareProjectResource", () => {
     const sanitizedMsg = stripAnsi((logEntry.msg as string) || "")
     const expectedMessages = [
       "WARNING:",
-      `update your garden configuration, so breaking changes in garden 0.14 will not affect your workflows.`,
       `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${DOCS_DEPRECATION_GUIDE}`,
     ]
     expectFuzzyMatch(sanitizedMsg, expectedMessages)
@@ -168,7 +167,6 @@ describe("prepareProjectResource", () => {
     const sanitizedMsg = stripAnsi((logEntry.msg as string) || "")
     const expectedMessages = [
       "WARNING:",
-      `update your garden configuration, so breaking changes in garden 0.14 will not affect your workflows.`,
       `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${DOCS_DEPRECATION_GUIDE}`,
     ]
     expectFuzzyMatch(sanitizedMsg, expectedMessages)
