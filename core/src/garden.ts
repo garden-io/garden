@@ -112,7 +112,6 @@ import { PluginTool } from "./util/ext-tools.js"
 import type { ConfigTemplateResource, ConfigTemplateConfig } from "./config/config-template.js"
 import { resolveConfigTemplate } from "./config/config-template.js"
 import type { TemplatedModuleConfig } from "./plugins/templated.js"
-import { BuildStagingRsync } from "./build-staging/rsync.js"
 import {
   DefaultEnvironmentContext,
   ProjectConfigContext,
@@ -435,11 +434,7 @@ export class Garden {
       })
     }
 
-    const buildDirCls = legacyBuildSync ? BuildStagingRsync : BuildStaging
-    if (legacyBuildSync) {
-      this.log.silly(() => `Using rsync build staging mode`)
-    }
-    this.buildStaging = new buildDirCls(params.projectRoot, params.gardenDirPath)
+    this.buildStaging = new BuildStaging(params.projectRoot, params.gardenDirPath)
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
