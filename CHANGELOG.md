@@ -1,4 +1,27 @@
 
+<a name="0.13.55"></a>
+## [0.13.55](https://github.com/garden-io/garden/compare/0.13.54...0.13.55) (2025-03-11)
+
+### Bug Fixes
+
+* do not store duplicate logs in cache ([bf5e1a63e](https://github.com/garden-io/garden/commit/bf5e1a63e))
+* change field name of helm-pod result details to match its semantics ([98c15c32c](https://github.com/garden-io/garden/commit/98c15c32c))
+* improve error message when servicePort does not reference a port by name ([#6894](https://github.com/garden-io/garden/issues/6894)) ([6e0cf71c5](https://github.com/garden-io/garden/commit/6e0cf71c5))
+* **build-staging:** fix the detection of paths to be deleted ([#6904](https://github.com/garden-io/garden/issues/6904)) ([ee976ad2b](https://github.com/garden-io/garden/commit/ee976ad2b))
+* **config:** throw validation errors when encountering unknown keys in action configs ([#6875](https://github.com/garden-io/garden/issues/6875)) ([06448a086](https://github.com/garden-io/garden/commit/06448a086))
+* **core:** always suppress logs when `--output` is used ([#6909](https://github.com/garden-io/garden/issues/6909)) ([3434a55dd](https://github.com/garden-io/garden/commit/3434a55dd))
+* **docs:** propagate correct action kind to k8s Run/Test reference docs ([#6923](https://github.com/garden-io/garden/issues/6923)) ([08b0eeaa6](https://github.com/garden-io/garden/commit/08b0eeaa6))
+* **k8s:** respect `spec.cacheResult` flag in `kubernetes-pod` Test actions ([6de41aa3b](https://github.com/garden-io/garden/commit/6de41aa3b))
+
+### Features
+
+* **cli:** add more fields to garden get actions detailed output ([#6903](https://github.com/garden-io/garden/issues/6903)) ([1f4de4e3b](https://github.com/garden-io/garden/commit/1f4de4e3b))
+* **container:** add `cacheResult` config option  for `container` Test actions ([#6925](https://github.com/garden-io/garden/issues/6925)) ([6c0f8f019](https://github.com/garden-io/garden/commit/6c0f8f019))
+
+### Improvements
+
+* **k8s:** improve logs when maximum retry attempts exceeded ([#6888](https://github.com/garden-io/garden/issues/6888)) ([305958e5a](https://github.com/garden-io/garden/commit/305958e5a))
+
 <a name="0.13.54"></a>
 ## [0.13.54](https://github.com/garden-io/garden/compare/0.13.53...0.13.54) (2025-02-20)
 
