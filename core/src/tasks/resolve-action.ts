@@ -64,6 +64,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       secrets: params.garden.secrets,
       prefix: this.action.kind,
       isLoggedIn: params.garden.isLoggedIn(),
+      cloudBackendDomain: params.garden.cloudDomain,
       log: this.log,
     })
   }

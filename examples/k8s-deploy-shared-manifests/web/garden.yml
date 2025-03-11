@@ -17,7 +17,7 @@ dependencies:
   - deploy.api
 
 spec:
-  files:
+  manifestTemplates:
     - manifests/deployment.yaml
     - manifests/service.yaml
     - manifests/ingress.yaml

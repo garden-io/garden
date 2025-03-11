@@ -459,7 +459,7 @@ defaultEnvironment: "dev"
 ### `dotIgnoreFiles[]`
 
 {% hint style="warning" %}
-**Deprecated**: The `dotIgnoreFiles` config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
+**Deprecated**: The `dotIgnoreFiles` config field will be removed in Garden 0.14.
 Use the `dotIgnoreFile` field instead. It only allows specifying one filename.
 {% endhint %}
 

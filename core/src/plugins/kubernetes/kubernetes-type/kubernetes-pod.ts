@@ -18,8 +18,9 @@ import { createSchema } from "../../../config/common.js"
 import type { V1PodSpec } from "@kubernetes/client-node"
 import { runOrTestWithPod } from "./common.js"
 import type { KubernetesRunOutputs, KubernetesTestOutputs } from "./config.js"
+import { kubernetesManifestFilesSchema } from "./config.js"
 import {
-  kubernetesFilesSchema,
+  kubernetesManifestTemplatesSchema,
   kubernetesManifestsSchema,
   kubernetesPatchResourcesSchema,
   kubernetesRunOutputsSchema,
@@ -36,7 +37,13 @@ import { storeTestResult, k8sGetTestResult } from "../test-results.js"
 // RUN //
 
 export interface KubernetesPodRunActionSpec extends KubernetesCommonRunSpec {
+  /**
+   * TODO(0.14): remove this field
+   * @deprecated in action configs, use {@link #manifestTemplates} instead.
+   */
   files: string[]
+  manifestFiles: string[]
+  manifestTemplates: string[]
   kustomize?: KubernetesKustomizeSpec
   manifests: KubernetesResource[]
   patchResources?: KubernetesPatchResource[]
@@ -49,6 +56,17 @@ export type KubernetesPodRunAction = RunAction<KubernetesPodRunActionConfig, Kub
 
 // Maintaining this cache to avoid errors when `kubernetesRunPodSchema` is called more than once with the same `kind`.
 const runSchemas: { [name: string]: ObjectSchema } = {}
+
+const kubernetesPodManifestTemplatesSchema = (kind: ActionKind) =>
+  kubernetesManifestTemplatesSchema().description(
+    dedent`
+    POSIX-style paths to YAML files to load manifests from. Each file may contain multiple manifests.
+
+    Garden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.
+
+    Then it will find the resource matching the Pod spec for the ${kind} ([See also \`spec.resource\`](#specresource)).
+    `
+  )
 
 export const kubernetesRunPodSchema = (kind: ActionKind) => {
   const name = `${kind}:kubernetes-pod`
@@ -64,9 +82,9 @@ export const kubernetesRunPodSchema = (kind: ActionKind) => {
       manifests: kubernetesManifestsSchema().description(
         `List of Kubernetes resource manifests to be searched (using \`resource\`e for the pod spec for the ${kind}. If \`files\` is also specified, this is combined with the manifests read from the files.`
       ),
-      files: kubernetesFilesSchema().description(
-        `POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the ${kind}.`
-      ),
+      files: kubernetesPodManifestTemplatesSchema(kind).meta({ deprecated: true }),
+      manifestFiles: kubernetesManifestFilesSchema(),
+      manifestTemplates: kubernetesPodManifestTemplatesSchema(kind),
       resource: runPodResourceSchema(kind),
       podSpec: runPodSpecSchema(kind),
     }),

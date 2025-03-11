@@ -1340,8 +1340,7 @@ Optionally specify the name of a specific container to sync to. If not specified
 ### `localMode`
 
 {% hint style="warning" %}
-**Deprecated**: Using `spec.localMode` in `helm`, `kubernetes` and `container` deploy actions is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-The local mode will be removed in the next major version of Garden, 0.14.
+**Deprecated**: The local mode will be removed in the next major version of Garden, 0.14.
 {% endhint %}
 
 [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.

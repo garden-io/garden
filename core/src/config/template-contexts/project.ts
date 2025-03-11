@@ -18,6 +18,8 @@ import type { Garden } from "../../garden.js"
 import { type VcsInfo } from "../../vcs/vcs.js"
 import { styles } from "../../logger/styles.js"
 import type { VariablesContext } from "./variables.js"
+import { getCloudDistributionName } from "../../cloud/util.js"
+import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/secrets.js"
 
 class LocalContext extends ContextWithSchema {
   @schema(
@@ -283,7 +285,7 @@ export class DefaultEnvironmentContext extends ContextWithSchema {
 export interface ProjectConfigContextParams extends DefaultEnvironmentContextParams {
   loggedIn: boolean
   secrets: PrimitiveMap
-  enterpriseDomain: string | undefined
+  cloudBackendDomain: string
 }
 
 /**
@@ -303,7 +305,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
       })
   )
   public readonly secrets: PrimitiveMap
-  private readonly _enterpriseDomain: string | undefined
+  private readonly _cloudBackendDomain: string
   private readonly _loggedIn: boolean
 
   override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
@@ -311,26 +313,33 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
       return ""
     }
 
+    const unavailableMessage = getSecretsUnavailableInNewBackendMessage({
+      cloudBackendDomain: this._cloudBackendDomain,
+    })
+    if (unavailableMessage) {
+      return unavailableMessage
+    }
+
+    const distributionName = getCloudDistributionName(this._cloudBackendDomain)
+
     if (!this._loggedIn) {
       return dedent`
-        You are not logged in to Garden Cloud, but one or more secrets are referenced in template strings in your Garden configuration files.
+        You are not logged in to ${distributionName}, but one or more secrets are referenced in template strings in your Garden configuration files.
 
         Please log in via the ${styles.command("garden login")} command to use Garden with secrets.
       `
     }
 
     if (isEmpty(this.secrets)) {
-      // TODO: Provide project ID (not UID) to this class so we can render a full link to the secrets section of the
-      // project. To do this, we'll also need to handle the case where the project doesn't already exist in GE/CLoud.
-      const suffix = this._enterpriseDomain
-        ? ` To create secrets, please visit ${this._enterpriseDomain} and navigate to the secrets section for this project.`
-        : ""
+      // TODO: provide link to the secrets page
       return deline`
-        Looks like no secrets have been created for this project and/or environment in Garden Cloud.${suffix}
+        Looks like no secrets have been created for this project and/or environment in ${distributionName}.
+
+        To create secrets, please visit ${this._cloudBackendDomain} and navigate to the secrets section for this project.
       `
     } else {
       return deline`
-        Please make sure that all required secrets for this project exist in Garden Cloud, and are accessible in this
+        Please make sure that all required secrets for this project exist in ${distributionName}, and are accessible in this
         environment.
       `
     }
@@ -340,7 +349,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
     super(params)
     this._loggedIn = params.loggedIn
     this.secrets = params.secrets
-    this._enterpriseDomain = params.enterpriseDomain
+    this._cloudBackendDomain = params.cloudBackendDomain
   }
 }
 
@@ -403,7 +412,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       vcsInfo: garden.vcsInfo,
       username: garden.username,
       loggedIn: garden.isLoggedIn(),
-      enterpriseDomain: garden.cloudApi?.domain,
+      cloudBackendDomain: garden.cloudDomain,
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
       variables,

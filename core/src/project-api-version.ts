@@ -30,6 +30,7 @@ export function resolveApiVersion(projectSpec: Partial<ProjectConfig>, log: Log)
   const projectApiVersion = projectSpec.apiVersion
 
   // We conservatively set the apiVersion to be compatible with 0.12.
+  // TODO(0.14): Throw an error if the apiVersion field is not defined.
   if (projectApiVersion === undefined) {
     emitNonRepeatableWarning(
       log,
@@ -41,14 +42,13 @@ export function resolveApiVersion(projectSpec: Partial<ProjectConfig>, log: Log)
     return defaultGardenApiVersion
   }
 
-  if (projectApiVersion === GardenApiVersion.v0) {
+  if (projectApiVersion !== GardenApiVersion.v2) {
     reportDeprecatedFeatureUsage({
       apiVersion: projectApiVersion,
       log,
-      deprecation: "apiVersionV0",
+      deprecation: "apiVersion",
     })
   }
 
-  // TODO(0.14): print a warning if apiVersion: garden.io/v1 is used
   return projectApiVersion
 }
