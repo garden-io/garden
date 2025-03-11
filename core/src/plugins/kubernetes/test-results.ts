@@ -24,13 +24,19 @@ import { GardenError } from "../../exceptions.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { NamespaceStatus } from "../../types/namespace.js"
 import type { Action, ActionStatus } from "../../actions/types.js"
-import type { CacheableResult, LoadResultParams, StoreResultParams } from "./results-cache.js"
+import type {
+  CacheableResult,
+  ClearResultParams,
+  LoadResultParams,
+  ResultCache,
+  StoreResultParams,
+} from "./results-cache.js"
 import { composeCacheableResult } from "./results-cache.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
   const { action, ctx, log } = params
-  const cachedResult = await loadTestResult({ action, ctx, log })
+  const cachedResult = await testResultCache.load({ action, ctx, log })
 
   if (!cachedResult) {
     return { state: "not-ready", detail: null, outputs: { log: "" } }
@@ -39,41 +45,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   return toTestActionStatus(cachedResult)
 }
 
-export function getTestResultKey(ctx: PluginContext, action: CacheableTestAction) {
-  // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
-  const resultFormatVersion = 3
-  const key = `${ctx.projectName}--${action.name}--${action.versionString()}--${resultFormatVersion}`
-  const hash = hashSync(key, { algorithm: "sha1" })
-  return `test-result--${hash.slice(0, 32)}`
-}
-
 export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
-
-export async function loadTestResult(
-  params: LoadResultParams<CacheableTestAction>
-): Promise<CacheableTestResult | undefined> {
-  const { action, ctx, log } = params
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
-  const resultKey = getTestResultKey(k8sCtx, action)
-
-  try {
-    const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: testResultNamespace })
-    const result = deserializeValues(res.data!)
-
-    return result as CacheableTestResult
-  } catch (err) {
-    if (!(err instanceof KubernetesError)) {
-      throw err
-    }
-    if (err.responseStatusCode === 404) {
-      return undefined
-    } else {
-      throw err
-    }
-  }
-}
 
 export type CacheableTestResult = CacheableResult & {
   /**
@@ -94,46 +66,84 @@ export function composeCacheableTestResult(params: {
   }
 }
 
-export function toTestActionStatus(detail: CacheableTestResult): ActionStatus {
-  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
-}
+export class TestResultCache implements ResultCache<CacheableTestAction, CacheableTestResult> {
+  public async load({
+    action,
+    ctx,
+    log,
+  }: LoadResultParams<CacheableTestAction>): Promise<CacheableTestResult | undefined> {
+    const k8sCtx = <KubernetesPluginContext>ctx
+    const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
+    const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
+    const resultKey = this.cacheKey(k8sCtx, action)
 
-/**
- * Store a test run result as a ConfigMap in the cluster.
- *
- * TODO: Implement a CRD for this.
- */
-export async function storeTestResult({
-  ctx,
-  log,
-  action,
-  result,
-}: StoreResultParams<CacheableTestAction, CacheableTestResult>): Promise<CacheableTestResult> {
-  const k8sCtx = ctx as KubernetesPluginContext
-  const provider = ctx.provider as KubernetesProvider
-  const api = await KubeApi.factory(log, k8sCtx, provider)
-  const testResultNamespace = await getSystemNamespace(k8sCtx, provider, log)
-
-  const data = trimRunOutput(result)
-
-  try {
-    await upsertConfigMap({
-      api,
-      namespace: testResultNamespace,
-      key: getTestResultKey(k8sCtx, action),
-      labels: {
-        [gardenAnnotationKey("action")]: action.key(),
-        [gardenAnnotationKey("actionType")]: action.type,
-        [gardenAnnotationKey("version")]: action.versionString(),
-      },
-      data,
-    })
-  } catch (err) {
-    if (!(err instanceof GardenError)) {
-      throw err
+    try {
+      const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: testResultNamespace })
+      const result = deserializeValues(res.data!)
+      return result as CacheableTestResult
+    } catch (err) {
+      if (!(err instanceof KubernetesError)) {
+        throw err
+      }
+      if (err.responseStatusCode === 404) {
+        return undefined
+      } else {
+        throw err
+      }
     }
-    log.warn(`Unable to store test result: ${err}`)
   }
 
-  return data
+  public async store({
+    action,
+    ctx,
+    log,
+    result,
+  }: StoreResultParams<CacheableTestAction, CacheableTestResult>): Promise<CacheableTestResult> {
+    const k8sCtx = ctx as KubernetesPluginContext
+    const provider = ctx.provider as KubernetesProvider
+    const api = await KubeApi.factory(log, k8sCtx, provider)
+    const testResultNamespace = await getSystemNamespace(k8sCtx, provider, log)
+
+    const data = trimRunOutput(result)
+
+    try {
+      await upsertConfigMap({
+        api,
+        namespace: testResultNamespace,
+        key: this.cacheKey(k8sCtx, action),
+        labels: {
+          [gardenAnnotationKey("action")]: action.key(),
+          [gardenAnnotationKey("actionType")]: action.type,
+          [gardenAnnotationKey("version")]: action.versionString(),
+        },
+        data,
+      })
+    } catch (err) {
+      if (!(err instanceof GardenError)) {
+        throw err
+      }
+      log.warn(`Unable to store test result: ${err}`)
+    }
+
+    return data
+  }
+
+  public async clear(_: ClearResultParams<CacheableTestAction>): Promise<void> {
+    // not supported yet
+    return
+  }
+
+  cacheKey(ctx: PluginContext, action: CacheableTestAction): string {
+    // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
+    const resultFormatVersion = 3
+    const key = `${ctx.projectName}--${action.name}--${action.versionString()}--${resultFormatVersion}`
+    const hash = hashSync(key, { algorithm: "sha1" })
+    return `test-result--${hash.slice(0, 32)}`
+  }
+}
+
+export const testResultCache = new TestResultCache()
+
+export function toTestActionStatus(detail: CacheableTestResult): ActionStatus {
+  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }
