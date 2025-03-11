@@ -39,12 +39,12 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: dedent`
         <!-- markdown-link-check-disable-next-line -->
-        To suppress this warning and adopt the new behaviour described below, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiVersion)).
+        To suppress this warning and adopt the new behaviour described below, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiversion)).
 
         ### Why
 
         <!-- markdown-link-check-disable-next-line -->
-        Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds (See also [${style("ConfigMap")}-based cache for Kubernetes actions](#configMapBasedCache)).
+        Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes \`Test\` and \`Run\` actions kinds (See also [${style("ConfigMap")}-based cache for Kubernetes actions](#configmapbasedcache)).
 
         While we also introduce a local file-based cache backend, this means the cache results from other team members will only be available when you're logged in to Garden Cloud/Enterprise.
 
@@ -69,7 +69,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Instead, Garden 0.14 will introduce two new cache storage options: A local file-based cache and a Team Cache as part of Garden Cloud/Enterprise.
 
         <!-- markdown-link-check-disable-next-line -->
-        To suppress this warning, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiVersion)).
+        To suppress this warning, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiversion)).
 
         ### Why
 
@@ -86,7 +86,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         The Team Cache backend will be enabled by default for all projects that are connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has \`id\` and \`domain\` fields set.
 
         <!-- markdown-link-check-disable-next-line -->
-        We'll also introduce a login requirement for these projects. See also [Login Requirement](#loginRequirement) for more information.
+        We'll also introduce a login requirement for these projects. See also [Login Requirement](#loginrequirement) for more information.
 
         ### File-based backend
 
@@ -251,7 +251,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Instead, we recommend running ${style("garden deploy --sync")}, or alternatively starting syncs inside the dev console (${style("garden dev")}) using ${style("sync stop")}.`,
       docs: dedent`
         <!-- markdown-link-check-disable-next-line -->
-        See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand).
+        See also [the deprecation notice for the ${style("garden sync start")} command](#syncstartcommand).
       `,
     },
     syncRestartCommand: {
@@ -261,7 +261,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Do not use it as a standalone Garden command.`,
       docs: dedent`
         <!-- markdown-link-check-disable-next-line -->
-        See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand).
+        See also [the deprecation notice for the ${style("garden sync start")} command](#syncstartcommand).
       `,
     },
     syncStatusCommand: {
@@ -272,11 +272,11 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: dedent`
         <!-- markdown-link-check-disable-next-line -->
-        See also [the deprecation notice for the ${style("garden sync start")} command](#syncStartCommand).
+        See also [the deprecation notice for the ${style("garden sync start")} command](#syncstartcommand).
       `,
     },
     hadolintPlugin: {
-      docsSection: "Garden Plugins",
+      docsSection: "Garden plugins",
       docsHeadline: `The ${style("hadolint")} plugin`,
       warnHint: `Do not use the ${style("hadolint")} plugin explicitly, as it will be removed in the next version of Garden, 0.14.`,
       docs: dedent`
@@ -295,13 +295,13 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
     },
     octantPlugin: {
-      docsSection: "Garden Plugins",
+      docsSection: "Garden plugins",
       docsHeadline: `The ${style("octant")} plugin`,
       warnHint: `Do not use the ${style("octant")} plugin explicitly, as it will be removed in the next version of Garden, 0.14.`,
       docs: `The ${style("octant")} plugin does not have any effect since the integrated dashboard has been removed in Garden 0.13.0.`,
     },
     conftestPlugin: {
-      docsSection: "Garden Plugins",
+      docsSection: "Garden plugins",
       docsHeadline: `The ${style("conftest")} plugin`,
       warnHint: `Do not use the ${style("conftest")} plugin explicitly, as it will be removed in the next version of Garden, 0.14.`,
       docs: dedent`
@@ -322,7 +322,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
     },
     ephemeralKubernetesProvider: {
-      docsSection: "Garden Plugins",
+      docsSection: "Garden plugins",
       docsHeadline: `The ${style("ephemeral-kubernetes")} provider`,
       warnHint: deline`
         Use the ${style("kubernetes")} or ${style("local-kubernetes")} providers instead.
@@ -395,8 +395,8 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
     },
     rsyncBuildStaging: {
-      docsSection: "Build Staging",
-      docsHeadline: `${style("rsync")}-based build staging`,
+      docsSection: "Environment variables",
+      docsHeadline: `${style("GARDEN_LEGACY_BUILD_STAGE")}`,
       warnHint: `Do not use ${style("GARDEN_LEGACY_BUILD_STAGE")} environment variable. It will be removed in Garden 0.14.`,
       docs: dedent`
         Using the ${style("rsync")}-based build staging is not necessary when using the latest versions of Garden.
@@ -478,20 +478,20 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
 
         <!-- markdown-link-check-disable-next-line -->
-        To suppress this warning and adopt the new behaviour, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiVersion)).
+        To suppress this warning and adopt the new behaviour, change the \`apiVersion\` setting in your project-level configuration to \`garden.io/v2\` (See also [The ${style(`apiVersion`)} config field](#apiversion)).
 
         For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
       `,
     },
     gardenCloudBuilder: {
-      docsSection: "Garden Container Builder",
+      docsSection: "Garden plugins",
       docsHeadline: `${style("container")} provider configuration`,
       warnHint: `The ${style("gardenCloudBuilder")} setting in the ${style("container")} provider configuration has been renamed to ${style("gardenContainerBuilder")}. Use the setting ${style("gardenContainerBuilder")} instead of ${style("gardenCloudBuilder")}.`,
       docs: null,
     },
     gardenCloudBuilderEnvVar: {
-      docsSection: "Garden Container Builder",
-      docsHeadline: `${style("GARDEN_CLOUD_BUILDER")} environment variable`,
+      docsSection: "Environment variables",
+      docsHeadline: `${style("GARDEN_CLOUD_BUILDER")}`,
       warnHint: `The ${style("GARDEN_CLOUD_BUILDER")} environment variable will be removed in Garden 0.14. Use ${style("GARDEN_CONTAINER_BUILDER")} instead.`,
       docs: null,
     },
@@ -521,7 +521,7 @@ export function makeDeprecationMessage({
   }
 
   if (includeLink) {
-    let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation}`
+    let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation.toLowerCase()}`
     if (style) {
       link = styles.link(link)
     }
