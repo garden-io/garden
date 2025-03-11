@@ -28,28 +28,14 @@ import type { NamespaceStatus } from "../../types/namespace.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
-  const { ctx, log } = params
-  const action = <ContainerRunAction>params.action
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const runResultNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-  const resultKey = getRunResultKey(ctx, action)
+  const { action, ctx, log } = params
+  const cachedResult = await loadRunResult({ action, ctx, log })
 
-  try {
-    const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: runResultNamespace })
-    const result = deserializeValues(res.data!) as CacheableRunResult
-
-    return { state: runResultToActionState(result), detail: result, outputs: { log: result.log || "" } }
-  } catch (err) {
-    if (!(err instanceof KubernetesError)) {
-      throw err
-    }
-    if (err.responseStatusCode === 404) {
-      return { state: "not-ready", detail: null, outputs: {} }
-    } else {
-      throw err
-    }
+  if (!cachedResult) {
+    return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
+
+  return toRunActionStatus(cachedResult)
 }
 
 export function getRunResultKey(ctx: PluginContext, action: Action) {
@@ -60,10 +46,41 @@ export function getRunResultKey(ctx: PluginContext, action: Action) {
   return `run-result--${hash.slice(0, 32)}`
 }
 
+export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
+
+interface LoadRunResultParams {
+  ctx: PluginContext
+  log: Log
+  action: CacheableRunAction
+}
+
+export async function loadRunResult(params: LoadRunResultParams): Promise<CacheableRunResult | undefined> {
+  const { action, ctx, log } = params
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
+  const runResultNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const resultKey = getRunResultKey(ctx, action)
+
+  try {
+    const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: runResultNamespace })
+    const result = deserializeValues(res.data!)
+    return result as CacheableRunResult
+  } catch (err) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
+      return undefined
+    } else {
+      throw err
+    }
+  }
+}
+
 interface StoreRunResultParams {
   ctx: PluginContext
   log: Log
-  action: ContainerRunAction | KubernetesRunAction | HelmPodRunAction
+  action: CacheableRunAction
   result: CacheableRunResult
 }
 

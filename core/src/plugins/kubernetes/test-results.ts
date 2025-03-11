@@ -28,28 +28,14 @@ import type { Action, ActionStatus } from "../../actions/types.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
-  const { ctx, log } = params
-  const action = <ContainerTestAction>params.action
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
-  const resultKey = getTestResultKey(k8sCtx, action)
+  const { action, ctx, log } = params
+  const cachedResult = await loadTestResult({ action, ctx, log })
 
-  try {
-    const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: testResultNamespace })
-    const result = deserializeValues(res.data!) as CacheableTestResult
-
-    return { state: runResultToActionState(result), detail: result, outputs: { log: result.log || "" } }
-  } catch (err) {
-    if (!(err instanceof KubernetesError)) {
-      throw err
-    }
-    if (err.responseStatusCode === 404) {
-      return { state: "not-ready", detail: null, outputs: {} }
-    } else {
-      throw err
-    }
+  if (!cachedResult) {
+    return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
+
+  return toTestActionStatus(cachedResult)
 }
 
 export function getTestResultKey(ctx: PluginContext, action: StoreTestResultParams["action"]) {
@@ -60,10 +46,42 @@ export function getTestResultKey(ctx: PluginContext, action: StoreTestResultPara
   return `test-result--${hash.slice(0, 32)}`
 }
 
+export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
+
+interface LoadTestResultParams {
+  ctx: PluginContext
+  log: Log
+  action: CacheableTestAction
+}
+
+export async function loadTestResult(params: LoadTestResultParams): Promise<CacheableTestResult | undefined> {
+  const { action, ctx, log } = params
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
+  const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
+  const resultKey = getTestResultKey(k8sCtx, action)
+
+  try {
+    const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: testResultNamespace })
+    const result = deserializeValues(res.data!)
+
+    return result as CacheableTestResult
+  } catch (err) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
+      return undefined
+    } else {
+      throw err
+    }
+  }
+}
+
 interface StoreTestResultParams {
   ctx: PluginContext
   log: Log
-  action: ContainerTestAction | KubernetesTestAction | HelmPodTestAction
+  action: CacheableTestAction
   result: CacheableTestResult
 }
 
