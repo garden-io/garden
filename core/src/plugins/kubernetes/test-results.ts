@@ -74,9 +74,6 @@ export type CacheableTestResult = RunResult & {
    * @deprecated use {@link #actionName} instead
    */
   testName: string
-  outputs: {
-    log: string
-  }
 }
 
 export function composeCacheableTestResult({
@@ -93,9 +90,6 @@ export function composeCacheableTestResult({
     namespaceStatus,
     actionName: action.name,
     testName: action.name,
-    outputs: {
-      log: result.log || "",
-    },
   }
 }
 

@@ -63,7 +63,7 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
         })
       }
 
-      return { state: runResultToActionState(detail), detail, outputs: detail.outputs }
+      return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
     },
 
     getResult: k8sGetRunResult,
@@ -104,7 +104,7 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
         })
       }
 
-      return { state: runResultToActionState(detail), detail, outputs: detail.outputs }
+      return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
     },
 
     getResult: k8sGetRunResult,

@@ -111,7 +111,7 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
         })
       }
 
-      return { state: runResultToActionState(detail), detail, outputs: detail.outputs }
+      return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
     },
 
     getResult: k8sGetRunResult,
@@ -158,7 +158,7 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
         })
       }
 
-      return { state: runResultToActionState(detail), detail, outputs: detail.outputs }
+      return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
     },
 
     getResult: k8sGetTestResult,

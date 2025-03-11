@@ -74,9 +74,6 @@ export type CacheableRunResult = RunResult & {
    * @deprecated use {@link #actionName} instead
    */
   taskName: string
-  outputs: {
-    log: string
-  }
 }
 
 export function composeCacheableRunResult({
@@ -93,9 +90,6 @@ export function composeCacheableRunResult({
     namespaceStatus,
     actionName: action.name,
     taskName: action.name,
-    outputs: {
-      log: result.log || "",
-    },
   }
 }
 
