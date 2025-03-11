@@ -12,7 +12,6 @@ import type { TestGarden } from "../../../../../helpers.js"
 import { findNamespaceStatusEvent } from "../../../../../helpers.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { getKubernetesTestGarden } from "./common.js"
-import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results.js"
 import { TestTask } from "../../../../../../src/tasks/test.js"
 
 describe("kubernetes-type exec Test", () => {
@@ -38,11 +37,6 @@ describe("kubernetes-type exec Test", () => {
       force: true,
       forceBuild: false,
     })
-
-    // Clear any existing Run result
-    const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
-    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearRunResult({ ctx, log: garden.log, action })
 
     garden.events.eventLog = []
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })

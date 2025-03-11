@@ -633,8 +633,8 @@ jobs:
           command: |
             # TODO: read minor version from package.json file, instead of hardcoding.
             export MAJOR_VERSION=0
-            export MINOR_VERSION=13
-            export CODENAME=bonsai
+            export MINOR_VERSION=14
+            export CODENAME=cedar
 
             if [[ "${CIRCLE_TAG}" = "" ]]; then
               # If we don't have a tag, this is an edge release
@@ -642,10 +642,10 @@ jobs:
             else
               # We have a tag.
 
-              # Double check that this is an 0.13 version number, because otherwise
+              # Double check that this is an 0.14 version number, because otherwise
               # it would be inconsistent with the hardcoded CODENAME export above.
-              if ! [[ ${CIRCLE_TAG} =~ ^0.13 ]]; then
-                echo "This pipeline should only build 0.13 releases"
+              if ! [[ ${CIRCLE_TAG} =~ ^0.14 ]]; then
+                echo "This pipeline should only build 0.14 releases"
                 exit 1
               fi
 
@@ -671,7 +671,7 @@ jobs:
   test-docker-gcloud:
     docker:
       # We do not use a specific digest here on purpose, to use the latest build from the previous job
-      - image: gardendev/garden-gcloud:bonsai-edge-alpine
+      - image: gardendev/garden-gcloud:cedar-edge-alpine
         environment:
           <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
@@ -1185,7 +1185,7 @@ jobs:
           name: Install Deps
           command: |
             Import-Module "$Env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-            choco install --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
+            choco install --limit-output --no-progress -y git gcloudsdk kubernetes-cli
             $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
             gcloud components install gke-gcloud-auth-plugin --quiet
             $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
@@ -1298,16 +1298,6 @@ workflows:
           project: gke
           environment: gke-buildkit
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-hadolint
-          project: hadolint
-          requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-hadolint-modules
-      #     project: hadolint-modules
-      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-jib-container
@@ -1429,7 +1419,7 @@ workflows:
           requires: [build]
           kindNodeImage: kindest/node:1.29.8@sha256:d46b7aa29567e93b27f7531d258c372e829d7224b25e3fc6ffdefed12476d3aa
 
-      # This is only for edge release (Overrides version to edge-bonsai)
+      # This is only for edge release (Overrides version to edge-cedar)
       - build:
           <<: *only-main
           name: build-edge
@@ -1437,13 +1427,13 @@ workflows:
       - build-dist-macos:
           <<: *only-main
           name: build-dist-macos-edge
-          version: edge-bonsai
+          version: edge-cedar
           requires: [build-edge]
 
       - build-dist-linux-windows:
           <<: *only-main
           name: build-dist-linux-windows-edge
-          version: edge-bonsai
+          version: edge-cedar
           requires: [build-edge]
 
       - sign-windows-binary:
@@ -1451,11 +1441,11 @@ workflows:
           name: sign-windows-binary-edge
           context: garden-core-code-signing
           requires: [build-dist-linux-windows-edge]
-          version: edge-bonsai
+          version: edge-cedar
 
       - github-edge-prerelease:
           <<: *only-main
-          version: edge-bonsai
+          version: edge-cedar
           requires: [build-dist-macos-edge, build-dist-linux-windows-edge, sign-windows-binary-edge]
 
       - dockerhub-release:

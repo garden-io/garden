@@ -12,15 +12,15 @@ import type { KubernetesConfig } from "../../../../../src/plugins/kubernetes/con
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import { randomString } from "../../../../../src/util/string.js"
 import { expect } from "chai"
-import {
-  composeCacheableRunResult,
-  k8sGetRunResult,
-  runResultCache,
-} from "../../../../../src/plugins/kubernetes/run-results.js"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
+import {
+  composeCacheableTestResult,
+  k8sGetTestResult,
+  testResultCache,
+} from "../../../../../src/plugins/kubernetes/test-results.js"
 
-describe("kubernetes Run results", () => {
+describe("kubernetes Test results", () => {
   let garden: Garden
   let provider: Provider<KubernetesConfig>
 
@@ -37,15 +37,15 @@ describe("kubernetes Run results", () => {
     garden.close()
   })
 
-  describe("RunResultCache", () => {
+  describe("TestResultCache", () => {
     it("should trim logs when necessary", async () => {
       const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getRun("echo-task")
+      const action = graph.getTest("simple-echo-test")
 
       const data = randomString(1024 * 1024)
 
-      const result = composeCacheableRunResult({
+      const result = composeCacheableTestResult({
         result: {
           // command: [],
           log: data,
@@ -62,7 +62,7 @@ describe("kubernetes Run results", () => {
         },
         // version: task.version,
       })
-      const trimmed = await runResultCache.store({
+      const trimmed = await testResultCache.store({
         ctx,
         log: garden.log,
         action,
@@ -72,7 +72,7 @@ describe("kubernetes Run results", () => {
       expect(trimmed.log.length).to.be.lte(MAX_RUN_RESULT_LOG_LENGTH)
       const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
-      const stored = await k8sGetRunResult({
+      const stored = await k8sGetTestResult({
         ctx,
         log: actionLog,
         action,
