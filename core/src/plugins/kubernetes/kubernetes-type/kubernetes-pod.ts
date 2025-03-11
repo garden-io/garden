@@ -8,18 +8,19 @@
 
 import type { KubernetesCommonRunSpec, KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
 import { kubernetesCommonRunSchemaKeys, runPodResourceSchema, runPodSpecSchema } from "../config.js"
+import { composeCacheableRunResult, toRunActionStatus } from "../run-results.js"
 import { k8sGetRunResult, storeRunResult } from "../run-results.js"
 import { getActionNamespaceStatus } from "../namespace.js"
-import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
+import type { ActionKind, RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
 import { dedent } from "../../../util/string.js"
 import type { RunAction, RunActionConfig } from "../../../actions/run.js"
 import { createSchema } from "../../../config/common.js"
 import type { V1PodSpec } from "@kubernetes/client-node"
 import { runOrTestWithPod } from "./common.js"
-import { runResultToActionState } from "../../../actions/base.js"
 import type { KubernetesRunOutputs, KubernetesTestOutputs } from "./config.js"
+import { kubernetesManifestFilesSchema } from "./config.js"
 import {
-  kubernetesFilesSchema,
+  kubernetesManifestTemplatesSchema,
   kubernetesManifestsSchema,
   kubernetesPatchResourcesSchema,
   kubernetesRunOutputsSchema,
@@ -30,25 +31,44 @@ import type { KubernetesKustomizeSpec } from "./kustomize.js"
 import { kustomizeSpecSchema } from "./kustomize.js"
 import type { ObjectSchema } from "@hapi/joi"
 import type { TestActionConfig, TestAction } from "../../../actions/test.js"
+import { composeCacheableTestResult, toTestActionStatus } from "../test-results.js"
 import { storeTestResult, k8sGetTestResult } from "../test-results.js"
 
 // RUN //
 
 export interface KubernetesPodRunActionSpec extends KubernetesCommonRunSpec {
+  /**
+   * TODO(0.14): remove this field
+   * @deprecated in action configs, use {@link #manifestTemplates} instead.
+   */
   files: string[]
+  manifestFiles: string[]
+  manifestTemplates: string[]
   kustomize?: KubernetesKustomizeSpec
   manifests: KubernetesResource[]
   patchResources?: KubernetesPatchResource[]
   resource?: KubernetesTargetResourceSpec
   podSpec?: V1PodSpec
 }
+
 export type KubernetesPodRunActionConfig = RunActionConfig<"kubernetes-pod", KubernetesPodRunActionSpec>
 export type KubernetesPodRunAction = RunAction<KubernetesPodRunActionConfig, KubernetesRunOutputs>
 
 // Maintaining this cache to avoid errors when `kubernetesRunPodSchema` is called more than once with the same `kind`.
 const runSchemas: { [name: string]: ObjectSchema } = {}
 
-export const kubernetesRunPodSchema = (kind: string) => {
+const kubernetesPodManifestTemplatesSchema = (kind: ActionKind) =>
+  kubernetesManifestTemplatesSchema().description(
+    dedent`
+    POSIX-style paths to YAML files to load manifests from. Each file may contain multiple manifests.
+
+    Garden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.
+
+    Then it will find the resource matching the Pod spec for the ${kind} ([See also \`spec.resource\`](#specresource)).
+    `
+  )
+
+export const kubernetesRunPodSchema = (kind: ActionKind) => {
   const name = `${kind}:kubernetes-pod`
   if (runSchemas[name]) {
     return runSchemas[name]
@@ -56,15 +76,15 @@ export const kubernetesRunPodSchema = (kind: string) => {
   const schema = createSchema({
     name,
     keys: () => ({
-      ...kubernetesCommonRunSchemaKeys(),
+      ...kubernetesCommonRunSchemaKeys(kind),
       kustomize: kustomizeSpecSchema(),
       patchResources: kubernetesPatchResourcesSchema(),
       manifests: kubernetesManifestsSchema().description(
         `List of Kubernetes resource manifests to be searched (using \`resource\`e for the pod spec for the ${kind}. If \`files\` is also specified, this is combined with the manifests read from the files.`
       ),
-      files: kubernetesFilesSchema().description(
-        `POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the ${kind}.`
-      ),
+      files: kubernetesPodManifestTemplatesSchema(kind).meta({ deprecated: true }),
+      manifestFiles: kubernetesManifestFilesSchema(),
+      manifestTemplates: kubernetesPodManifestTemplatesSchema(kind),
       resource: runPodResourceSchema(kind),
       podSpec: runPodSpecSchema(kind),
     }),
@@ -95,16 +115,9 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
       })
       const namespace = namespaceStatus.namespaceName
 
-      const res = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = {
-        ...res,
-        namespaceStatus,
-        taskName: action.name,
-        outputs: {
-          log: res.log || "",
-        },
-      }
+      const detail = composeCacheableRunResult({ result, action, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         await storeRunResult({
@@ -115,7 +128,7 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
         })
       }
 
-      return { state: runResultToActionState(detail), detail, outputs: detail.outputs }
+      return toRunActionStatus(detail)
     },
 
     getResult: k8sGetRunResult,
@@ -149,22 +162,20 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
       })
       const namespace = namespaceStatus.namespaceName
 
-      const res = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = {
-        testName: action.name,
-        namespaceStatus,
-        ...res,
+      const detail = composeCacheableTestResult({ result, action, namespaceStatus })
+
+      if (action.getSpec("cacheResult")) {
+        await storeTestResult({
+          ctx,
+          log,
+          action,
+          result: detail,
+        })
       }
 
-      await storeTestResult({
-        ctx: k8sCtx,
-        log,
-        action,
-        result: detail,
-      })
-
-      return { state: runResultToActionState(detail), detail, outputs: { log: res.log } }
+      return toTestActionStatus(detail)
     },
 
     getResult: k8sGetTestResult,

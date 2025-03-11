@@ -87,6 +87,7 @@ export class WorkflowCommand extends Command<Args, {}> {
       secrets: garden.secrets,
       prefix: workflow.kind,
       isLoggedIn: garden.isLoggedIn(),
+      cloudBackendDomain: garden.cloudDomain,
       log,
     })
 
@@ -536,7 +537,7 @@ export function logErrors(
 }
 
 async function registerAndSetUid(garden: Garden, log: Log, config: WorkflowConfig) {
-  if (!garden.isLoggedIn()) {
+  if (!garden.isOldBackendAvailable()) {
     return
   }
 

@@ -208,6 +208,7 @@ export async function getLatestVersions(numOfStableVersions: number, log: Log) {
   return [
     styles.highlight("edge-acorn"),
     styles.highlight("edge-bonsai"),
+    styles.highlight("edge-cedar"),
     ...releasesResponse
       .filter((r: any) => !r.prerelease && !r.draft)
       .map((r: any) => styles.highlight(r.name))
@@ -232,9 +233,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     Examples:
 
        garden self-update               # update to the latest minor Garden CLI version
-       garden self-update edge-acorn    # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
-       garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13) (which is created anytime a PR is merged to main)
-       garden self-update 0.12.24       # switch to the exact version 0.12.24 of the CLI
+       garden self-update edge-acorn    # switch to the latest edge build of garden Acorn (0.12)
+       garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13)
+       garden self-update edge-cedar    # switch to the latest edge build of garden Cedar (0.14)
+       garden self-update 0.13.55       # switch to the exact version 0.13.55 of the CLI
        garden self-update --major       # install the latest version, even if it's a major bump
        garden self-update --force       # re-install even if the same version is detected
        garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
@@ -355,9 +357,12 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       if (
         !opts.architecture &&
         architecture === "arm64" &&
-        desiredVersion !== "edge-bonsai" &&
-        semver.valid(desiredVersion) !== null &&
-        semver.lt(desiredVersion, ARM64_INTRODUCTION_VERSION)
+        // acorn didn't support native arm64 builds yet
+        (desiredVersion === "edge-acorn" ||
+          // all future edge releases support native arm64 builds, as well as versions starting at ARM64_INTRODUCTION_VERSION.
+          (!desiredVersion.startsWith("edge-") &&
+            semver.valid(desiredVersion) !== null &&
+            semver.lt(desiredVersion, ARM64_INTRODUCTION_VERSION)))
       ) {
         if (platform === "macos") {
           architecture = "amd64"
