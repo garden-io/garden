@@ -5199,9 +5199,10 @@ Defaults to the latest minor release version, but you can also request a specifi
 Examples:
 
    garden self-update               # update to the latest minor Garden CLI version
-   garden self-update edge-acorn    # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
-   garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13) (which is created anytime a PR is merged to main)
-   garden self-update 0.12.24       # switch to the exact version 0.12.24 of the CLI
+   garden self-update edge-acorn    # switch to the latest edge build of garden Acorn (0.12)
+   garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13)
+   garden self-update edge-cedar    # switch to the latest edge build of garden Cedar (0.14)
+   garden self-update 0.13.55       # switch to the exact version 0.13.55 of the CLI
    garden self-update --major       # install the latest version, even if it's a major bump
    garden self-update --force       # re-install even if the same version is detected
    garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory

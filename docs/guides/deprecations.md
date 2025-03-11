@@ -18,17 +18,17 @@ If your config is using `apiVersion: garden.io/v2` and you don't see any errors,
 
    # Garden commands
 
-<h2 id="loginRequirement">Login requirement</h3>
+<h2 id="loginrequirement">Login requirement</h2>
 
 For projects that are connected to Garden Cloud/Enterprise, Garden 0.14 will require you to login.
 
 <!-- markdown-link-check-disable-next-line -->
-To suppress this warning and adopt the new behaviour described below, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiVersion)).
+To suppress this warning and adopt the new behaviour described below, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiversion)).
 
 ### Why
 
 <!-- markdown-link-check-disable-next-line -->
-Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes `Test` and `Run` actions kinds (See also [`ConfigMap`-based cache for Kubernetes actions](#configMapBasedCache)).
+Garden 0.14 will use the Garden Cloud/Enterprise backend for determining the cache status of Kubernetes `Test` and `Run` actions kinds (See also [`ConfigMap`-based cache for Kubernetes actions](#configmapbasedcache)).
 
 While we also introduce a local file-based cache backend, this means the cache results from other team members will only be available when you're logged in to Garden Cloud/Enterprise.
 
@@ -42,14 +42,14 @@ To prevent your team from suffering from cache misses and bad performance, we'll
 
 This is why we also offer an escape hatch: If you want to proceed without logging in, just call Garden with the option `--offline` or the environment variable `GARDEN_OFFLINE=1`.
 
-<h2 id="configMapBasedCache"><code>ConfigMap</code>-based cache for Kubernetes actions</h3>
+<h2 id="configmapbasedcache"><code>ConfigMap</code>-based cache for Kubernetes actions</h2>
 
 The `ConfigMap`-based cache will not be available anymore in Garden 0.14.
 
 Instead, Garden 0.14 will introduce two new cache storage options: A local file-based cache and a Team Cache as part of Garden Cloud/Enterprise.
 
 <!-- markdown-link-check-disable-next-line -->
-To suppress this warning, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiVersion)).
+To suppress this warning, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiversion)).
 
 ### Why
 
@@ -66,7 +66,7 @@ With Garden 0.14, we are offering a **Team Cache** option with a new storage bac
 The Team Cache backend will be enabled by default for all projects that are connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has `id` and `domain` fields set.
 
 <!-- markdown-link-check-disable-next-line -->
-We'll also introduce a login requirement for these projects. See also [Login Requirement](#loginRequirement) for more information.
+We'll also introduce a login requirement for these projects. See also [Login Requirement](#loginrequirement) for more information.
 
 ### File-based backend
 
@@ -74,11 +74,11 @@ For projects that aren't connected to Garden Cloud/Enterprise, or when you're us
 
 Garden will skip `Test` and `Run` actions that already ran from your local machine, but team members and CI workflows won't be able to benefit from the cache entries on your local machine.
 
-<h2 id="kubernetesClusterInitCommand"><code>garden kubernetes cluster-init</code></h3>
+<h2 id="kubernetesclusterinitcommand"><code>garden kubernetes cluster-init</code></h2>
 
 This command will be removed in 0.14. Do not use this command. It has no effect.
 
-<h2 id="syncStartCommand"><code>garden sync start</code></h3>
+<h2 id="syncstartcommand"><code>garden sync start</code></h2>
 
 The command `garden sync start` will only be available inside the dev console (`garden dev`) in the next major version of Garden, 0.14. Do not use it as a standalone Garden command.
 
@@ -86,37 +86,37 @@ Please run `garden deploy --sync` instead, to start the dev console.
 
 You can also start the dev console by running `garden dev` and then use the `sync start` command inside the dev shell. The same applies to all other sync commands.
 
-<h2 id="syncStopCommand"><code>garden sync stop</code></h3>
+<h2 id="syncstopcommand"><code>garden sync stop</code></h2>
 
 The command `garden sync stop` will only be available inside the dev console (`garden dev`) in the next major version of Garden, 0.14. Do not use it as a standalone Garden command. Instead, we recommend running `garden deploy --sync`, or alternatively starting syncs inside the dev console (`garden dev`) using `sync stop`.
 
 <!-- markdown-link-check-disable-next-line -->
-See also [the deprecation notice for the `garden sync start` command](#syncStartCommand).
+See also [the deprecation notice for the `garden sync start` command](#syncstartcommand).
 
-<h2 id="syncRestartCommand"><code>garden sync restart</code></h3>
+<h2 id="syncrestartcommand"><code>garden sync restart</code></h2>
 
 The command `garden sync restart` will only be available inside the dev console (`garden dev`) in the next major version of Garden, 0.14. Do not use it as a standalone Garden command.
 
 <!-- markdown-link-check-disable-next-line -->
-See also [the deprecation notice for the `garden sync start` command](#syncStartCommand).
+See also [the deprecation notice for the `garden sync start` command](#syncstartcommand).
 
-<h2 id="syncStatusCommand"><code>garden sync status</code></h3>
+<h2 id="syncstatuscommand"><code>garden sync status</code></h2>
 
 The command `garden sync status` will only be available inside the dev console (`garden dev`) in the next major version of Garden, 0.14. Do not use it as a standalone Garden command.
 
 <!-- markdown-link-check-disable-next-line -->
-See also [the deprecation notice for the `garden sync start` command](#syncStartCommand).
+See also [the deprecation notice for the `garden sync start` command](#syncstartcommand).
 
 # Kubernetes provider configuration
 
-<h2 id="containerDeploymentStrategy">The <code>deploymentStrategy</code> config field</h3>
+<h2 id="containerdeploymentstrategy">The <code>deploymentStrategy</code> config field</h2>
 
 The `deploymentStrategy` config field will be removed in Garden 0.14.
 Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
 
 # Action configs
 
-<h2 id="kubernetesActionSpecFiles"><code>spec.files</code> in <code>kubernetes</code> Deploy actions</h3>
+<h2 id="kubernetesactionspecfiles"><code>spec.files</code> in <code>kubernetes</code> Deploy actions</h2>
 
 `spec.files` in `kubernetes` Deploy actions will be removed in Garden 0.14. Use `spec.manifestTemplates` and/or `spec.manifestFiles` instead.
 
@@ -177,7 +177,7 @@ One way to work around this problem in the past was to escape the template strin
 echo "hello $${USERNAME:=world}" # <-- This is not a working bash script anymore :(
 ```
 
-<h2 id="buildConfigFieldOnRuntimeActions">The <code>build</code> config field in runtime action configs</h3>
+<h2 id="buildconfigfieldonruntimeactions">The <code>build</code> config field in runtime action configs</h2>
 
 Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
 
@@ -226,27 +226,27 @@ spec:
 ...
 ```
 
-<h2 id="waitForJobs"><code>spec.waitForJobs</code> in <code>kubernetes</code> Deploy actions</h3>
+<h2 id="waitforjobs"><code>spec.waitForJobs</code> in <code>kubernetes</code> Deploy actions</h2>
 
 In Garden 0.14, the default value of `spec.waitForJobs` will change to `true`.
 
 This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
 
 <!-- markdown-link-check-disable-next-line -->
-To suppress this warning and adopt the new behaviour, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiVersion)).
+To suppress this warning and adopt the new behaviour, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiversion)).
 
 For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
 
 # Project configuration
 
-<h2 id="dotIgnoreFiles">The <code>dotIgnoreFiles</code> config field</h3>
+<h2 id="dotignorefiles">The <code>dotIgnoreFiles</code> config field</h2>
 
 The `dotIgnoreFiles` config field will be removed in Garden 0.14.
 Use the `dotIgnoreFile` field instead. It only allows specifying one filename.
 
 For more information, please refer to the [`dotIgnoreFile` reference documentation](../reference/project-config.md#dotIgnoreFile).
 
-<h2 id="apiVersion">The <code>apiVersion</code> config field</h3>
+<h2 id="apiversion">The <code>apiVersion</code> config field</h2>
 
 Garden 0.14 will introduce breaking changes.
 
@@ -285,15 +285,15 @@ providers:
 - name: local-kubernetes
 ```
 
-<h2 id="projectConfigModules">The <code>modules</code> config field</h3>
+<h2 id="projectconfigmodules">The <code>modules</code> config field</h2>
 
 The `modules` config field will be removed in Garden 0.14. Do not use the `modules` field, as it has been renamed to `scan`. Please use the `scan` field instead.
 
 For more information, please refer to the [`scan` reference documentation](../reference/project-config.md#scan).
 
-# Garden Plugins
+# Garden plugins
 
-<h2 id="hadolintPlugin">The <code>hadolint</code> plugin</h3>
+<h2 id="hadolintplugin">The <code>hadolint</code> plugin</h2>
 
 Do not use the `hadolint` plugin explicitly, as it will be removed in the next version of Garden, 0.14.
 
@@ -310,13 +310,13 @@ spec:
  command: [hadolint, "Dockerfile"]
 ```
 
-<h2 id="octantPlugin">The <code>octant</code> plugin</h3>
+<h2 id="octantplugin">The <code>octant</code> plugin</h2>
 
 Do not use the `octant` plugin explicitly, as it will be removed in the next version of Garden, 0.14.
 
 The `octant` plugin does not have any effect since the integrated dashboard has been removed in Garden 0.13.0.
 
-<h2 id="conftestPlugin">The <code>conftest</code> plugin</h3>
+<h2 id="conftestplugin">The <code>conftest</code> plugin</h2>
 
 Do not use the `conftest` plugin explicitly, as it will be removed in the next version of Garden, 0.14.
 
@@ -335,13 +335,17 @@ spec:
  command: [conftest, test, deployment.yaml]
 ```
 
-<h2 id="ephemeralKubernetesProvider">The <code>ephemeral-kubernetes</code> provider</h3>
+<h2 id="ephemeralkubernetesprovider">The <code>ephemeral-kubernetes</code> provider</h2>
 
 Use the `kubernetes` or `local-kubernetes` providers instead. We are currently exploring how to improve and offer a new hosted Kubernetes experience in the future – reach out on GitHub or Discord if you are interested or have any feedback!
 
+<h2 id="gardencloudbuilder"><code>container</code> provider configuration</h2>
+
+The `gardenCloudBuilder` setting in the `container` provider configuration has been renamed to `gardenContainerBuilder`. Use the setting `gardenContainerBuilder` instead of `gardenCloudBuilder`.
+
 # Local mode
 
-<h2 id="localMode">Using <code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> Deploy actions</h3>
+<h2 id="localmode">Using <code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> Deploy actions</h2>
 
 The local mode will be removed in the next major version of Garden, 0.14.
 
@@ -352,9 +356,9 @@ See also:
 - [`spec.localMode` in the `helm` Deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
 - [`spec.localMode` in the `container` Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
 
-# Build Staging
+# Environment variables
 
-<h2 id="rsyncBuildStaging"><code>rsync</code>-based build staging</h3>
+<h2 id="rsyncbuildstaging"><code>GARDEN_LEGACY_BUILD_STAGE</code></h2>
 
 Do not use `GARDEN_LEGACY_BUILD_STAGE` environment variable. It will be removed in Garden 0.14.
 
@@ -362,9 +366,13 @@ Using the `rsync`-based build staging is not necessary when using the latest ver
 
 If you still need to use this environment variable for some reason, please reach out to us on GitHub, Discord or via the customer support.
 
+<h2 id="gardencloudbuilderenvvar"><code>GARDEN_CLOUD_BUILDER</code></h2>
+
+The `GARDEN_CLOUD_BUILDER` environment variable will be removed in Garden 0.14. Use `GARDEN_CONTAINER_BUILDER` instead.
+
 # Garden action types
 
-<h2 id="configmapDeployAction">The <code>configmap</code> Deploy action type</h3>
+<h2 id="configmapdeployaction">The <code>configmap</code> Deploy action type</h2>
 
 The `configmap` Deploy action type will be removed in the next major version of Garden, 0.14. Please use the `kubernetes` Deploy action type with a `configmap` Kubernetes manifest instead.
 
@@ -393,7 +401,7 @@ spec:
          allow.textmode=true
 ```
 
-<h2 id="persistentvolumeclaimDeployAction">The <code>persistentvolumeclaim</code> Deploy action type</h3>
+<h2 id="persistentvolumeclaimdeployaction">The <code>persistentvolumeclaim</code> Deploy action type</h2>
 
 The `persistentvolumeclaim` Deploy action type will be removed in the next major version of Garden, 0.14. Please use the `kubernetes` Deploy action type instead.
 
@@ -401,7 +409,7 @@ For more information how to use Persistent Volume Claims using Kubernetes manife
 
 # Template Language
 
-<h2 id="optionalTemplateValueSyntax">Optional template expressions</h3>
+<h2 id="optionaltemplatevaluesyntax">Optional template expressions</h2>
 
 The optional template expression syntax will be removed in Garden 0.14. Use explicit fallback values instead, e.g. `${var.foo || null}`.
 
@@ -425,13 +433,3 @@ For this reason, we will remove the optional template expression syntax. You can
 When using `apiVersion: garden.io/v2`, the optional template syntax has been removed and thus `var.fullUrl` evaluates to `https://example.com/?param=xyz` and resolving the action will fail if `var.baseUrl` doesn't exist.
 
 You can use explicit fallback values using the logical or operator in case you've been relying on the optional template expression syntax.
-
-# Garden Container Builder
-
-<h2 id="gardenCloudBuilder"><code>container</code> provider configuration</h3>
-
-The `gardenCloudBuilder` setting in the `container` provider configuration has been renamed to `gardenContainerBuilder`. Use the setting `gardenContainerBuilder` instead of `gardenCloudBuilder`.
-
-<h2 id="gardenCloudBuilderEnvVar"><code>GARDEN_CLOUD_BUILDER</code> environment variable</h3>
-
-The `GARDEN_CLOUD_BUILDER` environment variable will be removed in Garden 0.14. Use `GARDEN_CONTAINER_BUILDER` instead.

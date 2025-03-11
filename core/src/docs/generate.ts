@@ -61,16 +61,11 @@ export async function writeConfigReferenceDocs(
   const referenceDir = resolve(docsRoot, "reference")
 
   const providers = [
-    { name: "conftest" },
-    { name: "conftest-container" },
-    { name: "conftest-kubernetes" },
     { name: "container" },
     { name: "exec" },
-    { name: "hadolint" },
     { name: "jib" },
     { name: "kubernetes" },
     { name: "local-kubernetes" },
-    { name: "octant" },
     { name: "terraform" },
     { name: "pulumi" },
   ]
@@ -230,7 +225,7 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
     for (const [id, { warnHint, docs }] of matchingDeprecations) {
       // NOTE: We are using HTML tags rather than using markdown syntax here, so we can control the `id` of the link (As we are deeplinking from the deprecation warnings in core)
       const htmlHeadline = getDeprecations((s) => `<code>${s}</code>`)[id].docsHeadline
-      breakingChanges.push(`<h2 id="${id}">${htmlHeadline}</h3>`)
+      breakingChanges.push(`<h2 id="${id.toLowerCase()}">${htmlHeadline}</h2>`)
       breakingChanges.push(warnHint)
       if (docs) {
         breakingChanges.push(docs)
