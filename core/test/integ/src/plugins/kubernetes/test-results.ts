@@ -17,7 +17,7 @@ import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import {
   composeCacheableTestResult,
   k8sGetTestResult,
-  storeTestResult,
+  testResultCache,
 } from "../../../../../src/plugins/kubernetes/test-results.js"
 
 describe("kubernetes Test results", () => {
@@ -37,7 +37,7 @@ describe("kubernetes Test results", () => {
     garden.close()
   })
 
-  describe("storeTestResult", () => {
+  describe("TestResultCache", () => {
     it("should trim logs when necessary", async () => {
       const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -62,10 +62,9 @@ describe("kubernetes Test results", () => {
         },
         // version: task.version,
       })
-      const trimmed = await storeTestResult({
+      const trimmed = await testResultCache.store({
         ctx,
         log: garden.log,
-        // module: task.module,
         action,
         result,
       })

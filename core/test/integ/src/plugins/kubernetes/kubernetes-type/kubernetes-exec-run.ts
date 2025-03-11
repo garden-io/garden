@@ -13,7 +13,7 @@ import { findNamespaceStatusEvent } from "../../../../../helpers.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { getKubernetesTestGarden } from "./common.js"
 import { RunTask } from "../../../../../../src/tasks/run.js"
-import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results.js"
+import { runResultCache } from "../../../../../../src/plugins/kubernetes/run-results.js"
 
 describe("kubernetes-type exec Run", () => {
   let garden: TestGarden
@@ -42,7 +42,7 @@ describe("kubernetes-type exec Run", () => {
     // Clear any existing Run result
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearRunResult({ ctx, log: garden.log, action })
+    await runResultCache.clear({ ctx, log: garden.log, action })
 
     garden.events.eventLog = []
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
@@ -71,7 +71,7 @@ describe("kubernetes-type exec Run", () => {
     // Clear any existing Run result
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearRunResult({ ctx, log: garden.log, action })
+    await runResultCache.clear({ ctx, log: garden.log, action })
 
     garden.events.eventLog = []
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })

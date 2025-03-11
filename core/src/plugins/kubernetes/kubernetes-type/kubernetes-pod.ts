@@ -8,8 +8,8 @@
 
 import type { KubernetesCommonRunSpec, KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
 import { kubernetesCommonRunSchemaKeys, runPodResourceSchema, runPodSpecSchema } from "../config.js"
-import { composeCacheableRunResult, toRunActionStatus } from "../run-results.js"
-import { k8sGetRunResult, storeRunResult } from "../run-results.js"
+import { composeCacheableRunResult, runResultCache } from "../run-results.js"
+import { k8sGetRunResult } from "../run-results.js"
 import { getActionNamespaceStatus } from "../namespace.js"
 import type { ActionKind, RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
 import { dedent } from "../../../util/string.js"
@@ -31,8 +31,9 @@ import type { KubernetesKustomizeSpec } from "./kustomize.js"
 import { kustomizeSpecSchema } from "./kustomize.js"
 import type { ObjectSchema } from "@hapi/joi"
 import type { TestActionConfig, TestAction } from "../../../actions/test.js"
-import { composeCacheableTestResult, toTestActionStatus } from "../test-results.js"
-import { storeTestResult, k8sGetTestResult } from "../test-results.js"
+import { composeCacheableTestResult, testResultCache } from "../test-results.js"
+import { k8sGetTestResult } from "../test-results.js"
+import { toActionStatus } from "../results-cache.js"
 
 // RUN //
 
@@ -120,7 +121,7 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
       const detail = composeCacheableRunResult({ result, action, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        await storeRunResult({
+        await runResultCache.store({
           ctx,
           log,
           action,
@@ -128,7 +129,7 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
         })
       }
 
-      return toRunActionStatus(detail)
+      return toActionStatus(detail)
     },
 
     getResult: k8sGetRunResult,
@@ -167,7 +168,7 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
       const detail = composeCacheableTestResult({ result, action, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        await storeTestResult({
+        await testResultCache.store({
           ctx,
           log,
           action,
@@ -175,7 +176,7 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
         })
       }
 
-      return toTestActionStatus(detail)
+      return toActionStatus(detail)
     },
 
     getResult: k8sGetTestResult,
