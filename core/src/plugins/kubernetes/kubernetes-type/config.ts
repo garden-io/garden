@@ -7,8 +7,8 @@
  */
 
 import { joi, joiSparseArray } from "../../../config/common.js"
-import type { PortForwardSpec, KubernetesTargetResourceSpec } from "../config.js"
-import { portForwardsSchema, k8sDeploymentTimeoutSchema, namespaceNameSchema } from "../config.js"
+import type { KubernetesTargetResourceSpec, PortForwardSpec } from "../config.js"
+import { k8sDeploymentTimeoutSchema, namespaceNameSchema, portForwardsSchema } from "../config.js"
 import type { KubernetesDeploySyncSpec } from "../sync.js"
 import { kubernetesDeploySyncSchema } from "../sync.js"
 import type { KubernetesKustomizeSpec } from "./kustomize.js"
@@ -24,6 +24,7 @@ import type {
 } from "./kubernetes-pod.js"
 import type { KubernetesLocalModeSpec } from "../local-mode.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
+import type { ContainerRunOutputs } from "../../container/config.js"
 import { containerRunOutputSchema } from "../../container/config.js"
 import type {
   KubernetesExecRunAction,
@@ -33,8 +34,13 @@ import type {
 } from "./kubernetes-exec.js"
 import { dedent } from "../../../util/string.js"
 import type { ApplyParams } from "../kubectl.js"
+import { getProjectApiVersion } from "../../../project-api-version.js"
+import { GardenApiVersion } from "../../../constants.js"
+import type { Log } from "../../../logger/log-entry.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export interface KubernetesTypeCommonDeploySpec {
+  // TODO(0.14): remove this field
   files: string[]
   kustomize?: KubernetesKustomizeSpec
   patchResources?: KubernetesPatchResource[]
@@ -48,7 +54,31 @@ export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySp
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
   localMode?: KubernetesLocalModeSpec
+  // TODO(0.14) make this non-optional with schema-level default values
   waitForJobs?: boolean
+  manifestFiles: string[]
+  manifestTemplates: string[]
+  /**
+   * TODO(0.14): remove this field
+   * Overridden to deprecate it only for actions, not for modules.
+   * @deprecated in action configs, use {@link #manifestTemplates} instead.
+   */
+  files: string[]
+}
+
+export function getDefaultWaitForJobs() {
+  const projectApiVersion = getProjectApiVersion()
+  const defaultValue = projectApiVersion === GardenApiVersion.v2
+  return { projectApiVersion, defaultValue }
+}
+
+export function getWaitForJobs({ waitForJobs, log }: { waitForJobs: boolean | undefined; log: Log }): boolean {
+  const { projectApiVersion, defaultValue } = getDefaultWaitForJobs()
+  if (waitForJobs === undefined) {
+    reportDeprecatedFeatureUsage({ apiVersion: projectApiVersion, log, deprecation: "waitForJobs" })
+  }
+
+  return waitForJobs ?? defaultValue
 }
 
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>
@@ -91,9 +121,14 @@ const kubernetesPatchResourceSchema = () =>
     patch: joi.object().required().description("The patch to apply.").unknown(true),
   })
 
-export const kubernetesFilesSchema = () =>
+export const kubernetesManifestTemplatesSchema = () =>
   joiSparseArray(joi.posixPath().subPathOnly().allowGlobs()).description(
     "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
+  )
+
+export const kubernetesManifestFilesSchema = () =>
+  joiSparseArray(joi.posixPath().subPathOnly().allowGlobs()).description(
+    "POSIX-style paths to YAML files to load manifests from. Garden will *not* use the Garden Template Language to transform manifests in these files. Each file can contain multiple manifests."
   )
 
 export const kubernetesManifestsSchema = () =>
@@ -119,8 +154,10 @@ export const kubernetesPatchResourcesSchema = () =>
 export const kubernetesApplyArgsSchema = () =>
   joi.sparseArray().items(joi.string()).description("Additional arguments to pass to `kubectl apply`.")
 
-export const kubernetesCommonDeploySpecKeys = () => ({
-  files: kubernetesFilesSchema(),
+type KubernetesCommonDeployKeyDeprecations = { deprecateFiles: boolean }
+
+export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => ({
+  files: kubernetesManifestTemplatesSchema().meta({ deprecated: deprecations.deprecateFiles }),
   kustomize: kustomizeSpecSchema(),
   manifests: kubernetesManifestsSchema(),
   patchResources: kubernetesPatchResourcesSchema(),
@@ -128,12 +165,11 @@ export const kubernetesCommonDeploySpecKeys = () => ({
   portForwards: portForwardsSchema(),
   timeout: k8sDeploymentTimeoutSchema(),
   applyArgs: kubernetesApplyArgsSchema(),
-  // TODO-0.14: flip this to true and change default behavior to
-  // wait for the jobs
+  // TODO-0.14: flip this to true and change default behavior to wait for the jobs
   waitForJobs: joi
     .boolean()
     .optional()
-    .default(false)
+    // .default(false)
     .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
 })
 
@@ -141,16 +177,16 @@ export const kubernetesDeploySchema = () =>
   joi
     .object()
     .keys({
-      ...kubernetesCommonDeploySpecKeys(),
+      ...kubernetesCommonDeploySpecKeys({ deprecateFiles: true }),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
       localMode: kubernetesLocalModeSchema(),
+      manifestFiles: kubernetesManifestFilesSchema(),
+      manifestTemplates: kubernetesManifestTemplatesSchema(),
     })
     .rename("devMode", "sync")
 
-export type KubernetesRunOutputs = {
-  log: string
-}
+export type KubernetesRunOutputs = ContainerRunOutputs
 
 export const kubernetesRunOutputsSchema = () => containerRunOutputSchema()
 

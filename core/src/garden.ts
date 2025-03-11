@@ -112,7 +112,6 @@ import { PluginTool } from "./util/ext-tools.js"
 import type { ConfigTemplateResource, ConfigTemplateConfig } from "./config/config-template.js"
 import { resolveConfigTemplate } from "./config/config-template.js"
 import type { TemplatedModuleConfig } from "./plugins/templated.js"
-import { BuildStagingRsync } from "./build-staging/rsync.js"
 import {
   DefaultEnvironmentContext,
   ProjectConfigContext,
@@ -182,6 +181,7 @@ import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
 import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
+import { getProjectApiVersion, setProjectApiVersion } from "./project-api-version.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -267,8 +267,7 @@ interface ResolveProviderParams {
 }
 
 type GardenType = typeof Garden.prototype
-// TODO: add more fields that are known to be defined when logged in to Cloud
-export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
+export type GardenWithOldBackend = GardenType & Required<Pick<GardenType, "cloudApi">>
 
 function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
   const projectApiVersion = params.projectApiVersion
@@ -435,11 +434,7 @@ export class Garden {
       })
     }
 
-    const buildDirCls = legacyBuildSync ? BuildStagingRsync : BuildStaging
-    if (legacyBuildSync) {
-      this.log.silly(() => `Using rsync build staging mode`)
-    }
-    this.buildStaging = new buildDirCls(params.projectRoot, params.gardenDirPath)
+    this.buildStaging = new BuildStaging(params.projectRoot, params.gardenDirPath)
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -609,8 +604,7 @@ export class Garden {
 
   getProjectConfigContext() {
     const loggedIn = this.isLoggedIn()
-    const enterpriseDomain = this.cloudApi?.domain
-    return new ProjectConfigContext({ ...this, loggedIn, enterpriseDomain })
+    return new ProjectConfigContext({ ...this, loggedIn, cloudBackendDomain: this.cloudDomain })
   }
 
   async clearBuilds() {
@@ -828,6 +822,7 @@ export class Garden {
         secrets: this.secrets,
         prefix: "Provider",
         isLoggedIn: this.isLoggedIn(),
+        cloudBackendDomain: this.cloudDomain,
         log,
       })
 
@@ -1888,8 +1883,12 @@ export class Garden {
   }
 
   /** Returns whether the user is logged in to the Garden Cloud */
-  public isLoggedIn(): this is LoggedInGarden {
+  public isOldBackendAvailable(): this is GardenWithOldBackend {
     return !!this.cloudApi
+  }
+
+  public isLoggedIn(): boolean {
+    return !!this.cloudApi || !!this.cloudApiV2
   }
 }
 
@@ -1914,6 +1913,8 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
       })
     }
   }
+
+  setProjectApiVersion(config, log)
 
   gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
   const artifactsPath = resolve(gardenDirPath, "artifacts")
@@ -2020,6 +2021,8 @@ async function initCloudApi({
   } catch (err) {
     if (err instanceof CloudApiTokenRefreshError) {
       const distroName = getCloudDistributionName(cloudDomain)
+
+      // TODO(0.14): Remove this warning, as login is required when connecting projects to Cloud.
       log.warn(dedent`
             The current ${distroName} session is not valid or it's expired.
             Command results for this command run will not be available in ${distroName}.
@@ -2079,24 +2082,24 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     await ensureDir(gardenDirPath)
     await ensureDir(artifactsPath)
 
-    const projectApiVersion = projectConfig.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
 
-    const cloudDomain = getCloudDomain(projectConfig.domain)
+    const cloudBackendDomain = getCloudDomain(projectConfig.domain)
     const cloudApi = await initCloudApi({
       cloudApiFactory,
-      cloudDomain,
+      cloudDomain: cloudBackendDomain,
       globalConfigStore,
       log,
       projectConfig,
       skipCloudConnect,
     })
-    const loggedIn = !!cloudApi
 
     // Use this to interact with Cloud Backend V2
-    const cloudApiV2 = await initCloudApiV2({ cloudDomain, globalConfigStore, log })
+    const cloudApiV2 = await initCloudApiV2({ cloudDomain: cloudBackendDomain, globalConfigStore, log })
+
+    const loggedIn = !!cloudApi || !!cloudApiV2
 
     const { secrets, cloudProject } = await initCloudProject({
       cloudApi,
@@ -2116,7 +2119,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: projectConfig.domain,
+      cloudBackendDomain,
       secrets,
       commandInfo,
     })
@@ -2139,7 +2142,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: projectConfig.domain,
+      cloudBackendDomain,
       secrets,
       commandInfo,
     })
@@ -2182,7 +2185,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       artifactsPath,
       vcsInfo,
       sessionId,
-      cloudDomain,
+      cloudDomain: cloudBackendDomain,
       cloudApi,
       cloudApiV2,
       // If the user is logged in and a cloud project exists we use that ID
@@ -2217,7 +2220,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       forceRefresh: opts.forceRefresh,
       cache: treeCache,
-      projectApiVersion,
+      projectApiVersion: getProjectApiVersion(),
     }
   })
 })
@@ -2262,17 +2265,6 @@ async function initCloudProject({
   const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
 
   if (!cloudApi) {
-    const msg = `You are not logged in. To use ${distroName}, log in with the ${styles.command(
-      "garden login"
-    )} command.`
-
-    if (isCommunityEdition) {
-      cloudLog.info(msg)
-      cloudLog.info(`Learn more at: ${makeDocsLinkStyled("using-garden/dashboard")}`)
-    } else {
-      cloudLog.warn(msg)
-    }
-
     return {
       secrets: {},
       cloudProject: undefined,

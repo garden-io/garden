@@ -703,7 +703,7 @@ spec:
 ```
 
 Multi-platform builds are available for `cluster-buildkit` only. Note that `kaniko` is *not* supported.
-For high-performance multi-platform builds consider using [Garden Cloud Builder](../../reference/providers/container.md).
+For high-performance multi-platform builds consider using [Garden Container Builder](../../reference/providers/container.md).
 
 ## Publishing images
 

@@ -28,6 +28,8 @@ import type { VariablesContext } from "../config/template-contexts/variables.js"
 
 export type { ActionKind } from "../plugin/action-types.js"
 
+export type { ActionVersion } from "../vcs/vcs.js"
+
 export const actionKinds: ActionKind[] = ["Build", "Deploy", "Run", "Test"]
 export const actionKindsLower = actionKinds.map((k) => k.toLowerCase())
 

@@ -26,6 +26,7 @@ import { styles } from "../../logger/styles.js"
 import { makeDocsLinkStyled } from "../../docs/common.js"
 
 import { syncGuideRelPath } from "../../plugins/kubernetes/constants.js"
+import { reportDeprecatedSyncCommandUsage } from "../../util/deprecations.js"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -62,7 +63,7 @@ interface SyncStatusCommandResult {
 }
 
 export class SyncStatusCommand extends Command<Args, Opts> {
-  name = "status"
+  name = "status" as const
   help = "Get sync statuses."
 
   override protected = true
@@ -93,7 +94,22 @@ export class SyncStatusCommand extends Command<Args, Opts> {
     printHeader(log, "Getting sync statuses", "📟")
   }
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<SyncStatusCommandResult> {
+  async action({
+    garden,
+    log,
+    args,
+    opts,
+    parentCommand,
+  }: CommandParams<Args, Opts>): Promise<SyncStatusCommandResult> {
+    if (!parentCommand) {
+      reportDeprecatedSyncCommandUsage({
+        apiVersion: garden.projectApiVersion,
+        log,
+        deprecation: "syncStatusCommand",
+        syncCommandName: this.name,
+      })
+    }
+
     // TODO: Use regular graph and resolve only the needed Deploys below
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
     const skipDetail = opts["skip-detail"]

@@ -69,15 +69,13 @@ import { add } from "date-fns"
 import stripAnsi from "strip-ansi"
 import { GardenCloudApi } from "../../../src/cloud/api.js"
 import { GlobalConfigStore } from "../../../src/config-store/global.js"
-import { getRootLogger, LogLevel } from "../../../src/logger/logger.js"
+import { getRootLogger } from "../../../src/logger/logger.js"
 import { uuidv4 } from "../../../src/util/random.js"
 import { fileURLToPath } from "node:url"
 import { resolveMsg } from "../../../src/logger/log-entry.js"
-import { styles } from "../../../src/logger/styles.js"
 import type { RunActionConfig } from "../../../src/actions/run.js"
 import type { ProjectResult } from "@garden-io/platform-api-types"
 import { ProjectStatus } from "@garden-io/platform-api-types"
-import { getCloudDistributionName } from "../../../src/cloud/util.js"
 import { resolveAction } from "../../../src/graph/actions.js"
 import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
@@ -622,8 +620,6 @@ describe("Garden", () => {
       }
     })
     context("user is NOT logged in", () => {
-      const log = getRootLogger().createLog()
-
       it("should have domain and id if set in project config", async () => {
         const projectId = uuidv4()
         const projectName = "test"
@@ -659,91 +655,8 @@ describe("Garden", () => {
         expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
         expect(garden.projectId).to.eql(undefined)
       })
-      it("should log an informational message about not being logged in for community edition", async () => {
-        log.root["entries"] = []
-        const projectName = "test"
-        const envName = "default"
-        const config: ProjectConfig = createProjectConfig({
-          name: projectName,
-          path: pathFoo,
-        })
-
-        const garden = await TestGarden.factory(pathFoo, {
-          config,
-          environmentString: envName,
-          log,
-        })
-        const distroName = getCloudDistributionName(garden.cloudDomain)
-
-        const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
-
-        expect(expectedLog.length).to.eql(1)
-        expect(expectedLog[0].level).to.eql(LogLevel.info)
-        expect(expectedLog[0].msg).to.eql(
-          `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
-        )
-      })
-      it("should log a warning message about not being logged in for commercial edition", async () => {
-        log.root["entries"] = []
-        const fakeCloudDomain = "https://example.com"
-        const projectName = "test"
-        const envName = "default"
-        const config: ProjectConfig = createProjectConfig({
-          name: projectName,
-          path: pathFoo,
-          domain: fakeCloudDomain,
-        })
-
-        await TestGarden.factory(pathFoo, {
-          config,
-          environmentString: envName,
-          log,
-        })
-        const distroName = getCloudDistributionName(fakeCloudDomain)
-
-        const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
-
-        expect(expectedLog.length).to.eql(1)
-        expect(expectedLog[0].level).to.eql(LogLevel.warn)
-        expect(expectedLog[0].msg).to.eql(
-          `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
-        )
-      })
-      context("commands with verbose cloud logs", () => {
-        const commands = ["dev", "serve", "exit", "quit"]
-        for (const command of commands) {
-          it(`should log a warning message at a debug level for command ${command}`, async () => {
-            log.root["entries"] = []
-            const projectName = "test"
-            const envName = "default"
-            const config: ProjectConfig = createProjectConfig({
-              name: projectName,
-              path: pathFoo,
-            })
-
-            const garden = await TestGarden.factory(pathFoo, {
-              config,
-              environmentString: envName,
-              log,
-              commandInfo: {
-                name: command,
-                args: {},
-                opts: {},
-              },
-            })
-            const distroName = getCloudDistributionName(garden.cloudDomain)
-
-            const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
-
-            expect(expectedLog.length).to.eql(1)
-            expect(expectedLog[0].level).to.eql(LogLevel.debug)
-            expect(expectedLog[0].msg).to.eql(
-              `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
-            )
-          })
-        }
-      })
     })
+
     context("user is logged in", () => {
       let configStoreTmpDir: tmp.DirectoryResult
       const log = getRootLogger().createLog()

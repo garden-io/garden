@@ -71,11 +71,14 @@ export function convertContainerLocalModeSpec(
 }
 
 export const kubernetesLocalModeSchema = () =>
-  containerLocalModeSchema().keys({
-    target: targetResourceSpecSchema().description(
-      "The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`."
-    ),
-  }).description(dedent`
+  containerLocalModeSchema()
+    .keys({
+      target: targetResourceSpecSchema().description(
+        "The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`."
+      ),
+    })
+    .description(
+      dedent`
     [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by \`localMode.target\` or \`defaultTarget\`. One of those fields must be specified to enable local mode for the action.
 
     The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
@@ -89,7 +92,8 @@ export const kubernetesLocalModeSchema = () =>
     See the [Local Mode guide](${localModeGuideLink}) for more information.
 
     Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-  `)
+  `
+    )
 
 interface BaseLocalModeParams {
   ctx: PluginContext

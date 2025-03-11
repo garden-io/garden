@@ -148,6 +148,10 @@ context("build.ts", () => {
         `GARDEN_MODULE_VERSION=${action.versionString()}`,
         "--build-arg",
         `GARDEN_ACTION_VERSION=${action.versionString()}`,
+        "--progress",
+        "rawjson",
+        "--metadata-file",
+        "/tmp/a-unique-path/metadata.json",
         "--tag",
         "some/image",
         "--file",
@@ -167,6 +171,9 @@ context("build.ts", () => {
       const cmdArgs = getCmdArgs(action, buildPath)
       sinon.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(buildPath)
+        // metadata.json is always at a unique path - we need to replace the filename for the assertion
+        const idx = args.indexOf("--metadata-file") + 1
+        args[idx] = "/tmp/a-unique-path/metadata.json"
         expect(args).to.eql(cmdArgs)
         expect(_ctx).to.exist
         return { all: "log", stdout: "", stderr: "", code: 0, proc: null }
@@ -192,6 +199,9 @@ context("build.ts", () => {
       const cmdArgs = getCmdArgs(action, buildPath)
       sinon.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(buildPath)
+        // metadata.json is always at a unique path - we need to replace the filename for the assertion
+        const idx = args.indexOf("--metadata-file") + 1
+        args[idx] = "/tmp/a-unique-path/metadata.json"
         expect(args).to.eql(cmdArgs)
         expect(_ctx).to.exist
         return { all: "log", stdout: "", stderr: "", code: 0, proc: null }

@@ -58,12 +58,37 @@ export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRE
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER = 20
 
+export type GardenContainerBuilderConfig = {
+  enabled: boolean
+}
+
 export interface ContainerProviderConfig extends BaseProviderConfig {
   dockerBuildExtraFlags?: string[]
-  gardenCloudBuilder?: {
-    enabled: boolean
-  }
+  /**
+   * @deprecated use {@link #gardenContainerBuilder} instead
+   */
+  gardenCloudBuilder?: GardenContainerBuilderConfig
+  gardenContainerBuilder?: GardenContainerBuilderConfig
 }
+
+export const gardenContainerBuilderSchema = () =>
+  joi
+    .object()
+    .optional()
+    .keys({
+      enabled: joi.boolean().default(false).description(dedent`
+            Enable Garden Container Builder, which can speed up builds significantly using fast machines and extremely fast caching.
+
+            by running \`GARDEN_CONTAINER_BUILDER=1 garden build\` you can try Garden Container Builder temporarily without any changes to your Garden configuration.
+            The environment variable \`GARDEN_CONTAINER_BUILDER\` can also be used to override this setting, if enabled in the configuration. Set it to \`false\` or \`0\` to temporarily disable Garden Container Builder.
+
+            Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
+
+            If service limits are reached, or Garden Container Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
+
+            Please note that when enabling Container Builder together with in-cluster building, you need to authenticate to your \`deploymentRegistry\` from the local machine (e.g. by running \`docker login\`).
+            `),
+    })
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -73,28 +98,10 @@ export const configSchema = () =>
 
           Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
           `),
-      // Cloud builder
-      gardenCloudBuilder: joi
-        .object()
-        .optional()
-        .keys({
-          enabled: joi.boolean().default(false).description(dedent`
-            **Stability: Experimental**. Subject to breaking changes within minor releases.
-
-            Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast caching.
-
-            by running \`GARDEN_CLOUD_BUILDER=1 garden build\` you can try Garden Cloud Builder temporarily without any changes to your Garden configuration.
-            The environment variable \`GARDEN_CLOUD_BUILDER\` can also be used to override this setting, if enabled in the configuration. Set it to \`false\` or \`0\` to temporarily disable Garden Cloud Builder.
-
-            Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
-
-            If service limits are reached, or Garden Cloud Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
-
-            Please note that when enabling Cloud Builder together with in-cluster building, you need to authenticate to your \`deploymentRegistry\` from the local machine (e.g. by running \`docker login\`).
-            `),
-        }).description(dedent`
-        **Stability: Experimental**. Subject to breaking changes within minor releases.
-        `),
+      // Deprecate old config syntax
+      gardenCloudBuilder: gardenContainerBuilderSchema().meta({ deprecated: true }),
+      // Garden Container builder
+      gardenContainerBuilder: gardenContainerBuilderSchema(),
     })
     .unknown(false)
 
@@ -199,6 +206,46 @@ export const regctlCliSpec: PluginToolSpec = {
       architecture: "amd64",
       url: `https://github.com/regclient/regclient/releases/download/v${regctlCliVersion}/regctl-windows-amd64.exe`,
       sha256: "44b2d5e79ef457e575d2b09bc1f27500cf90b733651793f4e76e23c9b8fc1803",
+    },
+  ],
+}
+
+const progressToolVersion = "0.0.1"
+const progressToolSpec: PluginToolSpec = {
+  name: "standalone-progressui",
+  version: progressToolVersion,
+  description: "Helper that utilizes the buildkit library to parse docker logs from progress json output.",
+  type: "binary",
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-darwin-arm64`,
+      sha256: "633b74d5c37b53757322184e8e453e9982e0615356047e14637d437fa85f0653",
+    },
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-darwin-amd64`,
+      sha256: "f3d156ecd0ad307e54caa0abe2fe2b42b2b69eb78ff546ff949921b6e232b92c",
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-linux-arm64`,
+      sha256: "20a4991f1efc2aae0cca359308feba7e6361a2f92941fdad1f7f14137d94eb6c",
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-linux-amd64`,
+      sha256: "f3b8534b57939688d5f1ab11d8999d6854b08eef43af1619b641a51bd5f7c8bd",
+    },
+    {
+      platform: "windows",
+      architecture: "amd64",
+      url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-windows-amd64`,
+      sha256: "c83935be933413ecedb92fb6a70c235670598059dab0d12cc9b4bb0b0f652d25",
     },
   ],
 }
@@ -661,7 +708,7 @@ export const gardenPlugin = () =>
       },
     ],
 
-    tools: [dockerSpec, regctlCliSpec],
+    tools: [dockerSpec, regctlCliSpec, progressToolSpec],
   })
 
 function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {

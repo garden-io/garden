@@ -9,9 +9,9 @@ tocTitle: "`local-kubernetes`"
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that automates and simplifies working with local Kubernetes clusters.
 
-For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/kubernetes-plugins/local-k8s) guide.
+For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/local-k8s) guide.
 
-If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/kubernetes-plugins/remote-k8s) guide.
+If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/remote-k8s) guide.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
@@ -45,7 +45,7 @@ providers:
     # between multiple developers, as well as between your development and CI workflows.
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
-    # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/guides/in-cluster-building).
+    # [in-cluster building guide](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/guides/in-cluster-building).
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
@@ -316,6 +316,9 @@ providers:
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
+    # Sets the deployment strategy for `container` deploy actions.
+    deploymentStrategy:
+
     # Configuration options for code synchronization.
     sync:
       # Specifies default settings for syncs (e.g. for `container`, `kubernetes` and `helm` services).
@@ -324,7 +327,8 @@ providers:
       #
       # Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
       #
-      # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
+      # See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for more
+      # information.
       defaults:
         # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
         #
@@ -430,6 +434,30 @@ providers:
 
           # Memory request in megabytes.
           memory: 512
+
+          # Ephemeral storage request in megabytes.
+          ephemeralStorage:
+
+      # Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
+      # ahead of building images. This generally is not resource intensive, but you might want to adjust the
+      # defaults if you have many concurrent users.
+      sync:
+        limits:
+          # CPU limit in millicpu.
+          cpu: 500
+
+          # Memory limit in megabytes.
+          memory: 512
+
+          # Ephemeral storage limit in megabytes.
+          ephemeralStorage:
+
+        requests:
+          # CPU request in millicpu.
+          cpu: 100
+
+          # Memory request in megabytes.
+          memory: 90
 
           # Ephemeral storage request in megabytes.
           ephemeralStorage:
@@ -549,7 +577,7 @@ Otherwise the utility images are pulled directly from Docker Hub by default.
 
 Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/guides/in-cluster-building).
+For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/guides/in-cluster-building).
 
 | Type     | Allowed Values                               | Default          | Required |
 | -------- | -------------------------------------------- | ---------------- | -------- |
@@ -1225,7 +1253,7 @@ providers:
 {% endhint %}
 
 {% hint style="warning" %}
-**Deprecated**: The `deploymentStrategy` config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
+**Deprecated**: The `deploymentStrategy` config field will be removed in Garden 0.14.
 Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
 {% endhint %}
 
@@ -1255,7 +1283,7 @@ These are overridden/extended by the settings of any individual sync specs.
 
 Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |

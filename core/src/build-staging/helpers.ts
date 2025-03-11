@@ -242,6 +242,8 @@ export const syncFileAsync = promisify(cloneFile)
  * This is designed to match rsync behavior, in terms of how paths are matched and mapped.
  *
  * Symlinked directories are also traversed and its contents matched against the `pattern` if applicable.
+ *
+ * This returns the paths in POSIX format.
  */
 export async function scanDirectoryForClone(root: string, pattern?: string): Promise<MappedPaths> {
   // TODO: ignore symlinks that point outside of `root`!
@@ -249,7 +251,11 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
   // No wildcards, so we just read and return the entire set of files from the source directory.
   if (!pattern) {
     return (
-      await readdir.readdirAsync(root, { deep: true, filter: (stats) => stats.isFile() || stats.isSymbolicLink() })
+      await readdir.readdirAsync(root, {
+        deep: true,
+        sep: "/",
+        filter: (stats) => stats.isFile() || stats.isSymbolicLink(),
+      })
     ).map((f) => [f, f])
   }
 

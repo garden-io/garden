@@ -33,6 +33,8 @@ import type { OctalPermissionMask } from "../kubernetes/types.js"
 import { templateStringLiteral } from "../../docs/common.js"
 import { syncGuideLink } from "../kubernetes/constants.js"
 import { makeSecret, type Secret } from "../../util/secrets.js"
+import { makeDeprecationMessage } from "../../util/deprecations.js"
+import type { ActionKind } from "../../plugin/action-types.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -417,6 +419,9 @@ export const containerLocalModeSchema = createSchema({
       ),
     restart: localModeRestartSchema(),
   }),
+  meta: {
+    deprecated: makeDeprecationMessage({ deprecation: "localMode" }),
+  },
 })
 
 const annotationsSchema = memoize(() =>
@@ -915,15 +920,21 @@ export interface ContainerTestActionSpec extends ContainerCommonRuntimeSpec {
   artifacts: ArtifactSpec[]
   image?: string
   volumes: ContainerVolumeSpec[]
+  cacheResult: boolean
 }
 
 export type ContainerTestActionConfig = TestActionConfig<"container", ContainerTestActionSpec>
 export type ContainerTestAction = TestAction<ContainerTestActionConfig, ContainerTestOutputs>
 
-export const containerTestSpecKeys = memoize(() => ({
+export const containerRunAndTestSpecKeys = memoize((kind: ActionKind) => ({
   ...containerCommonRuntimeSchemaKeys(),
   artifacts: artifactsSchema(),
   image: containerImageSchema(),
+  cacheResult: runCacheResultSchema(kind),
+}))
+
+export const containerTestSpecKeys = memoize(() => ({
+  ...containerRunAndTestSpecKeys("Test"),
 }))
 
 export const containerTestActionSchema = createSchema({
@@ -937,16 +948,13 @@ export type ContainerRunOutputs = ContainerTestOutputs
 
 export const containerRunOutputSchema = () => containerTestOutputSchema()
 
-export interface ContainerRunActionSpec extends ContainerTestActionSpec {
-  cacheResult: boolean
-}
+export type ContainerRunActionSpec = ContainerTestActionSpec
 
 export type ContainerRunActionConfig = RunActionConfig<"container", ContainerRunActionSpec>
 export type ContainerRunAction = RunAction<ContainerRunActionConfig, ContainerRunOutputs>
 
 export const containerRunSpecKeys = memoize(() => ({
-  ...containerTestSpecKeys(),
-  cacheResult: runCacheResultSchema(),
+  ...containerRunAndTestSpecKeys("Run"),
 }))
 
 export const containerRunActionSchema = createSchema({

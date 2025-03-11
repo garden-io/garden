@@ -12,7 +12,11 @@ import type { KubernetesConfig } from "../../../../../src/plugins/kubernetes/con
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import { randomString } from "../../../../../src/util/string.js"
 import { expect } from "chai"
-import { k8sGetRunResult, storeRunResult } from "../../../../../src/plugins/kubernetes/run-results.js"
+import {
+  composeCacheableRunResult,
+  k8sGetRunResult,
+  runResultCache,
+} from "../../../../../src/plugins/kubernetes/run-results.js"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
 
@@ -33,7 +37,7 @@ describe("kubernetes Run results", () => {
     garden.close()
   })
 
-  describe("storeRunResult", () => {
+  describe("RunResultCache", () => {
     it("should trim logs when necessary", async () => {
       const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -41,22 +45,28 @@ describe("kubernetes Run results", () => {
 
       const data = randomString(1024 * 1024)
 
-      const trimmed = await storeRunResult({
-        ctx,
-        log: garden.log,
-        // module: task.module,
-        action,
+      const result = composeCacheableRunResult({
         result: {
-          // moduleName: task.module.name,
-          // taskName: task.name,
-          // outputs: { log: data },
+          // command: [],
           log: data,
           startedAt: new Date(),
           completedAt: new Date(),
-          // command: [],
-          // version: task.version,
           success: true,
         },
+        action,
+        // mock data
+        namespaceStatus: {
+          pluginName: provider.name,
+          namespaceName: ctx.namespace,
+          state: "ready",
+        },
+        // version: task.version,
+      })
+      const trimmed = await runResultCache.store({
+        ctx,
+        log: garden.log,
+        action,
+        result,
       })
 
       expect(trimmed.log.length).to.be.lte(MAX_RUN_RESULT_LOG_LENGTH)

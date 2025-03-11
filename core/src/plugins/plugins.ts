@@ -29,13 +29,6 @@ export const getSupportedPlugins = () => [
     },
   },
   {
-    name: "hadolint",
-    callback: async () => {
-      const plugin = await import("./hadolint/hadolint.js")
-      return plugin.gardenPlugin.getSpec()
-    },
-  },
-  {
     name: "kubernetes",
     callback: async () => {
       const plugin = await import("./kubernetes/kubernetes.js")
@@ -60,13 +53,6 @@ export const getSupportedPlugins = () => [
     name: "openshift",
     callback: async () => {
       const plugin = await import("./openshift/openshift.js")
-      return plugin.gardenPlugin()
-    },
-  },
-  {
-    name: "octant",
-    callback: async () => {
-      const plugin = await import("./octant/octant.js")
       return plugin.gardenPlugin()
     },
   },

@@ -224,6 +224,8 @@ function getKubernetesAction(action: Resolved<PersistentVolumeClaimAction>) {
     spec: {
       namespace: action.getSpec("namespace"),
       files: [],
+      manifestFiles: [],
+      manifestTemplates: [],
       manifests: [pvcManifest],
     },
   }

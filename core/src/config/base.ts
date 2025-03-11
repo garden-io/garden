@@ -13,7 +13,7 @@ import { omit, isPlainObject } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
 import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
 import { ConfigurationError, FilesystemError, isErrnoException, ParameterError } from "../exceptions.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, defaultGardenApiVersion, GardenApiVersion } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import type { ConfigSource } from "./validation.js"
 import { validateWithPath } from "./validation.js"
@@ -23,7 +23,6 @@ import type { ConfigTemplateKind } from "./config-template.js"
 import { isNotNull, isTruthy } from "../util/util.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "./common.js"
 import { createSchema, joi } from "./common.js"
-import { emitNonRepeatableWarning } from "../warnings.js"
 import type { ActionKind, BaseActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
 import { isUnresolved } from "../template/templated-strings.js"
@@ -31,7 +30,6 @@ import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent } from "../util/string.js"
-import { makeDocsLinkStyled } from "../docs/common.js"
 import { profileAsync } from "../util/profiling.js"
 import { readFile } from "fs/promises"
 import { LRUCache } from "lru-cache"
@@ -39,6 +37,7 @@ import { parseTemplateCollection } from "../template/templated-collections.js"
 import { evaluate } from "../template/evaluate.js"
 import { GenericContext } from "./template-contexts/base.js"
 import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { resolveApiVersion } from "../project-api-version.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -421,31 +420,7 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
 }
 
 function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
-  const projectApiVersion = projectSpec.apiVersion
-
-  // We conservatively set the apiVersion to be compatible with 0.12.
-  if (projectApiVersion === undefined) {
-    emitNonRepeatableWarning(
-      log,
-      `"apiVersion" is missing in the Project config. Assuming "${
-        defaultGardenApiVersion
-      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLinkStyled("guides/migrating-to-bonsai")}`
-    )
-
-    return { ...projectSpec, apiVersion: GardenApiVersion.v0 }
-  }
-
-  if (projectApiVersion === GardenApiVersion.v0) {
-    reportDeprecatedFeatureUsage({
-      apiVersion: projectApiVersion,
-      log,
-      deprecation: "apiVersionV0",
-    })
-  }
-
-  // TODO(0.14): print a warning if apiVersion: garden.io/v1 is used
-
-  return projectSpec
+  return { ...projectSpec, apiVersion: resolveApiVersion(projectSpec, log) }
 }
 
 const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [

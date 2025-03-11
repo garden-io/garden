@@ -25,7 +25,7 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
   const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
   const dockerBuildExtraFlags = action.getSpec("extraFlags")
 
-  // For in-cluster building or cloud builder, use regctl to copy the image.
+  // For in-cluster building or Container Builder, use regctl to copy the image.
   // This does not require to pull the image locally.
   if (
     provider.config.buildMode !== "local-docker" ||

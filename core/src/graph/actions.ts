@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isEqual, isString, mapValues, memoize, omit, pick, uniq } from "lodash-es"
+import { isEqual, isString, mapValues, omit } from "lodash-es"
 import type {
   Action,
   ActionConfig,
@@ -26,8 +26,6 @@ import {
   actionIsDisabled,
   actionReferenceToString,
   addActionDependency,
-  baseActionConfigSchema,
-  baseRuntimeActionConfigSchema,
   describeActionConfig,
   describeActionConfigWithPath,
 } from "../actions/base.js"
@@ -36,11 +34,11 @@ import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "..
 import { isRunActionConfig, RunAction, runActionConfigSchema } from "../actions/run.js"
 import { isTestActionConfig, TestAction, testActionConfigSchema } from "../actions/test.js"
 import { noTemplateFields } from "../config/base.js"
-import type { ActionReference, JoiDescription } from "../config/common.js"
+import type { ActionReference } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
-import { ConfigurationError, GardenError, PluginError } from "../exceptions.js"
+import { ConfigurationError, GardenError, InternalError, PluginError } from "../exceptions.js"
 import { type Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ActionTypeDefinition } from "../plugin/action-types.js"
@@ -65,9 +63,9 @@ import { styles } from "../logger/styles.js"
 import { isUnresolvableValue } from "../template/analysis.js"
 import { getActionTemplateReferences } from "../config/references.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import { type ParsedTemplate } from "../template/types.js"
 import { validateWithPath } from "../config/validation.js"
 import { VariablesContext } from "../config/template-contexts/variables.js"
+import { isPlainObject } from "../util/objects.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -656,25 +654,6 @@ export async function executeAction<T extends Action>({
   return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }
 
-// Returns non-templatable keys, and keys that can be resolved using ActionConfigContext.
-const getBuiltinConfigContextKeys = memoize(() => {
-  const keys: string[] = []
-
-  for (const schema of [buildActionConfigSchema(), baseRuntimeActionConfigSchema(), baseActionConfigSchema()]) {
-    const configKeys = schema.describe().keys
-
-    for (const [k, v] of Object.entries(configKeys)) {
-      if (
-        (<JoiDescription>v).metas?.find((m) => m.templateContext === ActionConfigContext || m.templateContext === null)
-      ) {
-        keys.push(k)
-      }
-    }
-  }
-
-  return uniq(keys)
-})
-
 function getActionSchema(kind: ActionKind) {
   switch (kind) {
     case "Build":
@@ -737,8 +716,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     variables: garden.variables,
   })
 
-  const builtinConfigKeys = getBuiltinConfigContextKeys()
-
   // action context (may be missing some varfiles at this point)
   const builtinFieldContext = new ActionConfigContext({
     garden,
@@ -751,32 +728,41 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   })
 
   function resolveTemplates() {
-    // Fully resolve built-in fields that only support `ActionConfigContext`.
-    // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
-    const resolvedBuiltin = deepEvaluate(pick(config, builtinConfigKeys) as Record<string, ParsedTemplate>, {
+    // Step 1: Resolve everything except for spec, variables. They'll be fully resolved later. Also omit internal.
+    // @ts-expect-error todo: correct types for unresolved configs
+    const resolvedBuiltin = deepEvaluate(omit(config, ["variables", "spec", "internal"]), {
       context: builtinFieldContext,
       opts: {},
     })
-    const { spec = {} } = config
 
+    if (!isPlainObject(resolvedBuiltin)) {
+      throw new InternalError({
+        message: "Expected action config to evaluate to a plain object.",
+      })
+    }
+
+    // Step 2: Validate everything except variables and spec
+    const validatedBuiltin = validateWithPath<ActionConfig>({
+      config: {
+        ...resolvedBuiltin,
+        variables: {},
+        spec: {},
+      },
+      schema: getActionSchema(config.kind),
+      configType: describeActionConfig(config),
+      name: config.name,
+      path: config.internal.basePath,
+      projectRoot: garden.projectRoot,
+      source: { yamlDoc: config.internal.yamlDoc, path: [] },
+    })
+
+    // Step 3: make sure we don't lose the unresolved spec and variables. They'll be fully resolved later.
+    const { spec = {}, variables = {}, internal } = config
     config = {
-      ...config,
-      // Validate fully resolved keys (the above + those that don't allow any templating)
-      ...validateWithPath({
-        config: {
-          ...resolvedBuiltin,
-          variables: {},
-          spec: {},
-        },
-        schema: getActionSchema(config.kind),
-        configType: describeActionConfig(config),
-        name: config.name,
-        path: config.internal.basePath,
-        projectRoot: garden.projectRoot,
-        source: { yamlDoc: config.internal.yamlDoc, path: [] },
-      }),
+      ...validatedBuiltin,
       spec,
-      variables: config.variables,
+      variables,
+      internal,
     }
   }
 

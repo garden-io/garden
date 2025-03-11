@@ -14,6 +14,7 @@ import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { createActionLog } from "../../logger/log-entry.js"
 import { startSyncWithoutDeploy } from "./sync-start.js"
+import { reportDeprecatedSyncCommandUsage } from "../../util/deprecations.js"
 
 const syncRestartArgs = {
   names: new StringsParameter({
@@ -31,7 +32,7 @@ const syncRestartOpts = {}
 type Opts = typeof syncRestartOpts
 
 export class SyncRestartCommand extends Command<Args, Opts> {
-  name = "restart"
+  name = "restart" as const
   help = "Restart any active syncs to the given Deploy action(s)."
 
   override protected = true
@@ -56,8 +57,15 @@ export class SyncRestartCommand extends Command<Args, Opts> {
     printHeader(log, "Restarting sync(s)", "🔁")
   }
 
-  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
-    const { garden, log, args } = params
+  async action({ garden, log, args, parentCommand }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
+    if (!parentCommand) {
+      reportDeprecatedSyncCommandUsage({
+        apiVersion: garden.projectApiVersion,
+        log,
+        deprecation: "syncRestartCommand",
+        syncCommandName: this.name,
+      })
+    }
 
     const names = args.names || []
 

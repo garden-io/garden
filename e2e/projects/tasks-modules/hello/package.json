@@ -13,7 +13,7 @@
   "dependencies": {
     "express": "^4.17.3",
     "knex": "^2.4.0",
-    "pg": "^7.12.1"
+    "pg": "^8.13.3"
   },
   "devDependencies": {
     "mocha": "^6.2.3",
