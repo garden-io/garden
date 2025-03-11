@@ -49,3 +49,11 @@ export function composeCacheableResult({
     actionName: action.name,
   }
 }
+
+export interface ResultCache<A extends RunAction | TestAction, R extends CacheableResult> {
+  load(params: LoadResultParams<A>): Promise<R | undefined>
+
+  store(params: StoreResultParams<A, R>): Promise<R>
+
+  clear(param: ClearResultParams<A>): Promise<void>
+}
