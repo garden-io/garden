@@ -60,7 +60,7 @@ export function getRunResultKey(ctx: PluginContext, action: Action) {
   return `run-result--${hash.slice(0, 32)}`
 }
 
-interface StoreTaskResultParams {
+interface StoreRunResultParams {
   ctx: PluginContext
   log: Log
   action: ContainerRunAction | KubernetesRunAction | HelmPodRunAction
@@ -102,7 +102,7 @@ export function toRunActionStatus(detail: CacheableRunResult): ActionStatus {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeRunResult({ ctx, log, action, result }: StoreTaskResultParams): Promise<CacheableRunResult> {
+export async function storeRunResult({ ctx, log, action, result }: StoreRunResultParams): Promise<CacheableRunResult> {
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = ctx.provider as KubernetesProvider
   const api = await KubeApi.factory(log, k8sCtx, provider)
