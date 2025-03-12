@@ -7,19 +7,11 @@
  */
 
 import type { ContainerRunAction } from "../container/moduleConfig.js"
-import type { KubernetesPluginContext, KubernetesProvider } from "./config.js"
-import { KubeApi, KubernetesError } from "./api.js"
-import { getAppNamespace } from "./namespace.js"
-import { deserializeValues } from "../../util/serialization.js"
 import type { PluginContext } from "../../plugin-context.js"
-import { gardenAnnotationKey } from "../../util/string.js"
 import { hashSync } from "hasha"
-import { upsertConfigMap } from "./util.js"
-import { trimRunOutput } from "./helm/common.js"
 import type { RunActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodRunAction } from "./helm/config.js"
 import type { KubernetesRunAction } from "./kubernetes-type/config.js"
-import { GardenError } from "../../exceptions.js"
 import type {
   CacheableResult,
   ClearResultParams,
@@ -44,81 +36,28 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
 export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
 
 export class RunResultCache implements ResultCache<CacheableRunAction, CacheableResult> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async load({ action, ctx, log }: LoadResultParams<CacheableRunAction>): Promise<CacheableResult | undefined> {
-    const k8sCtx = <KubernetesPluginContext>ctx
-    const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-    const runResultNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-    const resultKey = this.cacheKey(ctx, action)
-
-    try {
-      const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: runResultNamespace })
-      const result = deserializeValues(res.data!)
-      return result as CacheableResult
-    } catch (err) {
-      if (!(err instanceof KubernetesError)) {
-        throw err
-      }
-      if (err.responseStatusCode === 404) {
-        return undefined
-      } else {
-        throw err
-      }
-    }
+    // todo
+    return undefined
   }
 
   public async store({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     action,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     ctx,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     log,
     result,
   }: StoreResultParams<CacheableRunAction, CacheableResult>): Promise<CacheableResult> {
-    const k8sCtx = ctx as KubernetesPluginContext
-    const provider = ctx.provider as KubernetesProvider
-    const api = await KubeApi.factory(log, k8sCtx, provider)
-    const runResultNamespace = await getAppNamespace(k8sCtx, log, provider)
-
-    // FIXME: We should store the logs separately, because of the 1MB size limit on ConfigMaps.
-    const data = trimRunOutput(result)
-
-    try {
-      await upsertConfigMap({
-        api,
-        namespace: runResultNamespace,
-        key: this.cacheKey(ctx, action),
-        labels: {
-          [gardenAnnotationKey("action")]: action.key(),
-          [gardenAnnotationKey("actionType")]: action.type,
-          [gardenAnnotationKey("version")]: action.versionString(),
-        },
-        data,
-      })
-    } catch (err) {
-      if (!(err instanceof GardenError)) {
-        throw err
-      }
-      log.warn(`Unable to store run result: ${err}`)
-    }
-
-    return data
+    // todo
+    return result
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async clear({ action, ctx, log }: ClearResultParams<CacheableRunAction>): Promise<void> {
-    const provider = <KubernetesProvider>ctx.provider
-    const api = await KubeApi.factory(log, ctx, provider)
-    const namespace = await getAppNamespace(ctx as KubernetesPluginContext, log, provider)
-
-    const key = this.cacheKey(ctx, action)
-
-    try {
-      await api.core.deleteNamespacedConfigMap({ name: key, namespace })
-    } catch (err) {
-      if (!(err instanceof KubernetesError)) {
-        throw err
-      }
-      if (err.responseStatusCode !== 404) {
-        throw err
-      }
-    }
+    // todo
   }
 
   cacheKey(ctx: PluginContext, action: CacheableRunAction): string {
