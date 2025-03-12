@@ -14,6 +14,8 @@ import type { NamespaceStatus } from "../../types/namespace.js"
 import type { RunAction } from "../../actions/run.js"
 import type { TestAction } from "../../actions/test.js"
 import { runResultToActionState } from "../../actions/base.js"
+import { hashSync } from "hasha"
+import type { CacheableRunAction } from "./run-results.js"
 
 export type CacheableResult = RunResult & {
   namespaceStatus: NamespaceStatus
@@ -57,4 +59,12 @@ export interface ResultCache<A extends RunAction | TestAction, R extends Cacheab
   store(params: StoreResultParams<A, R>): Promise<R>
 
   clear(param: ClearResultParams<A>): Promise<void>
+}
+
+export function cacheKey({ ctx, action }: { ctx: PluginContext; action: CacheableRunAction }): string {
+  // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
+  const resultSchemaVersion = 1
+  const key = `${ctx.projectName}--${action.type}.${action.name}--${action.versionString()}--${resultSchemaVersion}`
+  const hash = hashSync(key, { algorithm: "sha1" })
+  return `${action.kind.toLowerCase()}-result--${hash.slice(0, 32)}`
 }

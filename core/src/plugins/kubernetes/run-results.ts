@@ -7,8 +7,6 @@
  */
 
 import type { ContainerRunAction } from "../container/moduleConfig.js"
-import type { PluginContext } from "../../plugin-context.js"
-import { hashSync } from "hasha"
 import type { RunActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodRunAction } from "./helm/config.js"
 import type { KubernetesRunAction } from "./kubernetes-type/config.js"
@@ -58,14 +56,6 @@ export class RunResultCache implements ResultCache<CacheableRunAction, Cacheable
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async clear({ action, ctx, log }: ClearResultParams<CacheableRunAction>): Promise<void> {
     // todo
-  }
-
-  cacheKey(ctx: PluginContext, action: CacheableRunAction): string {
-    // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
-    const resultFormatVersion = 2
-    const key = `${ctx.projectName}--${action.type}.${action.name}--${action.versionString()}--${resultFormatVersion}`
-    const hash = hashSync(key, { algorithm: "sha1" })
-    return `run-result--${hash.slice(0, 32)}`
   }
 }
 

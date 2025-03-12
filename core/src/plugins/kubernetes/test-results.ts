@@ -7,8 +7,6 @@
  */
 
 import type { ContainerTestAction } from "../container/moduleConfig.js"
-import type { PluginContext } from "../../plugin-context.js"
-import { hashSync } from "hasha"
 import type { TestActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodTestAction } from "./helm/config.js"
 import type { KubernetesTestAction } from "./kubernetes-type/config.js"
@@ -58,14 +56,6 @@ export class TestResultCache implements ResultCache<CacheableTestAction, Cacheab
   public async clear(_: ClearResultParams<CacheableTestAction>): Promise<void> {
     // not supported yet - todo
     return
-  }
-
-  cacheKey(ctx: PluginContext, action: CacheableTestAction): string {
-    // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
-    const resultFormatVersion = 3
-    const key = `${ctx.projectName}--${action.name}--${action.versionString()}--${resultFormatVersion}`
-    const hash = hashSync(key, { algorithm: "sha1" })
-    return `test-result--${hash.slice(0, 32)}`
   }
 }
 
