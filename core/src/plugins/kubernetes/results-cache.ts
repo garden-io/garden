@@ -10,18 +10,23 @@ import type { PluginContext } from "../../plugin-context.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { ActionStatus } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
+import { runResultSchemaZod } from "../../plugin/base.js"
 import type { NamespaceStatus } from "../../types/namespace.js"
+import { namespaceStatusSchema } from "../../types/namespace.js"
 import type { RunAction } from "../../actions/run.js"
 import type { TestAction } from "../../actions/test.js"
 import { runResultToActionState } from "../../actions/base.js"
 import { hashSync } from "hasha"
 import { Memoize } from "typescript-memoize"
+import type { z } from "zod"
 
 export type CacheableAction = RunAction | TestAction
 
-export type CacheableResult = RunResult & {
-  namespaceStatus: NamespaceStatus
-}
+export const kubernetesCacheableResultSchema = runResultSchemaZod.extend({
+  namespaceStatus: namespaceStatusSchema.required(),
+})
+
+export type CacheableResult = z.infer<typeof kubernetesCacheableResultSchema>
 
 export interface LoadResultParams<A extends CacheableAction> {
   ctx: PluginContext
