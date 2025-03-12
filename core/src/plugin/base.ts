@@ -15,10 +15,11 @@ import type { BuildAction } from "../actions/build.js"
 import type { DeployAction } from "../actions/deploy.js"
 import type { RunAction } from "../actions/run.js"
 import type { TestAction } from "../actions/test.js"
-import type { NamespaceStatus } from "../types/namespace.js"
+import { namespaceStatusSchema } from "../types/namespace.js"
 import type Joi from "@hapi/joi"
 import { memoize } from "lodash-es"
 import type { BaseProviderConfig } from "../config/provider.js"
+import { z } from "zod"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -150,17 +151,21 @@ export type ActionRuntimeRemotePlugin = {
   pluginName: string
 }
 
-// TODO-0.13.0: update this schema in 0.13.0
-export type RunResult = {
-  success: boolean
-  exitCode?: number
+// FIXME: remove schema duplication
+//  This duplicates the joi schema defined below,
+//  because that joi schema is still used in multiple places
+export const runResultSchemaZod = z.object({
+  success: z.boolean(),
+  exitCode: z.number().optional(),
   // FIXME: we should avoid native Date objects
-  startedAt: Date
-  completedAt: Date
-  log: string
-  diagnosticErrorMsg?: string
-  namespaceStatus?: NamespaceStatus
-}
+  startedAt: z.date(),
+  completedAt: z.date(),
+  log: z.string(),
+  diagnosticErrorMsg: z.string().optional(),
+  namespaceStatus: namespaceStatusSchema.optional(),
+})
+
+export type RunResult = z.infer<typeof runResultSchemaZod>
 
 export const runResultSchema = createSchema({
   name: "run-result",
