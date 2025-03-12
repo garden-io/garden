@@ -15,21 +15,23 @@ import type { RunAction } from "../../actions/run.js"
 import type { TestAction } from "../../actions/test.js"
 import { runResultToActionState } from "../../actions/base.js"
 import { hashSync } from "hasha"
-import type { CacheableRunAction } from "./run-results.js"
+import { Memoize } from "typescript-memoize"
+
+export type CacheableAction = RunAction | TestAction
 
 export type CacheableResult = RunResult & {
   namespaceStatus: NamespaceStatus
 }
 
-export interface LoadResultParams<A extends RunAction | TestAction> {
+export interface LoadResultParams<A extends CacheableAction> {
   ctx: PluginContext
   log: Log
   action: A
 }
 
-export type ClearResultParams<A extends RunAction | TestAction> = LoadResultParams<A>
+export type ClearResultParams<A extends CacheableAction> = LoadResultParams<A>
 
-export interface StoreResultParams<A extends RunAction | TestAction, R extends CacheableResult> {
+export interface StoreResultParams<A extends CacheableAction, R extends CacheableResult> {
   ctx: PluginContext
   log: Log
   action: A
@@ -53,7 +55,7 @@ export function toActionStatus<T extends CacheableResult>(detail: T): ActionStat
   return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }
 
-export interface ResultCache<A extends RunAction | TestAction, R extends CacheableResult> {
+export interface ResultCache<A extends CacheableAction, R extends CacheableResult> {
   load(params: LoadResultParams<A>): Promise<R | undefined>
 
   store(params: StoreResultParams<A, R>): Promise<R>
@@ -61,10 +63,76 @@ export interface ResultCache<A extends RunAction | TestAction, R extends Cacheab
   clear(param: ClearResultParams<A>): Promise<void>
 }
 
-export function cacheKey({ ctx, action }: { ctx: PluginContext; action: CacheableRunAction }): string {
-  // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
-  const resultSchemaVersion = 1
-  const key = `${ctx.projectName}--${action.type}.${action.name}--${action.versionString()}--${resultSchemaVersion}`
-  const hash = hashSync(key, { algorithm: "sha1" })
-  return `${action.kind.toLowerCase()}-result--${hash.slice(0, 32)}`
+export type SchemaVersion = `v${number}`
+
+/**
+ * Increment the current result schema format version
+ * if the result format changes breaking backwards-compatibility,
+ * e.g. serialization format.
+ */
+export const currentResultSchemaVersion: SchemaVersion = "v1"
+
+export type CreateCacheableResultKeyParams = {
+  schemaVersion: SchemaVersion
+  ctx: PluginContext
+  action: CacheableAction
+}
+
+export class StructuredCacheKey {
+  private readonly schemaVersion: SchemaVersion
+  private readonly projectName: string
+  private readonly actionKind: string
+  private readonly actionName: string
+  private readonly actionType: string
+  private readonly actionVersion: string
+
+  constructor({ schemaVersion, ctx, action }: CreateCacheableResultKeyParams) {
+    this.schemaVersion = schemaVersion
+    this.projectName = ctx.projectName
+    this.actionKind = action.kind
+    this.actionName = action.name
+    this.actionType = action.type
+    this.actionVersion = action.versionString()
+  }
+
+  @Memoize()
+  public calculate(): string {
+    const key = `${this.projectName}--${this.actionType}.${this.actionName}--${this.actionVersion}--${this.schemaVersion}`
+    const hash = hashSync(key, { algorithm: "sha1" })
+    return `${this.actionKind.toLowerCase()}-result--${hash.slice(0, 32)}`
+  }
+}
+
+export type CacheKeyProviderParams = {
+  ctx: PluginContext
+  action: CacheableAction
+}
+
+export type CacheKeyProvider = (params: CacheKeyProviderParams) => StructuredCacheKey
+
+export function cacheKeyProviderFactory(schemaVersion: SchemaVersion): CacheKeyProvider {
+  return ({ ctx, action }: CacheKeyProviderParams) => {
+    return new StructuredCacheKey({ schemaVersion, ctx, action })
+  }
+}
+
+export abstract class AbstractResultCache<A extends CacheableAction, R extends CacheableResult>
+  implements ResultCache<A, R>
+{
+  private readonly cacheKeyProvider: CacheKeyProvider
+
+  protected constructor(cacheKeyProvider: CacheKeyProvider) {
+    this.cacheKeyProvider = cacheKeyProvider
+  }
+
+  protected cacheKey(params: CacheKeyProviderParams): string {
+    const structuredCacheKey = this.cacheKeyProvider(params)
+    return structuredCacheKey.calculate()
+  }
+
+  public abstract clear(param: ClearResultParams<A>): Promise<void>
+
+  public abstract load(params: LoadResultParams<A>): Promise<R | undefined>
+
+  public abstract store(params: StoreResultParams<A, R>): Promise<R>
 }
