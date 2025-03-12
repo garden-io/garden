@@ -17,7 +17,6 @@ import { runResultToActionState } from "../../actions/base.js"
 
 export type CacheableResult = RunResult & {
   namespaceStatus: NamespaceStatus
-  actionName: string
 }
 
 export interface LoadResultParams<A extends RunAction | TestAction> {
@@ -37,7 +36,6 @@ export interface StoreResultParams<A extends RunAction | TestAction, R extends C
 
 export function composeCacheableResult({
   result,
-  action,
   namespaceStatus,
 }: {
   result: RunResult
@@ -47,7 +45,6 @@ export function composeCacheableResult({
   return {
     ...result,
     namespaceStatus,
-    actionName: action.name,
   }
 }
 
