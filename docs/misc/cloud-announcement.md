@@ -31,4 +31,4 @@ If you’re logged into [app.garden.io](http://app.garden.io) using older versio
 
 Again, we’re actively working to **restore this functionality** while making the new Garden Cloud a **vastly better experience overall**.
 
-Stay tuned, and if you have any questions, don’t hesitate to reach out [on Discord](https://discord.com/invite/FrmhuUjFs6) or directly to [eythor@garden.io](mailto:eythor@garden.io) ❤️
+Stay tuned, and if you have any questions, don’t hesitate to reach out [on Discord](https://discord.com/invite/FrmhuUjFs6) or directly to [ricky@garden.io](mailto:ricky@garden.io) ❤️
