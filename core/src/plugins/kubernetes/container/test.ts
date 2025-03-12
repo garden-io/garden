@@ -7,14 +7,14 @@
  */
 
 import type { ContainerTestAction } from "../../container/moduleConfig.js"
-import { composeCacheableTestResult, testResultCache } from "../test-results.js"
+import { testResultCache } from "../test-results.js"
 import { runAndCopy } from "../run.js"
 import { makePodName } from "../util.js"
 import { getNamespaceStatus } from "../namespace.js"
 import type { KubernetesPluginContext } from "../config.js"
 import type { TestActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
-import { toActionStatus } from "../results-cache.js"
+import { composeCacheableResult, toActionStatus } from "../results-cache.js"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
   const { ctx, log, action } = params
@@ -43,7 +43,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     dropCapabilities,
   })
 
-  const detail = composeCacheableTestResult({ result, action, namespaceStatus })
+  const detail = composeCacheableResult({ result, action, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
     await testResultCache.store({

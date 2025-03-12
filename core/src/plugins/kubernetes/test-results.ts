@@ -20,9 +20,6 @@ import type { TestActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodTestAction } from "./helm/config.js"
 import type { KubernetesTestAction } from "./kubernetes-type/config.js"
 import { GardenError } from "../../exceptions.js"
-import type { RunResult } from "../../plugin/base.js"
-import type { NamespaceStatus } from "../../types/namespace.js"
-import type { Action } from "../../actions/types.js"
 import type {
   CacheableResult,
   ClearResultParams,
@@ -31,7 +28,6 @@ import type {
   StoreResultParams,
 } from "./results-cache.js"
 import { toActionStatus } from "./results-cache.js"
-import { composeCacheableResult } from "./results-cache.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -47,31 +43,8 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
 
 export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
 
-export type CacheableTestResult = CacheableResult & {
-  /**
-   * @deprecated use {@link #actionName} instead
-   */
-  testName: string
-}
-
-export function composeCacheableTestResult(params: {
-  result: RunResult
-  action: Action
-  namespaceStatus: NamespaceStatus
-}): CacheableTestResult {
-  const result = composeCacheableResult(params)
-  return {
-    ...result,
-    testName: result.actionName,
-  }
-}
-
-export class TestResultCache implements ResultCache<CacheableTestAction, CacheableTestResult> {
-  public async load({
-    action,
-    ctx,
-    log,
-  }: LoadResultParams<CacheableTestAction>): Promise<CacheableTestResult | undefined> {
+export class TestResultCache implements ResultCache<CacheableTestAction, CacheableResult> {
+  public async load({ action, ctx, log }: LoadResultParams<CacheableTestAction>): Promise<CacheableResult | undefined> {
     const k8sCtx = <KubernetesPluginContext>ctx
     const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
     const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
@@ -80,7 +53,7 @@ export class TestResultCache implements ResultCache<CacheableTestAction, Cacheab
     try {
       const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: testResultNamespace })
       const result = deserializeValues(res.data!)
-      return result as CacheableTestResult
+      return result as CacheableResult
     } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err
@@ -98,7 +71,7 @@ export class TestResultCache implements ResultCache<CacheableTestAction, Cacheab
     ctx,
     log,
     result,
-  }: StoreResultParams<CacheableTestAction, CacheableTestResult>): Promise<CacheableTestResult> {
+  }: StoreResultParams<CacheableTestAction, CacheableResult>): Promise<CacheableResult> {
     const k8sCtx = ctx as KubernetesPluginContext
     const provider = ctx.provider as KubernetesProvider
     const api = await KubeApi.factory(log, k8sCtx, provider)

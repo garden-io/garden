@@ -16,13 +16,10 @@ import { gardenAnnotationKey } from "../../util/string.js"
 import { hashSync } from "hasha"
 import { upsertConfigMap } from "./util.js"
 import { trimRunOutput } from "./helm/common.js"
-import type { Action } from "../../actions/types.js"
-import type { RunResult } from "../../plugin/base.js"
 import type { RunActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodRunAction } from "./helm/config.js"
 import type { KubernetesRunAction } from "./kubernetes-type/config.js"
 import { GardenError } from "../../exceptions.js"
-import type { NamespaceStatus } from "../../types/namespace.js"
 import type {
   CacheableResult,
   ClearResultParams,
@@ -31,7 +28,6 @@ import type {
   StoreResultParams,
 } from "./results-cache.js"
 import { toActionStatus } from "./results-cache.js"
-import { composeCacheableResult } from "./results-cache.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
@@ -47,31 +43,8 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
 
 export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
 
-export type CacheableRunResult = CacheableResult & {
-  /**
-   * @deprecated use {@link #actionName} instead
-   */
-  taskName: string
-}
-
-export function composeCacheableRunResult(params: {
-  result: RunResult
-  action: Action
-  namespaceStatus: NamespaceStatus
-}): CacheableRunResult {
-  const result = composeCacheableResult(params)
-  return {
-    ...result,
-    taskName: result.actionName,
-  }
-}
-
-export class RunResultCache implements ResultCache<CacheableRunAction, CacheableRunResult> {
-  public async load({
-    action,
-    ctx,
-    log,
-  }: LoadResultParams<CacheableRunAction>): Promise<CacheableRunResult | undefined> {
+export class RunResultCache implements ResultCache<CacheableRunAction, CacheableResult> {
+  public async load({ action, ctx, log }: LoadResultParams<CacheableRunAction>): Promise<CacheableResult | undefined> {
     const k8sCtx = <KubernetesPluginContext>ctx
     const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
     const runResultNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
@@ -80,7 +53,7 @@ export class RunResultCache implements ResultCache<CacheableRunAction, Cacheable
     try {
       const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: runResultNamespace })
       const result = deserializeValues(res.data!)
-      return result as CacheableRunResult
+      return result as CacheableResult
     } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err
@@ -98,7 +71,7 @@ export class RunResultCache implements ResultCache<CacheableRunAction, Cacheable
     ctx,
     log,
     result,
-  }: StoreResultParams<CacheableRunAction, CacheableRunResult>): Promise<CacheableRunResult> {
+  }: StoreResultParams<CacheableRunAction, CacheableResult>): Promise<CacheableResult> {
     const k8sCtx = ctx as KubernetesPluginContext
     const provider = ctx.provider as KubernetesProvider
     const api = await KubeApi.factory(log, k8sCtx, provider)

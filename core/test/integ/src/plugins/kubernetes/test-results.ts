@@ -14,11 +14,8 @@ import { randomString } from "../../../../../src/util/string.js"
 import { expect } from "chai"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
-import {
-  composeCacheableTestResult,
-  k8sGetTestResult,
-  testResultCache,
-} from "../../../../../src/plugins/kubernetes/test-results.js"
+import { k8sGetTestResult, testResultCache } from "../../../../../src/plugins/kubernetes/test-results.js"
+import { composeCacheableResult } from "../../../../../src/plugins/kubernetes/results-cache.js"
 
 describe("kubernetes Test results", () => {
   let garden: Garden
@@ -45,7 +42,7 @@ describe("kubernetes Test results", () => {
 
       const data = randomString(1024 * 1024)
 
-      const result = composeCacheableTestResult({
+      const result = composeCacheableResult({
         result: {
           // command: [],
           log: data,
