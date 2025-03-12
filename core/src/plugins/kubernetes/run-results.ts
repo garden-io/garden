@@ -17,12 +17,15 @@ import type {
   ResultCache,
   StoreResultParams,
 } from "./results-cache.js"
-import { toActionStatus } from "./results-cache.js"
+import { currentResultSchemaVersion } from "./results-cache.js"
+import { cacheKeyProviderFactory, toActionStatus } from "./results-cache.js"
+import { LocalResultCache } from "./results-cache-fs.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
   const { action, ctx, log } = params
-  const cachedResult = await runResultCache.load({ action, ctx, log })
+  const cache = getRunResultCache(ctx.gardenDirPath)
+  const cachedResult = await cache.load({ action, ctx, log })
 
   if (!cachedResult) {
     return { state: "not-ready", detail: null, outputs: { log: "" } }
@@ -59,4 +62,14 @@ export class RunResultCache implements ResultCache<CacheableRunAction, Cacheable
   }
 }
 
-export const runResultCache = new RunResultCache()
+let runResultCache: LocalResultCache<CacheableRunAction, CacheableResult> | undefined
+
+export function getRunResultCache(gardenDirPath: string): LocalResultCache<CacheableRunAction, CacheableResult> {
+  if (runResultCache === undefined) {
+    runResultCache = new LocalResultCache<CacheableRunAction, CacheableResult>({
+      cacheKeyProvider: cacheKeyProviderFactory(currentResultSchemaVersion),
+      gardenDirPath,
+    })
+  }
+  return runResultCache
+}

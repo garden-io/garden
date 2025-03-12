@@ -7,7 +7,7 @@
  */
 
 import type { ContainerTestAction } from "../../container/moduleConfig.js"
-import { testResultCache } from "../test-results.js"
+import { getTestResultCache } from "../test-results.js"
 import { runAndCopy } from "../run.js"
 import { makePodName } from "../util.js"
 import { getNamespaceStatus } from "../namespace.js"
@@ -46,6 +46,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
   const detail = composeCacheableResult({ result, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
+    const testResultCache = getTestResultCache(ctx.gardenDirPath)
     await testResultCache.store({
       ctx,
       log,

@@ -16,7 +16,7 @@ import { RunTask } from "../../../../../../src/tasks/run.js"
 import fsExtra from "fs-extra"
 const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
-import { runResultCache } from "../../../../../../src/plugins/kubernetes/run-results.js"
+import { getRunResultCache } from "../../../../../../src/plugins/kubernetes/run-results.js"
 import type { KubernetesPodRunAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 
@@ -35,7 +35,7 @@ describe("kubernetes-type pod Run", () => {
   it("should run a basic Run and store its result", async () => {
     const action = graph.getRun("echo-task")
 
-    const testTask = new RunTask({
+    const runTask = new RunTask({
       garden,
       graph,
       action,
@@ -47,11 +47,12 @@ describe("kubernetes-type pod Run", () => {
     // Clear any existing Run result
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    const runResultCache = getRunResultCache(ctx.gardenDirPath)
     await runResultCache.clear({ ctx, log: garden.log, action })
 
     garden.events.eventLog = []
-    const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
-    const result = results.results.getResult(testTask)
+    const results = await garden.processTasks({ tasks: [runTask], throwOnError: true })
+    const result = results.results.getResult(runTask)
     expect(findNamespaceStatusEvent(garden.events.eventLog, "kubernetes-type-test-default")).to.exist
 
     expect(result).to.exist
@@ -76,7 +77,7 @@ describe("kubernetes-type pod Run", () => {
     const action = graph.getRun("echo-task")
     action["_config"].spec.cacheResult = false
 
-    const testTask = new RunTask({
+    const runTask = new RunTask({
       garden,
       graph,
       action,
@@ -88,9 +89,10 @@ describe("kubernetes-type pod Run", () => {
     // Clear any existing Run result
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    const runResultCache = getRunResultCache(ctx.gardenDirPath)
     await runResultCache.clear({ ctx, log: garden.log, action })
 
-    await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    await garden.processTasks({ tasks: [runTask], throwOnError: true })
 
     // Verify that the result was saved
     const router = await garden.getActionRouter()
