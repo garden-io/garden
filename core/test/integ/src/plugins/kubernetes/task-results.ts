@@ -15,7 +15,7 @@ import { expect } from "chai"
 import {
   composeCacheableRunResult,
   k8sGetRunResult,
-  storeRunResult,
+  runResultCache,
 } from "../../../../../src/plugins/kubernetes/run-results.js"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
@@ -37,7 +37,7 @@ describe("kubernetes Run results", () => {
     garden.close()
   })
 
-  describe("storeRunResult", () => {
+  describe("RunResultCache", () => {
     it("should trim logs when necessary", async () => {
       const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -62,10 +62,9 @@ describe("kubernetes Run results", () => {
         },
         // version: task.version,
       })
-      const trimmed = await storeRunResult({
+      const trimmed = await runResultCache.store({
         ctx,
         log: garden.log,
-        // module: task.module,
         action,
         result,
       })
