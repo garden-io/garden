@@ -10,13 +10,7 @@ import type { ContainerTestAction } from "../container/moduleConfig.js"
 import type { TestActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodTestAction } from "./helm/config.js"
 import type { KubernetesTestAction } from "./kubernetes-type/config.js"
-import type {
-  CacheableResult,
-  ClearResultParams,
-  LoadResultParams,
-  ResultCache,
-  StoreResultParams,
-} from "./results-cache.js"
+import type { CacheableResult } from "./results-cache.js"
 import { cacheKeyProviderFactory, currentResultSchemaVersion } from "./results-cache.js"
 import { toActionStatus } from "./results-cache.js"
 import { LocalResultCache } from "./results-cache-fs.js"
@@ -35,32 +29,6 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
 }
 
 export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
-
-export class TestResultCache implements ResultCache<CacheableTestAction, CacheableResult> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public async load({ action, ctx, log }: LoadResultParams<CacheableTestAction>): Promise<CacheableResult | undefined> {
-    //todo
-    return undefined
-  }
-
-  public async store({
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    action,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    ctx,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    log,
-    result,
-  }: StoreResultParams<CacheableTestAction, CacheableResult>): Promise<CacheableResult> {
-    //todo
-    return result
-  }
-
-  public async clear(_: ClearResultParams<CacheableTestAction>): Promise<void> {
-    // not supported yet - todo
-    return
-  }
-}
 
 let testResultCache: LocalResultCache<CacheableTestAction, CacheableResult> | undefined
 
