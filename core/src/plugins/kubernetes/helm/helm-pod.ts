@@ -50,7 +50,7 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
 
       const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = composeCacheableResult({ result, action, namespaceStatus })
+      const detail = composeCacheableResult({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         await runResultCache.store({
@@ -91,7 +91,7 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
 
       const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = composeCacheableResult({ result, action, namespaceStatus })
+      const detail = composeCacheableResult({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         await testResultCache.store({

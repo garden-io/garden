@@ -116,7 +116,7 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
 
       const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = composeCacheableResult({ result, action, namespaceStatus })
+      const detail = composeCacheableResult({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         await runResultCache.store({
@@ -163,7 +163,7 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
 
       const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = composeCacheableResult({ result, action, namespaceStatus })
+      const detail = composeCacheableResult({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         await testResultCache.store({

@@ -50,7 +50,6 @@ describe("kubernetes Test results", () => {
           completedAt: new Date(),
           success: true,
         },
-        action,
         // mock data
         namespaceStatus: {
           pluginName: provider.name,

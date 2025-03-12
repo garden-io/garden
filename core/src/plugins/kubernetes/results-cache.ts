@@ -8,7 +8,7 @@
 
 import type { PluginContext } from "../../plugin-context.js"
 import type { Log } from "../../logger/log-entry.js"
-import type { Action, ActionStatus } from "../../actions/types.js"
+import type { ActionStatus } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { NamespaceStatus } from "../../types/namespace.js"
 import type { RunAction } from "../../actions/run.js"
@@ -39,7 +39,6 @@ export function composeCacheableResult({
   namespaceStatus,
 }: {
   result: RunResult
-  action: Action
   namespaceStatus: NamespaceStatus
 }): CacheableResult {
   return {

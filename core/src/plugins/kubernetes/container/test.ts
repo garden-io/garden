@@ -43,7 +43,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     dropCapabilities,
   })
 
-  const detail = composeCacheableResult({ result, action, namespaceStatus })
+  const detail = composeCacheableResult({ result, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
     await testResultCache.store({

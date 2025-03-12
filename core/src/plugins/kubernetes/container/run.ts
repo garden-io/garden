@@ -43,7 +43,7 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     dropCapabilities,
   })
 
-  const detail = composeCacheableResult({ result, action, namespaceStatus })
+  const detail = composeCacheableResult({ result, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
     await runResultCache.store({
