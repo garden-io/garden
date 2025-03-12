@@ -34,7 +34,7 @@ describe("kubernetes Run results", () => {
     garden.close()
   })
 
-  describe("RunResultCache", () => {
+  describe("run-result logs trimming", () => {
     it("should trim logs when necessary", async () => {
       const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
