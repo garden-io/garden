@@ -78,6 +78,12 @@ export class SimpleFileSystemCache<T> {
         return JSON.parse(rawFileContent) as T
       } catch (err) {
         this.log.debug(`Cannot deserialize json from file ${filePath}; cause: ${err}`)
+
+        this.log.debug(`Deleting corrupted file ${filePath}`)
+        try {
+          await remove(filePath)
+        } catch {}
+
         return undefined
       }
     })
