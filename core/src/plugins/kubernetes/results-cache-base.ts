@@ -86,22 +86,14 @@ export type SchemaVersion = `v${number}`
  */
 export const currentResultSchemaVersion: SchemaVersion = "v1"
 
-export type CreateCacheableResultKeyParams = {
-  schemaVersion: SchemaVersion
-  ctx: PluginContext
-  action: CacheableAction
-}
-
 export class StructuredCacheKey {
-  private readonly schemaVersion: SchemaVersion
   private readonly projectName: string
   private readonly actionKind: string
   private readonly actionName: string
   private readonly actionType: string
   private readonly actionVersion: string
 
-  constructor({ schemaVersion, ctx, action }: CreateCacheableResultKeyParams) {
-    this.schemaVersion = schemaVersion
+  constructor({ ctx, action }: { ctx: PluginContext; action: CacheableAction }) {
     this.projectName = ctx.projectName
     this.actionKind = action.kind
     this.actionName = action.name
@@ -111,7 +103,7 @@ export class StructuredCacheKey {
 
   @Memoize()
   public calculate(): string {
-    const key = `${this.projectName}--${this.actionType}.${this.actionName}--${this.actionVersion}--${this.schemaVersion}`
+    const key = `${this.projectName}--${this.actionType}.${this.actionName}--${this.actionVersion}`
     const hash = hashSync(key, { algorithm: "sha1" })
     return `${this.actionKind.toLowerCase()}-result--${hash.slice(0, 32)}`
   }
@@ -120,32 +112,27 @@ export class StructuredCacheKey {
 export abstract class AbstractResultCache<A extends CacheableAction, R extends CacheableResult>
   implements ResultCache<A, R>
 {
-  private readonly schemaVersion: SchemaVersion
   private readonly maxLogLength: number
   protected readonly resultValidator: ResultValidator<R>
 
   protected constructor({
-    schemaVersion,
     maxLogLength,
     resultValidator,
   }: {
-    schemaVersion: SchemaVersion
     maxLogLength: number
     resultValidator: ResultValidator<R>
   }) {
-    this.schemaVersion = schemaVersion
     this.maxLogLength = maxLogLength
     this.resultValidator = resultValidator
   }
 
   protected cacheKey({ ctx, action }: { ctx: PluginContext; action: CacheableAction }): string {
-    const structuredCacheKey = new StructuredCacheKey({ schemaVersion: this.schemaVersion, ctx, action })
+    const structuredCacheKey = new StructuredCacheKey({ ctx, action })
     return structuredCacheKey.calculate()
   }
 
   protected trimResult(result: R): R {
     const log = tailString(result.log, this.maxLogLength, true)
-
     return { ...result, log }
   }
 

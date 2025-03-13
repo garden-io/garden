@@ -26,6 +26,7 @@ import { deline } from "../../util/string.js"
 import { renderZodError } from "../../config/zod.js"
 import { isErrnoException } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
+import type { PluginContext } from "../../plugin-context.js"
 
 const { ensureDir, readFile, remove } = fsExtra
 
@@ -166,6 +167,7 @@ export function getLocalActionResultsCacheDir(gardenDirPath: string): string {
 
 export class LocalResultCache<A extends CacheableAction, R extends CacheableResult> extends AbstractResultCache<A, R> {
   private readonly fsCache: SimpleFileSystemCache<R>
+  private readonly schemaVersion: SchemaVersion
 
   constructor({
     cacheDir,
@@ -178,8 +180,13 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
     maxLogLength: number
     resultValidator: ResultValidator<R>
   }) {
-    super({ schemaVersion, maxLogLength, resultValidator })
+    super({ maxLogLength, resultValidator })
     this.fsCache = new SimpleFileSystemCache(cacheDir)
+    this.schemaVersion = schemaVersion
+  }
+
+  protected override cacheKey({ ctx, action }: { ctx: PluginContext; action: CacheableAction }): string {
+    return `${this.schemaVersion}-${super.cacheKey({ ctx, action })}`
   }
 
   public async clear({ ctx, action }: ClearResultParams<A>): Promise<void> {
