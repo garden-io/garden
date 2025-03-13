@@ -24,6 +24,8 @@ import { CACHE_DIR_NAME } from "../../constants.js"
 import type { Log } from "../../logger/log-entry.js"
 import { deline } from "../../util/string.js"
 import { renderZodError } from "../../config/zod.js"
+import { isErrnoException } from "../../exceptions.js"
+import { RootLogger } from "../../logger/logger.js"
 
 const { ensureDir, readFile, remove } = fsExtra
 
@@ -44,10 +46,12 @@ const { ensureDir, readFile, remove } = fsExtra
 export class SimpleFileSystemCache<T> {
   private readonly cacheDir: string
   private readonly lock: AsyncLock
+  private readonly log: Log
 
   constructor(cacheDir: string) {
     this.cacheDir = cacheDir
     this.lock = new AsyncLock()
+    this.log = RootLogger.getInstance().createLog({ name: "fs-cache" })
   }
 
   private getFilePath(key: string): string {
@@ -59,7 +63,43 @@ export class SimpleFileSystemCache<T> {
       try {
         const buffer = await readFile(filePath)
         return buffer.toString()
-      } catch {
+      } catch (err: unknown) {
+        if (!isErrnoException(err)) {
+          throw err
+        }
+
+        this.log.debug(`Cannot read data from file ${filePath}; cause: ${err}`)
+        return undefined
+      }
+    })
+  }
+
+  private async writeFileContent(filePath: string, value: T): Promise<T | undefined> {
+    return await this.lock.acquire(filePath, async () => {
+      try {
+        await writeFileAtomic(filePath, JSON.stringify(value), { mode: undefined })
+        return value
+      } catch (err: unknown) {
+        if (!isErrnoException(err)) {
+          throw err
+        }
+
+        this.log.debug(`Cannot write data to file ${filePath}; cause: ${err}`)
+        return undefined
+      }
+    })
+  }
+
+  private async removeFile(filePath: string): Promise<void> {
+    return await this.lock.acquire(filePath, async () => {
+      try {
+        await remove(filePath)
+      } catch (err: unknown) {
+        if (!isErrnoException(err)) {
+          throw err
+        }
+
+        this.log.debug(`Cannot remove file ${filePath}; cause: ${err}`)
         return undefined
       }
     })
@@ -101,31 +141,18 @@ export class SimpleFileSystemCache<T> {
     })
 
     const filePath = this.getFilePath(key)
-
-    return await this.lock.acquire(filePath, async () => {
-      try {
-        await writeFileAtomic(filePath, JSON.stringify(value), { mode: undefined })
-        return value
-      } catch {
-        return undefined
-      }
-    })
+    return await this.writeFileContent(filePath, value)
   }
 
   /**
-   * Removes a  value associated with the {@code key}.
+   * Removes a value associated with the {@code key}.
    *
    * Removes the file defined in the {@code key}.
    * Does nothing if the file was not found or any error occurred.
    */
   public async remove(key: string): Promise<void> {
     const filePath = this.getFilePath(key)
-
-    return await this.lock.acquire(filePath, async () => {
-      try {
-        await remove(filePath)
-      } catch {}
-    })
+    return await this.removeFile(filePath)
   }
 
   public async clear(): Promise<void> {
