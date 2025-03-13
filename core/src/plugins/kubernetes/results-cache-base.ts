@@ -29,28 +29,20 @@ export type CacheableAction = RunAction | TestAction
 export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
 export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
 
+export type SchemaVersion = `v${number}`
+
+/**
+ * Increment the current result schema format version
+ * if the result format changes breaking backwards-compatibility,
+ * e.g. serialization format.
+ */
+export const currentResultSchemaVersion: SchemaVersion = "v1"
+
 export const kubernetesCacheableResultSchema = runResultSchemaZod.extend({
   namespaceStatus: namespaceStatusSchema.required(),
 })
 
 export type CacheableResult = z.infer<typeof kubernetesCacheableResultSchema>
-
-export type ResultValidator<R> = (data: unknown) => SafeParseReturnType<unknown, R>
-
-export interface LoadResultParams<A extends CacheableAction> {
-  ctx: PluginContext
-  log: Log
-  action: A
-}
-
-export type ClearResultParams<A extends CacheableAction> = LoadResultParams<A>
-
-export interface StoreResultParams<A extends CacheableAction, R extends CacheableResult> {
-  ctx: PluginContext
-  log: Log
-  action: A
-  result: R
-}
 
 export function composeCacheableResult({
   result,
@@ -69,22 +61,22 @@ export function toActionStatus<T extends CacheableResult>(detail: T): ActionStat
   return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }
 
-export interface ResultCache<A extends CacheableAction, R extends CacheableResult> {
-  load(params: LoadResultParams<A>): Promise<R | undefined>
+export type ResultValidator<R> = (data: unknown) => SafeParseReturnType<unknown, R>
 
-  store(params: StoreResultParams<A, R>): Promise<R | undefined>
-
-  clear(param: ClearResultParams<A>): Promise<void>
+export interface LoadResultParams<A extends CacheableAction> {
+  ctx: PluginContext
+  log: Log
+  action: A
 }
 
-export type SchemaVersion = `v${number}`
+export type ClearResultParams<A extends CacheableAction> = LoadResultParams<A>
 
-/**
- * Increment the current result schema format version
- * if the result format changes breaking backwards-compatibility,
- * e.g. serialization format.
- */
-export const currentResultSchemaVersion: SchemaVersion = "v1"
+export interface StoreResultParams<A extends CacheableAction, R extends CacheableResult> {
+  ctx: PluginContext
+  log: Log
+  action: A
+  result: R
+}
 
 export class StructuredCacheKey {
   private readonly projectName: string
@@ -107,6 +99,14 @@ export class StructuredCacheKey {
     const hash = hashSync(key, { algorithm: "sha1" })
     return `${this.actionKind.toLowerCase()}-result--${hash.slice(0, 32)}`
   }
+}
+
+export interface ResultCache<A extends CacheableAction, R extends CacheableResult> {
+  load(params: LoadResultParams<A>): Promise<R | undefined>
+
+  store(params: StoreResultParams<A, R>): Promise<R | undefined>
+
+  clear(param: ClearResultParams<A>): Promise<void>
 }
 
 export abstract class AbstractResultCache<A extends CacheableAction, R extends CacheableResult>
