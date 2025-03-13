@@ -6,21 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ContainerTestAction } from "../container/moduleConfig.js"
 import type { TestActionHandler } from "../../plugin/action-types.js"
-import type { HelmPodTestAction } from "./helm/config.js"
-import type { KubernetesTestAction } from "./kubernetes-type/config.js"
-import type { CacheableResult } from "./results-cache.js"
-import { kubernetesCacheableResultSchema } from "./results-cache.js"
-import { cacheKeyProviderFactory, currentResultSchemaVersion } from "./results-cache.js"
-import { toActionStatus } from "./results-cache.js"
-import { getLocalKubernetesRunResultsCacheDir, LocalResultCache } from "./results-cache-fs.js"
-import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants.js"
+import { getResultCache, toActionStatus } from "./results-cache.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
   const { action, ctx, log } = params
-  const cache = getTestResultCache(ctx.gardenDirPath)
+  const cache = getResultCache(ctx.gardenDirPath)
   const cachedResult = await cache.load({ action, ctx, log })
 
   if (!cachedResult) {
@@ -28,20 +20,4 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   }
 
   return toActionStatus(cachedResult)
-}
-
-export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
-
-let testResultCache: LocalResultCache<CacheableTestAction, CacheableResult> | undefined
-
-export function getTestResultCache(gardenDirPath: string): LocalResultCache<CacheableTestAction, CacheableResult> {
-  if (testResultCache === undefined) {
-    testResultCache = new LocalResultCache<CacheableTestAction, CacheableResult>({
-      cacheDir: getLocalKubernetesRunResultsCacheDir(gardenDirPath),
-      cacheKeyProvider: cacheKeyProviderFactory(currentResultSchemaVersion),
-      maxLogLength: MAX_RUN_RESULT_LOG_LENGTH,
-      resultValidator: kubernetesCacheableResultSchema.safeParse,
-    })
-  }
-  return testResultCache
 }

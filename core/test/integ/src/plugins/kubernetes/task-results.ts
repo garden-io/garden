@@ -12,10 +12,10 @@ import type { KubernetesConfig } from "../../../../../src/plugins/kubernetes/con
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import { randomString } from "../../../../../src/util/string.js"
 import { expect } from "chai"
-import { getRunResultCache, k8sGetRunResult } from "../../../../../src/plugins/kubernetes/run-results.js"
+import { k8sGetRunResult } from "../../../../../src/plugins/kubernetes/run-results.js"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
-import { composeCacheableResult } from "../../../../../src/plugins/kubernetes/results-cache.js"
+import { composeCacheableResult, getResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
 
 describe("kubernetes Run results", () => {
   let garden: Garden
@@ -58,7 +58,7 @@ describe("kubernetes Run results", () => {
         },
         // version: task.version,
       })
-      const runResultCache = getRunResultCache(ctx.gardenDirPath)
+      const runResultCache = getResultCache(ctx.gardenDirPath)
       const trimmed = await runResultCache.store({
         ctx,
         log: garden.log,

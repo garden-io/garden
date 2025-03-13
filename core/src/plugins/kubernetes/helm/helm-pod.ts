@@ -14,15 +14,14 @@ import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/
 import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getActionNamespaceStatus } from "../namespace.js"
-import { getRunResultCache, k8sGetRunResult } from "../run-results.js"
+import { k8sGetRunResult } from "../run-results.js"
 import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./config.js"
 import { helmPodRunSchema } from "./config.js"
 import { runAndCopy } from "../run.js"
 import { filterManifests, prepareManifests, prepareTemplates } from "./common.js"
-import { getTestResultCache } from "../test-results.js"
 import { kubernetesRunOutputsSchema } from "../kubernetes-type/config.js"
-import { composeCacheableResult, toActionStatus } from "../results-cache.js"
+import { composeCacheableResult, getResultCache, toActionStatus } from "../results-cache.js"
 
 const helmRunPodOutputsSchema = kubernetesRunOutputsSchema
 const helmTestPodOutputsSchema = helmRunPodOutputsSchema
@@ -53,7 +52,7 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
       const detail = composeCacheableResult({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        const runResultCache = getRunResultCache(ctx.gardenDirPath)
+        const runResultCache = getResultCache(ctx.gardenDirPath)
         await runResultCache.store({
           ctx,
           log,
@@ -95,7 +94,7 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
       const detail = composeCacheableResult({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        const testResultCache = getTestResultCache(ctx.gardenDirPath)
+        const testResultCache = getResultCache(ctx.gardenDirPath)
         await testResultCache.store({
           ctx,
           log,

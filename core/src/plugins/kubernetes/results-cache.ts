@@ -20,8 +20,16 @@ import { hashSync } from "hasha"
 import { Memoize } from "typescript-memoize"
 import type { SafeParseReturnType, z } from "zod"
 import { tailString } from "../../util/string.js"
+import type { ContainerRunAction, ContainerTestAction } from "../container/config.js"
+import type { KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
+import type { HelmPodRunAction, HelmPodTestAction } from "./helm/config.js"
+import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants.js"
+import { getLocalKubernetesRunResultsCacheDir, LocalResultCache } from "./results-cache-fs.js"
 
 export type CacheableAction = RunAction | TestAction
+
+export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
+export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
 
 export const kubernetesCacheableResultSchema = runResultSchemaZod.extend({
   namespaceStatus: namespaceStatusSchema.required(),
@@ -161,4 +169,20 @@ export abstract class AbstractResultCache<A extends CacheableAction, R extends C
   public abstract load(params: LoadResultParams<A>): Promise<R | undefined>
 
   public abstract store(params: StoreResultParams<A, R>): Promise<R | undefined>
+}
+
+let resultCache: LocalResultCache<CacheableRunAction | CacheableTestAction, CacheableResult> | undefined
+
+export function getResultCache(
+  gardenDirPath: string
+): LocalResultCache<CacheableRunAction | CacheableTestAction, CacheableResult> {
+  if (resultCache === undefined) {
+    resultCache = new LocalResultCache<CacheableRunAction | CacheableTestAction, CacheableResult>({
+      cacheDir: getLocalKubernetesRunResultsCacheDir(gardenDirPath),
+      cacheKeyProvider: cacheKeyProviderFactory(currentResultSchemaVersion),
+      maxLogLength: MAX_RUN_RESULT_LOG_LENGTH,
+      resultValidator: kubernetesCacheableResultSchema.safeParse,
+    })
+  }
+  return resultCache
 }

@@ -8,7 +8,7 @@
 
 import type { KubernetesCommonRunSpec, KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
 import { kubernetesCommonRunSchemaKeys, runPodResourceSchema, runPodSpecSchema } from "../config.js"
-import { getRunResultCache, k8sGetRunResult } from "../run-results.js"
+import { k8sGetRunResult } from "../run-results.js"
 import { getActionNamespaceStatus } from "../namespace.js"
 import type { ActionKind, RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
 import { dedent } from "../../../util/string.js"
@@ -30,8 +30,8 @@ import type { KubernetesKustomizeSpec } from "./kustomize.js"
 import { kustomizeSpecSchema } from "./kustomize.js"
 import type { ObjectSchema } from "@hapi/joi"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
-import { getTestResultCache, k8sGetTestResult } from "../test-results.js"
-import { composeCacheableResult, toActionStatus } from "../results-cache.js"
+import { k8sGetTestResult } from "../test-results.js"
+import { composeCacheableResult, getResultCache, toActionStatus } from "../results-cache.js"
 
 // RUN //
 
@@ -119,7 +119,7 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
       const detail = composeCacheableResult({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        const runResultCache = getRunResultCache(ctx.gardenDirPath)
+        const runResultCache = getResultCache(ctx.gardenDirPath)
         await runResultCache.store({
           ctx,
           log,
@@ -167,7 +167,7 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
       const detail = composeCacheableResult({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        const testResultCache = getTestResultCache(ctx.gardenDirPath)
+        const testResultCache = getResultCache(ctx.gardenDirPath)
         await testResultCache.store({
           ctx,
           log,

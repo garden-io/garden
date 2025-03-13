@@ -14,8 +14,8 @@ import { randomString } from "../../../../../src/util/string.js"
 import { expect } from "chai"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
-import { getTestResultCache, k8sGetTestResult } from "../../../../../src/plugins/kubernetes/test-results.js"
-import { composeCacheableResult } from "../../../../../src/plugins/kubernetes/results-cache.js"
+import { k8sGetTestResult } from "../../../../../src/plugins/kubernetes/test-results.js"
+import { composeCacheableResult, getResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
 
 describe("kubernetes Test results", () => {
   let garden: Garden
@@ -58,7 +58,7 @@ describe("kubernetes Test results", () => {
         },
         // version: task.version,
       })
-      const testResultCache = getTestResultCache(ctx.gardenDirPath)
+      const testResultCache = getResultCache(ctx.gardenDirPath)
       const trimmed = await testResultCache.store({
         ctx,
         log: garden.log,

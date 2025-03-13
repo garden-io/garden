@@ -16,8 +16,9 @@ import { RunTask } from "../../../../../../src/tasks/run.js"
 import fsExtra from "fs-extra"
 const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
-import { getRunResultCache } from "../../../../../../src/plugins/kubernetes/run-results.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
+
+import { getResultCache } from "../../../../../../src/plugins/kubernetes/results-cache.js"
 
 describe("Helm Pod Run", () => {
   let garden: TestGarden
@@ -46,7 +47,7 @@ describe("Helm Pod Run", () => {
     // Clear any existing Run result
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    const runResultCache = getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = getResultCache(ctx.gardenDirPath)
     await runResultCache.clear({ ctx, log: garden.log, action })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
@@ -87,7 +88,7 @@ describe("Helm Pod Run", () => {
     // Clear any existing Run result
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    const runResultCache = getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = getResultCache(ctx.gardenDirPath)
     await runResultCache.clear({ ctx, log: garden.log, action })
 
     await garden.processTasks({ tasks: [testTask], throwOnError: true })
