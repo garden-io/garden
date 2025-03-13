@@ -128,6 +128,12 @@ export class SimpleFileSystemCache<T> {
       } catch {}
     })
   }
+
+  public async clear(): Promise<void> {
+    await this.lock.acquire(this.cacheDir, async () => {
+      await remove(this.cacheDir)
+    })
+  }
 }
 
 export function getLocalKubernetesRunResultsCacheDir(gardenDirPath: string): string {
