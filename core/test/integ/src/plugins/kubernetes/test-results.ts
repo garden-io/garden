@@ -15,7 +15,7 @@ import { expect } from "chai"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import { k8sGetTestResult } from "../../../../../src/plugins/kubernetes/test-results.js"
-import { composeCacheableResult, getResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
+import { composeCacheableResult, getResultCache } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
 
 describe("kubernetes Test results", () => {
   let garden: Garden

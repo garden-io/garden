@@ -18,7 +18,7 @@ const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 
-import { getResultCache } from "../../../../../../src/plugins/kubernetes/results-cache.js"
+import { getResultCache } from "../../../../../../src/plugins/kubernetes/results-cache-base.js"
 
 describe("Helm Pod Run", () => {
   let garden: TestGarden

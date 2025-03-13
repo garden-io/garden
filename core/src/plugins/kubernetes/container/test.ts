@@ -13,7 +13,7 @@ import { getNamespaceStatus } from "../namespace.js"
 import type { KubernetesPluginContext } from "../config.js"
 import type { TestActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
-import { composeCacheableResult, getResultCache, toActionStatus } from "../results-cache.js"
+import { composeCacheableResult, getResultCache, toActionStatus } from "../results-cache-base.js"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
   const { ctx, log, action } = params

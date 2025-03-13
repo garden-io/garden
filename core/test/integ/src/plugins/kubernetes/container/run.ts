@@ -21,7 +21,7 @@ import type { ContainerRunAction } from "../../../../../../src/plugins/container
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 import { waitForOutputFlush } from "../../../../../../src/process.js"
 
-import { getResultCache } from "../../../../../../src/plugins/kubernetes/results-cache.js"
+import { getResultCache } from "../../../../../../src/plugins/kubernetes/results-cache-base.js"
 
 describe("runContainerTask", () => {
   let garden: TestGarden

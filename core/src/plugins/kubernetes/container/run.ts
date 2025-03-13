@@ -13,7 +13,7 @@ import { makePodName } from "../util.js"
 import { getNamespaceStatus } from "../namespace.js"
 import type { RunActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
-import { composeCacheableResult, getResultCache, toActionStatus } from "../results-cache.js"
+import { composeCacheableResult, getResultCache, toActionStatus } from "../results-cache-base.js"
 
 export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params

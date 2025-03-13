@@ -14,8 +14,8 @@ import type {
   ResultValidator,
   SchemaVersion,
   StoreResultParams,
-} from "./results-cache.js"
-import { AbstractResultCache } from "./results-cache.js"
+} from "./results-cache-base.js"
+import { AbstractResultCache } from "./results-cache-base.js"
 import AsyncLock from "async-lock"
 import fsExtra from "fs-extra"
 import { join } from "path"
