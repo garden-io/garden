@@ -140,9 +140,21 @@ export abstract class AbstractResultCache<A extends CacheableAction, R extends C
   implements ResultCache<A, R>
 {
   private readonly cacheKeyProvider: CacheKeyProvider
+  protected readonly resultValidator: ResultValidator<R>
+  protected readonly resultTrimmer: ResultTrimmer<R>
 
-  protected constructor(cacheKeyProvider: CacheKeyProvider) {
+  protected constructor({
+    cacheKeyProvider,
+    resultValidator,
+    resultTrimmer,
+  }: {
+    cacheKeyProvider: CacheKeyProvider
+    resultValidator: ResultValidator<R>
+    resultTrimmer: ResultTrimmer<R>
+  }) {
     this.cacheKeyProvider = cacheKeyProvider
+    this.resultValidator = resultValidator
+    this.resultTrimmer = resultTrimmer
   }
 
   protected cacheKey(params: CacheKeyProviderParams): string {

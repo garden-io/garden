@@ -142,8 +142,6 @@ export function getLocalKubernetesRunResultsCacheDir(gardenDirPath: string): str
 
 export class LocalResultCache<A extends CacheableAction, R extends CacheableResult> extends AbstractResultCache<A, R> {
   private readonly fsCache: SimpleFileSystemCache<R>
-  private readonly resultValidator: ResultValidator<R>
-  private readonly resultTrimmer: ResultTrimmer<R>
 
   constructor({
     cacheDir,
@@ -156,10 +154,8 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
     resultValidator: ResultValidator<R>
     resultTrimmer: ResultTrimmer<R>
   }) {
-    super(cacheKeyProvider)
+    super({ cacheKeyProvider, resultValidator, resultTrimmer })
     this.fsCache = new SimpleFileSystemCache(cacheDir)
-    this.resultValidator = resultValidator
-    this.resultTrimmer = resultTrimmer
   }
 
   public async clear({ ctx, action }: ClearResultParams<A>): Promise<void> {
