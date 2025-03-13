@@ -158,8 +158,8 @@ export const runResultSchemaZod = z.object({
   success: z.boolean(),
   exitCode: z.number().optional(),
   // FIXME: we should avoid native Date objects
-  startedAt: z.date(),
-  completedAt: z.date(),
+  startedAt: z.coerce.date(),
+  completedAt: z.coerce.date(),
   log: z.string(),
   diagnosticErrorMsg: z.string().optional(),
   namespaceStatus: namespaceStatusSchema.optional(),
