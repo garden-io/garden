@@ -126,10 +126,8 @@ export type CacheKeyProviderParams = {
 
 export type CacheKeyProvider = (params: CacheKeyProviderParams) => StructuredCacheKey
 
-export function cacheKeyProviderFactory(schemaVersion: SchemaVersion): CacheKeyProvider {
-  return ({ ctx, action }: CacheKeyProviderParams) => {
-    return new StructuredCacheKey({ schemaVersion, ctx, action })
-  }
+export const composeCacheKey: CacheKeyProvider = ({ ctx, action }: CacheKeyProviderParams) => {
+  return new StructuredCacheKey({ schemaVersion: currentResultSchemaVersion, ctx, action })
 }
 
 export abstract class AbstractResultCache<A extends CacheableAction, R extends CacheableResult>
@@ -179,7 +177,7 @@ export function getResultCache(
   if (resultCache === undefined) {
     resultCache = new LocalResultCache<CacheableRunAction | CacheableTestAction, CacheableResult>({
       cacheDir: getLocalKubernetesRunResultsCacheDir(gardenDirPath),
-      cacheKeyProvider: cacheKeyProviderFactory(currentResultSchemaVersion),
+      cacheKeyProvider: composeCacheKey,
       maxLogLength: MAX_RUN_RESULT_LOG_LENGTH,
       resultValidator: kubernetesCacheableResultSchema.safeParse,
     })
