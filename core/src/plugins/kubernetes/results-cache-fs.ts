@@ -22,6 +22,8 @@ import { join } from "path"
 import writeFileAtomic from "write-file-atomic"
 import { CACHE_DIR_NAME } from "../../constants.js"
 import type { Log } from "../../logger/log-entry.js"
+import { deline } from "../../util/string.js"
+import { renderZodError } from "../../config/zod.js"
 
 const { ensureDir, readFile, remove } = fsExtra
 
@@ -181,7 +183,11 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
     if (result.success) {
       return result.data
     } else {
-      log.debug(`Error validating cache value: ${result.error}`)
+      const errorMessage = deline`
+      The provided result doesn't match the expected schema.
+      Here is the output: ${renderZodError(result.error)}
+      `
+      log.debug(errorMessage)
       return undefined
     }
   }
