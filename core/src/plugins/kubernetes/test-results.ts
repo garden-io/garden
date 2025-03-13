@@ -11,11 +11,11 @@ import type { TestActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodTestAction } from "./helm/config.js"
 import type { KubernetesTestAction } from "./kubernetes-type/config.js"
 import type { CacheableResult } from "./results-cache.js"
-import { trimRunOutput } from "./results-cache.js"
 import { kubernetesCacheableResultSchema } from "./results-cache.js"
 import { cacheKeyProviderFactory, currentResultSchemaVersion } from "./results-cache.js"
 import { toActionStatus } from "./results-cache.js"
 import { getLocalKubernetesRunResultsCacheDir, LocalResultCache } from "./results-cache-fs.js"
+import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -39,8 +39,8 @@ export function getTestResultCache(gardenDirPath: string): LocalResultCache<Cach
     testResultCache = new LocalResultCache<CacheableTestAction, CacheableResult>({
       cacheDir: getLocalKubernetesRunResultsCacheDir(gardenDirPath),
       cacheKeyProvider: cacheKeyProviderFactory(currentResultSchemaVersion),
+      maxLogLength: MAX_RUN_RESULT_LOG_LENGTH,
       resultValidator: kubernetesCacheableResultSchema.safeParse,
-      resultTrimmer: trimRunOutput,
     })
   }
   return testResultCache

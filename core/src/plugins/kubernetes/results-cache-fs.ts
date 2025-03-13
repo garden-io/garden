@@ -12,7 +12,6 @@ import type {
   CacheKeyProvider,
   ClearResultParams,
   LoadResultParams,
-  ResultTrimmer,
   ResultValidator,
   StoreResultParams,
 } from "./results-cache.js"
@@ -146,15 +145,15 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
   constructor({
     cacheDir,
     cacheKeyProvider,
+    maxLogLength,
     resultValidator,
-    resultTrimmer,
   }: {
     cacheDir: string
     cacheKeyProvider: CacheKeyProvider
+    maxLogLength: number
     resultValidator: ResultValidator<R>
-    resultTrimmer: ResultTrimmer<R>
   }) {
-    super({ cacheKeyProvider, resultValidator, resultTrimmer })
+    super({ cacheKeyProvider, maxLogLength, resultValidator })
     this.fsCache = new SimpleFileSystemCache(cacheDir)
   }
 
@@ -179,7 +178,7 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
       return undefined
     }
 
-    const trimmedResult = this.resultTrimmer(validatedResult)
+    const trimmedResult = this.trimResult(validatedResult)
 
     const key = this.cacheKey({ ctx, action })
     await this.fsCache.put(key, trimmedResult)

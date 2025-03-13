@@ -20,7 +20,6 @@ import { hashSync } from "hasha"
 import { Memoize } from "typescript-memoize"
 import type { SafeParseReturnType, z } from "zod"
 import { tailString } from "../../util/string.js"
-import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants.js"
 
 export type CacheableAction = RunAction | TestAction
 
@@ -31,17 +30,6 @@ export const kubernetesCacheableResultSchema = runResultSchemaZod.extend({
 export type CacheableResult = z.infer<typeof kubernetesCacheableResultSchema>
 
 export type ResultValidator<R> = (data: unknown) => SafeParseReturnType<unknown, R>
-
-export type ResultTrimmer<T> = (data: T) => T
-
-export function trimRunOutput<T extends RunResult>(result: T): T {
-  const log = tailString(result.log, MAX_RUN_RESULT_LOG_LENGTH, true)
-
-  return {
-    ...result,
-    log,
-  }
-}
 
 export interface LoadResultParams<A extends CacheableAction> {
   ctx: PluginContext
@@ -140,26 +128,32 @@ export abstract class AbstractResultCache<A extends CacheableAction, R extends C
   implements ResultCache<A, R>
 {
   private readonly cacheKeyProvider: CacheKeyProvider
+  private readonly maxLogLength: number
   protected readonly resultValidator: ResultValidator<R>
-  protected readonly resultTrimmer: ResultTrimmer<R>
 
   protected constructor({
     cacheKeyProvider,
+    maxLogLength,
     resultValidator,
-    resultTrimmer,
   }: {
     cacheKeyProvider: CacheKeyProvider
+    maxLogLength: number
     resultValidator: ResultValidator<R>
-    resultTrimmer: ResultTrimmer<R>
   }) {
     this.cacheKeyProvider = cacheKeyProvider
+    this.maxLogLength = maxLogLength
     this.resultValidator = resultValidator
-    this.resultTrimmer = resultTrimmer
   }
 
   protected cacheKey(params: CacheKeyProviderParams): string {
     const structuredCacheKey = this.cacheKeyProvider(params)
     return structuredCacheKey.calculate()
+  }
+
+  protected trimResult(result: R): R {
+    const log = tailString(result.log, this.maxLogLength, true)
+
+    return { ...result, log }
   }
 
   public abstract clear(param: ClearResultParams<A>): Promise<void>
