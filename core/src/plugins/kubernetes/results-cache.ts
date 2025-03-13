@@ -19,6 +19,8 @@ import { runResultToActionState } from "../../actions/base.js"
 import { hashSync } from "hasha"
 import { Memoize } from "typescript-memoize"
 import type { SafeParseReturnType, z } from "zod"
+import { tailString } from "../../util/string.js"
+import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants.js"
 
 export type CacheableAction = RunAction | TestAction
 
@@ -29,6 +31,17 @@ export const kubernetesCacheableResultSchema = runResultSchemaZod.extend({
 export type CacheableResult = z.infer<typeof kubernetesCacheableResultSchema>
 
 export type ResultValidator<R> = (data: unknown) => SafeParseReturnType<unknown, R>
+
+export type ResultTrimmer<T> = (data: T) => T
+
+export function trimRunOutput<T extends RunResult>(result: T): T {
+  const log = tailString(result.log, MAX_RUN_RESULT_LOG_LENGTH, true)
+
+  return {
+    ...result,
+    log,
+  }
+}
 
 export interface LoadResultParams<A extends CacheableAction> {
   ctx: PluginContext

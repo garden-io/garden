@@ -12,6 +12,7 @@ import type {
   CacheKeyProvider,
   ClearResultParams,
   LoadResultParams,
+  ResultTrimmer,
   ResultValidator,
   StoreResultParams,
 } from "./results-cache.js"
@@ -136,20 +137,24 @@ export function getLocalKubernetesRunResultsCacheDir(gardenDirPath: string): str
 export class LocalResultCache<A extends CacheableAction, R extends CacheableResult> extends AbstractResultCache<A, R> {
   private readonly fsCache: SimpleFileSystemCache<R>
   private readonly resultValidator: ResultValidator<R>
+  private readonly resultTrimmer: ResultTrimmer<R>
 
   constructor({
     cacheKeyProvider,
     resultValidator,
+    resultTrimmer,
     gardenDirPath,
   }: {
     cacheKeyProvider: CacheKeyProvider
     resultValidator: ResultValidator<R>
+    resultTrimmer: ResultTrimmer<R>
     gardenDirPath: string
   }) {
     super(cacheKeyProvider)
     const cacheDir = getLocalKubernetesRunResultsCacheDir(gardenDirPath)
     this.fsCache = new SimpleFileSystemCache(cacheDir)
     this.resultValidator = resultValidator
+    this.resultTrimmer = resultTrimmer
   }
 
   public async clear({ ctx, action }: ClearResultParams<A>): Promise<void> {
@@ -173,8 +178,10 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
       return undefined
     }
 
+    const trimmedResult = this.resultTrimmer(validatedResult)
+
     const key = this.cacheKey({ ctx, action })
-    await this.fsCache.put(key, validatedResult)
+    await this.fsCache.put(key, trimmedResult)
     return result
   }
 
