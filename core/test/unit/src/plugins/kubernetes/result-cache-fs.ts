@@ -33,12 +33,8 @@ describe("SimpleFileSystemCache", () => {
     cache = new SimpleFileSystemCache<Payload>(cachePath)
   })
 
-  after(async () => {
+  afterEach(async () => {
     await tmpDir.cleanup()
-  })
-
-  beforeEach(async () => {
-    await cache.clear()
   })
 
   it("should return undefined if no value found for key", async () => {

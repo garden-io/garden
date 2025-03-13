@@ -16,7 +16,6 @@ import type {
   StoreResultParams,
 } from "./results-cache-base.js"
 import { AbstractResultCache } from "./results-cache-base.js"
-import AsyncLock from "async-lock"
 import fsExtra from "fs-extra"
 import { join } from "path"
 import writeFileAtomic from "write-file-atomic"
@@ -38,7 +37,6 @@ const { ensureDir, readFile, remove } = fsExtra
  * and stores the values in the JSON files in a configurable cache directory.
  *
  * All operations are fail-safe and no not throw any errors.
- * All operations are concurrent-safe and protected by necessary locks.
  *
  * This class holds the minimal in-memory state,
  * because each Run and Test result
@@ -46,12 +44,10 @@ const { ensureDir, readFile, remove } = fsExtra
  */
 export class SimpleFileSystemCache<T> {
   private readonly cacheDir: string
-  private readonly lock: AsyncLock
   private readonly log: Log
 
   constructor(cacheDir: string) {
     this.cacheDir = cacheDir
-    this.lock = new AsyncLock()
     this.log = RootLogger.getInstance().createLog({ name: "fs-cache" })
   }
 
@@ -60,64 +56,56 @@ export class SimpleFileSystemCache<T> {
   }
 
   private async readFileContent(filePath: string): Promise<T | undefined> {
-    return await this.lock.acquire(filePath, async () => {
-      let rawFileContent: string
-      try {
-        const buffer = await readFile(filePath)
-        rawFileContent = buffer.toString()
-      } catch (err: unknown) {
-        if (!isErrnoException(err)) {
-          throw err
-        }
-
-        this.log.debug(`Cannot read data from file ${filePath}; cause: ${err}`)
-        return undefined
+    let rawFileContent: string
+    try {
+      const buffer = await readFile(filePath)
+      rawFileContent = buffer.toString()
+    } catch (err: unknown) {
+      if (!isErrnoException(err)) {
+        throw err
       }
 
-      try {
-        return JSON.parse(rawFileContent) as T
-      } catch (err) {
-        this.log.debug(`Cannot deserialize json from file ${filePath}; cause: ${err}`)
+      this.log.debug(`Cannot read data from file ${filePath}; cause: ${err}`)
+      return undefined
+    }
 
-        this.log.debug(`Deleting corrupted file ${filePath}`)
-        try {
-          await remove(filePath)
-        } catch {}
+    try {
+      return JSON.parse(rawFileContent) as T
+    } catch (err) {
+      this.log.debug(`Cannot deserialize json from file ${filePath}; cause: ${err}`)
 
-        return undefined
-      }
-    })
+      this.log.debug(`Deleting corrupted file ${filePath}`)
+      await this.removeFile(filePath)
+
+      return undefined
+    }
   }
 
   private async writeFileContent(filePath: string, value: T): Promise<T | undefined> {
-    return await this.lock.acquire(filePath, async () => {
-      try {
-        await writeFileAtomic(filePath, JSON.stringify(value), { mode: undefined })
-        return value
-      } catch (err: unknown) {
-        if (!isErrnoException(err)) {
-          throw err
-        }
-
-        this.log.debug(`Cannot write data to file ${filePath}; cause: ${err}`)
-        return undefined
+    try {
+      await writeFileAtomic(filePath, JSON.stringify(value), { mode: undefined })
+      return value
+    } catch (err: unknown) {
+      if (!isErrnoException(err)) {
+        throw err
       }
-    })
+
+      this.log.debug(`Cannot write data to file ${filePath}; cause: ${err}`)
+      return undefined
+    }
   }
 
   private async removeFile(filePath: string): Promise<void> {
-    return await this.lock.acquire(filePath, async () => {
-      try {
-        await remove(filePath)
-      } catch (err: unknown) {
-        if (!isErrnoException(err)) {
-          throw err
-        }
-
-        this.log.debug(`Cannot remove file ${filePath}; cause: ${err}`)
-        return undefined
+    try {
+      await remove(filePath)
+    } catch (err: unknown) {
+      if (!isErrnoException(err)) {
+        throw err
       }
-    })
+
+      this.log.debug(`Cannot remove file ${filePath}; cause: ${err}`)
+      return undefined
+    }
   }
 
   /**
@@ -141,9 +129,7 @@ export class SimpleFileSystemCache<T> {
    * or {@code undefined} if any error occurred.
    */
   public async put(key: string, value: T): Promise<T | undefined> {
-    await this.lock.acquire(this.cacheDir, async () => {
-      await ensureDir(this.cacheDir)
-    })
+    await ensureDir(this.cacheDir)
 
     const filePath = this.getFilePath(key)
     return await this.writeFileContent(filePath, value)
@@ -158,12 +144,6 @@ export class SimpleFileSystemCache<T> {
   public async remove(key: string): Promise<void> {
     const filePath = this.getFilePath(key)
     return await this.removeFile(filePath)
-  }
-
-  public async clear(): Promise<void> {
-    await this.lock.acquire(this.cacheDir, async () => {
-      await remove(this.cacheDir)
-    })
   }
 }
 
