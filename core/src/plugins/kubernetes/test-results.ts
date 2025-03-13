@@ -11,6 +11,7 @@ import type { TestActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodTestAction } from "./helm/config.js"
 import type { KubernetesTestAction } from "./kubernetes-type/config.js"
 import type { CacheableResult } from "./results-cache.js"
+import { kubernetesCacheableResultSchema } from "./results-cache.js"
 import { cacheKeyProviderFactory, currentResultSchemaVersion } from "./results-cache.js"
 import { toActionStatus } from "./results-cache.js"
 import { LocalResultCache } from "./results-cache-fs.js"
@@ -36,6 +37,7 @@ export function getTestResultCache(gardenDirPath: string): LocalResultCache<Cach
   if (testResultCache === undefined) {
     testResultCache = new LocalResultCache<CacheableTestAction, CacheableResult>({
       cacheKeyProvider: cacheKeyProviderFactory(currentResultSchemaVersion),
+      resultValidator: kubernetesCacheableResultSchema.safeParse,
       gardenDirPath,
     })
   }

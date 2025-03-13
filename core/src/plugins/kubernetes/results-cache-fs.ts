@@ -12,6 +12,7 @@ import type {
   CacheKeyProvider,
   ClearResultParams,
   LoadResultParams,
+  ResultValidator,
   StoreResultParams,
 } from "./results-cache.js"
 import { AbstractResultCache } from "./results-cache.js"
@@ -20,6 +21,7 @@ import fsExtra from "fs-extra"
 import { join } from "path"
 import writeFileAtomic from "write-file-atomic"
 import { CACHE_DIR_NAME } from "../../constants.js"
+import type { Log } from "../../logger/log-entry.js"
 
 const { ensureDir, readFile, remove } = fsExtra
 
@@ -131,11 +133,21 @@ export function getLocalKubernetesRunResultsCacheDir(gardenDirPath: string): str
 
 export class LocalResultCache<A extends CacheableAction, R extends CacheableResult> extends AbstractResultCache<A, R> {
   private readonly fsCache: SimpleFileSystemCache<R>
+  private readonly resultValidator: ResultValidator<R>
 
-  constructor({ cacheKeyProvider, gardenDirPath }: { cacheKeyProvider: CacheKeyProvider; gardenDirPath: string }) {
+  constructor({
+    cacheKeyProvider,
+    resultValidator,
+    gardenDirPath,
+  }: {
+    cacheKeyProvider: CacheKeyProvider
+    resultValidator: ResultValidator<R>
+    gardenDirPath: string
+  }) {
     super(cacheKeyProvider)
     const cacheDir = getLocalKubernetesRunResultsCacheDir(gardenDirPath)
     this.fsCache = new SimpleFileSystemCache(cacheDir)
+    this.resultValidator = resultValidator
   }
 
   public async clear({ ctx, action }: ClearResultParams<A>): Promise<void> {
@@ -143,14 +155,34 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
     await this.fsCache.remove(key)
   }
 
-  public async load({ ctx, action }: LoadResultParams<A>): Promise<R | undefined> {
+  public async load({ ctx, action, log }: LoadResultParams<A>): Promise<R | undefined> {
     const key = this.cacheKey({ ctx, action })
-    return await this.fsCache.get(key)
+    const cachedValue = await this.fsCache.get(key)
+    if (cachedValue === undefined) {
+      return cachedValue
+    }
+
+    return this.validateResult(cachedValue, log)
   }
 
-  public async store({ ctx, action, result }: StoreResultParams<A, R>): Promise<R> {
+  public async store({ ctx, action, log, result }: StoreResultParams<A, R>): Promise<R | undefined> {
+    const validatedResult = this.validateResult(result, log)
+    if (validatedResult === undefined) {
+      return undefined
+    }
+
     const key = this.cacheKey({ ctx, action })
-    await this.fsCache.put(key, result)
+    await this.fsCache.put(key, validatedResult)
     return result
+  }
+
+  private validateResult(data: R, log: Log) {
+    const result = this.resultValidator(data)
+    if (result.success) {
+      return result.data
+    } else {
+      log.debug(`Error validating cache value: ${result.error}`)
+      return undefined
+    }
   }
 }

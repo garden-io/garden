@@ -18,7 +18,7 @@ import type { TestAction } from "../../actions/test.js"
 import { runResultToActionState } from "../../actions/base.js"
 import { hashSync } from "hasha"
 import { Memoize } from "typescript-memoize"
-import type { z } from "zod"
+import type { SafeParseReturnType, z } from "zod"
 
 export type CacheableAction = RunAction | TestAction
 
@@ -27,6 +27,8 @@ export const kubernetesCacheableResultSchema = runResultSchemaZod.extend({
 })
 
 export type CacheableResult = z.infer<typeof kubernetesCacheableResultSchema>
+
+export type ResultValidator<R> = (data: unknown) => SafeParseReturnType<unknown, R>
 
 export interface LoadResultParams<A extends CacheableAction> {
   ctx: PluginContext
@@ -63,7 +65,7 @@ export function toActionStatus<T extends CacheableResult>(detail: T): ActionStat
 export interface ResultCache<A extends CacheableAction, R extends CacheableResult> {
   load(params: LoadResultParams<A>): Promise<R | undefined>
 
-  store(params: StoreResultParams<A, R>): Promise<R>
+  store(params: StoreResultParams<A, R>): Promise<R | undefined>
 
   clear(param: ClearResultParams<A>): Promise<void>
 }
@@ -139,5 +141,5 @@ export abstract class AbstractResultCache<A extends CacheableAction, R extends C
 
   public abstract load(params: LoadResultParams<A>): Promise<R | undefined>
 
-  public abstract store(params: StoreResultParams<A, R>): Promise<R>
+  public abstract store(params: StoreResultParams<A, R>): Promise<R | undefined>
 }

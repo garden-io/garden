@@ -11,6 +11,7 @@ import type { RunActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodRunAction } from "./helm/config.js"
 import type { KubernetesRunAction } from "./kubernetes-type/config.js"
 import type { CacheableResult } from "./results-cache.js"
+import { kubernetesCacheableResultSchema } from "./results-cache.js"
 import { currentResultSchemaVersion } from "./results-cache.js"
 import { cacheKeyProviderFactory, toActionStatus } from "./results-cache.js"
 import { LocalResultCache } from "./results-cache-fs.js"
@@ -36,6 +37,7 @@ export function getRunResultCache(gardenDirPath: string): LocalResultCache<Cache
   if (runResultCache === undefined) {
     runResultCache = new LocalResultCache<CacheableRunAction, CacheableResult>({
       cacheKeyProvider: cacheKeyProviderFactory(currentResultSchemaVersion),
+      resultValidator: kubernetesCacheableResultSchema.safeParse,
       gardenDirPath,
     })
   }
