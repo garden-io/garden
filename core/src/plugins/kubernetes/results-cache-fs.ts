@@ -9,10 +9,10 @@
 import type {
   CacheableAction,
   CacheableResult,
-  CacheKeyProvider,
   ClearResultParams,
   LoadResultParams,
   ResultValidator,
+  SchemaVersion,
   StoreResultParams,
 } from "./results-cache.js"
 import { AbstractResultCache } from "./results-cache.js"
@@ -171,16 +171,16 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
 
   constructor({
     cacheDir,
-    cacheKeyProvider,
+    schemaVersion,
     maxLogLength,
     resultValidator,
   }: {
     cacheDir: string
-    cacheKeyProvider: CacheKeyProvider
+    schemaVersion: SchemaVersion
     maxLogLength: number
     resultValidator: ResultValidator<R>
   }) {
-    super({ cacheKeyProvider, maxLogLength, resultValidator })
+    super({ schemaVersion, maxLogLength, resultValidator })
     this.fsCache = new SimpleFileSystemCache(cacheDir)
   }
 

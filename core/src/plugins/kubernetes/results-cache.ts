@@ -119,40 +119,29 @@ export class StructuredCacheKey {
   }
 }
 
-export type CacheKeyProviderParams = {
-  ctx: PluginContext
-  action: CacheableAction
-}
-
-export type CacheKeyProvider = (params: CacheKeyProviderParams) => StructuredCacheKey
-
-export const composeCacheKey: CacheKeyProvider = ({ ctx, action }: CacheKeyProviderParams) => {
-  return new StructuredCacheKey({ schemaVersion: currentResultSchemaVersion, ctx, action })
-}
-
 export abstract class AbstractResultCache<A extends CacheableAction, R extends CacheableResult>
   implements ResultCache<A, R>
 {
-  private readonly cacheKeyProvider: CacheKeyProvider
+  private readonly schemaVersion: SchemaVersion
   private readonly maxLogLength: number
   protected readonly resultValidator: ResultValidator<R>
 
   protected constructor({
-    cacheKeyProvider,
+    schemaVersion,
     maxLogLength,
     resultValidator,
   }: {
-    cacheKeyProvider: CacheKeyProvider
+    schemaVersion: SchemaVersion
     maxLogLength: number
     resultValidator: ResultValidator<R>
   }) {
-    this.cacheKeyProvider = cacheKeyProvider
+    this.schemaVersion = schemaVersion
     this.maxLogLength = maxLogLength
     this.resultValidator = resultValidator
   }
 
-  protected cacheKey(params: CacheKeyProviderParams): string {
-    const structuredCacheKey = this.cacheKeyProvider(params)
+  protected cacheKey({ ctx, action }: { ctx: PluginContext; action: CacheableAction }): string {
+    const structuredCacheKey = new StructuredCacheKey({ schemaVersion: this.schemaVersion, ctx, action })
     return structuredCacheKey.calculate()
   }
 
@@ -177,7 +166,7 @@ export function getResultCache(
   if (resultCache === undefined) {
     resultCache = new LocalResultCache<CacheableRunAction | CacheableTestAction, CacheableResult>({
       cacheDir: getLocalKubernetesRunResultsCacheDir(gardenDirPath),
-      cacheKeyProvider: composeCacheKey,
+      schemaVersion: currentResultSchemaVersion,
       maxLogLength: MAX_RUN_RESULT_LOG_LENGTH,
       resultValidator: kubernetesCacheableResultSchema.safeParse,
     })
