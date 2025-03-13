@@ -183,7 +183,7 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
 
     const key = this.cacheKey({ ctx, action })
     await this.fsCache.put(key, trimmedResult)
-    return result
+    return trimmedResult
   }
 
   private validateResult(data: R, log: Log) {
