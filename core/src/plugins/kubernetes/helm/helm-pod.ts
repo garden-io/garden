@@ -21,7 +21,8 @@ import { helmPodRunSchema } from "./config.js"
 import { runAndCopy } from "../run.js"
 import { filterManifests, prepareManifests, prepareTemplates } from "./common.js"
 import { kubernetesRunOutputsSchema } from "../kubernetes-type/config.js"
-import { composeCacheableResult, getResultCache, toActionStatus } from "../results-cache-base.js"
+import { composeCacheableResult, toActionStatus } from "../results-cache-base.js"
+import { getResultCache } from "../results-cache.js"
 
 const helmRunPodOutputsSchema = kubernetesRunOutputsSchema
 const helmTestPodOutputsSchema = helmRunPodOutputsSchema

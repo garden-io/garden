@@ -19,7 +19,7 @@ import { join } from "path"
 import type { KubernetesPodRunAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 
-import { getResultCache } from "../../../../../../src/plugins/kubernetes/results-cache-base.js"
+import { getResultCache } from "../../../../../../src/plugins/kubernetes/results-cache.js"
 
 describe("kubernetes-type pod Run", () => {
   let garden: TestGarden

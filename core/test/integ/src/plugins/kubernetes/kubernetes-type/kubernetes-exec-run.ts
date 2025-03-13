@@ -14,7 +14,7 @@ import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { getKubernetesTestGarden } from "./common.js"
 import { RunTask } from "../../../../../../src/tasks/run.js"
 
-import { getResultCache } from "../../../../../../src/plugins/kubernetes/results-cache-base.js"
+import { getResultCache } from "../../../../../../src/plugins/kubernetes/results-cache.js"
 
 describe("kubernetes-type exec Run", () => {
   let garden: TestGarden

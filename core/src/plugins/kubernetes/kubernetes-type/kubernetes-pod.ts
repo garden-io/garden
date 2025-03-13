@@ -31,7 +31,8 @@ import { kustomizeSpecSchema } from "./kustomize.js"
 import type { ObjectSchema } from "@hapi/joi"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
 import { k8sGetTestResult } from "../test-results.js"
-import { composeCacheableResult, getResultCache, toActionStatus } from "../results-cache-base.js"
+import { composeCacheableResult, toActionStatus } from "../results-cache-base.js"
+import { getResultCache } from "../results-cache.js"
 
 // RUN //
 
