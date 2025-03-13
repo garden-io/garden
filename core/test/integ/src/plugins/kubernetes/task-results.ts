@@ -66,7 +66,8 @@ describe("kubernetes Run results", () => {
         result,
       })
 
-      expect(trimmed.log.length).to.be.lte(MAX_RUN_RESULT_LOG_LENGTH)
+      expect(trimmed).to.be.not.undefined
+      expect(trimmed!.log.length).to.be.lte(MAX_RUN_RESULT_LOG_LENGTH)
       const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
       const stored = await k8sGetRunResult({
@@ -76,10 +77,10 @@ describe("kubernetes Run results", () => {
       })
 
       expect(stored).to.exist
-      expect(stored!.detail?.log.length).to.equal(trimmed.log.length)
+      expect(stored!.detail?.log.length).to.equal(trimmed!.log.length)
 
       const outputsLog = stored!.outputs.log as string
-      expect(outputsLog.length).to.equal(trimmed.log.length)
+      expect(outputsLog.length).to.equal(trimmed!.log.length)
     })
   })
 })
