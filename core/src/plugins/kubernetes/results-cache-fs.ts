@@ -160,8 +160,8 @@ export class SimpleFileSystemCache<T> {
   }
 }
 
-export function getLocalKubernetesRunResultsCacheDir(gardenDirPath: string): string {
-  return join(gardenDirPath, CACHE_DIR_NAME, "local-k8s-plugin-results")
+export function getLocalActionResultsCacheDir(gardenDirPath: string): string {
+  return join(gardenDirPath, CACHE_DIR_NAME, "action-results")
 }
 
 export class LocalResultCache<A extends CacheableAction, R extends CacheableResult> extends AbstractResultCache<A, R> {

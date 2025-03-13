@@ -24,7 +24,7 @@ import type { ContainerRunAction, ContainerTestAction } from "../container/confi
 import type { KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./helm/config.js"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants.js"
-import { getLocalKubernetesRunResultsCacheDir, LocalResultCache } from "./results-cache-fs.js"
+import { getLocalActionResultsCacheDir, LocalResultCache } from "./results-cache-fs.js"
 
 export type CacheableAction = RunAction | TestAction
 
@@ -165,7 +165,7 @@ export function getResultCache(
 ): LocalResultCache<CacheableRunAction | CacheableTestAction, CacheableResult> {
   if (resultCache === undefined) {
     resultCache = new LocalResultCache<CacheableRunAction | CacheableTestAction, CacheableResult>({
-      cacheDir: getLocalKubernetesRunResultsCacheDir(gardenDirPath),
+      cacheDir: getLocalActionResultsCacheDir(gardenDirPath),
       schemaVersion: currentResultSchemaVersion,
       maxLogLength: MAX_RUN_RESULT_LOG_LENGTH,
       resultValidator: kubernetesCacheableResultSchema.safeParse,
