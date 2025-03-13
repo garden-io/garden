@@ -58,17 +58,25 @@ export class SimpleFileSystemCache<T> {
     return join(this.cacheDir, `${key}.json`)
   }
 
-  private async readFileContent(filePath: string): Promise<string | undefined> {
+  private async readFileContent(filePath: string): Promise<T | undefined> {
     return await this.lock.acquire(filePath, async () => {
+      let rawFileContent: string
       try {
         const buffer = await readFile(filePath)
-        return buffer.toString()
+        rawFileContent = buffer.toString()
       } catch (err: unknown) {
         if (!isErrnoException(err)) {
           throw err
         }
 
         this.log.debug(`Cannot read data from file ${filePath}; cause: ${err}`)
+        return undefined
+      }
+
+      try {
+        return JSON.parse(rawFileContent) as T
+      } catch (err) {
+        this.log.debug(`Cannot deserialize json from file ${filePath}; cause: ${err}`)
         return undefined
       }
     })
@@ -113,17 +121,7 @@ export class SimpleFileSystemCache<T> {
    */
   public async get(key: string): Promise<T | undefined> {
     const filePath = this.getFilePath(key)
-
-    const rawFileContent = await this.readFileContent(filePath)
-    if (rawFileContent === undefined) {
-      return rawFileContent
-    }
-
-    try {
-      return JSON.parse(rawFileContent)
-    } catch {
-      return undefined
-    }
+    return await this.readFileContent(filePath)
   }
 
   /**
