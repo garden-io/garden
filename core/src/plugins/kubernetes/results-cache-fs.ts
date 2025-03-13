@@ -146,18 +146,17 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
   private readonly resultTrimmer: ResultTrimmer<R>
 
   constructor({
+    cacheDir,
     cacheKeyProvider,
     resultValidator,
     resultTrimmer,
-    gardenDirPath,
   }: {
+    cacheDir: string
     cacheKeyProvider: CacheKeyProvider
     resultValidator: ResultValidator<R>
     resultTrimmer: ResultTrimmer<R>
-    gardenDirPath: string
   }) {
     super(cacheKeyProvider)
-    const cacheDir = getLocalKubernetesRunResultsCacheDir(gardenDirPath)
     this.fsCache = new SimpleFileSystemCache(cacheDir)
     this.resultValidator = resultValidator
     this.resultTrimmer = resultTrimmer

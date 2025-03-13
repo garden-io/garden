@@ -15,7 +15,7 @@ import { trimRunOutput } from "./results-cache.js"
 import { kubernetesCacheableResultSchema } from "./results-cache.js"
 import { currentResultSchemaVersion } from "./results-cache.js"
 import { cacheKeyProviderFactory, toActionStatus } from "./results-cache.js"
-import { LocalResultCache } from "./results-cache-fs.js"
+import { getLocalKubernetesRunResultsCacheDir, LocalResultCache } from "./results-cache-fs.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
@@ -37,10 +37,10 @@ let runResultCache: LocalResultCache<CacheableRunAction, CacheableResult> | unde
 export function getRunResultCache(gardenDirPath: string): LocalResultCache<CacheableRunAction, CacheableResult> {
   if (runResultCache === undefined) {
     runResultCache = new LocalResultCache<CacheableRunAction, CacheableResult>({
+      cacheDir: getLocalKubernetesRunResultsCacheDir(gardenDirPath),
       cacheKeyProvider: cacheKeyProviderFactory(currentResultSchemaVersion),
       resultValidator: kubernetesCacheableResultSchema.safeParse,
       resultTrimmer: trimRunOutput,
-      gardenDirPath,
     })
   }
   return runResultCache
