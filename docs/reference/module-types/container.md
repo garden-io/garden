@@ -6,7 +6,7 @@ tocTitle: "`container`"
 # `container` Module Type
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 ## Description
@@ -19,8 +19,7 @@ specify replicas for redundancy, and various platform-specific options are not i
 other module types like [helm](./helm.md) or
 [kubernetes](./kubernetes.md).
 
-Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference.
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

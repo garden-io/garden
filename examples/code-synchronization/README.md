@@ -56,4 +56,4 @@ And you can verify the change by opening the displayed ingress URL in your brows
 }
 ```
 
-Check out the [docs](../../docs/guides/code-synchronization.md) for more information on code synchronization.
+Check out the [docs](../../docs/config-guides/code-synchronization.md) for more information on code synchronization.

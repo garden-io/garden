@@ -13,8 +13,7 @@ Deploys a Pulumi stack and either creates/updates it automatically (if `autoAppl
 
 Stack outputs are made available as action outputs. These can then be referenced by other actions under `${actions.<action-kind>.<action-name>.outputs.<key>}`. You can template in those values as e.g. command arguments or environment variables for other services.
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `pulumi` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 

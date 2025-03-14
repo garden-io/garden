@@ -11,8 +11,7 @@ Executes a Test in an already deployed Kubernetes Pod and waits for it to comple
 
 The `resource` field is used to find the target Pod in the cluster.
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `kubernetes-exec` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 

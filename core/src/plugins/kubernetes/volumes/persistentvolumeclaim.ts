@@ -78,8 +78,6 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
   name: "persistentvolumeclaim",
   docs: dedent`
     Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [\`container\` Deploy actions](./container.md).
-
-    See the [PersistentVolumeClaim](../../../k8s-plugins/actions/deploy/persistentvolumeclaim.md) guide for more info and usage examples.
   `,
   schema: joi.object().keys(commonSpecKeys()),
   handlers: {
@@ -140,8 +138,6 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
   name: "persistentvolumeclaim",
   docs: dedent`
     Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
-
-    See the [PersistentVolumeClaim](../../k8s-plugins/actions/deploy/persistentvolumeclaim.md) guide for more info and usage examples.
   `,
 
   schema: pvcModuleSchema(),

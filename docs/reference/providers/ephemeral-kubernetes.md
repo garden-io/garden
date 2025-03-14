@@ -13,9 +13,7 @@ This feature is still experimental and only available in Garden `>=0.13.14`. Ple
 
 The `ephemeral-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that allows to deploy applications to one of the ephemeral Kubernetes clusters provided by Garden.
 
-For information about using ephemeral Kubernetes clusters, please refer to [Ephemeral Kubernetes clusters guide](../../k8s-plugins/ephemeral-k8s/README.md)
-
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference for the provider configuration..
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -220,3 +218,4 @@ The dynamic hostname assigned to the ephemeral cluster automatically, when an ep
 | Type     |
 | -------- |
 | `string` |
+

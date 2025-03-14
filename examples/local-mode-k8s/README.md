@@ -1,7 +1,6 @@
 # Local mode for `kubernetes` action type
 
-A very basic demo project for Garden [local mode](../../docs/guides/running-service-in-local-mode.md) for `kubernetes`
-action type.
+A very basic demo project for Garden local mode for `kubernetes` action type.
 
 This project is based on the [demo-project](../demo-project). The only difference is that this one has the `backend`
 service defined as an action of type `kubernetes` with the `backend-image` container build action used as a source

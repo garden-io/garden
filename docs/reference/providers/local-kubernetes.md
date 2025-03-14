@@ -13,7 +13,7 @@ For general Kubernetes usage information, please refer to the [Kubernetes guides
 
 If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/remote-k8s) guide.
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference for the provider configuration..
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -2225,3 +2225,4 @@ The default hostname configured on the provider.
 | Type     |
 | -------- |
 | `string` |
+

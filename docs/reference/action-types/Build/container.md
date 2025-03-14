@@ -9,8 +9,7 @@ tocTitle: "`container` Build"
 
 Build a Docker container image, and (if applicable) push to a remote registry.
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `container` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 

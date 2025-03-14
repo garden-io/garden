@@ -6,7 +6,7 @@ tocTitle: "`pulumi`"
 # `pulumi` Module Type
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 ## Description
@@ -17,8 +17,7 @@ Deploys a Pulumi stack and either creates/updates it automatically (if `autoAppl
 
 Stack outputs are made available as service outputs. These can then be referenced by other actions under `${runtime.services.<module-name>.outputs.<key>}`. You can template in those values as e.g. command arguments or environment variables for other services.
 
-Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference.
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
