@@ -48,7 +48,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         While we also introduce a local file-based cache backend, this means the cache results from other team members will only be available when you're logged in to Garden Cloud/Enterprise.
 
-        Logging in also enables you to use our Managed Container Builder which can significantly improve your Docker build performance.
+        Logging in also enables you to use our Remote Container Builder which can significantly improve your Docker build performance.
 
         To prevent your team from suffering from cache misses and bad performance, we'll require you to log in if your project is connected to Garden Cloud/Enterprise. A project is _connected_ if the project-level Garden configuration has \`id\` and \`domain\` fields set.
 
