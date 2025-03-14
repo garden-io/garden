@@ -7,7 +7,7 @@ title: New Garden Cloud Version
 This is an early draft that we're sharing with our community. We'll also publish a more formal announcements around the launch itself.
 {% endhint %}
 
-On **March 17th** (tentatively), we’re rolling out a brand-new version of **Garden Cloud** on [app.garden.io](http://app.garden.io/)!
+On **March 24th**, we’re rolling out a brand-new version of **Garden Cloud** on [app.garden.io](http://app.garden.io/)!
 
 This update brings access to our **Remote Container Builder**, which can [dramatically accelerate container builds](https://garden.io/blog/oem-cloud-builder). Until now, this feature has only been available on our Enterprise tier—now, everyone can take advantage of its power and get faster builds.
 
