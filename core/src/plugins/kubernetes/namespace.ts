@@ -170,15 +170,25 @@ export async function namespaceExists(api: KubeApi, ctx: KubernetesPluginContext
     return true
   }
 
+  const namespaceResource = await fetchNamespaceResource(api, name)
+  return !!namespaceResource
+}
+
+/**
+ * Returns `true` if the namespace exists, `false` otherwise.
+ */
+export async function fetchNamespaceResource(
+  api: KubeApi,
+  name: string
+): Promise<KubernetesServerResource<V1Namespace> | undefined> {
   try {
-    await api.core.readNamespace({ name })
-    return true
+    return await api.core.readNamespace({ name })
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }
     if (err.responseStatusCode === 404) {
-      return false
+      return undefined
     } else {
       throw err
     }
@@ -215,17 +225,22 @@ export async function getNamespaceStatus({
   const api = await KubeApi.factory(log, ctx, provider)
   let status: NamespaceStatus
   if (!skipCreate) {
-    await ensureNamespace(api, ctx, namespace, log)
+    const ensureNamespaceResult = await ensureNamespace(api, ctx, namespace, log)
+    const namespaceUid = ensureNamespaceResult.remoteResource?.metadata.uid
     status = {
       pluginName: provider.name,
+      namespaceUid,
       namespaceName: namespace.name,
-      state: "ready",
+      state: namespaceUid ? "ready" : "missing",
     }
   } else {
+    const namespaceResource = await fetchNamespaceResource(api, namespace.name)
+    const namespaceUid = namespaceResource?.metadata.uid
     status = {
       pluginName: provider.name,
+      namespaceUid,
       namespaceName: namespace.name,
-      state: (await namespaceExists(api, ctx, namespace.name)) ? "ready" : "missing",
+      state: namespaceUid ? "ready" : "missing",
     }
   }
   ctx.events.emit("namespaceStatus", status)

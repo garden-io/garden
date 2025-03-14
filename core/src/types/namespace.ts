@@ -8,11 +8,28 @@
 
 import { z } from "zod"
 
-export const namespaceStatusSchema = z.object({
+// export const namespaceStatusSchema = z.object({
+//   pluginName: z.string(),
+//   namespaceUid: z.string().uuid().optional(),
+//   namespaceName: z.string(),
+//   state: z.union([z.literal("ready"), z.literal("missing")]),
+// })
+
+const baseNamespaceStatusSchema = z.object({
   pluginName: z.string(),
   namespaceName: z.string(),
-  state: z.union([z.literal("ready"), z.literal("missing")]),
 })
+
+export const namespaceStatusSchema = z.discriminatedUnion("state", [
+  baseNamespaceStatusSchema.extend({
+    namespaceUid: z.string().uuid(),
+    state: z.literal("ready"),
+  }),
+  baseNamespaceStatusSchema.extend({
+    namespaceUid: z.undefined(),
+    state: z.literal("missing"),
+  }),
+])
 
 // When needed, we can make this type generic and add e.g. a detail for plugin-specific metadata.
 export type NamespaceStatus = z.infer<typeof namespaceStatusSchema>
