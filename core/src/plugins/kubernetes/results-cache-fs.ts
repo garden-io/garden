@@ -21,7 +21,6 @@ import { CACHE_DIR_NAME } from "../../constants.js"
 import type { Log } from "../../logger/log-entry.js"
 import { GardenError, isErrnoException } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
-import type { PluginContext } from "../../plugin-context.js"
 import type { AnyZodObject, z } from "zod"
 import type { JsonObject } from "type-fest"
 
@@ -44,15 +43,17 @@ class LocalFileSystemCacheError extends GardenError {
  */
 export class SimpleFileSystemCache {
   private readonly cacheDir: string
+  private readonly schemaVersion: SchemaVersion
   private readonly log: Log
 
-  constructor(cacheDir: string) {
+  constructor(cacheDir: string, schemaVersion: SchemaVersion) {
     this.cacheDir = cacheDir
+    this.schemaVersion = schemaVersion
     this.log = RootLogger.getInstance().createLog({ name: "fs-cache" })
   }
 
   private getFilePath(key: string): string {
-    return join(this.cacheDir, `${key}.json`)
+    return join(this.cacheDir, `${this.schemaVersion}-${key}.json`)
   }
 
   private async readFileContent(filePath: string): Promise<JsonObject> {
@@ -159,7 +160,6 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
   ResultSchema
 > {
   private readonly fsCache: SimpleFileSystemCache
-  private readonly schemaVersion: SchemaVersion
 
   constructor({
     cacheDir,
@@ -171,12 +171,7 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
     resultSchema: ResultSchema
   }) {
     super({ resultSchema })
-    this.fsCache = new SimpleFileSystemCache(cacheDir)
-    this.schemaVersion = schemaVersion
-  }
-
-  protected override cacheKey({ ctx, action }: { ctx: PluginContext; action: CacheableAction }): string {
-    return `${this.schemaVersion}-${super.cacheKey({ ctx, action })}`
+    this.fsCache = new SimpleFileSystemCache(cacheDir, schemaVersion)
   }
 
   public async clear({ ctx, log, action }: ClearResultParams<A>): Promise<void> {
