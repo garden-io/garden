@@ -89,8 +89,8 @@ export class StructuredCacheKey {
 
   public calculate(): string {
     const key = `${this.projectName}--${this.actionType}.${this.actionName}--${this.actionVersion}`
-    const hash = hashSync(key, { algorithm: "sha1" })
-    return `${this.actionKind.toLowerCase()}-result--${hash.slice(0, 32)}`
+    const hash = hashSync(key, { algorithm: "sha256" })
+    return `${this.actionKind.toLowerCase()}-result--${hash}`
   }
 }
 
