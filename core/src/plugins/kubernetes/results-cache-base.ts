@@ -15,7 +15,6 @@ import { namespaceStatusSchema } from "../../types/namespace.js"
 import type { RunAction } from "../../actions/run.js"
 import type { TestAction } from "../../actions/test.js"
 import { hashSync } from "hasha"
-import { Memoize } from "typescript-memoize"
 import type { AnyZodObject, z } from "zod"
 import { deline } from "../../util/string.js"
 import type { ContainerRunAction, ContainerTestAction } from "../container/config.js"
@@ -88,7 +87,6 @@ export class StructuredCacheKey {
     this.actionVersion = action.versionString()
   }
 
-  @Memoize()
   public calculate(): string {
     const key = `${this.projectName}--${this.actionType}.${this.actionName}--${this.actionVersion}`
     const hash = hashSync(key, { algorithm: "sha1" })
