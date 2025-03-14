@@ -10,11 +10,11 @@ import { z } from "zod"
 
 export const namespaceStatusSchema = z.object({
   pluginName: z.string(),
-  namespaceName: z.string(),
   state: z.union([z.literal("ready"), z.literal("missing")]),
+  namespaceName: z.string(),
+  namespaceUid: z.string().uuid().optional(),
 })
 
-// When needed, we can make this type generic and add e.g. a detail for plugin-specific metadata.
 export type NamespaceStatus = z.infer<typeof namespaceStatusSchema>
 
 export function environmentToString({ environmentName, namespace }: { environmentName: string; namespace?: string }) {

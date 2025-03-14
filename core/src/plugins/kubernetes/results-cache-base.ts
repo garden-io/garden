@@ -38,7 +38,7 @@ export type SchemaVersion = `v${number}`
 export const currentResultSchemaVersion: SchemaVersion = "v1"
 
 export const kubernetesCacheEntrySchema = runResultSchemaZod.extend({
-  namespaceStatus: namespaceStatusSchema.required(),
+  namespaceStatus: namespaceStatusSchema,
 })
 
 export type KubernetesCacheEntrySchema = typeof kubernetesCacheEntrySchema
