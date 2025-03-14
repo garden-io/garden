@@ -161,64 +161,7 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
   A,
   ResultSchema
 > {
-  private readonly cacheStorage: CacheStorage
-
   constructor({ cacheStorage, resultSchema }: { cacheStorage: CacheStorage; resultSchema: ResultSchema }) {
-    super({ resultSchema })
-    this.cacheStorage = cacheStorage
-  }
-
-  public async clear({ ctx, log, action }: ClearResultParams<A>): Promise<void> {
-    const key = this.cacheKey({ ctx, action })
-    try {
-      await this.cacheStorage.remove(key)
-    } catch (e) {
-      if (!(e instanceof LocalFileSystemCacheError)) {
-        throw e
-      }
-
-      action.createLog(log).debug(e.message)
-    }
-  }
-
-  public async load({ ctx, action, log }: LoadResultParams<A>): Promise<z.output<ResultSchema> | undefined> {
-    const key = this.cacheKey({ ctx, action })
-    let cachedValue: JsonObject
-    try {
-      cachedValue = await this.cacheStorage.get(key)
-    } catch (e) {
-      if (!(e instanceof LocalFileSystemCacheError)) {
-        throw e
-      }
-
-      action.createLog(log).debug(e.message)
-      return undefined
-    }
-
-    return this.validateResult(cachedValue, log)
-  }
-
-  public async store({
-    ctx,
-    action,
-    log,
-    result,
-  }: StoreResultParams<A, z.input<ResultSchema>>): Promise<z.output<ResultSchema> | undefined> {
-    const validatedResult = this.validateResult(result, log)
-    if (validatedResult === undefined) {
-      return undefined
-    }
-
-    const key = this.cacheKey({ ctx, action })
-    try {
-      return await this.cacheStorage.put(key, validatedResult)
-    } catch (e) {
-      if (!(e instanceof LocalFileSystemCacheError)) {
-        throw e
-      }
-
-      action.createLog(log).debug(e.message)
-      return undefined
-    }
+    super({ cacheStorage, resultSchema })
   }
 }
