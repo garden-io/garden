@@ -15,7 +15,7 @@ import { expect } from "chai"
 import { k8sGetRunResult } from "../../../../../src/plugins/kubernetes/run-results.js"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
-import { composeCacheableResult } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
+import { composeKubernetesCacheEntry } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
 import { getResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
 
 describe("kubernetes Run results", () => {
@@ -43,7 +43,7 @@ describe("kubernetes Run results", () => {
 
       const data = randomString(1024 * 1024)
 
-      const result = composeCacheableResult({
+      const result = composeKubernetesCacheEntry({
         result: {
           // command: [],
           log: data,

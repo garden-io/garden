@@ -37,19 +37,19 @@ export type SchemaVersion = `v${number}`
  */
 export const currentResultSchemaVersion: SchemaVersion = "v1"
 
-export const kubernetesCacheableResultSchema = runResultSchemaZod.extend({
+export const kubernetesCacheEntrySchema = runResultSchemaZod.extend({
   namespaceStatus: namespaceStatusSchema.required(),
 })
 
-export type CacheableResult = z.infer<typeof kubernetesCacheableResultSchema>
+export type KubernetesCacheEntrySchema = typeof kubernetesCacheEntrySchema
 
-export function composeCacheableResult({
+export function composeKubernetesCacheEntry({
   result,
   namespaceStatus,
 }: {
   result: RunResult
   namespaceStatus: NamespaceStatus
-}): CacheableResult {
+}): z.input<KubernetesCacheEntrySchema> {
   return {
     ...result,
     namespaceStatus,
@@ -109,7 +109,7 @@ export abstract class AbstractResultCache<A extends CacheableAction, ResultSchem
     this.resultSchema = resultSchema
   }
 
-  protected validateResult(data: unknown, log: Log): z.infer<ResultSchema> | undefined {
+  protected validateResult(data: unknown, log: Log): z.output<ResultSchema> | undefined {
     const result = this.resultSchema.safeParse(data)
     if (result.success) {
       return result.data
@@ -130,7 +130,9 @@ export abstract class AbstractResultCache<A extends CacheableAction, ResultSchem
 
   public abstract clear(param: ClearResultParams<A>): Promise<void>
 
-  public abstract load(params: LoadResultParams<A>): Promise<z.infer<ResultSchema> | undefined>
+  public abstract load(params: LoadResultParams<A>): Promise<z.output<ResultSchema> | undefined>
 
-  public abstract store(params: StoreResultParams<A, z.infer<ResultSchema>>): Promise<z.infer<ResultSchema> | undefined>
+  public abstract store(
+    params: StoreResultParams<A, z.input<ResultSchema>>
+  ): Promise<z.output<ResultSchema> | undefined>
 }

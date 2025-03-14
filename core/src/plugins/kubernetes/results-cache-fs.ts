@@ -179,7 +179,7 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
     await this.fsCache.remove(key)
   }
 
-  public async load({ ctx, action, log }: LoadResultParams<A>): Promise<z.infer<ResultSchema> | undefined> {
+  public async load({ ctx, action, log }: LoadResultParams<A>): Promise<z.output<ResultSchema> | undefined> {
     const key = this.cacheKey({ ctx, action })
     const cachedValue = await this.fsCache.get(key)
     if (cachedValue === undefined) {
@@ -194,7 +194,7 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
     action,
     log,
     result,
-  }: StoreResultParams<A, z.infer<ResultSchema>>): Promise<z.infer<ResultSchema> | undefined> {
+  }: StoreResultParams<A, z.input<ResultSchema>>): Promise<z.output<ResultSchema> | undefined> {
     const validatedResult = this.validateResult(result, log)
     if (validatedResult === undefined) {
       return undefined

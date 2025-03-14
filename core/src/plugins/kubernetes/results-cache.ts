@@ -6,18 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 import { getLocalActionResultsCacheDir, LocalResultCache } from "./results-cache-fs.js"
-import type { CacheableRunAction, CacheableTestAction } from "./results-cache-base.js"
-import { currentResultSchemaVersion, kubernetesCacheableResultSchema } from "./results-cache-base.js"
+import type { CacheableRunAction, CacheableTestAction, KubernetesCacheEntrySchema } from "./results-cache-base.js"
+import { currentResultSchemaVersion, kubernetesCacheEntrySchema } from "./results-cache-base.js"
 
-type KubernetesCacheableResultSchema = typeof kubernetesCacheableResultSchema
-let resultCache: LocalResultCache<CacheableRunAction | CacheableTestAction, KubernetesCacheableResultSchema> | undefined
+let resultCache: LocalResultCache<CacheableRunAction | CacheableTestAction, KubernetesCacheEntrySchema> | undefined
 
 export function getResultCache(gardenDirPath: string) {
   if (resultCache === undefined) {
     resultCache = new LocalResultCache({
       cacheDir: getLocalActionResultsCacheDir(gardenDirPath),
       schemaVersion: currentResultSchemaVersion,
-      resultSchema: kubernetesCacheableResultSchema,
+      resultSchema: kubernetesCacheEntrySchema,
     })
   }
   return resultCache

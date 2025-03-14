@@ -21,7 +21,7 @@ import { helmPodRunSchema } from "./config.js"
 import { runAndCopy } from "../run.js"
 import { filterManifests, prepareManifests, prepareTemplates } from "./common.js"
 import { kubernetesRunOutputsSchema } from "../kubernetes-type/config.js"
-import { composeCacheableResult } from "../results-cache-base.js"
+import { composeKubernetesCacheEntry } from "../results-cache-base.js"
 import { getResultCache } from "../results-cache.js"
 
 const helmRunPodOutputsSchema = kubernetesRunOutputsSchema
@@ -50,7 +50,7 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
 
       const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = composeCacheableResult({ result, namespaceStatus })
+      const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         const runResultCache = getResultCache(ctx.gardenDirPath)
@@ -92,7 +92,7 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
 
       const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
 
-      const detail = composeCacheableResult({ result, namespaceStatus })
+      const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         const testResultCache = getResultCache(ctx.gardenDirPath)
