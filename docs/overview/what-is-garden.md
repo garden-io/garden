@@ -1,9 +1,9 @@
 ---
 order: 1
-title: How Garden Works
+title: What is Garden
 ---
 
-# How Garden Works
+# What is Garden
 
 This page contains a brief explanation of the how and why of Garden. For those that prefer something a bit more visual, we recommend checking out this video. Otherwise, continue reading below.
 

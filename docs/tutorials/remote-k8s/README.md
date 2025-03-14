@@ -1,5 +1,5 @@
 ---
-title: Remote K8s Plugin Configuration
+title: Setting up a Kubernetes cluster
 order: 2
 ---
 
