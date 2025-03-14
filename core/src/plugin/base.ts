@@ -10,7 +10,7 @@ import type { ActionLog, Log } from "../logger/log-entry.js"
 import type { PluginContext } from "../plugin-context.js"
 import { pluginContextSchema } from "../plugin-context.js"
 import { createSchema, joi } from "../config/common.js"
-import { dedent, deline } from "../util/string.js"
+import { dedent, deline, tailString } from "../util/string.js"
 import type { BuildAction } from "../actions/build.js"
 import type { DeployAction } from "../actions/deploy.js"
 import type { RunAction } from "../actions/run.js"
@@ -20,6 +20,7 @@ import type Joi from "@hapi/joi"
 import { memoize } from "lodash-es"
 import type { BaseProviderConfig } from "../config/provider.js"
 import { z } from "zod"
+import { MAX_RUN_RESULT_LOG_LENGTH } from "../plugins/kubernetes/constants.js"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -160,7 +161,7 @@ export const runResultSchemaZod = z.object({
   // FIXME: we should avoid native Date objects
   startedAt: z.coerce.date(),
   completedAt: z.coerce.date(),
-  log: z.string(),
+  log: z.string().transform((arg) => tailString(arg, MAX_RUN_RESULT_LOG_LENGTH, true)),
   diagnosticErrorMsg: z.string().optional(),
   namespaceStatus: namespaceStatusSchema.optional(),
 })

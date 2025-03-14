@@ -6,21 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 import { getLocalActionResultsCacheDir, LocalResultCache } from "./results-cache-fs.js"
-import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants.js"
-import type { CacheableResult, CacheableRunAction, CacheableTestAction } from "./results-cache-base.js"
+import type { CacheableRunAction, CacheableTestAction } from "./results-cache-base.js"
 import { currentResultSchemaVersion, kubernetesCacheableResultSchema } from "./results-cache-base.js"
 
-let resultCache: LocalResultCache<CacheableRunAction | CacheableTestAction, CacheableResult> | undefined
+type KubernetesCacheableResultSchema = typeof kubernetesCacheableResultSchema
+let resultCache: LocalResultCache<CacheableRunAction | CacheableTestAction, KubernetesCacheableResultSchema> | undefined
 
-export function getResultCache(
-  gardenDirPath: string
-): LocalResultCache<CacheableRunAction | CacheableTestAction, CacheableResult> {
+export function getResultCache(gardenDirPath: string) {
   if (resultCache === undefined) {
-    resultCache = new LocalResultCache<CacheableRunAction | CacheableTestAction, CacheableResult>({
+    resultCache = new LocalResultCache({
       cacheDir: getLocalActionResultsCacheDir(gardenDirPath),
       schemaVersion: currentResultSchemaVersion,
-      maxLogLength: MAX_RUN_RESULT_LOG_LENGTH,
-      resultValidator: kubernetesCacheableResultSchema.safeParse,
+      resultSchema: kubernetesCacheableResultSchema,
     })
   }
   return resultCache

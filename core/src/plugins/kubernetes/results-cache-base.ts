@@ -18,11 +18,12 @@ import type { TestAction } from "../../actions/test.js"
 import { runResultToActionState } from "../../actions/base.js"
 import { hashSync } from "hasha"
 import { Memoize } from "typescript-memoize"
-import type { SafeParseReturnType, z } from "zod"
-import { tailString } from "../../util/string.js"
+import type { AnyZodObject, SafeParseReturnType, z } from "zod"
+import { deline } from "../../util/string.js"
 import type { ContainerRunAction, ContainerTestAction } from "../container/config.js"
 import type { KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./helm/config.js"
+import { renderZodError } from "../../config/zod.js"
 
 export type CacheableAction = RunAction | TestAction
 
@@ -71,7 +72,7 @@ export interface LoadResultParams<A extends CacheableAction> {
 
 export type ClearResultParams<A extends CacheableAction> = LoadResultParams<A>
 
-export interface StoreResultParams<A extends CacheableAction, R extends CacheableResult> {
+export interface StoreResultParams<A extends CacheableAction, R> {
   ctx: PluginContext
   log: Log
   action: A
@@ -101,29 +102,33 @@ export class StructuredCacheKey {
   }
 }
 
-export interface ResultCache<A extends CacheableAction, R extends CacheableResult> {
-  load(params: LoadResultParams<A>): Promise<R | undefined>
+// export interface ResultCache<A extends CacheableAction, R extends CacheableResult> {
+//   load(params: LoadResultParams<A>): Promise<R | undefined>
+//
+//   store(params: StoreResultParams<A, R>): Promise<R | undefined>
+//
+//   clear(param: ClearResultParams<A>): Promise<void>
+// }
 
-  store(params: StoreResultParams<A, R>): Promise<R | undefined>
+export abstract class AbstractResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject> {
+  private readonly resultSchema: ResultSchema
 
-  clear(param: ClearResultParams<A>): Promise<void>
-}
+  protected constructor({ resultSchema }: { resultSchema: ResultSchema }) {
+    this.resultSchema = resultSchema
+  }
 
-export abstract class AbstractResultCache<A extends CacheableAction, R extends CacheableResult>
-  implements ResultCache<A, R>
-{
-  private readonly maxLogLength: number
-  protected readonly resultValidator: ResultValidator<R>
+  protected validateResult(data: unknown, log: Log): z.infer<ResultSchema> | undefined {
+    const result = this.resultSchema.safeParse(data)
+    if (result.success) {
+      return result.data
+    }
 
-  protected constructor({
-    maxLogLength,
-    resultValidator,
-  }: {
-    maxLogLength: number
-    resultValidator: ResultValidator<R>
-  }) {
-    this.maxLogLength = maxLogLength
-    this.resultValidator = resultValidator
+    const errorMessage = deline`
+      The provided result doesn't match the expected schema.
+      Here is the output: ${renderZodError(result.error)}
+      `
+    log.debug(errorMessage)
+    return undefined
   }
 
   protected cacheKey({ ctx, action }: { ctx: PluginContext; action: CacheableAction }): string {
@@ -131,14 +136,9 @@ export abstract class AbstractResultCache<A extends CacheableAction, R extends C
     return structuredCacheKey.calculate()
   }
 
-  protected trimResult(result: R): R {
-    const log = tailString(result.log, this.maxLogLength, true)
-    return { ...result, log }
-  }
-
   public abstract clear(param: ClearResultParams<A>): Promise<void>
 
-  public abstract load(params: LoadResultParams<A>): Promise<R | undefined>
+  public abstract load(params: LoadResultParams<A>): Promise<z.infer<ResultSchema> | undefined>
 
-  public abstract store(params: StoreResultParams<A, R>): Promise<R | undefined>
+  public abstract store(params: StoreResultParams<A, z.infer<ResultSchema>>): Promise<z.infer<ResultSchema> | undefined>
 }

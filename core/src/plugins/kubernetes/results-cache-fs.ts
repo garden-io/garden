@@ -8,10 +8,8 @@
 
 import type {
   CacheableAction,
-  CacheableResult,
   ClearResultParams,
   LoadResultParams,
-  ResultValidator,
   SchemaVersion,
   StoreResultParams,
 } from "./results-cache-base.js"
@@ -21,11 +19,11 @@ import { join } from "path"
 import writeFileAtomic from "write-file-atomic"
 import { CACHE_DIR_NAME } from "../../constants.js"
 import type { Log } from "../../logger/log-entry.js"
-import { deline } from "../../util/string.js"
-import { renderZodError } from "../../config/zod.js"
 import { isErrnoException } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
 import type { PluginContext } from "../../plugin-context.js"
+import type { AnyZodObject, z } from "zod"
+import type { JsonObject } from "type-fest"
 
 const { ensureDir, readFile, remove } = fsExtra
 
@@ -42,7 +40,7 @@ const { ensureDir, readFile, remove } = fsExtra
  * because each Run and Test result
  * is usually read and written only once per Garden command execution.
  */
-export class SimpleFileSystemCache<T> {
+export class SimpleFileSystemCache {
   private readonly cacheDir: string
   private readonly log: Log
 
@@ -55,7 +53,7 @@ export class SimpleFileSystemCache<T> {
     return join(this.cacheDir, `${key}.json`)
   }
 
-  private async readFileContent(filePath: string): Promise<T | undefined> {
+  private async readFileContent(filePath: string): Promise<JsonObject | undefined> {
     let rawFileContent: string
     try {
       const buffer = await readFile(filePath)
@@ -70,7 +68,7 @@ export class SimpleFileSystemCache<T> {
     }
 
     try {
-      return JSON.parse(rawFileContent) as T
+      return JSON.parse(rawFileContent) as JsonObject
     } catch (err) {
       this.log.debug(`Cannot deserialize json from file ${filePath}; cause: ${err}`)
 
@@ -81,7 +79,7 @@ export class SimpleFileSystemCache<T> {
     }
   }
 
-  private async writeFileContent(filePath: string, value: T): Promise<T | undefined> {
+  private async writeFileContent(filePath: string, value: JsonObject): Promise<JsonObject | undefined> {
     try {
       await writeFileAtomic(filePath, JSON.stringify(value), { mode: undefined })
       return value
@@ -114,7 +112,7 @@ export class SimpleFileSystemCache<T> {
    *
    * Reads the value from the file defined in the {@code key}.
    */
-  public async get(key: string): Promise<T | undefined> {
+  public async get(key: string): Promise<JsonObject | undefined> {
     const filePath = this.getFilePath(key)
     return await this.readFileContent(filePath)
   }
@@ -128,7 +126,7 @@ export class SimpleFileSystemCache<T> {
    * Returns the value back if it was written successfully,
    * or {@code undefined} if any error occurred.
    */
-  public async put(key: string, value: T): Promise<T | undefined> {
+  public async put(key: string, value: JsonObject): Promise<JsonObject | undefined> {
     await ensureDir(this.cacheDir)
 
     const filePath = this.getFilePath(key)
@@ -151,22 +149,23 @@ export function getLocalActionResultsCacheDir(gardenDirPath: string): string {
   return join(gardenDirPath, CACHE_DIR_NAME, "action-results")
 }
 
-export class LocalResultCache<A extends CacheableAction, R extends CacheableResult> extends AbstractResultCache<A, R> {
-  private readonly fsCache: SimpleFileSystemCache<R>
+export class LocalResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject> extends AbstractResultCache<
+  A,
+  ResultSchema
+> {
+  private readonly fsCache: SimpleFileSystemCache
   private readonly schemaVersion: SchemaVersion
 
   constructor({
     cacheDir,
     schemaVersion,
-    maxLogLength,
-    resultValidator,
+    resultSchema,
   }: {
     cacheDir: string
     schemaVersion: SchemaVersion
-    maxLogLength: number
-    resultValidator: ResultValidator<R>
+    resultSchema: ResultSchema
   }) {
-    super({ maxLogLength, resultValidator })
+    super({ resultSchema })
     this.fsCache = new SimpleFileSystemCache(cacheDir)
     this.schemaVersion = schemaVersion
   }
@@ -180,7 +179,7 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
     await this.fsCache.remove(key)
   }
 
-  public async load({ ctx, action, log }: LoadResultParams<A>): Promise<R | undefined> {
+  public async load({ ctx, action, log }: LoadResultParams<A>): Promise<z.infer<ResultSchema> | undefined> {
     const key = this.cacheKey({ ctx, action })
     const cachedValue = await this.fsCache.get(key)
     if (cachedValue === undefined) {
@@ -190,30 +189,19 @@ export class LocalResultCache<A extends CacheableAction, R extends CacheableResu
     return this.validateResult(cachedValue, log)
   }
 
-  public async store({ ctx, action, log, result }: StoreResultParams<A, R>): Promise<R | undefined> {
+  public async store({
+    ctx,
+    action,
+    log,
+    result,
+  }: StoreResultParams<A, z.infer<ResultSchema>>): Promise<z.infer<ResultSchema> | undefined> {
     const validatedResult = this.validateResult(result, log)
     if (validatedResult === undefined) {
       return undefined
     }
 
-    const trimmedResult = this.trimResult(validatedResult)
-
     const key = this.cacheKey({ ctx, action })
-    await this.fsCache.put(key, trimmedResult)
-    return trimmedResult
-  }
-
-  private validateResult(data: R, log: Log) {
-    const result = this.resultValidator(data)
-    if (result.success) {
-      return result.data
-    } else {
-      const errorMessage = deline`
-      The provided result doesn't match the expected schema.
-      Here is the output: ${renderZodError(result.error)}
-      `
-      log.debug(errorMessage)
-      return undefined
-    }
+    await this.fsCache.put(key, validatedResult)
+    return validatedResult
   }
 }

@@ -13,7 +13,7 @@ import type { DirectoryResult } from "tmp-promise"
 import tmp from "tmp-promise"
 import { SimpleFileSystemCache } from "../../../../../src/plugins/kubernetes/results-cache-fs.js"
 
-interface Payload {
+type Payload = {
   pos: number
   data: string
 }
@@ -24,13 +24,13 @@ function makePayload(pos: number): Payload {
 
 describe("SimpleFileSystemCache", () => {
   let tmpDir: DirectoryResult
-  let cache: SimpleFileSystemCache<Payload>
+  let cache: SimpleFileSystemCache
 
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     const tmpDirPath = tmpDir.path
     const cachePath = join(tmpDirPath, ".fs-cache")
-    cache = new SimpleFileSystemCache<Payload>(cachePath)
+    cache = new SimpleFileSystemCache(cachePath)
   })
 
   afterEach(async () => {
