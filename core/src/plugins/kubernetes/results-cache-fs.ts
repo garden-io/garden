@@ -161,25 +161,17 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
   A,
   ResultSchema
 > {
-  private readonly fsCache: SimpleLocalFileSystemCacheStorage
+  private readonly cacheStorage: CacheStorage
 
-  constructor({
-    cacheDir,
-    schemaVersion,
-    resultSchema,
-  }: {
-    cacheDir: string
-    schemaVersion: SchemaVersion
-    resultSchema: ResultSchema
-  }) {
+  constructor({ cacheStorage, resultSchema }: { cacheStorage: CacheStorage; resultSchema: ResultSchema }) {
     super({ resultSchema })
-    this.fsCache = new SimpleLocalFileSystemCacheStorage(cacheDir, schemaVersion)
+    this.cacheStorage = cacheStorage
   }
 
   public async clear({ ctx, log, action }: ClearResultParams<A>): Promise<void> {
     const key = this.cacheKey({ ctx, action })
     try {
-      await this.fsCache.remove(key)
+      await this.cacheStorage.remove(key)
     } catch (e) {
       if (!(e instanceof LocalFileSystemCacheError)) {
         throw e
@@ -193,7 +185,7 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
     const key = this.cacheKey({ ctx, action })
     let cachedValue: JsonObject
     try {
-      cachedValue = await this.fsCache.get(key)
+      cachedValue = await this.cacheStorage.get(key)
     } catch (e) {
       if (!(e instanceof LocalFileSystemCacheError)) {
         throw e
@@ -219,7 +211,7 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
 
     const key = this.cacheKey({ ctx, action })
     try {
-      return await this.fsCache.put(key, validatedResult)
+      return await this.cacheStorage.put(key, validatedResult)
     } catch (e) {
       if (!(e instanceof LocalFileSystemCacheError)) {
         throw e
