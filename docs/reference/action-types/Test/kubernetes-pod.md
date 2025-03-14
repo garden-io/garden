@@ -11,8 +11,7 @@ Executes a Test in an ad-hoc instance of a Kubernetes Pod and waits for it to co
 
 The pod spec can be provided directly via the `podSpec` field, or the `resource` field can be used to find the pod spec in the Kubernetes manifests provided via the `files` and/or `manifests` fields.
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `kubernetes-pod` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 

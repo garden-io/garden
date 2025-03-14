@@ -9,8 +9,7 @@ tocTitle: "`exec` Run"
 
 A simple Run action which runs a command locally with a shell command.
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `exec` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 

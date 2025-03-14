@@ -136,14 +136,11 @@ export const gardenPlugin = () => {
     name: "kubernetes",
     dependencies: [{ name: "container" }, { name: "jib", optional: true }],
     docs: dedent`
-    The \`kubernetes\` provider allows you to deploy [\`container\` actions](${makeDocsLinkPlain(
-      "k8s-plugins/actions/deploy/container"
-    )}) to
-    Kubernetes clusters, and adds the [\`helm\`](${makeDocsLinkPlain`k8s-plugins/actions/deploy/helm`}) and
-    [\`kubernetes\`](${makeDocsLinkPlain("k8s-plugins/actions/deploy/kubernetes")}) action types.
+    The \`kubernetes\` provider adds the [\`helm\`](${makeDocsLinkPlain`garden-for/kubernetes/install-helm-chart`}) and
+    [\`kubernetes\`](${makeDocsLinkPlain("garden-for/kubernetes/deploy-k8s-resource")}) action types.
 
     For usage information, please refer to the [guides section](../../guides). A good place to start is
-    the [Remote Kubernetes guide](${makeDocsLinkPlain`k8s-plugins/remote-k8s/README`}) guide if you're connecting to remote clusters.
+    the [Remote Kubernetes guide](${makeDocsLinkPlain`garden-for/kubernetes/remote-kubernetes`}) guide if you're connecting to remote clusters.
     The [Quickstart guide](${makeDocsLinkPlain`getting-started/quickstart`}) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.

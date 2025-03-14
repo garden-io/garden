@@ -26,7 +26,14 @@ This action depends on the web service being deployed and will basically sit at 
 
 ## Step 2 — Run the test
 
-Next, head to the [dashboard](https://app.garden.io), select the Graph view, and try running the action.
+Next, run the test with:
+
+```
+garden test
+```
+
+When you have multiple tests in your project you can also specify which one to run with `garden
+test my-test-name`.
 
 Once the test passes, try running it again.
 
@@ -52,8 +59,10 @@ if request.method == 'PUT':
 
 Even though the test itself is defined in the `./web/garden.yml` file, Garden knows that it depends on the API and that it needs to be re-run.
 
-Head back to the [dashboard](https://app.garden.io) and try running the test again from the Graph view. Notice how Garden checks the statuses of the actions and re-executes them as needed. In this case it will rebuild and redeploy the API.
+Try running it again with:
 
-You can also view the logs and test results from the dashboard.
+```console
+garden test
+```
 
 If you now undo the changes and change the `request.method` back to `POST` and run the test one more time, Garden will again tell us that it has already passed since now the action version should be the same as it was before.

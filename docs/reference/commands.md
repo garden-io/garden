@@ -2828,7 +2828,7 @@ workflowConfigs:
         # `never`: This step will always be ignored.
         #
         # See the [workflows
-        # guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options) for details
+        # guide](https://docs.garden.io/bonsai-0.13/config-guides/workflows#the-skip-and-when-options) for details
         # and examples.
         when:
 

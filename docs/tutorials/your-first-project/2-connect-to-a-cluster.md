@@ -9,17 +9,10 @@ In order to deploy our project, we (perhaps obviously) need somewhere to deploy 
 
 Here we hit a bit of a fork in the road since we have a choice between:
 
-1. Using Garden managed ephemeral clusters
-2. Setting up a local Kubernetes cluster on our dev machine
-3. Using our own remote cluster.
+1. Setting up a local Kubernetes cluster on our dev machine
+2. Using our own remote cluster.
 
-## Option 1 (easiest) — Garden managed ephemeral cluster
-
-This is the easiest way to get started and you don't need to do anything. Instead you can head directly to the next page and start [adding Garden actions to the project](./3-add-actions.md).
-
-To learn more about Garden managed ephemeral clusters, [see here](../../k8s-plugins/ephemeral-k8s/README.md).
-
-## Option 2 (simplest) — Local Kubernetes
+## Option 1 — Local Kubernetes
 
 You can also use a local installation of Kubernetes (e.g. K3s, Minikube or Docker for Desktop). It's great for getting started quickly but you'll miss out on all the collaboration and team features you get with a remote Kubernetes environment.
 
@@ -27,7 +20,7 @@ To use this option follow the steps below.
 
 ### Step 1 — Install Kuberneters locally
 
-Follow our [local Kubernetes guide](../../k8s-plugins/local-k8s/README.md) to set up this plugin.
+Follow our [local Kubernetes guide](../../garden-for/kubernetes/local-kubernetes.md) to set up this plugin.
 
 ### Step 2 — Update the default environment
 
@@ -37,7 +30,7 @@ Open the `project.garden.yml` file we created earlier and update the `defaultEnv
 defaultEnvironment: local
 ```
 
-## Option 3 (most powerful) — Your own remote Kubernetes cluster
+## Option 2 — Your own remote Kubernetes cluster
 
 This option requires more upfront work but is highly recommended for _teams_ using Garden. It allows you to build, test, and develop in a remote production-like environment that scales with your stack, caches your results, and allows you to easily share work with your team.
 
@@ -47,7 +40,7 @@ Otherwise follow the steps below.
 
 ### Step 1 — Setup remote Kubernetes
 
-Follow our [remote Kubernetes guide](../../k8s-plugins/remote-k8s/README.md) to set up this plugin.
+Follow our [remote Kubernetes guide](../../garden-for/kubernetes/remote-kubernetes.md) to set up this plugin.
 
 In particular you'll need to update the values under the `kubernetes` provider in the `project.garden.yml` file we created earlier.
 

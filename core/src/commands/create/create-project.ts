@@ -141,18 +141,17 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
       log.info("")
     }
-    const projectDocUrl = `${DOCS_BASE_URL}/using-garden/projects`
+    const projectDocUrl = `${DOCS_BASE_URL}/getting-started/basics.md`
     const projectReferenceUrl = `${DOCS_BASE_URL}/reference/project-config`
     const providersReferenceUrl = `${DOCS_BASE_URL}/reference/providers`
     const remoteK8sReferenceUrl = `${DOCS_BASE_URL}/kubernetes-plugins/remote-k8s`
-    const actionsGettingStartedUrl = `${DOCS_BASE_URL}/using-garden/actions`
     const localKubernetesInstallationUrl = `${DOCS_BASE_URL}/kubernetes-plugins/local-k8s/install`
     const ephemeralKubernetesUrl = `${DOCS_BASE_URL}/kubernetes-plugins/ephemeral-k8s`
-    const variablesAndTemplateStringsUrl = `${DOCS_BASE_URL}/using-garden/variables-and-templating`
+    const variablesAndTemplateStringsUrl = `${DOCS_BASE_URL}/config-guides/variables-and-templating`
     const firstProjectTutorialUrl = `${DOCS_BASE_URL}/tutorials/your-first-project`
 
     const yaml = dedent`
-    # Documentation about Garden projects can be found at ${projectDocUrl}
+    # Learn more about projects at ${projectDocUrl}
     # Reference for Garden projects can be found at ${projectReferenceUrl}
 
     apiVersion: ${GardenApiVersion.v1}
@@ -216,7 +215,6 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
     # Next step: Define actions to tell Garden how to build, test and deploy your code.
     # You can learn more by going through our 'First Project' tutorial at: ${firstProjectTutorialUrl}
-    # Or dive right in the action guide: ${actionsGettingStartedUrl}
     `
 
     await addConfig(configPath, yaml)

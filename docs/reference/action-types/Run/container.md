@@ -11,8 +11,7 @@ Run a command in a container image, e.g. in a Kubernetes namespace (when used wi
 
 This is a simplified abstraction, which can be convenient for simple tasks, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Run types like [kubernetes-pod](./kubernetes-pod.md).
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `container` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 

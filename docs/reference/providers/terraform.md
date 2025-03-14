@@ -9,7 +9,7 @@ tocTitle: "`terraform`"
 
 This provider allows you to integrate Terraform stacks into your Garden project. See the [Terraform guide](https://docs.garden.io/bonsai-0.13/advanced/terraform) for details and usage information.
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference for the provider configuration..
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -228,4 +228,5 @@ providers:
   - backendConfig:
         "bucket: ${environment.name\\}-bucket\nkey: tf-state/${local.username\\}/terraform.tfstate"
 ```
+
 

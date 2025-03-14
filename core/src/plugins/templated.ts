@@ -39,7 +39,7 @@ export const gardenPlugin = () => {
         docs: dedent`
           **[DEPRECATED] Please use the new \`${renderTemplateKind}\` config kind instead.**
 
-          A special module type, for rendering [module templates](../../using-garden/config-templates.md). See the [Config Templates guide](../../using-garden/config-templates.md) for more information.
+          A special module type, for rendering [module templates](../../config-guides/config-templates.md). See the [Config Templates guide](../../config-guides/config-templates.md) for more information.
 
           Specify the name of a ${configTemplateKind} with the \`template\` field, and provide any expected inputs using the \`inputs\` field. The generated modules becomes sub-modules of this module.
 

@@ -36,7 +36,7 @@ export function resolveApiVersion(projectSpec: Partial<ProjectConfig>, log: Log)
       log,
       `"apiVersion" is missing in the Project config. Assuming "${
         defaultGardenApiVersion
-      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLinkStyled("guides/migrating-to-bonsai")}`
+      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLinkStyled("misc/migrating-to-bonsai")}`
     )
 
     return defaultGardenApiVersion

@@ -5,7 +5,7 @@ order: 4
 
 ## Step 1: Install Docker and Kubernetes
 
-Please refer to our [installation docs](../getting-started/installation.md) for instructions on how to install Docker and Kubernetes for different platforms.
+Please refer to our [installation docs](../guides/installation.md) for instructions on how to install Docker and Kubernetes for different platforms.
 
 ## Step 2: Clone the repo
 

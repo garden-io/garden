@@ -1,4 +1,4 @@
 ---
 order: 10
-title: Guides
+title: Other Guides
 ---

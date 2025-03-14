@@ -11,7 +11,7 @@ tocTitle: "`pulumi`"
 
 This provider allows you to integrate [Pulumi](https://pulumi.com) stacks into your Garden project, via [`pulumi` Deploy actions](../action-types/Deploy/pulumi.md).
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference for the provider configuration..
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -213,4 +213,5 @@ For more information see [this guide on pulumi varfiles and variables](https://d
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
+
 

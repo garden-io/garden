@@ -5,7 +5,7 @@ title: Workflow Configuration
 
 # Workflow Configuration Reference
 
-Below is the schema reference for [Workflow](../using-garden/workflows.md) configuration files. For an introduction to configuring a Garden project, please look at our [configuration guide](../using-garden/configuration-overview.md).
+Below is the schema reference for [Workflow](../config-guides/workflows.md) configuration files.
 
 The reference is divided into two sections:
 * [YAML Schema](#yaml-schema) contains the config YAML schema
@@ -126,7 +126,7 @@ steps:
     #
     # `never`: This step will always be ignored.
     #
-    # See the [workflows guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options)
+    # See the [workflows guide](https://docs.garden.io/bonsai-0.13/config-guides/workflows#the-skip-and-when-options)
     # for details
     # and examples.
     when: onSuccess
@@ -482,7 +482,7 @@ If the next step has `when: onError`, it will also be run. Otherwise, all subseq
 
 `never`: This step will always be ignored.
 
-See the [workflows guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options) for details
+See the [workflows guide](https://docs.garden.io/bonsai-0.13/config-guides/workflows#the-skip-and-when-options) for details
 and examples.
 
 | Type     | Default       | Required |

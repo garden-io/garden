@@ -7,12 +7,11 @@ tocTitle: "`kubernetes`"
 
 ## Description
 
-The `kubernetes` provider allows you to deploy [`container` actions](../../k8s-plugins/actions/deploy/container.md) to
-Kubernetes clusters, and adds the [`helm`](../../k8s-plugins/actions/deploy/helm.md) and
-[`kubernetes`](../../k8s-plugins/actions/deploy/kubernetes.md) action types.
+The `kubernetes` provider adds the [`helm`](../../garden-for/kubernetes/install-helm-chart.md) and
+[`kubernetes`](../../garden-for/kubernetes/deploy-k8s-resource.md) action types.
 
 For usage information, please refer to the [guides section](../../guides). A good place to start is
-the [Remote Kubernetes guide](../../k8s-plugins/remote-k8s/README.md) guide if you're connecting to remote clusters.
+the [Remote Kubernetes guide](../../garden-for/kubernetes/remote-kubernetes.md) guide if you're connecting to remote clusters.
 The [Quickstart guide](../../getting-started/quickstart.md) guide is also helpful as an introduction.
 
 Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
@@ -20,7 +19,7 @@ Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker De
 Please note that Garden is committed to supporting [the _latest officially supported_ versions](https://kubernetes.io/releases/).
 The information on the Kubernetes support and EOL timelines can be found [here](https://endoflife.date/kubernetes).
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference for the provider configuration..
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -2409,3 +2408,4 @@ The default hostname configured on the provider.
 | Type     |
 | -------- |
 | `string` |
+
