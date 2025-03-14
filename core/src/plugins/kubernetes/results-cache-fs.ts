@@ -39,7 +39,7 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
   private readonly schemaVersion: SchemaVersion
   private readonly log: Log
 
-  constructor(cacheDir: string, schemaVersion: SchemaVersion) {
+  constructor({ cacheDir, schemaVersion }: { cacheDir: string; schemaVersion: SchemaVersion }) {
     this.cacheDir = cacheDir
     this.schemaVersion = schemaVersion
     this.log = RootLogger.getInstance().createLog({ name: "fs-cache" })

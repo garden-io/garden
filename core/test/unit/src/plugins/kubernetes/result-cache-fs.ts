@@ -32,7 +32,7 @@ describe("SimpleLocalFileSystemCacheStorage", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     const tmpDirPath = tmpDir.path
     const cachePath = join(tmpDirPath, ".fs-cache")
-    cache = new SimpleLocalFileSystemCacheStorage(cachePath, currentResultSchemaVersion)
+    cache = new SimpleLocalFileSystemCacheStorage({ cacheDir: cachePath, schemaVersion: currentResultSchemaVersion })
   })
 
   after(async () => {

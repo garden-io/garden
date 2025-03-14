@@ -15,7 +15,10 @@ let resultCache: ResultCache<CacheableRunAction | CacheableTestAction, Kubernete
 export function getResultCache(gardenDirPath: string) {
   if (resultCache === undefined) {
     const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
-    const cacheStorage = new SimpleLocalFileSystemCacheStorage(cacheDir, currentResultSchemaVersion)
+    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
+      cacheDir,
+      schemaVersion: currentResultSchemaVersion,
+    })
 
     resultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
   }
