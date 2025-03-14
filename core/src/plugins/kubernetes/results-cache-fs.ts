@@ -19,7 +19,7 @@ import { join } from "path"
 import writeFileAtomic from "write-file-atomic"
 import { CACHE_DIR_NAME } from "../../constants.js"
 import type { Log } from "../../logger/log-entry.js"
-import { isErrnoException } from "../../exceptions.js"
+import { GardenError, isErrnoException } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { AnyZodObject, z } from "zod"
@@ -27,14 +27,16 @@ import type { JsonObject } from "type-fest"
 
 const { ensureDir, readFile, remove } = fsExtra
 
+class LocalFileSystemCacheError extends GardenError {
+  type = "local-fs-cache"
+}
+
 /**
  * Very simple implementation of file-system based cache
  * to be used as a fallback storage for kubernetes Run and Test results.
  *
  * It uses cache keys to name and create JSON files,
  * and stores the values in the JSON files in a configurable cache directory.
- *
- * All operations are fail-safe and no not throw any errors.
  *
  * This class holds the minimal in-memory state,
  * because each Run and Test result
@@ -53,9 +55,10 @@ export class SimpleFileSystemCache {
     return join(this.cacheDir, `${key}.json`)
   }
 
-  private async readFileContent(filePath: string): Promise<JsonObject | undefined> {
+  private async readFileContent(filePath: string): Promise<JsonObject> {
     let rawFileContent: string
     try {
+      this.log.silly(`Reading data from file ${filePath}`)
       const buffer = await readFile(filePath)
       rawFileContent = buffer.toString()
     } catch (err: unknown) {
@@ -63,24 +66,25 @@ export class SimpleFileSystemCache {
         throw err
       }
 
-      this.log.debug(`Cannot read data from file ${filePath}; cause: ${err}`)
-      return undefined
+      const errorMsg = `Cannot read data from file ${filePath}; cause: ${err}`
+      throw new LocalFileSystemCacheError({ message: errorMsg })
     }
 
     try {
       return JSON.parse(rawFileContent) as JsonObject
     } catch (err) {
-      this.log.debug(`Cannot deserialize json from file ${filePath}; cause: ${err}`)
+      const errorMsg = `Cannot deserialize json from file ${filePath}; cause: ${err}`
 
       this.log.debug(`Deleting corrupted file ${filePath}`)
       await this.removeFile(filePath)
 
-      return undefined
+      throw new LocalFileSystemCacheError({ message: errorMsg })
     }
   }
 
-  private async writeFileContent(filePath: string, value: JsonObject): Promise<JsonObject | undefined> {
+  private async writeFileContent(filePath: string, value: JsonObject): Promise<JsonObject> {
     try {
+      this.log.silly(`Writing data to file ${filePath}`)
       await writeFileAtomic(filePath, JSON.stringify(value), { mode: undefined })
       return value
     } catch (err: unknown) {
@@ -88,31 +92,32 @@ export class SimpleFileSystemCache {
         throw err
       }
 
-      this.log.debug(`Cannot write data to file ${filePath}; cause: ${err}`)
-      return undefined
+      const errorMsg = `Cannot write data to file ${filePath}; cause: ${err}`
+      throw new LocalFileSystemCacheError({ message: errorMsg })
     }
   }
 
   private async removeFile(filePath: string): Promise<void> {
     try {
+      this.log.silly(`Removing file ${filePath}`)
       await remove(filePath)
     } catch (err: unknown) {
       if (!isErrnoException(err)) {
         throw err
       }
 
-      this.log.debug(`Cannot remove file ${filePath}; cause: ${err}`)
-      return undefined
+      const errorMsg = `Cannot remove file ${filePath}; cause: ${err}`
+      throw new LocalFileSystemCacheError({ message: errorMsg })
     }
   }
 
   /**
    * Returns a value associated with the {@code key},
-   * or {@code undefined} if no key was found or any error occurred.
+   * or throws a {@link LocalFileSystemCacheError} if no key was found or any error occurred.
    *
    * Reads the value from the file defined in the {@code key}.
    */
-  public async get(key: string): Promise<JsonObject | undefined> {
+  public async get(key: string): Promise<JsonObject> {
     const filePath = this.getFilePath(key)
     return await this.readFileContent(filePath)
   }
@@ -124,9 +129,9 @@ export class SimpleFileSystemCache {
    * Ensures the existence of the cache directory.
    *
    * Returns the value back if it was written successfully,
-   * or {@code undefined} if any error occurred.
+   * or throws a {@link LocalFileSystemCacheError} otherwise.
    */
-  public async put(key: string, value: JsonObject): Promise<JsonObject | undefined> {
+  public async put(key: string, value: JsonObject): Promise<JsonObject> {
     await ensureDir(this.cacheDir)
 
     const filePath = this.getFilePath(key)
@@ -137,7 +142,7 @@ export class SimpleFileSystemCache {
    * Removes a value associated with the {@code key}.
    *
    * Removes the file defined in the {@code key}.
-   * Does nothing if the file was not found or any error occurred.
+   * Throws a {@link LocalFileSystemCacheError} if any error occurred.
    */
   public async remove(key: string): Promise<void> {
     const filePath = this.getFilePath(key)
@@ -174,16 +179,31 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
     return `${this.schemaVersion}-${super.cacheKey({ ctx, action })}`
   }
 
-  public async clear({ ctx, action }: ClearResultParams<A>): Promise<void> {
+  public async clear({ ctx, log, action }: ClearResultParams<A>): Promise<void> {
     const key = this.cacheKey({ ctx, action })
-    await this.fsCache.remove(key)
+    try {
+      await this.fsCache.remove(key)
+    } catch (e) {
+      if (!(e instanceof LocalFileSystemCacheError)) {
+        throw e
+      }
+
+      action.createLog(log).debug(e.message)
+    }
   }
 
   public async load({ ctx, action, log }: LoadResultParams<A>): Promise<z.output<ResultSchema> | undefined> {
     const key = this.cacheKey({ ctx, action })
-    const cachedValue = await this.fsCache.get(key)
-    if (cachedValue === undefined) {
-      return cachedValue
+    let cachedValue: JsonObject
+    try {
+      cachedValue = await this.fsCache.get(key)
+    } catch (e) {
+      if (!(e instanceof LocalFileSystemCacheError)) {
+        throw e
+      }
+
+      action.createLog(log).debug(e.message)
+      return undefined
     }
 
     return this.validateResult(cachedValue, log)
@@ -201,7 +221,15 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
     }
 
     const key = this.cacheKey({ ctx, action })
-    await this.fsCache.put(key, validatedResult)
-    return validatedResult
+    try {
+      return await this.fsCache.put(key, validatedResult)
+    } catch (e) {
+      if (!(e instanceof LocalFileSystemCacheError)) {
+        throw e
+      }
+
+      action.createLog(log).debug(e.message)
+      return undefined
+    }
   }
 }

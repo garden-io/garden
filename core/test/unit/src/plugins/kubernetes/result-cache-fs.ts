@@ -12,6 +12,7 @@ import { join } from "path"
 import type { DirectoryResult } from "tmp-promise"
 import tmp from "tmp-promise"
 import { SimpleFileSystemCache } from "../../../../../src/plugins/kubernetes/results-cache-fs.js"
+import { expectError } from "../../../../helpers.js"
 
 type Payload = {
   pos: number
@@ -33,20 +34,13 @@ describe("SimpleFileSystemCache", () => {
     cache = new SimpleFileSystemCache(cachePath)
   })
 
-  afterEach(async () => {
+  after(async () => {
     await tmpDir.cleanup()
   })
 
-  it("should return undefined if no value found for key", async () => {
+  it("should throw if no value found for key", async () => {
     const key = "this-key-does-not-exist"
-    const value = await cache.get(key)
-    expect(value).to.be.undefined
-  })
-
-  it("should return undefined if no value found for key", async () => {
-    const key = "this-key-does-not-exist"
-    const value = await cache.get(key)
-    expect(value).to.be.undefined
+    await expectError(() => cache.get(key), { contains: "Cannot read data from file" })
   })
 
   it("should store value and return it", async () => {
@@ -72,14 +66,13 @@ describe("SimpleFileSystemCache", () => {
     expect(storedValue).to.be.not.undefined
     expect(storedValue).to.eql(value)
 
-    let returnedValue = await cache.get(key)
+    const returnedValue = await cache.get(key)
     expect(returnedValue).to.be.not.undefined
     expect(returnedValue).to.eql(value)
 
     await cache.remove(key)
 
-    returnedValue = await cache.get(key)
-    expect(returnedValue).to.be.undefined
+    await expectError(() => cache.get(key), { contains: "Cannot read data from file" })
 
     // no error should be thrown if delete by non-existing key
     await cache.remove(key)
