@@ -7,8 +7,8 @@
  */
 
 import type { TestActionHandler } from "../../plugin/action-types.js"
-import { toActionStatus } from "./results-cache-base.js"
 import { getResultCache } from "./results-cache.js"
+import { toActionStatus } from "./util.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {

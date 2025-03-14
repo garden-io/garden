@@ -8,17 +8,15 @@
 
 import type { PluginContext } from "../../plugin-context.js"
 import type { Log } from "../../logger/log-entry.js"
-import type { ActionStatus } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
 import { runResultSchemaZod } from "../../plugin/base.js"
 import type { NamespaceStatus } from "../../types/namespace.js"
 import { namespaceStatusSchema } from "../../types/namespace.js"
 import type { RunAction } from "../../actions/run.js"
 import type { TestAction } from "../../actions/test.js"
-import { runResultToActionState } from "../../actions/base.js"
 import { hashSync } from "hasha"
 import { Memoize } from "typescript-memoize"
-import type { AnyZodObject, SafeParseReturnType, z } from "zod"
+import type { AnyZodObject, z } from "zod"
 import { deline } from "../../util/string.js"
 import type { ContainerRunAction, ContainerTestAction } from "../container/config.js"
 import type { KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
@@ -57,12 +55,6 @@ export function composeCacheableResult({
     namespaceStatus,
   }
 }
-
-export function toActionStatus<T extends CacheableResult>(detail: T): ActionStatus {
-  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
-}
-
-export type ResultValidator<R> = (data: unknown) => SafeParseReturnType<unknown, R>
 
 export interface LoadResultParams<A extends CacheableAction> {
   ctx: PluginContext
