@@ -8,17 +8,16 @@
 
 import { z } from "zod"
 
-// export const namespaceStatusSchema = z.object({
-//   pluginName: z.string(),
-//   namespaceUid: z.string().uuid().optional(),
-//   namespaceName: z.string(),
-//   state: z.union([z.literal("ready"), z.literal("missing")]),
-// })
-
 const baseNamespaceStatusSchema = z.object({
   pluginName: z.string(),
   namespaceName: z.string(),
 })
+
+export const legacyNamespaceStatusSchema = baseNamespaceStatusSchema.extend({
+  state: z.union([z.literal("ready"), z.literal("missing")]),
+})
+
+export type LegacyNamespaceStatus = z.infer<typeof legacyNamespaceStatusSchema>
 
 export const namespaceStatusSchema = z.discriminatedUnion("state", [
   baseNamespaceStatusSchema.extend({
