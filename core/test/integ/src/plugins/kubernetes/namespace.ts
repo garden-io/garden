@@ -10,7 +10,7 @@ import { randomString, gardenAnnotationKey } from "../../../../../src/util/strin
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
-import { ensureNamespace, getNamespaceStatus } from "../../../../../src/plugins/kubernetes/namespace.js"
+import { ensureNamespace, getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace.js"
 import type { Log } from "../../../../../src/logger/log-entry.js"
 import { expect } from "chai"
 import { getPackageVersion } from "../../../../../src/util/util.js"
@@ -51,16 +51,10 @@ describe("Kubernetes Namespace helpers", () => {
       let namespaceStatusFromEvent: NamespaceStatus | null = null
       const expectedNamespaceName = "container-default"
       ctx.events.once("namespaceStatus", (s) => (namespaceStatusFromEvent = s))
-      const status = await getNamespaceStatus({
-        log,
-        ctx,
-        provider,
-        skipCreate: true,
-      })
+      const namespace = await getAppNamespace(ctx, log, provider)
       expect(namespaceStatusFromEvent).to.exist
       expect(namespaceStatusFromEvent!.namespaceName).to.eql(expectedNamespaceName)
-      expect(status).to.exist
-      expect(status.namespaceName).to.eql(expectedNamespaceName)
+      expect(namespace).to.eql(expectedNamespaceName)
     })
   })
 

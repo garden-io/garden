@@ -18,7 +18,7 @@ import {
   ensureBuildkit,
 } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit.js"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api.js"
-import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace.js"
+import { getAppNamespace } from "../../../../../../../src/plugins/kubernetes/namespace.js"
 import { expect } from "chai"
 import { cloneDeep } from "lodash-es"
 import { buildDockerAuthConfig } from "../../../../../../../src/plugins/kubernetes/init.js"
@@ -63,13 +63,7 @@ describe.skip("ensureBuildkit", () => {
       events: undefined,
     })) as KubernetesPluginContext
     api = await KubeApi.factory(garden.log, ctx, provider)
-    namespace = (
-      await getNamespaceStatus({
-        log: garden.log,
-        ctx: ctx as KubernetesPluginContext,
-        provider,
-      })
-    ).namespaceName
+    namespace = await getAppNamespace(ctx, garden.log, ctx.provider)
   })
 
   grouped("cluster-buildkit", "remote-only").context("cluster-buildkit mode", () => {
