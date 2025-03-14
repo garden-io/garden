@@ -8,14 +8,25 @@
 
 import { z } from "zod"
 
-export const namespaceStatusSchema = z.object({
+const baseNamespaceStatusSchema = z.object({
   pluginName: z.string(),
-  state: z.union([z.literal("ready"), z.literal("missing")]),
   namespaceName: z.string(),
-  namespaceUid: z.string().uuid().optional(),
 })
 
+export const namespaceStatusSchema = z.discriminatedUnion("state", [
+  baseNamespaceStatusSchema.extend({
+    namespaceUid: z.string().uuid(),
+    state: z.literal("ready"),
+  }),
+  baseNamespaceStatusSchema.extend({
+    namespaceUid: z.undefined(),
+    state: z.literal("missing"),
+  }),
+])
+
 export type NamespaceStatus = z.infer<typeof namespaceStatusSchema>
+
+export type EventNamespaceStatus = Omit<NamespaceStatus, "namespaceUid">
 
 export function environmentToString({ environmentName, namespace }: { environmentName: string; namespace?: string }) {
   return namespace ? `${environmentName}.${namespace}` : environmentName

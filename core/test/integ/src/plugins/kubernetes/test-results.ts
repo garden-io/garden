@@ -17,6 +17,7 @@ import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import { k8sGetTestResult } from "../../../../../src/plugins/kubernetes/test-results.js"
 import { composeKubernetesCacheEntry } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
 import { getResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
+import { uuid } from "@segment/analytics-node/dist/types/lib/uuid.js"
 
 describe("kubernetes Test results", () => {
   let garden: Garden
@@ -55,6 +56,7 @@ describe("kubernetes Test results", () => {
         namespaceStatus: {
           pluginName: provider.name,
           namespaceName: ctx.namespace,
+          namespaceUid: uuid(),
           state: "ready",
         },
         // version: task.version,

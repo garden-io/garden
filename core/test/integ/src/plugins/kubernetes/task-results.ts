@@ -17,6 +17,7 @@ import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import { composeKubernetesCacheEntry } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
 import { getResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
+import { uuid } from "@segment/analytics-node/dist/types/lib/uuid.js"
 
 describe("kubernetes Run results", () => {
   let garden: Garden
@@ -55,6 +56,7 @@ describe("kubernetes Run results", () => {
         namespaceStatus: {
           pluginName: provider.name,
           namespaceName: ctx.namespace,
+          namespaceUid: uuid(),
           state: "ready",
         },
         // version: task.version,

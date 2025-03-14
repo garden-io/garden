@@ -14,7 +14,7 @@ import { ensureNamespace, getAppNamespace } from "../../../../../src/plugins/kub
 import type { Log } from "../../../../../src/logger/log-entry.js"
 import { expect } from "chai"
 import { getPackageVersion } from "../../../../../src/util/util.js"
-import type { NamespaceStatus } from "../../../../../src/types/namespace.js"
+import type { EventNamespaceStatus } from "../../../../../src/types/namespace.js"
 
 describe("Kubernetes Namespace helpers", () => {
   let api: KubeApi
@@ -48,7 +48,7 @@ describe("Kubernetes Namespace helpers", () => {
 
   describe("getNamespaceStatus", () => {
     it("should return the namespace status and emit a namespace status event", async () => {
-      let namespaceStatusFromEvent: NamespaceStatus | null = null
+      let namespaceStatusFromEvent: EventNamespaceStatus | null = null
       const expectedNamespaceName = "container-default"
       ctx.events.once("namespaceStatus", (s) => (namespaceStatusFromEvent = s))
       const namespace = await getAppNamespace(ctx, log, provider)
@@ -60,7 +60,7 @@ describe("Kubernetes Namespace helpers", () => {
 
   describe("ensureNamespace", () => {
     it("should create the namespace if it doesn't exist, with configured annotations and labels and emit a namespace status event", async () => {
-      let namespaceStatusFromEvent: NamespaceStatus | null = null
+      let namespaceStatusFromEvent: EventNamespaceStatus | null = null
       ctx.events.once("namespaceStatus", (s) => (namespaceStatusFromEvent = s))
       const namespace = {
         name: namespaceName,

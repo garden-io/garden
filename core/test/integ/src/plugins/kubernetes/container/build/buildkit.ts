@@ -26,7 +26,7 @@ import { buildkitDeploymentName, dockerAuthSecretKey } from "../../../../../../.
 import { grouped } from "../../../../../../helpers.js"
 import { createActionLog } from "../../../../../../../src/logger/log-entry.js"
 import { resolveAction } from "../../../../../../../src/graph/actions.js"
-import type { NamespaceStatus } from "../../../../../../../src/types/namespace.js"
+import type { EventNamespaceStatus } from "../../../../../../../src/types/namespace.js"
 
 describe.skip("ensureBuildkit", () => {
   let garden: Garden
@@ -105,7 +105,7 @@ describe.skip("ensureBuildkit", () => {
       const resolved = await resolveAction({ garden, graph, action, log })
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
-      let namespaceStatus: NamespaceStatus | null = null
+      let namespaceStatus: EventNamespaceStatus | null = null
       ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
       await buildkitBuildHandler({
         ctx,
