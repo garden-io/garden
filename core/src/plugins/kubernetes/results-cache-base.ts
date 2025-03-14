@@ -22,6 +22,8 @@ import type { ContainerRunAction, ContainerTestAction } from "../container/confi
 import type { KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./helm/config.js"
 import { renderZodError } from "../../config/zod.js"
+import type { JsonObject } from "type-fest"
+import { GardenError } from "../../exceptions.js"
 
 export type CacheableAction = RunAction | TestAction
 
@@ -94,13 +96,32 @@ export class StructuredCacheKey {
   }
 }
 
-// export interface ResultCache<A extends CacheableAction, R extends CacheableResult> {
-//   load(params: LoadResultParams<A>): Promise<R | undefined>
-//
-//   store(params: StoreResultParams<A, R>): Promise<R | undefined>
-//
-//   clear(param: ClearResultParams<A>): Promise<void>
-// }
+export class CacheStorageError extends GardenError {
+  type = "cache-storage"
+}
+
+export interface CacheStorage {
+  /**
+   * Returns a value associated with the {@code key},
+   * or throws a {@link CacheStorageError} if no key was found or any error occurred.
+   */
+  get(key: string): Promise<JsonObject>
+
+  /**
+   * Stores the value associated with the {@code key}.
+   *
+   * Returns the value back if it was written successfully,
+   * or throws a {@link CacheStorageError} otherwise.
+   */
+  put(key: string, value: JsonObject): Promise<JsonObject>
+
+  /**
+   * Removes a value associated with the {@code key}.
+   *
+   * Throws a {@link CacheStorageError} if any error occurred.
+   */
+  remove(key: string): Promise<void>
+}
 
 export abstract class AbstractResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject> {
   private readonly resultSchema: ResultSchema

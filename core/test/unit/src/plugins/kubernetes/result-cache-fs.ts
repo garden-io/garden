@@ -11,7 +11,7 @@ import { join } from "path"
 
 import type { DirectoryResult } from "tmp-promise"
 import tmp from "tmp-promise"
-import { SimpleFileSystemCache } from "../../../../../src/plugins/kubernetes/results-cache-fs.js"
+import { SimpleLocalFileSystemCacheStorage } from "../../../../../src/plugins/kubernetes/results-cache-fs.js"
 import { expectError } from "../../../../helpers.js"
 import { currentResultSchemaVersion } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
 
@@ -24,15 +24,15 @@ function makePayload(pos: number): Payload {
   return { pos, data: `data${pos}` }
 }
 
-describe("SimpleFileSystemCache", () => {
+describe("SimpleLocalFileSystemCacheStorage", () => {
   let tmpDir: DirectoryResult
-  let cache: SimpleFileSystemCache
+  let cache: SimpleLocalFileSystemCacheStorage
 
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     const tmpDirPath = tmpDir.path
     const cachePath = join(tmpDirPath, ".fs-cache")
-    cache = new SimpleFileSystemCache(cachePath, currentResultSchemaVersion)
+    cache = new SimpleLocalFileSystemCacheStorage(cachePath, currentResultSchemaVersion)
   })
 
   after(async () => {

@@ -8,26 +8,28 @@
 
 import type {
   CacheableAction,
+  CacheStorage,
   ClearResultParams,
   LoadResultParams,
   SchemaVersion,
   StoreResultParams,
 } from "./results-cache-base.js"
+import { CacheStorageError } from "./results-cache-base.js"
 import { AbstractResultCache } from "./results-cache-base.js"
 import fsExtra from "fs-extra"
 import { join } from "path"
 import writeFileAtomic from "write-file-atomic"
 import { CACHE_DIR_NAME } from "../../constants.js"
 import type { Log } from "../../logger/log-entry.js"
-import { GardenError, isErrnoException } from "../../exceptions.js"
+import { isErrnoException } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
 import type { AnyZodObject, z } from "zod"
 import type { JsonObject } from "type-fest"
 
 const { ensureDir, readFile, remove } = fsExtra
 
-class LocalFileSystemCacheError extends GardenError {
-  type = "local-fs-cache"
+class LocalFileSystemCacheError extends CacheStorageError {
+  override type = "local-fs-cache-storage"
 }
 
 /**
@@ -41,7 +43,7 @@ class LocalFileSystemCacheError extends GardenError {
  * because each Run and Test result
  * is usually read and written only once per Garden command execution.
  */
-export class SimpleFileSystemCache {
+export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
   private readonly cacheDir: string
   private readonly schemaVersion: SchemaVersion
   private readonly log: Log
@@ -159,7 +161,7 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
   A,
   ResultSchema
 > {
-  private readonly fsCache: SimpleFileSystemCache
+  private readonly fsCache: SimpleLocalFileSystemCacheStorage
 
   constructor({
     cacheDir,
@@ -171,7 +173,7 @@ export class LocalResultCache<A extends CacheableAction, ResultSchema extends An
     resultSchema: ResultSchema
   }) {
     super({ resultSchema })
-    this.fsCache = new SimpleFileSystemCache(cacheDir, schemaVersion)
+    this.fsCache = new SimpleLocalFileSystemCacheStorage(cacheDir, schemaVersion)
   }
 
   public async clear({ ctx, log, action }: ClearResultParams<A>): Promise<void> {
