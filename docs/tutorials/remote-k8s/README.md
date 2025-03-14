@@ -21,8 +21,7 @@ Also note that there are a lot of ways to create these resources so feel free to
 
 At the end of these steps, you should have the following values at hand:
 
-- The context for your Kubernetes cluster ([see step
-  1](./create-cluster/README.md)).
+- The context for your Kubernetes cluster ([see step1](./create-cluster/README.md)).
 - The name(s) and namespace(s) of the ImagePullSecret(s) used by your cluster ([see step 2](./configure-registry/README.md)).
 - The hostname for your services ([see step 3](./ingress-and-dns.md)).
 -  A TLS secret (optional) ([see step 3](./ingress-and-dns.md)).

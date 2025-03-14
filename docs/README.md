@@ -64,6 +64,7 @@
 
 ## Guides
 
+* [1. Install Local Kubernetes](./guides/install-local-kubernetes.md)
 * [Deprecations and updating to Cedar](./guides/deprecations.md)
 * [Adopting Garden](./guides/adopting-garden.md)
 * [Code Synchronization](./guides/code-synchronization.md)
