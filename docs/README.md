@@ -15,6 +15,7 @@
 
 ## Getting Started
 
+* [Basics](./getting-started/basics.md)
 * [Quickstart](./getting-started/quickstart.md)
 * [Installing Garden](./getting-started/installation.md)
 * [Next Steps](./getting-started/next-steps.md)
@@ -41,11 +42,10 @@
   * [3. Set Up Ingress, TLS and DNS](./tutorials/remote-k8s/ingress-and-dns.md)
   * [4. Configure the Provider](./tutorials/remote-k8s/configure-provider.md)
 
-## Using Garden For
+## Using Garden With
 
 * [Containers](./garden-for/containers.md)
 * [Kubernetes](./garden-for/kubernetes/README.md)
-  * [About](./garden-for/kubernetes/about.md)
   * [Remote Kubernetes](./garden-for/kubernetes/remote-kubernetes.md)
   * [Local Kubernetes](./garden-for/kubernetes/local-kubernetes.md)
   * [Deploy K8s resources](./garden-for/kubernetes/deploy-k8s-resource.md)
@@ -64,8 +64,8 @@
 
 ## Guides
 
-* [1. Install Local Kubernetes](./guides/install-local-kubernetes.md)
 * [Deprecations and updating to Cedar](./guides/deprecations.md)
+* [Install Local Kubernetes](./guides/install-local-kubernetes.md)
 * [Adopting Garden](./guides/adopting-garden.md)
 * [Code Synchronization](./guides/code-synchronization.md)
 * [Environments and namespaces](./guides/namespaces.md)

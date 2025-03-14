@@ -18,9 +18,7 @@ providers:
     context: minikube
 ```
 
-If you happen to have installed both Minikube and a version of Docker for Mac with Kubernetes support enabled,
-`garden` will choose whichever one is configured as the current context in your `kubectl` configuration. If neither
-is set as the current context, the first available context is used.
+If you happen to have installed both Minikube and a version of Docker for Mac with Kubernetes support enabled, `garden` will choose whichever one is configured as the current context in your `kubectl` configuration. If neither is set as the current context, the first available context is used.
 
 TODO @eysi-docs: Link to guide on installing local k8s
 

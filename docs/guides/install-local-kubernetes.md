@@ -1,11 +1,9 @@
 ---
-title: 1. Install Local Kubernetes
+title: Install Local Kubernetes
 order: 1
 ---
 
 TODO @eysi-docs: Update order
-
-# 1. Install Local Kubernetes
 
 ## Docker Desktop
 

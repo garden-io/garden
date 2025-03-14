@@ -1,22 +1,15 @@
 ---
 title: Quickstart
-order: 1
+order: 2
 ---
-
-# Quickstart Guide
-
-{% hint style="info" %}
-An interactive quickstart is also available by logging in to the Garden dashboard. With the dashboard you can access command history, stream logs in real-time, view the status of your builds, tests, and deploys, visualize your dependency graph, and manage your free ephemeral clusters. To get started, [launch the Garden Web Dashboard](https://app.garden.io).
-{% endhint %}
-
-## Quickstart
 
 Garden is an all-in-one DevOps automation platform that enables you to build, test, and deploy your applications and infrastructure in a single, unified workflow.
 
 In this quickstart guide, we'll:
 
 * Install Garden
-* Deploy an example application to a remote ephemeral Kubernetes cluster.
+* Build and deploy an example project to a local Kubernetes cluster
+* (or if you don't have Kubernetes, use Garden to run some scripts)
 
 ### Step 1 — Install Garden
 
@@ -70,15 +63,15 @@ git clone https://github.com/garden-io/quickstart-example.git
 cd quickstart-example
 ```
 
-### Step 3 — Deploy the project
-
-Now we can deploy the example project to an [ephemeral Kubernetes cluster](../k8s-plugins/ephemeral-k8s/README.md) provided by Garden.
-
-From inside the project directory, log in to the Garden dashboard by running the log in command from the dev console:
+Then login to Garden Cloud by running the login command from inside the project directory you just cloned:
 
 ```sh
 garden login
 ```
+
+### Step 3a — Deploy the project
+
+Now we can deploy the example project to our local Kubernetes cluster. If you don't have one, you can follow the [instructions here](../guides/install-local-kubernetes.md) to install one or simply hop to step 3b.
 
 Next, start the **dev console** by running:
 
@@ -86,7 +79,7 @@ Next, start the **dev console** by running:
 garden dev
 ```
 
-Finally, let's deploy the project in sync mode which enables live code reloading:
+Finally, let's deploy the project in sync mode which enables live code syncing:
 
 ```sh
 deploy --sync
@@ -102,6 +95,24 @@ The project itself doubles as an interactive guide that walks you through some c
 You can run all the same commands with the CLI directly without starting the dev console. Simply run `garden login` or `garden
 deploy --sync` from your terminal. This is e.g. how you'd use Garden in CI.
 {% endhint %}
+
+### Step 3b — Test the project without Kubernetes
+
+If you don't have Kubernetes on your machine you can still test Garden's `exec` actions which just run scripts on your machine.
+
+First checkout to the `no-k8s` branch with:
+
+```sh
+git checkout no-k8s
+```
+
+Then run:
+
+```
+garden test
+```
+
+Of course Garden is primarily used for developing and testing against Kubernetes environments and `exec` actions are usually used for things like auth scripts.
 
 ## Next Steps
 
