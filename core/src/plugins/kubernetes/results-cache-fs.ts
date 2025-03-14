@@ -6,16 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type {
-  CacheableAction,
-  CacheStorage,
-  ClearResultParams,
-  LoadResultParams,
-  SchemaVersion,
-  StoreResultParams,
-} from "./results-cache-base.js"
+import type { CacheStorage, SchemaVersion } from "./results-cache-base.js"
 import { CacheStorageError } from "./results-cache-base.js"
-import { AbstractResultCache } from "./results-cache-base.js"
 import fsExtra from "fs-extra"
 import { join } from "path"
 import writeFileAtomic from "write-file-atomic"
@@ -23,7 +15,6 @@ import { CACHE_DIR_NAME } from "../../constants.js"
 import type { Log } from "../../logger/log-entry.js"
 import { isErrnoException } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
-import type { AnyZodObject, z } from "zod"
 import type { JsonObject } from "type-fest"
 
 const { ensureDir, readFile, remove } = fsExtra
@@ -155,13 +146,4 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
 
 export function getLocalActionResultsCacheDir(gardenDirPath: string): string {
   return join(gardenDirPath, CACHE_DIR_NAME, "action-results")
-}
-
-export class LocalResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject> extends AbstractResultCache<
-  A,
-  ResultSchema
-> {
-  constructor({ cacheStorage, resultSchema }: { cacheStorage: CacheStorage; resultSchema: ResultSchema }) {
-    super({ cacheStorage, resultSchema })
-  }
 }

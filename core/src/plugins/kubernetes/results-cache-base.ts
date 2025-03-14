@@ -123,11 +123,11 @@ export interface CacheStorage {
   remove(key: string): Promise<void>
 }
 
-export abstract class AbstractResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject> {
+export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject> {
   private readonly cacheStorage: CacheStorage
   private readonly resultSchema: ResultSchema
 
-  protected constructor({ cacheStorage, resultSchema }: { cacheStorage: CacheStorage; resultSchema: ResultSchema }) {
+  constructor({ cacheStorage, resultSchema }: { cacheStorage: CacheStorage; resultSchema: ResultSchema }) {
     this.cacheStorage = cacheStorage
     this.resultSchema = resultSchema
   }
