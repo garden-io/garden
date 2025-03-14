@@ -1,4 +1,4 @@
 ---
-title: Deploy K8s resource
+title: Deploy K8s resources
 order: 5
 ---

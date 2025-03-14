@@ -1,5 +1,5 @@
 ---
-order: 1
+order: 5
 title: Migrating to Bonsai
 ---
 

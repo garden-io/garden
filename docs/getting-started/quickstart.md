@@ -1,5 +1,5 @@
 ---
-title: Quickstart Guide
+title: Quickstart
 order: 1
 ---
 

@@ -5,43 +5,19 @@
 ## Overview
 
 * [What is Garden](./overview/what-is-garden.md)
-* [Adopting Garden](./overview/adopting-garden.md)
+* [Use Cases](./overview/use-cases/README.md)
+  * [Isolated On-Demand Preview Environments](./overview/use-cases/on-demand-preview-envs.md)
+  * [Fast, Portable CI Pipelines that Run Anywhere](./overview/use-cases/portable-ci-pipelines.md)
+  * [Shift Testing Left](./overview/use-cases/shift-testing-left.md)
+  * [Local Development With Remote Clusters](./overview/use-cases/local-development-remote-clusters.md)
+  * [Jumpstart your Internal Developer Platform](./overview/use-cases/jumpstart-idp.md)
 * [Garden vs Other Tools](./overview/garden-vs-other-tools.md)
-
-## Use Cases
-
-* [Isolated On-Demand Preview Environments](./use-cases/on-demand-preview-envs.md)
-* [Fast, Portable CI Pipelines that Run Anywhere](./use-cases/portable-ci-pipelines.md)
-* [Shift Testing Left](./use-cases/shift-testing-left.md)
-* [Local Development With Remote Clusters](./use-cases/local-development-remote-clusters.md)
-* [Jumpstart your Internal Developer Platform](./use-cases/jumpstart-idp.md)
 
 ## Getting Started
 
-* [Quickstart Guide](./getting-started/quickstart.md)
+* [Quickstart](./getting-started/quickstart.md)
 * [Installing Garden](./getting-started/installation.md)
 * [Next Steps](./getting-started/next-steps.md)
-
-## Garden For
-
-* [Containers](./garden-for/containers.md)
-* [Kubernetes](./garden-for/kubernetes/README.md)
-  * [About](./garden-for/kubernetes/about.md)
-  * [Remote Kubernetes](./garden-for/kubernetes/remote-kubernetes.md)
-  * [Local Kubernetes](./garden-for/kubernetes/local-kubernetes.md)
-  * [Deploy K8s resource](./garden-for/kubernetes/deploy-k8s-resource.md)
-  * [Install Helm chart](./garden-for/kubernetes/install-helm-chart.md)
-  * [Run tests](./garden-for/kubernetes/run-tests.md)
-  * [Run tasks](./garden-for/kubernetes/run-tasks.md)
-* [Terraform](./garden-for/terraform/README.md)
-  * [About](./garden-for/terraform/about.md)
-  * [Plugin Configuration](./garden-for/terraform/configure-provider.md)
-  * [Actions](./garden-for/terraform/actions.md)
-* [Pulumi](./garden-for/pulumi/README.md)
-  * [About](./garden-for/pulumi/about.md)
-  * [Plugin Configuration](./garden-for/pulumi/configure-provider.md)
-  * [Actions](./garden-for/pulumi/actions.md)
-* [Local scripts](./garden-for/local-scripts.md)
 
 ## Tutorials
 
@@ -65,71 +41,38 @@
   * [3. Set Up Ingress, TLS and DNS](./tutorials/remote-k8s/ingress-and-dns.md)
   * [4. Configure the Provider](./tutorials/remote-k8s/configure-provider.md)
 
-## Using Garden
+## Using Garden For
 
-* [About](./using-garden/about.md)
-* [Configuration Overview](./using-garden/configuration-overview.md)
-* [Projects](./using-garden/projects.md)
-* [Dashboard](./using-garden/dashboard.md)
-* [Actions](./using-garden/actions.md)
-* [Tests](./using-garden/tests.md)
-* [Runs](./using-garden/runs.md)
-* [Workflows](./using-garden/workflows.md)
-* [Variables and templating](./using-garden/variables-and-templating.md)
-* [Config Templates](./using-garden/config-templates.md)
-* [Using the CLI](./using-garden/using-the-cli.md)
-* [Modules](./using-garden/modules.md)
-
-## Kubernetes Plugins
-
-* [About](./k8s-plugins/about.md)
-* [Local K8s Plugin Configuration](./k8s-plugins/local-k8s/README.md)
-  * [1. Install Local Kubernetes](./k8s-plugins/local-k8s/install.md)
-  * [2. Configure the Provider](./k8s-plugins/local-k8s/configure-provider.md)
-* [Ephemeral K8s Plugin Configuration](./k8s-plugins/ephemeral-k8s/README.md)
-  * [1. Configure the Provider](./k8s-plugins/ephemeral-k8s/configure-provider.md)
-  * [2. Login to the Garden dashboard](./k8s-plugins/ephemeral-k8s/login-web-dashboard.md)
-  * [3. Configure Ingress (optional)](./k8s-plugins/ephemeral-k8s/ingress.md)
-  * [4. Retrieve Kubeconfig (optional)](./k8s-plugins/ephemeral-k8s/retrieve-kubeconfig.md)
-* [Actions](./k8s-plugins/actions/README.md)
-  * [Build](./k8s-plugins/actions/build/README.md)
-    * [Container](./k8s-plugins/actions/build/container.md)
-  * [Deploy](./k8s-plugins/actions/deploy/README.md)
-    * [Kubernetes](./k8s-plugins/actions/deploy/kubernetes.md)
-    * [Helm](./k8s-plugins/actions/deploy/helm.md)
-    * [Container](./k8s-plugins/actions/deploy/container.md)
-    * [PersistentVolumeClaim](./k8s-plugins/actions/deploy/persistentvolumeclaim.md)
-    * [ConfigMap](./k8s-plugins/actions/deploy/configmap.md)
-  * [Run and Test](./k8s-plugins/actions/run-test/README.md)
-    * [Kubernetes Pod](./k8s-plugins/actions/run-test/kubernetes-pod.md)
-    * [Helm Pod](./k8s-plugins/actions/run-test/helm-pod.md)
-    * [Kubernetes Exec](./k8s-plugins/actions/run-test/kubernetes-exec.md)
-    * [Container](./k8s-plugins/actions/run-test/container.md)
-* [Guides](./k8s-plugins/guides/README.md)
-  * [In-Cluster Building](./k8s-plugins/guides/in-cluster-building.md)
-  * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/guides/rbac-config.md)
-  * [Deploying to Production](./k8s-plugins/guides/deploying-to-production.md)
-  * [Using a Registry Mirror](./k8s-plugins/guides/registry-mirror.md)
-
-## Other Plugins
-
-* [Container](./other-plugins/container.md)
-* [Exec (local scripts)](./other-plugins/exec.md)
+* [Containers](./garden-for/containers.md)
+* [Kubernetes](./garden-for/kubernetes/README.md)
+  * [About](./garden-for/kubernetes/about.md)
+  * [Remote Kubernetes](./garden-for/kubernetes/remote-kubernetes.md)
+  * [Local Kubernetes](./garden-for/kubernetes/local-kubernetes.md)
+  * [Deploy K8s resources](./garden-for/kubernetes/deploy-k8s-resource.md)
+  * [Install Helm charts](./garden-for/kubernetes/install-helm-chart.md)
+  * [Run tests](./garden-for/kubernetes/run-tests.md)
+  * [Run tasks](./garden-for/kubernetes/run-tasks.md)
+* [Terraform](./garden-for/terraform/README.md)
+  * [About](./garden-for/terraform/about.md)
+  * [Plugin Configuration](./garden-for/terraform/configure-provider.md)
+  * [Actions](./garden-for/terraform/actions.md)
+* [Pulumi](./garden-for/pulumi/README.md)
+  * [About](./garden-for/pulumi/about.md)
+  * [Plugin Configuration](./garden-for/pulumi/configure-provider.md)
+  * [Actions](./garden-for/pulumi/actions.md)
+* [Local scripts](./garden-for/local-scripts.md)
 
 ## Guides
 
-* [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
-* [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Deprecations and updating to Cedar](./guides/deprecations.md)
+* [Adopting Garden](./guides/adopting-garden.md)
 * [Code Synchronization](./guides/code-synchronization.md)
-* [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Environments and namespaces](./guides/namespaces.md)
+* [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CircleCI](./guides/using-garden-in-circleci.md)
-
-## Advanced
-
-* [Using Remote Sources](./advanced/using-remote-sources.md)
-* [Custom Commands](./advanced/custom-commands.md)
+* [Advanced](./guides/advanced/README.md)
+  * [Using Remote Sources](./guides/advanced/using-remote-sources.md)
+  * [Custom Commands](./guides/advanced/custom-commands.md)
 
 ## Reference
 
@@ -206,6 +149,7 @@
 * [Troubleshooting](./misc/troubleshooting.md)
 * [Telemetry](./misc/telemetry.md)
 * [New Garden Cloud Version](./misc/cloud-announcement.md)
+* [Migrating to Bonsai](./misc/migrating-to-bonsai.md)
 
 ## Contributing to Garden
 
@@ -219,3 +163,48 @@
 ## Dump
 
 * [Core Concepts](./dump/core-concepts.md)
+* [Using Garden](./dump/using-garden/README.md)
+  * [About](./dump/using-garden/about.md)
+  * [Configuration Overview](./dump/using-garden/configuration-overview.md)
+  * [Projects](./dump/using-garden/projects.md)
+  * [Dashboard](./dump/using-garden/dashboard.md)
+  * [Actions](./dump/using-garden/actions.md)
+  * [Tests](./dump/using-garden/tests.md)
+  * [Runs](./dump/using-garden/runs.md)
+  * [Workflows](./dump/using-garden/workflows.md)
+  * [Variables and templating](./dump/using-garden/variables-and-templating.md)
+  * [Config Templates](./dump/using-garden/config-templates.md)
+  * [Using the CLI](./dump/using-garden/using-the-cli.md)
+  * [Modules](./dump/using-garden/modules.md)
+* [Kubernetes Plugins](./dump/k8s-plugins/README.md)
+  * [About](./dump/k8s-plugins/about.md)
+  * [Local K8s Plugin Configuration](./dump/k8s-plugins/local-k8s/README.md)
+    * [1. Install Local Kubernetes](./dump/k8s-plugins/local-k8s/install.md)
+    * [2. Configure the Provider](./dump/k8s-plugins/local-k8s/configure-provider.md)
+  * [Ephemeral K8s Plugin Configuration](./dump/k8s-plugins/ephemeral-k8s/README.md)
+    * [1. Configure the Provider](./dump/k8s-plugins/ephemeral-k8s/configure-provider.md)
+    * [2. Login to the Garden dashboard](./dump/k8s-plugins/ephemeral-k8s/login-web-dashboard.md)
+    * [3. Configure Ingress (optional)](./dump/k8s-plugins/ephemeral-k8s/ingress.md)
+    * [4. Retrieve Kubeconfig (optional)](./dump/k8s-plugins/ephemeral-k8s/retrieve-kubeconfig.md)
+  * [Actions](./dump/k8s-plugins/actions/README.md)
+    * [Build](./dump/k8s-plugins/actions/build/README.md)
+      * [Container](./dump/k8s-plugins/actions/build/container.md)
+    * [Deploy](./dump/k8s-plugins/actions/deploy/README.md)
+      * [Kubernetes](./dump/k8s-plugins/actions/deploy/kubernetes.md)
+      * [Helm](./dump/k8s-plugins/actions/deploy/helm.md)
+      * [Container](./dump/k8s-plugins/actions/deploy/container.md)
+      * [PersistentVolumeClaim](./dump/k8s-plugins/actions/deploy/persistentvolumeclaim.md)
+      * [ConfigMap](./dump/k8s-plugins/actions/deploy/configmap.md)
+    * [Run and Test](./dump/k8s-plugins/actions/run-test/README.md)
+      * [Kubernetes Pod](./dump/k8s-plugins/actions/run-test/kubernetes-pod.md)
+      * [Helm Pod](./dump/k8s-plugins/actions/run-test/helm-pod.md)
+      * [Kubernetes Exec](./dump/k8s-plugins/actions/run-test/kubernetes-exec.md)
+      * [Container](./dump/k8s-plugins/actions/run-test/container.md)
+  * [Guides](./dump/k8s-plugins/guides/README.md)
+    * [In-Cluster Building](./dump/k8s-plugins/guides/in-cluster-building.md)
+    * [Minimal RBAC Configuration for Development Clusters](./dump/k8s-plugins/guides/rbac-config.md)
+    * [Deploying to Production](./dump/k8s-plugins/guides/deploying-to-production.md)
+    * [Using a Registry Mirror](./dump/k8s-plugins/guides/registry-mirror.md)
+* [Other Plugins](./dump/other-plugins/README.md)
+  * [Container](./dump/other-plugins/container.md)
+  * [Exec (local scripts)](./dump/other-plugins/exec.md)

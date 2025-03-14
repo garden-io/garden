@@ -1,6 +1,6 @@
 ---
 title: Adopting Garden
-order: 5
+order: 3
 ---
 
 # Adopting Garden
