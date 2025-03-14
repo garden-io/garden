@@ -24,7 +24,7 @@ import type { CreateEventLogParams, StringLogLevel } from "./logger/logger.js"
 import { EventLogger, LogLevel } from "./logger/logger.js"
 import { Memoize } from "typescript-memoize"
 import type { ParameterObject, ParameterValues } from "./cli/params.js"
-import type { NamespaceStatus } from "./types/namespace.js"
+import type { EventNamespaceStatus } from "./types/namespace.js"
 import type { ParsedTemplate, ResolvedTemplate } from "./template/types.js"
 import { deepEvaluate } from "./template/evaluate.js"
 
@@ -138,7 +138,7 @@ type PluginEvents = {
   done: () => void
   failed: (error?: Error) => void
   log: (msg: PluginEventLogMessage) => void
-  namespaceStatus: (status: NamespaceStatus) => void
+  namespaceStatus: (status: EventNamespaceStatus) => void
 }
 
 type PluginEventType = keyof PluginEvents
@@ -168,7 +168,7 @@ export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventTyp
     // resolution (where `prepareEnvironment` is called, see `ResolveProviderTask`) and inside action handlers.
     //
     // Note: If any other plugin events without action-specific metadata are needed, they should be added here.
-    this.on("namespaceStatus", (status: NamespaceStatus) => {
+    this.on("namespaceStatus", (status: EventNamespaceStatus) => {
       this.garden.events.emit("namespaceStatus", status)
     })
 

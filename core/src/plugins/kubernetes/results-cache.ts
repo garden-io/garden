@@ -5,60 +5,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+import { getLocalActionResultsCacheDir, SimpleLocalFileSystemCacheStorage } from "./results-cache-fs.js"
+import type { CacheableRunAction, CacheableTestAction, KubernetesCacheEntrySchema } from "./results-cache-base.js"
+import { ResultCache } from "./results-cache-base.js"
+import { currentResultSchemaVersion, kubernetesCacheEntrySchema } from "./results-cache-base.js"
 
-import type { PluginContext } from "../../plugin-context.js"
-import type { Log } from "../../logger/log-entry.js"
-import type { Action, ActionStatus } from "../../actions/types.js"
-import type { RunResult } from "../../plugin/base.js"
-import type { NamespaceStatus } from "../../types/namespace.js"
-import type { RunAction } from "../../actions/run.js"
-import type { TestAction } from "../../actions/test.js"
-import { runResultToActionState } from "../../actions/base.js"
+let resultCache: ResultCache<CacheableRunAction | CacheableTestAction, KubernetesCacheEntrySchema> | undefined
 
-export type CacheableResult = RunResult & {
-  namespaceStatus: NamespaceStatus
-  actionName: string
-}
+export function getResultCache(gardenDirPath: string) {
+  if (resultCache === undefined) {
+    const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
+    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
+      cacheDir,
+      schemaVersion: currentResultSchemaVersion,
+    })
 
-export interface LoadResultParams<A extends RunAction | TestAction> {
-  ctx: PluginContext
-  log: Log
-  action: A
-}
-
-export type ClearResultParams<A extends RunAction | TestAction> = LoadResultParams<A>
-
-export interface StoreResultParams<A extends RunAction | TestAction, R extends CacheableResult> {
-  ctx: PluginContext
-  log: Log
-  action: A
-  result: R
-}
-
-export function composeCacheableResult({
-  result,
-  action,
-  namespaceStatus,
-}: {
-  result: RunResult
-  action: Action
-  namespaceStatus: NamespaceStatus
-}): CacheableResult {
-  return {
-    ...result,
-    namespaceStatus,
-    actionName: action.name,
+    resultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
   }
-}
-
-export function toActionStatus<T extends CacheableResult>(detail: T): ActionStatus {
-  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
-}
-
-export interface ResultCache<A extends RunAction | TestAction, R extends CacheableResult> {
-  load(params: LoadResultParams<A>): Promise<R | undefined>
-
-  store(params: StoreResultParams<A, R>): Promise<R>
-
-  clear(param: ClearResultParams<A>): Promise<void>
+  return resultCache
 }

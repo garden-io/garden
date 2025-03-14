@@ -33,7 +33,7 @@ import {
   ensureServiceAccount,
   cycleDeployment,
 } from "./common.js"
-import { getNamespaceStatus } from "../../namespace.js"
+import { getAppNamespace } from "../../namespace.js"
 import { sleep } from "../../../../util/util.js"
 import type { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig.js"
 import { getDockerBuildArgs, getDockerSecrets } from "../../../container/build.js"
@@ -68,7 +68,7 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   const provider = k8sCtx.provider
 
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
 
   const { authSecret } = await ensureBuildkit({
     ctx,
@@ -97,7 +97,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
 
   await ensureBuildkit({
     ctx,

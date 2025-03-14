@@ -6,14 +6,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export type NamespaceState = "ready" | "missing"
+import { z } from "zod"
 
-// When needed, we can make this type generic and add e.g. a detail for plugin-specific metadata.
-export interface NamespaceStatus {
-  pluginName: string
-  namespaceName: string
-  state: NamespaceState
-}
+const baseNamespaceStatusSchema = z.object({
+  pluginName: z.string(),
+  namespaceName: z.string(),
+})
+
+export const namespaceStatusSchema = z.discriminatedUnion("state", [
+  baseNamespaceStatusSchema.extend({
+    namespaceUid: z.string().uuid(),
+    state: z.literal("ready"),
+  }),
+  baseNamespaceStatusSchema.extend({
+    namespaceUid: z.undefined(),
+    state: z.literal("missing"),
+  }),
+])
+
+export type NamespaceStatus = z.infer<typeof namespaceStatusSchema>
+
+export type EventNamespaceStatus = Omit<NamespaceStatus, "namespaceUid">
 
 export function environmentToString({ environmentName, namespace }: { environmentName: string; namespace?: string }) {
   return namespace ? `${environmentName}.${namespace}` : environmentName

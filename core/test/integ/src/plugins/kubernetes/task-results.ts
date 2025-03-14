@@ -12,13 +12,12 @@ import type { KubernetesConfig } from "../../../../../src/plugins/kubernetes/con
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import { randomString } from "../../../../../src/util/string.js"
 import { expect } from "chai"
-import {
-  composeCacheableRunResult,
-  k8sGetRunResult,
-  runResultCache,
-} from "../../../../../src/plugins/kubernetes/run-results.js"
+import { k8sGetRunResult } from "../../../../../src/plugins/kubernetes/run-results.js"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
+import { composeKubernetesCacheEntry } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
+import { getResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
+import { uuid } from "@segment/analytics-node/dist/types/lib/uuid.js"
 
 describe("kubernetes Run results", () => {
   let garden: Garden
@@ -37,7 +36,7 @@ describe("kubernetes Run results", () => {
     garden.close()
   })
 
-  describe("RunResultCache", () => {
+  describe("run-result logs trimming", () => {
     it("should trim logs when necessary", async () => {
       const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -45,7 +44,7 @@ describe("kubernetes Run results", () => {
 
       const data = randomString(1024 * 1024)
 
-      const result = composeCacheableRunResult({
+      const result = composeKubernetesCacheEntry({
         result: {
           // command: [],
           log: data,
@@ -53,15 +52,16 @@ describe("kubernetes Run results", () => {
           completedAt: new Date(),
           success: true,
         },
-        action,
         // mock data
         namespaceStatus: {
           pluginName: provider.name,
           namespaceName: ctx.namespace,
+          namespaceUid: uuid(),
           state: "ready",
         },
         // version: task.version,
       })
+      const runResultCache = getResultCache(ctx.gardenDirPath)
       const trimmed = await runResultCache.store({
         ctx,
         log: garden.log,
@@ -69,7 +69,8 @@ describe("kubernetes Run results", () => {
         result,
       })
 
-      expect(trimmed.log.length).to.be.lte(MAX_RUN_RESULT_LOG_LENGTH)
+      expect(trimmed).to.be.not.undefined
+      expect(trimmed!.log.length).to.be.lte(MAX_RUN_RESULT_LOG_LENGTH)
       const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
       const stored = await k8sGetRunResult({
@@ -79,10 +80,10 @@ describe("kubernetes Run results", () => {
       })
 
       expect(stored).to.exist
-      expect(stored!.detail?.log.length).to.equal(trimmed.log.length)
+      expect(stored!.detail?.log.length).to.equal(trimmed!.log.length)
 
       const outputsLog = stored!.outputs.log as string
-      expect(outputsLog.length).to.equal(trimmed.log.length)
+      expect(outputsLog.length).to.equal(trimmed!.log.length)
     })
   })
 })

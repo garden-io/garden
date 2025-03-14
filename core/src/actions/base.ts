@@ -26,6 +26,7 @@ import {
 import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
 import { dedent, deline, naturalList, stableStringify } from "../util/string.js"
 import type { ActionVersion, ModuleVersion, TreeVersion } from "../vcs/vcs.js"
+import { fullHashStrings, SHORT_VERSION_HASH_LENGTH } from "../vcs/vcs.js"
 import { getActionSourcePath, hashStrings, versionStringPrefix } from "../vcs/vcs.js"
 import type { BuildAction, ResolvedBuildAction } from "./build.js"
 import type { ActionKind } from "../plugin/action-types.js"
@@ -554,12 +555,15 @@ export abstract class BaseAction<
 
     const configVersion = this.configVersion()
     const sourceVersion = this._treeVersion.contentHash
-    const versionString = versionStringPrefix + hashStrings([configVersion, sourceVersion, ...flatten(sortedDeps)])
+    const fullHash = fullHashStrings([configVersion, sourceVersion, ...flatten(sortedDeps)])
+    const versionString = versionStringPrefix + fullHash.slice(0, SHORT_VERSION_HASH_LENGTH)
+    const versionStringFull = versionStringPrefix + fullHash
 
     return {
       configVersion,
       sourceVersion,
       versionString,
+      versionStringFull,
       dependencyVersions,
       files: this._treeVersion.files,
     }
@@ -597,6 +601,10 @@ export abstract class BaseAction<
 
   versionString(): string {
     return this.getFullVersion().versionString
+  }
+
+  versionStringFull(): string {
+    return this.getFullVersion().versionStringFull
   }
 
   getInternal(): BaseActionConfig["internal"] {

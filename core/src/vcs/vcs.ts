@@ -82,6 +82,7 @@ export interface ModuleVersion extends TreeVersion {
 
 export interface ActionVersion {
   versionString: string
+  versionStringFull: string
   dependencyVersions: DependencyVersions
   configVersion: string
   sourceVersion: string
@@ -433,10 +434,16 @@ export function getEntityVersion(module: GardenModule, entityConfig: ServiceConf
   return `${versionStringPrefix}${hashStrings([module.version.versionString, configString])}`
 }
 
-export function hashStrings(hashes: string[]) {
+export const SHORT_VERSION_HASH_LENGTH = 10
+
+export function hashStrings(strings: string[]) {
+  return fullHashStrings(strings).slice(0, SHORT_VERSION_HASH_LENGTH)
+}
+
+export function fullHashStrings(strings: string[]) {
   const versionHash = createHash("sha256")
-  versionHash.update(hashes.join("."))
-  return versionHash.digest("hex").slice(0, 10)
+  versionHash.update(strings.join("."))
+  return versionHash.digest("hex")
 }
 
 export function getResourceTreeCacheKey(config: ModuleConfig | BaseActionConfig) {

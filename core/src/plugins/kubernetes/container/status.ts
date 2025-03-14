@@ -12,7 +12,7 @@ import type { ContainerDeployAction, ContainerDeployOutputs } from "../../contai
 import { KubeApi } from "../api.js"
 import { compareDeployedResources } from "../status/status.js"
 import { getIngresses } from "./ingress.js"
-import { getNamespaceStatus } from "../namespace.js"
+import { getAppNamespace } from "../namespace.js"
 import type { KubernetesPluginContext } from "../config.js"
 import type { KubernetesServerResource, KubernetesWorkload } from "../types.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
@@ -36,8 +36,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
-  const namespace = namespaceStatus.namespaceName
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const imageId = getDeployedImageId(action)
 
   // FIXME: [objects, matched] and ingresses can be run in parallel

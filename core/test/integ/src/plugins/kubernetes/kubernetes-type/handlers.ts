@@ -49,7 +49,7 @@ import {
   GardenApiVersion,
 } from "../../../../../../src/constants.js"
 import type { ActionModeMap } from "../../../../../../src/actions/types.js"
-import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
+import type { EventNamespaceStatus } from "../../../../../../src/types/namespace.js"
 import stripAnsi from "strip-ansi"
 import type { DeployActionConfig } from "../../../../../../src/actions/deploy.js"
 
@@ -387,7 +387,7 @@ describe("kubernetes-type handlers", () => {
       const { deployParams } = await prepareActionDeployParams("module-simple", {})
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
-      let namespaceStatus: NamespaceStatus | null = null
+      let namespaceStatus: EventNamespaceStatus | null = null
       ctx.events.once("namespaceStatus", (s) => (namespaceStatus = s))
       const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
