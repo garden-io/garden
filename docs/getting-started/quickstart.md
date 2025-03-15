@@ -73,7 +73,7 @@ garden login
 
 Now we can deploy the example project to our local Kubernetes cluster. If you don't have one, you can follow the [instructions here](../guides/install-local-kubernetes.md) to install one or simply hop to step 3b.
 
-Next, start the **dev console** by running:
+First, start the **dev console** by running:
 
 ```sh
 garden dev
