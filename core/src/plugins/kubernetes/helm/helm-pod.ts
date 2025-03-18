@@ -8,7 +8,7 @@
 
 import dedent from "dedent"
 import type { Resolved } from "../../../actions/types.js"
-import { ConfigurationError } from "../../../exceptions.js"
+import { ConfigurationError, InternalError } from "../../../exceptions.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
 import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
@@ -47,10 +47,16 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
         provider: k8sCtx.provider,
       })
 
+      if (namespaceStatus.state !== "ready") {
+        throw new InternalError({
+          message: `Expected namespace state to be "ready", but got "${namespaceStatus.state}" instead.`,
+        })
+      }
+
       const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
-      if (action.getSpec("cacheResult") && namespaceStatus.state === "ready") {
+      if (action.getSpec("cacheResult")) {
         const runResultCache = await getRunResultCache(ctx.gardenDirPath)
         await runResultCache.store({
           ctx,

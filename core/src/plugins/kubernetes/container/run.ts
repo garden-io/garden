@@ -15,6 +15,7 @@ import type { RunActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
 import { composeKubernetesCacheEntry } from "../results-cache-base.js"
 import { getRunResultCache } from "../results-cache.js"
+import { InternalError } from "../../../exceptions.js"
 
 export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params
@@ -25,6 +26,12 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
   const k8sCtx = ctx as KubernetesPluginContext
   const image = getDeployedImageId(action)
   const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
+
+  if (namespaceStatus.state !== "ready") {
+    throw new InternalError({
+      message: `Expected namespace state to be "ready", but got "${namespaceStatus.state}" instead.`,
+    })
+  }
 
   const result = await runAndCopy({
     ...params,
@@ -45,7 +52,7 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
 
   const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
-  if (action.getSpec("cacheResult") && namespaceStatus.state === "ready") {
+  if (action.getSpec("cacheResult")) {
     const runResultCache = await getRunResultCache(ctx.gardenDirPath)
     await runResultCache.store({
       ctx,

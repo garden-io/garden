@@ -34,6 +34,7 @@ import { k8sGetTestResult } from "../test-results.js"
 import { composeKubernetesCacheEntry } from "../results-cache-base.js"
 import { getRunResultCache, getTestResultCache } from "../results-cache.js"
 import { toActionStatus } from "../util.js"
+import { InternalError } from "../../../exceptions.js"
 
 // RUN //
 
@@ -115,10 +116,16 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
         provider: k8sCtx.provider,
       })
 
+      if (namespaceStatus.state !== "ready") {
+        throw new InternalError({
+          message: `Expected namespace state to be "ready", but got "${namespaceStatus.state}" instead.`,
+        })
+      }
+
       const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
-      if (action.getSpec("cacheResult") && namespaceStatus.state === "ready") {
+      if (action.getSpec("cacheResult")) {
         const runResultCache = await getRunResultCache(ctx.gardenDirPath)
         await runResultCache.store({
           ctx,
