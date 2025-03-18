@@ -30,7 +30,7 @@ import { Memoize } from "typescript-memoize"
 import type { ParameterObject, ParameterValues } from "./cli/params.js"
 import type { ParsedTemplate, ResolvedTemplate } from "./template/types.js"
 import { deepEvaluate } from "./template/evaluate.js"
-import type { NamespaceStatus } from "./types/namespace.js"
+import type { BaseNamespaceStatus } from "./types/namespace.js"
 
 export type WrappedFromGarden = Pick<
   Garden,
@@ -135,7 +135,7 @@ export type PluginEventLogMessage = PluginEventLogContext & {
   msg: string
 }
 
-export type EventNamespaceStatus = Omit<NamespaceStatus, "namespaceUid">
+export type EventNamespaceStatus = BaseNamespaceStatus
 
 // Define your emitter's types as follows:
 // Key: Event name; Value: Listener function signature

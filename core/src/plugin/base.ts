@@ -15,12 +15,12 @@ import type { BuildAction } from "../actions/build.js"
 import type { DeployAction } from "../actions/deploy.js"
 import type { RunAction } from "../actions/run.js"
 import type { TestAction } from "../actions/test.js"
-import { namespaceStatusSchema } from "../types/namespace.js"
 import type Joi from "@hapi/joi"
 import { memoize } from "lodash-es"
 import type { BaseProviderConfig } from "../config/provider.js"
 import { z } from "zod"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../plugins/kubernetes/constants.js"
+import { baseNamespaceStatusSchema } from "../types/namespace.js"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -163,7 +163,7 @@ export const runResultSchemaZod = z.object({
   completedAt: z.coerce.date(),
   log: z.string().transform((arg) => tailString(arg, MAX_RUN_RESULT_LOG_LENGTH, true)),
   diagnosticErrorMsg: z.string().optional(),
-  namespaceStatus: namespaceStatusSchema.optional(),
+  namespaceStatus: baseNamespaceStatusSchema.optional(),
 })
 
 export type RunResult = z.infer<typeof runResultSchemaZod>

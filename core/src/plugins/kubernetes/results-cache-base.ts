@@ -11,10 +11,11 @@ import type { Log } from "../../logger/log-entry.js"
 import type { RunResult } from "../../plugin/base.js"
 import { runResultSchemaZod } from "../../plugin/base.js"
 import type { NamespaceStatus } from "../../types/namespace.js"
-import { namespaceStatusSchema } from "../../types/namespace.js"
+import { baseNamespaceStatusSchema } from "../../types/namespace.js"
 import type { RunAction } from "../../actions/run.js"
 import type { TestAction } from "../../actions/test.js"
-import type { AnyZodObject, z } from "zod"
+import type { AnyZodObject } from "zod"
+import type { z } from "zod"
 import { deline, stableStringify } from "../../util/string.js"
 import type { ContainerRunAction, ContainerTestAction } from "../container/config.js"
 import type { KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
@@ -23,6 +24,7 @@ import { renderZodError } from "../../config/zod.js"
 import type { JsonObject } from "type-fest"
 import { GardenError } from "../../exceptions.js"
 import { fullHashStrings } from "../../vcs/vcs.js"
+import { omit } from "lodash-es"
 
 export type CacheableAction = RunAction | TestAction
 
@@ -39,10 +41,11 @@ export type SchemaVersion = `v${number}`
 export const currentResultSchemaVersion: SchemaVersion = "v1"
 
 export const kubernetesCacheEntrySchema = runResultSchemaZod.extend({
-  namespaceStatus: namespaceStatusSchema,
+  namespaceStatus: baseNamespaceStatusSchema,
 })
 
 export type KubernetesCacheEntrySchema = typeof kubernetesCacheEntrySchema
+export type KubernetesCacheEntry = z.input<typeof kubernetesCacheEntrySchema>
 
 export function composeKubernetesCacheEntry({
   result,
@@ -50,10 +53,10 @@ export function composeKubernetesCacheEntry({
 }: {
   result: RunResult
   namespaceStatus: NamespaceStatus
-}): z.input<KubernetesCacheEntrySchema> {
+}): KubernetesCacheEntry {
   return {
     ...result,
-    namespaceStatus,
+    namespaceStatus: omit(namespaceStatus, "namespaceUid"),
   }
 }
 

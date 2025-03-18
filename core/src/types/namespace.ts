@@ -11,7 +11,9 @@ import { z } from "zod"
 export const baseNamespaceStatusSchema = z.object({
   pluginName: z.string(),
   namespaceName: z.string(),
+  state: z.union([z.literal("ready"), z.literal("missing")]),
 })
+export type BaseNamespaceStatus = z.infer<typeof baseNamespaceStatusSchema>
 
 export const namespaceStatusSchema = z.discriminatedUnion("state", [
   baseNamespaceStatusSchema.extend({
@@ -23,7 +25,6 @@ export const namespaceStatusSchema = z.discriminatedUnion("state", [
     state: z.literal("missing"),
   }),
 ])
-
 export type NamespaceStatus = z.infer<typeof namespaceStatusSchema>
 
 export function environmentToString({ environmentName, namespace }: { environmentName: string; namespace?: string }) {
