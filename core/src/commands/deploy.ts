@@ -61,17 +61,10 @@ export const deployOpts = {
     },
   }),
   "local-mode": new StringsParameter({
-    help: dedent`
-    [EXPERIMENTAL] The name(s) of Deploy(s) to be started locally with local mode enabled.
-
-    You may specify multiple Deploys by setting this flag multiple times. Use * to deploy all Deploys with local mode enabled. When this option is used,
-    the command stays running until explicitly aborted.
-
-    This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both \`--sync\` and \`--local\` options.
-    `,
+    help: "This feature was removed.",
     aliases: ["local"],
-    getSuggestions: ({ configDump }) => {
-      return Object.keys(configDump.actionConfigs.Deploy)
+    getSuggestions: () => {
+      return []
     },
   }),
   "skip": new StringsParameter({
