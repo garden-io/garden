@@ -1,11 +1,7 @@
 apiVersion: garden.io/v1
 kind: Project
 name: include-exclude
-# 0.13: the new dotIgnoreFile field always takes precedence over the old `dotIgnoreFiles`
 dotIgnoreFile: .customignore
-# TODO: remove dotIgnoreFiles in 0.14
-# Non-existing file won't cause an error here, because `dotIgnoreFile` takes the precedence
-dotIgnoreFiles: [.non-existing-customignore]
 environments:
   - name: local
 providers:
