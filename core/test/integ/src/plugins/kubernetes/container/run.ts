@@ -89,7 +89,6 @@ describe("runContainerTask", () => {
     expect(result!.result!.detail?.log.trim()).to.equal("ok\nbear")
     expect(result!.result).to.have.property("outputs")
     expect(result!.result!.outputs.log.trim()).to.equal("ok\nbear")
-    expect(result!.result!.detail?.namespaceStatus).to.exist
     expect(logEvent).to.exist
 
     // Verify that the result was saved

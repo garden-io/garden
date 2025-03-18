@@ -48,8 +48,6 @@ describe("Helm Pod Test", () => {
     expect(result).to.exist
     expect(result?.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus).to.exist
-    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.eq("helm-test-default")
   })
 
   it("should run a test in a different namespace, if configured", async () => {
@@ -70,8 +68,6 @@ describe("Helm Pod Test", () => {
     expect(result).to.exist
     expect(result?.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal(action.getConfig().spec.namespace)
-    expect(result!.result!.detail?.namespaceStatus).to.exist
-    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.eq(action.getConfig().spec.namespace)
   })
 
   it("should fail if an error occurs, but store the result", async () => {

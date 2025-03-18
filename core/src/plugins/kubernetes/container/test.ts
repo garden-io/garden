@@ -13,7 +13,6 @@ import { getNamespaceStatus } from "../namespace.js"
 import type { KubernetesPluginContext } from "../config.js"
 import type { TestActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
-import { composeKubernetesCacheEntry } from "../results-cache-base.js"
 import { getTestResultCache } from "../results-cache.js"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
@@ -43,8 +42,6 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     dropCapabilities,
   })
 
-  const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
-
   if (action.getSpec("cacheResult")) {
     const testResultCache = await getTestResultCache(ctx.gardenDirPath)
     await testResultCache.store({
@@ -52,9 +49,9 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
       log,
       action,
       keyData: undefined,
-      result: detail,
+      result,
     })
   }
 
-  return toActionStatus(detail)
+  return toActionStatus(result)
 }

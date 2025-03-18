@@ -47,7 +47,6 @@ describe("kubernetes-type exec Run", () => {
     expect(result?.result).to.exist
     expect(result?.outputs).to.exist
     expect(result?.result?.outputs.log).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus).to.exist
   })
 
   it("should run a command in a pod specified by podSelector", async () => {
@@ -71,6 +70,5 @@ describe("kubernetes-type exec Run", () => {
     expect(result?.result).to.exist
     expect(result?.outputs).to.exist
     expect(result?.result?.outputs.log).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus).to.exist
   })
 })

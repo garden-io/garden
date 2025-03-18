@@ -73,7 +73,6 @@ describe("Helm Pod Run", () => {
     expect(result?.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal("ok")
     expect(result!.result!.outputs.log.trim()).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus).to.exist
 
     // We also verify that result was saved.
     const actions = await garden.getActionRouter()

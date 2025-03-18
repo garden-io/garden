@@ -180,7 +180,6 @@ async function readAndExec({
     exitCode: res.code,
     startedAt,
     completedAt,
-    namespaceStatus,
     log: execLog,
   }
 }

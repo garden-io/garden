@@ -20,7 +20,6 @@ import { memoize } from "lodash-es"
 import type { BaseProviderConfig } from "../config/provider.js"
 import { z } from "zod"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../plugins/kubernetes/constants.js"
-import { baseNamespaceStatusSchema } from "../types/namespace.js"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -163,7 +162,6 @@ export const runResultSchemaZod = z.object({
   completedAt: z.coerce.date(),
   log: z.string().transform((arg) => tailString(arg, MAX_RUN_RESULT_LOG_LENGTH, true)),
   diagnosticErrorMsg: z.string().optional(),
-  namespaceStatus: baseNamespaceStatusSchema.optional(),
 })
 
 export type RunResult = z.infer<typeof runResultSchemaZod>

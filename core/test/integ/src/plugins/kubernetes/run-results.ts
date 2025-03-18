@@ -15,7 +15,6 @@ import { expect } from "chai"
 import { k8sGetRunResult } from "../../../../../src/plugins/kubernetes/run-results.js"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
-import { composeKubernetesCacheEntry } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
 import { getRunResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
 import { getNamespaceStatus } from "../../../../../src/plugins/kubernetes/namespace.js"
 
@@ -49,21 +48,12 @@ describe("kubernetes Run results", () => {
       expect(namespaceStatus.namespaceUid).to.be.not.undefined
       const namespaceUid = namespaceStatus.namespaceUid!
 
-      const result = composeKubernetesCacheEntry({
-        result: {
-          log: data,
-          startedAt: new Date(),
-          completedAt: new Date(),
-          success: true,
-        },
-        // mock data
-        namespaceStatus: {
-          pluginName: provider.name,
-          namespaceName: ctx.namespace,
-          namespaceUid,
-          state: "ready",
-        },
-      })
+      const result = {
+        log: data,
+        startedAt: new Date(),
+        completedAt: new Date(),
+        success: true,
+      }
       const runResultCache = await getRunResultCache(ctx.gardenDirPath)
       const trimmed = await runResultCache.store({
         ctx,

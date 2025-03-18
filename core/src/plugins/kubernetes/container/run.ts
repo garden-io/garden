@@ -13,7 +13,6 @@ import { makePodName, toActionStatus } from "../util.js"
 import { getNamespaceStatus } from "../namespace.js"
 import type { RunActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
-import { composeKubernetesCacheEntry } from "../results-cache-base.js"
 import { getRunResultCache } from "../results-cache.js"
 import { InternalError } from "../../../exceptions.js"
 
@@ -50,8 +49,6 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     dropCapabilities,
   })
 
-  const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
-
   if (action.getSpec("cacheResult")) {
     const runResultCache = await getRunResultCache(ctx.gardenDirPath)
     await runResultCache.store({
@@ -59,9 +56,9 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
       log,
       action,
       keyData: { namespaceUid: namespaceStatus.namespaceUid },
-      result: detail,
+      result,
     })
   }
 
-  return toActionStatus(detail)
+  return toActionStatus(result)
 }

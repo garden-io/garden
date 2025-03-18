@@ -31,7 +31,6 @@ import { kustomizeSpecSchema } from "./kustomize.js"
 import type { ObjectSchema } from "@hapi/joi"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
 import { k8sGetTestResult } from "../test-results.js"
-import { composeKubernetesCacheEntry } from "../results-cache-base.js"
 import { getRunResultCache, getTestResultCache } from "../results-cache.js"
 import { toActionStatus } from "../util.js"
 import { InternalError } from "../../../exceptions.js"
@@ -123,7 +122,6 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
       }
 
       const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
-      const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         const runResultCache = await getRunResultCache(ctx.gardenDirPath)
@@ -134,11 +132,11 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
           keyData: {
             namespaceUid: namespaceStatus.namespaceUid,
           },
-          result: detail,
+          result,
         })
       }
 
-      return toActionStatus(detail)
+      return toActionStatus(result)
     },
 
     getResult: k8sGetRunResult,
@@ -172,7 +170,6 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
       })
 
       const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
-      const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
         const testResultCache = await getTestResultCache(ctx.gardenDirPath)
@@ -181,11 +178,11 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
           log,
           action,
           keyData: undefined,
-          result: detail,
+          result,
         })
       }
 
-      return toActionStatus(detail)
+      return toActionStatus(result)
     },
 
     getResult: k8sGetTestResult,
