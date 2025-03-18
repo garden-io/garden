@@ -24,10 +24,7 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
   const timeout = action.getConfig("timeout")
   const k8sCtx = ctx as KubernetesPluginContext
   const image = getDeployedImageId(action)
-  let namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
-  if (namespaceStatus.state === "missing") {
-    // return { state: "not-ready", detail: null, outputs: { log: "" } }
-  }
+  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
   const result = await runAndCopy({
     ...params,
@@ -46,17 +43,15 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     dropCapabilities,
   })
 
-  namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
-
   const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
-  if (action.getSpec("cacheResult")) {
+  if (action.getSpec("cacheResult") && namespaceStatus.state === "ready") {
     const runResultCache = await getRunResultCache(ctx.gardenDirPath)
     await runResultCache.store({
       ctx,
       log,
       action,
-      keyData: { namespaceUid: namespaceStatus.namespaceUid! },
+      keyData: { namespaceUid: namespaceStatus.namespaceUid },
       result: detail,
     })
   }

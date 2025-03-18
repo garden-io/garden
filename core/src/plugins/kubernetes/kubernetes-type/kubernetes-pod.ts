@@ -114,16 +114,11 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
         action,
         provider: k8sCtx.provider,
       })
-      if (namespaceStatus.state === "missing") {
-        return { state: "not-ready", detail: null, outputs: { log: "" } }
-      }
 
-      const namespace = namespaceStatus.namespaceName
-      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
-
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
-      if (action.getSpec("cacheResult")) {
+      if (action.getSpec("cacheResult") && namespaceStatus.state === "ready") {
         const runResultCache = await getRunResultCache(ctx.gardenDirPath)
         await runResultCache.store({
           ctx,
@@ -168,10 +163,8 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
         action,
         provider: k8sCtx.provider,
       })
-      const namespace = namespaceStatus.namespaceName
 
-      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
-
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {

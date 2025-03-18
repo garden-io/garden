@@ -46,16 +46,11 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
         action,
         provider: k8sCtx.provider,
       })
-      if (namespaceStatus.state === "missing") {
-        return { state: "not-ready", detail: null, outputs: { log: "" } }
-      }
 
-      const namespace = namespaceStatus.namespaceName
-      const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
-
+      const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
-      if (action.getSpec("cacheResult")) {
+      if (action.getSpec("cacheResult") && namespaceStatus.state === "ready") {
         const runResultCache = await getRunResultCache(ctx.gardenDirPath)
         await runResultCache.store({
           ctx,
@@ -95,9 +90,7 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
         provider: k8sCtx.provider,
       })
 
-      const namespace = namespaceStatus.namespaceName
-      const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
-
+      const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
