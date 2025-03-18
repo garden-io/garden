@@ -196,7 +196,7 @@ export interface RunStatusForEventPayload {
 }
 
 export const outputSchemaDocs = dedent`
-  The schema must be a single level object, with string keys. Each vaue must be a primitive (null, boolean, number or string).
+  The schema must be a single level object, with string keys. Each value must be a primitive (null, boolean, number or string).
 
   If no schema is provided, an error may be thrown if a plugin handler attempts to return an output key.
 
