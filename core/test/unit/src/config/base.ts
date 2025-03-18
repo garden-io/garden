@@ -19,7 +19,6 @@ import {
 import { resolve, join } from "path"
 import { expectError, expectFuzzyMatch, getDataDir, getDefaultProjectConfig } from "../../../helpers.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs.js"
 import { safeDumpYaml } from "../../../../src/util/serialization.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings.js"
@@ -76,46 +75,6 @@ describe("prepareProjectResource", () => {
 
     const migratedProjectResource = prepareProjectResource(log, projectResource)
     expect(migratedProjectResource).to.eql(projectResource)
-  })
-
-  it("empty `dotIgnoreFiles` array is automatically remapped to the default `dotIgnoreFile`", () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      dotIgnoreFiles: [],
-    }
-
-    const migratedProjectResource = prepareProjectResource(log, projectResource)
-    const expectedProjectResource = {
-      ...projectResource,
-      dotIgnoreFile: defaultDotIgnoreFile,
-    }
-    expect(migratedProjectResource).to.eql(expectedProjectResource)
-  })
-
-  it("singe-valued `dotIgnoreFiles` array is automatically remapped to scalar `dotIgnoreFile`", () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      dotIgnoreFiles: [".somedotignore"],
-    }
-
-    const migratedProjectResource = prepareProjectResource(log, projectResource)
-    const expectedProjectResource = {
-      ...projectResource,
-      dotIgnoreFile: ".somedotignore",
-    }
-    expect(migratedProjectResource).to.eql(expectedProjectResource)
-  })
-
-  it("throw an error if multi-valued `dotIgnoreFiles` array is defined in the project config", () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      dotIgnoreFiles: [".somedotignore", ".gitignore"],
-    }
-
-    const processConfigAction = () => prepareProjectResource(log, projectResource)
-    expect(processConfigAction).to.throw(
-      "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.somedotignore, .gitignore]"
-    )
   })
 
   it("should fall back to the previous apiVersion when not defined", async () => {
