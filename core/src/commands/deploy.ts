@@ -60,13 +60,6 @@ export const deployOpts = {
       return Object.keys(configDump.actionConfigs.Deploy)
     },
   }),
-  "local-mode": new StringsParameter({
-    help: "This feature was removed.",
-    aliases: ["local"],
-    getSuggestions: () => {
-      return []
-    },
-  }),
   "skip": new StringsParameter({
     help: "The name(s) of Deploys you'd like to skip.",
     getSuggestions: ({ configDump }) => {

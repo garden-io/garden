@@ -1021,7 +1021,6 @@ You may specify multiple names by setting this flag multiple times.
 Use * to deploy all supported deployments with sync enabled.
 
 Important: The syncs stay active after the command exits. To stop the syncs, use the &#x60;sync stop&#x60; command.
-  | `--local-mode` |  | array:string | This feature was removed.
   | `--skip` |  | array:string | The name(s) of Deploys you&#x27;d like to skip.
   | `--skip-dependencies` |  | boolean | Skip deploy, test and run dependencies. Build dependencies and runtime output reference dependencies are not skipped. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without deploying or running dependencies that may have changed since you last deployed.
   | `--with-dependants` |  | boolean | Additionally deploy all deploy actions that are downstream dependants of the action(s) being deployed. This can be useful when you know you need to redeploy dependants.

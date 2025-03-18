@@ -110,7 +110,6 @@ const testProvider = () => {
 
 export const defaultDeployOpts = withDefaultGlobalOpts({
   "sync": undefined,
-  "local-mode": undefined,
   "watch": false,
   "force": false,
   "force-build": true, // <----
