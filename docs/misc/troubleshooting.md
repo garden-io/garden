@@ -27,7 +27,7 @@ This happens because Azure with [RBAC enabled](https://docs.microsoft.com/en-us/
 
 This issue often comes up on Linux, and in other scenarios where the filesystem doesn't support event-based file watching.
 
-Thankfully, you can in most cases avoid this problem using the `scan.exclude` field in your project config, and/or the `exclude` field in your individual action and module configs. See the [Including/excluding files and directories](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) section in our Configuration Files guide for details.
+Thankfully, you can in most cases avoid this problem using the `scan.exclude` field in your project config, and/or the `exclude` field in your individual action and module configs. See the [Including/excluding files and directories](../config-guides/include-exclude.md) section in our Configuration Files guide for details.
 
 ### I'm getting an "EPERM: operation not permitted, rename..." error on Windows.
 
@@ -44,7 +44,7 @@ or `set -g default-terminal "tmux-256color"` to your `~/.tmux.conf` file.
 
 ### Garden hangs after resolving providers.
 
-This could be because Garden is scanning the project files. Make sure you exclude things like `node_modules` or other large vendor directories. See this [section of our docs](../using-garden/configuration-overview.md#including-excluding-files-and-directories).
+This could be because Garden is scanning the project files. Make sure you exclude things like `node_modules` or other large vendor directories. See this [section of our docs](../config-guides/include-exclude.md).
 
 ### Ingress not working for `helm` and `kubernetes` modules.
 
@@ -65,12 +65,12 @@ This is likely because they're being excluded somewhere, e.g. in `.gitignore` or
 {% hint style="warning" %}
 Prior to Garden 0.13.0, `.gitignore` files were respected by default.
 In Garden 0.13.0 that behaviour was changed.
-Now it's possible to only specify a [single ".ignore" file](../using-garden/configuration-overview.md#ignore-file)
+Now it's possible to only specify a [single ".ignore" file](../config-guides/include-exclude.md)
 in the [project-level configuration](../reference/project-config.md#dotIgnoreFile).
 {% endhint %}
 
-Please check your [dotIgnoreFile(s) configuration](../using-garden/configuration-overview.md#ignore-file)
-and the [project-level file exclusions](../using-garden/configuration-overview.md#including-and-excluding-files-across-the-project).
+Please check your [dotIgnoreFile(s) configuration](../config-guides/include-exclude.md)
+and the [project-level file exclusions](../config-guides/include-exclude.md).
 
 ### `ErrImagePull` when referencing an image from a `container` module in a `helm` module.
 
@@ -107,12 +107,6 @@ See also: https://support.apple.com/en-gb/guide/mac-help/mh40616/mac
 ### `Error response from daemon: experimental session with v1 builder is no longer supported, use builder version v2 (BuildKit) instead`
 
 This is a bug in Docker CE (i.e. Docker for Desktop), version `2.4.x.y`. See this [GitHub issue comment](https://github.com/garden-io/garden/issues/2123#issuecomment-723780468) for a fix and more details.
-
-### Kaniko is not using image layer caches
-
-In some container repositories, you may need to create the cache repo manually.
-
-See [this section](../k8s-plugins/guides/in-cluster-building.md#kaniko) of our docs and this [GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) for more details.
 
 ### Can't reach my services on existing ingress URLs after re-installing Garden system services.
 

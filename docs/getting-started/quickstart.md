@@ -1,22 +1,17 @@
 ---
-title: Quickstart Guide
+title: Quickstart
 order: 1
 ---
-
-# Quickstart Guide
-
-{% hint style="info" %}
-An interactive quickstart is also available by logging in to the Garden dashboard. With the dashboard you can access command history, stream logs in real-time, view the status of your builds, tests, and deploys, visualize your dependency graph, and manage your free ephemeral clusters. To get started, [launch the Garden Web Dashboard](https://app.garden.io).
-{% endhint %}
-
-## Quickstart
 
 Garden is an all-in-one DevOps automation platform that enables you to build, test, and deploy your applications and infrastructure in a single, unified workflow.
 
 In this quickstart guide, we'll:
 
 * Install Garden
-* Deploy an example application to a remote ephemeral Kubernetes cluster.
+* Build an example project with the Garden Remote Container Builder
+* Deploy it to a local Kubernetes cluster (optional)
+
+If you don't have Kubernetes installed, you can check out our guide on [installing local Kubernetes](../guides/install-local-kubernetes.md) or simply skip that step.
 
 ### Step 1 — Install Garden
 
@@ -59,7 +54,7 @@ This will significantly speed up the first Garden build of large projects on Win
 
 {% endtabs %}
 
-For more detailed installation instructions, please see our [Installation guide](./installation.md).
+For more detailed installation instructions, please see our [Installation guide](../guides/installation.md).
 
 ### Step 2 — Clone the example project
 
@@ -70,47 +65,42 @@ git clone https://github.com/garden-io/quickstart-example.git
 cd quickstart-example
 ```
 
-### Step 3 — Deploy the project
-
-Now we can deploy the example project to an [ephemeral Kubernetes cluster](../k8s-plugins/ephemeral-k8s/README.md) provided by Garden.
-
-From inside the project directory, log in to the Garden dashboard by running the log in command from the dev console:
+Then login to Garden Cloud by running the login command from inside the project directory you just cloned:
 
 ```sh
 garden login
 ```
 
-Next, start the **dev console** by running:
+### Step 3a — Build and deploy the project (with Kubernetes)
+
+Now we can deploy the example project to our local Kubernetes cluster. We'll deploy the project in sync mode which enables live code syncing and starts the dev console:
 
 ```sh
-garden dev
+garden deploy --sync
 ```
 
-Finally, let's deploy the project in sync mode which enables live code reloading:
-
-```sh
-deploy --sync
-```
-
-You can now visit the example project via the link output by Garden.
+This will build all the containers in this project with the Garden Remote Container Builder and deploy them to your Kubernetes cluster. You can now visit the example project [via the link](http://vote.local.demo.garden/) output by Garden.
 
 The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
 
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
 
-{% hint style="info" %}
-You can run all the same commands with the CLI directly without starting the dev console. Simply run `garden login` or `garden
-deploy --sync` from your terminal. This is e.g. how you'd use Garden in CI.
-{% endhint %}
+### Step 3b — Build the project (without Kubernetes)
+
+To test the project without a Kubernetes installation we can use the `build` command in the `no-k8s` environment which doesn't require Kubernetes:
+
+```
+garden build --env no-k8s
+```
+
+This will build all the containers in this project with the Garden Remote Container Builder.
 
 ## Next Steps
 
 Now that you have Garden installed and seen its basic capabilities it's time to take the next steps.
 
-If you'd like to better understand how a Garden project is configured, we recommend going
-through our [first project tutorial](../tutorials/your-first-project/README.md) which walks you through configuring a Garden project step-by-step.
+Start by checking out the [Garden basics guide](./basics.md) which covers the main concepts that you need to understand.
 
-If you like to dive right in and configure your own project for Garden, we recommend referencing our [example
-projects on GitHub](https://github.com/garden-io/garden/tree/0.13.54/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
+After that you can either go through [first project tutorial](../tutorials/your-first-project/) which explains step-by-step how to add Garden to an existing project. Or you can check out the [Next Steps guide](./next-steps.md) which gives you a more high level but still step-wise overview of how to adopt Garden and add it to your stack.
 
 If you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://go.garden.io/discord)!

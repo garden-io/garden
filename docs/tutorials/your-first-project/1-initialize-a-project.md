@@ -34,15 +34,12 @@ apiVersion: garden.io/v1
 kind: Project
 name: web-app-example
 
-defaultEnvironment: ephemeral
+defaultEnvironment: local
 
 variables:
   usernamespace: web-app-example-${kebabcase(local.username)}
 
 environments:
-  - name: ephemeral
-    defaultNamespace: ${var.userNamespace}
-
   - name: local
     defaultNamespace: ${var.userNamespace}
 
@@ -54,8 +51,6 @@ environments:
     defaultNamespace: web-app-example-${git.branch}
 
 providers:
-  - name: ephemeral-kubernetes
-    environments: [ephemeral]
   - name: local-kubernetes
     environments: [local]
   - name: kubernetes
@@ -64,5 +59,5 @@ providers:
     environments: [staging]
 ```
 
-We have four environments (`ephemeral`, `local`, `remote-dev` and `staging`) and also four provider configurations, one for each environment.
+We have three environments (`local`, `remote-dev` and `staging`) and also three provider configurations, one for each environment.
 

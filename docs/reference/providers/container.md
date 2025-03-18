@@ -10,7 +10,7 @@ tocTitle: "`container`"
 Provides the `container` actions and module type.
 _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference for the provider configuration..
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -207,4 +207,5 @@ Please note that when enabling Container Builder together with in-cluster buildi
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
+
 

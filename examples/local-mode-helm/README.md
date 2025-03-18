@@ -1,7 +1,6 @@
 # Local mode for `helm` action type
 
-A very basic demo project for Garden [local mode](../../docs/guides/running-service-in-local-mode.md) for `helm`
-action type.
+A very basic demo project for Garden local mode for `helm` action type.
 
 This project is based on the [local-mode-k8s](../local-mode-k8s). The only difference is that this one has the `backend`
 service defined as a `helm` deploy action. The backend service can be started in the _local mode_.

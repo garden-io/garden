@@ -1,11 +1,11 @@
 ---
 title: Using Garden in CircleCI
-order: 7
+order: 8
 ---
 
 ## Prerequisites
 
-In addition to the prerequisites in the [Portable CI Pipelines that Run Anywhere](../use-cases/portable-ci-pipelines.md) doc.
+In addition to the prerequisites in the [Portable CI Pipelines that Run Anywhere](../overview/use-cases/portable-ci-pipelines.md) doc.
 
 For the purposes of this example we'll be using [CircleCI](https://circleci.com) and deploying to a Google Kubernetes Engine (GKE) cluster.
 
@@ -19,7 +19,7 @@ To see it in action, you can fork the repository and follow the set-up steps bel
 
 ## Configure remote environments
 
-Configuring Garden to work against a remote Kubernetes cluster is explained step by step in our [Remote Kubernetes guide](../k8s-plugins/remote-k8s/README.md). For this example, we also use [in-cluster building](../k8s-plugins/guides/in-cluster-building.md).
+Configuring Garden to work against a remote Kubernetes cluster is explained step by step in our [Remote Kubernetes guide](../garden-for/kubernetes/README.md).
 
 For this project we're using three environments: `local`, `preview` and `staging`. The `local` environment is the default and is configured for a local Kubernetes cluster that runs on the user's machine. The other two run on remote clusters.
 
@@ -39,7 +39,7 @@ providers:
     environments: [preview]
     context: my-preview-cluster
     defaultHostname: ${environment.namespace}.preview.my-domain
-    buildMode: kaniko
+    buildMode: cluster-buildkit
 ```
 
 Notice that we're using the `CIRCLE_BRANCH` environment variable to label the project namespace. This ensures that each pull request gets deployed into its own namespace.

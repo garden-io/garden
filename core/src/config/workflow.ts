@@ -263,7 +263,7 @@ export const workflowStepSchema = createSchema({
 
       \`never\`: This step will always be ignored.
 
-      See the [workflows guide](${DOCS_BASE_URL}/using-garden/workflows#the-skip-and-when-options) for details
+      See the [workflows guide](${DOCS_BASE_URL}/config-guides/workflows#the-skip-and-when-options) for details
       and examples.
       `),
     continueOnError: joi.boolean().description(`Set to true to continue if the step errors.`).default(false),
