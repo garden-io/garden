@@ -15,13 +15,14 @@ import { namespaceStatusSchema } from "../../types/namespace.js"
 import type { RunAction } from "../../actions/run.js"
 import type { TestAction } from "../../actions/test.js"
 import type { AnyZodObject, z } from "zod"
-import { deline } from "../../util/string.js"
+import { deline, stableStringify } from "../../util/string.js"
 import type { ContainerRunAction, ContainerTestAction } from "../container/config.js"
 import type { KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./helm/config.js"
 import { renderZodError } from "../../config/zod.js"
 import type { JsonObject } from "type-fest"
 import { GardenError } from "../../exceptions.js"
+import { fullHashStrings } from "../../vcs/vcs.js"
 
 export type CacheableAction = RunAction | TestAction
 
@@ -56,30 +57,35 @@ export function composeKubernetesCacheEntry({
   }
 }
 
-export interface LoadResultParams<A extends CacheableAction> {
+export interface LoadResultParams<A extends CacheableAction, AdditionalKeyData> {
   ctx: PluginContext
   log: Log
   action: A
+  keyData: AdditionalKeyData
 }
 
-export type ClearResultParams<A extends CacheableAction> = LoadResultParams<A>
+export type ClearResultParams<A extends CacheableAction, AdditionalKeyData> = LoadResultParams<A, AdditionalKeyData>
 
-export interface StoreResultParams<A extends CacheableAction, R> {
+export interface StoreResultParams<A extends CacheableAction, AdditionalKeyData, R> {
   ctx: PluginContext
   log: Log
   action: A
+  keyData: AdditionalKeyData
   result: R
 }
 
-export class StructuredCacheKey {
+export class StructuredCacheKey<AdditionalKeyData> {
   private readonly actionVersion: string
+  private readonly keyData: AdditionalKeyData
 
-  constructor({ action }: { action: CacheableAction }) {
+  constructor({ action, keyData }: { action: CacheableAction; keyData: AdditionalKeyData }) {
     this.actionVersion = action.versionStringFull()
+    this.keyData = keyData
   }
 
   public calculate(): string {
-    return this.actionVersion
+    const optionalSuffix = this.keyData === undefined ? "" : `-${fullHashStrings([stableStringify(this.keyData)])}`
+    return `${this.actionVersion}${optionalSuffix}`
   }
 }
 
@@ -110,7 +116,7 @@ export interface CacheStorage {
   remove(key: string): Promise<void>
 }
 
-export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject> {
+export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject, AdditionalKeyData> {
   private readonly cacheStorage: CacheStorage
   private readonly resultSchema: ResultSchema
 
@@ -133,13 +139,13 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
     return undefined
   }
 
-  protected cacheKey({ action }: { action: CacheableAction }): string {
-    const structuredCacheKey = new StructuredCacheKey({ action })
+  protected cacheKey({ action, keyData }: { action: CacheableAction; keyData: AdditionalKeyData }): string {
+    const structuredCacheKey = new StructuredCacheKey<AdditionalKeyData>({ action, keyData })
     return structuredCacheKey.calculate()
   }
 
-  public async clear({ log, action }: ClearResultParams<A>): Promise<void> {
-    const key = this.cacheKey({ action })
+  public async clear({ log, action, keyData }: ClearResultParams<A, AdditionalKeyData>): Promise<void> {
+    const key = this.cacheKey({ action, keyData })
     try {
       await this.cacheStorage.remove(key)
     } catch (e) {
@@ -151,8 +157,12 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
     }
   }
 
-  public async load({ action, log }: LoadResultParams<A>): Promise<z.output<ResultSchema> | undefined> {
-    const key = this.cacheKey({ action })
+  public async load({
+    action,
+    keyData,
+    log,
+  }: LoadResultParams<A, AdditionalKeyData>): Promise<z.output<ResultSchema> | undefined> {
+    const key = this.cacheKey({ action, keyData })
     let cachedValue: JsonObject
     try {
       cachedValue = await this.cacheStorage.get(key)
@@ -171,14 +181,15 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
   public async store({
     action,
     log,
+    keyData,
     result,
-  }: StoreResultParams<A, z.input<ResultSchema>>): Promise<z.output<ResultSchema> | undefined> {
+  }: StoreResultParams<A, AdditionalKeyData, z.input<ResultSchema>>): Promise<z.output<ResultSchema> | undefined> {
     const validatedResult = this.validateResult(result, log)
     if (validatedResult === undefined) {
       return undefined
     }
 
-    const key = this.cacheKey({ action })
+    const key = this.cacheKey({ action, keyData })
     try {
       return await this.cacheStorage.put(key, validatedResult)
     } catch (e) {

@@ -15,7 +15,7 @@ import type { Log } from "../../../../../src/logger/log-entry.js"
 import { expect } from "chai"
 import { getPackageVersion } from "../../../../../src/util/util.js"
 
-import { EventNamespaceStatus } from "../../../../../src/plugin-context.js";
+import type { EventNamespaceStatus } from "../../../../../src/plugin-context.js"
 
 describe("Kubernetes Namespace helpers", () => {
   let api: KubeApi

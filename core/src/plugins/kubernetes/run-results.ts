@@ -7,14 +7,22 @@
  */
 
 import type { RunActionHandler } from "../../plugin/action-types.js"
-import { getResultCache } from "./results-cache.js"
+import { getRunResultCache } from "./results-cache.js"
 import { toActionStatus } from "./util.js"
+import { getNamespaceStatus } from "./namespace.js"
+import type { KubernetesPluginContext } from "./config.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
   const { action, ctx, log } = params
-  const cache = getResultCache(ctx.gardenDirPath)
-  const cachedResult = await cache.load({ action, ctx, log })
+  const k8sCtx = ctx as KubernetesPluginContext
+  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
+  if (namespaceStatus.state === "missing") {
+    return { state: "not-ready", detail: null, outputs: { log: "" } }
+  }
+
+  const cache = getRunResultCache(ctx.gardenDirPath)
+  const cachedResult = await cache.load({ action, ctx, keyData: { namespaceUid: namespaceStatus.namespaceUid }, log })
 
   if (!cachedResult) {
     return { state: "not-ready", detail: null, outputs: { log: "" } }

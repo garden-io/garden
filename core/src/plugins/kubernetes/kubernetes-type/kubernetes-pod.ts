@@ -32,7 +32,7 @@ import type { ObjectSchema } from "@hapi/joi"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
 import { k8sGetTestResult } from "../test-results.js"
 import { composeKubernetesCacheEntry } from "../results-cache-base.js"
-import { getResultCache } from "../results-cache.js"
+import { getRunResultCache, getTestResultCache } from "../results-cache.js"
 import { toActionStatus } from "../util.js"
 
 // RUN //
@@ -114,18 +114,24 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
         action,
         provider: k8sCtx.provider,
       })
-      const namespace = namespaceStatus.namespaceName
+      if (namespaceStatus.state === "missing") {
+        return { state: "not-ready", detail: null, outputs: { log: "" } }
+      }
 
+      const namespace = namespaceStatus.namespaceName
       const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        const runResultCache = getResultCache(ctx.gardenDirPath)
+        const runResultCache = getRunResultCache(ctx.gardenDirPath)
         await runResultCache.store({
           ctx,
           log,
           action,
+          keyData: {
+            namespaceUid: namespaceStatus.namespaceUid,
+          },
           result: detail,
         })
       }
@@ -169,11 +175,12 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        const testResultCache = getResultCache(ctx.gardenDirPath)
+        const testResultCache = getTestResultCache(ctx.gardenDirPath)
         await testResultCache.store({
           ctx,
           log,
           action,
+          keyData: undefined,
           result: detail,
         })
       }

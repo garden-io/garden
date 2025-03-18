@@ -30,7 +30,7 @@ import { Memoize } from "typescript-memoize"
 import type { ParameterObject, ParameterValues } from "./cli/params.js"
 import type { ParsedTemplate, ResolvedTemplate } from "./template/types.js"
 import { deepEvaluate } from "./template/evaluate.js"
-import { NamespaceStatus } from "./types/namespace.js"
+import type { NamespaceStatus } from "./types/namespace.js"
 
 export type WrappedFromGarden = Pick<
   Garden,

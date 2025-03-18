@@ -27,7 +27,7 @@ import { grouped } from "../../../../../../helpers.js"
 import { createActionLog } from "../../../../../../../src/logger/log-entry.js"
 import { resolveAction } from "../../../../../../../src/graph/actions.js"
 
-import { EventNamespaceStatus } from "../../../../../../../src/plugin-context.js";
+import type { EventNamespaceStatus } from "../../../../../../../src/plugin-context.js"
 
 describe.skip("ensureBuildkit", () => {
   let garden: Garden

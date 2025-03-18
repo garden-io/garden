@@ -14,7 +14,7 @@ import type { KubernetesPluginContext } from "../config.js"
 import type { TestActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
 import { composeKubernetesCacheEntry } from "../results-cache-base.js"
-import { getResultCache } from "../results-cache.js"
+import { getTestResultCache } from "../results-cache.js"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
   const { ctx, log, action } = params
@@ -46,11 +46,12 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
   const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
-    const testResultCache = getResultCache(ctx.gardenDirPath)
+    const testResultCache = getTestResultCache(ctx.gardenDirPath)
     await testResultCache.store({
       ctx,
       log,
       action,
+      keyData: undefined,
       result: detail,
     })
   }

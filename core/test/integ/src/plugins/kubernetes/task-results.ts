@@ -16,8 +16,8 @@ import { k8sGetRunResult } from "../../../../../src/plugins/kubernetes/run-resul
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import { composeKubernetesCacheEntry } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
-import { getResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
-import { v4 as uuidv4 } from 'uuid'
+import { getRunResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
+import { v4 as uuidv4 } from "uuid"
 
 describe("kubernetes Run results", () => {
   let garden: Garden
@@ -44,6 +44,7 @@ describe("kubernetes Run results", () => {
 
       const data = randomString(1024 * 1024)
 
+      const namespaceUid = uuidv4()
       const result = composeKubernetesCacheEntry({
         result: {
           // command: [],
@@ -56,15 +57,15 @@ describe("kubernetes Run results", () => {
         namespaceStatus: {
           pluginName: provider.name,
           namespaceName: ctx.namespace,
-          namespaceUid: uuidv4(),
+          namespaceUid,
           state: "ready",
         },
-        // version: task.version,
       })
-      const runResultCache = getResultCache(ctx.gardenDirPath)
+      const runResultCache = getRunResultCache(ctx.gardenDirPath)
       const trimmed = await runResultCache.store({
         ctx,
         log: garden.log,
+        keyData: { namespaceUid },
         action,
         result,
       })

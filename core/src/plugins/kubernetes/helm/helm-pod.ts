@@ -22,7 +22,7 @@ import { runAndCopy } from "../run.js"
 import { filterManifests, prepareManifests, prepareTemplates } from "./common.js"
 import { kubernetesRunOutputsSchema } from "../kubernetes-type/config.js"
 import { composeKubernetesCacheEntry } from "../results-cache-base.js"
-import { getResultCache } from "../results-cache.js"
+import { getRunResultCache, getTestResultCache } from "../results-cache.js"
 
 const helmRunPodOutputsSchema = kubernetesRunOutputsSchema
 const helmTestPodOutputsSchema = helmRunPodOutputsSchema
@@ -46,18 +46,24 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
         action,
         provider: k8sCtx.provider,
       })
-      const namespace = namespaceStatus.namespaceName
+      if (namespaceStatus.state === "missing") {
+        return { state: "not-ready", detail: null, outputs: { log: "" } }
+      }
 
+      const namespace = namespaceStatus.namespaceName
       const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
 
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        const runResultCache = getResultCache(ctx.gardenDirPath)
+        const runResultCache = getRunResultCache(ctx.gardenDirPath)
         await runResultCache.store({
           ctx,
           log,
           action,
+          keyData: {
+            namespaceUid: namespaceStatus.namespaceUid,
+          },
           result: detail,
         })
       }
@@ -88,18 +94,19 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
         action,
         provider: k8sCtx.provider,
       })
-      const namespace = namespaceStatus.namespaceName
 
+      const namespace = namespaceStatus.namespaceName
       const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
 
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        const testResultCache = getResultCache(ctx.gardenDirPath)
+        const testResultCache = getTestResultCache(ctx.gardenDirPath)
         await testResultCache.store({
           ctx,
           log,
           action,
+          keyData: undefined,
           result: detail,
         })
       }

@@ -203,6 +203,31 @@ interface GetNamespaceParams {
   skipCreate?: boolean
 }
 
+function composeNamespaceStatus({
+  pluginName,
+  namespaceName,
+  namespaceUid,
+}: {
+  pluginName: string
+  namespaceName: string
+  namespaceUid: string | undefined
+}): NamespaceStatus {
+  if (namespaceUid === undefined) {
+    return {
+      pluginName,
+      namespaceName,
+      state: "missing",
+    }
+  } else {
+    return {
+      pluginName,
+      namespaceUid,
+      namespaceName,
+      state: "ready",
+    }
+  }
+}
+
 /**
  * Resolves a namespace name given project context, provider config, and a (usually undefined) override, and then
  * ensures it exists in the target cluster (unless skipCreate=true).
@@ -226,38 +251,19 @@ export async function getNamespaceStatus({
   let status: NamespaceStatus
   if (!skipCreate) {
     const ensureNamespaceResult = await ensureNamespace(api, ctx, namespace, log)
-    const namespaceUid = ensureNamespaceResult.remoteResource?.metadata.uid
-    if (namespaceUid === undefined) {
-      status = {
-        pluginName: provider.name,
-        namespaceName: namespace.name,
-        state: "missing",
-      }
+    // it still can be null if the namespace existed, but was not updated
+    if (ensureNamespaceResult.remoteResource === undefined) {
+      const remoteResource = await fetchNamespaceResource(api, namespace.name)
+      const namespaceUid = remoteResource?.metadata.uid
+      status = composeNamespaceStatus({ pluginName: provider.name, namespaceName: namespace.name, namespaceUid })
     } else {
-      status = {
-        pluginName: provider.name,
-        namespaceUid,
-        namespaceName: namespace.name,
-        state: "ready",
-      }
+      const namespaceUid = ensureNamespaceResult.remoteResource.metadata.uid
+      status = composeNamespaceStatus({ pluginName: provider.name, namespaceName: namespace.name, namespaceUid })
     }
   } else {
     const namespaceResource = await fetchNamespaceResource(api, namespace.name)
     const namespaceUid = namespaceResource?.metadata.uid
-    if (namespaceUid === undefined) {
-      status = {
-        pluginName: provider.name,
-        namespaceName: namespace.name,
-        state: "missing",
-      }
-    } else {
-      status = {
-        pluginName: provider.name,
-        namespaceUid,
-        namespaceName: namespace.name,
-        state: "ready",
-      }
-    }
+    status = composeNamespaceStatus({ pluginName: provider.name, namespaceName: namespace.name, namespaceUid })
   }
 
   ctx.events.emit("namespaceStatus", {

@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { z } from "zod";
+import { z } from "zod"
 
-const baseNamespaceStatusSchema = z.object({
+export const baseNamespaceStatusSchema = z.object({
   pluginName: z.string(),
   namespaceName: z.string(),
 })

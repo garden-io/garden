@@ -10,17 +10,40 @@ import type { CacheableRunAction, CacheableTestAction, KubernetesCacheEntrySchem
 import { ResultCache } from "./results-cache-base.js"
 import { currentResultSchemaVersion, kubernetesCacheEntrySchema } from "./results-cache-base.js"
 
-let resultCache: ResultCache<CacheableRunAction | CacheableTestAction, KubernetesCacheEntrySchema> | undefined
+type RunKeyDataSchema = {
+  // We include the namespace uid for run cache entries in cache key calculation, so that we re-run run actions
+  // whenever the namespace has been deleted
+  namespaceUid: string
+}
 
-export function getResultCache(gardenDirPath: string) {
-  if (resultCache === undefined) {
+type TestKeyData = undefined
+
+let testResultCache: ResultCache<CacheableTestAction, KubernetesCacheEntrySchema, TestKeyData> | undefined
+
+export function getTestResultCache(gardenDirPath: string) {
+  if (testResultCache === undefined) {
     const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
     const cacheStorage = new SimpleLocalFileSystemCacheStorage({
       cacheDir,
       schemaVersion: currentResultSchemaVersion,
     })
 
-    resultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
+    testResultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
   }
-  return resultCache
+  return testResultCache
+}
+
+let runResultCache: ResultCache<CacheableRunAction, KubernetesCacheEntrySchema, RunKeyDataSchema> | undefined
+
+export function getRunResultCache(gardenDirPath: string) {
+  if (runResultCache === undefined) {
+    const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
+    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
+      cacheDir,
+      schemaVersion: currentResultSchemaVersion,
+    })
+
+    runResultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
+  }
+  return runResultCache
 }

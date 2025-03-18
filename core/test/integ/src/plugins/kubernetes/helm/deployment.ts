@@ -34,7 +34,7 @@ import { ChildProcessError, DeploymentError } from "../../../../../../src/except
 import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants.js"
 import { join } from "node:path"
-import { EventNamespaceStatus } from "../../../../../../src/plugin-context.js";
+import type { EventNamespaceStatus } from "../../../../../../src/plugin-context.js"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden

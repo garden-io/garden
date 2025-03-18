@@ -14,7 +14,7 @@ import { getNamespaceStatus } from "../namespace.js"
 import type { RunActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
 import { composeKubernetesCacheEntry } from "../results-cache-base.js"
-import { getResultCache } from "../results-cache.js"
+import { getRunResultCache } from "../results-cache.js"
 
 export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params
@@ -24,7 +24,10 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
   const timeout = action.getConfig("timeout")
   const k8sCtx = ctx as KubernetesPluginContext
   const image = getDeployedImageId(action)
-  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
+  let namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
+  if (namespaceStatus.state === "missing") {
+    // return { state: "not-ready", detail: null, outputs: { log: "" } }
+  }
 
   const result = await runAndCopy({
     ...params,
@@ -43,14 +46,17 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     dropCapabilities,
   })
 
+  namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
+
   const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
-    const runResultCache = getResultCache(ctx.gardenDirPath)
+    const runResultCache = getRunResultCache(ctx.gardenDirPath)
     await runResultCache.store({
       ctx,
       log,
       action,
+      keyData: { namespaceUid: namespaceStatus.namespaceUid! },
       result: detail,
     })
   }
