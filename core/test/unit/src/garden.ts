@@ -3137,16 +3137,6 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
     })
 
-    // TODO-0.14: remove this and core/test/data/test-projects/project-include-exclude-old-syntax directory
-    it("should respect the modules.include and modules.exclude fields, if specified (old syntax)", async () => {
-      const projectRoot = getDataDir("test-projects", "project-include-exclude-old-syntax")
-      const garden = await makeTestGarden(projectRoot)
-      const modules = await garden.resolveModules({ log: garden.log })
-
-      // Should NOT include "nope" and "module-c"
-      expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
-    })
-
     it("should respect the scan.include and scan.exclude fields, if specified", async () => {
       const projectRoot = getDataDir("test-projects", "project-include-exclude")
       const garden = await makeTestGarden(projectRoot)
