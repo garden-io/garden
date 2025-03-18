@@ -5,7 +5,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-import { getLocalActionResultsCacheDir, SimpleLocalFileSystemCacheStorage } from "./results-cache-fs.js"
+import {
+  FILESYSTEM_CACHE_EXPIRY_DAYS,
+  getLocalActionResultsCacheDir,
+  SimpleLocalFileSystemCacheStorage,
+} from "./results-cache-fs.js"
 import type { CacheableRunAction, CacheableTestAction, KubernetesCacheEntrySchema } from "./results-cache-base.js"
 import { ResultCache } from "./results-cache-base.js"
 import { currentResultSchemaVersion, kubernetesCacheEntrySchema } from "./results-cache-base.js"
@@ -20,12 +24,13 @@ type TestKeyData = undefined
 
 let testResultCache: ResultCache<CacheableTestAction, KubernetesCacheEntrySchema, TestKeyData> | undefined
 
-export function getTestResultCache(gardenDirPath: string) {
+export async function getTestResultCache(gardenDirPath: string) {
   if (testResultCache === undefined) {
     const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
-    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
+    const cacheStorage = await SimpleLocalFileSystemCacheStorage.getInstance({
       cacheDir,
       schemaVersion: currentResultSchemaVersion,
+      cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
     })
 
     testResultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
@@ -35,12 +40,13 @@ export function getTestResultCache(gardenDirPath: string) {
 
 let runResultCache: ResultCache<CacheableRunAction, KubernetesCacheEntrySchema, RunKeyDataSchema> | undefined
 
-export function getRunResultCache(gardenDirPath: string) {
+export async function getRunResultCache(gardenDirPath: string) {
   if (runResultCache === undefined) {
     const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
-    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
+    const cacheStorage = await SimpleLocalFileSystemCacheStorage.getInstance({
       cacheDir,
       schemaVersion: currentResultSchemaVersion,
+      cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
     })
 
     runResultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })

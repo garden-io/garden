@@ -8,7 +8,7 @@
 
 import type { CacheStorage, SchemaVersion } from "./results-cache-base.js"
 import { CacheStorageError } from "./results-cache-base.js"
-import fsExtra from "fs-extra"
+import fsExtra, { pathExists } from "fs-extra"
 import { join } from "path"
 import writeFileAtomic from "write-file-atomic"
 import { CACHE_DIR_NAME } from "../../constants.js"
@@ -16,12 +16,17 @@ import type { Log } from "../../logger/log-entry.js"
 import { isErrnoException } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
 import type { JsonObject } from "type-fest"
+import { listDirectory } from "../../util/fs.js"
+import moment from "moment/moment.js"
+import { lstat } from "fs/promises"
 
 const { ensureDir, readFile, remove } = fsExtra
 
 class LocalFileSystemCacheError extends CacheStorageError {
   override type = "local-fs-cache-storage"
 }
+
+export const FILESYSTEM_CACHE_EXPIRY_DAYS = 7
 
 /**
  * Very simple implementation of file-system based cache
@@ -37,12 +42,32 @@ class LocalFileSystemCacheError extends CacheStorageError {
 export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
   private readonly cacheDir: string
   private readonly schemaVersion: SchemaVersion
+  private readonly cacheExpiryDays: number
   private readonly log: Log
 
-  constructor({ cacheDir, schemaVersion }: { cacheDir: string; schemaVersion: SchemaVersion }) {
+  private constructor({
+    cacheDir,
+    schemaVersion,
+    cacheExpiryDays,
+  }: {
+    cacheDir: string
+    schemaVersion: SchemaVersion
+    cacheExpiryDays: number
+  }) {
     this.cacheDir = cacheDir
     this.schemaVersion = schemaVersion
+    this.cacheExpiryDays = cacheExpiryDays
     this.log = RootLogger.getInstance().createLog({ name: "fs-cache" })
+  }
+
+  public static async getInstance(params: {
+    cacheDir: string
+    schemaVersion: SchemaVersion
+    cacheExpiryDays: number
+  }): Promise<SimpleLocalFileSystemCacheStorage> {
+    const instance = new SimpleLocalFileSystemCacheStorage(params)
+    await instance.invalidate()
+    return instance
   }
 
   private getFilePath(key: string): string {
@@ -102,6 +127,31 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
 
       const errorMsg = `Cannot remove file ${filePath}; cause: ${err}`
       throw new LocalFileSystemCacheError({ message: errorMsg })
+    }
+  }
+
+  private async invalidate(): Promise<void> {
+    if (!(await pathExists(this.cacheDir))) {
+      return
+    }
+
+    const filenames = await listDirectory(this.cacheDir, { recursive: false })
+    for (const filename of filenames) {
+      try {
+        const cachedFile = join(this.cacheDir, filename)
+        const stat = await lstat(cachedFile)
+        // If the file is older than `cacheExpiryDays` days, delete it
+        if (moment(stat.birthtime).add(this.cacheExpiryDays, "days").isBefore(moment())) {
+          this.log.debug(`file ${filename} is older than ${this.cacheExpiryDays} days, deleting...`)
+          await remove(cachedFile)
+        }
+      } catch (err) {
+        if (!isErrnoException(err)) {
+          throw err
+        }
+
+        this.log.debug(`Could not invalidate cache entry for file ${filename}; cause: ${err}`)
+      }
     }
   }
 

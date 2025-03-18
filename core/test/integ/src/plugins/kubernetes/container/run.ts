@@ -70,7 +70,7 @@ describe("runContainerTask", () => {
     })
     expect(namespaceStatus.state).to.eql("ready")
 
-    const runResultCache = getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = await getRunResultCache(ctx.gardenDirPath)
     await runResultCache.clear({
       ctx,
       log: garden.log,
@@ -133,7 +133,7 @@ describe("runContainerTask", () => {
     })
     expect(namespaceStatus.state).to.eql("ready")
 
-    const runResultCache = getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = await getRunResultCache(ctx.gardenDirPath)
     await runResultCache.clear({
       ctx,
       log: garden.log,
@@ -184,7 +184,7 @@ describe("runContainerTask", () => {
     })
     expect(namespaceStatus.state).to.eql("ready")
 
-    const runResultCache = getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = await getRunResultCache(ctx.gardenDirPath)
     await runResultCache.clear({
       ctx,
       log: garden.log,

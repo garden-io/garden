@@ -64,7 +64,7 @@ describe("kubernetes Run results", () => {
           state: "ready",
         },
       })
-      const runResultCache = getRunResultCache(ctx.gardenDirPath)
+      const runResultCache = await getRunResultCache(ctx.gardenDirPath)
       const trimmed = await runResultCache.store({
         ctx,
         log: garden.log,

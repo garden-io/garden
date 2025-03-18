@@ -11,7 +11,10 @@ import { join } from "path"
 
 import type { DirectoryResult } from "tmp-promise"
 import tmp from "tmp-promise"
-import { SimpleLocalFileSystemCacheStorage } from "../../../../../src/plugins/kubernetes/results-cache-fs.js"
+import {
+  FILESYSTEM_CACHE_EXPIRY_DAYS,
+  SimpleLocalFileSystemCacheStorage,
+} from "../../../../../src/plugins/kubernetes/results-cache-fs.js"
 import { expectError } from "../../../../helpers.js"
 import { currentResultSchemaVersion } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
 
@@ -32,7 +35,11 @@ describe("SimpleLocalFileSystemCacheStorage", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     const tmpDirPath = tmpDir.path
     const cachePath = join(tmpDirPath, ".fs-cache")
-    cache = new SimpleLocalFileSystemCacheStorage({ cacheDir: cachePath, schemaVersion: currentResultSchemaVersion })
+    cache = await SimpleLocalFileSystemCacheStorage.getInstance({
+      cacheDir: cachePath,
+      schemaVersion: currentResultSchemaVersion,
+      cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
+    })
   })
 
   after(async () => {

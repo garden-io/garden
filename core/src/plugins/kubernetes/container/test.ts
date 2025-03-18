@@ -46,7 +46,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
   const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
-    const testResultCache = getTestResultCache(ctx.gardenDirPath)
+    const testResultCache = await getTestResultCache(ctx.gardenDirPath)
     await testResultCache.store({
       ctx,
       log,

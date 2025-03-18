@@ -56,7 +56,7 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        const runResultCache = getRunResultCache(ctx.gardenDirPath)
+        const runResultCache = await getRunResultCache(ctx.gardenDirPath)
         await runResultCache.store({
           ctx,
           log,
@@ -101,7 +101,7 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
       const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
       if (action.getSpec("cacheResult")) {
-        const testResultCache = getTestResultCache(ctx.gardenDirPath)
+        const testResultCache = await getTestResultCache(ctx.gardenDirPath)
         await testResultCache.store({
           ctx,
           log,

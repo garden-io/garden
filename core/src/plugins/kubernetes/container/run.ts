@@ -51,7 +51,7 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
   const detail = composeKubernetesCacheEntry({ result, namespaceStatus })
 
   if (action.getSpec("cacheResult")) {
-    const runResultCache = getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = await getRunResultCache(ctx.gardenDirPath)
     await runResultCache.store({
       ctx,
       log,

@@ -21,7 +21,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
     return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
 
-  const cache = getRunResultCache(ctx.gardenDirPath)
+  const cache = await getRunResultCache(ctx.gardenDirPath)
   const cachedResult = await cache.load({ action, ctx, keyData: { namespaceUid: namespaceStatus.namespaceUid }, log })
 
   if (!cachedResult) {
