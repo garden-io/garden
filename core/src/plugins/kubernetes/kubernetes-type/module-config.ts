@@ -26,7 +26,6 @@ import type { KubernetesModuleDevModeSpec } from "../sync.js"
 import { kubernetesModuleSyncSchema } from "../sync.js"
 import type { KubernetesTypeCommonDeploySpec } from "./config.js"
 import { kubernetesCommonDeploySpecKeys } from "./config.js"
-import type { KubernetesLocalModeSpec } from "../local-mode.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
 
 // A Kubernetes Module always maps to a single Service
@@ -45,7 +44,6 @@ export interface KubernetesServiceSpec extends KubernetesTypeCommonDeploySpec {
   dependencies: string[]
   timeout: number
   sync?: KubernetesModuleDevModeSpec
-  localMode?: KubernetesLocalModeSpec
   serviceResource?: ServiceResourceSpec
   tasks: KubernetesTaskSpec[]
   tests: KubernetesTestSpec[]

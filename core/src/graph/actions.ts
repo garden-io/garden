@@ -360,20 +360,6 @@ function getActionMode(config: ActionConfig, actionModes: ActionModeMap, log: Lo
     }
   }
 
-  // Local mode takes precedence over sync
-  // TODO: deduplicate
-  for (const pattern of actionModes.local || []) {
-    if (key === pattern) {
-      explicitMode = true
-      mode = "local"
-      log.silly(() => `Action ${key} set to ${mode} mode, matched on exact key`)
-      break
-    } else if (minimatch(key, pattern)) {
-      mode = "local"
-      log.silly(() => `Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
-      break
-    }
-  }
   return { mode, explicitMode }
 }
 

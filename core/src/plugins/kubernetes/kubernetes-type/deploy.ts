@@ -125,7 +125,7 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
         config.include = uniq([...config.include, ...files, ...manifestTemplates, ...manifestFiles])
       }
 
-      return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
+      return { config, supportedModes: { sync: !!config.spec.sync } }
     },
 
     deploy: kubernetesDeploy,

@@ -583,14 +583,6 @@ ${expectedIngressOutput}
       expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql(["--values", gardenValuesPath])
     })
 
-    it("should add a default --set flag if the aciton doesn't support it's mode", async () => {
-      // local mode is not configured for the api deploy
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { local: ["deploy.api"] } })
-      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-      action["_config"].spec.valueFiles = []
-      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql(["--values", gardenValuesPath])
-    })
-
     it("should return a --values arg for each valueFile configured", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action["_config"].spec.valueFiles = ["foo.yaml", "bar.yaml"]

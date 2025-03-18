@@ -28,7 +28,7 @@ import type { KubernetesDeployAction } from "./kubernetes-type/config.js"
 import type { HelmDeployAction } from "./helm/config.js"
 import type { DeployAction } from "../../actions/deploy.js"
 import type { GetPortForwardParams, GetPortForwardResult } from "../../plugin/handlers/Deploy/get-port-forward.js"
-import type { ActionMode, Resolved } from "../../actions/types.js"
+import type { Resolved } from "../../actions/types.js"
 
 // TODO: implement stopPortForward handler
 
@@ -215,22 +215,15 @@ function getTargetResourceName(action: SupportedRuntimeAction, targetName?: stri
 export function getForwardablePorts({
   resources,
   parentAction,
-  mode,
 }: {
   resources: KubernetesResource[]
   parentAction: Resolved<KubernetesDeployAction | HelmDeployAction> | undefined
-  mode: ActionMode
 }): ForwardablePort[] {
   if (resources.length === 0) {
     return []
   }
 
   const spec = parentAction?.getSpec()
-
-  // Note: Local mode has its own port-forwarding configuration
-  if (mode === "local" && !!spec?.localMode) {
-    return []
-  }
 
   if (spec?.portForwards) {
     return spec?.portForwards.map((p) => ({

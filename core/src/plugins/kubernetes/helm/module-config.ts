@@ -46,7 +46,6 @@ import fsExtra from "fs-extra"
 
 const { pathExists } = fsExtra
 import { helmChartYamlFilename } from "./common.js"
-import type { KubernetesLocalModeSpec } from "../local-mode.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
 
 export const defaultHelmTimeout = 300
@@ -65,7 +64,6 @@ export interface HelmServiceSpec {
   chartPath: string
   dependencies: string[]
   sync?: KubernetesModuleDevModeSpec
-  localMode?: KubernetesLocalModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string

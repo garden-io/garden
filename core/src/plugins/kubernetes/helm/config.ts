@@ -20,7 +20,6 @@ import type { KubernetesDeploySyncSpec } from "../sync.js"
 import { kubernetesDeploySyncSchema } from "../sync.js"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy.js"
 import { dedent, deline } from "../../../util/string.js"
-import type { KubernetesLocalModeSpec } from "../local-mode.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
 import type { RunAction, RunActionConfig } from "../../../actions/run.js"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
@@ -47,7 +46,6 @@ interface HelmDeployActionSpec {
   chart?: HelmChartSpec
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
-  localMode?: KubernetesLocalModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string

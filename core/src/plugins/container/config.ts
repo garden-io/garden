@@ -32,8 +32,8 @@ import type { OctalPermissionMask } from "../kubernetes/types.js"
 import { templateStringLiteral } from "../../docs/common.js"
 import { syncGuideLink } from "../kubernetes/constants.js"
 import { makeSecret, type Secret } from "../../util/secrets.js"
-import { makeDeprecationMessage } from "../../util/deprecations.js"
 import type { ActionKind } from "../../plugin/action-types.js"
+import { makeDeprecationMessage } from "../../util/deprecations.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -324,11 +324,6 @@ export const containerSyncPathSchema = createSchema({
 const defaultLocalModeRestartDelayMsec = 1000
 const defaultLocalModeMaxRestarts = Number.POSITIVE_INFINITY
 
-export interface LocalModeRestartSpec {
-  delayMsec: number
-  max: number
-}
-
 export const localModeRestartSchema = createSchema({
   name: "local-mode-restart",
   description: `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`,
@@ -358,11 +353,6 @@ export const localModeRestartSchema = createSchema({
   },
 })
 
-export interface LocalModePortsSpec {
-  local: number
-  remote: number
-}
-
 export const localModePortsSchema = createSchema({
   name: "local-mode-port",
   keys: () => ({
@@ -380,12 +370,6 @@ export const localModePortsSchema = createSchema({
       .description("The remote port to be used for reverse port-forward."),
   }),
 })
-
-export interface ContainerLocalModeSpec {
-  ports: LocalModePortsSpec[]
-  command?: string[]
-  restart: LocalModeRestartSpec
-}
 
 export const containerLocalModeSchema = createSchema({
   name: "container-local-mode",
@@ -703,7 +687,6 @@ export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
   annotations: Annotations
   daemon: boolean
   sync?: ContainerSyncSpec
-  localMode?: ContainerLocalModeSpec
   ingresses: ContainerIngressSpec[]
   healthCheck?: ServiceHealthCheckSpec
   timeout?: number

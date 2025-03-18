@@ -141,12 +141,10 @@ export type ActionDependency = ActionReference & ActionDependencyAttributes & { 
 
 export interface ActionModes {
   sync?: boolean
-  local?: boolean
 }
 
 export const ALL_ACTION_MODES_SUPPORTED: ActionModes = {
   sync: true,
-  local: true,
 }
 
 export type ActionMode = keyof ActionModes | "default"
