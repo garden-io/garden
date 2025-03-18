@@ -14,7 +14,8 @@ import { ensureNamespace, getAppNamespace } from "../../../../../src/plugins/kub
 import type { Log } from "../../../../../src/logger/log-entry.js"
 import { expect } from "chai"
 import { getPackageVersion } from "../../../../../src/util/util.js"
-import type { EventNamespaceStatus } from "../../../../../src/types/namespace.js"
+
+import { EventNamespaceStatus } from "../../../../../src/plugin-context.js";
 
 describe("Kubernetes Namespace helpers", () => {
   let api: KubeApi

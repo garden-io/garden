@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { z } from "zod"
+import { z } from "zod";
 
 const baseNamespaceStatusSchema = z.object({
   pluginName: z.string(),
@@ -25,8 +25,6 @@ export const namespaceStatusSchema = z.discriminatedUnion("state", [
 ])
 
 export type NamespaceStatus = z.infer<typeof namespaceStatusSchema>
-
-export type EventNamespaceStatus = Omit<NamespaceStatus, "namespaceUid">
 
 export function environmentToString({ environmentName, namespace }: { environmentName: string; namespace?: string }) {
   return namespace ? `${environmentName}.${namespace}` : environmentName

@@ -26,7 +26,6 @@ import { isWorkload } from "../../../../../../src/plugins/kubernetes/util.js"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
 import type { HelmDeployAction, HelmDeployConfig } from "../../../../../../src/plugins/kubernetes/helm/config.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
-import type { EventNamespaceStatus } from "../../../../../../src/types/namespace.js"
 import { FakeCloudApi } from "../../../../../helpers/api.js"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 import stripAnsi from "strip-ansi"
@@ -35,6 +34,7 @@ import { ChildProcessError, DeploymentError } from "../../../../../../src/except
 import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants.js"
 import { join } from "node:path"
+import { EventNamespaceStatus } from "../../../../../../src/plugin-context.js";
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
