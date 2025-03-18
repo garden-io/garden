@@ -35,7 +35,7 @@ describe("SimpleLocalFileSystemCacheStorage", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     const tmpDirPath = tmpDir.path
     const cachePath = join(tmpDirPath, ".fs-cache")
-    cache = await SimpleLocalFileSystemCacheStorage.getInstance({
+    cache = new SimpleLocalFileSystemCacheStorage({
       cacheDir: cachePath,
       schemaVersion: currentResultSchemaVersion,
       cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,

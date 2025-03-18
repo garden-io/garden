@@ -172,7 +172,7 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
       const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
 
       if (action.getSpec("cacheResult")) {
-        const testResultCache = await getTestResultCache(ctx.gardenDirPath)
+        const testResultCache = getTestResultCache(ctx.gardenDirPath)
         await testResultCache.store({
           ctx,
           log,

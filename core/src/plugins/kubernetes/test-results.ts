@@ -13,7 +13,7 @@ import { toActionStatus } from "./util.js"
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
   const { action, ctx, log } = params
-  const cache = await getTestResultCache(ctx.gardenDirPath)
+  const cache = getTestResultCache(ctx.gardenDirPath)
   const cachedResult = await cache.load({ action, ctx, keyData: undefined, log })
 
   if (!cachedResult) {

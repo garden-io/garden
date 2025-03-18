@@ -58,7 +58,7 @@ describe("Helm Pod Run", () => {
     })
     expect(namespaceStatus.state).to.eql("ready")
 
-    const runResultCache = await getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = getRunResultCache(ctx.gardenDirPath)
     await runResultCache.clear({
       ctx,
       log: garden.log,
@@ -112,7 +112,7 @@ describe("Helm Pod Run", () => {
     })
     expect(namespaceStatus.state).to.eql("ready")
 
-    const runResultCache = await getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = getRunResultCache(ctx.gardenDirPath)
     await runResultCache.clear({
       ctx,
       log: garden.log,

@@ -45,7 +45,7 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
   private readonly cacheExpiryDays: number
   private readonly log: Log
 
-  private constructor({
+  constructor({
     cacheDir,
     schemaVersion,
     cacheExpiryDays,
@@ -58,16 +58,6 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
     this.schemaVersion = schemaVersion
     this.cacheExpiryDays = cacheExpiryDays
     this.log = RootLogger.getInstance().createLog({ name: "fs-cache" })
-  }
-
-  public static async getInstance(params: {
-    cacheDir: string
-    schemaVersion: SchemaVersion
-    cacheExpiryDays: number
-  }): Promise<SimpleLocalFileSystemCacheStorage> {
-    const instance = new SimpleLocalFileSystemCacheStorage(params)
-    await instance.invalidate()
-    return instance
   }
 
   private getFilePath(key: string): string {
@@ -130,7 +120,7 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
     }
   }
 
-  private async invalidate(): Promise<void> {
+  public async invalidate(): Promise<void> {
     if (!(await pathExists(this.cacheDir))) {
       return
     }

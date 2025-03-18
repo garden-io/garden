@@ -50,7 +50,7 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
   })
 
   if (action.getSpec("cacheResult")) {
-    const runResultCache = await getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = getRunResultCache(ctx.gardenDirPath)
     await runResultCache.store({
       ctx,
       log,

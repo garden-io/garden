@@ -23,15 +23,21 @@ type RunKeyDataSchema = {
 type TestKeyData = undefined
 
 let testResultCache: ResultCache<CacheableTestAction, KubernetesCacheEntrySchema, TestKeyData> | undefined
+let isCachedCleanupInitiated: boolean = false
 
-export async function getTestResultCache(gardenDirPath: string) {
+export function getTestResultCache(gardenDirPath: string) {
   if (testResultCache === undefined) {
     const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
-    const cacheStorage = await SimpleLocalFileSystemCacheStorage.getInstance({
+    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
       cacheDir,
       schemaVersion: currentResultSchemaVersion,
       cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
     })
+    if (!isCachedCleanupInitiated) {
+      // we don't need to await for completion here
+      void cacheStorage.invalidate()
+      isCachedCleanupInitiated = true
+    }
 
     testResultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
   }
@@ -40,14 +46,19 @@ export async function getTestResultCache(gardenDirPath: string) {
 
 let runResultCache: ResultCache<CacheableRunAction, KubernetesCacheEntrySchema, RunKeyDataSchema> | undefined
 
-export async function getRunResultCache(gardenDirPath: string) {
+export function getRunResultCache(gardenDirPath: string) {
   if (runResultCache === undefined) {
     const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
-    const cacheStorage = await SimpleLocalFileSystemCacheStorage.getInstance({
+    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
       cacheDir,
       schemaVersion: currentResultSchemaVersion,
       cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
     })
+    if (!isCachedCleanupInitiated) {
+      // we don't need to await for completion here
+      void cacheStorage.invalidate()
+      isCachedCleanupInitiated = true
+    }
 
     runResultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
   }
