@@ -170,15 +170,25 @@ export async function namespaceExists(api: KubeApi, ctx: KubernetesPluginContext
     return true
   }
 
+  const namespaceResource = await fetchNamespaceResource(api, name)
+  return !!namespaceResource
+}
+
+/**
+ * Returns `true` if the namespace exists, `false` otherwise.
+ */
+export async function fetchNamespaceResource(
+  api: KubeApi,
+  name: string
+): Promise<KubernetesServerResource<V1Namespace> | undefined> {
   try {
-    await api.core.readNamespace({ name })
-    return true
+    return await api.core.readNamespace({ name })
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }
     if (err.responseStatusCode === 404) {
-      return false
+      return undefined
     } else {
       throw err
     }
@@ -191,6 +201,32 @@ interface GetNamespaceParams {
   ctx: KubernetesPluginContext
   provider: KubernetesProvider
   skipCreate?: boolean
+}
+
+function composeNamespaceStatus({
+  pluginName,
+  namespaceName,
+  namespaceUid,
+}: {
+  pluginName: string
+  namespaceName: string
+  namespaceUid: string | undefined
+}): NamespaceStatus {
+  if (namespaceUid === undefined) {
+    return {
+      pluginName,
+      namespaceName,
+      namespaceUid: undefined,
+      state: "missing",
+    }
+  } else {
+    return {
+      pluginName,
+      namespaceUid,
+      namespaceName,
+      state: "ready",
+    }
+  }
 }
 
 /**
@@ -215,20 +251,28 @@ export async function getNamespaceStatus({
   const api = await KubeApi.factory(log, ctx, provider)
   let status: NamespaceStatus
   if (!skipCreate) {
-    await ensureNamespace(api, ctx, namespace, log)
-    status = {
-      pluginName: provider.name,
-      namespaceName: namespace.name,
-      state: "ready",
+    const ensureNamespaceResult = await ensureNamespace(api, ctx, namespace, log)
+    // it still can be null if the namespace existed, but was not updated
+    if (ensureNamespaceResult.remoteResource === undefined) {
+      const remoteResource = await fetchNamespaceResource(api, namespace.name)
+      const namespaceUid = remoteResource?.metadata.uid
+      status = composeNamespaceStatus({ pluginName: provider.name, namespaceName: namespace.name, namespaceUid })
+    } else {
+      const namespaceUid = ensureNamespaceResult.remoteResource.metadata.uid
+      status = composeNamespaceStatus({ pluginName: provider.name, namespaceName: namespace.name, namespaceUid })
     }
   } else {
-    status = {
-      pluginName: provider.name,
-      namespaceName: namespace.name,
-      state: (await namespaceExists(api, ctx, namespace.name)) ? "ready" : "missing",
-    }
+    const namespaceResource = await fetchNamespaceResource(api, namespace.name)
+    const namespaceUid = namespaceResource?.metadata.uid
+    status = composeNamespaceStatus({ pluginName: provider.name, namespaceName: namespace.name, namespaceUid })
   }
-  ctx.events.emit("namespaceStatus", status)
+
+  ctx.events.emit("namespaceStatus", {
+    pluginName: status.pluginName,
+    namespaceName: status.namespaceName,
+    state: status.state,
+  })
+
   return status
 }
 

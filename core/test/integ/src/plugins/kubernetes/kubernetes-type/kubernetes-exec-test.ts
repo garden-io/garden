@@ -47,6 +47,5 @@ describe("kubernetes-type exec Test", () => {
     expect(result?.result).to.exist
     expect(result?.outputs).to.exist
     expect(result?.result?.outputs.log).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus).to.exist
   })
 })

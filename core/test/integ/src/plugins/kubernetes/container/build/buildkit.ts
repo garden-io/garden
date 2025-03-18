@@ -18,7 +18,7 @@ import {
   ensureBuildkit,
 } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit.js"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api.js"
-import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace.js"
+import { getAppNamespace } from "../../../../../../../src/plugins/kubernetes/namespace.js"
 import { expect } from "chai"
 import { cloneDeep } from "lodash-es"
 import { buildDockerAuthConfig } from "../../../../../../../src/plugins/kubernetes/init.js"
@@ -26,7 +26,8 @@ import { buildkitDeploymentName, dockerAuthSecretKey } from "../../../../../../.
 import { grouped } from "../../../../../../helpers.js"
 import { createActionLog } from "../../../../../../../src/logger/log-entry.js"
 import { resolveAction } from "../../../../../../../src/graph/actions.js"
-import type { NamespaceStatus } from "../../../../../../../src/types/namespace.js"
+
+import type { EventNamespaceStatus } from "../../../../../../../src/plugin-context.js"
 
 describe.skip("ensureBuildkit", () => {
   let garden: Garden
@@ -63,13 +64,7 @@ describe.skip("ensureBuildkit", () => {
       events: undefined,
     })) as KubernetesPluginContext
     api = await KubeApi.factory(garden.log, ctx, provider)
-    namespace = (
-      await getNamespaceStatus({
-        log: garden.log,
-        ctx: ctx as KubernetesPluginContext,
-        provider,
-      })
-    ).namespaceName
+    namespace = await getAppNamespace(ctx, garden.log, ctx.provider)
   })
 
   grouped("cluster-buildkit", "remote-only").context("cluster-buildkit mode", () => {
@@ -111,7 +106,7 @@ describe.skip("ensureBuildkit", () => {
       const resolved = await resolveAction({ garden, graph, action, log })
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
-      let namespaceStatus: NamespaceStatus | null = null
+      let namespaceStatus: EventNamespaceStatus | null = null
       ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
       await buildkitBuildHandler({
         ctx,

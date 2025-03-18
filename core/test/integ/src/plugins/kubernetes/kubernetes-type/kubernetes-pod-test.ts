@@ -14,6 +14,7 @@ import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { getKubernetesTestGarden } from "./common.js"
 import { TestTask } from "../../../../../../src/tasks/test.js"
 import fsExtra from "fs-extra"
+
 const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
 import type { KubernetesPodTestAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod.js"
@@ -52,7 +53,6 @@ describe("kubernetes-type pod Test", () => {
     expect(result!.outputs).to.exist
     expect(result!.result!.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.equal("kubernetes-type-test-default")
   })
 
   it("should run a test in different namespace, if configured", async () => {
@@ -72,7 +72,6 @@ describe("kubernetes-type pod Test", () => {
 
     expect(result?.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal(action.getConfig().spec.namespace)
-    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.equal(action.getConfig().spec.namespace)
   })
 
   it("should fail if an error occurs, but store the result", async () => {

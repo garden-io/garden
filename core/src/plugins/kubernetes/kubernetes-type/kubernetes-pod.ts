@@ -8,7 +8,6 @@
 
 import type { KubernetesCommonRunSpec, KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
 import { kubernetesCommonRunSchemaKeys, runPodResourceSchema, runPodSpecSchema } from "../config.js"
-import { composeCacheableRunResult, runResultCache } from "../run-results.js"
 import { k8sGetRunResult } from "../run-results.js"
 import { getActionNamespaceStatus } from "../namespace.js"
 import type { ActionKind, RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
@@ -18,10 +17,10 @@ import { createSchema } from "../../../config/common.js"
 import type { V1PodSpec } from "@kubernetes/client-node"
 import { runOrTestWithPod } from "./common.js"
 import type { KubernetesRunOutputs, KubernetesTestOutputs } from "./config.js"
-import { kubernetesManifestFilesSchema } from "./config.js"
 import {
-  kubernetesManifestTemplatesSchema,
+  kubernetesManifestFilesSchema,
   kubernetesManifestsSchema,
+  kubernetesManifestTemplatesSchema,
   kubernetesPatchResourcesSchema,
   kubernetesRunOutputsSchema,
   kubernetesTestOutputsSchema,
@@ -30,10 +29,12 @@ import type { KubernetesPatchResource, KubernetesResource } from "../types.js"
 import type { KubernetesKustomizeSpec } from "./kustomize.js"
 import { kustomizeSpecSchema } from "./kustomize.js"
 import type { ObjectSchema } from "@hapi/joi"
-import type { TestActionConfig, TestAction } from "../../../actions/test.js"
-import { composeCacheableTestResult, testResultCache } from "../test-results.js"
+import type { TestAction, TestActionConfig } from "../../../actions/test.js"
 import { k8sGetTestResult } from "../test-results.js"
-import { toActionStatus } from "../results-cache.js"
+import { getRunResultCache, getTestResultCache } from "../results-cache.js"
+import { toActionStatus } from "../util.js"
+import { InternalError } from "../../../exceptions.js"
+import type { KubernetesRunResult } from "../../../plugin/base.js"
 
 // RUN //
 
@@ -114,22 +115,29 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
         action,
         provider: k8sCtx.provider,
       })
-      const namespace = namespaceStatus.namespaceName
 
-      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
+      if (namespaceStatus.state !== "ready") {
+        throw new InternalError({
+          message: `Expected namespace state to be "ready", but got "${namespaceStatus.state}" instead.`,
+        })
+      }
 
-      const detail = composeCacheableRunResult({ result, action, namespaceStatus })
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
 
       if (action.getSpec("cacheResult")) {
+        const runResultCache = await getRunResultCache(ctx.gardenDirPath)
         await runResultCache.store({
           ctx,
           log,
           action,
-          result: detail,
+          keyData: {
+            namespaceUid: namespaceStatus.namespaceUid,
+          },
+          result,
         })
       }
 
-      return toActionStatus(detail)
+      return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
     },
 
     getResult: k8sGetRunResult,
@@ -161,22 +169,21 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
         action,
         provider: k8sCtx.provider,
       })
-      const namespace = namespaceStatus.namespaceName
 
-      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
-
-      const detail = composeCacheableTestResult({ result, action, namespaceStatus })
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
 
       if (action.getSpec("cacheResult")) {
+        const testResultCache = getTestResultCache(ctx.gardenDirPath)
         await testResultCache.store({
           ctx,
           log,
           action,
-          result: detail,
+          keyData: undefined,
+          result,
         })
       }
 
-      return toActionStatus(detail)
+      return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
     },
 
     getResult: k8sGetTestResult,

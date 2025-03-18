@@ -26,7 +26,6 @@ import { isWorkload } from "../../../../../../src/plugins/kubernetes/util.js"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
 import type { HelmDeployAction, HelmDeployConfig } from "../../../../../../src/plugins/kubernetes/helm/config.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
-import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
 import { FakeCloudApi } from "../../../../../helpers/api.js"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 import stripAnsi from "strip-ansi"
@@ -35,6 +34,7 @@ import { ChildProcessError, DeploymentError } from "../../../../../../src/except
 import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants.js"
 import { join } from "node:path"
+import type { EventNamespaceStatus } from "../../../../../../src/plugin-context.js"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -147,7 +147,7 @@ describe("helmDeploy", () => {
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
         // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
-        let namespaceStatus: NamespaceStatus | null = null
+        let namespaceStatus: EventNamespaceStatus | null = null
         ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
         await helmDeploy({
           ctx,
@@ -189,7 +189,7 @@ describe("helmDeploy", () => {
       const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
-      let namespaceStatus: NamespaceStatus | null = null
+      let namespaceStatus: EventNamespaceStatus | null = null
       ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
       await helmDeploy({
         ctx,
