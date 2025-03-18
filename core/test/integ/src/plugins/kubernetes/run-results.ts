@@ -8,7 +8,7 @@
 
 import type { Garden } from "../../../../../src/garden.js"
 import type { Provider } from "../../../../../src/config/provider.js"
-import type { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config.js"
+import type { KubernetesConfig, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import { randomString } from "../../../../../src/util/string.js"
 import { expect } from "chai"
@@ -17,7 +17,7 @@ import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import { composeKubernetesCacheEntry } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
 import { getRunResultCache } from "../../../../../src/plugins/kubernetes/results-cache.js"
-import { v4 as uuidv4 } from "uuid"
+import { getNamespaceStatus } from "../../../../../src/plugins/kubernetes/namespace.js"
 
 describe("kubernetes Run results", () => {
   let garden: Garden
@@ -44,10 +44,13 @@ describe("kubernetes Run results", () => {
 
       const data = randomString(1024 * 1024)
 
-      const namespaceUid = uuidv4()
+      const k8sCtx = ctx as KubernetesPluginContext
+      const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log: garden.log, provider: k8sCtx.provider })
+      expect(namespaceStatus.namespaceUid).to.be.not.undefined
+      const namespaceUid = namespaceStatus.namespaceUid!
+
       const result = composeKubernetesCacheEntry({
         result: {
-          // command: [],
           log: data,
           startedAt: new Date(),
           completedAt: new Date(),

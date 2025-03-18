@@ -47,7 +47,6 @@ describe("kubernetes Test results", () => {
       const namespaceUid = uuidv4()
       const result = composeKubernetesCacheEntry({
         result: {
-          // command: [],
           log: data,
           startedAt: new Date(),
           completedAt: new Date(),
@@ -60,7 +59,6 @@ describe("kubernetes Test results", () => {
           namespaceUid,
           state: "ready",
         },
-        // version: task.version,
       })
       const testResultCache = getTestResultCache(ctx.gardenDirPath)
       const trimmed = await testResultCache.store({
