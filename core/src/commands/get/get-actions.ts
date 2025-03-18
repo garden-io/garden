@@ -63,7 +63,7 @@ export const getActionsCmdOutputSchema = createSchema({
       .keys({
         configVersion: joi.string().required().description("The version string of the action's config."),
         sourceVersion: joi.string().required().description("The version string of the action's source."),
-        versionString: joi.string().required().description("The short version string of the action."),
+        versionString: joi.string().required().description("The version string of the action."),
         dependencyVersions: joi
           .object()
           .pattern(joi.string(), joi.string())

@@ -3604,11 +3604,8 @@ actions:
       # The version string of the action's source.
       sourceVersion:
 
-      # The short version string of the action.
+      # The version string of the action.
       versionString:
-
-      # The full version string of the action.
-      versionStringFull:
 
       # Map with the version strings of the action's dependencies.
       dependencyVersions:
@@ -3694,11 +3691,8 @@ actions:
       # The version string of the action's source.
       sourceVersion:
 
-      # The short version string of the action.
+      # The version string of the action.
       versionString:
-
-      # The full version string of the action.
-      versionStringFull:
 
       # Map with the version strings of the action's dependencies.
       dependencyVersions:
@@ -3784,11 +3778,8 @@ actions:
       # The version string of the action's source.
       sourceVersion:
 
-      # The short version string of the action.
+      # The version string of the action.
       versionString:
-
-      # The full version string of the action.
-      versionStringFull:
 
       # Map with the version strings of the action's dependencies.
       dependencyVersions:
@@ -3874,11 +3865,8 @@ actions:
       # The version string of the action's source.
       sourceVersion:
 
-      # The short version string of the action.
+      # The version string of the action.
       versionString:
-
-      # The full version string of the action.
-      versionStringFull:
 
       # Map with the version strings of the action's dependencies.
       dependencyVersions:
@@ -3964,11 +3952,8 @@ actions:
       # The version string of the action's source.
       sourceVersion:
 
-      # The short version string of the action.
+      # The version string of the action.
       versionString:
-
-      # The full version string of the action.
-      versionStringFull:
 
       # Map with the version strings of the action's dependencies.
       dependencyVersions:
