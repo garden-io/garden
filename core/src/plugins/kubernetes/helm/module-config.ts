@@ -46,7 +46,6 @@ import fsExtra from "fs-extra"
 
 const { pathExists } = fsExtra
 import { helmChartYamlFilename } from "./common.js"
-import { kubernetesLocalModeSchema } from "../local-mode.js"
 
 export const defaultHelmTimeout = 300
 
@@ -164,7 +163,6 @@ export const helmModuleSpecSchema = () =>
         "List of names of services that should be deployed before this chart."
       ),
       sync: kubernetesModuleSyncSchema(),
-      localMode: kubernetesLocalModeSchema(),
       include: joiModuleIncludeDirective(dedent`
       If neither \`include\` nor \`exclude\` is set, and the module has local chart sources, Garden
       automatically sets \`include\` to: \`["*", "charts/**/*", "templates/**/*"]\`.

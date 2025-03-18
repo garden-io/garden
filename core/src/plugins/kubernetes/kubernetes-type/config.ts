@@ -22,7 +22,6 @@ import type {
   KubernetesPodTestAction,
   KubernetesPodTestActionConfig,
 } from "./kubernetes-pod.js"
-import { kubernetesLocalModeSchema } from "../local-mode.js"
 import type { ContainerRunOutputs } from "../../container/config.js"
 import { containerRunOutputSchema } from "../../container/config.js"
 import type {
@@ -178,7 +177,6 @@ export const kubernetesDeploySchema = () =>
       ...kubernetesCommonDeploySpecKeys({ deprecateFiles: true }),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
-      localMode: kubernetesLocalModeSchema(),
       manifestFiles: kubernetesManifestFilesSchema(),
       manifestTemplates: kubernetesManifestTemplatesSchema(),
     })
