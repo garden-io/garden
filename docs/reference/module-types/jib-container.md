@@ -450,29 +450,6 @@ services:
           # information.
           defaultGroup:
 
-    # This feature has been deleted.
-    localMode:
-      # The reverse port-forwards configuration for the local application.
-      ports:
-        - # The local port to be used for reverse port-forward.
-          local:
-
-          # The remote port to be used for reverse port-forward.
-          remote:
-
-      # The command to run the local application. If not present, then the local application should be started
-      # manually.
-      command:
-
-      # Specifies restarting policy for the local application. By default, the local application will be restarting
-      # infinitely with 1000ms between attempts.
-      restart:
-        # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-        delayMsec: 1000
-
-        # Max number of the local application restarts. Unlimited by default.
-        max: .inf
-
     # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
     image:
 
@@ -1820,90 +1797,6 @@ Set the default group on files and directories at the target. Specify either an 
 | Type               | Required |
 | ------------------ | -------- |
 | `number \| string` | No       |
-
-### `services[].localMode`
-
-[services](#services) > localMode
-
-{% hint style="warning" %}
-**Deprecated**: The local mode will be removed in the next major version of Garden, 0.14.
-{% endhint %}
-
-This feature has been deleted.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `services[].localMode.ports[]`
-
-[services](#services) > [localMode](#serviceslocalmode) > ports
-
-The reverse port-forwards configuration for the local application.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-### `services[].localMode.ports[].local`
-
-[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > local
-
-The local port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `services[].localMode.ports[].remote`
-
-[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > remote
-
-The remote port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `services[].localMode.command[]`
-
-[services](#services) > [localMode](#serviceslocalmode) > command
-
-The command to run the local application. If not present, then the local application should be started manually.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `services[].localMode.restart`
-
-[services](#services) > [localMode](#serviceslocalmode) > restart
-
-Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
-
-| Type     | Default                         | Required |
-| -------- | ------------------------------- | -------- |
-| `object` | `{"delayMsec":1000,"max":null}` | No       |
-
-### `services[].localMode.restart.delayMsec`
-
-[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > delayMsec
-
-Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `services[].localMode.restart.max`
-
-[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > max
-
-Max number of the local application restarts. Unlimited by default.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `null`  | No       |
 
 ### `services[].image`
 
