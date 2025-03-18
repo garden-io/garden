@@ -216,6 +216,7 @@ function composeNamespaceStatus({
     return {
       pluginName,
       namespaceName,
+      namespaceUid: undefined,
       state: "missing",
     }
   } else {

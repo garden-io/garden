@@ -6,26 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { z } from "zod"
+export type BaseNamespaceStatus = {
+  pluginName: string
+  namespaceName: string
+}
 
-export const baseNamespaceStatusSchema = z.object({
-  pluginName: z.string(),
-  namespaceName: z.string(),
-  state: z.union([z.literal("ready"), z.literal("missing")]),
-})
-export type BaseNamespaceStatus = z.infer<typeof baseNamespaceStatusSchema>
+type ReadyNamespaceStatus = BaseNamespaceStatus & {
+  namespaceUid: string
+  state: "ready"
+}
 
-export const namespaceStatusSchema = z.discriminatedUnion("state", [
-  baseNamespaceStatusSchema.extend({
-    namespaceUid: z.string().uuid(),
-    state: z.literal("ready"),
-  }),
-  baseNamespaceStatusSchema.extend({
-    namespaceUid: z.undefined(),
-    state: z.literal("missing"),
-  }),
-])
-export type NamespaceStatus = z.infer<typeof namespaceStatusSchema>
+type MissingNamespaceStatus = BaseNamespaceStatus & {
+  namespaceUid: undefined
+  state: "missing"
+}
+
+export type NamespaceStatus = ReadyNamespaceStatus | MissingNamespaceStatus
 
 export function environmentToString({ environmentName, namespace }: { environmentName: string; namespace?: string }) {
   return namespace ? `${environmentName}.${namespace}` : environmentName

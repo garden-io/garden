@@ -135,7 +135,9 @@ export type PluginEventLogMessage = PluginEventLogContext & {
   msg: string
 }
 
-export type EventNamespaceStatus = BaseNamespaceStatus
+export type EventNamespaceStatus = BaseNamespaceStatus & {
+  state: "ready" | "missing"
+}
 
 // Define your emitter's types as follows:
 // Key: Event name; Value: Listener function signature
