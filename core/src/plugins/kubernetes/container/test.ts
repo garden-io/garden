@@ -14,6 +14,7 @@ import type { KubernetesPluginContext } from "../config.js"
 import type { TestActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
 import { getTestResultCache } from "../results-cache.js"
+import type { KubernetesRunResult } from "../../../plugin/base.js"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
   const { ctx, log, action } = params
@@ -53,5 +54,5 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     })
   }
 
-  return toActionStatus(result)
+  return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
 }

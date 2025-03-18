@@ -20,6 +20,7 @@ import { memoize } from "lodash-es"
 import type { BaseProviderConfig } from "../config/provider.js"
 import { z } from "zod"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../plugins/kubernetes/constants.js"
+import type { NamespaceStatus } from "../types/namespace.js"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -165,6 +166,9 @@ export const runResultSchemaZod = z.object({
 })
 
 export type RunResult = z.infer<typeof runResultSchemaZod>
+export type KubernetesRunResult = RunResult & {
+  namespaceStatus: NamespaceStatus
+}
 
 export const runResultSchema = createSchema({
   name: "run-result",

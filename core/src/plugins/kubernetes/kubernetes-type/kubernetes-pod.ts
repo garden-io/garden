@@ -34,6 +34,7 @@ import { k8sGetTestResult } from "../test-results.js"
 import { getRunResultCache, getTestResultCache } from "../results-cache.js"
 import { toActionStatus } from "../util.js"
 import { InternalError } from "../../../exceptions.js"
+import type { KubernetesRunResult } from "../../../plugin/base.js"
 
 // RUN //
 
@@ -136,7 +137,7 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
         })
       }
 
-      return toActionStatus(result)
+      return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
     },
 
     getResult: k8sGetRunResult,
@@ -182,7 +183,7 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
         })
       }
 
-      return toActionStatus(result)
+      return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
     },
 
     getResult: k8sGetTestResult,

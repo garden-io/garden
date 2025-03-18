@@ -15,6 +15,7 @@ import type { RunActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
 import { getRunResultCache } from "../results-cache.js"
 import { InternalError } from "../../../exceptions.js"
+import type { KubernetesRunResult } from "../../../plugin/base.js"
 
 export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params
@@ -60,5 +61,5 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     })
   }
 
-  return toActionStatus(result)
+  return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
 }

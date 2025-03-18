@@ -11,6 +11,7 @@ import { getRunResultCache } from "./results-cache.js"
 import { toActionStatus } from "./util.js"
 import { getNamespaceStatus } from "./namespace.js"
 import type { KubernetesPluginContext } from "./config.js"
+import type { KubernetesRunResult } from "../../plugin/base.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
@@ -28,5 +29,5 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
     return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
 
-  return toActionStatus(cachedResult)
+  return toActionStatus<KubernetesRunResult>({ ...cachedResult, namespaceStatus })
 }

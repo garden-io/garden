@@ -22,6 +22,7 @@ import { runAndCopy } from "../run.js"
 import { filterManifests, prepareManifests, prepareTemplates } from "./common.js"
 import { kubernetesRunOutputsSchema } from "../kubernetes-type/config.js"
 import { getRunResultCache, getTestResultCache } from "../results-cache.js"
+import type { KubernetesRunResult } from "../../../plugin/base.js"
 
 const helmRunPodOutputsSchema = kubernetesRunOutputsSchema
 const helmTestPodOutputsSchema = helmRunPodOutputsSchema
@@ -67,7 +68,7 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
         })
       }
 
-      return toActionStatus(result)
+      return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
     },
 
     getResult: k8sGetRunResult,
@@ -107,7 +108,7 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
         })
       }
 
-      return toActionStatus(result)
+      return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
     },
 
     getResult: k8sGetRunResult,
