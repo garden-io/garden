@@ -43,12 +43,6 @@ export async function getHelmTestGarden() {
   return garden
 }
 
-export async function getHelmLocalModeTestGarden() {
-  const projectRoot = getDataDir("test-projects", "helm-local-mode")
-  const garden = await makeTestGarden(projectRoot)
-  return garden
-}
-
 export async function buildHelmModules(garden: Garden | TestGarden, graph: ConfigGraph) {
   const actions = graph.getBuilds()
   const tasks = actions.map(

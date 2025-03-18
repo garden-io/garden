@@ -500,22 +500,6 @@ describe("DeployCommand", () => {
       expect(persistent).to.be.true
     })
 
-    it("should return persistent=true if --local-mode is set", async () => {
-      const cmd = new DeployCommand()
-      const log = getRootLogger().createLog()
-      const persistent = cmd.maybePersistent({
-        log,
-        args: {
-          names: undefined,
-        },
-        opts: {
-          ...defaultDeployOpts,
-          "local-mode": [],
-        },
-      })
-      expect(persistent).to.be.true
-    })
-
     it("should return persistent=true if --forward is set", async () => {
       const cmd = new DeployCommand()
       const log = getRootLogger().createLog()
