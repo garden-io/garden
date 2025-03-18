@@ -22,7 +22,6 @@ import { ingressHostnameSchema, linkUrlSchema } from "../../types/service.js"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants.js"
 import { dedent, deline } from "../../util/string.js"
 import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config.js"
-import { localModeGuideLink } from "../kubernetes/local-mode.js"
 import type { BuildAction, BuildActionConfig } from "../../actions/build.js"
 import type { DeployAction, DeployActionConfig } from "../../actions/deploy.js"
 import type { TestAction, TestActionConfig } from "../../actions/test.js"
@@ -390,21 +389,7 @@ export interface ContainerLocalModeSpec {
 
 export const containerLocalModeSchema = createSchema({
   name: "container-local-mode",
-  description: dedent`
-    [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
-
-    The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
-    Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
-
-    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` command.
-    Local mode always takes the precedence over sync mode if there are any conflicting service names.
-
-    Health checks are disabled for services running in local mode.
-
-    See the [Local Mode guide](${localModeGuideLink}) for more information.
-
-    Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-  `,
+  description: `This feature has been deleted.`,
   keys: () => ({
     ports: joi
       .array()

@@ -332,21 +332,7 @@ sync:
   # workload is used.
   containerName:
 
-# [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target
-# resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local
-# mode for the action.
-#
-# The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
-# server to proxy requests.
-# Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
-#
-# Local mode is enabled by setting the `--local` option on the `garden deploy` command.
-# Local mode always takes the precedence over sync mode if there are any conflicting service names.
-#
-# Health checks are disabled for services running in local mode.
-#
-# Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
-# release.
+# This feature has been deleted.
 localMode:
   # The reverse port-forwards configuration for the local application.
   ports:
@@ -1339,17 +1325,7 @@ Optionally specify the name of a specific container to sync to. If not specified
 **Deprecated**: The local mode will be removed in the next major version of Garden, 0.14.
 {% endhint %}
 
-[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
-
-The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
-Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
-
-Local mode is enabled by setting the `--local` option on the `garden deploy` command.
-Local mode always takes the precedence over sync mode if there are any conflicting service names.
-
-Health checks are disabled for services running in local mode.
-
-Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
+This feature has been deleted.
 
 | Type     | Required |
 | -------- | -------- |

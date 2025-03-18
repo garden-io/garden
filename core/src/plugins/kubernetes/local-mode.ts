@@ -42,9 +42,6 @@ import touch from "touch"
 import type { Resolved } from "../../actions/types.js"
 import AsyncLock from "async-lock"
 import { styles } from "../../logger/styles.js"
-import { makeDocsLinkPlain } from "../../docs/common.js"
-
-export const localModeGuideLink = makeDocsLinkPlain("guides/running-service-in-local-mode")
 
 const localhost = "127.0.0.1"
 
@@ -77,21 +74,7 @@ export const kubernetesLocalModeSchema = () =>
         "The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`."
       ),
     })
-    .description(
-      dedent`
-    [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by \`localMode.target\` or \`defaultTarget\`. One of those fields must be specified to enable local mode for the action.
-
-    The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
-    Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
-
-    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` command.
-    Local mode always takes the precedence over sync mode if there are any conflicting service names.
-
-    Health checks are disabled for services running in local mode.
-
-    Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-  `
-    )
+    .description(`This feature has been deleted.`)
 
 interface BaseLocalModeParams {
   ctx: PluginContext
