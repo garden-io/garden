@@ -125,11 +125,6 @@ spec:
 
 You'll find a complete example of this in our [local-service example project](../../examples/local-service).
 
-{% hint style="info" %}
-If you need your local service to _receive_ traffic from the remote parts of your system
-you can use [Garden's local mode functionality](https://docs.garden.io/v/docs-edge-2/guides/running-service-in-local-mode).
-{% endhint %}
-
 ### Run and Test
 
 Similar to the Build action, the Run and Test actions can also be used to run one-off local commands.
