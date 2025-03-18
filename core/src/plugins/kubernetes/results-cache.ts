@@ -5,60 +5,62 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+import {
+  FILESYSTEM_CACHE_EXPIRY_DAYS,
+  getLocalActionResultsCacheDir,
+  SimpleLocalFileSystemCacheStorage,
+} from "./results-cache-fs.js"
+import type { CacheableRunAction, CacheableTestAction, KubernetesCacheEntrySchema } from "./results-cache-base.js"
+import { ResultCache } from "./results-cache-base.js"
+import { currentResultSchemaVersion, kubernetesCacheEntrySchema } from "./results-cache-base.js"
 
-import type { PluginContext } from "../../plugin-context.js"
-import type { Log } from "../../logger/log-entry.js"
-import type { Action, ActionStatus } from "../../actions/types.js"
-import type { RunResult } from "../../plugin/base.js"
-import type { NamespaceStatus } from "../../types/namespace.js"
-import type { RunAction } from "../../actions/run.js"
-import type { TestAction } from "../../actions/test.js"
-import { runResultToActionState } from "../../actions/base.js"
-
-export type CacheableResult = RunResult & {
-  namespaceStatus: NamespaceStatus
-  actionName: string
+type RunKeyDataSchema = {
+  // We include the namespace uid for run cache entries in cache key calculation, so that we re-run run actions
+  // whenever the namespace has been deleted
+  namespaceUid: string
 }
 
-export interface LoadResultParams<A extends RunAction | TestAction> {
-  ctx: PluginContext
-  log: Log
-  action: A
-}
+type TestKeyData = undefined
 
-export type ClearResultParams<A extends RunAction | TestAction> = LoadResultParams<A>
+let testResultCache: ResultCache<CacheableTestAction, KubernetesCacheEntrySchema, TestKeyData> | undefined
+let isCachedCleanupInitiated: boolean = false
 
-export interface StoreResultParams<A extends RunAction | TestAction, R extends CacheableResult> {
-  ctx: PluginContext
-  log: Log
-  action: A
-  result: R
-}
+export function getTestResultCache(gardenDirPath: string) {
+  if (testResultCache === undefined) {
+    const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
+    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
+      cacheDir,
+      schemaVersion: currentResultSchemaVersion,
+      cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
+    })
+    if (!isCachedCleanupInitiated) {
+      // we don't need to await for completion here
+      void cacheStorage.invalidate()
+      isCachedCleanupInitiated = true
+    }
 
-export function composeCacheableResult({
-  result,
-  action,
-  namespaceStatus,
-}: {
-  result: RunResult
-  action: Action
-  namespaceStatus: NamespaceStatus
-}): CacheableResult {
-  return {
-    ...result,
-    namespaceStatus,
-    actionName: action.name,
+    testResultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
   }
+  return testResultCache
 }
 
-export function toActionStatus<T extends CacheableResult>(detail: T): ActionStatus {
-  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
-}
+let runResultCache: ResultCache<CacheableRunAction, KubernetesCacheEntrySchema, RunKeyDataSchema> | undefined
 
-export interface ResultCache<A extends RunAction | TestAction, R extends CacheableResult> {
-  load(params: LoadResultParams<A>): Promise<R | undefined>
+export function getRunResultCache(gardenDirPath: string) {
+  if (runResultCache === undefined) {
+    const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
+    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
+      cacheDir,
+      schemaVersion: currentResultSchemaVersion,
+      cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
+    })
+    if (!isCachedCleanupInitiated) {
+      // we don't need to await for completion here
+      void cacheStorage.invalidate()
+      isCachedCleanupInitiated = true
+    }
 
-  store(params: StoreResultParams<A, R>): Promise<R>
-
-  clear(param: ClearResultParams<A>): Promise<void>
+    runResultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
+  }
+  return runResultCache
 }

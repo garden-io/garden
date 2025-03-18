@@ -16,8 +16,11 @@ import { RunTask } from "../../../../../../src/tasks/run.js"
 import fsExtra from "fs-extra"
 const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
-import { runResultCache } from "../../../../../../src/plugins/kubernetes/run-results.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
+
+import { getRunResultCache } from "../../../../../../src/plugins/kubernetes/results-cache.js"
+import type { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config.js"
+import { getNamespaceStatus } from "../../../../../../src/plugins/kubernetes/namespace.js"
 
 describe("Helm Pod Run", () => {
   let garden: TestGarden
@@ -46,7 +49,22 @@ describe("Helm Pod Run", () => {
     // Clear any existing Run result
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await runResultCache.clear({ ctx, log: garden.log, action })
+    const k8sCtx = ctx as KubernetesPluginContext
+    const namespaceStatus = await getNamespaceStatus({
+      ctx: k8sCtx,
+      log: garden.log,
+      skipCreate: true,
+      provider: k8sCtx.provider,
+    })
+    expect(namespaceStatus.state).to.eql("ready")
+
+    const runResultCache = getRunResultCache(ctx.gardenDirPath)
+    await runResultCache.clear({
+      ctx,
+      log: garden.log,
+      action,
+      keyData: { namespaceUid: namespaceStatus.namespaceUid! },
+    })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const result = results.results.getResult(testTask)
@@ -55,7 +73,6 @@ describe("Helm Pod Run", () => {
     expect(result?.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal("ok")
     expect(result!.result!.outputs.log.trim()).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus).to.exist
 
     // We also verify that result was saved.
     const actions = await garden.getActionRouter()
@@ -86,7 +103,22 @@ describe("Helm Pod Run", () => {
     // Clear any existing Run result
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await runResultCache.clear({ ctx, log: garden.log, action })
+    const k8sCtx = ctx as KubernetesPluginContext
+    const namespaceStatus = await getNamespaceStatus({
+      ctx: k8sCtx,
+      log: garden.log,
+      skipCreate: true,
+      provider: k8sCtx.provider,
+    })
+    expect(namespaceStatus.state).to.eql("ready")
+
+    const runResultCache = getRunResultCache(ctx.gardenDirPath)
+    await runResultCache.clear({
+      ctx,
+      log: garden.log,
+      action,
+      keyData: { namespaceUid: namespaceStatus.namespaceUid! },
+    })
 
     await garden.processTasks({ tasks: [testTask], throwOnError: true })
 

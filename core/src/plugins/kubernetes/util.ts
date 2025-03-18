@@ -6,51 +6,53 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { get, flatten, sortBy, omit, sample, isEmpty, find, cloneDeep, uniqBy } from "lodash-es"
-import type { V1Pod, V1EnvVar, V1Container, V1PodSpec, CoreV1Event } from "@kubernetes/client-node"
+import { cloneDeep, find, flatten, get, isEmpty, omit, sample, sortBy, uniqBy } from "lodash-es"
+import type { CoreV1Event, V1Container, V1EnvVar, V1Pod, V1PodSpec } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
 import { hashSync } from "hasha"
 
 import type {
-  KubernetesResource,
-  KubernetesWorkload,
   KubernetesPod,
+  KubernetesResource,
   KubernetesServerResource,
+  KubernetesWorkload,
   SupportedRuntimeAction,
+  SyncableResource,
 } from "./types.js"
 import { isPodResource } from "./types.js"
 import { findByName } from "../../util/util.js"
 import { KubeApi, KubernetesError } from "./api.js"
 import {
-  gardenAnnotationKey,
   base64,
-  deline,
-  stableStringify,
-  splitLast,
-  truncate,
   dedent,
+  deline,
+  gardenAnnotationKey,
   naturalList,
+  splitLast,
+  stableStringify,
+  truncate,
 } from "../../util/string.js"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants.js"
 import type { ContainerEnvVars } from "../container/moduleConfig.js"
-import { ConfigurationError, DeploymentError, PluginError, InternalError } from "../../exceptions.js"
-import type { KubernetesProvider, KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config.js"
+import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions.js"
+import type { KubernetesPluginContext, KubernetesProvider, KubernetesTargetResourceSpec } from "./config.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { HelmModule } from "./helm/module-config.js"
 import type { KubernetesModule } from "./kubernetes-type/module-config.js"
 import { prepareTemplates, renderHelmTemplateString } from "./helm/common.js"
-import type { SyncableResource } from "./types.js"
 import type { ProviderMap } from "../../config/provider.js"
 import type { PodRunnerExecParams } from "./run.js"
 import { PodRunner } from "./run.js"
 import { isSubset } from "../../util/is-subset.js"
 import { checkPodStatus } from "./status/pod.js"
 import { getActionNamespace } from "./namespace.js"
-import type { Resolved } from "../../actions/types.js"
+import type { ActionStatus, Resolved } from "../../actions/types.js"
 import { serializeValues } from "../../util/serialization.js"
 import { PassThrough } from "stream"
 import { styles } from "../../logger/styles.js"
+import type { RunResult } from "../../plugin/base.js"
+import { runResultToActionState } from "../../actions/base.js"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -888,4 +890,8 @@ export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, cont
 
 export function isOctal(value: string) {
   return /^(0o?)[0-7]+$/i.test(value)
+}
+
+export function toActionStatus<T extends RunResult>(detail: T): ActionStatus {
+  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
 }

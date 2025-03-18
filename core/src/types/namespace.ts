@@ -6,14 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export type NamespaceState = "ready" | "missing"
-
-// When needed, we can make this type generic and add e.g. a detail for plugin-specific metadata.
-export interface NamespaceStatus {
+export type BaseNamespaceStatus = {
   pluginName: string
   namespaceName: string
-  state: NamespaceState
 }
+
+type ReadyNamespaceStatus = BaseNamespaceStatus & {
+  namespaceUid: string
+  state: "ready"
+}
+
+type MissingNamespaceStatus = BaseNamespaceStatus & {
+  namespaceUid: undefined
+  state: "missing"
+}
+
+export type NamespaceStatus = ReadyNamespaceStatus | MissingNamespaceStatus
 
 export function environmentToString({ environmentName, namespace }: { environmentName: string; namespace?: string }) {
   return namespace ? `${environmentName}.${namespace}` : environmentName
