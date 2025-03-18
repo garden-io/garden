@@ -23,7 +23,7 @@ import {
   parseActionReference,
   unusedApiVersionSchema,
 } from "../config/common.js"
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
+import { DOCS_BASE_URL } from "../constants.js"
 import { dedent, deline, naturalList, stableStringify } from "../util/string.js"
 import type { ActionVersion, ModuleVersion, TreeVersion } from "../vcs/vcs.js"
 import { fullHashStrings, SHORT_VERSION_HASH_LENGTH } from "../vcs/vcs.js"
@@ -73,6 +73,7 @@ import type { VariablesContext } from "../config/template-contexts/variables.js"
 import { deepMap } from "../util/objects.js"
 import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 import { RootLogger } from "../logger/logger.js"
+import { getProjectApiVersion } from "../project-api-version.js"
 
 // TODO: split this file
 
@@ -725,8 +726,7 @@ export abstract class RuntimeAction<
       )
       // Report general deprecation warning
       reportDeprecatedFeatureUsage({
-        // TODO(0.14): change this to v2
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: getProjectApiVersion(),
         log,
         deprecation: "buildConfigFieldOnRuntimeActions",
       })
