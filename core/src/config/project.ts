@@ -218,7 +218,6 @@ export interface ProjectConfig extends BaseGardenResource {
   proxy?: ProxyConfig
   defaultEnvironment: string
   dotIgnoreFile: string
-  dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
   scan?: ProjectScan
   outputs?: OutputSpec[]
