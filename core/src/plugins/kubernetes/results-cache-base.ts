@@ -38,6 +38,7 @@ export type SchemaVersion = `v${number}`
 export const currentResultSchemaVersion: SchemaVersion = "v1"
 export const kubernetesCacheEntrySchema = runResultSchemaZod
 export type KubernetesCacheEntrySchema = typeof kubernetesCacheEntrySchema
+export type KubernetesCacheEntry = z.output<KubernetesCacheEntrySchema>
 
 export interface LoadResultParams<A extends CacheableAction, AdditionalKeyData> {
   ctx: PluginContext
@@ -75,7 +76,7 @@ export class CacheStorageError extends GardenError {
   type = "cache-storage"
 }
 
-export interface CacheStorage {
+export interface CacheStorage<ResultShape> {
   /**
    * Returns a value associated with the {@code key},
    * or throws a {@link CacheStorageError} if no key was found or any error occurred.
@@ -88,7 +89,7 @@ export interface CacheStorage {
    * Returns the value back if it was written successfully,
    * or throws a {@link CacheStorageError} otherwise.
    */
-  put(key: string, value: JsonObject, action: Action): Promise<JsonObject>
+  put(key: string, value: ResultShape, action: Action): Promise<ResultShape>
 
   /**
    * Removes a value associated with the {@code key}.
@@ -99,10 +100,16 @@ export interface CacheStorage {
 }
 
 export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject, AdditionalKeyData> {
-  private readonly cacheStorage: CacheStorage
+  private readonly cacheStorage: CacheStorage<z.output<ResultSchema>>
   private readonly resultSchema: ResultSchema
 
-  constructor({ cacheStorage, resultSchema }: { cacheStorage: CacheStorage; resultSchema: ResultSchema }) {
+  constructor({
+    cacheStorage,
+    resultSchema,
+  }: {
+    cacheStorage: CacheStorage<z.output<ResultSchema>>
+    resultSchema: ResultSchema
+  }) {
     this.cacheStorage = cacheStorage
     this.resultSchema = resultSchema
   }

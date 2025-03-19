@@ -39,7 +39,7 @@ export const FILESYSTEM_CACHE_EXPIRY_DAYS = 7
  * because each Run and Test result
  * is usually read and written only once per Garden command execution.
  */
-export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
+export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStorage<ResultShape> {
   private readonly cacheDir: string
   private readonly schemaVersion: SchemaVersion
   private readonly cacheExpiryDays: number
@@ -91,7 +91,7 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
     }
   }
 
-  private async writeFileContent(filePath: string, value: JsonObject): Promise<JsonObject> {
+  private async writeFileContent(filePath: string, value: ResultShape): Promise<ResultShape> {
     try {
       this.log.silly(`Writing data to file ${filePath}`)
       await writeFileAtomic(filePath, JSON.stringify(value), { mode: undefined })
@@ -165,11 +165,15 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
    * Returns the value back if it was written successfully,
    * or throws a {@link LocalFileSystemCacheError} otherwise.
    */
-  public async put(key: string, value: JsonObject): Promise<JsonObject> {
+  public async put(key: string, value: ResultShape): Promise<ResultShape> {
     await ensureDir(this.cacheDir)
 
     const filePath = this.getFilePath(key)
-    return await this.writeFileContent(filePath, value)
+    const storedValue = await this.writeFileContent(filePath, value)
+    if (storedValue === undefined) {
+      return storedValue
+    }
+    return value
   }
 
   /**

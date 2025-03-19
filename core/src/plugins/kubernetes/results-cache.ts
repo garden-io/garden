@@ -10,7 +10,12 @@ import {
   getLocalActionResultsCacheDir,
   SimpleLocalFileSystemCacheStorage,
 } from "./results-cache-fs.js"
-import type { CacheableRunAction, CacheableTestAction, KubernetesCacheEntrySchema } from "./results-cache-base.js"
+import type {
+  CacheableRunAction,
+  CacheableTestAction,
+  KubernetesCacheEntry,
+  KubernetesCacheEntrySchema,
+} from "./results-cache-base.js"
 import { ResultCache } from "./results-cache-base.js"
 import { currentResultSchemaVersion, kubernetesCacheEntrySchema } from "./results-cache-base.js"
 
@@ -28,7 +33,7 @@ let isCachedCleanupInitiated: boolean = false
 export function getTestResultCache(gardenDirPath: string) {
   if (testResultCache === undefined) {
     const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
-    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
+    const cacheStorage = new SimpleLocalFileSystemCacheStorage<KubernetesCacheEntry>({
       cacheDir,
       schemaVersion: currentResultSchemaVersion,
       cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
@@ -49,7 +54,7 @@ let runResultCache: ResultCache<CacheableRunAction, KubernetesCacheEntrySchema, 
 export function getRunResultCache(gardenDirPath: string) {
   if (runResultCache === undefined) {
     const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
-    const cacheStorage = new SimpleLocalFileSystemCacheStorage({
+    const cacheStorage = new SimpleLocalFileSystemCacheStorage<KubernetesCacheEntry>({
       cacheDir,
       schemaVersion: currentResultSchemaVersion,
       cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
