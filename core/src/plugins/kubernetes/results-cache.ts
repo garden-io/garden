@@ -31,6 +31,7 @@ type TestKeyData = undefined
 let testResultCache: ResultCache<CacheableTestAction, KubernetesCacheEntrySchema, TestKeyData> | undefined
 let isCachedCleanupInitiated: boolean = false
 
+// TODO: consider storing the cache instance in the plugin context
 export function getTestResultCache(ctx: PluginContext) {
   if (testResultCache === undefined) {
     const cacheDir = getLocalActionResultsCacheDir(ctx.gardenDirPath)
@@ -52,6 +53,7 @@ export function getTestResultCache(ctx: PluginContext) {
 
 let runResultCache: ResultCache<CacheableRunAction, KubernetesCacheEntrySchema, RunKeyDataSchema> | undefined
 
+// TODO: deduplicate this with the getter above
 export function getRunResultCache(ctx: PluginContext) {
   if (runResultCache === undefined) {
     const cacheDir = getLocalActionResultsCacheDir(ctx.gardenDirPath)
