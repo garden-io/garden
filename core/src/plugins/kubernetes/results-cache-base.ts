@@ -135,7 +135,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
         throw e
       }
 
-      action.createLog(log).debug(e.message)
+      log.debug(e.message)
     }
   }
 
@@ -153,7 +153,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
         throw e
       }
 
-      action.createLog(log).debug(e.message)
+      log.debug(e.message)
       return undefined
     }
 
@@ -179,7 +179,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
         throw e
       }
 
-      action.createLog(log).debug(e.message)
+      log.debug(e.message)
       return undefined
     }
   }
