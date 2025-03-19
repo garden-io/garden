@@ -18,6 +18,7 @@ import type {
 } from "./results-cache-base.js"
 import { ResultCache } from "./results-cache-base.js"
 import { currentResultSchemaVersion, kubernetesCacheEntrySchema } from "./results-cache-base.js"
+import type { PluginContext } from "../../plugin-context.js"
 
 type RunKeyDataSchema = {
   // We include the namespace uid for run cache entries in cache key calculation, so that we re-run run actions
@@ -30,9 +31,9 @@ type TestKeyData = undefined
 let testResultCache: ResultCache<CacheableTestAction, KubernetesCacheEntrySchema, TestKeyData> | undefined
 let isCachedCleanupInitiated: boolean = false
 
-export function getTestResultCache(gardenDirPath: string) {
+export function getTestResultCache(ctx: PluginContext) {
   if (testResultCache === undefined) {
-    const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
+    const cacheDir = getLocalActionResultsCacheDir(ctx.gardenDirPath)
     const cacheStorage = new SimpleLocalFileSystemCacheStorage<KubernetesCacheEntry>({
       cacheDir,
       schemaVersion: currentResultSchemaVersion,
@@ -51,9 +52,9 @@ export function getTestResultCache(gardenDirPath: string) {
 
 let runResultCache: ResultCache<CacheableRunAction, KubernetesCacheEntrySchema, RunKeyDataSchema> | undefined
 
-export function getRunResultCache(gardenDirPath: string) {
+export function getRunResultCache(ctx: PluginContext) {
   if (runResultCache === undefined) {
-    const cacheDir = getLocalActionResultsCacheDir(gardenDirPath)
+    const cacheDir = getLocalActionResultsCacheDir(ctx.gardenDirPath)
     const cacheStorage = new SimpleLocalFileSystemCacheStorage<KubernetesCacheEntry>({
       cacheDir,
       schemaVersion: currentResultSchemaVersion,
