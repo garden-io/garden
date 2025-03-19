@@ -34,41 +34,32 @@ let isCachedCleanupInitiated: boolean = false
 // TODO: consider storing the cache instance in the plugin context
 export function getTestResultCache(ctx: PluginContext) {
   if (testResultCache === undefined) {
-    const cacheDir = getLocalActionResultsCacheDir(ctx.gardenDirPath)
-    const cacheStorage = new SimpleLocalFileSystemCacheStorage<KubernetesCacheEntry>({
-      cacheDir,
-      schemaVersion: currentResultSchemaVersion,
-      cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
-    })
-    if (!isCachedCleanupInitiated) {
-      // we don't need to await for completion here
-      void cacheStorage.invalidate()
-      isCachedCleanupInitiated = true
-    }
-
-    testResultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
+    testResultCache = createResultCache(ctx)
   }
   return testResultCache
 }
 
 let runResultCache: ResultCache<CacheableRunAction, KubernetesCacheEntrySchema, RunKeyDataSchema> | undefined
 
-// TODO: deduplicate this with the getter above
 export function getRunResultCache(ctx: PluginContext) {
   if (runResultCache === undefined) {
-    const cacheDir = getLocalActionResultsCacheDir(ctx.gardenDirPath)
-    const cacheStorage = new SimpleLocalFileSystemCacheStorage<KubernetesCacheEntry>({
-      cacheDir,
-      schemaVersion: currentResultSchemaVersion,
-      cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
-    })
-    if (!isCachedCleanupInitiated) {
-      // we don't need to await for completion here
-      void cacheStorage.invalidate()
-      isCachedCleanupInitiated = true
-    }
-
-    runResultCache = new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
+    runResultCache = createResultCache(ctx)
   }
   return runResultCache
+}
+
+export function createResultCache(ctx: PluginContext) {
+  const cacheDir = getLocalActionResultsCacheDir(ctx.gardenDirPath)
+  const cacheStorage = new SimpleLocalFileSystemCacheStorage<KubernetesCacheEntry>({
+    cacheDir,
+    schemaVersion: currentResultSchemaVersion,
+    cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
+  })
+  if (!isCachedCleanupInitiated) {
+    // we don't need to await for completion here
+    void cacheStorage.invalidate()
+    isCachedCleanupInitiated = true
+  }
+
+  return new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
 }
