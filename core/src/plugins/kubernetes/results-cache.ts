@@ -13,12 +13,14 @@ import {
 import type {
   CacheableRunAction,
   CacheableTestAction,
+  CacheStorage,
   KubernetesCacheEntry,
   KubernetesCacheEntrySchema,
 } from "./results-cache-base.js"
 import { ResultCache } from "./results-cache-base.js"
 import { currentResultSchemaVersion, kubernetesCacheEntrySchema } from "./results-cache-base.js"
 import type { PluginContext } from "../../plugin-context.js"
+import { GardenCloudCacheStorage } from "./results-cache-cloud-v1.js"
 
 type RunKeyDataSchema = {
   // We include the namespace uid for run cache entries in cache key calculation, so that we re-run run actions
@@ -49,17 +51,31 @@ export function getRunResultCache(ctx: PluginContext) {
 }
 
 export function createResultCache(ctx: PluginContext) {
+  const cacheStorage = createCacheStorage(ctx)
+  return new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
+}
+
+export function createCacheStorage(ctx: PluginContext): CacheStorage<KubernetesCacheEntry> {
+  // TODO: check if these conditions always hold simultaneously
+  if (ctx.cloudApi && ctx.projectId) {
+    return new GardenCloudCacheStorage({
+      schemaVersion: currentResultSchemaVersion,
+      cloudApi: ctx.cloudApi,
+      projectId: ctx.projectId,
+    })
+  }
+
+  // Fallback to local filesystem cache if not logged in to Cloud
   const cacheDir = getLocalActionResultsCacheDir(ctx.gardenDirPath)
-  const cacheStorage = new SimpleLocalFileSystemCacheStorage<KubernetesCacheEntry>({
+  const fileSystemCacheStorage = new SimpleLocalFileSystemCacheStorage<KubernetesCacheEntry>({
     cacheDir,
     schemaVersion: currentResultSchemaVersion,
     cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
   })
   if (!isCachedCleanupInitiated) {
     // we don't need to await for completion here
-    void cacheStorage.invalidate()
+    void fileSystemCacheStorage.invalidate()
     isCachedCleanupInitiated = true
   }
-
-  return new ResultCache({ cacheStorage, resultSchema: kubernetesCacheEntrySchema })
+  return fileSystemCacheStorage
 }
