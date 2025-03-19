@@ -21,6 +21,7 @@ import { renderZodError } from "../../config/zod.js"
 import type { JsonObject } from "type-fest"
 import { GardenError } from "../../exceptions.js"
 import { fullHashStrings } from "../../vcs/vcs.js"
+import type { Action } from "../../actions/types.js"
 
 export type CacheableAction = RunAction | TestAction
 
@@ -79,7 +80,7 @@ export interface CacheStorage {
    * Returns a value associated with the {@code key},
    * or throws a {@link CacheStorageError} if no key was found or any error occurred.
    */
-  get(key: string): Promise<JsonObject>
+  get(key: string, action: Action): Promise<JsonObject>
 
   /**
    * Stores the value associated with the {@code key}.
@@ -87,14 +88,14 @@ export interface CacheStorage {
    * Returns the value back if it was written successfully,
    * or throws a {@link CacheStorageError} otherwise.
    */
-  put(key: string, value: JsonObject): Promise<JsonObject>
+  put(key: string, value: JsonObject, action: Action): Promise<JsonObject>
 
   /**
    * Removes a value associated with the {@code key}.
    *
    * Throws a {@link CacheStorageError} if any error occurred.
    */
-  remove(key: string): Promise<void>
+  remove(key: string, action: Action): Promise<void>
 }
 
 export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject, AdditionalKeyData> {
@@ -128,7 +129,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
   public async clear({ log, action, keyData }: ClearResultParams<A, AdditionalKeyData>): Promise<void> {
     const key = this.cacheKey({ action, keyData })
     try {
-      await this.cacheStorage.remove(key)
+      await this.cacheStorage.remove(key, action)
     } catch (e) {
       if (!(e instanceof CacheStorageError)) {
         throw e
@@ -146,7 +147,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
     const key = this.cacheKey({ action, keyData })
     let cachedValue: JsonObject
     try {
-      cachedValue = await this.cacheStorage.get(key)
+      cachedValue = await this.cacheStorage.get(key, action)
     } catch (e) {
       if (!(e instanceof CacheStorageError)) {
         throw e
@@ -172,7 +173,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
 
     const key = this.cacheKey({ action, keyData })
     try {
-      return await this.cacheStorage.put(key, validatedResult)
+      return await this.cacheStorage.put(key, validatedResult, action)
     } catch (e) {
       if (!(e instanceof CacheStorageError)) {
         throw e
