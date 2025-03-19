@@ -79,12 +79,23 @@ export class GardenCloudHttpClient {
   private readonly log: Log
 
   public readonly domain: string
+  public readonly projectId: string | undefined
   public readonly distroName: string
 
-  constructor({ log, domain, globalConfigStore }: { log: Log; domain: string; globalConfigStore: GlobalConfigStore }) {
+  constructor({
+    log,
+    domain,
+    projectId,
+    globalConfigStore,
+  }: {
+    log: Log
+    domain: string
+    projectId: string | undefined
+    globalConfigStore: GlobalConfigStore
+  }) {
     this.log = log
     this.domain = domain
-    this.distroName = getCloudDistributionName(domain)
+    this.distroName = getCloudDistributionName({ domain, projectId })
     this.globalConfigStore = globalConfigStore
   }
 
@@ -191,7 +202,10 @@ export class GardenCloudHttpClient {
 
       // The assumption here is that Garden Enterprise is self-hosted.
       // This error should only be thrown if the Garden Enterprise instance is not hosted by us (i.e. Garden Inc.)
-      if (e.code === "DEPTH_ZERO_SELF_SIGNED_CERT" && getCloudDistributionName(this.domain) === "Garden Enterprise") {
+      if (
+        e.code === "DEPTH_ZERO_SELF_SIGNED_CERT" &&
+        getCloudDistributionName({ domain: this.domain, projectId: this.projectId }) === "Garden Enterprise"
+      ) {
         throw new CloudApiError({
           message: dedent`
           SSL error when communicating to Garden Cloud: ${e}

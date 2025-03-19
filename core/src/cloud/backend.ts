@@ -14,16 +14,24 @@ import type { CloudApiFactory, GardenCloudApiFactory } from "./api.js"
 import { GardenCloudApi } from "./api.js"
 import type { GrowCloudApiFactory } from "./grow/api.js"
 import { GrowCloudApi } from "./grow/api.js"
-import { gardenEnv } from "../constants.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import type { Log } from "../logger/log-entry.js"
 import { getNonAuthenticatedApiClient } from "./grow/trpc.js"
+import { getBackendType } from "./util.js"
+import type { ProjectConfig } from "../config/project.js"
 
 function getFirstValue(v: string | string[]) {
   return isArray(v) ? v[0] : v
 }
 
-export type GardenBackendConfig = { readonly cloudDomain: string }
+// TODO: Refactor all this to only provide projectId when initializing the old backend,
+// and only providing organizationId (and always a string, never undefined) when
+// initializing the new backend.
+export type GardenBackendConfig = {
+  readonly cloudDomain: string
+  readonly projectId: string | undefined
+  readonly organizationId: string | undefined
+}
 
 export type AuthRedirectConfig = Pick<AuthRedirectServerConfig, "getLoginUrl" | "successUrl" | "extractAuthToken">
 
@@ -87,6 +95,8 @@ export class GardenCloudBackend extends AbstractGardenBackend {
     const cloudApi = await this.cloudApiFactory({
       log,
       cloudDomain: this.config.cloudDomain,
+      projectId: this.config.projectId,
+      organizationId: undefined, // TODO: Remove the need for this param
       skipLogging: true,
       globalConfigStore,
     })
@@ -103,13 +113,14 @@ export class GardenCloudBackend extends AbstractGardenBackend {
   }
 }
 
-const growCloudTokenSchema = z.object({
+export const growCloudTokenSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
   tokenValidity: z
     .number()
     .or(z.string())
     .transform((value) => parseInt(value.toString(), 10)),
+  organizationId: z.string(),
 })
 
 export class GrowCloudBackend extends AbstractGardenBackend {
@@ -124,6 +135,7 @@ export class GrowCloudBackend extends AbstractGardenBackend {
       extractAuthToken: (query) => {
         const token = growCloudTokenSchema.safeParse(query)
         if (!token.success) {
+          // TODO: Better error handling
           throw new InternalError({ message: "Invalid query parameters" })
         }
 
@@ -132,6 +144,7 @@ export class GrowCloudBackend extends AbstractGardenBackend {
           token: token.data.accessToken,
           refreshToken: token.data.refreshToken,
           tokenValidity: token.data.tokenValidity,
+          organizationId: token.data.organizationId,
         }
       },
     }
@@ -144,7 +157,8 @@ export class GrowCloudBackend extends AbstractGardenBackend {
   }
 }
 
-export function gardenBackendFactory(config: GardenBackendConfig) {
-  const gardenBackendClass = gardenEnv.USE_GARDEN_CLOUD_V2 ? GrowCloudBackend : GardenCloudBackend
-  return new gardenBackendClass(config)
+export function gardenBackendFactory(projectConfig: ProjectConfig | undefined, backendConfig: GardenBackendConfig) {
+  const projectId = projectConfig?.id
+  const gardenBackendClass = getBackendType(projectId) === "new" ? GrowCloudBackend : GardenCloudBackend
+  return new gardenBackendClass(backendConfig)
 }

@@ -14,10 +14,11 @@ import { getAuthenticatedApiClient, getNonAuthenticatedApiClient } from "./trpc.
 import { CloudApiError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
-import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
+import { getCloudLogSectionName } from "../util.js"
 import { getStoredAuthToken } from "../auth.js"
 import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
+import { getGrowCloudDistributionName } from "./util.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -34,6 +35,7 @@ export class GrowCloudApi {
 
   private readonly log: Log
   public readonly domain: string
+  public readonly organizationId: string
   public readonly distroName: string
   public readonly api: ApiClient
   private readonly globalConfigStore: GlobalConfigStore
@@ -43,13 +45,16 @@ export class GrowCloudApi {
     log,
     domain,
     globalConfigStore,
+    organizationId,
     authToken,
   }: CloudApiParams & {
     authToken: string
+    organizationId: string
   }) {
     this.log = log
     this.domain = domain
-    this.distroName = getCloudDistributionName(domain)
+    this.organizationId = organizationId
+    this.distroName = getGrowCloudDistributionName()
     this.globalConfigStore = globalConfigStore
 
     this.authToken = authToken
@@ -70,10 +75,14 @@ export class GrowCloudApi {
   static async factory({
     log,
     cloudDomain,
+    organizationId,
     globalConfigStore,
     skipLogging = false,
   }: CloudApiFactoryParams): Promise<GrowCloudApi | undefined> {
-    const distroName = getCloudDistributionName(cloudDomain)
+    if (!organizationId) {
+      return undefined
+    }
+    const distroName = getGrowCloudDistributionName()
     const cloudLogSectionName = getCloudLogSectionName(distroName)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
     const cloudFactoryLog = log.createLog({ fixLevel, name: cloudLogSectionName, showDuration: true })
@@ -97,8 +106,10 @@ export class GrowCloudApi {
       return new GrowCloudApi({
         log: cloudLog,
         domain: cloudDomain,
+        organizationId,
         globalConfigStore,
         authToken: gardenEnv.GARDEN_AUTH_TOKEN,
+        projectId: undefined,
       })
     }
 
@@ -129,7 +140,14 @@ export class GrowCloudApi {
     }
 
     // Start refresh interval if using JWT
-    const api = new GrowCloudApi({ log: cloudLog, domain: cloudDomain, globalConfigStore, authToken })
+    const api = new GrowCloudApi({
+      log: cloudLog,
+      domain: cloudDomain,
+      organizationId,
+      globalConfigStore,
+      authToken,
+      projectId: undefined,
+    })
     cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
     api.startInterval()
 

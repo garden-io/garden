@@ -669,7 +669,13 @@ describe("Garden", () => {
           refreshToken: "fake-refresh-token",
           validity: add(new Date(), { seconds: validityMs / 1000 }),
         })
-        return GardenCloudApi.factory({ log, cloudDomain: domain, globalConfigStore })
+        return GardenCloudApi.factory({
+          log,
+          cloudDomain: domain,
+          projectId: "foo-",
+          organizationId: undefined,
+          globalConfigStore,
+        })
       }
 
       before(async () => {

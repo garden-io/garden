@@ -212,8 +212,9 @@ export interface ProjectConfig extends BaseGardenResource {
   kind: "Project"
   name: string
   path: string
-  id?: string
+  id?: string // TODO: Remove this field when old backend is deprecated.
   domain?: string
+  organizationId?: string
   configPath?: string
   proxy?: ProxyConfig
   defaultEnvironment: string
@@ -331,9 +332,12 @@ export const projectSchema = createSchema({
     configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
     internal: baseInternalFieldsSchema(),
     name: projectNameSchema(),
+    // TODO: Remove id field when old backend is deprecated
     // TODO: Refer to enterprise documentation for more details.
-    id: joi.string().meta({ internal: true }).description("The project's ID in Garden Cloud."),
-    // TODO: Refer to enterprise documentation for more details.
+    id: joi
+      .string()
+      .meta({ internal: true })
+      .description("The project's ID in Garden Cloud (for older versions of the backend)."),
     domain: joi
       .string()
       .uri()
@@ -341,6 +345,9 @@ export const projectSchema = createSchema({
       .description("The domain to use for cloud features. Should be the full API/backend URL."),
     // Note: We provide a different schema below for actual validation, but need to define it this way for docs
     // because joi.alternatives() isn't handled well in the doc generation.
+    organizationId: joi
+      .string()
+      .description("The ID of the organization that this project belongs to in Garden Cloud."),
     environments: joi
       .array()
       .min(1)
@@ -439,6 +446,7 @@ export const projectSchema = createSchema({
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
   }),
+  oxor: [["id", "organizationId"]],
 })
 
 export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {
@@ -597,7 +605,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   secrets: PrimitiveMap
   commandInfo: CommandInfo
 }) {
-  const { environments, name: projectName, path: projectRoot } = projectConfig
+  const { environments, name: projectName, path: projectRoot, id: projectId } = projectConfig
   const parsed = parseEnvironment(envString)
   const { environment } = parsed
   let { namespace } = parsed
@@ -635,6 +643,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     variables: await VariablesContext.forProject(projectConfig, variableOverrides, projectContext),
     loggedIn,
     cloudBackendDomain,
+    projectId,
     secrets,
     commandInfo,
   })

@@ -286,6 +286,7 @@ export interface ProjectConfigContextParams extends DefaultEnvironmentContextPar
   loggedIn: boolean
   secrets: PrimitiveMap
   cloudBackendDomain: string
+  projectId: string | undefined
 }
 
 /**
@@ -306,6 +307,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   )
   public readonly secrets: PrimitiveMap
   private readonly _cloudBackendDomain: string
+  private readonly _projectId: string | undefined
   private readonly _loggedIn: boolean
 
   override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
@@ -320,7 +322,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
       return unavailableMessage
     }
 
-    const distributionName = getCloudDistributionName(this._cloudBackendDomain)
+    const distributionName = getCloudDistributionName({ domain: this._cloudBackendDomain, projectId: this._projectId })
 
     if (!this._loggedIn) {
       return dedent`
@@ -350,6 +352,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
     this._loggedIn = params.loggedIn
     this.secrets = params.secrets
     this._cloudBackendDomain = params.cloudBackendDomain
+    this._projectId = params.projectId
   }
 }
 
@@ -413,6 +416,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       username: garden.username,
       loggedIn: garden.isLoggedIn(),
       cloudBackendDomain: garden.cloudDomain,
+      projectId: garden.projectId,
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
       variables,

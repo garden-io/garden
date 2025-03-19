@@ -12,7 +12,7 @@ import { validate as validateUuid } from "uuid"
 import type { TestGarden } from "../../../helpers.js"
 import { makeTestGardenA, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers.js"
 import {
-  FakeCloudApi,
+  FakeGardenCloudApi,
   apiProjectName,
   apiRemoteOriginUrl,
   apiProjectId,
@@ -250,7 +250,7 @@ describe("AnalyticsHandler", () => {
 
   describe("factory (user is logged in)", async () => {
     beforeEach(async () => {
-      garden = await makeTestGardenA(undefined, { overrideCloudApiFactory: FakeCloudApi.factory })
+      garden = await makeTestGardenA(undefined, { overrideCloudApiFactory: FakeGardenCloudApi.factory })
       garden.vcsInfo.originUrl = apiRemoteOriginUrl
       await enableAnalytics(garden)
     })

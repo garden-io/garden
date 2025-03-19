@@ -13,7 +13,7 @@ import { configureProvider } from "../../../../../src/plugins/kubernetes/ephemer
 import { gardenPlugin } from "../../../../../src/plugins/kubernetes/ephemeral/ephemeral.js"
 import type { TempDirectory } from "../../../../helpers.js"
 import { expectError, makeTempDir, makeTestGardenA } from "../../../../helpers.js"
-import { FakeCloudApi } from "../../../../helpers/api.js"
+import { FakeGardenCloudApi } from "../../../../helpers/api.js"
 import { styles } from "../../../../../src/logger/styles.js"
 
 describe("ephemeral-kubernetes configureProvider", () => {
@@ -76,7 +76,7 @@ describe("ephemeral-kubernetes configureProvider", () => {
   it("should throw an error for Garden Enterprise", async () => {
     garden = await makeTestGardenA(undefined, {
       overrideCloudApiFactory: async (params) =>
-        FakeCloudApi.factory({
+        FakeGardenCloudApi.factory({
           ...params,
           cloudDomain: "https://NOT.app.garden.io",
         }),

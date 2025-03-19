@@ -123,7 +123,12 @@ export async function renderConfigTemplate({
   // when resolving the resulting modules. Inputs that are used in module names must however be resolvable
   // immediately.
   const loggedIn = garden.isLoggedIn()
-  const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, cloudBackendDomain: garden.cloudDomain })
+  const templateContext = new EnvironmentConfigContext({
+    ...garden,
+    loggedIn,
+    cloudBackendDomain: garden.cloudDomain,
+    projectId: garden.projectId,
+  })
 
   // @ts-expect-error todo: correct types for unresolved configs
   const resolvedWithoutInputs: RenderTemplateConfig = deepEvaluate(omit(config, "inputs"), {
@@ -169,6 +174,7 @@ export async function renderConfigTemplate({
     ...garden,
     loggedIn: garden.isLoggedIn(),
     cloudBackendDomain: garden.cloudDomain,
+    projectId: garden.projectId,
     parentName: resolved.name,
     templateName: template.name,
     inputs: InputContext.forRenderTemplate(config, template),

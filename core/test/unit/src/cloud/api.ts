@@ -17,6 +17,7 @@ import { clearAuthToken, getAuthToken, saveAuthToken } from "../../../../src/clo
 describe("GardenCloudApi", () => {
   const log = getRootLogger().createLog()
   const domain = "https://garden." + randomString()
+  const projectId = undefined
   const globalConfigStore = new GlobalConfigStore()
 
   describe("getAuthToken", () => {
@@ -31,7 +32,7 @@ describe("GardenCloudApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await saveAuthToken(log, globalConfigStore, testToken, domain)
+      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain, projectId })
       const savedToken = await getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.eql(testToken.token)
     })
@@ -56,7 +57,7 @@ describe("GardenCloudApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await saveAuthToken(log, globalConfigStore, testToken, domain)
+      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain, projectId })
       await clearAuthToken(log, globalConfigStore, domain)
       const savedToken = await getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.be.undefined

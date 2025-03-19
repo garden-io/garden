@@ -5,6 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+import type { ProjectConfig } from "../config/project.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import type { GrowCloudDistroName, GrowCloudLogSectionName } from "./grow/util.js"
 import { getGrowCloudDomain } from "./grow/util.js"
@@ -21,10 +22,6 @@ export type CloudDistroName = GardenCloudDistroName | GrowCloudDistroName
  * TODO: Return the distribution type from the API and store on the CloudApi class.
  */
 export function getGardenCloudDistributionName(domain: string): CloudDistroName {
-  if (isGardenCommunityEdition(domain)) {
-    return "the Garden dashboard"
-  }
-
   // TODO: consider using URL object instead.
   if (!domain.match(/^https:\/\/.+\.app\.garden$/i)) {
     return "Garden Enterprise"
@@ -36,12 +33,16 @@ export function getGardenCloudDistributionName(domain: string): CloudDistroName 
 /**
  * Returns the name of the effective Cloud backend (either Grow or Garden).
  */
-export function getCloudDistributionName(domain: string): CloudDistroName {
-  if (gardenEnv.USE_GARDEN_CLOUD_V2) {
-    return getGrowCloudDistributionName()
-  }
-
-  return getGardenCloudDistributionName(domain)
+export function getCloudDistributionName({
+  domain,
+  projectId,
+}: {
+  domain: string | undefined
+  projectId: string | undefined
+}): CloudDistroName {
+  return getBackendType(projectId) === "old" && domain
+    ? getGardenCloudDistributionName(domain)
+    : getGrowCloudDistributionName()
 }
 
 export type GardenCloudLogSectionName = "garden-dashboard" | "garden-cloud" | "garden-enterprise"
@@ -85,16 +86,17 @@ export function getGardenCloudDomain(configuredDomain: string | undefined): stri
   return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
 }
 
-/**
- * Chooses between {@link getGardenCloudDomain} and {@link getGrowCloudDomain}
- * depending on the `USE_GARDEN_CLOUD_V2` feature flag.
- *
- * To be used in login and logout commands for now.
- * Later we should use the right Cloud domain insode the Garden instance
- * and its CloudApi instance.
- */
-export function getCloudDomain(configuredDomain: string | undefined): string {
-  return gardenEnv.USE_GARDEN_CLOUD_V2 ? getGrowCloudDomain(configuredDomain) : getGardenCloudDomain(configuredDomain)
+export function getCloudDomain(projectConfig: ProjectConfig | undefined): string {
+  const configuredDomain = projectConfig?.domain
+  // The `id` field is only used by paying customers of the old backend.
+  // If no `id` is present, we assume the user is using the new backend.
+  return getBackendType(projectConfig?.id) === "old"
+    ? getGardenCloudDomain(configuredDomain)
+    : getGrowCloudDomain(configuredDomain)
+}
+
+export function getBackendType(projectId: string | undefined): "old" | "new" {
+  return projectId ? "old" : "new"
 }
 
 export function isGardenCommunityEdition(cloudDomain: string): boolean {

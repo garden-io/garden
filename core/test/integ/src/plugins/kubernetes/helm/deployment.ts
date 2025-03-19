@@ -26,7 +26,7 @@ import { isWorkload } from "../../../../../../src/plugins/kubernetes/util.js"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
 import type { HelmDeployAction, HelmDeployConfig } from "../../../../../../src/plugins/kubernetes/helm/config.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
-import { FakeCloudApi } from "../../../../../helpers/api.js"
+import { FakeGardenCloudApi } from "../../../../../helpers/api.js"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 import stripAnsi from "strip-ansi"
 import { randomString } from "../../../../../../src/util/string.js"
@@ -388,7 +388,7 @@ describe("helmDeploy", () => {
     it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
       const projectRoot = getDataDir("test-projects", "helm")
       const gardenWithCloudApi = await makeTestGarden(projectRoot, {
-        overrideCloudApiFactory: FakeCloudApi.factory,
+        overrideCloudApiFactory: FakeGardenCloudApi.factory,
         noCache: true,
       })
 

@@ -604,7 +604,12 @@ export class Garden {
 
   getProjectConfigContext() {
     const loggedIn = this.isLoggedIn()
-    return new ProjectConfigContext({ ...this, loggedIn, cloudBackendDomain: this.cloudDomain })
+    return new ProjectConfigContext({
+      ...this,
+      loggedIn,
+      cloudBackendDomain: this.cloudDomain,
+      projectId: this.projectId,
+    })
   }
 
   async clearBuilds() {
@@ -2016,11 +2021,13 @@ async function initCloudApi({
     return undefined
   }
 
+  const { id: projectId, organizationId } = projectConfig || {}
+
   try {
-    return await cloudApiFactory({ log, cloudDomain, globalConfigStore })
+    return await cloudApiFactory({ log, cloudDomain, projectId, organizationId, globalConfigStore })
   } catch (err) {
     if (err instanceof CloudApiTokenRefreshError) {
-      const distroName = getCloudDistributionName(cloudDomain)
+      const distroName = getCloudDistributionName({ domain: cloudDomain, projectId })
 
       // TODO(0.14): Remove this warning, as login is required when connecting projects to Cloud.
       log.warn(dedent`
@@ -2031,7 +2038,7 @@ async function initCloudApi({
           `)
 
       // Project is configured for cloud usage => fail early to force re-auth
-      if (projectConfig && projectConfig.id) {
+      if (projectId) {
         throw err
       }
 
@@ -2043,14 +2050,17 @@ async function initCloudApi({
   }
 }
 
-type InitCloudApiParamsV2 = Pick<InitCloudApiParams, "cloudDomain" | "globalConfigStore" | "log">
+type InitCloudApiParamsV2 = Pick<InitCloudApiParams, "cloudDomain" | "globalConfigStore" | "log"> & {
+  organizationId: string
+}
 
 async function initCloudApiV2({
   cloudDomain,
+  organizationId,
   globalConfigStore,
   log,
 }: InitCloudApiParamsV2): Promise<GrowCloudApi | undefined> {
-  return gardenEnv.USE_GARDEN_CLOUD_V2 ? await GrowCloudApi.factory({ cloudDomain, globalConfigStore, log }) : undefined
+  return GrowCloudApi.factory({ cloudDomain, globalConfigStore, log, organizationId, projectId: undefined })
 }
 
 export const resolveGardenParams = profileAsync(async function _resolveGardenParams(
@@ -2078,6 +2088,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     } = partialResolved
 
     let { config: projectConfig, namespace } = partialResolved
+    const { id: projectId, organizationId } = projectConfig
 
     await ensureDir(gardenDirPath)
     await ensureDir(artifactsPath)
@@ -2086,7 +2097,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
 
-    const cloudBackendDomain = getCloudDomain(projectConfig.domain)
+    const cloudBackendDomain = getCloudDomain(projectConfig)
     const cloudApi = await initCloudApi({
       cloudApiFactory,
       cloudDomain: cloudBackendDomain,
@@ -2097,7 +2108,14 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     })
 
     // Use this to interact with Cloud Backend V2
-    const cloudApiV2 = await initCloudApiV2({ cloudDomain: cloudBackendDomain, globalConfigStore, log })
+    const cloudApiV2 = organizationId
+      ? await initCloudApiV2({
+          cloudDomain: cloudBackendDomain,
+          organizationId,
+          globalConfigStore,
+          log,
+        })
+      : undefined
 
     const loggedIn = !!cloudApi || !!cloudApiV2
 
@@ -2120,6 +2138,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       loggedIn,
       cloudBackendDomain,
+      projectId,
       secrets,
       commandInfo,
     })
@@ -2259,7 +2278,7 @@ async function initCloudProject({
 
   const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
   const isCommunityEdition = isGardenCommunityEdition(cloudDomain)
-  const distroName = getCloudDistributionName(cloudDomain)
+  const distroName = getCloudDistributionName({ domain: cloudDomain, projectId: config.id })
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
   const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
@@ -2324,11 +2343,11 @@ async function getCloudProject({
   projectRoot: string
   projectName: string
 }) {
-  const distroName = getCloudDistributionName(cloudApi.domain)
-  const projectIdFromConfig = config.id
+  const projectId = config.id
+  const distroName = getCloudDistributionName({ domain: cloudApi.domain, projectId })
 
   // If logged into community edition, throw if ID is set
-  if (projectIdFromConfig && isCommunityEdition) {
+  if (projectId && isCommunityEdition) {
     const msg = wordWrap(
       deline`
         Invalid field 'id' found in project configuration at path ${projectRoot}. The 'id'
@@ -2356,7 +2375,7 @@ async function getCloudProject({
   }
 
   // If logged into commercial edition and ID is not set, log warning and return null
-  if (!projectIdFromConfig) {
+  if (!projectId) {
     log.warn(
       wordWrap(
         deline`
@@ -2371,15 +2390,15 @@ async function getCloudProject({
   }
 
   // If logged into commercial edition, return project or throw if unable to fetch by ID
-  log.debug(`Fetching project ${projectIdFromConfig} from ${cloudApi.domain}.`)
+  log.debug(`Fetching project ${projectId} from ${cloudApi.domain}.`)
   try {
-    const cloudProject = await cloudApi.getProjectById(projectIdFromConfig)
+    const cloudProject = await cloudApi.getProjectById(projectId)
     return cloudProject
   } catch (err) {
-    let errorMsg = `Fetching project with ID=${projectIdFromConfig} failed with error: ${err}`
+    let errorMsg = `Fetching project with ID=${projectId} failed with error: ${err}`
     if (err instanceof GotHttpError) {
       if (err.response.statusCode === 404) {
-        const errorHeaderMsg = styles.error(`Project with ID=${projectIdFromConfig} was not found in ${distroName}`)
+        const errorHeaderMsg = styles.error(`Project with ID=${projectId} was not found in ${distroName}`)
         const errorDetailMsg = styles.accent(dedent`
           Either the project has been deleted from ${distroName} or the ID in the project
           level Garden config file at ${styles.highlight(projectRoot)} has been changed and does not match

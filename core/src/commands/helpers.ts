@@ -12,13 +12,28 @@ import type { WorkflowConfig } from "../config/workflow.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ActionKind } from "../actions/types.js"
 import isGlob from "is-glob"
-import { ParameterError } from "../exceptions.js"
-import { naturalList } from "../util/string.js"
+import { ConfigurationError, ParameterError } from "../exceptions.js"
+import { deline, naturalList } from "../util/string.js"
 import type { CommandParams } from "./base.js"
 import type { ServeCommandOpts } from "./serve.js"
 import { DevCommand } from "./dev.js"
 import { styles } from "../logger/styles.js"
 import { gardenEnv } from "../constants.js"
+import type { ProjectConfig } from "../config/project.js"
+import { findProjectConfig } from "../config/base.js"
+
+export async function findProjectConfigOrPrintInstructions(log: Log, path: string): Promise<ProjectConfig> {
+  const projectConfig = await findProjectConfig({ log, path })
+  if (!projectConfig) {
+    throw new ConfigurationError({
+      message: deline`
+        Project config not found. Hint: You can run ${styles.command("garden create project")} to create a new
+        project.
+      `,
+    })
+  }
+  return projectConfig
+}
 
 /**
  * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first

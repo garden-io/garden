@@ -15,7 +15,7 @@ import { getNonAuthenticatedApiClient } from "./trpc.js"
 import { CloudApiTokenRefreshError } from "../api.js"
 import { CloudApiError } from "../../exceptions.js"
 import { saveAuthToken } from "../auth.js"
-import { getCloudDistributionName } from "../util.js"
+import { getGrowCloudDistributionName } from "./util.js"
 
 export function isTokenExpired(token: ClientAuthToken) {
   const now = new Date()
@@ -23,7 +23,7 @@ export function isTokenExpired(token: ClientAuthToken) {
 }
 
 /**
- * Checks with the backend whether the provided client auth token is valid.
+ * Checks with the new backend whether the provided client auth token is valid.
  */
 export async function isTokenValid({
   authToken,
@@ -37,7 +37,7 @@ export async function isTokenValid({
   let valid = false
 
   try {
-    log.debug(`Checking client auth token with ${getCloudDistributionName(cloudDomain)}`)
+    log.debug(`Checking client auth token with ${getGrowCloudDistributionName()}`)
     const verificationResult = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.verifyToken.query({
       token: authToken,
     })
@@ -51,13 +51,13 @@ export async function isTokenValid({
 
     if (httpCode !== 401) {
       throw new CloudApiError({
-        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${err.message}`,
+        message: `An error occurred while verifying client auth token with ${getGrowCloudDistributionName()}: ${err.message}`,
         responseStatusCode: httpCode,
       })
     }
   }
 
-  log.debug(`Checked client auth token with ${getCloudDistributionName(cloudDomain)} - valid: ${valid}`)
+  log.debug(`Checked client auth token with ${getGrowCloudDistributionName()} - valid: ${valid}`)
 
   return valid
 }
@@ -72,12 +72,17 @@ export async function refreshAuthTokenAndWriteToConfigStore(
     const result = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.refreshToken.mutate({
       refreshToken,
     })
-    await saveAuthToken(
+    await saveAuthToken({
       log,
       globalConfigStore,
-      { token: result.accessToken, refreshToken: result.refreshToken, tokenValidity: result.tokenValidity },
-      cloudDomain
-    )
+      tokenResponse: {
+        token: result.accessToken,
+        refreshToken: result.refreshToken,
+        tokenValidity: result.tokenValidity,
+      },
+      domain: cloudDomain,
+      projectId: undefined,
+    })
 
     return result
   } catch (err) {
@@ -87,7 +92,7 @@ export async function refreshAuthTokenAndWriteToConfigStore(
 
     log.debug({ msg: `Failed to refresh the token.` })
     throw new CloudApiTokenRefreshError({
-      message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${err.message}`,
+      message: `An error occurred while verifying client auth token with ${getGrowCloudDistributionName()}: ${err.message}`,
       responseStatusCode: err.data?.httpStatus,
     })
   }

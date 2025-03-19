@@ -55,12 +55,13 @@ export function enforceLogin({
   log: Log
   isOfflineModeEnabled: boolean
 }) {
-  const apiVersion = garden.getProjectConfig().apiVersion
-  const isConnectedToCloud = !!garden.getProjectConfig().id
+  // ApiVersion will always be v2 in 0.14
+  const { id: projectId, organizationId, apiVersion } = garden.getProjectConfig()
+  const isConnectedToCloud = !!projectId || !!organizationId
 
   const isLoggedIn = garden.isLoggedIn()
 
-  const distroName = getCloudDistributionName(garden.cloudDomain)
+  const distroName = getCloudDistributionName({ domain: garden.cloudDomain, projectId })
 
   if (isConnectedToCloud && !isLoggedIn && !isOfflineModeEnabled) {
     if (apiVersion === GardenApiVersion.v2) {
@@ -76,6 +77,7 @@ export function enforceLogin({
     // TODO(0.14): Nudge the user with a message at the end of the command, instead of a warning in the middle of the logs somewhere.
   }
 
+  // TODO-DODDI: Address comments in this function
   // TODO(0.14): Remove this branch as it is now unreachable.
   if (!isLoggedIn && !isOfflineModeEnabled) {
     const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
@@ -94,21 +96,32 @@ export function enforceLogin({
   }
 }
 
-export interface AuthToken {
+export type AuthToken = {
   token: string
   refreshToken: string
   tokenValidity: number
+  // TODO: Would be neater to do this with a union type, but this feels simpler for now.
+  organizationId?: string
 }
 
-export async function saveAuthToken(
-  log: Log,
-  globalConfigStore: GlobalConfigStore,
-  tokenResponse: AuthToken,
+export async function saveAuthToken({
+  log,
+  globalConfigStore,
+  tokenResponse,
+  domain,
+  projectId,
+}: {
+  log: Log
+  globalConfigStore: GlobalConfigStore
+  tokenResponse: AuthToken
   domain: string
-) {
-  const distroName = getCloudDistributionName(domain)
+  projectId: string | undefined
+}) {
+  const distroName = getCloudDistributionName({ domain, projectId })
 
-  if (!tokenResponse.token) {
+  const token = tokenResponse.token
+
+  if (!token) {
     const errMsg = deline`
         Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
         yet been created in ${distroName}, or that there's a problem with your account's VCS username / login
@@ -119,7 +132,7 @@ export async function saveAuthToken(
   try {
     const validityMs = tokenResponse.tokenValidity || 604800000
     const clientAuthToken: ClientAuthToken = {
-      token: tokenResponse.token,
+      token,
       refreshToken: tokenResponse.refreshToken,
       validity: add(new Date(), { seconds: validityMs / 1000 }),
     }

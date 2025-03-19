@@ -163,8 +163,8 @@ export class ServeCommand<
       const cloudApi = defaultGarden.cloudApi
       const effectiveGardenProjectConfig = defaultGarden.getProjectConfig()
 
+      let projectId = effectiveGardenProjectConfig.id
       try {
-        let projectId = effectiveGardenProjectConfig.id
         if (!projectId) {
           const cloudProject = await cloudApi.getProjectByName(effectiveGardenProjectConfig.name)
           projectId = cloudProject?.id
@@ -183,7 +183,7 @@ export class ServeCommand<
             isDevCommand: true,
           })
           if (session?.shortId) {
-            const distroName = getCloudDistributionName(defaultGarden.cloudDomain)
+            const distroName = getCloudDistributionName({ domain: defaultGarden.cloudDomain, projectId })
             const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId }).toString()
             const msg = dedent`\n${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
 
@@ -196,7 +196,7 @@ export class ServeCommand<
         }
       } catch (err) {
         if (err instanceof CloudApiTokenRefreshError) {
-          const distroName = getCloudDistributionName(defaultGarden.cloudDomain)
+          const distroName = getCloudDistributionName({ domain: defaultGarden.cloudDomain, projectId })
           log.warn(dedent`
           Unable to authenticate against ${distroName} with the current session token.
           The dashboard will not be available until you authenticate again. Please try logging out with
