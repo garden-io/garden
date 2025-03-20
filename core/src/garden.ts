@@ -2272,7 +2272,7 @@ async function initCloudProject({
   commandName: string
   skipCloudConnect: boolean
 }) {
-  if (gardenEnv.USE_GARDEN_CLOUD_V2 || skipCloudConnect) {
+  if (!cloudApi || skipCloudConnect) {
     return {
       secrets: {},
       cloudProject: undefined,
@@ -2285,13 +2285,6 @@ async function initCloudProject({
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
   const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
-
-  if (!cloudApi) {
-    return {
-      secrets: {},
-      cloudProject: undefined,
-    }
-  }
 
   cloudLog.info(`Connecting project...`)
 

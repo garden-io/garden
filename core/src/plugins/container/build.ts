@@ -267,7 +267,7 @@ async function buildxBuildContainer({
     }
   } finally {
     let timeSaved = 0
-    if (gardenEnv.USE_GARDEN_CLOUD_V2) {
+    if (ctx.cloudApiV2) {
       const output = await sendBuildReport({
         metadataFile,
         cmdOpts,
@@ -409,7 +409,7 @@ export async function sendBuildReport({
       return { timeSaved: 0 }
     }
 
-    return await growCloudApi.api.dockerBuild.create.mutate(dockerBuildReport)
+    return await growCloudApi.uploadDockerBuildReport(dockerBuildReport)
   } catch (err) {
     log.debug(`Failed to send build report to Garden Cloud: ${err}`)
     return { timeSaved: 0 }

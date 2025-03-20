@@ -37,7 +37,7 @@ import { LogLevel } from "../logger/logger.js"
 import { getStoredAuthToken, saveAuthToken } from "./auth.js"
 import type { StringMap } from "../config/common.js"
 import { styles } from "../logger/styles.js"
-import { HTTPError } from "got"
+import { HTTPError, RequestError } from "got"
 import type { Garden } from "../garden.js"
 import type { ApiCommandError } from "../commands/cloud/helpers.js"
 import { enumerate } from "../util/enumerate.js"
@@ -46,6 +46,7 @@ import type { ApiFetchOptions } from "./http-client.js"
 import { GardenCloudHttpClient } from "./http-client.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
 import type { GrowCloudApiFactory } from "./grow/api.js"
+import type { JsonObject } from "type-fest"
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 
@@ -812,6 +813,47 @@ export class GardenCloudApi {
       })
     }
   }
+
+  async createActionResult(request: CreateCachedActionRequest): Promise<CreateCachedActionResponse> {
+    try {
+      return await this.post<CreateCachedActionResponse>(`/action-cache`, { body: request })
+    } catch (e) {
+      if (!(e instanceof RequestError)) {
+        throw e
+      }
+
+      const rootCause = extractErrorMessageBodyFromGotError(e) ?? e.message
+      throw new CloudApiError({
+        message: `Error storing data to Team Cache V1; code=${e.code}; cause: ${rootCause}`,
+        responseStatusCode: e.response?.statusCode,
+      })
+    }
+  }
+
+  async getActionResult({
+    organizationId,
+    projectId,
+    schemaVersion,
+    actionRef,
+    actionType,
+    cacheKey,
+  }: GetCachedActionRequest): Promise<GetCachedActionResponse> {
+    try {
+      return await this.get<GetCachedActionResponse>(
+        `/action-cache?organizationId=${organizationId}&projectId=${projectId}&schemaVersion=${schemaVersion}&actionRef=${actionRef}&actionType=${actionType}&cacheKey=${cacheKey}`
+      )
+    } catch (e) {
+      if (!(e instanceof RequestError)) {
+        throw e
+      }
+
+      const rootCause = extractErrorMessageBodyFromGotError(e) ?? e.message
+      throw new CloudApiError({
+        message: `Error getting data from Team Cache V1; code=${e.code}; cause: ${rootCause}`,
+        responseStatusCode: e.response?.statusCode,
+      })
+    }
+  }
 }
 
 // TODO(cloudbuilder): import these from api-types
@@ -850,3 +892,33 @@ export type CloudBuilderNotAvailableV2 = {
   reason: string
 }
 export type CloudBuilderAvailabilityV2 = CloudBuilderAvailableV2 | CloudBuilderNotAvailableV2
+
+export interface CreateCachedActionRequest {
+  organizationId: string
+  projectId: string
+  schemaVersion: string
+  actionType: string
+  actionRef: string
+  cacheKey: string
+  result: unknown // Must be JSON-serializable.
+  // These should be ISO timestamps (which are always in the UTC timezone).
+  startedAt: string
+  completedAt: string
+}
+
+export interface CreateCachedActionResponse extends BaseResponse {}
+
+export interface GetCachedActionRequest {
+  organizationId: string
+  projectId: string
+  schemaVersion: string
+  actionRef: string
+  actionType: string
+  cacheKey: string
+}
+
+type CachedAction = { found: true; result: JsonObject } | { found: false; notFoundReason: string }
+
+export interface GetCachedActionResponse extends BaseResponse {
+  data: CachedAction
+}

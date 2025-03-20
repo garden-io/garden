@@ -21,6 +21,7 @@ import { renderZodError } from "../../config/zod.js"
 import type { JsonObject } from "type-fest"
 import { GardenError } from "../../exceptions.js"
 import { fullHashStrings } from "../../vcs/vcs.js"
+import type { Action } from "../../actions/types.js"
 
 export type CacheableAction = RunAction | TestAction
 
@@ -37,6 +38,7 @@ export type SchemaVersion = `v${number}`
 export const currentResultSchemaVersion: SchemaVersion = "v1"
 export const kubernetesCacheEntrySchema = runResultSchemaZod
 export type KubernetesCacheEntrySchema = typeof kubernetesCacheEntrySchema
+export type KubernetesCacheEntry = z.output<KubernetesCacheEntrySchema>
 
 export interface LoadResultParams<A extends CacheableAction, AdditionalKeyData> {
   ctx: PluginContext
@@ -70,16 +72,18 @@ export class StructuredCacheKey<AdditionalKeyData> {
   }
 }
 
-export class CacheStorageError extends GardenError {
+export abstract class CacheStorageError extends GardenError {
   type = "cache-storage"
+
+  abstract describe(): string
 }
 
-export interface CacheStorage {
+export interface CacheStorage<ResultShape> {
   /**
    * Returns a value associated with the {@code key},
    * or throws a {@link CacheStorageError} if no key was found or any error occurred.
    */
-  get(key: string): Promise<JsonObject>
+  get(key: string, action: Action): Promise<JsonObject>
 
   /**
    * Stores the value associated with the {@code key}.
@@ -87,21 +91,27 @@ export interface CacheStorage {
    * Returns the value back if it was written successfully,
    * or throws a {@link CacheStorageError} otherwise.
    */
-  put(key: string, value: JsonObject): Promise<JsonObject>
+  put(key: string, value: ResultShape, action: Action): Promise<ResultShape>
 
   /**
    * Removes a value associated with the {@code key}.
    *
    * Throws a {@link CacheStorageError} if any error occurred.
    */
-  remove(key: string): Promise<void>
+  remove(key: string, action: Action): Promise<void>
 }
 
 export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject, AdditionalKeyData> {
-  private readonly cacheStorage: CacheStorage
+  private readonly cacheStorage: CacheStorage<z.output<ResultSchema>>
   private readonly resultSchema: ResultSchema
 
-  constructor({ cacheStorage, resultSchema }: { cacheStorage: CacheStorage; resultSchema: ResultSchema }) {
+  constructor({
+    cacheStorage,
+    resultSchema,
+  }: {
+    cacheStorage: CacheStorage<z.output<ResultSchema>>
+    resultSchema: ResultSchema
+  }) {
     this.cacheStorage = cacheStorage
     this.resultSchema = resultSchema
   }
@@ -116,7 +126,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
       The provided result doesn't match the expected schema.
       Here is the output: ${renderZodError(result.error)}
       `
-    log.debug(errorMessage)
+    log.verbose(errorMessage)
     return undefined
   }
 
@@ -128,13 +138,13 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
   public async clear({ log, action, keyData }: ClearResultParams<A, AdditionalKeyData>): Promise<void> {
     const key = this.cacheKey({ action, keyData })
     try {
-      await this.cacheStorage.remove(key)
+      await this.cacheStorage.remove(key, action)
     } catch (e) {
       if (!(e instanceof CacheStorageError)) {
         throw e
       }
 
-      action.createLog(log).debug(e.message)
+      log.verbose(`Error clearing results cache entry for key=${key}: ${e.describe()}`)
     }
   }
 
@@ -146,13 +156,13 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
     const key = this.cacheKey({ action, keyData })
     let cachedValue: JsonObject
     try {
-      cachedValue = await this.cacheStorage.get(key)
+      cachedValue = await this.cacheStorage.get(key, action)
     } catch (e) {
       if (!(e instanceof CacheStorageError)) {
         throw e
       }
 
-      action.createLog(log).debug(e.message)
+      log.verbose(`Error getting results cache entry for key=${key}: ${e.describe()}`)
       return undefined
     }
 
@@ -172,13 +182,13 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
 
     const key = this.cacheKey({ action, keyData })
     try {
-      return await this.cacheStorage.put(key, validatedResult)
+      return await this.cacheStorage.put(key, validatedResult, action)
     } catch (e) {
       if (!(e instanceof CacheStorageError)) {
         throw e
       }
 
-      action.createLog(log).debug(e.message)
+      log.verbose(`Error storing results cache entry for key=${key}: ${e.describe()}`)
       return undefined
     }
   }

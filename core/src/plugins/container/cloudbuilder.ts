@@ -34,8 +34,7 @@ import { hashString } from "../../util/util.js"
 import { deline, stableStringify } from "../../util/string.js"
 import { homedir } from "os"
 import { getCloudDistributionName, isGardenCommunityEdition } from "../../cloud/util.js"
-import { TRPCClientError } from "@trpc/client"
-import type { DockerBuildReport, GrowCloudBuilderRegisterBuildResponse } from "../../cloud/grow/trpc.js"
+import type { DockerBuildReport, RegisterCloudBuildResponse } from "../../cloud/grow/trpc.js"
 import type { GrowCloudApi } from "../../cloud/grow/api.js"
 import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
@@ -195,25 +194,12 @@ class GrowCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabi
     action,
     cloudApi,
     publicKeyPem,
-  }: RegisterCloudBuildParams<GrowCloudApi>): Promise<GrowCloudBuilderRegisterBuildResponse> {
-    try {
-      return await cloudApi.api.cloudBuilder.registerBuild.mutate({
-        // if platforms are not set, we default to linux/amd64
-        platforms: action.getSpec().platforms || ["linux/amd64"],
-        mtlsClientPublicKeyPEM: publicKeyPem,
-      })
-    } catch (err) {
-      if (!(err instanceof TRPCClientError)) {
-        throw err
-      }
-      return {
-        version: "v2",
-        availability: {
-          available: false,
-          reason: err.message,
-        },
-      }
-    }
+  }: RegisterCloudBuildParams<GrowCloudApi>): Promise<RegisterCloudBuildResponse> {
+    return await cloudApi.registerCloudBuild({
+      // if platforms are not set, we default to linux/amd64
+      platforms: action.getSpec().platforms || ["linux/amd64"],
+      mtlsClientPublicKeyPEM: publicKeyPem,
+    })
   }
 }
 
