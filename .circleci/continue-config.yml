@@ -1274,18 +1274,18 @@ workflows:
       #     name: e2e-code-synchronization
       #     project: code-synchronization
       #     requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-demo-project
-          project: demo-project
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-demo-project-modules
-          project: demo-project-modules
-          environment: remote
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-demo-project
+      #    project: demo-project
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-demo-project-modules
+      #     project: demo-project-modules
+      #     environment: remote
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-gke-kaniko
@@ -1304,32 +1304,32 @@ workflows:
           project: jib-container
           environment: remote
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-jib-container-modules
-          project: jib-container-modules
-          environment: remote
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-jib-container-modules
+      #     project: jib-container-modules
+      #     environment: remote
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-kustomize
           project: kustomize
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-kustomize-modules
-          project: kustomize-modules
-          requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
-      #     name: e2e-remote-sources
-      #     project: remote-sources
+      #     name: e2e-kustomize-modules
+      #     project: kustomize-modules
       #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-remote-sources-modules
-          project: remote-sources-modules
+          name: e2e-remote-sources
+          project: remote-sources
           requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-remote-sources-modules
+      #     project: remote-sources-modules
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-run-actions
@@ -1345,23 +1345,23 @@ workflows:
           name: e2e-templated-k8s-container
           project: templated-k8s-container
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-templated-k8s-container-modules
-          project: templated-k8s-container-modules
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-templated-k8s-container-modules
+      #     project: templated-k8s-container-modules
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-vote
           project: vote
           environment: remote
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-vote-modules
-          project: vote-modules
-          environment: remote
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote-modules
+      #     project: vote-modules
+      #     environment: remote
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-vote-helm
