@@ -316,6 +316,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
     }
 
     const unavailableMessage = getSecretsUnavailableInNewBackendMessage({
+      projectId: this._projectId,
       cloudBackendDomain: this._cloudBackendDomain,
     })
     if (unavailableMessage) {

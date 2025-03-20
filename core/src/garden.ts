@@ -2017,7 +2017,7 @@ async function initCloudApi({
   projectConfig,
   skipCloudConnect,
 }: InitCloudApiParams): Promise<GardenCloudApi | undefined> {
-  if (gardenEnv.USE_GARDEN_CLOUD_V2 || skipCloudConnect) {
+  if (skipCloudConnect) {
     return undefined
   }
 
@@ -2098,14 +2098,17 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const skipCloudConnect = opts.skipCloudConnect || false
 
     const cloudBackendDomain = getCloudDomain(projectConfig)
-    const cloudApi = await initCloudApi({
-      cloudApiFactory,
-      cloudDomain: cloudBackendDomain,
-      globalConfigStore,
-      log,
-      projectConfig,
-      skipCloudConnect,
-    })
+
+    const cloudApi = projectId
+      ? await initCloudApi({
+          cloudApiFactory,
+          cloudDomain: cloudBackendDomain,
+          globalConfigStore,
+          log,
+          projectConfig,
+          skipCloudConnect,
+        })
+      : undefined
 
     // Use this to interact with Cloud Backend V2
     const cloudApiV2 = organizationId

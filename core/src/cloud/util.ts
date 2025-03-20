@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 import type { ProjectConfig } from "../config/project.js"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
+import { DEFAULT_GARDEN_CLOUD_V1_DOMAIN, gardenEnv } from "../constants.js"
 import type { GrowCloudDistroName, GrowCloudLogSectionName } from "./grow/util.js"
 import { getGrowCloudDomain } from "./grow/util.js"
 import { getGrowCloudDistributionName, getGrowCloudLogSectionName } from "./grow/util.js"
@@ -83,7 +83,7 @@ export function getGardenCloudDomain(configuredDomain: string | undefined): stri
     cloudDomain = new URL(configuredDomain).origin
   }
 
-  return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
+  return cloudDomain || DEFAULT_GARDEN_CLOUD_V1_DOMAIN
 }
 
 export function getCloudDomain(projectConfig: ProjectConfig | undefined): string {
@@ -100,5 +100,5 @@ export function getBackendType(projectId: string | undefined): "old" | "new" {
 }
 
 export function isGardenCommunityEdition(cloudDomain: string): boolean {
-  return cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
+  return cloudDomain === DEFAULT_GARDEN_CLOUD_V1_DOMAIN
 }

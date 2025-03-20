@@ -70,21 +70,16 @@ type RetrieveAvailabilityParams = {
   config: CloudBuilderConfiguration
 }
 
-async function getCloudBuilderAvailabilityRetriever(): Promise<AbstractCloudBuilderAvailabilityRetriever<CloudApi>> {
-  if (gardenEnv.USE_GARDEN_CLOUD_V2) {
-    return new GrowCloudBuilderAvailabilityRetriever()
-  } else {
-    return new GardenCloudBuilderAvailabilityRetriever()
-  }
-}
-
 async function retrieveAvailabilityFromCloud(params: {
   ctx: PluginContext
   action: Resolved<ContainerBuildAction>
   config: CloudBuilderConfiguration
 }): Promise<CloudBuilderAvailabilityV2> {
-  const retriever = await getCloudBuilderAvailabilityRetriever()
-  return retriever.get(params)
+  if (params.ctx.cloudApiV2) {
+    return new GrowCloudBuilderAvailabilityRetriever().get(params)
+  } else {
+    return new GardenCloudBuilderAvailabilityRetriever().get(params)
+  }
 }
 
 function makeNotLoggedInError({ isInClusterBuildingConfigured }: CloudBuilderConfiguration) {

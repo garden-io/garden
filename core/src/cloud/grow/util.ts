@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DEFAULT_GROW_CLOUD_DOMAIN, gardenEnv } from "../../constants.js"
+import { DEFAULT_GARDEN_CLOUD_V2_DOMAIN, gardenEnv } from "../../constants.js"
 
-export type GrowCloudDistroName = "Garden Cloud V2"
+export type GrowCloudDistroName = "Garden Cloud"
 
 export function getGrowCloudDistributionName(): GrowCloudDistroName {
-  return "Garden Cloud V2"
+  return "Garden Cloud"
 }
 
 export type GrowCloudLogSectionName = "garden-cloud-v2"
@@ -29,5 +29,5 @@ export function getGrowCloudDomain(configuredDomain: string | undefined): string
     cloudDomain = new URL(configuredDomain).origin
   }
 
-  return cloudDomain || DEFAULT_GROW_CLOUD_DOMAIN
+  return cloudDomain || DEFAULT_GARDEN_CLOUD_V2_DOMAIN
 }

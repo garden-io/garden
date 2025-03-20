@@ -15,7 +15,7 @@ import { GardenCloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import { LogOutCommand } from "../../../../src/commands/logout.js"
 import { expectError, getLogMessages } from "../../../../src/util/testing.js"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, DEFAULT_GROW_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants.js"
+import { DEFAULT_GARDEN_CLOUD_V1_DOMAIN, DEFAULT_GARDEN_CLOUD_V2_DOMAIN, gardenEnv } from "../../../../src/constants.js"
 
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import type { Garden } from "../../../../src/index.js"
@@ -127,7 +127,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include(`Successfully logged out from ${DEFAULT_GROW_CLOUD_DOMAIN}.`)
+    expect(logOutput).to.include(`Successfully logged out from ${DEFAULT_GARDEN_CLOUD_V2_DOMAIN}.`)
   })
 
   it("should be a no-op if the user is already logged out", async () => {

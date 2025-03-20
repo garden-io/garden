@@ -7,15 +7,21 @@
  */
 
 import { getGrowCloudDistributionName } from "./grow/util.js"
-import { gardenEnv } from "../constants.js"
 import { GardenError } from "../exceptions.js"
+import { getBackendType } from "./util.js"
 
 class SecretsUnavailableInNewBackend extends GardenError {
   override type = "secrets-unavailable-in-new-backend"
 }
 
-export function getSecretsUnavailableInNewBackendMessage({ cloudBackendDomain }: { cloudBackendDomain: string }) {
-  if (!gardenEnv.USE_GARDEN_CLOUD_V2) {
+export function getSecretsUnavailableInNewBackendMessage({
+  cloudBackendDomain,
+  projectId,
+}: {
+  cloudBackendDomain: string
+  projectId?: string
+}) {
+  if (getBackendType(projectId) !== "new") {
     return undefined
   }
 
