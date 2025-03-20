@@ -9,9 +9,19 @@
 import type { Log } from "../../logger/log-entry.js"
 import type { GlobalConfigStore } from "../../config-store/global.js"
 import { isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore } from "./auth.js"
-import type { ApiClient, DockerBuildReport, RegisterCloudBuildRequest, RegisterCloudBuildResponse } from "./trpc.js"
+import type {
+  ApiClient,
+  CreateActionResultRequest,
+  CreateActionResultResponse,
+  DockerBuildReport,
+  GetActionResultRequest,
+  GetActionResultResponse,
+  RegisterCloudBuildRequest,
+  RegisterCloudBuildResponse,
+} from "./trpc.js"
 import { getAuthenticatedApiClient, getNonAuthenticatedApiClient } from "./trpc.js"
-import { CloudApiError } from "../../exceptions.js"
+import type { GardenErrorParams } from "../../exceptions.js"
+import { CloudApiError, GardenError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
@@ -19,10 +29,25 @@ import { getStoredAuthToken } from "../auth.js"
 import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
 import { TRPCClientError } from "@trpc/client"
+import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
 export type GrowCloudApiFactory = (params: CloudApiFactoryParams) => Promise<GrowCloudApi | undefined>
+
+export class GrowCloudError extends GardenError {
+  readonly type = "garden-cloud-v2-error"
+  override readonly cause: TRPCClientError<InferrableClientTypes> | undefined
+
+  constructor({ message, cause }: GardenErrorParams & { cause: TRPCClientError<InferrableClientTypes> }) {
+    super({ message })
+    this.cause = cause
+  }
+
+  public static wrapTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
+    return new GrowCloudError({ message: err.message, cause: err })
+  }
+}
 
 /**
  * The Cloud API V2 client.
@@ -233,6 +258,60 @@ export class GrowCloudApi {
           reason: err.message,
         },
       }
+    }
+  }
+
+  async getActionResult({
+    schemaVersion,
+    organizationId,
+    actionRef,
+    actionType,
+    cacheKey,
+  }: GetActionResultRequest): Promise<GetActionResultResponse> {
+    try {
+      return await this.api.actionCache.getEntry.query({
+        schemaVersion,
+        organizationId,
+        actionRef,
+        actionType,
+        cacheKey,
+      })
+    } catch (err) {
+      if (!(err instanceof TRPCClientError)) {
+        throw err
+      }
+
+      throw GrowCloudError.wrapTRPCClientError(err)
+    }
+  }
+
+  async createActionResult({
+    schemaVersion,
+    organizationId,
+    actionRef,
+    actionType,
+    cacheKey,
+    result,
+    startedAt,
+    completedAt,
+  }: CreateActionResultRequest): Promise<CreateActionResultResponse> {
+    try {
+      return await this.api.actionCache.createEntry.mutate({
+        schemaVersion,
+        organizationId,
+        actionRef,
+        actionType,
+        cacheKey,
+        result,
+        startedAt,
+        completedAt,
+      })
+    } catch (err) {
+      if (!(err instanceof TRPCClientError)) {
+        throw err
+      }
+
+      throw GrowCloudError.wrapTRPCClientError(err)
     }
   }
 }
