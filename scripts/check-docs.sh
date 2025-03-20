@@ -15,7 +15,7 @@ found_dead_links=false
 check_links() {
   for file in $@; do
     # markdown-link-check is configured to ignore relative links
-    ./node_modules/.bin/markdown-link-check --quiet --config markdown-link-check-config.json $file || found_dead_links=true
+    ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json $file || found_dead_links=true
   done
 }
 

@@ -1,5 +1,5 @@
 ---
-title: How organisations adopt Garden
+title: How Organizations Adopt Garden
 order: 4
 ---
 

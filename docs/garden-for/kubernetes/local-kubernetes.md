@@ -1,5 +1,5 @@
 ---
-title: Configure local Kubernetes
+title: Using Local Kubernetes
 order: 4
 ---
 

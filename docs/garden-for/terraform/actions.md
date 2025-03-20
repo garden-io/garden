@@ -1,6 +1,6 @@
 ---
+title: Applying Terrform Stacks
 order: 2
-title: Apply stacks
 ---
 
 {% hint style="info" %}

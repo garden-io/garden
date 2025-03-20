@@ -32,7 +32,7 @@ Garden's powerful templating engine ensures that namespaces and hostnames are un
 ## Key features
 
 - **View URLs**, logs, and command history with the [Garden dashboard](https://app.garden.io)
-- **Accelerate build times** with remote image builds and smart caching
+- **Accelerate build times** with [Garden's Remote Container Builder](../../garden-for/containers/building-containers.md) and smart caching
 - **Isolate environments** with [Garden's template syntax](../../config-guides/variables-and-templating.md)
 
 ## How can my team get on-demand preview environments?

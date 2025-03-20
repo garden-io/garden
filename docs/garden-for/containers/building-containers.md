@@ -1,6 +1,6 @@
 ---
-title: Containers
-order: 1
+title: Building Containers
+order: 2
 ---
 
 You can build containers with the `container` Build action:
@@ -48,7 +48,7 @@ spec:
                   image: ${actions.build.api.outputs.deployment-image-id} # <--- The output from the Build action
 ```
 
-You can learn more in the individual guides for the Kubernetes [Deploy](./kubernetes/deploy-k8s-resource.md) and [Run and Test](./kubernetes/run-tests-and-tasks.md) actions.
+You can learn more in the individual guides for the Kubernetes [Deploy](../kubernetes/deploy-k8s-resource.md) and [Run and Test](../kubernetes/run-tests-and-tasks.md) actions.
 
 ## Examples
 
@@ -64,11 +64,11 @@ type: container
 name: my-container
 ```
 
-If you have a `Dockerfile` in the same directory as this file, this is enough to tell Garden to build it. However, you can override the `Dockerfile` name or path by specifying `spec.dockerfile: <path-to-Dockerfile>`. You might also want to explicitly [include or exclude](../config-guides/include-exclude.md) files in the build context.
+If you have a `Dockerfile` in the same directory as this file, this is enough to tell Garden to build it. However, you can override the `Dockerfile` name or path by specifying `spec.dockerfile: <path-to-Dockerfile>`. You might also want to explicitly [include or exclude](../../config-guides/include-exclude.md) files in the build context.
 
 ### Setting build arguments
 
-You can specify [build arguments](https://docs.docker.com/engine/reference/commandline/build/#build-arg) using the [`spec.buildArgs`](../reference/action-types/Build/container.md#specbuildargs) field. This can be quite handy, especially when e.g. referencing other `Build` action as build dependencies:
+You can specify [build arguments](https://docs.docker.com/engine/reference/commandline/build/#build-arg) using the [`spec.buildArgs`](../../reference/action-types/Build/container.md#specbuildargs) field. This can be quite handy, especially when e.g. referencing other `Build` action as build dependencies:
 
 ```yaml
 # garden.yml
@@ -116,7 +116,7 @@ spec:
 ```
 
 Garden interacts with several local and remote builders. Currently support for multi-platform builds varies based on the builder backend.
-The following build backends support multi-platform builds out of the box: [Garden Container Builder](../reference/providers/container.md), `cluster-buildkit`, `kaniko`.
+The following build backends support multi-platform builds out of the box: [Garden Container Builder](../../reference/providers/container.md), `cluster-buildkit`, `kaniko`.
 
 In-cluster building with `kaniko` does *not* support multi-platform builds.
 

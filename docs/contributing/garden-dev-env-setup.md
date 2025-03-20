@@ -1,5 +1,5 @@
 ---
-title: Setting up your developer environment
+title: Setting up Your Developer Environment
 order: 4
 ---
 

@@ -1,7 +1,11 @@
 ---
-title: Run tests and tasks
+title: Running Tests and Tasks
 order: 7
 ---
+
+{% hint style="info" %}
+To use Garden to run Kubernetes tests and tasks you need to configure the [remote](./remote-kubernetes.md) or [local](./local-kubernetes.md) Kubernetes providers.
+{% endhint %}
 
 ## Tests
 
