@@ -9,7 +9,7 @@
 import type { Log } from "../../logger/log-entry.js"
 import type { GlobalConfigStore } from "../../config-store/global.js"
 import { isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore } from "./auth.js"
-import type { ApiClient } from "./trpc.js"
+import type { ApiClient, DockerBuildReport, RegisterCloudBuildRequest, RegisterCloudBuildResponse } from "./trpc.js"
 import { getAuthenticatedApiClient, getNonAuthenticatedApiClient } from "./trpc.js"
 import { CloudApiError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
@@ -18,15 +18,16 @@ import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
 import { getStoredAuthToken } from "../auth.js"
 import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
+import { TRPCClientError } from "@trpc/client"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
 export type GrowCloudApiFactory = (params: CloudApiFactoryParams) => Promise<GrowCloudApi | undefined>
 
 /**
- * The Cloud API client.
+ * The Cloud API V2 client.
  *
- * Is only initialized if the user is actually logged in.
+ * Is only initialized if the user is actually logged.
  */
 export class GrowCloudApi {
   private intervalId: ReturnType<typeof setInterval> | null = null // TODO: fix type here (getting tsc error)
@@ -35,7 +36,7 @@ export class GrowCloudApi {
   private readonly log: Log
   public readonly domain: string
   public readonly distroName: string
-  public readonly api: ApiClient
+  private readonly api: ApiClient
   private readonly globalConfigStore: GlobalConfigStore
   private authToken: string
 
@@ -177,6 +178,44 @@ export class GrowCloudApi {
         token.refreshToken
       )
       this.authToken = tokenResponse.accessToken
+    }
+  }
+
+  async uploadDockerBuildReport(dockerBuildReport: DockerBuildReport) {
+    try {
+      return this.api.dockerBuild.create.mutate(dockerBuildReport)
+    } catch (err) {
+      if (!(err instanceof TRPCClientError)) {
+        throw err
+      }
+
+      this.log.debug(`Failed to send build report to Garden Cloud: ${err}`)
+      return { timeSaved: 0 }
+    }
+  }
+
+  async registerCloudBuild({
+    platforms,
+    mtlsClientPublicKeyPEM,
+  }: RegisterCloudBuildRequest): Promise<RegisterCloudBuildResponse> {
+    try {
+      return await this.api.cloudBuilder.registerBuild.mutate({
+        platforms,
+        mtlsClientPublicKeyPEM,
+      })
+    } catch (err) {
+      if (!(err instanceof TRPCClientError)) {
+        throw err
+      }
+
+      this.log.debug(`Failed to register build in Container Builder: ${err}`)
+      return {
+        version: "v2",
+        availability: {
+          available: false,
+          reason: err.message,
+        },
+      }
     }
   }
 }

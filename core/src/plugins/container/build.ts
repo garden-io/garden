@@ -409,7 +409,7 @@ export async function sendBuildReport({
       return { timeSaved: 0 }
     }
 
-    return await growCloudApi.api.dockerBuild.create.mutate(dockerBuildReport)
+    return await growCloudApi.uploadDockerBuildReport(dockerBuildReport)
   } catch (err) {
     log.debug(`Failed to send build report to Garden Cloud: ${err}`)
     return { timeSaved: 0 }
