@@ -60,7 +60,7 @@ describe("kubernetes-type pod Run", () => {
     })
     expect(namespaceStatus.state).to.eql("ready")
 
-    const runResultCache = getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = getRunResultCache(ctx)
     await runResultCache.clear({
       ctx,
       log: garden.log,
@@ -115,7 +115,7 @@ describe("kubernetes-type pod Run", () => {
     })
     expect(namespaceStatus.state).to.eql("ready")
 
-    const runResultCache = getRunResultCache(ctx.gardenDirPath)
+    const runResultCache = getRunResultCache(ctx)
     await runResultCache.clear({
       ctx,
       log: garden.log,

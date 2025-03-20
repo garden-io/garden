@@ -29,13 +29,13 @@ function makePayload(pos: number): Payload {
 
 describe("SimpleLocalFileSystemCacheStorage", () => {
   let tmpDir: DirectoryResult
-  let cache: SimpleLocalFileSystemCacheStorage
+  let cache: SimpleLocalFileSystemCacheStorage<Payload>
 
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     const tmpDirPath = tmpDir.path
     const cachePath = join(tmpDirPath, ".fs-cache")
-    cache = new SimpleLocalFileSystemCacheStorage({
+    cache = new SimpleLocalFileSystemCacheStorage<Payload>({
       cacheDir: cachePath,
       schemaVersion: currentResultSchemaVersion,
       cacheExpiryDays: FILESYSTEM_CACHE_EXPIRY_DAYS,
