@@ -13,6 +13,7 @@ import { join } from "path"
 import writeFileAtomic from "write-file-atomic"
 import { CACHE_DIR_NAME } from "../../constants.js"
 import type { Log } from "../../logger/log-entry.js"
+import type { GardenErrorParams, NodeJSErrnoException } from "../../exceptions.js"
 import { isErrnoException } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
 import type { JsonObject } from "type-fest"
@@ -22,8 +23,23 @@ import { lstat } from "fs/promises"
 
 const { ensureDir, readFile, remove } = fsExtra
 
+type LocalFileSystemCacheErrorParams = {
+  message: string
+  cause: NodeJSErrnoException | SyntaxError
+}
+
 class LocalFileSystemCacheError extends CacheStorageError {
-  override type = "local-fs-cache-storage"
+  override readonly type = "local-fs-cache-storage"
+  override readonly cause: NodeJSErrnoException | SyntaxError
+
+  constructor(params: GardenErrorParams & LocalFileSystemCacheErrorParams) {
+    super(params)
+    this.cause = params.cause
+  }
+
+  override describe(): string {
+    return `${this.message}; cause: ${this.cause}`
+  }
 }
 
 export const FILESYSTEM_CACHE_EXPIRY_DAYS = 7
@@ -75,19 +91,27 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
         throw err
       }
 
-      const errorMsg = `Cannot read data from file ${filePath}; cause: ${err}`
-      throw new LocalFileSystemCacheError({ message: errorMsg })
+      throw new LocalFileSystemCacheError({
+        message: `Cannot read data from file ${filePath}`,
+        code: err.code,
+        cause: err,
+      })
     }
 
     try {
       return JSON.parse(rawFileContent) as JsonObject
     } catch (err) {
-      const errorMsg = `Cannot deserialize json from file ${filePath}; cause: ${err}`
+      if (!(err instanceof SyntaxError)) {
+        throw err
+      }
 
       this.log.debug(`Deleting corrupted file ${filePath}`)
       await this.removeFile(filePath)
 
-      throw new LocalFileSystemCacheError({ message: errorMsg })
+      throw new LocalFileSystemCacheError({
+        message: `Cannot deserialize json from file ${filePath}`,
+        cause: err,
+      })
     }
   }
 
@@ -101,8 +125,11 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
         throw err
       }
 
-      const errorMsg = `Cannot write data to file ${filePath}; cause: ${err}`
-      throw new LocalFileSystemCacheError({ message: errorMsg })
+      throw new LocalFileSystemCacheError({
+        message: `Cannot write data to file ${filePath}`,
+        code: err.code,
+        cause: err,
+      })
     }
   }
 
@@ -115,8 +142,7 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
         throw err
       }
 
-      const errorMsg = `Cannot remove file ${filePath}; cause: ${err}`
-      throw new LocalFileSystemCacheError({ message: errorMsg })
+      throw new LocalFileSystemCacheError({ message: `Cannot remove file ${filePath}`, code: err.code, cause: err })
     }
   }
 

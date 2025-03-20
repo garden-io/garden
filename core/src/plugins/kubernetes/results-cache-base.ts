@@ -72,8 +72,10 @@ export class StructuredCacheKey<AdditionalKeyData> {
   }
 }
 
-export class CacheStorageError extends GardenError {
+export abstract class CacheStorageError extends GardenError {
   type = "cache-storage"
+
+  abstract describe(): string
 }
 
 export interface CacheStorage<ResultShape> {
@@ -124,7 +126,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
       The provided result doesn't match the expected schema.
       Here is the output: ${renderZodError(result.error)}
       `
-    log.debug(errorMessage)
+    log.verbose(errorMessage)
     return undefined
   }
 
@@ -142,7 +144,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
         throw e
       }
 
-      log.debug(e.message)
+      log.verbose(`Error clearing results cache entry for key=${key}: ${e.describe()}`)
     }
   }
 
@@ -160,7 +162,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
         throw e
       }
 
-      log.debug(e.message)
+      log.verbose(`Error getting results cache entry for key=${key}: ${e.describe()}`)
       return undefined
     }
 
@@ -186,7 +188,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
         throw e
       }
 
-      log.debug(e.message)
+      log.verbose(`Error storing results cache entry for key=${key}: ${e.describe()}`)
       return undefined
     }
   }

@@ -9,6 +9,7 @@
 import type { CacheStorage, SchemaVersion } from "./results-cache-base.js"
 import { CacheStorageError } from "./results-cache-base.js"
 import type { Log } from "../../logger/log-entry.js"
+import type { GardenErrorParams } from "../../exceptions.js"
 import { CloudApiError } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
 import type { JsonObject } from "type-fest"
@@ -17,11 +18,27 @@ import { actionReferenceToString } from "../../actions/base.js"
 import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
 
-class GardenCloudCacheError extends CacheStorageError {
-  override type = "garden-cloud-cache-storage"
+type GardenCloudCacheErrorParams = {
+  message: string
+  cause: CloudApiError | undefined
+}
 
-  static fromCloudApiError(err: CloudApiError) {
-    return new GardenCloudCacheError({ message: err.message })
+class GardenCloudCacheError extends CacheStorageError {
+  override readonly type = "garden-cloud-cache-storage"
+  override readonly cause: CloudApiError | undefined
+
+  constructor(params: GardenErrorParams & GardenCloudCacheErrorParams) {
+    super(params)
+    const { cause } = params
+    this.cause = cause
+  }
+
+  override describe(): string {
+    return this.cause === undefined ? this.message : `${this.cause}`
+  }
+
+  static fromCloudApiError(params: GardenCloudCacheErrorParams) {
+    return new GardenCloudCacheError(params)
   }
 }
 
@@ -73,9 +90,9 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
       const response = await this.cloudApi.getActionResult(request)
       const data = response.data
       if (!data.found) {
-        const errorMsg = `Got Team Cache miss for key=${cacheKey}`
+        const errorMsg = `Got Team Cache V1 miss for key=${cacheKey}`
         this.log.debug(errorMsg)
-        throw new GardenCloudCacheError({ message: errorMsg })
+        throw new GardenCloudCacheError({ message: errorMsg, cause: undefined })
       }
 
       return data.result
@@ -84,7 +101,10 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
         throw e
       }
 
-      throw GardenCloudCacheError.fromCloudApiError(e)
+      throw GardenCloudCacheError.fromCloudApiError({
+        message: "Error reading data from the Team Cache V1",
+        cause: e,
+      })
     }
   }
 
@@ -119,7 +139,10 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
         throw e
       }
 
-      throw GardenCloudCacheError.fromCloudApiError(e)
+      throw GardenCloudCacheError.fromCloudApiError({
+        message: "Error storing data to the Team Cache V1",
+        cause: e,
+      })
     }
   }
 
