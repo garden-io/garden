@@ -9,8 +9,6 @@
 import type { PluginContext } from "../../plugin-context.js"
 import type { Log } from "../../logger/log-entry.js"
 import { runResultSchemaZod } from "../../plugin/base.js"
-import type { RunAction } from "../../actions/run.js"
-import type { TestAction } from "../../actions/test.js"
 import type { AnyZodObject } from "zod"
 import type { z } from "zod"
 import { deline, stableStringify } from "../../util/string.js"
@@ -23,10 +21,10 @@ import { GardenError } from "../../exceptions.js"
 import { fullHashStrings } from "../../vcs/vcs.js"
 import type { Action } from "../../actions/types.js"
 
-export type CacheableAction = RunAction | TestAction
-
 export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
 export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
+
+export type CacheableAction = CacheableRunAction | CacheableTestAction
 
 export type SchemaVersion = `v${number}`
 
