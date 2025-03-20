@@ -13,11 +13,12 @@ Start by logging into Garden Cloud with:
 garden login
 ```
 
-This enables you to use our Remote Container Builder which can significantly accelerate container builds as well as benefit from team-wide caching.
+This enables you to use our [Remote Container Builder](../../garden-for/containers/using-remote-container-builder.md) which can significantly accelerate container builds as well as benefit from team-wide caching.
+
+It also allows you to use your [Builds UI](https://app.garden.io) to view build logs analyze build bottlenecks.
 
 {% hint style="info" %}
-You can skip logging in if you choose but if you don't, you won't be able to use the Remote
-Container Builder nor benefit from the team-wide caching functionality.
+You can skip logging in if you choose but if you don't, you won't be able to use the Remote Container Builder nor benefit from the team-wide caching functionality.
 {% endhint %}
 
 ## Step 2 — Add actions for deploying the database
@@ -193,6 +194,6 @@ If you have a lot of actions with similar config, you can create [reusable Confi
 
 Now try deploying the entire project by running the following from the interactive dev console:
 
-```console
+```sh
 garden deploy
 ```

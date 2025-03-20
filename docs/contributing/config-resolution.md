@@ -1,5 +1,5 @@
 ---
-title: Config resolution
+title: Config Resolution
 order: 6
 ---
 

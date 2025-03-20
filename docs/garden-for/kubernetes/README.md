@@ -5,10 +5,10 @@ order: 2
 
 You can use Garden with a local or a remote Kubernetes cluster. First you need to tell Garden how to connect to your cluster by following either of these guides:
 
-- [Configure remote Kubernetes](./remote-kubernetes.md)
-- [Configure local Kubernetes](./local-kubernetes.md)
+- [Using remote Kubernetes](./remote-kubernetes.md)
+- [Using local Kubernetes](./local-kubernetes.md)
 
-You can then add actions for deploying K8s resources, installing Helm charts, running tests and more. Below is a brief overview of the actions with links to more resources:
+You can then add actions for deploying K8s resources, installing Helm charts, running tests and more. Below is a overview of the actions with links to more resources:
 
 - [The `kubernetes` Deploy action](./deploy-k8s-resource.md) – Use this action if you already have Kubernetes manifests for some of the workloads you want to deploy and/or if you're using Kustomize.
 - [The `helm` Deploy action](./install-helm-chart.md)—Use this action if you're using Helm and have the corresponding Helm charts.

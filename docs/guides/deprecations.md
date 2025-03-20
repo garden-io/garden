@@ -1,6 +1,6 @@
 ---
 order: 1
-title: Deprecations and updating to Cedar
+title: Deprecations and Updating to Cedar
 ---
 
 # Deprecations and updating to Cedar
