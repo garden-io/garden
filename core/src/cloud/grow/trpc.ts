@@ -48,6 +48,9 @@ export type RouterInput = inferRouterInputs<AppRouter>
 
 export type DockerBuildReport = RouterInput["dockerBuild"]["create"]
 
+export type RegisterCloudBuildRequest = RouterInput["cloudBuilder"]["registerBuild"]
+export type RegisterCloudBuildResponse = RouterOutput["cloudBuilder"]["registerBuild"]
+
 export const errorLogger: TRPCLink<AppRouter> = () => {
   return ({ next, op }) => {
     return observable((observer) => {
@@ -118,6 +121,3 @@ export function getNonAuthenticatedApiClient(trpcConfigParams: Omit<TrpcConfigPa
 }
 
 export type ApiClient = CreateTRPCClient<AppRouter>
-export type GrowCloudBuilderRegisterBuildResponse = Awaited<
-  ReturnType<ApiClient["cloudBuilder"]["registerBuild"]["mutate"]>
->
