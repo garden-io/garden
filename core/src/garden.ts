@@ -167,7 +167,7 @@ import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
-import { getCloudDistributionName, getCloudDomain, getCloudLogSectionName } from "./cloud/util.js"
+import { getBackendType, getCloudDistributionName, getCloudDomain, getCloudLogSectionName } from "./cloud/util.js"
 import { GrowCloudApi } from "./cloud/grow/api.js"
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
@@ -602,7 +602,7 @@ export class Garden {
       ...this,
       loggedIn,
       cloudBackendDomain: this.cloudDomain,
-      isUsingBackendV2: this.isUsingBackendV2(),
+      backendType: getBackendType(this.projectConfig),
     })
   }
 
@@ -1881,21 +1881,10 @@ export class Garden {
     return suggestions
   }
 
-  /**
-   * We're only using backend v1 if an ID has been configured
-   */
-  public isUsingBackendV2(): boolean {
-    if (this.projectConfig.id) {
-      return false
-    }
-
-    return true
-  }
-
   /** Returns whether the user is logged in to the Garden Cloud */
   public isOldBackendAvailable(): this is GardenWithOldBackend {
     const oldBackendAvailable = !!this.cloudApi
-    if (this.isUsingBackendV2() && oldBackendAvailable) {
+    if (getBackendType(this.projectConfig) && oldBackendAvailable) {
       throw new InternalError({
         message: "Invalid state: should use backend v2, but logged in to backend v1",
       })
@@ -2152,7 +2141,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       loggedIn,
       cloudBackendDomain,
-      isUsingBackendV2: !projectConfig.id,
+      backendType: getBackendType(projectConfig),
       secrets,
       commandInfo,
     })
@@ -2221,10 +2210,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       cloudDomain: cloudBackendDomain,
       cloudApi,
       cloudApiV2,
-      // If the user is logged in and a cloud project exists we use that ID
-      // but fallback to the one set in the config (even if the user isn't logged in).
-      // Same applies for domains.
-      projectId: cloudProject?.id || projectConfig.id,
+      projectId: projectConfig.id,
       projectConfig,
       projectRoot,
       projectName,

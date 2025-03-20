@@ -157,8 +157,7 @@ export class GrowCloudBackend extends AbstractGardenBackend {
   }
 }
 
-export function gardenBackendFactory(projectConfig: ProjectConfig | undefined, backendConfig: GardenBackendConfig) {
-  const projectId = projectConfig?.id
-  const gardenBackendClass = getBackendType(projectId) === "new" ? GrowCloudBackend : GardenCloudBackend
+export function gardenBackendFactory(projectConfig: ProjectConfig, backendConfig: GardenBackendConfig) {
+  const gardenBackendClass = getBackendType(projectConfig) === "v2" ? GrowCloudBackend : GardenCloudBackend
   return new gardenBackendClass(backendConfig)
 }

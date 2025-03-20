@@ -18,7 +18,7 @@ import type { Garden } from "../../garden.js"
 import { type VcsInfo } from "../../vcs/vcs.js"
 import { styles } from "../../logger/styles.js"
 import type { VariablesContext } from "./variables.js"
-import { getCloudDistributionName } from "../../cloud/util.js"
+import { getBackendType, getCloudDistributionName } from "../../cloud/util.js"
 import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/secrets.js"
 
 class LocalContext extends ContextWithSchema {
@@ -286,7 +286,7 @@ export interface ProjectConfigContextParams extends DefaultEnvironmentContextPar
   loggedIn: boolean
   secrets: PrimitiveMap
   cloudBackendDomain: string
-  isUsingBackendV2: boolean
+  backendType: "v1" | "v2"
 }
 
 /**
@@ -307,7 +307,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   )
   public readonly secrets: PrimitiveMap
   private readonly _cloudBackendDomain: string
-  private readonly _isUsingBackendV2: boolean
+  private readonly _backendType: "v1" | "v2"
   private readonly _loggedIn: boolean
 
   constructor(params: ProjectConfigContextParams) {
@@ -315,7 +315,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
     this._loggedIn = params.loggedIn
     this.secrets = params.secrets
     this._cloudBackendDomain = params.cloudBackendDomain
-    this._isUsingBackendV2 = params.isUsingBackendV2
+    this._backendType = params.backendType
   }
 
   override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
@@ -323,7 +323,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
       return ""
     }
 
-    if (this._isUsingBackendV2) {
+    if (this._backendType === "v2") {
       return getSecretsUnavailableInNewBackendMessage(this._cloudBackendDomain)
     }
 
@@ -413,7 +413,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       username: garden.username,
       loggedIn: garden.isLoggedIn(),
       cloudBackendDomain: garden.cloudDomain,
-      isUsingBackendV2: garden.isUsingBackendV2(),
+      backendType: getBackendType(garden.getProjectConfig()),
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
       variables,

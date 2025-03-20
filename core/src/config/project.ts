@@ -47,6 +47,7 @@ import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
 import { makeDeprecationMessage } from "../util/deprecations.js"
+import { getBackendType } from "../cloud/util.js"
 
 export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -642,7 +643,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     variables: await VariablesContext.forProject(projectConfig, variableOverrides, projectContext),
     loggedIn,
     cloudBackendDomain,
-    isUsingBackendV2: !projectConfig.id,
+    backendType: getBackendType(projectConfig),
     secrets,
     commandInfo,
   })

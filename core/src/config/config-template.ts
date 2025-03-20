@@ -26,6 +26,7 @@ import type { WorkflowConfig } from "./workflow.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import type { JSONSchemaType } from "ajv"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
+import { getBackendType } from "../cloud/util.js"
 
 const inputTemplatePattern = "${inputs.*}"
 const parentNameTemplate = "${parent.name}"
@@ -72,7 +73,7 @@ export async function resolveConfigTemplate(
     ...garden,
     loggedIn,
     cloudBackendDomain: garden.cloudDomain,
-    isUsingBackendV2: garden.isUsingBackendV2(),
+    backendType: getBackendType(garden.getProjectConfig()),
   })
 
   // @ts-expect-error todo: correct types for unresolved configs

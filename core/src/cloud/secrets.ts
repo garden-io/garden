@@ -7,8 +7,8 @@
  */
 
 import { GardenError } from "../exceptions.js"
-import { Garden } from "../index.js"
-import { getCloudDistributionName } from "./util.js"
+import type { Garden } from "../index.js"
+import { getBackendType, getCloudDistributionName } from "./util.js"
 
 class SecretsUnavailableInNewBackend extends GardenError {
   override type = "secrets-unavailable-in-new-backend"
@@ -19,7 +19,7 @@ export function getSecretsUnavailableInNewBackendMessage(cloudBackendDomain: str
 }
 
 export function handleSecretsUnavailableInNewBackend(garden: Garden) {
-  if (garden.isUsingBackendV2()) {
+  if (getBackendType(garden.getProjectConfig()) === "v2") {
     throw new SecretsUnavailableInNewBackend({
       message: getSecretsUnavailableInNewBackendMessage(garden.cloudDomain),
     })
