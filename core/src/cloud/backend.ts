@@ -24,7 +24,7 @@ function getFirstValue(v: string | string[]) {
   return isArray(v) ? v[0] : v
 }
 
-// TODO: Refactor all this to only provide projectId when initializing the old backend,
+// TODO: Refactor all this to only provide projectId when initializing the backend v1,
 // and only providing organizationId (and always a string, never undefined) when
 // initializing the new backend.
 export type GardenBackendConfig = {

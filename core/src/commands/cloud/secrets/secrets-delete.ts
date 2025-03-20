@@ -45,7 +45,7 @@ export class SecretsDeleteCommand extends Command<Args> {
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
-    handleSecretsUnavailableInNewBackend({ cloudBackendDomain: garden.cloudDomain })
+    handleSecretsUnavailableInNewBackend(garden)
 
     const secretsToDelete = args.ids || []
     if (secretsToDelete.length === 0) {

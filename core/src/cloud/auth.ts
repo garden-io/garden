@@ -15,17 +15,15 @@ import Router from "koa-router"
 import getPort from "get-port"
 import cloneDeep from "fast-copy"
 import type { Log } from "../logger/log-entry.js"
-import { GardenApiVersion, gardenEnv } from "../constants.js"
+import { gardenEnv } from "../constants.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
-import { dedent, deline } from "../util/string.js"
-import { CloudApiError, GardenError, InternalError } from "../exceptions.js"
+import { dedent } from "../util/string.js"
+import { GardenError, InternalError } from "../exceptions.js"
 import { add } from "date-fns"
-import { getCloudDistributionName, getCloudLogSectionName, isGardenCommunityEdition } from "./util.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
 import type { ParsedUrlQuery } from "node:querystring"
 import type { Garden } from "../index.js"
 import { styles } from "../logger/styles.js"
-import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
-import { makeDocsLinkStyled } from "../docs/common.js"
 
 class LoginRequiredWhenConnected extends GardenError {
   override type = "login-required"
@@ -55,44 +53,26 @@ export function enforceLogin({
   log: Log
   isOfflineModeEnabled: boolean
 }) {
-  // ApiVersion will always be v2 in 0.14
-  const { id: projectId, organizationId, apiVersion } = garden.getProjectConfig()
+  const { id: projectId, organizationId } = garden.getProjectConfig()
   const isConnectedToCloud = !!projectId || !!organizationId
 
   const isLoggedIn = garden.isLoggedIn()
 
-  const distroName = getCloudDistributionName({ domain: garden.cloudDomain, projectId })
+  const distroName = getCloudDistributionName(garden.cloudDomain)
 
   if (isConnectedToCloud && !isLoggedIn && !isOfflineModeEnabled) {
-    if (apiVersion === GardenApiVersion.v2) {
-      throw new LoginRequiredWhenConnected()
-    }
-
-    reportDeprecatedFeatureUsage({ apiVersion, log, deprecation: "loginRequirement" })
+    throw new LoginRequiredWhenConnected()
   }
 
-  if (!isConnectedToCloud && apiVersion !== GardenApiVersion.v2) {
-    reportDeprecatedFeatureUsage({ apiVersion, log, deprecation: "configMapBasedCache" })
-
-    // TODO(0.14): Nudge the user with a message at the end of the command, instead of a warning in the middle of the logs somewhere.
-  }
-
-  // TODO-DODDI: Address comments in this function
-  // TODO(0.14): Remove this branch as it is now unreachable.
-  if (!isLoggedIn && !isOfflineModeEnabled) {
+  if (!isConnectedToCloud) {
+    // TODO(0.14): Also print this at the end of the command output to increase visibility.
     const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
-
-    const msg = `You are not logged in. To use ${distroName}, log in with the ${styles.command(
-      "garden login"
-    )} command.`
-
-    const isCommunityEdition = isGardenCommunityEdition(garden.cloudDomain)
-
-    if (isCommunityEdition) {
-      cloudLog.info(`${msg}\nLearn more at: ${makeDocsLinkStyled("using-garden/dashboard")}`)
-    } else {
-      cloudLog.warn(msg)
-    }
+    cloudLog.info({
+      msg: `Did you know that ${styles.highlight("Team Cache")} and ${styles.highlight("Container Builder")} can reduce the time it takes to complete Garden actions, and avoid unnecessary work?`,
+    })
+    cloudLog.warn({
+      msg: `Run ${styles.highlight("garden login")} to connect your project to ${distroName}.`,
+    })
   }
 }
 
@@ -109,25 +89,18 @@ export async function saveAuthToken({
   globalConfigStore,
   tokenResponse,
   domain,
-  projectId,
 }: {
   log: Log
   globalConfigStore: GlobalConfigStore
   tokenResponse: AuthToken
   domain: string
-  projectId: string | undefined
 }) {
-  const distroName = getCloudDistributionName({ domain, projectId })
-
   const token = tokenResponse.token
 
   if (!token) {
-    const errMsg = deline`
-        Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
-        yet been created in ${distroName}, or that there's a problem with your account's VCS username / login
-        credentials.
-      `
-    throw new CloudApiError({ message: errMsg })
+    throw new InternalError({
+      message: "Nullish token in auth token response",
+    })
   }
   try {
     const validityMs = tokenResponse.tokenValidity || 604800000

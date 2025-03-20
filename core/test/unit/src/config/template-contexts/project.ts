@@ -19,8 +19,6 @@ const vcsInfo = {
   originUrl: "https://example.com/foo",
 }
 
-const projectId = undefined
-
 describe("DefaultEnvironmentContext", () => {
   let garden: TestGarden
   let c: DefaultEnvironmentContext
@@ -92,7 +90,7 @@ describe("ProjectConfigContext", () => {
       username: "some-user",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -112,7 +110,7 @@ describe("ProjectConfigContext", () => {
       username: "some-user",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -131,7 +129,7 @@ describe("ProjectConfigContext", () => {
       username: "some-user",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: { foo: "banana" },
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -151,7 +149,7 @@ describe("ProjectConfigContext", () => {
         username: "some-user",
         loggedIn: false, // <-----
         cloudBackendDomain: enterpriseDomain,
-        projectId,
+        isUsingBackendV2: false,
         secrets: { foo: "banana" },
         commandInfo: { name: "test", args: {}, opts: {} },
       })
@@ -173,7 +171,7 @@ describe("ProjectConfigContext", () => {
           username: "some-user",
           loggedIn: true,
           cloudBackendDomain: enterpriseDomain,
-          projectId,
+          isUsingBackendV2: false,
           secrets: {}, // <-----
           commandInfo: { name: "test", args: {}, opts: {} },
         })
@@ -195,7 +193,7 @@ describe("ProjectConfigContext", () => {
           username: "some-user",
           loggedIn: true,
           cloudBackendDomain: enterpriseDomain,
-          projectId,
+          isUsingBackendV2: false,
           secrets: { foo: "banana " }, // <-----
           commandInfo: { name: "test", args: {}, opts: {} },
         })
@@ -218,7 +216,7 @@ describe("ProjectConfigContext", () => {
       username: "some-user",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -239,7 +237,7 @@ describe("ProjectConfigContext", () => {
       username: "some-user",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -259,7 +257,7 @@ describe("ProjectConfigContext", () => {
       username: "some-user",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -278,7 +276,7 @@ describe("ProjectConfigContext", () => {
       username: "some-user",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -297,7 +295,7 @@ describe("ProjectConfigContext", () => {
       username: "SomeUser",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -320,7 +318,7 @@ describe("ProjectConfigContext", () => {
       username: "SomeUser",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -339,7 +337,7 @@ describe("ProjectConfigContext", () => {
       username: "SomeUser",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: {},
       commandInfo: { name: "deploy", args: {}, opts: { sync: ["my-service"] } },
     })
@@ -360,7 +358,7 @@ describe("ProjectConfigContext", () => {
       username: "SomeUser",
       loggedIn: true,
       cloudBackendDomain: enterpriseDomain,
-      projectId,
+      isUsingBackendV2: false,
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })

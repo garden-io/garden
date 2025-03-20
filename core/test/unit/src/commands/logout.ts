@@ -15,7 +15,7 @@ import { GardenCloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import { LogOutCommand } from "../../../../src/commands/logout.js"
 import { expectError, getLogMessages } from "../../../../src/util/testing.js"
-import { DEFAULT_GARDEN_CLOUD_V1_DOMAIN, DEFAULT_GARDEN_CLOUD_V2_DOMAIN, gardenEnv } from "../../../../src/constants.js"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../../src/constants.js"
 
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import type { Garden } from "../../../../src/index.js"
@@ -69,7 +69,6 @@ describe("LogoutCommand", () => {
       globalConfigStore: garden.globalConfigStore,
       tokenResponse: testToken,
       domain: garden.cloudDomain!,
-      projectId,
     })
     td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
@@ -109,7 +108,6 @@ describe("LogoutCommand", () => {
       globalConfigStore: garden.globalConfigStore,
       tokenResponse: testToken,
       domain: garden.cloudDomain!,
-      projectId,
     })
     td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
@@ -127,7 +125,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include(`Successfully logged out from ${DEFAULT_GARDEN_CLOUD_V2_DOMAIN}.`)
+    expect(logOutput).to.include(`Successfully logged out from ${DEFAULT_GARDEN_CLOUD_DOMAIN}.`)
   })
 
   it("should be a no-op if the user is already logged out", async () => {
@@ -164,7 +162,6 @@ describe("LogoutCommand", () => {
       globalConfigStore: garden.globalConfigStore,
       tokenResponse: testToken,
       domain: garden.cloudDomain!,
-      projectId,
     })
     // Throw when initializing Enterprise API
     td.replace(GardenCloudApi.prototype, "factory", async () => {
@@ -206,7 +203,6 @@ describe("LogoutCommand", () => {
       globalConfigStore: garden.globalConfigStore,
       tokenResponse: testToken,
       domain: garden.cloudDomain!,
-      projectId,
     })
     // Throw when using Enterprise API to call logout endpoint
     td.replace(GardenCloudApi.prototype, "post", async () => {

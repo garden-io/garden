@@ -14,11 +14,10 @@ import { getAuthenticatedApiClient, getNonAuthenticatedApiClient } from "./trpc.
 import { CloudApiError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
-import { getCloudLogSectionName } from "../util.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
 import { getStoredAuthToken } from "../auth.js"
 import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
-import { getGrowCloudDistributionName } from "./util.js"
 import { TRPCClientError } from "@trpc/client"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
@@ -55,7 +54,7 @@ export class GrowCloudApi {
     this.log = log
     this.domain = domain
     this.organizationId = organizationId
-    this.distroName = getGrowCloudDistributionName()
+    this.distroName = getCloudDistributionName(domain)
     this.globalConfigStore = globalConfigStore
 
     this.authToken = authToken
@@ -83,7 +82,7 @@ export class GrowCloudApi {
     if (!organizationId) {
       return undefined
     }
-    const distroName = getGrowCloudDistributionName()
+    const distroName = getCloudDistributionName(cloudDomain)
     const cloudLogSectionName = getCloudLogSectionName(distroName)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
     const cloudFactoryLog = log.createLog({ fixLevel, name: cloudLogSectionName, showDuration: true })

@@ -184,7 +184,7 @@ export class GardenCloudApi {
     this.httpClient = new GardenCloudHttpClient(params)
     this.domain = domain
     this.projectId = projectId
-    this.distroName = getCloudDistributionName({ domain, projectId })
+    this.distroName = getCloudDistributionName(domain)
     this.globalConfigStore = globalConfigStore
     this.projects = new Map()
     this.registeredSessions = new Map()
@@ -207,7 +207,7 @@ export class GardenCloudApi {
     globalConfigStore,
     skipLogging = false,
   }: CloudApiFactoryParams): Promise<GardenCloudApi | undefined> {
-    const distroName = getCloudDistributionName({ domain: cloudDomain, projectId })
+    const distroName = getCloudDistributionName(cloudDomain)
     const cloudLogSectionName = getCloudLogSectionName(distroName)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
     const cloudFactoryLog = log.createLog({ fixLevel, name: cloudLogSectionName, showDuration: true })
@@ -315,7 +315,6 @@ export class GardenCloudApi {
         globalConfigStore: this.globalConfigStore,
         tokenResponse: tokenObj,
         domain: this.domain,
-        projectId: this.projectId,
       })
     } catch (err) {
       if (!(err instanceof GotHttpError)) {
@@ -324,16 +323,12 @@ export class GardenCloudApi {
 
       this.log.debug({ msg: `Failed to refresh the token.` })
       throw new CloudApiTokenRefreshError({
-        message: `An error occurred while verifying client auth token with ${this.getCloudDistributionName()}: ${
+        message: `An error occurred while verifying client auth token with ${this.distroName}: ${
           err.message
         }. Response status code: ${err.response.statusCode}`,
         responseStatusCode: err.response.statusCode,
       })
     }
-  }
-
-  private getCloudDistributionName() {
-    return getCloudDistributionName({ domain: this.domain, projectId: this.projectId })
   }
 
   sessionRegistered(id: string) {
@@ -544,7 +539,7 @@ export class GardenCloudApi {
     }
     if (!project) {
       throw new CloudApiError({
-        message: `Project ${projectName} is not a ${this.getCloudDistributionName()} project`,
+        message: `Project ${projectName} is not a ${this.distroName} project`,
       })
     }
     return project
@@ -568,7 +563,7 @@ export class GardenCloudApi {
 
     try {
       const url = new URL("/token/verify", this.domain)
-      this.log.debug(`Checking client auth token with ${this.getCloudDistributionName()}: ${url.href}`)
+      this.log.debug(`Checking client auth token with ${this.distroName}: ${url.href}`)
 
       await this.get("token/verify")
 
@@ -581,14 +576,14 @@ export class GardenCloudApi {
       if (err.response.statusCode !== 401) {
         throw new CloudApiError({
           message: deline`
-            An error occurred while verifying client auth token with ${this.getCloudDistributionName()}: ${err.message}
+            An error occurred while verifying client auth token with ${this.distroName}: ${err.message}
           `,
           responseStatusCode: err.response.statusCode,
         })
       }
     }
 
-    this.log.debug(`Checked client auth token with ${this.getCloudDistributionName()} - valid: ${valid}`)
+    this.log.debug(`Checked client auth token with ${this.distroName} - valid: ${valid}`)
 
     return valid
   }
@@ -614,7 +609,7 @@ export class GardenCloudApi {
 
   async getSecrets({ log, projectId, environmentName }: GetSecretsParams): Promise<StringMap> {
     let secrets: StringMap = {}
-    const distroName = this.getCloudDistributionName()
+    const distroName = this.distroName
 
     try {
       const res = await this.get<BaseResponse>(`/secrets/projectUid/${projectId}/env/${environmentName}`)

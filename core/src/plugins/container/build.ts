@@ -283,7 +283,7 @@ async function buildxBuildContainer({
 
     if (buildError !== null) {
       throw new BuildError({
-        message: dockerErrorLogs.join("\n") || buildError.message,
+        message: `docker build failed: ${dockerErrorLogs.join("\n") || buildError.message}`,
       })
     }
     return { buildResult: res, timeSaved }

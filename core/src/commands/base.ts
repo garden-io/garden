@@ -313,7 +313,7 @@ export abstract class Command<
         }
 
         if (cloudSession) {
-          const distroName = getCloudDistributionName({ domain: cloudSession.api.domain, projectId: garden.projectId })
+          const distroName = getCloudDistributionName(cloudSession.api.domain)
           commandResultUrl = cloudSession.api.getCommandResultUrl({
             sessionId: garden.sessionId,
             projectId: cloudSession.projectId,

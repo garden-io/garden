@@ -102,7 +102,7 @@ import {
   getActionTypes,
   getActionTypeBases,
 } from "./plugins.js"
-import { dedent, deline, naturalList, wordWrap } from "./util/string.js"
+import { dedent, deline, naturalList } from "./util/string.js"
 import { DependencyGraph } from "./graph/common.js"
 import { Profile, profileAsync } from "./util/profiling.js"
 import type { WorkflowConfig, WorkflowConfigMap } from "./config/workflow.js"
@@ -167,13 +167,7 @@ import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
-import {
-  getCloudDistributionName,
-  getCloudDomain,
-  getCloudLogSectionName,
-  getGardenCloudDomain,
-  isGardenCommunityEdition,
-} from "./cloud/util.js"
+import { getCloudDistributionName, getCloudDomain, getCloudLogSectionName } from "./cloud/util.js"
 import { GrowCloudApi } from "./cloud/grow/api.js"
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
@@ -608,7 +602,7 @@ export class Garden {
       ...this,
       loggedIn,
       cloudBackendDomain: this.cloudDomain,
-      projectId: this.projectId,
+      isUsingBackendV2: this.isUsingBackendV2(),
     })
   }
 
@@ -1887,9 +1881,26 @@ export class Garden {
     return suggestions
   }
 
+  /**
+   * We're only using backend v1 if an ID has been configured
+   */
+  public isUsingBackendV2(): boolean {
+    if (this.projectConfig.id) {
+      return false
+    }
+
+    return true
+  }
+
   /** Returns whether the user is logged in to the Garden Cloud */
   public isOldBackendAvailable(): this is GardenWithOldBackend {
-    return !!this.cloudApi
+    const oldBackendAvailable = !!this.cloudApi
+    if (this.isUsingBackendV2() && oldBackendAvailable) {
+      throw new InternalError({
+        message: "Invalid state: should use backend v2, but logged in to backend v1",
+      })
+    }
+    return oldBackendAvailable
   }
 
   public isLoggedIn(): boolean {
@@ -2027,7 +2038,7 @@ async function initCloudApi({
     return await cloudApiFactory({ log, cloudDomain, projectId, organizationId, globalConfigStore })
   } catch (err) {
     if (err instanceof CloudApiTokenRefreshError) {
-      const distroName = getCloudDistributionName({ domain: cloudDomain, projectId })
+      const distroName = getCloudDistributionName(cloudDomain)
 
       // TODO(0.14): Remove this warning, as login is required when connecting projects to Cloud.
       log.warn(dedent`
@@ -2141,7 +2152,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       loggedIn,
       cloudBackendDomain,
-      projectId,
+      isUsingBackendV2: !projectConfig.id,
       secrets,
       commandInfo,
     })
@@ -2279,9 +2290,8 @@ async function initCloudProject({
     }
   }
 
-  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
-  const isCommunityEdition = isGardenCommunityEdition(cloudDomain)
-  const distroName = getCloudDistributionName({ domain: cloudDomain, projectId: config.id })
+  const cloudDomain = cloudApi?.domain || getCloudDomain(config)
+  const distroName = getCloudDistributionName(cloudDomain)
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
   const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
@@ -2294,26 +2304,23 @@ async function initCloudProject({
     log: cloudLog,
     projectName,
     projectRoot,
-    isCommunityEdition,
   })
 
   // Fetch Secrets. Not supported on the community edition.
   let secrets: StringMap = {}
-  if (cloudProject && !isCommunityEdition) {
-    try {
-      secrets = await wrapActiveSpan(
-        "getSecrets",
-        async () =>
-          await cloudApi.getSecrets({
-            log: cloudLog,
-            projectId: cloudProject!.id,
-            environmentName,
-          })
-      )
-      cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
-    } catch (err) {
-      cloudLog.error(`Fetching secrets failed with error: ${err}`)
-    }
+  try {
+    secrets = await wrapActiveSpan(
+      "getSecrets",
+      async () =>
+        await cloudApi.getSecrets({
+          log: cloudLog,
+          projectId: cloudProject!.id,
+          environmentName,
+        })
+    )
+    cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
+  } catch (err) {
+    cloudLog.error(`Fetching secrets failed with error: ${err}`)
   }
 
   cloudLog.success("Ready")
@@ -2322,67 +2329,28 @@ async function initCloudProject({
 }
 
 /**
- * Returns the cloud project for the respective cloud edition (i.e. community or commercial).
+ * Returns the cloud project
  */
 async function getCloudProject({
   cloudApi,
   config,
   log,
-  isCommunityEdition,
   projectRoot,
   projectName,
 }: {
   cloudApi: GardenCloudApi
   config: ProjectConfig
   log: Log
-  isCommunityEdition: boolean
   projectRoot: string
   projectName: string
 }) {
   const projectId = config.id
-  const distroName = getCloudDistributionName({ domain: cloudApi.domain, projectId })
+  const distroName = getCloudDistributionName(cloudApi.domain)
 
-  // If logged into community edition, throw if ID is set
-  if (projectId && isCommunityEdition) {
-    const msg = wordWrap(
-      deline`
-        Invalid field 'id' found in project configuration at path ${projectRoot}. The 'id'
-        field should only be set if using a commercial edition of Garden. Please remove to continue
-        using the Garden community edition.
-      `,
-      120
-    )
-    throw new ConfigurationError({ message: msg })
-  }
-
-  // If logged into community edition, return project or throw if it can't be fetched/created
-  if (isCommunityEdition) {
-    log.debug(`Fetching or creating project ${projectName} from ${cloudApi.domain}`)
-    try {
-      const cloudProject = await cloudApi.getOrCreateProjectByName(projectName)
-      return cloudProject
-    } catch (err) {
-      log.error(`Fetching or creating project ${projectName} from ${cloudApi.domain} failed with error: ${err}`)
-      if (err instanceof GotHttpError) {
-        throw new CloudApiError({ responseStatusCode: err.response.statusCode, message: err.message })
-      }
-      throw err
-    }
-  }
-
-  // If logged into commercial edition and ID is not set, log warning and return null
   if (!projectId) {
-    log.warn(
-      wordWrap(
-        deline`
-            Logged in to ${cloudApi.domain}, but could not find remote project '${projectName}'.
-            Command results for this command run will not be available in ${distroName}.
-          `,
-        120
-      )
-    )
-
-    return null
+    throw new InternalError({
+      message: "Invalid state: using backend v1 but projectId is undefined",
+    })
   }
 
   // If logged into commercial edition, return project or throw if unable to fetch by ID

@@ -12,7 +12,7 @@ import type { TempDirectory } from "../../../helpers.js"
 import { expectError, getDataDir, makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
 import { AuthRedirectServer, getStoredAuthToken, saveAuthToken } from "../../../../src/cloud/auth.js"
 
-import { LoginCommand, setOrganizationId } from "../../../../src/commands/login.js"
+import { LoginCommand, rewriteProjectConfigYaml } from "../../../../src/commands/login.js"
 import { randomString } from "../../../../src/util/string.js"
 import { GardenCloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
@@ -126,7 +126,6 @@ describe("LoginCommand", () => {
       log: garden.log,
       globalConfigStore: garden.globalConfigStore,
       tokenResponse: testToken,
-      projectId: garden.getProjectConfig().id,
       domain: garden.cloudDomain!,
     })
     td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
@@ -218,7 +217,6 @@ describe("LoginCommand", () => {
       log: garden.log,
       globalConfigStore: garden.globalConfigStore,
       tokenResponse: testToken,
-      projectId: garden.projectId,
       domain: garden.cloudDomain!,
     })
     td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => false)
@@ -402,7 +400,7 @@ describe("LoginCommand", () => {
           - name: local
         providers:
           - name: local-kubernetes
-            environments: 
+            environments:
               - local
         ---
         # We don't validate this doc, so we don't need all the fields, but we want to make sure
@@ -410,7 +408,7 @@ describe("LoginCommand", () => {
         kind: Build
       `
       const organizationId = "gandalf-1445"
-      const afterYaml = setOrganizationId(beforeYaml, "/some/dir/project.garden.yml", organizationId)
+      const afterYaml = rewriteProjectConfigYaml(beforeYaml, "/some/dir/project.garden.yml", organizationId)
       expect(afterYaml.trim()).to.equal(
         dedent`
         kind: Project

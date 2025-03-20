@@ -72,7 +72,7 @@ export async function resolveConfigTemplate(
     ...garden,
     loggedIn,
     cloudBackendDomain: garden.cloudDomain,
-    projectId: garden.projectId,
+    isUsingBackendV2: garden.isUsingBackendV2(),
   })
 
   // @ts-expect-error todo: correct types for unresolved configs

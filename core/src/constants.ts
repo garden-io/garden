@@ -63,10 +63,7 @@ export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggigno
 
 export const DOCS_BASE_URL = "https://docs.garden.io/bonsai-0.13"
 
-export const DEFAULT_GARDEN_CLOUD_V1_DOMAIN = "https://app.garden.io"
-
-// TODO: Change to https://app.garden.io when the time comes
-export const DEFAULT_GARDEN_CLOUD_V2_DOMAIN = "https://grow.staging.sys.garden"
+export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://beta.app.garden.io"
 
 export const DEFAULT_BROWSER_DIVIDER_WIDTH = 80
 

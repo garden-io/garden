@@ -212,7 +212,7 @@ export interface ProjectConfig extends BaseGardenResource {
   kind: "Project"
   name: string
   path: string
-  id?: string // TODO: Remove this field when old backend is deprecated.
+  id?: string // TODO: Remove this field once backend v1 has been phased out.
   domain?: string
   organizationId?: string
   configPath?: string
@@ -332,8 +332,7 @@ export const projectSchema = createSchema({
     configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
     internal: baseInternalFieldsSchema(),
     name: projectNameSchema(),
-    // TODO: Remove id field when old backend is deprecated
-    // TODO: Refer to enterprise documentation for more details.
+    // TODO: Remove id field once backend v1 has been phased out
     id: joi
       .string()
       .meta({ internal: true })
@@ -643,7 +642,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     variables: await VariablesContext.forProject(projectConfig, variableOverrides, projectContext),
     loggedIn,
     cloudBackendDomain,
-    projectId,
+    isUsingBackendV2: !projectConfig.id,
     secrets,
     commandInfo,
   })

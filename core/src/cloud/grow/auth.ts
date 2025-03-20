@@ -15,7 +15,7 @@ import { getNonAuthenticatedApiClient } from "./trpc.js"
 import { CloudApiTokenRefreshError } from "../api.js"
 import { CloudApiError } from "../../exceptions.js"
 import { saveAuthToken } from "../auth.js"
-import { getGrowCloudDistributionName } from "./util.js"
+import { getCloudDistributionName } from "../util.js"
 
 export function isTokenExpired(token: ClientAuthToken) {
   const now = new Date()
@@ -37,7 +37,7 @@ export async function isTokenValid({
   let valid = false
 
   try {
-    log.debug(`Checking client auth token with ${getGrowCloudDistributionName()}`)
+    log.debug(`Checking client auth token with ${getCloudDistributionName(cloudDomain)}`)
     const verificationResult = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.verifyToken.query({
       token: authToken,
     })
@@ -51,13 +51,13 @@ export async function isTokenValid({
 
     if (httpCode !== 401) {
       throw new CloudApiError({
-        message: `An error occurred while verifying client auth token with ${getGrowCloudDistributionName()}: ${err.message}`,
+        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${err.message}`,
         responseStatusCode: httpCode,
       })
     }
   }
 
-  log.debug(`Checked client auth token with ${getGrowCloudDistributionName()} - valid: ${valid}`)
+  log.debug(`Checked client auth token with ${getCloudDistributionName(cloudDomain)} - valid: ${valid}`)
 
   return valid
 }
@@ -81,7 +81,6 @@ export async function refreshAuthTokenAndWriteToConfigStore(
         tokenValidity: result.tokenValidity,
       },
       domain: cloudDomain,
-      projectId: undefined,
     })
 
     return result
@@ -92,7 +91,7 @@ export async function refreshAuthTokenAndWriteToConfigStore(
 
     log.debug({ msg: `Failed to refresh the token.` })
     throw new CloudApiTokenRefreshError({
-      message: `An error occurred while verifying client auth token with ${getGrowCloudDistributionName()}: ${err.message}`,
+      message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${err.message}`,
       responseStatusCode: err.data?.httpStatus,
     })
   }

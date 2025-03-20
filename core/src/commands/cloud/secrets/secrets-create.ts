@@ -74,7 +74,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
-    handleSecretsUnavailableInNewBackend({ cloudBackendDomain: garden.cloudDomain })
+    handleSecretsUnavailableInNewBackend(garden)
 
     // Apparently TS thinks that optional params are always defined so we need to cast them to their
     // true type here.

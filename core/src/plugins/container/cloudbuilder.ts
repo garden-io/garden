@@ -158,13 +158,9 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
     ctx,
     publicKeyPem,
   }: RegisterCloudBuildParams<GardenCloudApi>): Promise<RegisterCloudBuilderBuildResponseData> {
-    // Validate Cloud Project and domain
-    if (isGardenCommunityEdition(cloudApi.domain) && ctx.projectId === undefined) {
-      throw new InternalError({ message: "Authenticated with community tier, but projectId is undefined" })
-    } else if (ctx.projectId === undefined) {
-      const distroName = getCloudDistributionName({ domain: cloudApi.domain, projectId: ctx.projectId })
-      throw new ConfigurationError({
-        message: dedent`Please connect your Garden Project with ${distroName}. See also ${styles.link("https://cloud.docs.garden.io/getting-started/first-project")}`,
+    if (ctx.projectId === undefined) {
+      throw new InternalError({
+        message: dedent`Invalid state: Project ID can't be undefined when using the backend v1`,
       })
     }
 

@@ -53,7 +53,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<SecretResult[]>> {
-    handleSecretsUnavailableInNewBackend({ cloudBackendDomain: garden.cloudDomain })
+    handleSecretsUnavailableInNewBackend(garden)
 
     const envFilter = opts["filter-envs"] || []
     const nameFilter = opts["filter-names"] || []

@@ -286,7 +286,7 @@ export interface ProjectConfigContextParams extends DefaultEnvironmentContextPar
   loggedIn: boolean
   secrets: PrimitiveMap
   cloudBackendDomain: string
-  projectId: string | undefined
+  isUsingBackendV2: boolean
 }
 
 /**
@@ -307,23 +307,27 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   )
   public readonly secrets: PrimitiveMap
   private readonly _cloudBackendDomain: string
-  private readonly _projectId: string | undefined
+  private readonly _isUsingBackendV2: boolean
   private readonly _loggedIn: boolean
+
+  constructor(params: ProjectConfigContextParams) {
+    super(params)
+    this._loggedIn = params.loggedIn
+    this.secrets = params.secrets
+    this._cloudBackendDomain = params.cloudBackendDomain
+    this._isUsingBackendV2 = params.isUsingBackendV2
+  }
 
   override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
     if (key[0] !== "secrets") {
       return ""
     }
 
-    const unavailableMessage = getSecretsUnavailableInNewBackendMessage({
-      projectId: this._projectId,
-      cloudBackendDomain: this._cloudBackendDomain,
-    })
-    if (unavailableMessage) {
-      return unavailableMessage
+    if (this._isUsingBackendV2) {
+      return getSecretsUnavailableInNewBackendMessage(this._cloudBackendDomain)
     }
 
-    const distributionName = getCloudDistributionName({ domain: this._cloudBackendDomain, projectId: this._projectId })
+    const distributionName = getCloudDistributionName(this._cloudBackendDomain)
 
     if (!this._loggedIn) {
       return dedent`
@@ -346,14 +350,6 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
         environment.
       `
     }
-  }
-
-  constructor(params: ProjectConfigContextParams) {
-    super(params)
-    this._loggedIn = params.loggedIn
-    this.secrets = params.secrets
-    this._cloudBackendDomain = params.cloudBackendDomain
-    this._projectId = params.projectId
   }
 }
 
@@ -417,7 +413,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       username: garden.username,
       loggedIn: garden.isLoggedIn(),
       cloudBackendDomain: garden.cloudDomain,
-      projectId: garden.projectId,
+      isUsingBackendV2: garden.isUsingBackendV2(),
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
       variables,

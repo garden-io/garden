@@ -183,7 +183,7 @@ export class ServeCommand<
             isDevCommand: true,
           })
           if (session?.shortId) {
-            const distroName = getCloudDistributionName({ domain: defaultGarden.cloudDomain, projectId })
+            const distroName = getCloudDistributionName(defaultGarden.cloudDomain)
             const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId }).toString()
             const msg = dedent`\n${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
 
@@ -196,7 +196,7 @@ export class ServeCommand<
         }
       } catch (err) {
         if (err instanceof CloudApiTokenRefreshError) {
-          const distroName = getCloudDistributionName({ domain: defaultGarden.cloudDomain, projectId })
+          const distroName = getCloudDistributionName(defaultGarden.cloudDomain)
           log.warn(dedent`
           Unable to authenticate against ${distroName} with the current session token.
           The dashboard will not be available until you authenticate again. Please try logging out with

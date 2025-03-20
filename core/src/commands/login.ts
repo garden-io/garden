@@ -11,7 +11,7 @@ import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
 import type { Log } from "../logger/log-entry.js"
-import { CloudApiError, ConfigurationError, InternalError, TimeoutError } from "../exceptions.js"
+import { CloudApiError, ConfigurationError, GardenError, InternalError, isErrnoException, TimeoutError } from "../exceptions.js"
 import type { AuthToken } from "../cloud/auth.js"
 import { AuthRedirectServer, saveAuthToken } from "../cloud/auth.js"
 import type { EventBus } from "../events/events.js"
@@ -60,7 +60,6 @@ export class LoginCommand extends Command<{}, Opts> {
     const globalConfigStore = garden.globalConfigStore
     const cloudDomain = getCloudDomain(projectConfig)
     const { id: projectId, organizationId } = projectConfig || {}
-    log.info(`Cloud domain: ${cloudDomain}`)
     const gardenBackend = gardenBackendFactory(projectConfig, { cloudDomain, projectId, organizationId })
 
     try {
@@ -93,7 +92,6 @@ export class LoginCommand extends Command<{}, Opts> {
       globalConfigStore,
       tokenResponse,
       domain: cloudDomain,
-      projectId: projectConfig?.id,
     })
     log.success({ msg: `Successfully logged in to ${cloudDomain}.`, showDuration: false })
     if (tokenResponse.organizationId) {
@@ -133,8 +131,7 @@ export async function login(log: Log, gardenBackend: GardenBackend, events: Even
         return
       }
       clearTimeout(timeout)
-      log.debug("Received client auth token.")
-      log.info(`Received client auth token: ${JSON.stringify(tokenResponse, null, 2)}`)
+      log.info("Received client auth token.")
       resolve(tokenResponse)
     })
   })
@@ -163,14 +160,19 @@ export async function applyOrganizationId({
       } else {
         throw new InternalError({
           message: deline`
-            The ${styles.highlight("organizationId")} received when logging in doesn't match the one in your p config.
+            The ${styles.highlight("organizationId")} received when logging in doesn't match the one in your project config.
             Expected ${organizationId}, but got ${styles.highlight(projectConfig.organizationId)}.
           `,
         })
       }
     } else {
-      log.info(`Setting ${styles.highlight("organizationId")} in project config...`)
-      await setAndWriteOrganizationId(log, projectConfig.path, organizationId)
+      // XXX: WTF, we have projectConfig.path, projectConfig.internal.configFilePath and they are all undefined
+      if (!projectConfig.configPath) {
+        throw new InternalError({
+          message: "Invalid state: The project configuration must have a config file path",
+        })
+      }
+      await rewriteProjectConfigFile(log, projectConfig.configPath, organizationId)
     }
   } else {
     // TODO: Generate a project config, similarly to how it's done in the `create project` command (and set the
@@ -178,39 +180,36 @@ export async function applyOrganizationId({
   }
 }
 
-async function setAndWriteOrganizationId(log: Log, projectConfigPath: string, organizationId: string): Promise<void> {
+async function rewriteProjectConfigFile(log: Log, projectConfigPath: string, organizationId: string): Promise<void> {
+  const relPath = relative(process.cwd(), projectConfigPath)
   // We reparse the file this way to avoid losing comments, field ordering etc. when writing it back after adding
   // the organizationId.
+  const fileContent = (await readFile(projectConfigPath)).toString()
   try {
-    const fileContent = (await readFile(projectConfigPath)).toString()
-    const updatedFileContent = setOrganizationId(fileContent, projectConfigPath, organizationId)
+    const updatedFileContent = rewriteProjectConfigYaml(fileContent, projectConfigPath, organizationId)
     await writeFile(projectConfigPath, updatedFileContent)
+    log.info(
+      `Successfully connected your Garden Project with Garden Cloud! Make sure to commit the updated ${relPath} to source control.`
+    )
   } catch (err) {
-    if (err instanceof Error) {
-      // If the above fails for any reason, we log a helpful message to guide the user to setting the
-      // organizationId in their project config manually.
-      const relPath = relative(process.cwd(), projectConfigPath)
-      log.debug(
-        `An error occurred while automatically setting organizationId in project config at path ${relPath}: ${err.message}`
-      )
-      log.info(dedent`
-        To set the ${styles.highlight("organizationId")} manually, please add the following field to your project config:
+    // If the above fails for any reason, we log a helpful message to guide the user to setting the
+    // organizationId in their project config manually.
+    const relPath = relative(process.cwd(), projectConfigPath)
+    log.debug(
+      `An error occurred while automatically setting organizationId in project config at path ${relPath}: ${err instanceof Error ? err.stack : err}`
+    )
+    log.info(dedent`
+        Please add the following field to your project config:
 
           kind: Project
           organizationId: ${organizationId} # <----
           ...
       `)
-      return
-    } else {
-      throw err
-    }
+    return
   }
-  log.info(
-    `Successfully set ${styles.highlight("organizationId")} to ${styles.highlight(organizationId)} in project config.`
-  )
 }
 
-export function setOrganizationId(
+export function rewriteProjectConfigYaml(
   projectConfigYaml: string,
   projectConfigPath: string,
   organizationId: string
@@ -273,7 +272,9 @@ export function setOrganizationId(
       projectDoc.set("organizationId", organizationId)
     }
   } else {
-    throw new Error("Unexpected YAML structure: Expected a map at the document root.")
+    throw new InternalError({
+      message: "Unexpected YAML structure: Expected a map at the document root.",
+    })
   }
   docsInFile[projectDocIndex] = projectDoc
 

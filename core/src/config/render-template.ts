@@ -127,7 +127,7 @@ export async function renderConfigTemplate({
     ...garden,
     loggedIn,
     cloudBackendDomain: garden.cloudDomain,
-    projectId: garden.projectId,
+    isUsingBackendV2: garden.isUsingBackendV2(),
   })
 
   // @ts-expect-error todo: correct types for unresolved configs
@@ -174,7 +174,7 @@ export async function renderConfigTemplate({
     ...garden,
     loggedIn: garden.isLoggedIn(),
     cloudBackendDomain: garden.cloudDomain,
-    projectId: garden.projectId,
+    isUsingBackendV2: garden.isUsingBackendV2(),
     parentName: resolved.name,
     templateName: template.name,
     inputs: InputContext.forRenderTemplate(config, template),

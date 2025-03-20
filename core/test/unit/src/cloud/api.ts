@@ -32,7 +32,7 @@ describe("GardenCloudApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain, projectId })
+      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain })
       const savedToken = await getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.eql(testToken.token)
     })
@@ -57,7 +57,7 @@ describe("GardenCloudApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain, projectId })
+      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain })
       await clearAuthToken(log, globalConfigStore, domain)
       const savedToken = await getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.be.undefined
