@@ -15,7 +15,7 @@ import { GardenCloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import { LogOutCommand } from "../../../../src/commands/logout.js"
 import { expectError, getLogMessages } from "../../../../src/util/testing.js"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants.js"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../../src/constants.js"
 
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import type { Garden } from "../../../../src/index.js"
@@ -63,7 +63,12 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
     td.replace(GardenCloudApi.prototype, "post", async () => {})
@@ -97,7 +102,12 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
     td.replace(GardenCloudApi.prototype, "post", async () => {})
@@ -146,7 +156,12 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     // Throw when initializing Enterprise API
     td.replace(GardenCloudApi.prototype, "factory", async () => {
       throw new Error("Not tonight")
@@ -182,7 +197,12 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     // Throw when using Enterprise API to call logout endpoint
     td.replace(GardenCloudApi.prototype, "post", async () => {
       throw new Error("Not tonight")
@@ -203,7 +223,7 @@ describe("LogoutCommand", () => {
     expect(logOutput).to.include("Successfully logged out from https://example.invalid.")
   })
 
-  it("should not logout if outside project root and disable-project-check flag is false", async () => {
+  it("should not logout if outside project root", async () => {
     const command = new LogOutCommand()
 
     // this is a bit of a workaround to run outside of the garden root dir
@@ -214,55 +234,8 @@ describe("LogoutCommand", () => {
     await expectError(
       async () => await command.action(logoutCommandParams({ garden, opts: { "disable-project-check": false } })),
       {
-        contains: "Not a project directory",
+        contains: "Project config not found",
       }
     )
-  })
-
-  it("should logout if outside project root and disable-project-check flag is true", async () => {
-    const postfix = randomString()
-    const testToken = {
-      token: `dummy-token-${postfix}`,
-      refreshToken: `dummy-refresh-token-${postfix}`,
-      tokenValidity: 60,
-    }
-
-    const command = new LogOutCommand()
-
-    // this is a bit of a workaround to run outside of the garden root dir
-    const garden = await makeDummyGarden(getDataDir("..", "..", "..", ".."), {
-      skipCloudConnect: false,
-      commandInfo: { name: "foo", args: {}, opts: {} },
-      globalConfigStore,
-    })
-
-    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
-    td.replace(GardenCloudApi.prototype, "post", async () => {})
-
-    // Double check token actually exists
-    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
-    expect(savedToken).to.exist
-    expect(savedToken!.token).to.eql(testToken.token)
-    expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
-
-    // use the env-var to override the cloud domain
-    const cloudDomain = "https://example.invalid"
-    const savedDomain = gardenEnv.GARDEN_CLOUD_DOMAIN
-    gardenEnv.GARDEN_CLOUD_DOMAIN = cloudDomain
-
-    // Need to override the default cloud domain since we're using DummyGarden
-    Object.assign(garden, { cloudDomain })
-
-    await command.action(logoutCommandParams({ garden, opts: { "disable-project-check": true } }))
-
-    gardenEnv.GARDEN_CLOUD_DOMAIN = savedDomain
-
-    const tokenAfterLogout = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
-    const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
-
-    expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Successfully logged out from https://example.invalid.")
   })
 })

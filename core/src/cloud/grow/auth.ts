@@ -23,7 +23,7 @@ export function isTokenExpired(token: ClientAuthToken) {
 }
 
 /**
- * Checks with the backend whether the provided client auth token is valid.
+ * Checks with the new backend whether the provided client auth token is valid.
  */
 export async function isTokenValid({
   authToken,
@@ -72,12 +72,16 @@ export async function refreshAuthTokenAndWriteToConfigStore(
     const result = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.refreshToken.mutate({
       refreshToken,
     })
-    await saveAuthToken(
+    await saveAuthToken({
       log,
       globalConfigStore,
-      { token: result.accessToken, refreshToken: result.refreshToken, tokenValidity: result.tokenValidity },
-      cloudDomain
-    )
+      tokenResponse: {
+        token: result.accessToken,
+        refreshToken: result.refreshToken,
+        tokenValidity: result.tokenValidity,
+      },
+      domain: cloudDomain,
+    })
 
     return result
   } catch (err) {

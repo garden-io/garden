@@ -22,7 +22,6 @@ import { KubernetesError } from "../api.js"
 import type { KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
 import { namespaceNameSchema, runPodResourceSchema } from "../config.js"
 import { getActionNamespaceStatus } from "../namespace.js"
-import { k8sGetRunResult } from "../run-results.js"
 import type { SyncableResource } from "../types.js"
 import { execInWorkload, getTargetResource } from "../util.js"
 import type { KubernetesRunOutputs } from "./config.js"
@@ -80,7 +79,12 @@ export const kubernetesExecRunDefinition = (): RunActionDefinition<KubernetesExe
       return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
     },
 
-    getResult: k8sGetRunResult,
+    /**
+     * We do not cache Run results of `kubernetes-exec` action type.
+     */
+    getResult: async ({}) => {
+      return { state: "not-ready", detail: null, outputs: { log: "" } }
+    },
   },
 })
 
@@ -107,7 +111,12 @@ export const kubernetesExecTestDefinition = (): TestActionDefinition<KubernetesE
       return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
     },
 
-    getResult: k8sGetRunResult,
+    /**
+     * We do not cache Test results of `kubernetes-exec` action type.
+     */
+    getResult: async ({}) => {
+      return { state: "not-ready", detail: null, outputs: { log: "" } }
+    },
   },
 })
 

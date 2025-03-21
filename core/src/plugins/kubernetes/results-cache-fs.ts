@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CacheStorage, SchemaVersion } from "./results-cache-base.js"
+import type { CacheStorage, ResultContainer, SchemaVersion } from "./results-cache-base.js"
 import { CacheStorageError } from "./results-cache-base.js"
 import fsExtra, { pathExists } from "fs-extra"
 import { join } from "path"
 import writeFileAtomic from "write-file-atomic"
 import { CACHE_DIR_NAME } from "../../constants.js"
 import type { Log } from "../../logger/log-entry.js"
+import type { GardenErrorParams, NodeJSErrnoException } from "../../exceptions.js"
 import { isErrnoException } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
 import type { JsonObject } from "type-fest"
@@ -22,8 +23,23 @@ import { lstat } from "fs/promises"
 
 const { ensureDir, readFile, remove } = fsExtra
 
+type LocalFileSystemCacheErrorParams = {
+  message: string
+  cause: NodeJSErrnoException | SyntaxError
+}
+
 class LocalFileSystemCacheError extends CacheStorageError {
-  override type = "local-fs-cache-storage"
+  override readonly type = "local-fs-cache-storage"
+  override readonly cause: NodeJSErrnoException | SyntaxError
+
+  constructor(params: GardenErrorParams & LocalFileSystemCacheErrorParams) {
+    super(params)
+    this.cause = params.cause
+  }
+
+  override describe(): string {
+    return `${this.message}; cause: ${this.cause}`
+  }
 }
 
 export const FILESYSTEM_CACHE_EXPIRY_DAYS = 7
@@ -39,7 +55,7 @@ export const FILESYSTEM_CACHE_EXPIRY_DAYS = 7
  * because each Run and Test result
  * is usually read and written only once per Garden command execution.
  */
-export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
+export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStorage<ResultShape> {
   private readonly cacheDir: string
   private readonly schemaVersion: SchemaVersion
   private readonly cacheExpiryDays: number
@@ -57,14 +73,18 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
     this.cacheDir = cacheDir
     this.schemaVersion = schemaVersion
     this.cacheExpiryDays = cacheExpiryDays
-    this.log = RootLogger.getInstance().createLog({ name: "fs-cache" })
+    this.log = RootLogger.getInstance().createLog({ name: "garden-local-cache" })
+  }
+
+  name() {
+    return "Local Cache"
   }
 
   private getFilePath(key: string): string {
     return join(this.cacheDir, `${this.schemaVersion}-${key}.json`)
   }
 
-  private async readFileContent(filePath: string): Promise<JsonObject> {
+  private async readFileContent(filePath: string): Promise<ResultContainer<JsonObject>> {
     let rawFileContent: string
     try {
       this.log.silly(`Reading data from file ${filePath}`)
@@ -75,23 +95,37 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
         throw err
       }
 
-      const errorMsg = `Cannot read data from file ${filePath}; cause: ${err}`
-      throw new LocalFileSystemCacheError({ message: errorMsg })
+      if (err.code === "ENOENT") {
+        this.log.debug(`Got cache miss for file ${filePath}`)
+        return { found: false, notFoundReason: "Not found." }
+      }
+
+      throw new LocalFileSystemCacheError({
+        message: `Cannot read data from file ${filePath}`,
+        code: err.code,
+        cause: err,
+      })
     }
 
     try {
-      return JSON.parse(rawFileContent) as JsonObject
+      const result = JSON.parse(rawFileContent) as JsonObject
+      return { found: true, result }
     } catch (err) {
-      const errorMsg = `Cannot deserialize json from file ${filePath}; cause: ${err}`
+      if (!(err instanceof SyntaxError)) {
+        throw err
+      }
 
       this.log.debug(`Deleting corrupted file ${filePath}`)
       await this.removeFile(filePath)
 
-      throw new LocalFileSystemCacheError({ message: errorMsg })
+      throw new LocalFileSystemCacheError({
+        message: `Cannot deserialize json from file ${filePath}`,
+        cause: err,
+      })
     }
   }
 
-  private async writeFileContent(filePath: string, value: JsonObject): Promise<JsonObject> {
+  private async writeFileContent(filePath: string, value: ResultShape): Promise<ResultShape> {
     try {
       this.log.silly(`Writing data to file ${filePath}`)
       await writeFileAtomic(filePath, JSON.stringify(value), { mode: undefined })
@@ -101,8 +135,11 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
         throw err
       }
 
-      const errorMsg = `Cannot write data to file ${filePath}; cause: ${err}`
-      throw new LocalFileSystemCacheError({ message: errorMsg })
+      throw new LocalFileSystemCacheError({
+        message: `Cannot write data to file ${filePath}`,
+        code: err.code,
+        cause: err,
+      })
     }
   }
 
@@ -115,8 +152,7 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
         throw err
       }
 
-      const errorMsg = `Cannot remove file ${filePath}; cause: ${err}`
-      throw new LocalFileSystemCacheError({ message: errorMsg })
+      throw new LocalFileSystemCacheError({ message: `Cannot remove file ${filePath}`, code: err.code, cause: err })
     }
   }
 
@@ -151,7 +187,7 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
    *
    * Reads the value from the file defined in the {@code key}.
    */
-  public async get(key: string): Promise<JsonObject> {
+  public async get(key: string): Promise<ResultContainer<JsonObject>> {
     const filePath = this.getFilePath(key)
     return await this.readFileContent(filePath)
   }
@@ -165,11 +201,15 @@ export class SimpleLocalFileSystemCacheStorage implements CacheStorage {
    * Returns the value back if it was written successfully,
    * or throws a {@link LocalFileSystemCacheError} otherwise.
    */
-  public async put(key: string, value: JsonObject): Promise<JsonObject> {
+  public async put(key: string, value: ResultShape): Promise<ResultShape> {
     await ensureDir(this.cacheDir)
 
     const filePath = this.getFilePath(key)
-    return await this.writeFileContent(filePath, value)
+    const storedValue = await this.writeFileContent(filePath, value)
+    if (storedValue === undefined) {
+      return storedValue
+    }
+    return value
   }
 
   /**

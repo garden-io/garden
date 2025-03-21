@@ -18,7 +18,7 @@ import type { Garden } from "../../garden.js"
 import { type VcsInfo } from "../../vcs/vcs.js"
 import { styles } from "../../logger/styles.js"
 import type { VariablesContext } from "./variables.js"
-import { getCloudDistributionName } from "../../cloud/util.js"
+import { getBackendType, getCloudDistributionName } from "../../cloud/util.js"
 import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/secrets.js"
 
 class LocalContext extends ContextWithSchema {
@@ -286,6 +286,7 @@ export interface ProjectConfigContextParams extends DefaultEnvironmentContextPar
   loggedIn: boolean
   secrets: PrimitiveMap
   cloudBackendDomain: string
+  backendType: "v1" | "v2"
 }
 
 /**
@@ -306,18 +307,24 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   )
   public readonly secrets: PrimitiveMap
   private readonly _cloudBackendDomain: string
+  private readonly _backendType: "v1" | "v2"
   private readonly _loggedIn: boolean
+
+  constructor(params: ProjectConfigContextParams) {
+    super(params)
+    this._loggedIn = params.loggedIn
+    this.secrets = params.secrets
+    this._cloudBackendDomain = params.cloudBackendDomain
+    this._backendType = params.backendType
+  }
 
   override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
     if (key[0] !== "secrets") {
       return ""
     }
 
-    const unavailableMessage = getSecretsUnavailableInNewBackendMessage({
-      cloudBackendDomain: this._cloudBackendDomain,
-    })
-    if (unavailableMessage) {
-      return unavailableMessage
+    if (this._backendType === "v2") {
+      return getSecretsUnavailableInNewBackendMessage(this._cloudBackendDomain)
     }
 
     const distributionName = getCloudDistributionName(this._cloudBackendDomain)
@@ -343,13 +350,6 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
         environment.
       `
     }
-  }
-
-  constructor(params: ProjectConfigContextParams) {
-    super(params)
-    this._loggedIn = params.loggedIn
-    this.secrets = params.secrets
-    this._cloudBackendDomain = params.cloudBackendDomain
   }
 }
 
@@ -413,6 +413,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       username: garden.username,
       loggedIn: garden.isLoggedIn(),
       cloudBackendDomain: garden.cloudDomain,
+      backendType: getBackendType(garden.getProjectConfig()),
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
       variables,

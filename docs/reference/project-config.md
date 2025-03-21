@@ -45,6 +45,9 @@ kind: Project
 # The name of the project.
 name:
 
+# The ID of the organization that this project belongs to in Garden Cloud.
+organizationId:
+
 # A list of environments to configure for the project.
 environments:
   - # The name of the environment.
@@ -271,6 +274,14 @@ Example:
 ```yaml
 name: "my-sweet-project"
 ```
+
+### `organizationId`
+
+The ID of the organization that this project belongs to in Garden Cloud.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `environments[]`
 

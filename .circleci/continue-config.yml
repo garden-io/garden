@@ -1166,67 +1166,68 @@ jobs:
           filter: $CIRCLE_BUILD_NUM-macos-arm
       - fail_fast
 
-  test-windows:
-    executor:
-      name: win/server-2022
-      size: large
-    steps:
-      - checkout
-      - *attach-workspace
-      - run:
-          # Print PowerShell version for diagnostics
-          name: Print PowerShell versions
-          command: $PSVersionTable
-      - run:
-          # Print Chocolatey version for diagnostics
-          name: Print Chocolatey versions
-          command: choco --version
-      - run:
-          name: Install Deps
-          command: |
-            Import-Module "$Env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-            choco install --limit-output --no-progress -y git gcloudsdk kubernetes-cli
-            $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
-            gcloud components install gke-gcloud-auth-plugin --quiet
-            $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
-            refreshenv
-      - run:
-          name: Write gcloud credentials to file
-          command: $env:GCLOUD_SERVICE_KEY | Set-Content key.json
-      - run:
-          name: Setup remote K8s
-          command: |
-            gcloud auth activate-service-account --key-file=key.json
-            $env:GOOGLE_APPLICATION_CREDENTIALS = (Get-Location) + '\key.json'
-            gcloud --quiet config set project $env:GOOGLE_PROJECT_ID
-            gcloud --quiet config set compute/zone $env:GOOGLE_COMPUTE_ZONE
-            gcloud --quiet container clusters get-credentials $env:GOOGLE_CLUSTER_ID --zone $env:GOOGLE_COMPUTE_ZONE
-            gcloud --quiet auth configure-docker
-      - run:
-          name: Deploy demo-project
-          command: |
-            .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
-      - run:
-          name: Cleanup demo-project
-          command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
-          when: always
-      - run:
-          name: Validate vote-helm project # to validate the sync mode paths on Windows with action-based configs
-          command: |
-            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
-      - run:
-          name: Cleanup vote-helm project
-          command: (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
-          when: always
-      - run:
-          name: Validate vote-helm-modules project # to validate the sync mode paths on Windows with module-based configs
-          command: |
-            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm-modules\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
-      - run:
-          name: Cleanup vote-helm-modules project
-          command: (kubectl delete namespace --wait=false vote-helm-modules-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
-          when: always
-      - fail_fast
+  # TODO: Re-enable once we fix gcr issue
+  # test-windows:
+  #   executor:
+  #     name: win/server-2022
+  #     size: large
+  #   steps:
+  #     - checkout
+  #     - *attach-workspace
+  #     - run:
+  #         # Print PowerShell version for diagnostics
+  #         name: Print PowerShell versions
+  #         command: $PSVersionTable
+  #     - run:
+  #         # Print Chocolatey version for diagnostics
+  #         name: Print Chocolatey versions
+  #         command: choco --version
+  #     - run:
+  #         name: Install Deps
+  #         command: |
+  #           Import-Module "$Env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+  #           choco install --limit-output --no-progress -y git gcloudsdk kubernetes-cli
+  #           $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
+  #           gcloud components install gke-gcloud-auth-plugin --quiet
+  #           $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
+  #           refreshenv
+  #     - run:
+  #         name: Write gcloud credentials to file
+  #         command: $env:GCLOUD_SERVICE_KEY | Set-Content key.json
+  #     - run:
+  #         name: Setup remote K8s
+  #         command: |
+  #           gcloud auth activate-service-account --key-file=key.json
+  #           $env:GOOGLE_APPLICATION_CREDENTIALS = (Get-Location) + '\key.json'
+  #           gcloud --quiet config set project $env:GOOGLE_PROJECT_ID
+  #           gcloud --quiet config set compute/zone $env:GOOGLE_COMPUTE_ZONE
+  #           gcloud --quiet container clusters get-credentials $env:GOOGLE_CLUSTER_ID --zone $env:GOOGLE_COMPUTE_ZONE
+  #           gcloud --quiet auth configure-docker
+  #     - run:
+  #         name: Deploy demo-project
+  #         command: |
+  #           .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
+  #     - run:
+  #         name: Cleanup demo-project
+  #         command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+  #         when: always
+  #     - run:
+  #         name: Validate vote-helm project # to validate the sync mode paths on Windows with action-based configs
+  #         command: |
+  #           .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
+  #     - run:
+  #         name: Cleanup vote-helm project
+  #         command: (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+  #         when: always
+  #     - run:
+  #         name: Validate vote-helm-modules project # to validate the sync mode paths on Windows with module-based configs
+  #         command: |
+  #           .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm-modules\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
+  #     - run:
+  #         name: Cleanup vote-helm-modules project
+  #         command: (kubectl delete namespace --wait=false vote-helm-modules-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+  #         when: always
+  #     - fail_fast
 
 workflows:
   version: 2
@@ -1265,113 +1266,114 @@ workflows:
       - test-dockerhub:
           <<: *only-prs
           requires: [build-dist-linux-windows]
-      - test-windows:
-          <<: *only-internal-prs
-          requires: [build-dist-linux-windows]
+      # TODO: Re-enable once we fix gcr issue
+      # - test-windows:
+      #     <<: *only-internal-prs
+      #     requires: [build-dist-linux-windows]
 
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-code-synchronization
       #     project: code-synchronization
       #     requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-demo-project
-          project: demo-project
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-demo-project-modules
-          project: demo-project-modules
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-gke-kaniko
-          project: gke
-          environment: gke-kaniko
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-gke-buildkit
-          project: gke
-          environment: gke-buildkit
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-jib-container
-          project: jib-container
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-jib-container-modules
-          project: jib-container-modules
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-kustomize
-          project: kustomize
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-kustomize-modules
-          project: kustomize-modules
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-demo-project
+      #    project: demo-project
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-demo-project-modules
+      #     project: demo-project-modules
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-gke-kaniko
+      #     project: gke
+      #     environment: gke-kaniko
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-gke-buildkit
+      #     project: gke
+      #     environment: gke-buildkit
+      #    requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-jib-container
+      #     project: jib-container
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-jib-container-modules
+      #     project: jib-container-modules
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-kustomize
+      #     project: kustomize
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-kustomize-modules
+      #     project: kustomize-modules
+      #     requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-remote-sources
       #     project: remote-sources
       #     requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-remote-sources-modules
-          project: remote-sources-modules
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-run-actions
-          project: run-actions
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-remote-sources-modules
+      #     project: remote-sources-modules
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-run-actions
+      #     project: run-actions
+      #     requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-tasks-modules
       #     project: tasks-modules
       #     requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-templated-k8s-container
-          project: templated-k8s-container
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-templated-k8s-container-modules
-          project: templated-k8s-container-modules
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-vote
-          project: vote
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-vote-modules
-          project: vote-modules
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-vote-helm
-          project: vote-helm
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-open-telemetry
-          project: open-telemetry
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-templated-k8s-container
+      #     project: templated-k8s-container
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-templated-k8s-container-modules
+      #     project: templated-k8s-container-modules
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote
+      #     project: vote
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote-modules
+      #     project: vote-modules
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote-helm
+      #     project: vote-helm
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-open-telemetry
+      #     project: open-telemetry
+      #     requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-vote-helm-modules
@@ -1410,7 +1412,7 @@ workflows:
           k3sVersion: v1.31.1+k3s1
       - test-minikube:
           name: vm-1.31-minikube
-          requires: [ build ]
+          requires: [build]
           kubernetesVersion: "v1.31.0"
           minikubeVersion: "v1.34.0"
 

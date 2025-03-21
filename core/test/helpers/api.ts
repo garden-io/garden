@@ -20,11 +20,12 @@ export const apiRemoteOriginUrl = "git@github.com:garden-io/garden.git"
 export const apiProjectName =
   "95048f63dc14db38ed4138ffb6ff89992abdc19b8c899099c52a94f8fcc0390eec6480385cfa5014f84c0a14d4984825ce3bf25db1386d2b5382b936899df675"
 
-export class FakeCloudApi extends GardenCloudApi {
+export class FakeGardenCloudApi extends GardenCloudApi {
   static override async factory(params: CloudApiFactoryParams) {
-    return new FakeCloudApi({
+    return new FakeGardenCloudApi({
       log: params.log,
       domain: params.cloudDomain,
+      projectId: params.projectId,
       globalConfigStore: params.globalConfigStore,
     })
   }

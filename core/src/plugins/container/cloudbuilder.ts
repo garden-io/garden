@@ -33,9 +33,7 @@ import { containerHelpers } from "./helpers.js"
 import { hashString } from "../../util/util.js"
 import { deline, stableStringify } from "../../util/string.js"
 import { homedir } from "os"
-import { getCloudDistributionName, isGardenCommunityEdition } from "../../cloud/util.js"
-import { TRPCClientError } from "@trpc/client"
-import type { DockerBuildReport, GrowCloudBuilderRegisterBuildResponse } from "../../cloud/grow/trpc.js"
+import type { DockerBuildReport, RegisterCloudBuildResponse } from "../../cloud/grow/trpc.js"
 import type { GrowCloudApi } from "../../cloud/grow/api.js"
 import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
@@ -70,21 +68,16 @@ type RetrieveAvailabilityParams = {
   config: CloudBuilderConfiguration
 }
 
-async function getCloudBuilderAvailabilityRetriever(): Promise<AbstractCloudBuilderAvailabilityRetriever<CloudApi>> {
-  if (gardenEnv.USE_GARDEN_CLOUD_V2) {
-    return new GrowCloudBuilderAvailabilityRetriever()
-  } else {
-    return new GardenCloudBuilderAvailabilityRetriever()
-  }
-}
-
 async function retrieveAvailabilityFromCloud(params: {
   ctx: PluginContext
   action: Resolved<ContainerBuildAction>
   config: CloudBuilderConfiguration
 }): Promise<CloudBuilderAvailabilityV2> {
-  const retriever = await getCloudBuilderAvailabilityRetriever()
-  return retriever.get(params)
+  if (params.ctx.cloudApiV2) {
+    return new GrowCloudBuilderAvailabilityRetriever().get(params)
+  } else {
+    return new GardenCloudBuilderAvailabilityRetriever().get(params)
+  }
 }
 
 function makeNotLoggedInError({ isInClusterBuildingConfigured }: CloudBuilderConfiguration) {
@@ -164,12 +157,9 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
     ctx,
     publicKeyPem,
   }: RegisterCloudBuildParams<GardenCloudApi>): Promise<RegisterCloudBuilderBuildResponseData> {
-    // Validate Cloud Project and domain
-    if (isGardenCommunityEdition(cloudApi.domain) && ctx.projectId === undefined) {
-      throw new InternalError({ message: "Authenticated with community tier, but projectId is undefined" })
-    } else if (ctx.projectId === undefined) {
-      throw new ConfigurationError({
-        message: dedent`Please connect your Garden Project with ${getCloudDistributionName(cloudApi.domain)}. See also ${styles.link("https://cloud.docs.garden.io/getting-started/first-project")}`,
+    if (ctx.projectId === undefined) {
+      throw new InternalError({
+        message: dedent`Invalid state: Project ID can't be undefined when using the backend v1`,
       })
     }
 
@@ -199,25 +189,12 @@ class GrowCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabi
     action,
     cloudApi,
     publicKeyPem,
-  }: RegisterCloudBuildParams<GrowCloudApi>): Promise<GrowCloudBuilderRegisterBuildResponse> {
-    try {
-      return await cloudApi.api.cloudBuilder.registerBuild.mutate({
-        // if platforms are not set, we default to linux/amd64
-        platforms: action.getSpec().platforms || ["linux/amd64"],
-        mtlsClientPublicKeyPEM: publicKeyPem,
-      })
-    } catch (err) {
-      if (!(err instanceof TRPCClientError)) {
-        throw err
-      }
-      return {
-        version: "v2",
-        availability: {
-          available: false,
-          reason: err.message,
-        },
-      }
-    }
+  }: RegisterCloudBuildParams<GrowCloudApi>): Promise<RegisterCloudBuildResponse> {
+    return await cloudApi.registerCloudBuild({
+      // if platforms are not set, we default to linux/amd64
+      platforms: action.getSpec().platforms || ["linux/amd64"],
+      mtlsClientPublicKeyPEM: publicKeyPem,
+    })
   }
 }
 

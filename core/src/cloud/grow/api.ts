@@ -9,24 +9,50 @@
 import type { Log } from "../../logger/log-entry.js"
 import type { GlobalConfigStore } from "../../config-store/global.js"
 import { isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore } from "./auth.js"
-import type { ApiClient } from "./trpc.js"
+import type {
+  ApiClient,
+  CreateActionResultRequest,
+  CreateActionResultResponse,
+  DockerBuildReport,
+  GetActionResultRequest,
+  GetActionResultResponse,
+  RegisterCloudBuildRequest,
+  RegisterCloudBuildResponse,
+} from "./trpc.js"
 import { getAuthenticatedApiClient, getNonAuthenticatedApiClient } from "./trpc.js"
-import { CloudApiError } from "../../exceptions.js"
+import type { GardenErrorParams } from "../../exceptions.js"
+import { CloudApiError, GardenError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
 import { getStoredAuthToken } from "../auth.js"
 import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
+import { TRPCClientError } from "@trpc/client"
+import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
 export type GrowCloudApiFactory = (params: CloudApiFactoryParams) => Promise<GrowCloudApi | undefined>
 
+export class GrowCloudError extends GardenError {
+  readonly type = "garden-cloud-v2-error"
+  override readonly cause: TRPCClientError<InferrableClientTypes> | undefined
+
+  constructor({ message, cause }: GardenErrorParams & { cause: TRPCClientError<InferrableClientTypes> }) {
+    super({ message })
+    this.cause = cause
+  }
+
+  public static wrapTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
+    return new GrowCloudError({ message: err.message, cause: err })
+  }
+}
+
 /**
- * The Cloud API client.
+ * The Cloud API V2 client.
  *
- * Is only initialized if the user is actually logged in.
+ * Is only initialized if the user is actually logged.
  */
 export class GrowCloudApi {
   private intervalId: ReturnType<typeof setInterval> | null = null // TODO: fix type here (getting tsc error)
@@ -34,8 +60,9 @@ export class GrowCloudApi {
 
   private readonly log: Log
   public readonly domain: string
+  public readonly organizationId: string
   public readonly distroName: string
-  public readonly api: ApiClient
+  private readonly api: ApiClient
   private readonly globalConfigStore: GlobalConfigStore
   private authToken: string
 
@@ -43,12 +70,15 @@ export class GrowCloudApi {
     log,
     domain,
     globalConfigStore,
+    organizationId,
     authToken,
   }: CloudApiParams & {
     authToken: string
+    organizationId: string
   }) {
     this.log = log
     this.domain = domain
+    this.organizationId = organizationId
     this.distroName = getCloudDistributionName(domain)
     this.globalConfigStore = globalConfigStore
 
@@ -70,9 +100,13 @@ export class GrowCloudApi {
   static async factory({
     log,
     cloudDomain,
+    organizationId,
     globalConfigStore,
     skipLogging = false,
   }: CloudApiFactoryParams): Promise<GrowCloudApi | undefined> {
+    if (!organizationId) {
+      return undefined
+    }
     const distroName = getCloudDistributionName(cloudDomain)
     const cloudLogSectionName = getCloudLogSectionName(distroName)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
@@ -97,8 +131,10 @@ export class GrowCloudApi {
       return new GrowCloudApi({
         log: cloudLog,
         domain: cloudDomain,
+        organizationId,
         globalConfigStore,
         authToken: gardenEnv.GARDEN_AUTH_TOKEN,
+        projectId: undefined,
       })
     }
 
@@ -129,7 +165,14 @@ export class GrowCloudApi {
     }
 
     // Start refresh interval if using JWT
-    const api = new GrowCloudApi({ log: cloudLog, domain: cloudDomain, globalConfigStore, authToken })
+    const api = new GrowCloudApi({
+      log: cloudLog,
+      domain: cloudDomain,
+      organizationId,
+      globalConfigStore,
+      authToken,
+      projectId: undefined,
+    })
     cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
     api.startInterval()
 
@@ -177,6 +220,98 @@ export class GrowCloudApi {
         token.refreshToken
       )
       this.authToken = tokenResponse.accessToken
+    }
+  }
+
+  async uploadDockerBuildReport(dockerBuildReport: DockerBuildReport) {
+    try {
+      return this.api.dockerBuild.create.mutate(dockerBuildReport)
+    } catch (err) {
+      if (!(err instanceof TRPCClientError)) {
+        throw err
+      }
+
+      this.log.debug(`Failed to send build report to Garden Cloud: ${err}`)
+      return { timeSaved: 0 }
+    }
+  }
+
+  async registerCloudBuild({
+    platforms,
+    mtlsClientPublicKeyPEM,
+  }: RegisterCloudBuildRequest): Promise<RegisterCloudBuildResponse> {
+    try {
+      return await this.api.cloudBuilder.registerBuild.mutate({
+        platforms,
+        mtlsClientPublicKeyPEM,
+      })
+    } catch (err) {
+      if (!(err instanceof TRPCClientError)) {
+        throw err
+      }
+
+      this.log.debug(`Failed to register build in Container Builder: ${err}`)
+      return {
+        version: "v2",
+        availability: {
+          available: false,
+          reason: err.message,
+        },
+      }
+    }
+  }
+
+  async getActionResult({
+    schemaVersion,
+    organizationId,
+    actionRef,
+    actionType,
+    cacheKey,
+  }: GetActionResultRequest): Promise<GetActionResultResponse> {
+    try {
+      return await this.api.actionCache.getEntry.query({
+        schemaVersion,
+        organizationId,
+        actionRef,
+        actionType,
+        cacheKey,
+      })
+    } catch (err) {
+      if (!(err instanceof TRPCClientError)) {
+        throw err
+      }
+
+      throw GrowCloudError.wrapTRPCClientError(err)
+    }
+  }
+
+  async createActionResult({
+    schemaVersion,
+    organizationId,
+    actionRef,
+    actionType,
+    cacheKey,
+    result,
+    startedAt,
+    completedAt,
+  }: CreateActionResultRequest): Promise<CreateActionResultResponse> {
+    try {
+      return await this.api.actionCache.createEntry.mutate({
+        schemaVersion,
+        organizationId,
+        actionRef,
+        actionType,
+        cacheKey,
+        result,
+        startedAt,
+        completedAt,
+      })
+    } catch (err) {
+      if (!(err instanceof TRPCClientError)) {
+        throw err
+      }
+
+      throw GrowCloudError.wrapTRPCClientError(err)
     }
   }
 }
