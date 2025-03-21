@@ -117,7 +117,7 @@ describe("enforceLogin", () => {
         {
           contains: [
             "Login required: This project is connected to Garden Cloud. Please run garden login to authenticate or set the GARDEN_AUTH_TOKEN environment variable.",
-            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Garden Cloud features won't be available in the offline mode.",
+            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Team Cache and Container Builder won't be available in the offline mode.",
           ],
         }
       )
@@ -152,27 +152,35 @@ describe("enforceLogin", () => {
     const backend = "app.garden.io"
     const isOfflineModeEnabled = false
 
-    it(`even if logged in, do nothing`, async () => {
+    it(`even if logged in, we need to nudge the user to connect the project so they can benefit grom Garden Cloud`, async () => {
       const { garden, log } = await getTestGarden({ backend, isProjectConnected, isLoggedIn: true })
 
       enforceLogin({ garden, log, isOfflineModeEnabled })
 
       const actualLog = log.root.getLogEntries()
-      expect(actualLog.length).to.eql(0)
+      expect(actualLog.length).to.eql(2)
+      // TODO(0.14): Nudge the user to connect the project at the end of command execution
+      expect(actualLog[0].level).to.eql(LogLevel.info)
+      expectFuzzyMatch(actualLog[0].msg, [
+        `did you know that team cache and container builder can reduce the time it takes to complete garden actions, and avoid unnecessary work?`,
+      ])
+      expect(actualLog[1].level).to.eql(LogLevel.warn)
+      expectFuzzyMatch(actualLog[1].msg, [`run garden login to connect your project to garden cloud.`])
     })
-    it(`if not logged in, nudge the user to login`, async () => {
+    it(`if not logged in, nudge the to connect the project as well`, async () => {
       const { garden, log } = await getTestGarden({ backend, isProjectConnected, isLoggedIn: false })
 
       enforceLogin({ garden, log, isOfflineModeEnabled })
 
       const actualLog = log.root.getLogEntries()
-
-      expect(actualLog.length).to.eql(1)
+      expect(actualLog.length).to.eql(2)
       // TODO(0.14): Nudge the user to connect the project at the end of command execution
       expect(actualLog[0].level).to.eql(LogLevel.info)
       expectFuzzyMatch(actualLog[0].msg, [
-        `You are not logged in. To use the Garden Dashboard, log in with the garden login command.`,
+        `did you know that team cache and container builder can reduce the time it takes to complete garden actions, and avoid unnecessary work?`,
       ])
+      expect(actualLog[1].level).to.eql(LogLevel.warn)
+      expectFuzzyMatch(actualLog[1].msg, [`run garden login to connect your project to garden cloud.`])
     })
   })
 
@@ -200,13 +208,12 @@ describe("enforceLogin", () => {
     })
   })
 
-
   context("apiVersion=garden.io/v2 + Connected to app.garden.io + not using offline mode", () => {
     const isProjectConnected = true
     const backend = "app.garden.io"
     const isOfflineModeEnabled = false
 
-    it(`even if logged in, do nothing`, async () => {
+    it(`should not print any warnings if logged in`, async () => {
       const { garden, log } = await getTestGarden({ backend, isProjectConnected, isLoggedIn: true })
 
       enforceLogin({ garden, log, isOfflineModeEnabled })
@@ -214,19 +221,20 @@ describe("enforceLogin", () => {
       const actualLog = log.root.getLogEntries()
       expect(actualLog.length).to.eql(0)
     })
-    it(`if not logged in, nudge the user to login`, async () => {
+    it(`if not logged in, enforce login`, async () => {
       const { garden, log } = await getTestGarden({ backend, isProjectConnected, isLoggedIn: false })
 
-      enforceLogin({ garden, log, isOfflineModeEnabled })
-
-      const actualLog = log.root.getLogEntries()
-
-      expect(actualLog.length).to.eql(1)
-      // TODO(0.14): Nudge the user to connect the project at the end of command execution
-      expect(actualLog[0].level).to.eql(LogLevel.info)
-      expectFuzzyMatch(actualLog[0].msg, [
-        `You are not logged in. To use the Garden Dashboard, log in with the garden login command.`,
-      ])
+      await expectError(
+        () => {
+          enforceLogin({ garden, log, isOfflineModeEnabled })
+        },
+        {
+          contains: [
+            "Login required: This project is connected to Garden Cloud. Please run garden login to authenticate or set the GARDEN_AUTH_TOKEN environment variable.",
+            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Team Cache and Container Builder won't be available in the offline mode.",
+          ],
+        }
+      )
     })
   })
 

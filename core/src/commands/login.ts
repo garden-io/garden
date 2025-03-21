@@ -29,7 +29,7 @@ const { readFile, writeFile } = fsExtra
 import { relative } from "path"
 import { findProjectConfigOrPrintInstructions } from "./helpers.js"
 
-const loginTimeoutSec = 60
+const loginTimeoutSec = 60 * 60 // 1 hour should be enough to sign up and choose/create an organization
 
 export const loginOpts = {}
 

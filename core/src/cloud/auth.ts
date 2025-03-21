@@ -37,7 +37,7 @@ class LoginRequiredWhenConnected extends GardenError {
         )}
 
         ${styles.secondary(
-          `NOTE: If you cannot log in right now, use the option ${styles.command("--offline")} or the environment variable ${styles.command("GARDEN_OFFLINE=true")} to enable offline mode. Garden Cloud features won't be available in the offline mode.`
+          `NOTE: If you cannot log in right now, use the option ${styles.command("--offline")} or the environment variable ${styles.command("GARDEN_OFFLINE=true")} to enable offline mode. Team Cache and Container Builder won't be available in the offline mode.`
         )}
       `,
     })
@@ -71,7 +71,7 @@ export function enforceLogin({
       msg: `Did you know that ${styles.highlight("Team Cache")} and ${styles.highlight("Container Builder")} can reduce the time it takes to complete Garden actions, and avoid unnecessary work?`,
     })
     cloudLog.warn({
-      msg: `Run ${styles.highlight("garden login")} to connect your project to ${distroName}.`,
+      msg: `Run ${styles.command("garden login")} to connect your project to ${distroName}.`,
     })
   }
 }
