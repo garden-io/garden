@@ -76,6 +76,10 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
     this.log = RootLogger.getInstance().createLog({ name: "fs-cache" })
   }
 
+  name() {
+    return "Local Cache"
+  }
+
   private getFilePath(key: string): string {
     return join(this.cacheDir, `${this.schemaVersion}-${key}.json`)
   }

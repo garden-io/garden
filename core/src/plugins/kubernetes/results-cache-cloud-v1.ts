@@ -69,6 +69,10 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
     this.log = RootLogger.getInstance().createLog({ name: "garden-cloud-cache" })
   }
 
+  name() {
+    return "Team Cache"
+  }
+
   private async getOrganizationId(): Promise<string> {
     if (this.organizationId !== undefined) {
       return this.organizationId

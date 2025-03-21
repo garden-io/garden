@@ -71,6 +71,10 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
     this.log = RootLogger.getInstance().createLog({ name: "garden-cloud-cache-v2" })
   }
 
+  name() {
+    return "Team Cache"
+  }
+
   private getOrganizationId(): string {
     return this.cloudApi.organizationId
   }

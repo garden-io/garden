@@ -20,6 +20,7 @@ import {
   omit,
   pick,
   range,
+  round,
   some,
   uniqBy,
 } from "lodash-es"
@@ -788,4 +789,24 @@ export function* sliceToBatches<T>(elements: T[], batchSize: number) {
     yield elements.slice(position, position + batchSize)
     position += batchSize
   }
+}
+
+export function renderTimeUnit(amount: number, unit: "hour" | "minute" | "second") {
+  if (amount <= 0) {
+    return ""
+  }
+
+  return amount + (amount === 1 || amount % 10 === 1 ? ` ${unit}` : ` ${unit}s`)
+}
+
+export function renderTimeDuration(start: Date, end: Date): string {
+  const durationMs = end.getTime() - start.getTime()
+  const durationSec = round(durationMs / 1000, 2)
+
+  const h = Math.floor(durationSec / 3600)
+  const m = Math.floor((durationSec % 3600) / 60)
+  const s = Math.floor((durationSec % 3600) % 60)
+
+  const renderedUnits = [renderTimeUnit(h, "hour") + renderTimeUnit(m, "minute") + renderTimeUnit(s, "second")]
+  return renderedUnits.join(" ")
 }

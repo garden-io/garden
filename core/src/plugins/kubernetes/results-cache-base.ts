@@ -11,7 +11,7 @@ import type { Log } from "../../logger/log-entry.js"
 import { runResultSchemaZod } from "../../plugin/base.js"
 import type { AnyZodObject } from "zod"
 import type { z } from "zod"
-import { deline, stableStringify } from "../../util/string.js"
+import { dedent, deline, stableStringify } from "../../util/string.js"
 import type { ContainerRunAction, ContainerTestAction } from "../container/config.js"
 import type { KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./helm/config.js"
@@ -20,6 +20,7 @@ import type { JsonObject } from "type-fest"
 import { GardenError } from "../../exceptions.js"
 import { fullHashStrings } from "../../vcs/vcs.js"
 import type { Action } from "../../actions/types.js"
+import { printEmoji } from "../../logger/util.js"
 
 export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
 export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
@@ -27,6 +28,17 @@ export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | H
 export type CacheableAction = CacheableRunAction | CacheableTestAction
 
 export type SchemaVersion = `v${number}`
+
+export function printTeamCacheAnnouncement(log: Log) {
+  const message = dedent`
+   ${printEmoji("ℹ️", log)} Save time with Garden Team Cache.
+
+   Garden Cloud Cache can save time for you and your team by only running test and run actions that need to run, for example because of relevant changes.
+   It also allows to share the test result cache across Kubernetes clusters and across your entire team.
+   Visit [...] to learn more.
+  `
+  log.info(message)
+}
 
 /**
  * Increment the current result schema format version
@@ -87,6 +99,8 @@ export type ResultContainer<Result> =
     }
 
 export interface CacheStorage<ResultShape> {
+  name(): string
+
   /**
    * Returns a value associated with the {@code key},
    * or {@code undefined} if no value was found for the specified key.
@@ -113,6 +127,7 @@ export interface CacheStorage<ResultShape> {
 export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject, AdditionalKeyData> {
   private readonly cacheStorage: CacheStorage<z.output<ResultSchema>>
   private readonly resultSchema: ResultSchema
+  public readonly brandName: string
 
   constructor({
     cacheStorage,
@@ -123,6 +138,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
   }) {
     this.cacheStorage = cacheStorage
     this.resultSchema = resultSchema
+    this.brandName = cacheStorage.name()
   }
 
   protected validateResult(data: unknown, log: Log): z.output<ResultSchema> | undefined {

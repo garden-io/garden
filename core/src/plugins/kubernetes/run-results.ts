@@ -12,6 +12,8 @@ import { toActionStatus } from "./util.js"
 import { getNamespaceStatus } from "./namespace.js"
 import type { KubernetesPluginContext } from "./config.js"
 import type { KubernetesRunResult } from "../../plugin/base.js"
+import { printEmoji } from "../../logger/util.js"
+import { renderTimeDuration } from "../../util/util.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
@@ -26,8 +28,18 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
   const cachedResult = await cache.load({ action, ctx, keyData: { namespaceUid: namespaceStatus.namespaceUid }, log })
 
   if (!cachedResult.found) {
+    // TODO: Should we rephrase it with "The action will be re-run ..."?
+    //  Otherwise it will look a bit strange together with the framework-level status messages
+    log.info(
+      `Re-running the Run action due to Garden ${cache.brandName} miss ${printEmoji("❌", log)} (${cachedResult.notFoundReason})`
+    )
+
     return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
 
+  const result = cachedResult.result
+  log.info(
+    `Garden ${cache.brandName} hit ${printEmoji("✅", log)} (Saved ${renderTimeDuration(result.startedAt, result.completedAt)})`
+  )
   return toActionStatus<KubernetesRunResult>({ ...cachedResult.result, namespaceStatus })
 }

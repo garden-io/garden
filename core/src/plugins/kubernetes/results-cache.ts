@@ -17,6 +17,7 @@ import type {
   KubernetesCacheEntry,
   KubernetesCacheEntrySchema,
 } from "./results-cache-base.js"
+import { printTeamCacheAnnouncement } from "./results-cache-base.js"
 import { ResultCache } from "./results-cache-base.js"
 import { currentResultSchemaVersion, kubernetesCacheEntrySchema } from "./results-cache-base.js"
 import type { PluginContext } from "../../plugin-context.js"
@@ -61,7 +62,6 @@ export function createCacheStorage(ctx: PluginContext): CacheStorage<KubernetesC
     return new GrowCloudCacheStorage({ schemaVersion: currentResultSchemaVersion, cloudApi: ctx.cloudApiV2 })
   }
 
-  // TODO: check if these conditions always hold simultaneously
   if (ctx.cloudApi && ctx.projectId) {
     return new GardenCloudCacheStorage({
       schemaVersion: currentResultSchemaVersion,
@@ -69,6 +69,8 @@ export function createCacheStorage(ctx: PluginContext): CacheStorage<KubernetesC
       projectId: ctx.projectId,
     })
   }
+
+  printTeamCacheAnnouncement(ctx.log)
 
   // Fallback to local filesystem cache if not logged in to Cloud
   const cacheDir = getLocalActionResultsCacheDir(ctx.gardenDirPath)
