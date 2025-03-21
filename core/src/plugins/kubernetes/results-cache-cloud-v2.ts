@@ -76,7 +76,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
 
       const data = response.data
       if (!data.found) {
-        this.log.debug(`Got Team Cache V2 miss for key=${cacheKey}; reason: ${data.notFoundReason}`)
+        this.log.debug(`Got Team Cache miss for key=${cacheKey}; reason: ${data.notFoundReason}`)
         return { found: false, notFoundReason: data.notFoundDescription }
       }
 
@@ -87,7 +87,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
       }
 
       throw GrowCloudCacheError.wrap({
-        message: "Error reading data from the Team Cache V2",
+        message: "Error reading data from the Team Cache",
         cause: e,
       })
     }
@@ -123,14 +123,14 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
       }
 
       throw GrowCloudCacheError.wrap({
-        message: "Error storing data to the Team Cache V2",
+        message: "Error storing data to the Team Cache",
         cause: e,
       })
     }
   }
 
   public async remove(_key: string): Promise<void> {
-    // Cache invalidation is not supported in Garden Cloud V2
+    // Cache invalidation is not supported in Garden Cloud
     return
   }
 }

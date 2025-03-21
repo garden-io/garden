@@ -99,7 +99,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
       const response: GetCachedActionResponse = await this.cloudApi.getActionResult(request)
       const data = response.data
       if (!data.found) {
-        this.log.debug(`Got Team Cache V1 miss for key=${cacheKey}; reason: ${data.notFoundReason}`)
+        this.log.debug(`Got Team Cache miss for key=${cacheKey}; reason: ${data.notFoundReason}`)
         return { found: false, notFoundReason: data.notFoundReason }
       }
 
@@ -110,7 +110,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
       }
 
       throw GardenCloudCacheError.fromCloudApiError({
-        message: "Error reading data from the Team Cache V1",
+        message: "Error reading data from the Team Cache",
         cause: e,
       })
     }
@@ -148,14 +148,14 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
       }
 
       throw GardenCloudCacheError.fromCloudApiError({
-        message: "Error storing data to the Team Cache V1",
+        message: "Error storing data to the Team Cache",
         cause: e,
       })
     }
   }
 
   public async remove(_key: string): Promise<void> {
-    // Cache invalidation is not supported in Garden Cloud V1
+    // Cache invalidation is not supported in Garden Cloud
     return
   }
 }
