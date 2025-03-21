@@ -25,9 +25,9 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
   const cache = getRunResultCache(ctx)
   const cachedResult = await cache.load({ action, ctx, keyData: { namespaceUid: namespaceStatus.namespaceUid }, log })
 
-  if (!cachedResult) {
+  if (!cachedResult.found) {
     return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
 
-  return toActionStatus<KubernetesRunResult>({ ...cachedResult, namespaceStatus })
+  return toActionStatus<KubernetesRunResult>({ ...cachedResult.result, namespaceStatus })
 }

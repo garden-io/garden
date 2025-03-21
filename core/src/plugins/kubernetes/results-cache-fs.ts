@@ -80,7 +80,7 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
     return join(this.cacheDir, `${this.schemaVersion}-${key}.json`)
   }
 
-  private async readFileContent(filePath: string): Promise<ResultContainer> {
+  private async readFileContent(filePath: string): Promise<ResultContainer<JsonObject>> {
     let rawFileContent: string
     try {
       this.log.silly(`Reading data from file ${filePath}`)
@@ -183,7 +183,7 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
    *
    * Reads the value from the file defined in the {@code key}.
    */
-  public async get(key: string): Promise<ResultContainer> {
+  public async get(key: string): Promise<ResultContainer<JsonObject>> {
     const filePath = this.getFilePath(key)
     return await this.readFileContent(filePath)
   }

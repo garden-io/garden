@@ -58,7 +58,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
     return this.cloudApi.organizationId
   }
 
-  public async get(cacheKey: string, action: Action): Promise<ResultContainer> {
+  public async get(cacheKey: string, action: Action): Promise<ResultContainer<JsonObject>> {
     try {
       const organizationId = this.getOrganizationId()
 

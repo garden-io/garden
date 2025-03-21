@@ -19,7 +19,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   const cache = getTestResultCache(ctx)
   const cachedResult = await cache.load({ action, ctx, keyData: undefined, log })
 
-  if (!cachedResult) {
+  if (!cachedResult.found) {
     return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
 
@@ -31,5 +31,5 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
     action,
     provider: k8sCtx.provider,
   })
-  return toActionStatus<KubernetesRunResult>({ ...cachedResult, namespaceStatus })
+  return toActionStatus<KubernetesRunResult>({ ...cachedResult.result, namespaceStatus })
 }

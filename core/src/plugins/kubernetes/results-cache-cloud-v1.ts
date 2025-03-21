@@ -21,6 +21,7 @@ import type {
 import { actionReferenceToString } from "../../actions/base.js"
 import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
+import type { JsonObject } from "type-fest"
 
 type GardenCloudCacheErrorParams = {
   message: string
@@ -79,7 +80,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
     return organizationId
   }
 
-  public async get(cacheKey: string, action: Action): Promise<ResultContainer> {
+  public async get(cacheKey: string, action: Action): Promise<ResultContainer<JsonObject>> {
     try {
       const organizationId = await this.getOrganizationId()
       const request: GetCachedActionRequest = {

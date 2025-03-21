@@ -76,10 +76,10 @@ export abstract class CacheStorageError extends GardenError {
   abstract describe(): string
 }
 
-export type ResultContainer =
+export type ResultContainer<Result> =
   | {
       found: true
-      result: JsonObject
+      result: Result
     }
   | {
       found: false
@@ -92,7 +92,7 @@ export interface CacheStorage<ResultShape> {
    * or {@code undefined} if no value was found for the specified key.
    * Throws a {@link CacheStorageError} if no key was found or any error occurred.
    */
-  get(key: string, action: Action): Promise<ResultContainer>
+  get(key: string, action: Action): Promise<ResultContainer<JsonObject>>
 
   /**
    * Stores the value associated with the {@code key}.
@@ -161,9 +161,9 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
     action,
     keyData,
     log,
-  }: LoadResultParams<A, AdditionalKeyData>): Promise<z.output<ResultSchema> | undefined> {
+  }: LoadResultParams<A, AdditionalKeyData>): Promise<ResultContainer<z.output<ResultSchema>>> {
     const key = this.cacheKey({ action, keyData })
-    let cachedValue: ResultContainer
+    let cachedValue: ResultContainer<JsonObject>
     try {
       cachedValue = await this.cacheStorage.get(key, action)
     } catch (e) {
@@ -172,15 +172,19 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
       }
 
       log.verbose(`Error getting results cache entry for key=${key}: ${e.describe()}`)
-      return undefined
+      return { found: false, notFoundReason: "Unexpected error occurred, see the logs for the details" }
     }
 
-    // TODO: user-friendly logging
     if (!cachedValue.found) {
-      return undefined
+      return cachedValue
     }
 
-    return this.validateResult(cachedValue.result, log)
+    const validatedResult = this.validateResult(cachedValue.result, log)
+    if (validatedResult === undefined) {
+      return { found: false, notFoundReason: "Unexpected error occurred, see the logs for the details" }
+    }
+
+    return { found: true, result: validatedResult }
   }
 
   public async store({
