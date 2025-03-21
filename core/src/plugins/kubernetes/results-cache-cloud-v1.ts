@@ -110,7 +110,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
       }
 
       throw GardenCloudCacheError.fromCloudApiError({
-        message: "Error reading data from the Team Cache",
+        message: `Error reading data from the Team Cache at ${this.cloudApi.domain}`,
         cause: e,
       })
     }
@@ -148,7 +148,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
       }
 
       throw GardenCloudCacheError.fromCloudApiError({
-        message: "Error storing data to the Team Cache",
+        message: `Error storing data to the Team Cache at ${this.cloudApi.domain}`,
         cause: e,
       })
     }
