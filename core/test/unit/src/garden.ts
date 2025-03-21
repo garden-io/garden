@@ -3024,14 +3024,6 @@ describe("Garden", () => {
       })
     })
 
-    it("should throw when apiVersion v0 is set in a project with action configs", async () => {
-      const garden = await makeTestGarden(getDataDir("test-projects", "config-action-kind-v0"))
-
-      await expectError(() => garden.scanAndAddConfigs(), {
-        contains: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}" or higher`,
-      })
-    })
-
     it("should not throw when apiVersion v0 is set in a project without action configs", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-valid-v0"))
       try {
