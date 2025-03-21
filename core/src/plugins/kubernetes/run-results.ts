@@ -28,7 +28,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
   const cachedResult = await cache.load({ action, ctx, keyData: { namespaceUid: namespaceStatus.namespaceUid }, log })
 
   if (!cachedResult.found) {
-    log.info(`Garden ${cache.brandName} miss ${printEmoji("❌", log)} (${cachedResult.notFoundReason})`)
+    log.info(`Garden ${cache.brandName} miss ${printEmoji("❌", log)} Reason: ${cachedResult.notFoundReason}`)
 
     return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
