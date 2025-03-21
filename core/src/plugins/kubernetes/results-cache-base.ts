@@ -8,6 +8,7 @@
 
 import type { PluginContext } from "../../plugin-context.js"
 import type { Log } from "../../logger/log-entry.js"
+import type { RunResult } from "../../plugin/base.js"
 import { runResultSchemaZod } from "../../plugin/base.js"
 import type { AnyZodObject } from "zod"
 import type { z } from "zod"
@@ -21,6 +22,7 @@ import { GardenError } from "../../exceptions.js"
 import { fullHashStrings } from "../../vcs/vcs.js"
 import type { Action } from "../../actions/types.js"
 import { printEmoji } from "../../logger/util.js"
+import { renderTimeDuration } from "../../util/util.js"
 
 export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
 export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
@@ -226,4 +228,9 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
       return undefined
     }
   }
+}
+
+export function renderSavedTime(result: RunResult): string {
+  const renderedDuration = renderTimeDuration(result.startedAt, result.completedAt)
+  return renderedDuration.length === 0 ? "" : `(Saved ${renderedDuration})`
 }

@@ -796,17 +796,28 @@ export function renderTimeUnit(amount: number, unit: "hour" | "minute" | "second
     return ""
   }
 
-  return amount + (amount === 1 || amount % 10 === 1 ? ` ${unit}` : ` ${unit}s`)
+  return amount + (amount === 1 ? ` ${unit}` : ` ${unit}s`)
 }
 
 export function renderTimeDuration(start: Date, end: Date): string {
   const durationMs = end.getTime() - start.getTime()
+  if (durationMs === 0) {
+    return ""
+  }
+
   const durationSec = round(durationMs / 1000, 2)
+  if (durationSec === 0) {
+    return ""
+  }
+
+  if (durationSec < 60) {
+    return `${durationSec} seconds`
+  }
 
   const h = Math.floor(durationSec / 3600)
   const m = Math.floor((durationSec % 3600) / 60)
   const s = Math.floor((durationSec % 3600) % 60)
 
-  const renderedUnits = [renderTimeUnit(h, "hour") + renderTimeUnit(m, "minute") + renderTimeUnit(s, "second")]
+  const renderedUnits = [renderTimeUnit(h, "hour"), renderTimeUnit(m, "minute"), renderTimeUnit(s, "second")]
   return renderedUnits.join(" ")
 }

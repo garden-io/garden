@@ -13,7 +13,7 @@ import { getActionNamespaceStatus } from "./namespace.js"
 import type { KubernetesPluginContext } from "./config.js"
 import type { KubernetesRunResult } from "../../plugin/base.js"
 import { printEmoji } from "../../logger/util.js"
-import { renderTimeDuration } from "../../util/util.js"
+import { renderSavedTime } from "./results-cache-base.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -41,8 +41,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   })
 
   const result = cachedResult.result
-  log.info(
-    `Garden ${cache.brandName} hit ${printEmoji("✅", log)} (Saved ${renderTimeDuration(result.startedAt, result.completedAt)})`
-  )
+  log.info(`Garden ${cache.brandName} hit ${printEmoji("✅", log)} ${renderSavedTime(result)}`)
+
   return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
 }
