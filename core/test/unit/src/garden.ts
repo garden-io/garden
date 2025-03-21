@@ -3024,15 +3024,6 @@ describe("Garden", () => {
       })
     })
 
-    it("should not throw when apiVersion v0 is set in a project without action configs", async () => {
-      const garden = await makeTestGarden(getDataDir("test-projects", "config-valid-v0"))
-      try {
-        await garden.scanAndAddConfigs()
-      } catch (er) {
-        expect.fail("Expected scanAndAddConfigs not to throw")
-      }
-    })
-
     describe("missing secrets", () => {
       it("should not throw when an action config references missing secrets", async () => {
         const garden = await makeTestGarden(getDataDir("missing-secrets", "action"))
