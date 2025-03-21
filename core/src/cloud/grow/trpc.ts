@@ -20,6 +20,12 @@ export type DockerBuildReport = RouterInput["dockerBuild"]["create"]
 export type RegisterCloudBuildRequest = RouterInput["cloudBuilder"]["registerBuild"]
 export type RegisterCloudBuildResponse = RouterOutput["cloudBuilder"]["registerBuild"]
 
+export type GetActionResultRequest = RouterInput["actionCache"]["getEntry"]
+export type GetActionResultResponse = RouterOutput["actionCache"]["getEntry"]
+
+export type CreateActionResultRequest = RouterInput["actionCache"]["createEntry"]
+export type CreateActionResultResponse = RouterOutput["actionCache"]["createEntry"]
+
 function cloudApiUrl(hostUrl: string): string {
   return new URL("/api", hostUrl).href
 }

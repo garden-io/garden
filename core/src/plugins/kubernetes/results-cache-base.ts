@@ -8,9 +8,8 @@
 
 import type { PluginContext } from "../../plugin-context.js"
 import type { Log } from "../../logger/log-entry.js"
+import type { RunResult } from "../../plugin/base.js"
 import { runResultSchemaZod } from "../../plugin/base.js"
-import type { RunAction } from "../../actions/run.js"
-import type { TestAction } from "../../actions/test.js"
 import type { AnyZodObject } from "zod"
 import type { z } from "zod"
 import { deline, stableStringify } from "../../util/string.js"
@@ -22,11 +21,12 @@ import type { JsonObject } from "type-fest"
 import { GardenError } from "../../exceptions.js"
 import { fullHashStrings } from "../../vcs/vcs.js"
 import type { Action } from "../../actions/types.js"
-
-export type CacheableAction = RunAction | TestAction
+import { renderTimeDuration } from "../../util/util.js"
 
 export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
 export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | HelmPodTestAction
+
+export type CacheableAction = CacheableRunAction | CacheableTestAction
 
 export type SchemaVersion = `v${number}`
 
@@ -78,12 +78,25 @@ export abstract class CacheStorageError extends GardenError {
   abstract describe(): string
 }
 
+export type ResultContainer<Result> =
+  | {
+      found: true
+      result: Result
+    }
+  | {
+      found: false
+      notFoundReason: string
+    }
+
 export interface CacheStorage<ResultShape> {
+  name(): string
+
   /**
    * Returns a value associated with the {@code key},
-   * or throws a {@link CacheStorageError} if no key was found or any error occurred.
+   * or {@code undefined} if no value was found for the specified key.
+   * Throws a {@link CacheStorageError} if no key was found or any error occurred.
    */
-  get(key: string, action: Action): Promise<JsonObject>
+  get(key: string, action: Action): Promise<ResultContainer<JsonObject>>
 
   /**
    * Stores the value associated with the {@code key}.
@@ -104,6 +117,7 @@ export interface CacheStorage<ResultShape> {
 export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodObject, AdditionalKeyData> {
   private readonly cacheStorage: CacheStorage<z.output<ResultSchema>>
   private readonly resultSchema: ResultSchema
+  public readonly brandName: string
 
   constructor({
     cacheStorage,
@@ -114,6 +128,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
   }) {
     this.cacheStorage = cacheStorage
     this.resultSchema = resultSchema
+    this.brandName = cacheStorage.name()
   }
 
   protected validateResult(data: unknown, log: Log): z.output<ResultSchema> | undefined {
@@ -152,9 +167,9 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
     action,
     keyData,
     log,
-  }: LoadResultParams<A, AdditionalKeyData>): Promise<z.output<ResultSchema> | undefined> {
+  }: LoadResultParams<A, AdditionalKeyData>): Promise<ResultContainer<z.output<ResultSchema>>> {
     const key = this.cacheKey({ action, keyData })
-    let cachedValue: JsonObject
+    let cachedValue: ResultContainer<JsonObject>
     try {
       cachedValue = await this.cacheStorage.get(key, action)
     } catch (e) {
@@ -163,10 +178,19 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
       }
 
       log.verbose(`Error getting results cache entry for key=${key}: ${e.describe()}`)
-      return undefined
+      return { found: false, notFoundReason: "Unexpected error occurred, see the logs for the details." }
     }
 
-    return this.validateResult(cachedValue, log)
+    if (!cachedValue.found) {
+      return cachedValue
+    }
+
+    const validatedResult = this.validateResult(cachedValue.result, log)
+    if (validatedResult === undefined) {
+      return { found: false, notFoundReason: "Unexpected error occurred, see the logs for the details." }
+    }
+
+    return { found: true, result: validatedResult }
   }
 
   public async store({
@@ -192,4 +216,9 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
       return undefined
     }
   }
+}
+
+export function renderSavedTime(result: RunResult): string {
+  const renderedDuration = renderTimeDuration(result.startedAt, result.completedAt)
+  return renderedDuration.length === 0 ? "" : `(Saved ${renderedDuration})`
 }

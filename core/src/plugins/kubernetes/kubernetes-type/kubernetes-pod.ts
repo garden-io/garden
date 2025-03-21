@@ -125,7 +125,7 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
       const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
 
       if (action.getSpec("cacheResult")) {
-        const runResultCache = await getRunResultCache(ctx)
+        const runResultCache = getRunResultCache(ctx)
         await runResultCache.store({
           ctx,
           log,

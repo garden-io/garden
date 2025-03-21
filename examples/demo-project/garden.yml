@@ -1,6 +1,7 @@
 apiVersion: garden.io/v1
 kind: Project
 name: demo-project
+organizationId: 017ba691-bfa3-4d6b-a54f-04e43cf2cfff
 # defaultEnvironment: "remote" # Uncomment if you'd like the remote environment to be the default for this project.
 
 environments:

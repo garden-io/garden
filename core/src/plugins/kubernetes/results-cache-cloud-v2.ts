@@ -10,29 +10,25 @@ import type { CacheStorage, ResultContainer, SchemaVersion } from "./results-cac
 import { CacheStorageError } from "./results-cache-base.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { GardenErrorParams } from "../../exceptions.js"
-import { CloudApiError } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
-import type {
-  CreateCachedActionRequest,
-  GardenCloudApi,
-  GetCachedActionRequest,
-  GetCachedActionResponse,
-} from "../../cloud/api.js"
+import type { JsonObject } from "type-fest"
 import { actionReferenceToString } from "../../actions/base.js"
 import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
-import type { JsonObject } from "type-fest"
+import type { GrowCloudApi } from "../../cloud/grow/api.js"
+import { GrowCloudError } from "../../cloud/grow/api.js"
+import type { GetActionResultResponse } from "../../cloud/grow/trpc.js"
 
-type GardenCloudCacheErrorParams = {
+type GrowCloudCacheErrorParams = {
   message: string
-  cause: CloudApiError | undefined
+  cause: GrowCloudError | undefined
 }
 
-class GardenCloudCacheError extends CacheStorageError {
-  override readonly type = "garden-cloud-cache-storage"
-  override readonly cause: CloudApiError | undefined
+class GrowCloudCacheError extends CacheStorageError {
+  override readonly type = "garden-cloud-cache-storage-v2"
+  override readonly cause: Error | undefined
 
-  constructor(params: GardenErrorParams & GardenCloudCacheErrorParams) {
+  constructor(params: GardenErrorParams & GrowCloudCacheErrorParams) {
     super(params)
     const { cause } = params
     this.cause = cause
@@ -42,30 +38,19 @@ class GardenCloudCacheError extends CacheStorageError {
     return this.cause === undefined ? this.message : `${this.cause}`
   }
 
-  static fromCloudApiError(params: GardenCloudCacheErrorParams) {
-    return new GardenCloudCacheError(params)
+  static wrap(params: GrowCloudCacheErrorParams) {
+    return new GrowCloudCacheError(params)
   }
 }
 
-export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
+export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
   private readonly log: Log
   private readonly schemaVersion: SchemaVersion
-  private readonly cloudApi: GardenCloudApi
-  private readonly projectId: string
-  private organizationId: string | undefined
+  private readonly cloudApi: GrowCloudApi
 
-  constructor({
-    cloudApi,
-    schemaVersion,
-    projectId,
-  }: {
-    schemaVersion: SchemaVersion
-    cloudApi: GardenCloudApi
-    projectId: string
-  }) {
+  constructor({ cloudApi, schemaVersion }: { schemaVersion: SchemaVersion; cloudApi: GrowCloudApi }) {
     this.schemaVersion = schemaVersion
     this.cloudApi = cloudApi
-    this.projectId = projectId
     this.log = RootLogger.getInstance().createLog({ name: "garden-team-cache" })
   }
 
@@ -73,43 +58,35 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
     return "Team Cache"
   }
 
-  private async getOrganizationId(): Promise<string> {
-    if (this.organizationId !== undefined) {
-      return this.organizationId
-    }
-
-    const cloudProject = await this.cloudApi.getProjectById(this.projectId)
-    const organizationId = cloudProject.organization.id
-    this.organizationId = organizationId
-    return organizationId
+  private getOrganizationId(): string {
+    return this.cloudApi.organizationId
   }
 
   public async get(cacheKey: string, action: Action): Promise<ResultContainer<JsonObject>> {
     try {
-      const organizationId = await this.getOrganizationId()
-      const request: GetCachedActionRequest = {
+      const organizationId = this.getOrganizationId()
+
+      const response: GetActionResultResponse = await this.cloudApi.getActionResult({
         schemaVersion: this.schemaVersion,
         organizationId,
-        projectId: this.projectId,
         actionRef: actionReferenceToString(action),
         actionType: action.type,
         cacheKey,
-      }
+      })
 
-      const response: GetCachedActionResponse = await this.cloudApi.getActionResult(request)
       const data = response.data
       if (!data.found) {
         this.log.debug(`Got Team Cache miss for key=${cacheKey}; reason: ${data.notFoundReason}`)
-        return { found: false, notFoundReason: data.notFoundReason }
+        return { found: false, notFoundReason: data.notFoundDescription }
       }
 
-      return { found: true, result: data.result }
+      return { found: true, result: data.result as JsonObject }
     } catch (e) {
-      if (!(e instanceof CloudApiError)) {
+      if (!(e instanceof GrowCloudError)) {
         throw e
       }
 
-      throw GardenCloudCacheError.fromCloudApiError({
+      throw GrowCloudCacheError.wrap({
         message: `Error reading data from the Team Cache at ${this.cloudApi.domain}`,
         cause: e,
       })
@@ -127,27 +104,25 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
    */
   public async put(cacheKey: string, value: RunResult, action: Action): Promise<RunResult> {
     try {
-      const organizationId = await this.getOrganizationId()
-      const request: CreateCachedActionRequest = {
+      const organizationId = this.getOrganizationId()
+
+      await this.cloudApi.createActionResult({
         schemaVersion: this.schemaVersion,
         organizationId,
-        projectId: this.projectId,
         actionRef: actionReferenceToString(action),
         actionType: action.type,
         cacheKey,
         result: value,
         startedAt: value.startedAt.toISOString(),
         completedAt: value.completedAt.toISOString(),
-      }
-
-      await this.cloudApi.createActionResult(request)
+      })
       return value
     } catch (e) {
-      if (!(e instanceof CloudApiError)) {
+      if (!(e instanceof GrowCloudError)) {
         throw e
       }
 
-      throw GardenCloudCacheError.fromCloudApiError({
+      throw GrowCloudCacheError.wrap({
         message: `Error storing data to the Team Cache at ${this.cloudApi.domain}`,
         cause: e,
       })
