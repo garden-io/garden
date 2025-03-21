@@ -10,7 +10,7 @@ import { checkResourceStatuses, waitForResources } from "../status/status.js"
 import { helm } from "./helm-cli.js"
 import type { HelmGardenMetadataConfigMapData } from "./common.js"
 import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common.js"
-import { gardenCloudAECPauseAnnotation, getPausedResources, getReleaseStatus, getRenderedResources } from "./status.js"
+import { gardenCloudAECPauseAnnotation, getResourcesPausedByAEC, getReleaseStatus, getRenderedResources } from "./status.js"
 import { apply, deleteResources } from "../kubectl.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getForwardablePorts, killPortForwards } from "../port-forward.js"
@@ -205,7 +205,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   }
 
   try {
-    const pausedResources = await getPausedResources({ ctx: k8sCtx, action, namespace, releaseName, log })
+    const pausedResources = await getResourcesPausedByAEC({ ctx: k8sCtx, action, namespace, releaseName, log })
     await Promise.all(
       pausedResources.map((resource) => {
         const { annotations } = resource.metadata

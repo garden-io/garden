@@ -22,7 +22,6 @@ import { gardenEnv } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import type { Document, ParsedNode } from "yaml"
 import { parseAllDocuments, Pair, YAMLMap, Scalar } from "yaml"
-import { styles } from "../logger/styles.js"
 import { deline } from "../util/string.js"
 import fsExtra from "fs-extra"
 const { readFile, writeFile } = fsExtra
