@@ -23,7 +23,7 @@ It is currently not advisable to run multiple `dev`, `build`, `deploy` or `test`
 
 Every Garden command supports a common set of option flags. The full reference can be found [here](../reference/commands.md#global-options), but here are the most important ones:
 
-- `--env` sets the environment (and optionally namespace) that the command should act on. Most Garden commands only act on a specific environment, so in most cases you'll specify this, unless you're working on the default environment for the project. See [here](../config-guides/namespaces.md) for more about environments and namespaces.
+- `--env` sets the environment (and optionally namespace) that the command should act on. Most Garden commands only act on a specific environment, so in most cases you'll specify this, unless you're working on the default environment for the project. See [here](../guides/namespaces.md) for more about environments and namespaces.
 - `--log-level` / `-l` sets the log level. Use e.g. `-l=debug` to get debug logs for the command.
 - `--output` / `-o` sets the output format. Use this to get structured output from the commands. `--output=json` outputs JSON, and `--output=yaml` outputs YAML. The structure of the outputs is documented in [the reference](../reference/commands.md) for most commands.
 

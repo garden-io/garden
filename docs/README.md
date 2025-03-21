@@ -60,21 +60,21 @@
   * [Applying Pulumi Stacks](./garden-for/pulumi/actions.md)
 * [Local Scripts](./garden-for/local-scripts.md)
 
-## Configuration Guides
+## Features
 
 * [Variables and Templating](./config-guides/variables-and-templating.md)
 * [Environments and Namespaces](./config-guides/namespaces.md)
-* [Including/Excluding files](./config-guides/include-exclude.md)
 * [Config Templates](./config-guides/config-templates.md)
 * [Workflows](./config-guides/workflows.md)
 * [Code Synchronization](./config-guides/code-synchronization.md)
 * [Custom Commands](./config-guides/custom-commands.md)
 * [Remote Sources](./config-guides/remote-sources.md)
 
-## Other Guides
+## Guides
 
 * [Deprecations and Updating to Cedar](./guides/deprecations.md)
 * [Installing Garden](./guides/installation.md)
+* [Including/Excluding files](./guides/include-exclude.md)
 * [How Organizations Adopt Garden](./guides/adopting-garden.md)
 * [Installing Local Kubernetes](./guides/install-local-kubernetes.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
