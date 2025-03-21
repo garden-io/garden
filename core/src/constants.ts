@@ -41,10 +41,6 @@ export enum GardenApiVersion {
 
 export const supportedApiVersions: string[] = Object.values(GardenApiVersion).map((v) => v as string)
 
-export function gardenApiSupportsActions(apiVersion: GardenApiVersion): boolean {
-  return apiVersion !== GardenApiVersion.v0
-}
-
 export const DEFAULT_BUILD_TIMEOUT_SEC = 600
 export const DEFAULT_TEST_TIMEOUT_SEC = 600
 export const DEFAULT_RUN_TIMEOUT_SEC = 600

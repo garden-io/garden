@@ -83,7 +83,6 @@ import {
   gardenEnv,
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
-  gardenApiSupportsActions,
 } from "./constants.js"
 import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
@@ -1529,16 +1528,6 @@ export class Garden {
 
       for (const kind of actionKinds) {
         const actionConfigs = groupedResources[kind] || []
-
-        // Verify that the project apiVersion is defined as compatible with action kinds
-        // This is only available with apiVersion `garden.io/v1` or newer.
-        if (actionConfigs.length && !gardenApiSupportsActions(this.projectApiVersion)) {
-          throw new ConfigurationError({
-            message: `Action kinds are only supported in project configurations with "apiVersion: ${
-              GardenApiVersion.v1
-            }" or higher. A detailed migration guide is available at ${makeDocsLinkStyled("misc/migrating-to-bonsai")}`,
-          })
-        }
 
         for (const config of actionConfigs) {
           this.addRawActionConfig(config as unknown as BaseActionConfig)
