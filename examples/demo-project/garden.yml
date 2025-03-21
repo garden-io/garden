@@ -1,4 +1,4 @@
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: demo-project
 organizationId: 017ba691-bfa3-4d6b-a54f-04e43cf2cfff

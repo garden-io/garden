@@ -67,9 +67,8 @@ export const mochaHooks = {
   },
 
   beforeEach() {
-    // Init globally stored project-level apiVersion, assuming garden.io/v1 for 0.13.
-    // TODO(0.14): Remove global project apiVersion?
-    setProjectApiVersion({ apiVersion: GardenApiVersion.v1, configPath: "project.garden.yml" }, log)
+    // before running any test, let's reset the project API version to v2 (that's the baseline for all tests as it is the only supported apiversion for now)
+    setProjectApiVersion({ apiVersion: GardenApiVersion.v2, configPath: "project.garden.yml" }, log)
   },
 
   afterEach() {
