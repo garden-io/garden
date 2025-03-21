@@ -10,7 +10,12 @@ import { checkResourceStatuses, waitForResources } from "../status/status.js"
 import { helm } from "./helm-cli.js"
 import type { HelmGardenMetadataConfigMapData } from "./common.js"
 import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common.js"
-import { gardenCloudAECPauseAnnotation, getResourcesPausedByAEC, getReleaseStatus, getRenderedResources } from "./status.js"
+import {
+  gardenCloudAECPauseAnnotation,
+  getResourcesPausedByAEC,
+  getReleaseStatus,
+  getRenderedResources,
+} from "./status.js"
 import { apply, deleteResources } from "../kubectl.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getForwardablePorts, killPortForwards } from "../port-forward.js"
