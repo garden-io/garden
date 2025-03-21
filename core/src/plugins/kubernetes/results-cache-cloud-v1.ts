@@ -66,7 +66,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
     this.schemaVersion = schemaVersion
     this.cloudApi = cloudApi
     this.projectId = projectId
-    this.log = RootLogger.getInstance().createLog({ name: "garden-cloud-cache" })
+    this.log = RootLogger.getInstance().createLog({ name: "garden-team-cache" })
   }
 
   name() {

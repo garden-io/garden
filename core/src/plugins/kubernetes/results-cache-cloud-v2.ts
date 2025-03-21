@@ -68,7 +68,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
   constructor({ cloudApi, schemaVersion }: { schemaVersion: SchemaVersion; cloudApi: GrowCloudApi }) {
     this.schemaVersion = schemaVersion
     this.cloudApi = cloudApi
-    this.log = RootLogger.getInstance().createLog({ name: "garden-cloud-cache-v2" })
+    this.log = RootLogger.getInstance().createLog({ name: "garden-team-cache" })
   }
 
   name() {

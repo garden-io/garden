@@ -73,7 +73,7 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
     this.cacheDir = cacheDir
     this.schemaVersion = schemaVersion
     this.cacheExpiryDays = cacheExpiryDays
-    this.log = RootLogger.getInstance().createLog({ name: "fs-cache" })
+    this.log = RootLogger.getInstance().createLog({ name: "garden-local-cache" })
   }
 
   name() {
