@@ -7,7 +7,6 @@
  */
 import type { ProjectConfig } from "../config/project.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
-import { getGrowCloudDomain } from "./grow/util.js"
 
 export type GardenCloudDistroName = "Garden Enterprise" | "Garden Cloud"
 
