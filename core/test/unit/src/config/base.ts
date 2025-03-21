@@ -42,7 +42,7 @@ const log = logger.createLog()
 
 describe("prepareProjectResource", () => {
   const projectResourceTemplate = {
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: GardenApiVersion.v2,
     kind: "Project",
     name: "test",
     path: "/tmp/", // the path does not matter in this test suite
@@ -116,7 +116,7 @@ describe("prepareProjectResource", () => {
   it("should log a warning if the apiVersion is garden.io/v1", async () => {
     const projectResource = {
       ...projectResourceTemplate,
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
     }
 
     const returnedProjectResource = prepareProjectResource(log, projectResource)
@@ -215,7 +215,7 @@ describe("loadConfigResources", () => {
     expect(parsed.length).to.equal(1)
 
     expect(omit(parsed[0], "internal")).to.eql({
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
       kind: "Project",
       path: projectPathA,
       configPath,
@@ -367,7 +367,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed.map((p) => omit(p, "internal"))).to.eql([
       {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         configPath,
         path: projectPathMultipleModules,
@@ -500,7 +500,7 @@ describe("loadConfigResources", () => {
     expect(parsed.length).to.equal(1)
 
     expect(omit(parsed[0], "internal")).to.eql({
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
       kind: "Project",
       path: projectPath,
       configPath,
@@ -522,7 +522,7 @@ describe("loadConfigResources", () => {
     const parsed = await loadConfigResources(log, path, configPath)
 
     expect(omit(parsed[0], "internal")).to.eql({
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
       kind: "Project",
       name: "foo",
       environments: [{ name: "local" }],

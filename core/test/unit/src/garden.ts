@@ -513,7 +513,7 @@ describe("Garden", () => {
 
     it("should set the default proxy config if non is specified", async () => {
       const config: ProjectConfig = {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name: "test",
         path: pathFoo,
@@ -538,7 +538,7 @@ describe("Garden", () => {
 
     it("should optionally read the proxy config from the project config", async () => {
       const config: ProjectConfig = {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name: "test",
         path: pathFoo,
@@ -569,7 +569,7 @@ describe("Garden", () => {
       try {
         gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = "example.com"
         const configNoProxy: ProjectConfig = {
-          apiVersion: GardenApiVersion.v1,
+          apiVersion: GardenApiVersion.v2,
           kind: "Project",
           name: "test",
           path: pathFoo,
@@ -583,7 +583,7 @@ describe("Garden", () => {
           variables: { foo: "default", bar: "something" },
         }
         const configWithProxy: ProjectConfig = {
-          apiVersion: GardenApiVersion.v1,
+          apiVersion: GardenApiVersion.v2,
           kind: "Project",
           name: "test",
           path: pathFoo,

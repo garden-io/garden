@@ -61,7 +61,7 @@ describe("CreateProjectCommand", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name,
         defaultEnvironment: "ephemeral",
@@ -158,7 +158,7 @@ describe("CreateProjectCommand", () => {
     const parsed = loadAll((await readFile(configPath)).toString())
     expect(parsed).to.eql([
       {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name: "foo",
         defaultEnvironment: "ephemeral",
@@ -218,7 +218,7 @@ describe("CreateProjectCommand", () => {
     expect(parsed).to.eql([
       existing,
       {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name,
         defaultEnvironment: "ephemeral",
@@ -273,7 +273,7 @@ describe("CreateProjectCommand", () => {
 
   it("should throw if a project is already in the directory", async () => {
     const existing = {
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
       kind: "Project",
       name: "foo",
     }
