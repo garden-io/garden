@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CacheStorage, SchemaVersion } from "./results-cache-base.js"
+import type { CacheStorage, ResultContainer, SchemaVersion } from "./results-cache-base.js"
 import { CacheStorageError } from "./results-cache-base.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { GardenErrorParams } from "../../exceptions.js"
@@ -17,6 +17,7 @@ import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { GrowCloudApi } from "../../cloud/grow/api.js"
 import { GrowCloudError } from "../../cloud/grow/api.js"
+import type { GetActionResultResponse } from "../../cloud/grow/trpc.js"
 
 type GrowCloudCacheErrorParams = {
   message: string
@@ -57,11 +58,11 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
     return this.cloudApi.organizationId
   }
 
-  public async get(cacheKey: string, action: Action): Promise<JsonObject> {
+  public async get(cacheKey: string, action: Action): Promise<ResultContainer> {
     try {
       const organizationId = this.getOrganizationId()
 
-      const response = await this.cloudApi.getActionResult({
+      const response: GetActionResultResponse = await this.cloudApi.getActionResult({
         schemaVersion: this.schemaVersion,
         organizationId,
         actionRef: actionReferenceToString(action),
@@ -70,14 +71,14 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
       })
 
       const data = response.data
-      // TODO: error handling and logging
       if (!data.found) {
-        const errorMsg = `Got Team Cache V2 miss for key=${cacheKey}`
-        this.log.debug(errorMsg)
-        throw new GrowCloudCacheError({ message: errorMsg, cause: undefined })
+        this.log.debug(`Got Team Cache V2 miss for key=${cacheKey}`)
+        // TODO-1: render reason to the human-readable form as a quick fix
+        // TODO-2: return human readable string from the backend
+        return { found: false, notFoundReason: data.notFoundReason }
       }
 
-      return data.result as JsonObject
+      return { found: true, result: data.result as JsonObject }
     } catch (e) {
       if (!(e instanceof GrowCloudError)) {
         throw e
@@ -119,7 +120,6 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
         throw e
       }
 
-      // TODO: error handing
       throw GrowCloudCacheError.wrap({
         message: "Error storing data to the Team Cache V2",
         cause: e,

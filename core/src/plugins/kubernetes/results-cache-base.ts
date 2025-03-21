@@ -76,12 +76,23 @@ export abstract class CacheStorageError extends GardenError {
   abstract describe(): string
 }
 
+export type ResultContainer =
+  | {
+      found: true
+      result: JsonObject
+    }
+  | {
+      found: false
+      notFoundReason: string
+    }
+
 export interface CacheStorage<ResultShape> {
   /**
    * Returns a value associated with the {@code key},
-   * or throws a {@link CacheStorageError} if no key was found or any error occurred.
+   * or {@code undefined} if no value was found for the specified key.
+   * Throws a {@link CacheStorageError} if no key was found or any error occurred.
    */
-  get(key: string, action: Action): Promise<JsonObject>
+  get(key: string, action: Action): Promise<ResultContainer>
 
   /**
    * Stores the value associated with the {@code key}.
@@ -152,7 +163,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
     log,
   }: LoadResultParams<A, AdditionalKeyData>): Promise<z.output<ResultSchema> | undefined> {
     const key = this.cacheKey({ action, keyData })
-    let cachedValue: JsonObject
+    let cachedValue: ResultContainer
     try {
       cachedValue = await this.cacheStorage.get(key, action)
     } catch (e) {
@@ -164,7 +175,12 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
       return undefined
     }
 
-    return this.validateResult(cachedValue, log)
+    // TODO: user-friendly logging
+    if (!cachedValue.found) {
+      return undefined
+    }
+
+    return this.validateResult(cachedValue.result, log)
   }
 
   public async store({

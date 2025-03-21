@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CacheStorage, SchemaVersion } from "./results-cache-base.js"
+import type { CacheStorage, ResultContainer, SchemaVersion } from "./results-cache-base.js"
 import { CacheStorageError } from "./results-cache-base.js"
 import fsExtra, { pathExists } from "fs-extra"
 import { join } from "path"
@@ -80,7 +80,7 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
     return join(this.cacheDir, `${this.schemaVersion}-${key}.json`)
   }
 
-  private async readFileContent(filePath: string): Promise<JsonObject> {
+  private async readFileContent(filePath: string): Promise<ResultContainer> {
     let rawFileContent: string
     try {
       this.log.silly(`Reading data from file ${filePath}`)
@@ -91,6 +91,11 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
         throw err
       }
 
+      if (err.code === "ENOENT") {
+        this.log.debug(`Got cache miss for file ${filePath}`)
+        return { found: false, notFoundReason: "Not found" }
+      }
+
       throw new LocalFileSystemCacheError({
         message: `Cannot read data from file ${filePath}`,
         code: err.code,
@@ -99,7 +104,8 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
     }
 
     try {
-      return JSON.parse(rawFileContent) as JsonObject
+      const result = JSON.parse(rawFileContent) as JsonObject
+      return { found: true, result }
     } catch (err) {
       if (!(err instanceof SyntaxError)) {
         throw err
@@ -177,7 +183,7 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
    *
    * Reads the value from the file defined in the {@code key}.
    */
-  public async get(key: string): Promise<JsonObject> {
+  public async get(key: string): Promise<ResultContainer> {
     const filePath = this.getFilePath(key)
     return await this.readFileContent(filePath)
   }

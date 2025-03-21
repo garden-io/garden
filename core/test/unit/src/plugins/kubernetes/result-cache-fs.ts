@@ -15,8 +15,9 @@ import {
   FILESYSTEM_CACHE_EXPIRY_DAYS,
   SimpleLocalFileSystemCacheStorage,
 } from "../../../../../src/plugins/kubernetes/results-cache-fs.js"
-import { expectError } from "../../../../helpers.js"
+import type { ResultContainer } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
 import { currentResultSchemaVersion } from "../../../../../src/plugins/kubernetes/results-cache-base.js"
+import type { JsonObject } from "type-fest"
 
 type Payload = {
   pos: number
@@ -25,6 +26,18 @@ type Payload = {
 
 function makePayload(pos: number): Payload {
   return { pos, data: `data${pos}` }
+}
+
+function makeExpectedValue(payload: Payload): ResultContainer<JsonObject> {
+  return {
+    found: true,
+    result: payload,
+  }
+}
+
+const notFound: ResultContainer<JsonObject> = {
+  found: false,
+  notFoundReason: "Not found",
 }
 
 describe("SimpleLocalFileSystemCacheStorage", () => {
@@ -46,41 +59,45 @@ describe("SimpleLocalFileSystemCacheStorage", () => {
     await tmpDir.cleanup()
   })
 
-  it("should throw if no value found for key", async () => {
+  it("should return the notFoundReason if no value found for key", async () => {
     const key = "this-key-does-not-exist"
-    await expectError(() => cache.get(key), { contains: "Cannot read data from file" })
+    const value = await cache.get(key)
+    expect(value).to.eql(notFound)
   })
 
   it("should store value and return it", async () => {
     const pos = 1
     const key = `file-${pos}`
-    const value = makePayload(pos)
+    const payload = makePayload(pos)
+    const expectedValue = makeExpectedValue(payload)
 
-    const storedValue = await cache.put(key, value)
+    const storedValue = await cache.put(key, payload)
     expect(storedValue).to.be.not.undefined
-    expect(storedValue).to.eql(value)
+    expect(storedValue).to.eql(payload)
 
     const returnedValue = await cache.get(key)
     expect(returnedValue).to.be.not.undefined
-    expect(returnedValue).to.eql(value)
+    expect(returnedValue).to.eql(expectedValue)
   })
 
   it("should delete the value by key", async () => {
     const pos = 1
     const key = `file-${pos}`
-    const value = makePayload(pos)
+    const payload = makePayload(pos)
+    const expectedValue = makeExpectedValue(payload)
 
-    const storedValue = await cache.put(key, value)
+    const storedValue = await cache.put(key, payload)
     expect(storedValue).to.be.not.undefined
-    expect(storedValue).to.eql(value)
+    expect(storedValue).to.eql(payload)
 
     const returnedValue = await cache.get(key)
     expect(returnedValue).to.be.not.undefined
-    expect(returnedValue).to.eql(value)
+    expect(returnedValue).to.eql(expectedValue)
 
     await cache.remove(key)
 
-    await expectError(() => cache.get(key), { contains: "Cannot read data from file" })
+    const valueAgain = await cache.get(key)
+    expect(valueAgain).to.eql(notFound)
 
     // no error should be thrown if delete by non-existing key
     await cache.remove(key)
@@ -88,14 +105,15 @@ describe("SimpleLocalFileSystemCacheStorage", () => {
 
   it("should overwrite the existing value", async () => {
     const key = `filename`
-    const value1 = makePayload(1)
-    const value2 = makePayload(2)
+    const payload1 = makePayload(1)
+    const payload2 = makePayload(2)
 
-    await cache.put(key, value1)
-    await cache.put(key, value2)
+    await cache.put(key, payload1)
+    await cache.put(key, payload2)
 
     const cachedValue = await cache.get(key)
     expect(cachedValue).to.be.not.undefined
-    expect(cachedValue).to.eql(value2)
+    const expectedValue2 = makeExpectedValue(payload2)
+    expect(cachedValue).to.eql(expectedValue2)
   })
 })

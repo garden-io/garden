@@ -6,14 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CacheStorage, SchemaVersion } from "./results-cache-base.js"
+import type { CacheStorage, ResultContainer, SchemaVersion } from "./results-cache-base.js"
 import { CacheStorageError } from "./results-cache-base.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { GardenErrorParams } from "../../exceptions.js"
 import { CloudApiError } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
-import type { JsonObject } from "type-fest"
-import type { CreateCachedActionRequest, GardenCloudApi, GetCachedActionRequest } from "../../cloud/api.js"
+import type {
+  CreateCachedActionRequest,
+  GardenCloudApi,
+  GetCachedActionRequest,
+  GetCachedActionResponse,
+} from "../../cloud/api.js"
 import { actionReferenceToString } from "../../actions/base.js"
 import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
@@ -75,7 +79,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
     return organizationId
   }
 
-  public async get(cacheKey: string, action: Action): Promise<JsonObject> {
+  public async get(cacheKey: string, action: Action): Promise<ResultContainer> {
     try {
       const organizationId = await this.getOrganizationId()
       const request: GetCachedActionRequest = {
@@ -87,15 +91,14 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
         cacheKey,
       }
 
-      const response = await this.cloudApi.getActionResult(request)
+      const response: GetCachedActionResponse = await this.cloudApi.getActionResult(request)
       const data = response.data
       if (!data.found) {
-        const errorMsg = `Got Team Cache V1 miss for key=${cacheKey}`
-        this.log.debug(errorMsg)
-        throw new GardenCloudCacheError({ message: errorMsg, cause: undefined })
+        this.log.debug(`Got Team Cache V1 miss for key=${cacheKey}`)
+        return { found: false, notFoundReason: data.notFoundReason }
       }
 
-      return data.result
+      return { found: true, result: data.result }
     } catch (e) {
       if (!(e instanceof CloudApiError)) {
         throw e
