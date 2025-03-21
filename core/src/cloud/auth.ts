@@ -64,7 +64,7 @@ export function enforceLogin({
     throw new LoginRequiredWhenConnected()
   }
 
-  if (!isConnectedToCloud) {
+  if (!isConnectedToCloud && !isOfflineModeEnabled) {
     // TODO(0.14): Also print this at the end of the command output to increase visibility.
     const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
     cloudLog.info({

@@ -555,7 +555,7 @@ export class AnalyticsHandler {
       latestRunAt,
       optedOut: currentAnalyticsConfig?.optedOut,
       cloudVersion: currentAnalyticsConfig?.cloudVersion,
-      cloudProfileEnabled: !!oldBackendCloudUser,
+      cloudProfileEnabled: isEnabled && !!oldBackendCloudUser,
     }
 
     await garden.globalConfigStore.set("analytics", analyticsConfig)

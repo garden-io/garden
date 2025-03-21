@@ -23,7 +23,6 @@ import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { defaultSystemNamespace } from "../constants.js"
 import { styles } from "../../../logger/styles.js"
-import { isGardenCommunityEdition } from "../../../cloud/util.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export type EphemeralKubernetesClusterType = "ephemeral"

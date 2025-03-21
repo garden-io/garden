@@ -1884,7 +1884,7 @@ export class Garden {
   /** Returns whether the user is logged in to the Garden Cloud */
   public isOldBackendAvailable(): this is GardenWithOldBackend {
     const oldBackendAvailable = !!this.cloudApi
-    if (getBackendType(this.projectConfig) && oldBackendAvailable) {
+    if (getBackendType(this.projectConfig) === "v2" && oldBackendAvailable) {
       throw new InternalError({
         message: "Invalid state: should use backend v2, but logged in to backend v1",
       })
@@ -2122,12 +2122,11 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     const loggedIn = !!cloudApi || !!cloudApiV2
 
-    const { secrets, cloudProject } = await initCloudProject({
+    const { secrets } = await initCloudProject({
       cloudApi,
       config: projectConfig,
       log,
       projectRoot,
-      projectName,
       environmentName,
       commandName: opts.commandInfo.name,
       skipCloudConnect,
@@ -2255,7 +2254,6 @@ async function initCloudProject({
   config,
   log,
   projectRoot,
-  projectName,
   environmentName,
   commandName,
   skipCloudConnect,
@@ -2264,7 +2262,6 @@ async function initCloudProject({
   config: ProjectConfig
   log: Log
   projectRoot: string
-  projectName: string
   environmentName: string
   commandName: string
   skipCloudConnect: boolean
@@ -2288,7 +2285,6 @@ async function initCloudProject({
     cloudApi,
     config,
     log: cloudLog,
-    projectName,
     projectRoot,
   })
 
@@ -2322,13 +2318,11 @@ async function getCloudProject({
   config,
   log,
   projectRoot,
-  projectName,
 }: {
   cloudApi: GardenCloudApi
   config: ProjectConfig
   log: Log
   projectRoot: string
-  projectName: string
 }) {
   const projectId = config.id
   const distroName = getCloudDistributionName(cloudApi.domain)
