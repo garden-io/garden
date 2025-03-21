@@ -15,8 +15,8 @@ import type { KubernetesPluginContext } from "../config.js"
 import { getForwardablePorts } from "../port-forward.js"
 import type { KubernetesResource, KubernetesServerResource } from "../types.js"
 import { getActionNamespace } from "../namespace.js"
-import { getTargetResource, isWorkload } from "../util.js"
-import { getDeployedResource, isConfiguredForLocalMode } from "../status/status.js"
+import { isWorkload } from "../util.js"
+import { getDeployedResource } from "../status/status.js"
 import { KubeApi, KubernetesError } from "../api.js"
 import { getK8sIngresses } from "../status/ingress.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
@@ -73,30 +73,11 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   if (state !== "missing") {
     const deployedResources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
 
-    forwardablePorts = getForwardablePorts({ resources: deployedResources, parentAction: action, mode: deployedMode })
+    forwardablePorts = getForwardablePorts({ resources: deployedResources, parentAction: action })
     ingresses = getK8sIngresses(deployedResources, provider)
 
     if (state === "ready") {
-      // Local mode always takes precedence over sync mode
-      if (mode === "local" && spec.localMode) {
-        const query = spec.localMode.target || spec.defaultTarget
-
-        // If no target is set, a warning is emitted during deployment
-        if (query) {
-          const target = await getTargetResource({
-            ctx: k8sCtx,
-            log,
-            provider: k8sCtx.provider,
-            action,
-            manifests: deployedResources,
-            query,
-          })
-
-          if (!isConfiguredForLocalMode(target)) {
-            state = "outdated"
-          }
-        }
-      } else if (mode === "sync" && spec.sync?.paths && deployedMode !== mode) {
+      if (mode === "sync" && spec.sync?.paths && deployedMode !== mode) {
         // TODO: might want to check every target resource here
         state = "outdated"
       }

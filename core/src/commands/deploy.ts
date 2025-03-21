@@ -60,20 +60,6 @@ export const deployOpts = {
       return Object.keys(configDump.actionConfigs.Deploy)
     },
   }),
-  "local-mode": new StringsParameter({
-    help: dedent`
-    [EXPERIMENTAL] The name(s) of Deploy(s) to be started locally with local mode enabled.
-
-    You may specify multiple Deploys by setting this flag multiple times. Use * to deploy all Deploys with local mode enabled. When this option is used,
-    the command stays running until explicitly aborted.
-
-    This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both \`--sync\` and \`--local\` options.
-    `,
-    aliases: ["local"],
-    getSuggestions: ({ configDump }) => {
-      return Object.keys(configDump.actionConfigs.Deploy)
-    },
-  }),
   "skip": new StringsParameter({
     help: "The name(s) of Deploys you'd like to skip.",
     getSuggestions: ({ configDump }) => {
@@ -154,7 +140,7 @@ export class DeployCommand extends Command<Args, Opts> {
   override outputsSchema = () => processCommandResultSchema()
 
   override maybePersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward || !!opts.logs
+    return !!opts["sync"] || !!opts.forward || !!opts.logs
   }
 
   override printHeader({ log }) {
@@ -202,7 +188,6 @@ export class DeployCommand extends Command<Args, Opts> {
 
     const actionModes: ActionModeMap = {
       // Support a single empty value (which comes across as an empty list) as equivalent to '*'
-      local: opts["local-mode"]?.length === 0 ? ["deploy.*"] : opts["local-mode"]?.map((s) => "deploy." + s),
       sync: opts.sync?.length === 0 ? ["deploy.*"] : opts.sync?.map((s) => "deploy." + s),
     }
 
@@ -317,17 +302,6 @@ export class DeployCommand extends Command<Args, Opts> {
               stopOnExit: true, // On this code path, we're running inside the `dev` command.
             })
             garden.monitors.addAndSubscribe(syncMonitor, this)
-          } else if (mode === "local" && result.attached) {
-            // Wait for local mode processes to complete.
-            const handlerMonitor = new HandlerMonitor({
-              type: "local-deploy",
-              garden,
-              log,
-              events,
-              key: action.key(),
-              description: "monitor for attached local mode process in " + action.longDescription(),
-            })
-            garden.monitors.addAndSubscribe(handlerMonitor, this)
           } else if (result.attached) {
             // Wait for other attached processes after deployment.
             // Note: No plugin currently does this outside of local mode but we do support it.

@@ -74,7 +74,7 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
         config.include = config.include.map((path) => posix.join(chartPath, path))
       }
 
-      return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
+      return { config, supportedModes: { sync: !!config.spec.sync } }
     },
   },
 })

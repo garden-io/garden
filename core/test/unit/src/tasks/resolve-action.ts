@@ -271,13 +271,13 @@ describe("ResolveActionTask", () => {
         },
       ])
 
-      const task = await getTask("Deploy", "foo", { local: ["deploy.foo"] })
+      const task = await getTask("Deploy", "foo", { sync: ["deploy.foo"] })
       const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
       const spec = resolved.getSpec()
 
-      expect(spec.deployCommand).to.eql(["local"])
+      expect(spec.deployCommand).to.eql(["sync"])
     })
 
     it("correctly merges action and CLI variables", async () => {

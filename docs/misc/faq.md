@@ -283,10 +283,6 @@ This also works for the `local-kubernetes` and `ephemeral-kubernetes` providers.
 
 By setting `persistent: true` on `exec` Deploy actions. [See here](../garden-for/local-scripts.md) for more.
 
-### Can I _receive_ traffic to local service Telepresence style?
-
-Yes, by using the `localMode`  field on the relevant Deploy action. [See here](https://docs.garden.io/v/docs-edge-2/guides/running-service-in-local-mode) for details.
-
 ## Misc
 
 ### How do I install the edge release of Garden

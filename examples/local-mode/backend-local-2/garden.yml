@@ -1,7 +1,0 @@
-kind: Run
-name: build-backend-local-2
-description: Compile the backend-local-2 app
-type: exec
-
-spec:
-  command: [ "go", "build", "-o", "main" ]

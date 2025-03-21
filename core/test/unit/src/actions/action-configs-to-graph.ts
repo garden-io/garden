@@ -798,49 +798,13 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
-        local: ["deploy.foo"],
-      },
-    })
-
-    const action = graph.getDeploy("foo")
-
-    expect(action.mode()).to.equal("local")
-  })
-
-  it("prefers local mode over sync mode", async () => {
-    const graph = await actionConfigsToGraph({
-      garden,
-      log,
-      groupConfigs: [],
-      configs: [
-        {
-          kind: "Deploy",
-          type: "test",
-          name: "foo",
-          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
-          variables: {},
-          internal: {
-            basePath: tmpDir.path,
-          },
-          spec: {
-            // Set so that sync comes up as a supported mode
-            syncMode: {
-              deployCommand: ["echo"],
-            },
-          },
-        },
-      ],
-      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
-      linkedSources: {},
-      actionModes: {
-        local: ["deploy.foo"],
         sync: ["deploy.foo"],
       },
     })
 
     const action = graph.getDeploy("foo")
 
-    expect(action.mode()).to.equal("local")
+    expect(action.mode()).to.equal("sync")
   })
 
   it("sets mode if matched in full wildcard", async () => {
@@ -864,13 +828,13 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
-        local: ["*"],
+        sync: ["*"],
       },
     })
 
     const action = graph.getDeploy("foo")
 
-    expect(action.mode()).to.equal("local")
+    expect(action.mode()).to.equal("sync")
   })
 
   it("sets mode if matched in partial wildcard", async () => {
@@ -894,13 +858,13 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
-        local: ["deploy.f*"],
+        sync: ["deploy.f*"],
       },
     })
 
     const action = graph.getDeploy("foo")
 
-    expect(action.mode()).to.equal("local")
+    expect(action.mode()).to.equal("sync")
   })
 
   it("deploy action mode overrides the mode of a dependency build action", async () => {
@@ -936,7 +900,7 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
-        local: ["deploy.*"],
+        sync: ["deploy.*"],
       },
     })
 
@@ -944,7 +908,7 @@ describe("actionConfigsToGraph", () => {
     expect(deploy.mode()).to.equal("local")
 
     const build = graph.getBuild("foo")
-    expect(build.mode()).to.equal("local")
+    expect(build.mode()).to.equal("sync")
   })
 
   it("throws if an unknown action kind is given", async () => {
