@@ -73,8 +73,9 @@ export async function writeConfigReferenceDocs(
     return await Garden.factory(moduleDirName, {
       commandInfo: { name: "generate-docs", args: {}, opts: {} },
       config: {
+        configPath: import.meta.filename,
         path: moduleDirName,
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name: "generate-docs",
         internal: {

@@ -19,7 +19,6 @@ import {
 import { resolve, join } from "path"
 import { expectError, expectFuzzyMatch, getDataDir, getDefaultProjectConfig } from "../../../helpers.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs.js"
 import { safeDumpYaml } from "../../../../src/util/serialization.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings.js"
@@ -43,7 +42,7 @@ const log = logger.createLog()
 
 describe("prepareProjectResource", () => {
   const projectResourceTemplate = {
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: GardenApiVersion.v2,
     kind: "Project",
     name: "test",
     path: "/tmp/", // the path does not matter in this test suite
@@ -76,46 +75,6 @@ describe("prepareProjectResource", () => {
 
     const migratedProjectResource = prepareProjectResource(log, projectResource)
     expect(migratedProjectResource).to.eql(projectResource)
-  })
-
-  it("empty `dotIgnoreFiles` array is automatically remapped to the default `dotIgnoreFile`", () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      dotIgnoreFiles: [],
-    }
-
-    const migratedProjectResource = prepareProjectResource(log, projectResource)
-    const expectedProjectResource = {
-      ...projectResource,
-      dotIgnoreFile: defaultDotIgnoreFile,
-    }
-    expect(migratedProjectResource).to.eql(expectedProjectResource)
-  })
-
-  it("singe-valued `dotIgnoreFiles` array is automatically remapped to scalar `dotIgnoreFile`", () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      dotIgnoreFiles: [".somedotignore"],
-    }
-
-    const migratedProjectResource = prepareProjectResource(log, projectResource)
-    const expectedProjectResource = {
-      ...projectResource,
-      dotIgnoreFile: ".somedotignore",
-    }
-    expect(migratedProjectResource).to.eql(expectedProjectResource)
-  })
-
-  it("throw an error if multi-valued `dotIgnoreFiles` array is defined in the project config", () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      dotIgnoreFiles: [".somedotignore", ".gitignore"],
-    }
-
-    const processConfigAction = () => prepareProjectResource(log, projectResource)
-    expect(processConfigAction).to.throw(
-      "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.somedotignore, .gitignore]"
-    )
   })
 
   it("should fall back to the previous apiVersion when not defined", async () => {
@@ -157,7 +116,7 @@ describe("prepareProjectResource", () => {
   it("should log a warning if the apiVersion is garden.io/v1", async () => {
     const projectResource = {
       ...projectResourceTemplate,
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
     }
 
     const returnedProjectResource = prepareProjectResource(log, projectResource)
@@ -256,7 +215,7 @@ describe("loadConfigResources", () => {
     expect(parsed.length).to.equal(1)
 
     expect(omit(parsed[0], "internal")).to.eql({
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
       kind: "Project",
       path: projectPathA,
       configPath,
@@ -408,7 +367,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed.map((p) => omit(p, "internal"))).to.eql([
       {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         configPath,
         path: projectPathMultipleModules,
@@ -541,7 +500,7 @@ describe("loadConfigResources", () => {
     expect(parsed.length).to.equal(1)
 
     expect(omit(parsed[0], "internal")).to.eql({
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
       kind: "Project",
       path: projectPath,
       configPath,
@@ -563,7 +522,7 @@ describe("loadConfigResources", () => {
     const parsed = await loadConfigResources(log, path, configPath)
 
     expect(omit(parsed[0], "internal")).to.eql({
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
       kind: "Project",
       name: "foo",
       environments: [{ name: "local" }],

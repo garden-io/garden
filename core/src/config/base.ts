@@ -7,18 +7,17 @@
  */
 
 import dotenv from "dotenv"
-import { sep, resolve, relative, basename, dirname, join } from "path"
+import { basename, dirname, join, relative, resolve, sep } from "path"
 import { lint } from "yaml-lint"
-import { omit, isPlainObject } from "lodash-es"
+import { isPlainObject, omit } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
-import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
+import { baseModuleSchemaKeys, coreModuleSpecSchema } from "./module.js"
 import { ConfigurationError, FilesystemError, isErrnoException, ParameterError } from "../exceptions.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import type { ConfigSource } from "./validation.js"
 import { validateWithPath } from "./validation.js"
-import { defaultDotIgnoreFile, listDirectory } from "../util/fs.js"
-import { isConfigFilename } from "../util/fs.js"
+import { defaultDotIgnoreFile, isConfigFilename, listDirectory } from "../util/fs.js"
 import type { ConfigTemplateKind } from "./config-template.js"
 import { isNotNull, isTruthy } from "../util/util.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "./common.js"
@@ -363,7 +362,7 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
     return projectSpec
   }
 
-  const dotIgnoreFiles = projectSpec.dotIgnoreFiles
+  const dotIgnoreFiles = projectSpec["dotIgnoreFiles"]
   // If the project config has neither new `dotIgnoreFile` nor old `dotIgnoreFiles` fields
   // then there is nothing to do.
   if (!dotIgnoreFiles) {

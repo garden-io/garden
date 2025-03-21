@@ -28,7 +28,7 @@ describe("validateSchema", () => {
     })
 
     const config: BaseGardenResource = {
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
       kind: "Test",
       name: "foo",
       internal: {

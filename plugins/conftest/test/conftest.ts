@@ -27,7 +27,7 @@ describe("conftest provider", () => {
   const projectRoot = join(moduleDirName, "test-project")
 
   const projectConfig: ProjectConfig = {
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: GardenApiVersion.v2,
     kind: "Project",
     name: "test",
     path: projectRoot,

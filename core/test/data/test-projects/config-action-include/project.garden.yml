@@ -1,5 +1,5 @@
 kind: Project
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 name: repro
 environments:
   - name: local

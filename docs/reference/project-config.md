@@ -114,7 +114,7 @@ defaultEnvironment: ''
 # Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as
 # `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are
 # ignored when scanning for actions and action sources.
-dotIgnoreFiles: []
+dotIgnoreFiles:
 
 # Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as
 # `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are
@@ -476,9 +476,9 @@ Use the `dotIgnoreFile` field instead. It only allows specifying one filename.
 
 Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for actions and action sources.
 
-| Type               | Default | Required |
-| ------------------ | ------- | -------- |
-| `array[posixPath]` | `[]`    | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 

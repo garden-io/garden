@@ -1,4 +1,4 @@
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: vote-helm-argocd
 defaultEnvironment: "${local.env.GITHUB_ACTIONS ? 'ci' : 'gke-gitops-dev'}"

@@ -220,7 +220,6 @@ export interface ProjectConfig extends BaseGardenResource {
   proxy?: ProxyConfig
   defaultEnvironment: string
   dotIgnoreFile: string
-  dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
   scan?: ProjectScan
   outputs?: OutputSpec[]
@@ -370,8 +369,10 @@ export const projectSchema = createSchema({
         `
       )
       .example("dev"),
-    dotIgnoreFiles: joiSparseArray(joi.posixPath().filenameOnly())
-      .default([])
+    dotIgnoreFiles: joi
+      .sparseArray()
+      .items(joi.posixPath().filenameOnly().allow(null))
+      .optional()
       .description(
         deline`
       Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.

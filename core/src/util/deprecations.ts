@@ -27,8 +27,6 @@ export function isDeprecatedPlugin(pluginName: string): pluginName is Deprecated
   return false
 }
 
-export type DeprecatedDeployActionType = "configmap" | "persistentvolumeclaim"
-
 export function getDeprecations(style: (s: string) => string = styles.highlight) {
   return {
     loginRequirement: {

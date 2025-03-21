@@ -1,4 +1,4 @@
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: test-project-templated
 defaultEnvironment: "${local.env.TEST_VARIABLE == 'banana' ? 'local' : 'local'}"

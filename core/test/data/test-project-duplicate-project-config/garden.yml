@@ -1,4 +1,4 @@
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: test-project
 environments:
@@ -14,7 +14,7 @@ variables:
 
 ---
 
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: test-project-duplicate
 environments:

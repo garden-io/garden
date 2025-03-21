@@ -114,7 +114,6 @@ describe("resolveProjectConfig", () => {
       })
     ).to.eql({
       ...config,
-      dotIgnoreFiles: [],
       environments: [
         {
           name: "default",
@@ -182,7 +181,6 @@ describe("resolveProjectConfig", () => {
       )
     ).to.eql({
       ...config,
-      dotIgnoreFiles: [],
       environments: [
         {
           name: "default",
@@ -263,7 +261,6 @@ describe("resolveProjectConfig", () => {
       )
     ).to.eql({
       ...(serialiseUnresolvedTemplates(config) as DeepPrimitiveMap),
-      dotIgnoreFiles: [],
       environments: [
         {
           name: "default",
@@ -367,7 +364,6 @@ describe("resolveProjectConfig", () => {
       )
     ).to.eql({
       ...config,
-      dotIgnoreFiles: [],
       environments: [
         {
           name: "default",
@@ -421,7 +417,6 @@ describe("resolveProjectConfig", () => {
       })
     ).to.eql({
       ...config,
-      dotIgnoreFiles: [],
       defaultEnvironment: "first-env",
       environments: [{ defaultNamespace: null, name: "first-env", variables: {} }],
       sources: [],
@@ -461,7 +456,6 @@ describe("resolveProjectConfig", () => {
       })
     ).to.eql({
       ...config,
-      dotIgnoreFiles: [],
       defaultEnvironment: "default",
       environments: [{ defaultNamespace: null, name: "default", variables: {} }],
       sources: [],
@@ -520,7 +514,6 @@ describe("resolveProjectConfig", () => {
       internal: {
         basePath: "/foo",
       },
-      dotIgnoreFiles: [],
       environments: [
         {
           name: "default",

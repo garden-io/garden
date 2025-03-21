@@ -1,5 +1,0 @@
-kind: Module
-name: module-c
-type: test
-include: ["*.txt"]
-exclude: ["nope.*"]

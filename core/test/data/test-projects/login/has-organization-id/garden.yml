@@ -1,4 +1,4 @@
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: has-organization-id
 organizationId: gandalf-12345

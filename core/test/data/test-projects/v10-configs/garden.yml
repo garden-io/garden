@@ -1,4 +1,5 @@
 # 0
+apiVersion: garden.io/v2
 kind: Project
 name: test-project-v10-config-noop
 environments:
@@ -25,6 +26,7 @@ project:
 ---
 
 # 2
+apiVersion: garden.io/v2
 kind: Project
 name: test-project-v10-config-env-defaults
 variables:

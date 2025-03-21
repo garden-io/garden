@@ -1,16 +1,13 @@
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: include-exclude
 environments:
   - name: local
 providers:
   - name: test-plugin
-# We use the old `modules.<include|exclude>` fields to test the renaming/moving of the fields to
-# `scan.<include|exclude>` during project config preprocessing (see the `prepareProjectResource` helper).
 scan:
   git:
     mode: repo
-modules:
   include:
     - module*/**/*
   exclude:
