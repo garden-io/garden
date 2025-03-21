@@ -22,11 +22,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   const cachedResult = await cache.load({ action, ctx, keyData: undefined, log })
 
   if (!cachedResult.found) {
-    // TODO: Should we rephrase it with "The action will be re-run ..."?
-    //  Otherwise it will look a bit strange together with the framework-level status messages
-    log.info(
-      `Re-running the Test action due to Garden ${cache.brandName} miss ${printEmoji("❌", log)} (${cachedResult.notFoundReason})`
-    )
+    log.info(`Garden ${cache.brandName} miss ${printEmoji("❌", log)} (${cachedResult.notFoundReason})`)
 
     return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
