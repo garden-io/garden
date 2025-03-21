@@ -12,7 +12,7 @@ import type { RunResult } from "../../plugin/base.js"
 import { runResultSchemaZod } from "../../plugin/base.js"
 import type { AnyZodObject } from "zod"
 import type { z } from "zod"
-import { dedent, deline, stableStringify } from "../../util/string.js"
+import { deline, stableStringify } from "../../util/string.js"
 import type { ContainerRunAction, ContainerTestAction } from "../container/config.js"
 import type { KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./helm/config.js"
@@ -21,7 +21,6 @@ import type { JsonObject } from "type-fest"
 import { GardenError } from "../../exceptions.js"
 import { fullHashStrings } from "../../vcs/vcs.js"
 import type { Action } from "../../actions/types.js"
-import { printEmoji } from "../../logger/util.js"
 import { renderTimeDuration } from "../../util/util.js"
 
 export type CacheableRunAction = ContainerRunAction | KubernetesRunAction | HelmPodRunAction
@@ -30,17 +29,6 @@ export type CacheableTestAction = ContainerTestAction | KubernetesTestAction | H
 export type CacheableAction = CacheableRunAction | CacheableTestAction
 
 export type SchemaVersion = `v${number}`
-
-export function printTeamCacheAnnouncement(log: Log) {
-  const message = dedent`
-   ${printEmoji("ℹ️", log)} Save time with Garden Team Cache.
-
-   Garden Cloud Cache can save time for you and your team by only running test and run actions that need to run, for example because of relevant changes.
-   It also allows to share the test result cache across Kubernetes clusters and across your entire team.
-   Visit [...] to learn more.
-  `
-  log.info(message)
-}
 
 /**
  * Increment the current result schema format version

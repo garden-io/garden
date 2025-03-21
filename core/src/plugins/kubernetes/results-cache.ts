@@ -17,7 +17,6 @@ import type {
   KubernetesCacheEntry,
   KubernetesCacheEntrySchema,
 } from "./results-cache-base.js"
-import { printTeamCacheAnnouncement } from "./results-cache-base.js"
 import { ResultCache } from "./results-cache-base.js"
 import { currentResultSchemaVersion, kubernetesCacheEntrySchema } from "./results-cache-base.js"
 import type { PluginContext } from "../../plugin-context.js"
@@ -69,8 +68,6 @@ export function createCacheStorage(ctx: PluginContext): CacheStorage<KubernetesC
       projectId: ctx.projectId,
     })
   }
-
-  printTeamCacheAnnouncement(ctx.log)
 
   // Fallback to local filesystem cache if not logged in to Cloud
   const cacheDir = getLocalActionResultsCacheDir(ctx.gardenDirPath)
