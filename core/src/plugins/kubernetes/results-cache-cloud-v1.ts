@@ -99,7 +99,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
       const response: GetCachedActionResponse = await this.cloudApi.getActionResult(request)
       const data = response.data
       if (!data.found) {
-        this.log.debug(`Got Team Cache V1 miss for key=${cacheKey}`)
+        this.log.debug(`Got Team Cache V1 miss for key=${cacheKey}; reason: ${data.notFoundReason}`)
         return { found: false, notFoundReason: data.notFoundReason }
       }
 

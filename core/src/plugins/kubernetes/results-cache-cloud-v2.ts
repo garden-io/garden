@@ -76,7 +76,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
 
       const data = response.data
       if (!data.found) {
-        this.log.debug(`Got Team Cache V2 miss for key=${cacheKey}`)
+        this.log.debug(`Got Team Cache V2 miss for key=${cacheKey}; reason: ${data.notFoundReason}`)
         return { found: false, notFoundReason: data.notFoundDescription }
       }
 
