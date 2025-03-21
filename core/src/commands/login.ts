@@ -160,8 +160,8 @@ export async function applyOrganizationId({
       } else {
         throw new InternalError({
           message: deline`
-            The ${styles.highlight("organizationId")} received when logging in doesn't match the one in your project config.
-            Expected ${organizationId}, but got ${styles.highlight(projectConfig.organizationId)}.
+            Expected ${organizationId} from the backend, but got ${projectConfig.organizationId}.
+            Changing the organizationId only allowed to be performed manually to avoid that users leak data accidentally to foreign accounts.
           `,
         })
       }
