@@ -605,7 +605,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   secrets: PrimitiveMap
   commandInfo: CommandInfo
 }) {
-  const { environments, name: projectName, path: projectRoot, id: projectId } = projectConfig
+  const { environments, name: projectName, path: projectRoot } = projectConfig
   const parsed = parseEnvironment(envString)
   const { environment } = parsed
   let { namespace } = parsed

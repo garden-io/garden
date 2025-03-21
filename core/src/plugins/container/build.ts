@@ -38,7 +38,6 @@ import { mkdtemp, readFile } from "fs/promises"
 import type { DockerBuildReport } from "../../cloud/grow/trpc.js"
 import type { ActionRuntime } from "../../plugin/base.js"
 import { formatDuration, intervalToDuration } from "date-fns"
-import { gardenEnv } from "../../constants.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.

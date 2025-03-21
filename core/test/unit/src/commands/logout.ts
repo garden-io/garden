@@ -38,7 +38,6 @@ function logoutCommandParams({ garden, opts = { "disable-project-check": false }
 describe("LogoutCommand", () => {
   let tmpDir: TempDirectory
   let globalConfigStore: GlobalConfigStore
-  const projectId = undefined
 
   beforeEach(async () => {
     tmpDir = await makeTempDir()

@@ -17,7 +17,6 @@ import { clearAuthToken, getAuthToken, saveAuthToken } from "../../../../src/clo
 describe("GardenCloudApi", () => {
   const log = getRootLogger().createLog()
   const domain = "https://garden." + randomString()
-  const projectId = undefined
   const globalConfigStore = new GlobalConfigStore()
 
   describe("getAuthToken", () => {

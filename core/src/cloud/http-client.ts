@@ -79,20 +79,9 @@ export class GardenCloudHttpClient {
   private readonly log: Log
 
   public readonly domain: string
-  public readonly projectId: string | undefined
   public readonly distroName: string
 
-  constructor({
-    log,
-    domain,
-    projectId,
-    globalConfigStore,
-  }: {
-    log: Log
-    domain: string
-    projectId: string | undefined
-    globalConfigStore: GlobalConfigStore
-  }) {
+  constructor({ log, domain, globalConfigStore }: { log: Log; domain: string; globalConfigStore: GlobalConfigStore }) {
     this.log = log
     this.domain = domain
     this.distroName = getCloudDistributionName(domain)
