@@ -8,7 +8,7 @@
 
 import ci from "ci-info"
 import { GotHttpError } from "../util/http.js"
-import { CloudApiError, GardenError } from "../exceptions.js"
+import { CloudApiError, ConfigurationError, GardenError } from "../exceptions.js"
 import type { Log } from "../logger/log-entry.js"
 import { gardenEnv } from "../constants.js"
 import { Cookie } from "tough-cookie"
@@ -401,13 +401,30 @@ export class GardenCloudApi {
 
   async get<T>(path: string, opts: ApiFetchOptions = {}) {
     const { headers, retry, retryDescription, maxRetries } = opts
-    return this.httpClient.apiFetch<T>(path, {
+    const res = await this.httpClient.apiFetch<T>(path, {
       method: "GET",
       headers: headers || {},
       retry: retry !== false, // defaults to true unless false is explicitly passed
       retryDescription,
       maxRetries,
     })
+
+    // NOTE: Here we detect that user is trying to use `id` with the new backend.
+    if ("error" in res) {
+      // The API returned status code 200 with an error response, so this is a response from tRPC server. That's an indicator that we're talking to the new backend.
+      throw new ConfigurationError({
+        // TODO(0.14): provide a link to the "connecting to Garden Cloud" section in the 0.14 docs
+        message: dedent`
+        The ${this.distroName} backend at ${this.domain} does not support using the configuration option ${styles.highlight(`id: ${this.projectId}`)} in your project-level configuration.
+
+        To connect this project, remove the ${styles.highlight("id")} setting in the project-level configuration and then run ${styles.command("garden login")}.
+
+        After successfully connecting the project, the setting ${styles.highlight("organizationId")} will be added automatically to your project-level configuration.
+        `,
+      })
+    }
+
+    return res
   }
 
   async delete<T>(path: string, opts: ApiFetchOptions = {}) {
@@ -520,6 +537,7 @@ export class GardenCloudApi {
     }
 
     const res = await this.get<GetProjectResponse>(`/projects/uid/${projectId}`)
+
     const projectData: GetProjectResponse["data"] = res.data
 
     const project = toCloudProject(projectData)

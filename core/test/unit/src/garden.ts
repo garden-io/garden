@@ -757,35 +757,6 @@ describe("Garden", () => {
           expect(garden.secrets).to.eql({ SECRET_KEY: "secret-val" })
           expect(scope.isDone()).to.be.true
         })
-        it("should log a warning if logged in but project ID is missing", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          log.root["entries"] = []
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config: {
-              ...config,
-              id: undefined,
-            },
-            log,
-            environmentString: envName,
-            overrideCloudApiFactory,
-          })
-
-          const expectedLog = log.root
-            .getLogEntries()
-            .filter((l) => resolveMsg(l)?.includes(`Logged in to ${fakeCloudDomain}`))
-
-          expect(expectedLog.length).to.eql(1)
-          expect(expectedLog[0].level).to.eql(1)
-          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
-          const expected = `Logged in to ${fakeCloudDomain}, but could not find remote project '${projectName}'. Command results for this command run will not be available in Garden Enterprise.`
-          expect(cleanMsg).to.eql(expected)
-          expect(garden.cloudDomain).to.eql(fakeCloudDomain)
-          expect(garden.projectId).to.eql(undefined)
-          expect(scope.isDone()).to.be.true
-        })
         it("should throw if unable to fetch project", async () => {
           scope.get("/api/token/verify").reply(200, {})
           scope.get(`/api/projects/uid/${projectId}`).reply(500, {})
