@@ -37,7 +37,7 @@ function makeExpectedValue(payload: Payload): ResultContainer<JsonObject> {
 
 const notFound: ResultContainer<JsonObject> = {
   found: false,
-  notFoundReason: "Not found",
+  notFoundReason: "Not found.",
 }
 
 describe("SimpleLocalFileSystemCacheStorage", () => {
