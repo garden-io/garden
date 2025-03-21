@@ -43,6 +43,23 @@ class GrowCloudCacheError extends CacheStorageError {
   }
 }
 
+type NotFoundReason = "no-result-exists" | "max-result-age-exceeded" | "max-hits-exceeded"
+
+// TODO: return the human-readable message from backend
+export function renderNotFoundReason(reason: NotFoundReason | string): string {
+  if (reason === "no-result-exists") {
+    return "Not Found"
+  }
+  if (reason === "max-result-age-exceeded") {
+    // TODO: add plan details, like "Maximum cache retention of 5 days in the "Free Tier" plan exceeded"
+    return "Maximum cache retention of the plan exceeded"
+  }
+  if (reason === "max-hits-exceeded") {
+    return "Maximum cache hits of the plan exceeded"
+  }
+  return reason
+}
+
 export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
   private readonly log: Log
   private readonly schemaVersion: SchemaVersion
@@ -73,9 +90,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
       const data = response.data
       if (!data.found) {
         this.log.debug(`Got Team Cache V2 miss for key=${cacheKey}`)
-        // TODO-1: render reason to the human-readable form as a quick fix
-        // TODO-2: return human readable string from the backend
-        return { found: false, notFoundReason: data.notFoundReason }
+        return { found: false, notFoundReason: renderNotFoundReason(data.notFoundReason) }
       }
 
       return { found: true, result: data.result as JsonObject }
