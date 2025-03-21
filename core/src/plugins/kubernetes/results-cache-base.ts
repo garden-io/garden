@@ -178,7 +178,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
       }
 
       log.verbose(`Error getting results cache entry for key=${key}: ${e.describe()}`)
-      return { found: false, notFoundReason: "Unexpected error occurred, see the logs for the details" }
+      return { found: false, notFoundReason: "Unexpected error occurred, see the logs for the details." }
     }
 
     if (!cachedValue.found) {
@@ -187,7 +187,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
 
     const validatedResult = this.validateResult(cachedValue.result, log)
     if (validatedResult === undefined) {
-      return { found: false, notFoundReason: "Unexpected error occurred, see the logs for the details" }
+      return { found: false, notFoundReason: "Unexpected error occurred, see the logs for the details." }
     }
 
     return { found: true, result: validatedResult }

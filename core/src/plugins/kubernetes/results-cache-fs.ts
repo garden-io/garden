@@ -97,7 +97,7 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
 
       if (err.code === "ENOENT") {
         this.log.debug(`Got cache miss for file ${filePath}`)
-        return { found: false, notFoundReason: "Not found" }
+        return { found: false, notFoundReason: "Not found." }
       }
 
       throw new LocalFileSystemCacheError({
