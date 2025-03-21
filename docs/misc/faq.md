@@ -30,7 +30,7 @@ You can also use the `disabled` field to disable actions.
 
 ### When should I use the action-level `include`/`exclude` fields? How are they different from the project-level `scan.include`/`scan.exclude` fields? What about ignore files?
 
-Read all about it in [this section](../config-guides/include-exclude.md) of our docs.
+Read all about it in [this section](../guides/include-exclude.md) of our docs.
 
 ### How do I share a single service (like a database) across multiple namespaces?
 

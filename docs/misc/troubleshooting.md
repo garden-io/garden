@@ -27,7 +27,7 @@ This happens because Azure with [RBAC enabled](https://docs.microsoft.com/en-us/
 
 This issue often comes up on Linux, and in other scenarios where the filesystem doesn't support event-based file watching.
 
-Thankfully, you can in most cases avoid this problem using the `scan.exclude` field in your project config, and/or the `exclude` field in your individual action and module configs. See the [Including/excluding files and directories](../config-guides/include-exclude.md) section in our Configuration Files guide for details.
+Thankfully, you can in most cases avoid this problem using the `scan.exclude` field in your project config, and/or the `exclude` field in your individual action and module configs. See the [Including/excluding files and directories](../guides/include-exclude.md) section in our Configuration Files guide for details.
 
 ### I'm getting an "EPERM: operation not permitted, rename..." error on Windows.
 
@@ -44,7 +44,7 @@ or `set -g default-terminal "tmux-256color"` to your `~/.tmux.conf` file.
 
 ### Garden hangs after resolving providers.
 
-This could be because Garden is scanning the project files. Make sure you exclude things like `node_modules` or other large vendor directories. See this [section of our docs](../config-guides/include-exclude.md).
+This could be because Garden is scanning the project files. Make sure you exclude things like `node_modules` or other large vendor directories. See this [section of our docs](../guides/include-exclude.md).
 
 ### Ingress not working for `helm` and `kubernetes` modules.
 
@@ -65,12 +65,12 @@ This is likely because they're being excluded somewhere, e.g. in `.gitignore` or
 {% hint style="warning" %}
 Prior to Garden 0.13.0, `.gitignore` files were respected by default.
 In Garden 0.13.0 that behaviour was changed.
-Now it's possible to only specify a [single ".ignore" file](../config-guides/include-exclude.md)
+Now it's possible to only specify a [single ".ignore" file](../guides/include-exclude.md)
 in the [project-level configuration](../reference/project-config.md#dotIgnoreFile).
 {% endhint %}
 
-Please check your [dotIgnoreFile(s) configuration](../config-guides/include-exclude.md)
-and the [project-level file exclusions](../config-guides/include-exclude.md).
+Please check your [dotIgnoreFile(s) configuration](../guides/include-exclude.md)
+and the [project-level file exclusions](../guides/include-exclude.md).
 
 ### `ErrImagePull` when referencing an image from a `container` module in a `helm` module.
 

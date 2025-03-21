@@ -64,7 +64,7 @@ type: container
 name: my-container
 ```
 
-If you have a `Dockerfile` in the same directory as this file, this is enough to tell Garden to build it. However, you can override the `Dockerfile` name or path by specifying `spec.dockerfile: <path-to-Dockerfile>`. You might also want to explicitly [include or exclude](../../config-guides/include-exclude.md) files in the build context.
+If you have a `Dockerfile` in the same directory as this file, this is enough to tell Garden to build it. However, you can override the `Dockerfile` name or path by specifying `spec.dockerfile: <path-to-Dockerfile>`. You might also want to explicitly [include or exclude](../../guides/include-exclude.md) files in the build context.
 
 ### Setting build arguments
 
