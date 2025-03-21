@@ -204,27 +204,22 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     throw error
   }
 
-  // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
-  // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to clean up any
-  // dangling annotations created by Garden Cloud.
-  if (ctx.cloudApi) {
-    try {
-      const pausedResources = await getPausedResources({ ctx: k8sCtx, action, namespace, releaseName, log })
-      await Promise.all(
-        pausedResources.map((resource) => {
-          const { annotations } = resource.metadata
-          if (annotations) {
-            delete annotations[gardenCloudAECPauseAnnotation]
-            return api.annotateResource({ log, resource, annotations })
-          }
-          return
-        })
-      )
-    } catch (error) {
-      const errorMsg = `Failed to remove Garden Cloud AEC annotations for deploy: ${action.name}.`
-      log.warn(errorMsg)
-      log.debug({ error: toGardenError(error) })
-    }
+  try {
+    const pausedResources = await getPausedResources({ ctx: k8sCtx, action, namespace, releaseName, log })
+    await Promise.all(
+      pausedResources.map((resource) => {
+        const { annotations } = resource.metadata
+        if (annotations) {
+          delete annotations[gardenCloudAECPauseAnnotation]
+          return api.annotateResource({ log, resource, annotations })
+        }
+        return
+      })
+    )
+  } catch (error) {
+    const errorMsg = `Failed to remove Garden Cloud AEC annotations for deploy: ${action.name}.`
+    log.warn(errorMsg)
+    log.debug({ error: toGardenError(error) })
   }
 
   //create or upsert configmap with garden metadata
