@@ -506,16 +506,16 @@ export class AnalyticsHandler {
     const providerConfigs = await garden.getRawProviderConfigs()
     const log = garden.log
 
-    let cloudUser: UserResult | undefined
-    let cloudProject: CloudProject | undefined
+    let oldBackendCloudUser: UserResult | undefined
+    let oldBackendCloudProject: CloudProject | undefined
     if (garden.isOldBackendAvailable()) {
       try {
-        cloudUser = await garden.cloudApi.getProfile()
+        oldBackendCloudUser = await garden.cloudApi.getProfile()
       } catch (err) {
         log.debug(`Getting profile from API failed with error: ${err}`)
       }
       try {
-        cloudProject =
+        oldBackendCloudProject =
           garden.projectId === undefined ? undefined : await garden.cloudApi.getProjectById(garden.projectId)
       } catch (err) {
         log.debug(`Getting project from API failed with error: ${err}`)
@@ -536,7 +536,7 @@ export class AnalyticsHandler {
     // The order of preference is important here, hence the awkward if statements.
     if (gardenEnv.GARDEN_DISABLE_ANALYTICS) {
       isEnabled = false
-    } else if (cloudUser) {
+    } else if (oldBackendCloudUser) {
       isEnabled = true
     } else if (currentAnalyticsConfig?.optedOut === true) {
       isEnabled = false
@@ -555,7 +555,7 @@ export class AnalyticsHandler {
       latestRunAt,
       optedOut: currentAnalyticsConfig?.optedOut,
       cloudVersion: currentAnalyticsConfig?.cloudVersion,
-      cloudProfileEnabled: !!cloudUser,
+      cloudProfileEnabled: isEnabled && !!oldBackendCloudUser,
     }
 
     await garden.globalConfigStore.set("analytics", analyticsConfig)
@@ -568,8 +568,8 @@ export class AnalyticsHandler {
       moduleConfigs,
       actionConfigs,
       providerConfigs,
-      cloudUser,
-      cloudProject,
+      cloudUser: oldBackendCloudUser,
+      cloudProject: oldBackendCloudProject,
       isEnabled,
       ciInfo,
       anonymousUserId,

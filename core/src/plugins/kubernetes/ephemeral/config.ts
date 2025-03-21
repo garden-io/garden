@@ -23,7 +23,6 @@ import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { defaultSystemNamespace } from "../constants.js"
 import { styles } from "../../../logger/styles.js"
-import { isGardenCommunityEdition } from "../../../cloud/util.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export type EphemeralKubernetesClusterType = "ephemeral"
@@ -59,11 +58,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       )} command to use the ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} plugin`,
     })
   }
-  if (ctx.cloudApi && !isGardenCommunityEdition(ctx.cloudApi.domain)) {
-    throw new ConfigurationError({
-      message: `${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider is currently not supported for ${ctx.cloudApi.distroName}.`,
-    })
-  }
+  // TODO(0.14): remove ephemeral kubernetes provider
 
   // creating tmp dir .garden/ephemeral-kubernetes for storing kubeconfig
   const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")

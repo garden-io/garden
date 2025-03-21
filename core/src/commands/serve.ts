@@ -163,8 +163,8 @@ export class ServeCommand<
       const cloudApi = defaultGarden.cloudApi
       const effectiveGardenProjectConfig = defaultGarden.getProjectConfig()
 
+      let projectId = effectiveGardenProjectConfig.id
       try {
-        let projectId = effectiveGardenProjectConfig.id
         if (!projectId) {
           const cloudProject = await cloudApi.getProjectByName(effectiveGardenProjectConfig.name)
           projectId = cloudProject?.id

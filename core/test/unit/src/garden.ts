@@ -56,7 +56,7 @@ import { cloneDeep, keyBy, mapValues, omit, set } from "lodash-es"
 import { joi } from "../../../src/config/common.js"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs.js"
 import fsExtra from "fs-extra"
-import { dedent, deline, randomString, wordWrap } from "../../../src/util/string.js"
+import { dedent, randomString } from "../../../src/util/string.js"
 import { addLinkedSources, getLinkedSources } from "../../../src/util/ext-source-util.js"
 import { dump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs.js"
@@ -669,7 +669,13 @@ describe("Garden", () => {
           refreshToken: "fake-refresh-token",
           validity: add(new Date(), { seconds: validityMs / 1000 }),
         })
-        return GardenCloudApi.factory({ log, cloudDomain: domain, globalConfigStore })
+        return GardenCloudApi.factory({
+          log,
+          cloudDomain: domain,
+          projectId: "foo-",
+          organizationId: undefined,
+          globalConfigStore,
+        })
       }
 
       before(async () => {
@@ -681,8 +687,7 @@ describe("Garden", () => {
         nock.cleanAll()
       })
 
-      // This means the logged in user is on a commerical edition
-      context("domain is set", () => {
+      context("projectId is set (Use Backend V1)", () => {
         const fakeCloudDomain = "https://example.com"
         const scope = nock(fakeCloudDomain)
         const projectId = uuidv4()
@@ -750,35 +755,6 @@ describe("Garden", () => {
           })
 
           expect(garden.secrets).to.eql({ SECRET_KEY: "secret-val" })
-          expect(scope.isDone()).to.be.true
-        })
-        it("should log a warning if logged in but project ID is missing", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          log.root["entries"] = []
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config: {
-              ...config,
-              id: undefined,
-            },
-            log,
-            environmentString: envName,
-            overrideCloudApiFactory,
-          })
-
-          const expectedLog = log.root
-            .getLogEntries()
-            .filter((l) => resolveMsg(l)?.includes(`Logged in to ${fakeCloudDomain}`))
-
-          expect(expectedLog.length).to.eql(1)
-          expect(expectedLog[0].level).to.eql(1)
-          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
-          const expected = `Logged in to ${fakeCloudDomain}, but could not find remote project '${projectName}'. Command results for this command run will not be available in Garden Enterprise.`
-          expect(cleanMsg).to.eql(expected)
-          expect(garden.cloudDomain).to.eql(fakeCloudDomain)
-          expect(garden.projectId).to.eql(undefined)
           expect(scope.isDone()).to.be.true
         })
         it("should throw if unable to fetch project", async () => {
@@ -854,149 +830,12 @@ describe("Garden", () => {
           `)
           expect(error).to.exist
           expect(error!.message).to.eql("Response code 404 (Not Found)")
-          expect(scope.isDone()).to.be.true
+          expect(scope.isDone(), "not all APIs have been called").to.be.true
         })
       })
 
-      // This means the logged in user is on the community edition
-      context("domain is NOT set", () => {
-        const scope = nock(DEFAULT_GARDEN_CLOUD_DOMAIN)
-        const projectId = uuidv4()
-        const projectName = "test"
-        const envName = "default"
-        const cloudProject: ProjectResult = {
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          relativePathInRepo: "",
-          status: ProjectStatus.Connected,
-          id: projectId,
-          name: projectName,
-          repositoryUrl: "",
-          organization: {
-            id: uuidv4(),
-            name: "test",
-          },
-          environments: [
-            {
-              id: uuidv4(),
-              name: envName,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              projectId,
-            },
-          ],
-        }
-        const config: ProjectConfig = createProjectConfig({
-          name: projectName,
-          path: pathFoo,
-        })
-
-        it("should use the community dashboard domain", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects?name=test&exactMatch=true`).reply(200, { data: [cloudProject] })
-          scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config,
-            environmentString: envName,
-            overrideCloudApiFactory,
-          })
-
-          expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
-          expect(garden.projectId).to.eql(projectId)
-          expect(scope.isDone()).to.be.true
-        })
-        it("should throw if project ID is set in config", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
-
-          let error: Error | undefined
-          try {
-            await TestGarden.factory(pathFoo, {
-              config: {
-                ...config,
-                id: uuidv4(), // <--- ID is set when it shouldn't
-              },
-              environmentString: envName,
-              overrideCloudApiFactory,
-            })
-          } catch (err) {
-            if (err instanceof Error) {
-              error = err
-            }
-          }
-
-          expect(error).to.exist
-          const expected = wordWrap(
-            deline`
-              Invalid field 'id' found in project configuration at path tmp. The 'id'
-              field should only be set if using a commercial edition of Garden. Please remove to continue
-              using the Garden community edition.
-            `,
-            120
-          )
-          expect(error!.message).to.eql(expected)
-          expect(scope.isDone()).to.be.true
-        })
-        it("should throw if unable to fetch or create project", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects?name=test&exactMatch=true`).reply(500, {})
-          log.root["entries"] = []
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
-
-          let error: Error | undefined
-          try {
-            await TestGarden.factory(pathFoo, {
-              config,
-              environmentString: envName,
-              overrideCloudApiFactory,
-              log,
-            })
-          } catch (err) {
-            if (err instanceof Error) {
-              error = err
-            }
-          }
-
-          const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`failed with error`))
-
-          expect(expectedLog.length).to.eql(1)
-          expect(expectedLog[0].level).to.eql(0)
-          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
-          expect(cleanMsg).to.eql(
-            `Fetching or creating project ${projectName} from ${DEFAULT_GARDEN_CLOUD_DOMAIN} failed with error: Error: Failed to find Garden Cloud project by name: HTTPError: Response code 500 (Internal Server Error)`
-          )
-          expect(error).to.exist
-          expect(error!.message).to.eql(
-            "Failed to find Garden Cloud project by name: HTTPError: Response code 500 (Internal Server Error)"
-          )
-          expect(scope.isDone()).to.be.true
-        })
-        it("should not fetch secrets", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects?name=test&exactMatch=true`).reply(200, { data: [cloudProject] })
-          scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
-          scope
-            .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
-            .reply(200, { data: { SECRET_KEY: "secret-val" } })
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config,
-            environmentString: envName,
-            overrideCloudApiFactory,
-          })
-
-          expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
-          expect(garden.projectId).to.eql(projectId)
-          expect(garden.secrets).to.eql({})
-          expect(scope.isDone()).to.be.false // <--- False because the secret endpoint isn't called
-        })
+      context("projectId is NOT set (Use backend V2)", () => {
+        // TODO(0.14): Add tests for the Backend V2
       })
     })
   })

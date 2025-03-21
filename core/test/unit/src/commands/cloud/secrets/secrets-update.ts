@@ -14,8 +14,9 @@ import {
   getSecretsToUpdateByName,
 } from "../../../../../../src/commands/cloud/secrets/secrets-update.js"
 import { deline } from "../../../../../../src/util/string.js"
-import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
+import { createProjectConfig, expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
 import type { Secret, SingleUpdateSecretRequest } from "../../../../../../src/cloud/api.js"
+import { FakeGardenCloudApi } from "../../../../../helpers/api.js"
 
 describe("SecretsUpdateCommand", () => {
   const projectRoot = getDataDir("test-project-b")
@@ -68,8 +69,31 @@ describe("SecretsUpdateCommand", () => {
     },
   ]
 
+  it("should throw an error when using the backend v2 as secrets are not supported", async () => {
+    const garden = await makeTestGarden(projectRoot, { config: createProjectConfig({ organizationId: "fake-org-id" }) })
+    const log = garden.log
+    const command = new SecretsUpdateCommand()
+
+    await expectError(
+      () =>
+        command.action({
+          garden,
+          log,
+          args: { secretNamesOrIds: undefined },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          opts: {} as any,
+        }),
+      (err) => {
+        expect(err.message).to.include("This version of Garden does not support secrets")
+      }
+    )
+  })
+
   it("should throw an error when run without arguments", async () => {
-    const garden = await makeTestGarden(projectRoot)
+    const garden = await makeTestGarden(projectRoot, {
+      config: createProjectConfig({ id: "fake-project-id" }),
+      overrideCloudApiFactory: FakeGardenCloudApi.factory,
+    })
     const log = garden.log
     const command = new SecretsUpdateCommand()
 

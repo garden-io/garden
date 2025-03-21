@@ -38,7 +38,6 @@ import { mkdtemp, readFile } from "fs/promises"
 import type { DockerBuildReport } from "../../cloud/grow/trpc.js"
 import type { ActionRuntime } from "../../plugin/base.js"
 import { formatDuration, intervalToDuration } from "date-fns"
-import { gardenEnv } from "../../constants.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -267,7 +266,7 @@ async function buildxBuildContainer({
     }
   } finally {
     let timeSaved = 0
-    if (gardenEnv.USE_GARDEN_CLOUD_V2) {
+    if (ctx.cloudApiV2) {
       const output = await sendBuildReport({
         metadataFile,
         cmdOpts,
@@ -283,7 +282,7 @@ async function buildxBuildContainer({
 
     if (buildError !== null) {
       throw new BuildError({
-        message: dockerErrorLogs.join("\n") || buildError.message,
+        message: `docker build failed: ${dockerErrorLogs.join("\n") || buildError.message}`,
       })
     }
     return { buildResult: res, timeSaved }
