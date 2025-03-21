@@ -69,7 +69,7 @@ export const mochaHooks = {
   beforeEach() {
     // Init globally stored project-level apiVersion, assuming garden.io/v1 for 0.13.
     // TODO(0.14): Remove global project apiVersion?
-    setProjectApiVersion({ apiVersion: GardenApiVersion.v1 }, log)
+    setProjectApiVersion({ apiVersion: GardenApiVersion.v1, configPath: "project.garden.yml" }, log)
   },
 
   afterEach() {

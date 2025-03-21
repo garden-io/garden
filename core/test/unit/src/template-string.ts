@@ -58,7 +58,7 @@ describe("parse and evaluate template strings with apiVersion: garden.io/v2", ()
   const log = RootLogger.getInstance().createLog()
 
   beforeEach(() => {
-    setProjectApiVersion({ apiVersion: GardenApiVersion.v2 }, log)
+    setProjectApiVersion({ apiVersion: GardenApiVersion.v2, configPath: "project.garden.yml" }, log)
   })
 
   describe("should resolve ? suffix as a regular character", () => {
