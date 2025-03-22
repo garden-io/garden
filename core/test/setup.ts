@@ -16,8 +16,7 @@ import { initTestLogger, testProjectTempDirs } from "./helpers.js"
 import mocha from "mocha"
 import sourceMapSupport from "source-map-support"
 import { UnresolvedTemplateValue } from "../src/template/types.js"
-import { setProjectApiVersion } from "../src/project-api-version.js"
-import { RootLogger } from "../src/logger/logger.js"
+import { setGloablProjectApiVersion } from "../src/project-api-version.js"
 
 sourceMapSupport.install()
 
@@ -48,8 +47,6 @@ mocha.utils.canonicalize = function (value, stack, typeHint) {
   return origCanonicalize(value, stack, typeHint)
 }
 
-const log = RootLogger.getInstance().createLog()
-
 // Global hooks
 export const mochaHooks = {
   async beforeAll() {
@@ -67,8 +64,8 @@ export const mochaHooks = {
   },
 
   beforeEach() {
-    // before running any test, let's reset the project API version to v2 (that's the baseline for all tests as it is the only supported apiversion for now)
-    setProjectApiVersion({ apiVersion: GardenApiVersion.v2, configPath: "project.garden.yml" }, log)
+    // Init globally stored project-level apiVersion, assuming garden.io/v2 for 0.14.
+    setGloablProjectApiVersion(GardenApiVersion.v2)
   },
 
   afterEach() {

@@ -6,21 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 import { GardenApiVersion } from "./constants.js"
-import { ConfigurationError, InternalError, RuntimeError } from "./exceptions.js"
+import { ConfigurationError, InternalError } from "./exceptions.js"
 import type { ProjectConfig } from "./config/project.js"
-import type { Log } from "./logger/log-entry.js"
 
 let projectApiVersionGlobal: GardenApiVersion | undefined
 
-export function getProjectApiVersion(): GardenApiVersion {
+export function getGlobalProjectApiVersion(): GardenApiVersion {
   if (!projectApiVersionGlobal) {
-    throw new RuntimeError({ message: "apiVersion is not defined" })
+    throw new InternalError({ message: "apiVersion is not defined" })
   }
   return projectApiVersionGlobal
 }
 
-export function setProjectApiVersion(projectConfig: ApiVersionConfig, log: Log) {
-  projectApiVersionGlobal = resolveApiVersion(projectConfig, log)
+export function setGloablProjectApiVersion(apiVersion: GardenApiVersion) {
+  projectApiVersionGlobal = apiVersion
 }
 
 const gardenVersionMap: Record<GardenApiVersion, string> = {
@@ -28,9 +27,8 @@ const gardenVersionMap: Record<GardenApiVersion, string> = {
   [GardenApiVersion.v1]: "0.13 (Bonsai)",
   [GardenApiVersion.v2]: "0.14 (Cedar)",
 }
-type ApiVersionConfig = Pick<ProjectConfig, "apiVersion" | "configPath">
 
-export function resolveApiVersion(projectSpec: ApiVersionConfig, _log: Log): GardenApiVersion {
+export function resolveApiVersion(projectSpec: ProjectConfig): GardenApiVersion {
   const projectApiVersion = projectSpec.apiVersion || GardenApiVersion.v0
 
   if (projectApiVersion !== GardenApiVersion.v2) {

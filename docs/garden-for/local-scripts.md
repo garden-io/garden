@@ -1,5 +1,5 @@
 ---
-title: Local scripts
+title: Local Scripts
 order: 5
 ---
 

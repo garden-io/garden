@@ -1,7 +1,11 @@
 ---
-title: Deploy K8s resources
+title: Deploying K8s Resources
 order: 5
 ---
+
+{% hint style="info" %}
+To use Garden to deploy a K8s resource you need to configure the [remote](./remote-kubernetes.md) or [local](./local-kubernetes.md) Kubernetes providers.
+{% endhint %}
 
 You can deploy Kubernetes resources with the `kubernetes` Deploy action.
 

@@ -1,6 +1,6 @@
 ---
+title: Using Terraform
 order: 1
-title: Configure Terraform
 ---
 
 First off, you need to enable the provider in your project configuration. This is as simple as placing it in your list of providers:

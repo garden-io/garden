@@ -32,7 +32,7 @@ Garden's powerful templating engine ensures that namespaces and hostnames are un
 ## Key features
 
 - **View URLs**, logs, and command history with the [Garden dashboard](https://app.garden.io)
-- **Accelerate build times** with remote image builds and smart caching
+- **Accelerate build times** with [Garden's Remote Container Builder](../../garden-for/containers/building-containers.md) and smart caching
 - **Isolate environments** with [Garden's template syntax](../../config-guides/variables-and-templating.md)
 
 ## How can my team get on-demand preview environments?
@@ -45,7 +45,7 @@ So with that in mind, these are the recommended next steps:
 - Check out the [First Project tutorial](../../tutorials/README.md) and/or [accompanying video](https://youtu.be/0y5E8K-8kr4)
 - [Set up your remote cluster](../../garden-for/kubernetes/remote-kubernetes.md)
 - [Add actions](../../garden-for/kubernetes/README.md) to build and deploy your project
-- Follow our guide on [environments and namespaces](../../config-guides/namespaces.md) to ensure each preview environment is isolated
+- Follow our guide on [environments and namespaces](../../guides/namespaces.md) to ensure each preview environment is isolated
 
 {% hint style="info" %}
 Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.

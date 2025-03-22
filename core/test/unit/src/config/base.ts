@@ -10,24 +10,20 @@ import { expect } from "chai"
 import {
   loadConfigResources,
   findProjectConfig,
-  prepareProjectResource,
   noTemplateFields,
   validateRawConfig,
   configTemplateKind,
   loadAndValidateYaml,
 } from "../../../../src/config/base.js"
 import { resolve, join } from "path"
-import { expectError, expectFuzzyMatch, getDataDir, getDefaultProjectConfig } from "../../../helpers.js"
+import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
 import { safeDumpYaml } from "../../../../src/util/serialization.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
-import { resetNonRepeatableWarningHistory } from "../../../../src/warnings.js"
 import { omit } from "lodash-es"
 import { dedent } from "../../../../src/util/string.js"
 import { omitInternal } from "../../../../src/garden.js"
 import { serialiseUnresolvedTemplates } from "../../../../src/template/types.js"
-import stripAnsi from "strip-ansi"
-import { DOCS_DEPRECATION_GUIDE } from "../../../../src/util/deprecations.js"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -39,113 +35,6 @@ const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-
 const projectPathMultipleProjects = getDataDir("test-project-multiple-project-configs")
 const logger = getRootLogger()
 const log = logger.createLog()
-
-describe("prepareProjectResource", () => {
-  const projectResourceTemplate = {
-    apiVersion: GardenApiVersion.v2,
-    kind: "Project",
-    name: "test",
-    path: "/tmp/", // the path does not matter in this test suite
-    defaultEnvironment: "default",
-    environments: [{ name: "default", defaultNamespace: null, variables: {} }],
-    providers: [{ name: "foo" }],
-    variables: {},
-  }
-
-  beforeEach(() => {
-    // we reset the non repeatable warning before each test to make sure that a
-    // previously displayed warning is logged in all tests
-    resetNonRepeatableWarningHistory()
-  })
-
-  it("no changes if new `dotIgnoreFile` field is provided explicitly", () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      dotIgnoreFile: ".somedotignore",
-    }
-
-    const migratedProjectResource = prepareProjectResource(log, projectResource)
-    expect(migratedProjectResource).to.eql(projectResource)
-  })
-
-  it("no changes if neither new `dotIgnoreFile` nor `dotIgnoreFiles` fields are defined in the project config", () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-    }
-
-    const migratedProjectResource = prepareProjectResource(log, projectResource)
-    expect(migratedProjectResource).to.eql(projectResource)
-  })
-
-  it("should fall back to the previous apiVersion when not defined", async () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      apiVersion: undefined,
-    }
-
-    const returnedProjectResource = prepareProjectResource(log, projectResource)
-
-    // The apiVersion is set to the previous version for backwards compatibility.
-    const expectedProjectResource = {
-      ...projectResource,
-      apiVersion: GardenApiVersion.v0,
-    }
-    expect(returnedProjectResource).to.eql(expectedProjectResource)
-
-    const logEntry = log.getLatestEntry()
-    expect(logEntry.msg).to.include(`"apiVersion" is missing in the Project config`)
-  })
-
-  it("should log a warning if the apiVersion is garden.io/v0", async () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      apiVersion: GardenApiVersion.v0,
-    }
-
-    const returnedProjectResource = prepareProjectResource(log, projectResource)
-    expect(returnedProjectResource).to.eql(projectResource)
-
-    const logEntry = log.getLatestEntry()
-    const sanitizedMsg = stripAnsi((logEntry.msg as string) || "")
-    const expectedMessages = [
-      "WARNING:",
-      `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${DOCS_DEPRECATION_GUIDE}`,
-    ]
-    expectFuzzyMatch(sanitizedMsg, expectedMessages)
-  })
-  it("should log a warning if the apiVersion is garden.io/v1", async () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      apiVersion: GardenApiVersion.v2,
-    }
-
-    const returnedProjectResource = prepareProjectResource(log, projectResource)
-    expect(returnedProjectResource).to.eql(projectResource)
-
-    const logEntry = log.getLatestEntry()
-    const sanitizedMsg = stripAnsi((logEntry.msg as string) || "")
-    const expectedMessages = [
-      "WARNING:",
-      `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${DOCS_DEPRECATION_GUIDE}`,
-    ]
-    expectFuzzyMatch(sanitizedMsg, expectedMessages)
-  })
-  it("should not log a warning if the apiVersion is garden.io/v2", async () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      apiVersion: GardenApiVersion.v2,
-    }
-
-    const latestBefore = log.getLatestEntry()
-    const returnedProjectResource = prepareProjectResource(log, projectResource)
-    const latestAfter = log.getLatestEntry()
-
-    expect(returnedProjectResource).to.eql(projectResource)
-
-    // Expect that we didn't print a warning
-    expect(latestBefore).to.equal(latestAfter)
-  })
-})
 
 describe("loadConfigResources", () => {
   it("should throw a config error if the file couldn't be parsed", async () => {

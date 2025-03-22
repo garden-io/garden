@@ -1,4 +1,4 @@
 ---
-title: Configuration Guides
+title: Features
 order: 9
 ---

@@ -265,7 +265,6 @@ const hadolintTest = provider.createActionType({
 
 hadolintTest.addHandler("configure", async ({ ctx, config, log }) => {
   reportDeprecatedFeatureUsage({
-    apiVersion: ctx.projectApiVersion,
     log,
     deprecation: "hadolintPlugin",
   })

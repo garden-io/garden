@@ -1,5 +1,5 @@
 ---
-title: Configure remote Kubernetes
+title: Using Remote Kubernetes
 order: 2
 ---
 

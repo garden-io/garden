@@ -283,7 +283,6 @@ export const gardenPlugin = () =>
           handlers: <TestActionHandlers<TestAction<ConftestHelmTestConfig>>>{
             configure: async ({ ctx, config, log }) => {
               reportDeprecatedFeatureUsage({
-                apiVersion: ctx.projectApiVersion,
                 log,
                 deprecation: "conftestPlugin",
               })
