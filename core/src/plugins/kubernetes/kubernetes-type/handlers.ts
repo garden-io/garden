@@ -42,6 +42,7 @@ import type { ResolvedDeployAction } from "../../../actions/deploy.js"
 import { isSha256 } from "../../../util/hashing.js"
 import { prepareSecrets } from "../secrets.js"
 import { GardenApiVersion } from "../../../constants.js"
+import { getGlobalProjectApiVersion } from "../../../project-api-version.js"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -61,7 +62,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const files = module.spec.files || []
     const manifests = module.spec.manifests || []
 
-    const apiVersion = ctx.projectApiVersion
+    const apiVersion = getGlobalProjectApiVersion()
     let fileSources: KubernetesDeployActionSpecFileSources
     if (apiVersion === GardenApiVersion.v2) {
       fileSources = {

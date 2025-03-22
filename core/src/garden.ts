@@ -226,7 +226,6 @@ export interface GardenParams {
   outputs: OutputSpec[]
   plugins: RegisterPluginParam[]
   production: boolean
-  projectApiVersion: ProjectConfig["apiVersion"]
   projectConfig: ProjectConfig
   projectName: string
   projectRoot: string
@@ -263,7 +262,7 @@ type GardenType = typeof Garden.prototype
 export type GardenWithOldBackend = GardenType & Required<Pick<GardenType, "cloudApi">>
 
 function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
-  const projectApiVersion = params.projectApiVersion
+  const projectApiVersion = params.projectConfig.apiVersion
 
   const builtinPlugins = getBuiltinPlugins(projectApiVersion)
   const customPlugins = params.plugins
@@ -311,7 +310,6 @@ export class Garden {
   public readonly production: boolean
   public readonly projectRoot: string
   public readonly projectName: string
-  public readonly projectApiVersion: GardenApiVersion
   public readonly environmentName: string
   /**
    * The resolved default namespace as defined in the Project config for the current environment.
@@ -373,7 +371,6 @@ export class Garden {
     this.projectName = params.projectName
     this.projectRoot = params.projectRoot
     this.projectSources = params.projectSources || []
-    this.projectApiVersion = params.projectApiVersion
     this.providerConfigs = params.providerConfigs
     this.variables = params.variables
     this.variableOverrides = params.variableOverrides
@@ -2227,7 +2224,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       forceRefresh: opts.forceRefresh,
       cache: treeCache,
-      projectApiVersion: getGlobalProjectApiVersion(),
     }
   })
 })

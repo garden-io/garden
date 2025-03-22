@@ -34,7 +34,6 @@ import type { BaseNamespaceStatus } from "./types/namespace.js"
 
 export type WrappedFromGarden = Pick<
   Garden,
-  | "projectApiVersion"
   | "projectName"
   | "projectRoot"
   | "gardenDirPath"
@@ -95,7 +94,6 @@ export const pluginContextSchema = createSchema({
       .default(false)
       .description("Indicate if the current environment is a production environment.")
       .example(true),
-    projectApiVersion: projectApiVersionSchema(),
     projectName: projectNameSchema(),
     projectId: joi.string().optional().description("The unique ID of the current project."),
     projectRoot: joi.string().description("The absolute path of the project root."),
@@ -239,7 +237,6 @@ export async function createPluginContext({
     namespace: garden.namespace,
     gardenDirPath: garden.gardenDirPath,
     log: garden.log,
-    projectApiVersion: garden.projectApiVersion,
     projectName: garden.projectName,
     projectRoot: garden.projectRoot,
     projectSources: garden.getProjectSources(),
