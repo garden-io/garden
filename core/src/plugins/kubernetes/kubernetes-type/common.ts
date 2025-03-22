@@ -31,7 +31,6 @@ import pFilter from "p-filter"
 import { kubectl } from "../kubectl.js"
 import { loadAndValidateYaml } from "../../../config/base.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
-import { getProjectApiVersion } from "../../../project-api-version.js"
 import type { ActionReference } from "../../../config/common.js"
 
 const { pathExists, readFile } = fsExtra
@@ -409,7 +408,7 @@ export function getSpecFiles({
   fileSources: KubernetesDeployActionSpecFileSources
 }): { files: string[]; manifestFiles: string[]; manifestTemplates: string[] } {
   if (files.length > 0) {
-    reportDeprecatedFeatureUsage({ apiVersion: getProjectApiVersion(), log, deprecation: "kubernetesActionSpecFiles" })
+    reportDeprecatedFeatureUsage({ log, deprecation: "kubernetesActionSpecFiles" })
   }
 
   return { files, manifestTemplates, manifestFiles }
