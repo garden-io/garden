@@ -175,7 +175,7 @@ import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
 import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
-import { getProjectApiVersion, setProjectApiVersion } from "./project-api-version.js"
+import { getGlobalProjectApiVersion, resolveApiVersion } from "./project-api-version.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -422,7 +422,6 @@ export class Garden {
       params.opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : params.opts.legacyBuildSync
     if (legacyBuildSync) {
       reportDeprecatedFeatureUsage({
-        apiVersion: params.projectApiVersion,
         log: params.log,
         deprecation: "rsyncBuildStaging",
       })
@@ -1919,7 +1918,8 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     }
   }
 
-  setProjectApiVersion(config, log)
+  const apiVersion = resolveApiVersion(config, log)
+  config.apiVersion = apiVersion
 
   gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
   const artifactsPath = resolve(gardenDirPath, "artifacts")
@@ -2238,7 +2238,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       forceRefresh: opts.forceRefresh,
       cache: treeCache,
-      projectApiVersion: getProjectApiVersion(),
+      projectApiVersion: getGlobalProjectApiVersion(),
     }
   })
 })

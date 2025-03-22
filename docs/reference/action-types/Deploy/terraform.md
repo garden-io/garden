@@ -252,10 +252,6 @@ Whether the varfile is optional.
 
 ### `build`
 
-{% hint style="warning" %}
-**Deprecated**: Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
-{% endhint %}
-
 Specify a _Build_ action, and resolve this action from the context of that Build.
 
 For example, you might create an `exec` Build which prepares some manifests, and then reference that in a `kubernetes` _Deploy_ action, and the resulting manifests from the Build.

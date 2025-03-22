@@ -344,14 +344,12 @@ function isContainerBuilderEnabled({
   ctx: PluginContext
   containerProviderConfig: ContainerProviderConfig
 }) {
-  const apiVersion = ctx.projectApiVersion
-
   if (containerProviderConfig.gardenCloudBuilder !== undefined) {
-    reportDeprecatedFeatureUsage({ apiVersion, log: ctx.log, deprecation: "gardenCloudBuilder" })
+    reportDeprecatedFeatureUsage({ log: ctx.log, deprecation: "gardenCloudBuilder" })
   }
 
   if (gardenEnv.GARDEN_CLOUD_BUILDER !== undefined) {
-    reportDeprecatedFeatureUsage({ apiVersion, log: ctx.log, deprecation: "gardenCloudBuilderEnvVar" })
+    reportDeprecatedFeatureUsage({ log: ctx.log, deprecation: "gardenCloudBuilderEnvVar" })
   }
 
   if (!!containerProviderConfig.gardenContainerBuilder && !!containerProviderConfig.gardenCloudBuilder) {

@@ -19,7 +19,7 @@ import type { Branch } from "./analysis.js"
 import { TemplateStringError, truncateRawTemplateString } from "./errors.js"
 import { styles } from "../logger/styles.js"
 import { GardenApiVersion } from "../constants.js"
-import { getProjectApiVersion } from "../project-api-version.js"
+import { getGlobalProjectApiVersion } from "../project-api-version.js"
 import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 import { RootLogger } from "../logger/logger.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
@@ -527,14 +527,13 @@ export class FormatStringExpression extends TemplateExpression {
   }
 
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
-    const apiVersion = getProjectApiVersion()
+    const apiVersion = getGlobalProjectApiVersion()
     const isOptional = this.isOptional(apiVersion)
 
     if (apiVersion === GardenApiVersion.v1 && isOptional) {
       const log = RootLogger.getInstance().createLog()
 
       reportDeprecatedFeatureUsage({
-        apiVersion: GardenApiVersion.v1,
         log,
         deprecation: "optionalTemplateValueSyntax",
       })

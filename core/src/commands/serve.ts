@@ -100,7 +100,6 @@ export class ServeCommand<
 
     if (opts["local-mode"] !== undefined) {
       reportDeprecatedFeatureUsage({
-        apiVersion: garden.projectApiVersion,
         log,
         deprecation: "localMode",
       })

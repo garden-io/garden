@@ -38,7 +38,6 @@ export const gardenPlugin = () =>
     handlers: {
       async getDashboardPage({ ctx, log }: GetDashboardPageParams) {
         reportDeprecatedFeatureUsage({
-          apiVersion: ctx.projectApiVersion,
           log,
           deprecation: "octantPlugin",
         })
