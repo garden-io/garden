@@ -14,6 +14,7 @@ import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
 import { deline } from "./string.js"
 import type { SyncCommandName } from "../commands/sync/sync.js"
+import { getGlobalProjectApiVersion } from "../project-api-version.js"
 
 const deprecatedPluginNames = ["conftest", "conftest-container", "conftest-kubernetes", "hadolint", "octant"] as const
 export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
@@ -550,12 +551,13 @@ class FeatureNotAvailable extends GardenError {
 }
 
 type DeprecationWarningParams = {
-  apiVersion: GardenApiVersion
   log: Log
   deprecation: Deprecation
 }
 
-export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: DeprecationWarningParams) {
+export function reportDeprecatedFeatureUsage({ log, deprecation }: DeprecationWarningParams) {
+  const apiVersion = getGlobalProjectApiVersion()
+
   if (apiVersion === GardenApiVersion.v2) {
     throw new FeatureNotAvailable({ deprecation })
   }
@@ -565,16 +567,16 @@ export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: D
 }
 
 export function reportDeprecatedSyncCommandUsage({
-  apiVersion,
   log,
   deprecation,
   syncCommandName,
 }: {
-  apiVersion: GardenApiVersion
   log: Log
   deprecation: Deprecation
   syncCommandName: SyncCommandName
 }) {
+  const apiVersion = getGlobalProjectApiVersion()
+
   if (apiVersion === GardenApiVersion.v2) {
     const message = deline`
     Command ${styles.command(`sync ${syncCommandName}`)} can only be executed in the dev console.
@@ -584,17 +586,7 @@ export function reportDeprecatedSyncCommandUsage({
   }
 
   reportDeprecatedFeatureUsage({
-    apiVersion,
     log,
     deprecation,
   })
-}
-
-export function reportDefaultConfigValueChange({ apiVersion, log, deprecation }: DeprecationWarningParams) {
-  // Avoids throwing an error in `reportDeprecatedFeatureUsage`
-  if (apiVersion === GardenApiVersion.v2) {
-    return
-  }
-
-  reportDeprecatedFeatureUsage({ apiVersion, log, deprecation })
 }

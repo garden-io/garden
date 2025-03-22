@@ -23,8 +23,8 @@ import {
   parseActionReference,
   unusedApiVersionSchema,
 } from "../config/common.js"
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
-import { dedent, deline, naturalList, stableStringify } from "../util/string.js"
+import { DOCS_BASE_URL } from "../constants.js"
+import { dedent, naturalList, stableStringify } from "../util/string.js"
 import type { ActionVersion, ModuleVersion, TreeVersion } from "../vcs/vcs.js"
 import { getActionSourcePath, hashStrings, versionStringPrefix } from "../vcs/vcs.js"
 import type { BuildAction, ResolvedBuildAction } from "./build.js"
@@ -70,8 +70,6 @@ import type { ResolvedTemplate } from "../template/types.js"
 import type { WorkflowConfig } from "../config/workflow.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
 import { deepMap } from "../util/objects.js"
-import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
-import { RootLogger } from "../logger/logger.js"
 
 // TODO: split this file
 

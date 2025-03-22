@@ -56,7 +56,7 @@ import { actionReferenceToString } from "../../actions/base.js"
 import { RootLogger } from "../../logger/logger.js"
 import { styles } from "../../logger/styles.js"
 import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
-import { getProjectApiVersion } from "../../project-api-version.js"
+import { getGlobalProjectApiVersion } from "../../project-api-version.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
@@ -730,14 +730,13 @@ function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
     )
     // Report general deprecation warning
     reportDeprecatedFeatureUsage({
-      apiVersion: getProjectApiVersion(),
       log,
       deprecation: "buildConfigFieldOnRuntimeActions",
     })
   }
 
   // TODO(0.14): Make spec.image required in the schema, and remove this if statement.
-  if (getProjectApiVersion() === GardenApiVersion.v2 && !image) {
+  if (getGlobalProjectApiVersion() === GardenApiVersion.v2 && !image) {
     throw new ConfigurationError({
       message: `${action.longDescription()} must specify \`spec.image\`.`,
     })
