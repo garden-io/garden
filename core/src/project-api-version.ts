@@ -33,15 +33,11 @@ export function resolveApiVersion(projectSpec: ProjectConfig): GardenApiVersion 
 
   if (projectApiVersion !== GardenApiVersion.v2) {
     const projectConfigFile = projectSpec.configPath
-    if (!projectConfigFile) {
-      throw new InternalError({
-        message: "Invalid state: The project config must be declared in a file.",
-      })
-    }
+    const atLocation = projectConfigFile ? ` at ${projectConfigFile}` : ""
     const gardenVersion = gardenVersionMap[projectApiVersion]
     throw new ConfigurationError({
       // TODO: add a link to the migration guide
-      message: `Your configuration at ${projectConfigFile} has been written for Garden ${gardenVersion}. Your current version of Garden is ${gardenVersionMap[GardenApiVersion.v2]}.`,
+      message: `Your configuration${atLocation} has been written for Garden ${gardenVersion}. Your current version of Garden is ${gardenVersionMap[GardenApiVersion.v2]}.`,
     })
   }
 
