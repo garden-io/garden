@@ -26,7 +26,7 @@ import {
   validateContainerBuild,
 } from "./build.js"
 import type { ConfigureModuleParams } from "../../plugin/handlers/Module/configure.js"
-import { dedent, naturalList } from "../../util/string.js"
+import { dedent, deline, naturalList } from "../../util/string.js"
 import type { Provider, BaseProviderConfig } from "../../config/provider.js"
 import { providerConfigBaseSchema } from "../../config/provider.js"
 import type { GetModuleOutputsParams } from "../../plugin/handlers/Module/get-outputs.js"
@@ -48,11 +48,15 @@ import type { Resolved } from "../../actions/types.js"
 import { getDeployedImageId } from "../kubernetes/container/util.js"
 import type { DeepPrimitiveMap } from "../../config/common.js"
 import { joi } from "../../config/common.js"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC, gardenEnv } from "../../constants.js"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion, gardenEnv } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 import type { PluginContext } from "../../plugin-context.js"
 import { actionReferenceToString } from "../../actions/base.js"
+import { RootLogger } from "../../logger/logger.js"
+import { styles } from "../../logger/styles.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { getGlobalProjectApiVersion } from "../../project-api-version.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
@@ -715,6 +719,30 @@ function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
   const { build } = action.getConfig()
   const { image, volumes } = action.getSpec()
 
+  if (build) {
+    const log = RootLogger.getInstance().createLog()
+    const configPath = action.configPath()
+    // Report concrete action name for better UX
+    log.warn(
+      deline`Action ${styles.highlight(action.longDescription())}
+          ${configPath ? `- defined in ${styles.highlight(configPath)} -` : ""}
+          specifies deprecated config field ${styles.highlight("build")}.`
+    )
+    // Report general deprecation warning
+    reportDeprecatedFeatureUsage({
+      log,
+      deprecation: "buildConfigFieldOnRuntimeActions",
+    })
+  }
+
+  // TODO(0.14): Make spec.image required in the schema, and remove this if statement.
+  if (getGlobalProjectApiVersion() === GardenApiVersion.v2 && !image) {
+    throw new ConfigurationError({
+      message: `${action.longDescription()} must specify \`spec.image\`.`,
+    })
+  }
+
+  // TODO(0.14): The entire if/else if/else if block can be removed
   if (!build && !image) {
     throw new ConfigurationError({
       message: `${action.longDescription()} must specify one of \`build\` or \`spec.image\``,

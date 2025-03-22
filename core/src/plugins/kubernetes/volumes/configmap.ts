@@ -60,9 +60,8 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
   docs: getDocs(),
   schema: joi.object().keys(commonSpecKeys()),
   handlers: {
-    configure: async ({ config, ctx, log }) => {
+    configure: async ({ config, log }) => {
       reportDeprecatedFeatureUsage({
-        apiVersion: ctx.projectApiVersion,
         log,
         deprecation: "configmapDeployAction",
       })

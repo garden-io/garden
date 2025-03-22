@@ -31,9 +31,8 @@ import { TestContext } from "./config/template-contexts/base.js"
 import type { Collection } from "../../../src/util/objects.js"
 import type { ParsedTemplate } from "../../../src/template/types.js"
 import type { ConfigContext } from "../../../src/config/template-contexts/base.js"
-import { setProjectApiVersion } from "../../../src/project-api-version.js"
+import { setGloablProjectApiVersion } from "../../../src/project-api-version.js"
 import { GardenApiVersion } from "../../../src/constants.js"
-import { RootLogger } from "../../../src/logger/logger.js"
 
 describe("template string access protection", () => {
   it("should crash when an unresolved value is accidentally treated as resolved", () => {
@@ -55,10 +54,8 @@ describe("template string access protection", () => {
 })
 
 describe("parse and evaluate template strings with apiVersion: garden.io/v2", () => {
-  const log = RootLogger.getInstance().createLog()
-
   beforeEach(() => {
-    setProjectApiVersion({ apiVersion: GardenApiVersion.v2 }, log)
+    setGloablProjectApiVersion(GardenApiVersion.v2)
   })
 
   describe("should resolve ? suffix as a regular character", () => {
