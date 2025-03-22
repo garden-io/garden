@@ -49,7 +49,7 @@ export const configSchema = () =>
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, ctx, config: baseConfig } = params
 
-  reportDeprecatedFeatureUsage({ apiVersion: ctx.projectApiVersion, log, deprecation: "ephemeralKubernetesProvider" })
+  reportDeprecatedFeatureUsage({ log, deprecation: "ephemeralKubernetesProvider" })
 
   if (!ctx.cloudApi) {
     throw new ConfigurationError({

@@ -5,8 +5,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-import { defaultGardenApiVersion, GardenApiVersion } from "./constants.js"
-import { RuntimeError } from "./exceptions.js"
+import { GardenApiVersion } from "./constants.js"
+import { InternalError } from "./exceptions.js"
 import type { ProjectConfig } from "./config/project.js"
 import type { Log } from "./logger/log-entry.js"
 import { emitNonRepeatableWarning } from "./warnings.js"
@@ -15,40 +15,44 @@ import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
 
 let projectApiVersionGlobal: GardenApiVersion | undefined
 
-export function getProjectApiVersion(): GardenApiVersion {
+export function getGlobalProjectApiVersion(): GardenApiVersion {
   if (!projectApiVersionGlobal) {
-    throw new RuntimeError({ message: "apiVersion is not defined" })
+    throw new InternalError({ message: "apiVersion is not defined" })
   }
   return projectApiVersionGlobal
 }
 
-export function setProjectApiVersion(projectConfig: Partial<ProjectConfig>, log: Log) {
-  projectApiVersionGlobal = resolveApiVersion(projectConfig, log)
+export function setGloablProjectApiVersion(apiVersion: GardenApiVersion) {
+  projectApiVersionGlobal = apiVersion
 }
 
-export function resolveApiVersion(projectSpec: Partial<ProjectConfig>, log: Log): GardenApiVersion {
-  const projectApiVersion = projectSpec.apiVersion
+export function resolveApiVersion(projectSpec: ProjectConfig, log: Log): GardenApiVersion {
+  const declaredApiVersion = projectSpec.apiVersion
+
+  const resolvedApiVersion = declaredApiVersion || GardenApiVersion.v0
 
   // We conservatively set the apiVersion to be compatible with 0.12.
   // TODO(0.14): Throw an error if the apiVersion field is not defined.
-  if (projectApiVersion === undefined) {
+  if (declaredApiVersion === undefined) {
     emitNonRepeatableWarning(
       log,
       `"apiVersion" is missing in the Project config. Assuming "${
-        defaultGardenApiVersion
-      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLinkStyled("misc/migrating-to-bonsai")}`
+        resolvedApiVersion
+      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLinkStyled("guides/migrating-to-bonsai")}`
     )
-
-    return defaultGardenApiVersion
   }
 
-  if (projectApiVersion !== GardenApiVersion.v2) {
+  // HACK: Set project API version globally.
+  // This makes it easier to use `reportDeprecatedFeatureUsage`, as it can be difficult at times to pass down the apiVersion
+  setGloablProjectApiVersion(resolvedApiVersion)
+
+  if (declaredApiVersion !== GardenApiVersion.v2) {
+    // Print the deprecation warning that 0.14 will only support apiVersion v2
     reportDeprecatedFeatureUsage({
-      apiVersion: projectApiVersion,
       log,
       deprecation: "apiVersion",
     })
   }
 
-  return projectApiVersion
+  return resolvedApiVersion
 }
