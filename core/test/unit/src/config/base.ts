@@ -133,8 +133,10 @@ describe("prepareProjectResource", () => {
     }
     expect(returnedProjectResource).to.eql(expectedProjectResource)
 
-    const logEntry = log.getLatestEntry()
-    expect(logEntry.msg).to.include(`"apiVersion" is missing in the Project config`)
+    const acornLogEntry = log.entries.slice(-2)[0]
+    expect(acornLogEntry.msg).to.include(`"apiVersion" is missing in the Project config`)
+    const cedarLogEntry = log.getLatestEntry()
+    expect(cedarLogEntry.msg).to.include(`Garden 0.14 will introduce breaking changes.`)
   })
 
   it("should log a warning if the apiVersion is garden.io/v0", async () => {

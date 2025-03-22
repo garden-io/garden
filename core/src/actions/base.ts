@@ -23,8 +23,8 @@ import {
   parseActionReference,
   unusedApiVersionSchema,
 } from "../config/common.js"
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
-import { dedent, deline, naturalList, stableStringify } from "../util/string.js"
+import { DOCS_BASE_URL } from "../constants.js"
+import { dedent, naturalList, stableStringify } from "../util/string.js"
 import type { ActionVersion, ModuleVersion, TreeVersion } from "../vcs/vcs.js"
 import { getActionSourcePath, hashStrings, versionStringPrefix } from "../vcs/vcs.js"
 import type { BuildAction, ResolvedBuildAction } from "./build.js"
@@ -70,8 +70,6 @@ import type { ResolvedTemplate } from "../template/types.js"
 import type { WorkflowConfig } from "../config/workflow.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
 import { deepMap } from "../util/objects.js"
-import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
-import { RootLogger } from "../logger/logger.js"
 
 // TODO: split this file
 
@@ -287,7 +285,6 @@ export const baseRuntimeActionConfigSchema = createSchema({
       )
       .meta({
         templateContext: ActionConfigContext,
-        deprecated: makeDeprecationMessage({ deprecation: "buildConfigFieldOnRuntimeActions" }),
       }),
   }),
   extend: baseActionConfigSchema,
@@ -701,30 +698,6 @@ export abstract class RuntimeAction<
   StaticOutputs extends Record<string, unknown> = any,
   RuntimeOutputs extends Record<string, unknown> = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
-  constructor(params: ActionWrapperParams<C>) {
-    super(params)
-
-    const buildName = this.getConfig("build")
-    if (buildName) {
-      const log = RootLogger.getInstance().createLog()
-      const config = params.config
-      // Report concrete action name for better UX
-      log.warn(
-        deline`Action ${styles.highlight(this.key())}
-        of type ${styles.highlight(config.type)}
-        defined in ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}
-        declares deprecated config field ${styles.highlight("build")}.`
-      )
-      // Report general deprecation warning
-      reportDeprecatedFeatureUsage({
-        // TODO(0.14): change this to v2
-        apiVersion: GardenApiVersion.v1,
-        log,
-        deprecation: "buildConfigFieldOnRuntimeActions",
-      })
-    }
-  }
-
   /**
    * Return the Build action specified on the `build` field if defined, otherwise null
    */

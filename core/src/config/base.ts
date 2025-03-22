@@ -371,7 +371,6 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
   }
 
   reportDeprecatedFeatureUsage({
-    apiVersion: projectSpec.apiVersion,
     log,
     deprecation: "dotIgnoreFiles",
   })
@@ -396,7 +395,6 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
   // but it still can be presented in the runtime if the old config format is used.
   if (projectSpec["modules"]) {
     reportDeprecatedFeatureUsage({
-      apiVersion: projectSpec.apiVersion,
       log,
       deprecation: "projectConfigModules",
     })

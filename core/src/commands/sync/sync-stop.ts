@@ -61,7 +61,6 @@ export class SyncStopCommand extends Command<Args, Opts> {
   async action({ garden, log, args, parentCommand }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     if (!parentCommand) {
       reportDeprecatedSyncCommandUsage({
-        apiVersion: garden.projectApiVersion,
         log,
         deprecation: "syncStopCommand",
         syncCommandName: this.name,

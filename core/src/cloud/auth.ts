@@ -67,11 +67,11 @@ export function enforceLogin({
       throw new LoginRequiredWhenConnected()
     }
 
-    reportDeprecatedFeatureUsage({ apiVersion, log, deprecation: "loginRequirement" })
+    reportDeprecatedFeatureUsage({ log, deprecation: "loginRequirement" })
   }
 
   if (!isConnectedToCloud && apiVersion !== GardenApiVersion.v2) {
-    reportDeprecatedFeatureUsage({ apiVersion, log, deprecation: "configMapBasedCache" })
+    reportDeprecatedFeatureUsage({ log, deprecation: "configMapBasedCache" })
 
     // TODO(0.14): Nudge the user with a message at the end of the command, instead of a warning in the middle of the logs somewhere.
   }

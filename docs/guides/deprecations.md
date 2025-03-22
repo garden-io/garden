@@ -177,11 +177,17 @@ One way to work around this problem in the past was to escape the template strin
 echo "hello $${USERNAME:=world}" # <-- This is not a working bash script anymore :(
 ```
 
-<h2 id="buildconfigfieldonruntimeactions">The <code>build</code> config field in runtime action configs</h2>
+<h2 id="buildconfigfieldonruntimeactions">The <code>build</code> config field in `container` actions</h2>
 
-Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
+Using the `build` config field in `container` actions will not be supported anymore in Garden 0.14.
 
-Please replace all root-level configuration entries like `build: my-app` with the `dependencies: [build.my-app]`.
+Instead of usin g `build`, please reference the `deploymentImageId` output explicitly in each affected `Deploy`, `Run` and `Test` action spec of the `container` action type.
+
+Other action types, like the `exec`, `kubernetes` and `helm` action types, are not affected and `build` can still be used to control the build staging directory of the action.
+
+Referring to a container image via the `build` config field was confusing to some of our users, as it does not work for all action types that can reference containers, for example in `kubernetes` and `helm` actions configs.
+
+That's why we decided to drop support for referencing container images via the `build` config field.
 
 For example, a configuration like
 
@@ -196,11 +202,7 @@ kind: Deploy
 name: backend
 description: Backend service container
 type: container
-build: backend # <-- old config style uses `build` field
-
-spec:
- image: ${actions.build.backend.outputs.deploymentImageId}
-...
+build: backend # <-- old config style uses `build` field. The `spec.image` did not need to be specified.
 ```
 
 should be replaced with
@@ -216,15 +218,11 @@ kind: Deploy
 name: backend
 description: Backend service container
 type: container
-
-# use `dependencies` field instead of the `build`
-dependencies:
-- build.backend
-
 spec:
- image: ${actions.build.backend.outputs.deploymentImageId}
-...
+ image: ${actions.build.backend.outputs.deploymentImageId} # <--- the new config style is more explicit.
 ```
+
+Garden automatically determines the execution order of actions (First building the backend container, then deploying the backend) based on the output references.
 
 <h2 id="waitforjobs"><code>spec.waitForJobs</code> in <code>kubernetes</code> Deploy actions</h2>
 
