@@ -777,36 +777,6 @@ describe("actionConfigsToGraph", () => {
     expect(action.mode()).to.equal("sync")
   })
 
-  it("sets local mode correctly if explicitly set in actionModes", async () => {
-    const graph = await actionConfigsToGraph({
-      garden,
-      log,
-      groupConfigs: [],
-      configs: [
-        {
-          kind: "Deploy",
-          type: "test",
-          name: "foo",
-          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
-          variables: {},
-          internal: {
-            basePath: tmpDir.path,
-          },
-          spec: {},
-        },
-      ],
-      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
-      linkedSources: {},
-      actionModes: {
-        sync: ["deploy.foo"],
-      },
-    })
-
-    const action = graph.getDeploy("foo")
-
-    expect(action.mode()).to.equal("sync")
-  })
-
   it("sets mode if matched in full wildcard", async () => {
     const graph = await actionConfigsToGraph({
       garden,
