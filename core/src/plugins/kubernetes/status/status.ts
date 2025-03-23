@@ -495,9 +495,6 @@ export async function compareDeployedResources({
       if (isConfiguredForSyncMode(deployedResource)) {
         result.deployedMode = "sync"
       }
-      if (isConfiguredForLocalMode(deployedResource)) {
-        result.deployedMode = "local"
-      }
     }
 
     // Start by checking for "last applied configuration" annotations and comparing against those.
@@ -580,10 +577,6 @@ export async function compareDeployedResources({
 
 export function isConfiguredForSyncMode(resource: SyncableResource): boolean {
   return resource.metadata.annotations?.[gardenAnnotationKey("mode")] === "sync"
-}
-
-export function isConfiguredForLocalMode(resource: SyncableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("mode")] === "local"
 }
 
 function isWorkloadResource(resource: KubernetesResource): resource is KubernetesWorkload {

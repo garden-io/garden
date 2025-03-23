@@ -26,8 +26,6 @@ import type { KubernetesModuleDevModeSpec } from "../sync.js"
 import { kubernetesModuleSyncSchema } from "../sync.js"
 import type { KubernetesTypeCommonDeploySpec } from "./config.js"
 import { kubernetesCommonDeploySpecKeys } from "./config.js"
-import type { KubernetesLocalModeSpec } from "../local-mode.js"
-import { kubernetesLocalModeSchema } from "../local-mode.js"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
@@ -46,7 +44,6 @@ export interface KubernetesServiceSpec extends KubernetesTypeCommonDeploySpec {
   dependencies: string[]
   timeout: number
   sync?: KubernetesModuleDevModeSpec
-  localMode?: KubernetesLocalModeSpec
   serviceResource?: ServiceResourceSpec
   tasks: KubernetesTaskSpec[]
   tests: KubernetesTestSpec[]
@@ -62,7 +59,6 @@ export const kubernetesModuleSpecSchema = () =>
       build: baseBuildSpecSchema(),
       dependencies: dependenciesSchema(),
       sync: kubernetesModuleSyncSchema(),
-      localMode: kubernetesLocalModeSchema(),
       include: joiModuleIncludeDirective(dedent`
       If neither \`include\` nor \`exclude\` is set, Garden automatically sets \`include\` to equal the
       \`files\` directive so that only the Kubernetes manifests get included.

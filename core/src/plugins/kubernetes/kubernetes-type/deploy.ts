@@ -32,6 +32,7 @@ import type { ResolvedTemplate } from "../../../template/types.js"
 import type { ArraySchema } from "@hapi/joi"
 import type { KubernetesDeployActionSpecFileSources } from "./common.js"
 import { getSpecFiles } from "./common.js"
+import type { ActionModes } from "../../../actions/types.js"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -118,7 +119,7 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
         config.include = uniq([...config.include, ...manifestTemplates, ...manifestFiles])
       }
 
-      return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
+      return { config, supportedModes: { sync: !!config.spec.sync } satisfies ActionModes }
     },
 
     deploy: kubernetesDeploy,

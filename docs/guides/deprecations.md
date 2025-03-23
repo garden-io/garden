@@ -209,19 +209,6 @@ Use the `kubernetes` or `local-kubernetes` providers instead. We are currently e
 
 The `gardenCloudBuilder` setting in the `container` provider configuration has been renamed to `gardenContainerBuilder`. Use the setting `gardenContainerBuilder` instead of `gardenCloudBuilder`.
 
-# Local mode
-
-<h2 id="localmode">Using <code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> Deploy actions</h2>
-
-The local mode will be removed in the next major version of Garden, 0.14.
-
-Use the `sync mode` instead. You can also consider using [mirrord](https://mirrord.dev/) or [telepresence](https://www.telepresence.io/).
-
-See also:
-- [`spec.localMode` in the `kubernetes` Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
-- [`spec.localMode` in the `helm` Deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
-- [`spec.localMode` in the `container` Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
-
 # Action configs
 
 <h2 id="buildconfigfieldonruntimeactions">The <code>build</code> config field in `container` actions</h2>

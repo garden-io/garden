@@ -30,7 +30,6 @@ import { gardenEnv } from "../constants.js"
 import type { DeployAction } from "../actions/deploy.js"
 import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
 import { styles } from "../logger/styles.js"
-import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -56,20 +55,6 @@ export const deployOpts = {
       Important: The syncs stay active after the command exits. To stop the syncs, use the \`sync stop\` command.
     `,
     aliases: ["dev", "dev-mode"],
-    getSuggestions: ({ configDump }) => {
-      return Object.keys(configDump.actionConfigs.Deploy)
-    },
-  }),
-  "local-mode": new StringsParameter({
-    help: dedent`
-    [EXPERIMENTAL] The name(s) of Deploy(s) to be started locally with local mode enabled.
-
-    You may specify multiple Deploys by setting this flag multiple times. Use * to deploy all Deploys with local mode enabled. When this option is used,
-    the command stays running until explicitly aborted.
-
-    This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both \`--sync\` and \`--local\` options.
-    `,
-    aliases: ["local"],
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
     },
@@ -154,7 +139,7 @@ export class DeployCommand extends Command<Args, Opts> {
   override outputsSchema = () => processCommandResultSchema()
 
   override maybePersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward || !!opts.logs
+    return !!opts["sync"] || !!opts.forward || !!opts.logs
   }
 
   override printHeader({ log }) {
@@ -172,13 +157,6 @@ export class DeployCommand extends Command<Args, Opts> {
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
     const { garden, log, args, opts } = params
-
-    if (opts["local-mode"] !== undefined) {
-      reportDeprecatedFeatureUsage({
-        log,
-        deprecation: "localMode",
-      })
-    }
 
     this.garden = garden
     const commandLog = log.createLog({ name: "garden" })
@@ -201,7 +179,6 @@ export class DeployCommand extends Command<Args, Opts> {
 
     const actionModes: ActionModeMap = {
       // Support a single empty value (which comes across as an empty list) as equivalent to '*'
-      local: opts["local-mode"]?.length === 0 ? ["deploy.*"] : opts["local-mode"]?.map((s) => "deploy." + s),
       sync: opts.sync?.length === 0 ? ["deploy.*"] : opts.sync?.map((s) => "deploy." + s),
     }
 
@@ -316,17 +293,6 @@ export class DeployCommand extends Command<Args, Opts> {
               stopOnExit: true, // On this code path, we're running inside the `dev` command.
             })
             garden.monitors.addAndSubscribe(syncMonitor, this)
-          } else if (mode === "local" && result.attached) {
-            // Wait for local mode processes to complete.
-            const handlerMonitor = new HandlerMonitor({
-              type: "local-deploy",
-              garden,
-              log,
-              events,
-              key: action.key(),
-              description: "monitor for attached local mode process in " + action.longDescription(),
-            })
-            garden.monitors.addAndSubscribe(handlerMonitor, this)
           } else if (result.attached) {
             // Wait for other attached processes after deployment.
             // Note: No plugin currently does this outside of local mode but we do support it.

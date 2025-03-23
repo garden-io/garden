@@ -22,7 +22,6 @@ import { ingressHostnameSchema, linkUrlSchema } from "../../types/service.js"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants.js"
 import { dedent, deline } from "../../util/string.js"
 import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config.js"
-import { localModeGuideLink } from "../kubernetes/local-mode.js"
 import type { BuildAction, BuildActionConfig } from "../../actions/build.js"
 import type { DeployAction, DeployActionConfig } from "../../actions/deploy.js"
 import type { TestAction, TestActionConfig } from "../../actions/test.js"
@@ -33,7 +32,6 @@ import type { OctalPermissionMask } from "../kubernetes/types.js"
 import { templateStringLiteral } from "../../docs/common.js"
 import { syncGuideLink } from "../kubernetes/constants.js"
 import { makeSecret, type Secret } from "../../util/secrets.js"
-import { makeDeprecationMessage } from "../../util/deprecations.js"
 import type { ActionKind } from "../../plugin/action-types.js"
 
 export const defaultDockerfileName = "Dockerfile"
@@ -320,108 +318,6 @@ export const containerSyncPathSchema = createSchema({
   rename: [["sync", "paths"]],
 })
 
-const defaultLocalModeRestartDelayMsec = 1000
-const defaultLocalModeMaxRestarts = Number.POSITIVE_INFINITY
-
-export interface LocalModeRestartSpec {
-  delayMsec: number
-  max: number
-}
-
-export const localModeRestartSchema = createSchema({
-  name: "local-mode-restart",
-  description: `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`,
-  keys: () => ({
-    delayMsec: joi
-      .number()
-      .integer()
-      .greater(-1)
-      .optional()
-      .default(defaultLocalModeRestartDelayMsec)
-      .description(
-        `Delay in milliseconds between the local application restart attempts. The default value is ${defaultLocalModeRestartDelayMsec}ms.`
-      ),
-    max: joi
-      .number()
-      .integer()
-      .greater(-1)
-      .optional()
-      .default(defaultLocalModeMaxRestarts)
-      .allow(defaultLocalModeMaxRestarts)
-      .description("Max number of the local application restarts. Unlimited by default."),
-  }),
-  options: { presence: "optional" },
-  default: {
-    delayMsec: defaultLocalModeRestartDelayMsec,
-    max: defaultLocalModeMaxRestarts,
-  },
-})
-
-export interface LocalModePortsSpec {
-  local: number
-  remote: number
-}
-
-export const localModePortsSchema = createSchema({
-  name: "local-mode-port",
-  keys: () => ({
-    local: joi
-      .number()
-      .integer()
-      .greater(0)
-      .optional()
-      .description("The local port to be used for reverse port-forward."),
-    remote: joi
-      .number()
-      .integer()
-      .greater(0)
-      .optional()
-      .description("The remote port to be used for reverse port-forward."),
-  }),
-})
-
-export interface ContainerLocalModeSpec {
-  ports: LocalModePortsSpec[]
-  command?: string[]
-  restart: LocalModeRestartSpec
-}
-
-export const containerLocalModeSchema = createSchema({
-  name: "container-local-mode",
-  description: dedent`
-    [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
-
-    The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
-    Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
-
-    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` command.
-    Local mode always takes the precedence over sync mode if there are any conflicting service names.
-
-    Health checks are disabled for services running in local mode.
-
-    See the [Local Mode guide](${localModeGuideLink}) for more information.
-
-    Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-  `,
-  keys: () => ({
-    ports: joi
-      .array()
-      .items(localModePortsSchema())
-      .description("The reverse port-forwards configuration for the local application."),
-    command: joi
-      .sparseArray()
-      .optional()
-      .items(joi.string())
-      .description(
-        "The command to run the local application. If not present, then the local application should be started manually."
-      ),
-    restart: localModeRestartSchema(),
-  }),
-  meta: {
-    deprecated: makeDeprecationMessage({ deprecation: "localMode" }),
-  },
-})
-
 const annotationsSchema = memoize(() =>
   joiStringMap(joi.string())
     .example({ "nginx.ingress.kubernetes.io/proxy-body-size": "0" })
@@ -696,7 +592,6 @@ export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
   annotations: Annotations
   daemon: boolean
   sync?: ContainerSyncSpec
-  localMode?: ContainerLocalModeSpec
   ingresses: ContainerIngressSpec[]
   healthCheck?: ServiceHealthCheckSpec
   timeout?: number
@@ -777,7 +672,6 @@ export const containerDeploySchemaKeys = memoize(() => ({
       May not be supported by all providers.
     `),
   sync: containerSyncPathSchema(),
-  localMode: containerLocalModeSchema(),
   image: containerImageSchema(),
   ingresses: joiSparseArray(ingressSchema())
     .description("List of ingress endpoints that the service exposes.")

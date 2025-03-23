@@ -10,14 +10,13 @@ import { expect } from "chai"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { KubeApi, KubernetesError } from "../../../../../../src/plugins/kubernetes/api.js"
 import {
-  createContainerManifests,
   createWorkloadManifest,
   getDeploymentLabels,
   handleChangedSelector,
 } from "../../../../../../src/plugins/kubernetes/container/deployment.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
 import type { V1ConfigMap, V1Secret } from "@kubernetes/client-node"
-import type { KubernetesResource, KubernetesWorkload } from "../../../../../../src/plugins/kubernetes/types.js"
+import type { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types.js"
 import cloneDeep from "fast-copy"
 import { keyBy } from "lodash-es"
 import { getContainerTestGarden } from "./container.js"
@@ -37,19 +36,10 @@ import { apply } from "../../../../../../src/plugins/kubernetes/kubectl.js"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 import { gardenAnnotationKey } from "../../../../../../src/util/string.js"
 import {
-  defaultUtilImageRegistryDomain,
-  getK8sReverseProxyImagePath,
   getK8sSyncUtilImagePath,
   k8sSyncUtilContainerName,
-  PROXY_CONTAINER_SSH_TUNNEL_PORT,
-  PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
-  PROXY_CONTAINER_USER_NAME,
 } from "../../../../../../src/plugins/kubernetes/constants.js"
-import {
-  LocalModeEnv,
-  LocalModeProcessRegistry,
-  ProxySshKeystore,
-} from "../../../../../../src/plugins/kubernetes/local-mode.js"
+
 import stripAnsi from "strip-ansi"
 import { getDeployStatuses } from "../../../../../../src/tasks/helpers.js"
 import type { ResolvedDeployAction } from "../../../../../../src/actions/deploy.js"
@@ -98,224 +88,6 @@ describe("kubernetes container deployment handlers", () => {
     )
     api = await KubeApi.factory(garden.log, ctx, provider)
   }
-
-  describe("createContainerManifests", () => {
-    before(async () => {
-      await init("local")
-    })
-
-    after(async () => {
-      if (cleanup) {
-        cleanup()
-      }
-    })
-
-    afterEach(async () => {
-      LocalModeProcessRegistry.getInstance().shutdown()
-      ProxySshKeystore.getInstance(garden.log).shutdown(garden.log)
-    })
-
-    function expectSshContainerPort(workload: KubernetesWorkload) {
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      const workloadSshPort = appContainerSpec!.ports!.find((p) => p.name === PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME)
-      expect(workloadSshPort!.containerPort).to.eql(PROXY_CONTAINER_SSH_TUNNEL_PORT)
-    }
-
-    function expectEmptyContainerArgs(workload: KubernetesWorkload) {
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      expect(appContainerSpec!.args).to.eql([])
-    }
-
-    function expectProxyContainerImage(workload: KubernetesWorkload) {
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      expect(appContainerSpec!.image).to.eql(getK8sReverseProxyImagePath(defaultUtilImageRegistryDomain))
-    }
-
-    function expectContainerEnvVars(workload: KubernetesWorkload) {
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      const env = appContainerSpec!.env!
-
-      const httpPort = appContainerSpec!.ports!.find((p) => p.name === "http")!.containerPort.toString()
-      const appPortEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORTS)!.value
-      expect(appPortEnvVar).to.eql(httpPort)
-
-      const proxyUserEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_PROXY_CONTAINER_USER_NAME)!.value
-      expect(proxyUserEnvVar).to.eql(PROXY_CONTAINER_USER_NAME)
-
-      const publicKeyEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_PROXY_CONTAINER_PUBLIC_KEY)!.value
-      expect(!!publicKeyEnvVar).to.be.true
-    }
-
-    function expectNoProbes(workload: KubernetesWorkload) {
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      expect(appContainerSpec!.livenessProbe).to.be.undefined
-      expect(appContainerSpec!.readinessProbe).to.be.undefined
-    }
-
-    context("with localMode only", () => {
-      it("Workflow should have ssh container port when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectSshContainerPort(workload)
-      })
-
-      it("Workflow should have empty container args when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectEmptyContainerArgs(workload)
-      })
-
-      it("Workflow should have extra env vars for proxy container when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectContainerEnvVars(workload)
-      })
-
-      it("Workflow should not have liveness and readiness probes when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectNoProbes(workload)
-      })
-    })
-
-    context("localMode with utilImageRegistryDomain set to a custom registry", () => {
-      const environmentName = "local"
-      let gardenCustomDomain: TestGarden
-      let cleanupCustomDomain: (() => void) | undefined
-      let ctxCustomDomain: KubernetesPluginContext
-      let providerCustomDomain: KubernetesProvider
-      let apiCustomDomain: KubeApi
-
-      before(async () => {
-        const res = await getContainerTestGarden(environmentName)
-        gardenCustomDomain = res.garden
-        cleanup = res.cleanup
-        providerCustomDomain = <KubernetesProvider>(
-          await gardenCustomDomain.resolveProvider({ log: garden.log, name: "local-kubernetes" })
-        )
-        providerCustomDomain.config["utilImageRegistryDomain"] = "https://my-custom-registry-mirror.io"
-
-        ctxCustomDomain = <KubernetesPluginContext>await garden.getPluginContext({
-          provider: {
-            ...providerCustomDomain,
-          },
-          templateContext: undefined,
-          events: undefined,
-        })
-        apiCustomDomain = await KubeApi.factory(garden.log, ctx, provider)
-      })
-
-      it("should have proxy container image using custom container registry", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx: ctxCustomDomain,
-          api: apiCustomDomain,
-          action,
-          log: createActionLog({ log: gardenCustomDomain.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-        expect(appContainerSpec!.image).to.eql(getK8sReverseProxyImagePath("https://my-custom-registry-mirror.io"))
-      })
-
-      after(() => {
-        cleanupCustomDomain && cleanupCustomDomain()
-      })
-    })
-
-    context("localMode always takes precedence over syncMode", () => {
-      it("Workflow should have ssh container port when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectSshContainerPort(workload)
-      })
-
-      it("Workflow should have proxy container image and empty container args when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectProxyContainerImage(workload)
-        expectEmptyContainerArgs(workload)
-      })
-
-      it("Workflow should have extra env vars for proxy container when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectContainerEnvVars(workload)
-      })
-
-      it("Workflow should not have liveness and readiness probes when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectNoProbes(workload)
-      })
-    })
-  })
 
   describe("createWorkloadManifest", () => {
     before(async () => {

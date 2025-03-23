@@ -30,7 +30,6 @@ describe("getForwardablePorts", () => {
         },
       ],
       parentAction: undefined,
-      mode: "default",
     })
 
     expect(ports).to.eql([
@@ -80,7 +79,6 @@ describe("getForwardablePorts", () => {
         },
       ],
       parentAction: action,
-      mode: "default",
     })
 
     expect(ports).to.eql([
@@ -117,7 +115,6 @@ describe("getForwardablePorts", () => {
         },
       ],
       parentAction: undefined,
-      mode: "default",
     })
 
     expect(ports).to.eql([
@@ -153,7 +150,6 @@ describe("getForwardablePorts", () => {
         },
       ],
       parentAction: undefined,
-      mode: "default",
     })
 
     expect(ports).to.eql([
@@ -207,7 +203,6 @@ describe("getForwardablePorts", () => {
         },
       ],
       parentAction: undefined,
-      mode: "default",
     })
 
     expect(ports).to.eql([

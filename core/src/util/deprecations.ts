@@ -249,19 +249,6 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: null, // TODO: add link and update tutorials and guides
     },
-    localMode: {
-      docsSection: "Local mode",
-      docsHeadline: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
-      warnHint: dedent`The local mode will be removed in the next major version of Garden, 0.14.`,
-      docs: dedent`
-        Use the ${style("sync mode")} instead. You can also consider using [mirrord](https://mirrord.dev/) or [telepresence](https://www.telepresence.io/).
-
-        See also:
-        - [${style("spec.localMode")} in the ${style("kubernetes")} Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
-        - [${style("spec.localMode")} in the ${style("helm")} Deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
-        - [${style("spec.localMode")} in the ${style("container")} Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
-      `,
-    },
     buildConfigFieldOnRuntimeActions: {
       docsSection: "Action configs",
       docsHeadline: `The ${style("build")} config field in \`container\` actions`,

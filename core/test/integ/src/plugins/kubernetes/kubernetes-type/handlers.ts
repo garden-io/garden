@@ -41,7 +41,6 @@ import {
 } from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers.js"
 import { buildHelmModules } from "../helm/common.js"
 import { gardenAnnotationKey, randomString } from "../../../../../../src/util/string.js"
-import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
 import type { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
@@ -452,34 +451,6 @@ describe("kubernetes-type handlers", () => {
 
       expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
       expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("sync")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
-    })
-
-    it("should handle local mode", async () => {
-      const localData = await prepareActionDeployParamsWithManifests("with-source-module", {
-        local: ["deploy.with-source-module"],
-      })
-      const defaultData = await prepareActionDeployParamsWithManifests("with-source-module", {
-        default: ["deploy.with-source-module"],
-      })
-
-      // Deploy without local mode
-      await kubernetesDeploy(defaultData.deployParams)
-      const res1 = await findDeployedResources(defaultData.manifests, log)
-
-      // Deploy with local mode
-      await kubernetesDeploy(localData.deployParams)
-      const res2 = await findDeployedResources(localData.manifests, log)
-      // shut down local app and tunnels to avoid retrying after redeploy
-      LocalModeProcessRegistry.getInstance().shutdown()
-      ProxySshKeystore.getInstance(log).shutdown(log)
-
-      // Deploy without local mode again
-      await kubernetesDeploy(defaultData.deployParams)
-      const res3 = await findDeployedResources(defaultData.manifests, log)
-
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("local")
       expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
     })
 

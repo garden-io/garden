@@ -44,7 +44,7 @@ import {
   containerRunOutputSchema,
 } from "./config.js"
 import { publishContainerBuild } from "./publish.js"
-import type { Resolved } from "../../actions/types.js"
+import type { ActionModes, Resolved } from "../../actions/types.js"
 import { getDeployedImageId } from "../kubernetes/container/util.js"
 import type { DeepPrimitiveMap } from "../../config/common.js"
 import { joi } from "../../config/common.js"
@@ -548,7 +548,7 @@ export const gardenPlugin = () =>
           handlers: {
             // Other handlers are implemented by other providers (e.g. kubernetes)
             async configure({ config }) {
-              return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
+              return { config, supportedModes: { sync: !!config.spec.sync } satisfies ActionModes }
             },
 
             async validate({ action }) {
