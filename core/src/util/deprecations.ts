@@ -391,16 +391,6 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Garden automatically determines the execution order of actions (First building the backend container, then deploying the backend) based on the output references.
       `,
     },
-    rsyncBuildStaging: {
-      docsSection: "Environment variables",
-      docsHeadline: `${style("GARDEN_LEGACY_BUILD_STAGE")}`,
-      warnHint: `Do not use ${style("GARDEN_LEGACY_BUILD_STAGE")} environment variable. It will be removed in Garden 0.14.`,
-      docs: dedent`
-        Using the ${style("rsync")}-based build staging is not necessary when using the latest versions of Garden.
-
-        If you still need to use this environment variable for some reason, please reach out to us on GitHub, Discord or via the customer support.
-      `,
-    },
     configmapDeployAction: {
       docsSection: "Garden action types",
       docsHeadline: `The ${style("configmap")} Deploy action type`,

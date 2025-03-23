@@ -164,7 +164,6 @@ import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js
 import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
-import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
 import { getBackendType, getCloudDistributionName, getCloudDomain, getCloudLogSectionName } from "./cloud/util.js"
 import { GrowCloudApi } from "./cloud/grow/api.js"
@@ -174,7 +173,7 @@ import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
 import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
-import { getGlobalProjectApiVersion, resolveApiVersion } from "./project-api-version.js"
+import { resolveApiVersion, setGloablProjectApiVersion } from "./project-api-version.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -185,7 +184,6 @@ export interface GardenOpts {
   forceRefresh?: boolean
   gardenDirPath?: string
   globalConfigStore?: GlobalConfigStore
-  legacyBuildSync?: boolean
   log?: Log
   /**
    * Log context for logging the start and finish of the Garden class
@@ -413,15 +411,6 @@ export class Garden {
       ignoreFile: params.dotIgnoreFile,
       cache: vcsCache,
     })
-
-    const legacyBuildSync =
-      params.opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : params.opts.legacyBuildSync
-    if (legacyBuildSync) {
-      reportDeprecatedFeatureUsage({
-        log: params.log,
-        deprecation: "rsyncBuildStaging",
-      })
-    }
 
     this.buildStaging = new BuildStaging(params.projectRoot, params.gardenDirPath)
 
@@ -1905,6 +1894,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
   }
 
   const apiVersion = resolveApiVersion(config)
+  setGloablProjectApiVersion(apiVersion)
   config.apiVersion = apiVersion
 
   gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
