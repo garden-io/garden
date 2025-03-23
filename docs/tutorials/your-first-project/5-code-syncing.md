@@ -36,7 +36,7 @@ Note that this also works for compiled language but an extra compilation step ma
 
 Note also the `defaultTarget` field we added previously. This is how Garden knows what "target" to sync changes to.
 
-[See here](../../config-guides/code-synchronization.md) for an in-depth guide on code syncing for different action types.
+[See here](../../features/code-synchronization.md) for an in-depth guide on code syncing for different action types.
 
 ## Step 2 — Add the sync config to the web Deploy action
 

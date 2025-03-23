@@ -2821,8 +2821,8 @@ workflowConfigs:
         #
         # `never`: This step will always be ignored.
         #
-        # See the [workflows
-        # guide](https://docs.garden.io/cedar-0.14/config-guides/workflows#the-skip-and-when-options) for details
+        # See the [workflows guide](https://docs.garden.io/cedar-0.14/features/workflows#the-skip-and-when-options)
+        # for details
         # and examples.
         when:
 

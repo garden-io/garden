@@ -5,7 +5,7 @@ title: Custom Command template context
 
 # Custom Command template context
 
-The below keys are available in template strings for the `exec` and `gardenCommand` fields in [Custom Commands](../../config-guides/custom-commands.md).
+The below keys are available in template strings for the `exec` and `gardenCommand` fields in [Custom Commands](../../features/custom-commands.md).
 
 ### `${local.*}`
 

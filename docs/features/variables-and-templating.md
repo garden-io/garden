@@ -1,9 +1,9 @@
 ---
-order: 1
+order: 10
 title: Variables and Templating
 ---
 
-This guide introduces the templating capabilities available in Garden configuration files, the available ways to provide variable values, and how to reference outputs across modules and providers.
+Garden has a powerful templating engine that allows you to set variables and enable or disable parts of the graph depending on your environment.
 
 ## Template string overview
 
@@ -518,7 +518,7 @@ The order of precedence is as follows (from highest to lowest):
 7. The project-wide `variables` field.
 
 {% hint style="warning" %}
-Note that [Module variables](https://github.com/garden-io/garden/blob/0.12/docs/config-guides/variables-and-templating.md#module-variables) always take precedence over any of the above, in the context of the module being resolved.
+Note that [Module variables](https://github.com/garden-io/garden/blob/0.12/docs/features/variables-and-templating.md#module-variables) always take precedence over any of the above, in the context of the module being resolved.
 {% endhint %}
 
 When you specify variables in multiple places, we merge the different objects and files using a [JSON Merge Patch](https://tools.ietf.org/html/rfc7396).

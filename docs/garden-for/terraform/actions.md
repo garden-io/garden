@@ -7,7 +7,7 @@ order: 2
 To apply Terraform stacks before actions (e.g. to provision a K8s cluster), refer to the [Terraform provider docs](./configure-provider.md).
 {% endhint %}
 
-You can define `terraform` actions as part of your project, much like any other actions. A `terraform` action maps to a single `Deploy` that you can define as a runtime dependency for any of your other `Deploy`, `Run` and `Test` actions. You can also reference the stack outputs of a `terraform` action using [runtime output template strings](../../config-guides/variables-and-templating.md#runtime-outputs). For example:
+You can define `terraform` actions as part of your project, much like any other actions. A `terraform` action maps to a single `Deploy` that you can define as a runtime dependency for any of your other `Deploy`, `Run` and `Test` actions. You can also reference the stack outputs of a `terraform` action using [runtime output template strings](../../features/variables-and-templating.md#runtime-outputs). For example:
 
 ```yaml
 kind: Deploy
@@ -28,7 +28,7 @@ spec:
 
 Here we imagine a Terraform stack that has a `my-database-uri` output, that we then supply to `my-service` via the `DATABASE_URI` environment variable.
 
-Much like other Deploy actions, you can also reference Terraform definitions in other repositories using the `repositoryUrl` key. See the [Remote Sources](../config-guides/custom-commands.md
+Much like other Deploy actions, you can also reference Terraform definitions in other repositories using the `repositoryUrl` key. See the [Remote Sources](../features/custom-commands.md
 
 ## Setting the backend dynamically
 

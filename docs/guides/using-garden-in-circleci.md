@@ -1,6 +1,6 @@
 ---
 title: Using Garden in CircleCI
-order: 8
+order: 90
 ---
 
 ## Prerequisites

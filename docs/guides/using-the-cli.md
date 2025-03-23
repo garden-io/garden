@@ -1,5 +1,5 @@
 ---
-order: 7
+order: 80
 title: Using the CLI
 ---
 
@@ -63,7 +63,7 @@ garden deploy deploy-a deploy-b
 
 ### Deploying a `Deploy` with sync enabled
 
-See the [Code synchronization guide](../config-guides/code-synchronization.md) for more information on how to configure and use syncing for rapid iteration on `Deploy`s.
+See the [Code synchronization guide](../features/code-synchronization.md) for more information on how to configure and use syncing for rapid iteration on `Deploy`s.
 
 ```sh
 garden deploy my-deploy --sync=*
@@ -200,7 +200,7 @@ garden dev
 ## Sync mode
 
 For rapid iteration on a running `Deploy` action, you can use a feature called _sync mode_.
-See the [Code synchronization guide](../config-guides/code-synchronization.md) for details on how to configure and use that feature.
+See the [Code synchronization guide](../features/code-synchronization.md) for details on how to configure and use that feature.
 
 ## Project outputs
 
@@ -238,7 +238,7 @@ See the [Garden basics guide](../getting-started/basics.md) to learn more about 
 
 ## Remote sources
 
-_Remote sources_ are a mechanism to connect multiple git repositories in a single Garden project. See the [remote sources guide](../config-guides/remote-sources.md) for more information, including how to use the CLI to manage these sources.
+_Remote sources_ are a mechanism to connect multiple git repositories in a single Garden project. See the [remote sources guide](../features/remote-sources.md) for more information, including how to use the CLI to manage these sources.
 
 ## Plugin commands
 

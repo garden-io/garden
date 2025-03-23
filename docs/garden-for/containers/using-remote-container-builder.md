@@ -3,9 +3,11 @@ title: Using Remote Container Builder
 order: 1
 ---
 
-The Remote Container Builder enables you to build container images using **blazing-fast, remote build compute instances** managed by Garden. Each built layer of your Dockerfile is stored on low-latency, high-throughput NVMe storage, so that your entire team can benefit from shared build cached. This can result in [significantly faster builds](https://garden.io/blog/oem-cloud-builder).
+The [Remote Container Builder](../../features/remote-container-builder.md) enables you to build container images using **blazing-fast, remote build compute instances** managed by Garden and to share build caches with your team.
 
-Follow the steps below to enable the Remote Container Builder.
+Our free-tier includes a certain amount of build minutes and layer caching per month and you get more by switching to our team or enterprise tiers. You can learn more about the [different tiers here](https://garden.io/plans).
+
+If you run out of build minutes, Garden will simply fallback to local builds without any disruption.
 
 ## Enabling Remote Container Builder
 
@@ -77,7 +79,7 @@ garden build
 
 If you're using the `kubernetes` provider, the image will be pushed to the configured `deploymentRegistry`.
 
-You can check out the results in the [new Builds UI](https://app.garden.io).
+You can then check out the results in the [new Builds UI](https://app.garden.io).
 
 ## Next steps
 

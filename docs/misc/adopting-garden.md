@@ -17,8 +17,7 @@ Once you've done that initial set-up, you'll be able to spin up on-demand, isola
 
 Other people on your team will benefit from the same. All they need to do is install the Garden CLI and they'll have on-demand production-like environments at their fingertips—quite literally.
 
-And thanks to Garden's smart caching, these environments can be created lightning fast. For the very first preview environment created, Garden will build and deploy the project. For subsequent environments, Garden
-will only re-build the parts of the system that actually changed.
+And thanks to Garden's smart caching, these environments can be created lightning fast. For the very first preview environment created, Garden will build and deploy the project. For subsequent environments, Garden will only re-build the parts of the system that actually changed.
 
 A lot of teams have gone from having a single, congested staging environment to blazing fast isolated preview environments for every pull request by the end of this phase. See e.g. [this case study](https://garden.io/blog/garden-is-the-best-companion-for-a-kubernetes-dev-from-local-envs-to-cd).
 
@@ -28,8 +27,7 @@ A lot of teams have gone from having a single, congested staging environment to 
 
 ## Phase 2 — Use Garden to test in CI and “as you code”
 
-One of the main benefits of being able to spin up production-like environments on demand is that it vastly simplifies writing and maintaining end-to-end tests. No more waiting for a full CI pipeline to run tests, you
-can do that from your laptop, _as you code!_
+One of the main benefits of being able to spin up production-like environments on demand is that it vastly simplifies writing and maintaining end-to-end tests. No more waiting for a full CI pipeline to run tests, you can do that from your laptop, _as you code!_
 
 This is why teams typically start adding Test actions to their Garden project after setting up on-demand environments.
 
@@ -51,10 +49,9 @@ Next step is typically to roll out production-like development environments to y
 
 This means that each developer will have their own isolated namespace in a remote Kubernetes cluster where they're able to run their entire project without setting [their laptops on fire](https://garden.io/blog/you-dont-need-kubernetes-on-your-laptop).
 
-This also means that new developers can get up and running in a matter of minutes. Since the project runs remotely and Garden automates all the workflows, setting up a development environment from scratch is as
-simple as cloning the project repo and running `garden dev`.
+This also means that new developers can get up and running in a matter of minutes. Since the project runs remotely and Garden automates all the workflows, setting up a development environment from scratch is as simple as cloning the project repo and running `garden dev`.
 
-Thanks to Garden's [live reloading functionality](../config-guides/code-synchronization.md), code changes stream directly to the running container in the remote cluster, ensuring blazing fast feedback. No need to wait for builds or deploys. This allows your team to develop in production-like environments that _feel_ just like local.
+Thanks to Garden's [live reloading functionality](../features/code-synchronization.md), code changes stream directly to the running container in the remote cluster, ensuring blazing fast feedback. No need to wait for builds or deploys. This allows your team to develop in production-like environments that _feel_ just like local.
 
 For more, check out [this case study](https://garden.io/blog/cloud-development) on how one team is giving their developers all the power of the cloud with non of the cognitive overload.
 
@@ -64,16 +61,14 @@ At this phase, you'll have codified all your workflows with Garden and simplifie
 
 Your team may also be developing in production-like environments and is able to run the entire test suite without needing to wait for CI.
 
-At this point, you can start using Garden to consolidate workflows and tooling across the entire organisation. You can e.g. create [templates](../config-guides/config-templates.md) that allow you to author re-useable config that can be shared across teams to ensure consistency and compliance.
+At this point, you can start using Garden to consolidate workflows and tooling across the entire organisation. You can e.g. create [templates](../features/config-templates.md) that allow you to author re-useable config that can be shared across teams to ensure consistency and compliance.
 
-Similarly you can add [custom commands](../config-guides/custom-commands.md) to standarize workflows and add our [Pulumi](../garden-for/pulumi/README.md) or [Terraform](../garden-for/terraform/README.md) to truly codify your
-entire delivery process—including infrastructure provisioning.
+Similarly you can add [custom commands](../features/custom-commands.md) to standarize workflows and add our [Pulumi](../garden-for/pulumi/README.md) or [Terraform](../garden-for/terraform/README.md) to truly codify your entire delivery process—including infrastructure provisioning.
 
 You can learn more in [this blog post](https://garden.io/blog/garden-linkerd) on building the perfect internal developer platform with Linkerd and Garden.
 
 ## Next Steps
 
-Now that you have a feel for how teams typically adopt Garden, we recommend diving right in with our [Quickstart guide](../getting-started/quickstart.md) or learning how to [add Garden to your own
-project](../getting-started/next-steps.md).
+Now that you have a feel for how teams typically adopt Garden, we recommend diving right in with our [Quickstart guide](../getting-started/quickstart.md) or learning how to [add Garden to your own project](../getting-started/next-steps.md).
 
 And if you have any questions, don't hesitate to reach out to our [our Discord community](https://discord.gg/FrmhuUjFs6).

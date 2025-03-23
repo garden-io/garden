@@ -37,7 +37,7 @@ Teams then use Garden’s sync functionality to live reload changes into running
 
 ## How can my team develop against remote clusters?
 
-Teams typically [adopt Garden in a few phases](../../guides/adopting-garden.md) and using remote clusters for inner loop development tends to be one of the last ones. Each phase solves a unique problem though so its well worth the journey.
+Teams typically [adopt Garden in a few phases](../../misc/adopting-garden.md) and using remote clusters for inner loop development tends to be one of the last ones. Each phase solves a unique problem though so its well worth the journey.
 
 So with that in mind, here are the recommended next steps:
 
@@ -45,7 +45,7 @@ So with that in mind, here are the recommended next steps:
 - Check out the [First Project tutorial](../../tutorials/README.md) and/or [accompanying video](https://youtu.be/0y5E8K-8kr4)
 - [Set up your remote cluster](../../garden-for/kubernetes/remote-kubernetes.md)
 - [Add actions](../../garden-for/kubernetes/README.md) to build and deploy your project
-- [Configure code syncing](../../config-guides/code-synchronization.md) so you can live reload changes to the remote cluster
+- [Configure code syncing](../../features/code-synchronization.md) so you can live reload changes to the remote cluster
 
 {% hint style="info" %}
 Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
@@ -54,8 +54,8 @@ Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Ga
 ## Further Reading
 
 - [What is Garden](../../overview/what-is-garden.md)
-- [Adopting Garden](../../guides/adopting-garden.md)
-- [Variables and Templating](../../config-guides/variables-and-templating.md)
+- [Adopting Garden](../../misc/adopting-garden.md)
+- [Variables and Templating](../../features/variables-and-templating.md)
 
 ## Examples
 

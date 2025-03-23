@@ -17,7 +17,7 @@ Simply by adding extra environments to your Garden project, you can use Garden f
 
 - **Cached builds and tests**: Garden caches your tests and builds so you **only run what has changed**. The result is dramatic reductions for CI run-times, typically *twenty minutes* to an *hour*.
 - **Automatic environment cleanup**, **deep Insights into CI test, builds and deploys**, and **triggered CI runs** with [Garden Enterprise](https://garden.io/plans)
-- **Encode once, run anywhere**: [Garden's Workflows](../../config-guides/workflows.md) can be run from any environment, including local machines, CI servers, and cloud environments.
+- **Encode once, run anywhere**: [Garden's Workflows](../../features/workflows.md) can be run from any environment, including local machines, CI servers, and cloud environments.
 - **Visualize your CI/CD flow**: Use the [Garden dashboard](https://app.garden.io) to visualize your CI/CD pipeline, view logs, and track command history.
 - **Accelerate build times**: With remote image builds, you can speed up your image build times significantly.
 
@@ -37,5 +37,5 @@ Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Ga
 
 - [What is Garden](../../overview/what-is-garden.md)
 - [Using the CLI](../../guides/using-the-cli.md)
-- [Variables and Templating](../../config-guides/variables-and-templating.md)
-- [Adopting Garden](../../guides/adopting-garden.md)
+- [Variables and Templating](../../features/variables-and-templating.md)
+- [Adopting Garden](../../misc/adopting-garden.md)

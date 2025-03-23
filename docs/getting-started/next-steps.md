@@ -11,7 +11,7 @@ Now is the time to set up Garden for your own project to get these benefits and 
 
 This guide describes the main steps involved. It's meant as a roadmap for the configuration process with links to more in-depth resources. The configuration snippets are mostly for demonstration purposes to help you understand how your config evolves.
 
-For a more high level guide of adopting Garden in your organization, check out our [Adopting Garden guide](../guides/adopting-garden.md).
+For a more high level guide of adopting Garden in your organization, check out our [Adopting Garden guide](../misc/adopting-garden.md).
 
 ## Step 1 — Create a project
 
@@ -73,7 +73,7 @@ For example, you can use the `container` Build action and the `kubernetes` or `h
 We recommend putting each action in its own `garden.yml` file and locating it next to any source files.
 
 {% hint style="info" %}
-Garden actions and their configuration can be spread across different files and even [across multiple git repos](../config-guides/remote-sources.md).
+Garden actions and their configuration can be spread across different files and even [across multiple git repos](../features/remote-sources.md).
 {% endhint %}
 
 Here's a simple example with actions for deploying an ephemeral database and an API server, and a Test action for running integration tests:

@@ -349,7 +349,7 @@ spec:
         mode: two-way
 ```
 
-For more information on synchronization, check out the full [Code Synchronization Guide](../../config-guides/code-synchronization.md).
+For more information on synchronization, check out the full [Code Synchronization Guide](../../features/code-synchronization.md).
 
 ## Production environments
 

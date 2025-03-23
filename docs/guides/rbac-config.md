@@ -1,5 +1,5 @@
 ---
-order: 9
+order: 100
 title: Minimal RBAC Configuration for Development Clusters
 ---
 
