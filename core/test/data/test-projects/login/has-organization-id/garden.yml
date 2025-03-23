@@ -1,0 +1,7 @@
+apiVersion: garden.io/v2
+kind: Project
+name: has-organization-id
+organizationId: gandalf-12345
+environments:
+  - name: local
+  - name: other

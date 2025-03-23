@@ -48,7 +48,7 @@ describe("kubernetes Test results", () => {
         completedAt: new Date(),
         success: true,
       }
-      const testResultCache = getTestResultCache(ctx.gardenDirPath)
+      const testResultCache = getTestResultCache(ctx)
       const trimmed = await testResultCache.store({
         ctx,
         log: garden.log,

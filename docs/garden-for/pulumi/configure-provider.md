@@ -1,5 +1,5 @@
 ---
-title: Configure Pulumi
+title: Using Pulumi
 order: 1
 ---
 

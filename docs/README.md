@@ -16,7 +16,7 @@
 ## Getting Started
 
 * [Quickstart](./getting-started/quickstart.md)
-* [Garden basics](./getting-started/basics.md)
+* [Garden Basics](./getting-started/basics.md)
 * [Next Steps](./getting-started/next-steps.md)
 
 ## Tutorials
@@ -43,37 +43,39 @@
 
 ## Using Garden With
 
-* [Containers](./garden-for/containers.md)
+* [Containers](./garden-for/containers/README.md)
+  * [Using Remote Container Builder](./garden-for/containers/using-remote-container-builder.md)
+  * [Building Containers](./garden-for/containers/building-containers.md)
 * [Kubernetes](./garden-for/kubernetes/README.md)
-  * [Configure remote Kubernetes](./garden-for/kubernetes/remote-kubernetes.md)
-  * [Configure local Kubernetes](./garden-for/kubernetes/local-kubernetes.md)
-  * [Deploy K8s resources](./garden-for/kubernetes/deploy-k8s-resource.md)
-  * [Install Helm charts](./garden-for/kubernetes/install-helm-chart.md)
-  * [Run tests and tasks](./garden-for/kubernetes/run-tests-and-tasks.md)
+  * [Using Remote Kubernetes](./garden-for/kubernetes/remote-kubernetes.md)
+  * [Using Local Kubernetes](./garden-for/kubernetes/local-kubernetes.md)
+  * [Deploying K8s Resources](./garden-for/kubernetes/deploy-k8s-resource.md)
+  * [Installing Helm charts](./garden-for/kubernetes/install-helm-chart.md)
+  * [Running Tests and Tasks](./garden-for/kubernetes/run-tests-and-tasks.md)
 * [Terraform](./garden-for/terraform/README.md)
-  * [Configure Terraform](./garden-for/terraform/configure-provider.md)
-  * [Apply stacks](./garden-for/terraform/actions.md)
+  * [Using Terraform](./garden-for/terraform/configure-provider.md)
+  * [Applying Terrform Stacks](./garden-for/terraform/actions.md)
 * [Pulumi](./garden-for/pulumi/README.md)
-  * [Configure Pulumi](./garden-for/pulumi/configure-provider.md)
-  * [Apply stacks](./garden-for/pulumi/actions.md)
-* [Local scripts](./garden-for/local-scripts.md)
+  * [Using Pulumi](./garden-for/pulumi/configure-provider.md)
+  * [Applying Pulumi Stacks](./garden-for/pulumi/actions.md)
+* [Local Scripts](./garden-for/local-scripts.md)
 
-## Configuration Guides
+## Features
 
-* [Variables and templating](./config-guides/variables-and-templating.md)
-* [Environments and namespaces](./config-guides/namespaces.md)
-* [Including/Excluding files](./config-guides/include-exclude.md)
+* [Variables and Templating](./config-guides/variables-and-templating.md)
 * [Config Templates](./config-guides/config-templates.md)
 * [Workflows](./config-guides/workflows.md)
 * [Code Synchronization](./config-guides/code-synchronization.md)
 * [Custom Commands](./config-guides/custom-commands.md)
 * [Remote Sources](./config-guides/remote-sources.md)
 
-## Other Guides
+## Guides
 
-* [Deprecations and updating to Cedar](./guides/deprecations.md)
+* [Deprecations and Updating to Cedar](./guides/deprecations.md)
+* [Environments and Namespaces](./guides/namespaces.md)
 * [Installing Garden](./guides/installation.md)
-* [How organisations adopt Garden](./guides/adopting-garden.md)
+* [Including/Excluding files](./guides/include-exclude.md)
+* [How Organizations Adopt Garden](./guides/adopting-garden.md)
 * [Installing Local Kubernetes](./guides/install-local-kubernetes.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using the CLI](./guides/using-the-cli.md)
@@ -164,7 +166,7 @@
 
 * [Contributor Covenant Code of Conduct](./contributing/CODE_OF_CONDUCT.md)
 * [Contributing to the Docs](./contributing/contributing-docs.md)
-* [Setting up your developer environment](./contributing/garden-dev-env-setup.md)
+* [Setting up Your Developer Environment](./contributing/garden-dev-env-setup.md)
 * [Developing Garden](./contributing/developing-garden.md)
-* [Config resolution](./contributing/config-resolution.md)
-* [Graph execution](./contributing/graph-execution.md)
+* [Config Resolution](./contributing/config-resolution.md)
+* [Graph Execution](./contributing/graph-execution.md)

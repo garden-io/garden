@@ -103,7 +103,6 @@ export class SyncStartCommand extends Command<Args, Opts> {
   }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     if (!parentCommand) {
       reportDeprecatedSyncCommandUsage({
-        apiVersion: garden.projectApiVersion,
         log,
         deprecation: "syncStartCommand",
         syncCommandName: this.name,

@@ -7,18 +7,17 @@
  */
 
 import dotenv from "dotenv"
-import { sep, resolve, relative, basename, dirname, join } from "path"
+import { basename, dirname, join, relative, resolve, sep } from "path"
 import { lint } from "yaml-lint"
-import { omit, isPlainObject } from "lodash-es"
+import { isPlainObject, omit } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
-import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
+import { baseModuleSchemaKeys, coreModuleSpecSchema } from "./module.js"
 import { ConfigurationError, FilesystemError, isErrnoException, ParameterError } from "../exceptions.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import type { ConfigSource } from "./validation.js"
 import { validateWithPath } from "./validation.js"
-import { defaultDotIgnoreFile, listDirectory } from "../util/fs.js"
-import { isConfigFilename } from "../util/fs.js"
+import { isConfigFilename, listDirectory } from "../util/fs.js"
 import type { ConfigTemplateKind } from "./config-template.js"
 import { isNotNull, isTruthy } from "../util/util.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "./common.js"
@@ -36,8 +35,6 @@ import { LRUCache } from "lru-cache"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import { evaluate } from "../template/evaluate.js"
 import { GenericContext } from "./template-contexts/base.js"
-import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
-import { resolveApiVersion } from "../project-api-version.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -247,7 +244,6 @@ export async function readConfigFile(configPath: string, projectRoot: string) {
 }
 
 export function prepareResource({
-  log,
   doc,
   configFilePath,
   projectRoot,
@@ -321,7 +317,7 @@ export function prepareResource({
       basePath,
       yamlDoc: doc,
     }
-    return prepareProjectResource(log, spec)
+    return spec
   } else if (
     actionKinds.includes(kind) ||
     kind === "Command" ||
@@ -351,90 +347,6 @@ export function prepareResource({
       message: `Unknown kind ${kind} in ${description}`,
     })
   }
-}
-
-// TODO-0.14: remove these deprecation handlers in 0.14
-type DeprecatedConfigHandler = (log: Log, spec: ProjectConfig) => ProjectConfig
-
-function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
-  // If the project config has an explicitly defined `dotIgnoreFile` field,
-  // it means the config has already been updated to 0.13 format.
-  if (!!projectSpec.dotIgnoreFile) {
-    return projectSpec
-  }
-
-  const dotIgnoreFiles = projectSpec.dotIgnoreFiles
-  // If the project config has neither new `dotIgnoreFile` nor old `dotIgnoreFiles` fields
-  // then there is nothing to do.
-  if (!dotIgnoreFiles) {
-    return projectSpec
-  }
-
-  reportDeprecatedFeatureUsage({
-    apiVersion: projectSpec.apiVersion,
-    log,
-    deprecation: "dotIgnoreFiles",
-  })
-
-  if (dotIgnoreFiles.length === 0) {
-    return { ...projectSpec, dotIgnoreFile: defaultDotIgnoreFile }
-  }
-
-  if (dotIgnoreFiles.length === 1) {
-    return { ...projectSpec, dotIgnoreFile: dotIgnoreFiles[0] }
-  }
-
-  throw new ConfigurationError({
-    message: `Cannot auto-convert array-field \`dotIgnoreFiles\` to scalar \`dotIgnoreFile\`: multiple values found in the array [${dotIgnoreFiles.join(
-      ", "
-    )}]`,
-  })
-}
-
-function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConfig {
-  // Field 'modules' was intentionally removed from the internal interface `ProjectConfig`,
-  // but it still can be presented in the runtime if the old config format is used.
-  if (projectSpec["modules"]) {
-    reportDeprecatedFeatureUsage({
-      apiVersion: projectSpec.apiVersion,
-      log,
-      deprecation: "projectConfigModules",
-    })
-    let scanConfig = projectSpec.scan || {}
-    for (const key of ["include", "exclude"]) {
-      if (projectSpec["modules"][key]) {
-        if (!scanConfig[key]) {
-          scanConfig = { ...scanConfig, [key]: projectSpec["modules"][key] }
-        } else {
-          log.warn(
-            `Project-level \`${key}\` is set both in \`modules.${key}\` and \`scan.${key}\`. The value from \`scan.${key}\` will be used (and the value from \`modules.${key}\` will not have any effect).`
-          )
-        }
-      }
-    }
-    projectSpec.scan = scanConfig
-    delete projectSpec["modules"]
-  }
-
-  return projectSpec
-}
-
-function handleApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
-  return { ...projectSpec, apiVersion: resolveApiVersion(projectSpec, log) }
-}
-
-const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [
-  handleApiVersion,
-  handleDotIgnoreFiles,
-  handleProjectModules,
-]
-
-export function prepareProjectResource(log: Log, spec: any): ProjectConfig {
-  let projectSpec = <ProjectConfig>spec
-  for (const handler of bonsaiDeprecatedConfigHandlers) {
-    projectSpec = handler(log, projectSpec)
-  }
-  return projectSpec
 }
 
 export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleConfig {

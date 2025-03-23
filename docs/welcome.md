@@ -5,6 +5,10 @@ description: >-
   Garden is a DevOps automation tool for developing and testing Kubernetes apps faster
 ---
 
+{% hint style="warning" %}
+[See here](https://docs.garden.io/bonsai-0.13) for the Garden 0.13 (Bonsai) docs.
+{% endhint %}
+
 Garden lets you spin up **production-like environments** for development, testing, and CI **on demand**. It enables teams to use the **same configuration** and workflows for **every stage of software delivery**—and dramatically **speeds up builds and test runs** via smart caching.
 
 If there's something you can't find in our docs, we happily encourage you to [join our Discord community](https://discord.gg/FrmhuUjFs6) and/or file an issue on [our GitHub repo](https://github.com/garden-io/garden). We're more than happy to help!

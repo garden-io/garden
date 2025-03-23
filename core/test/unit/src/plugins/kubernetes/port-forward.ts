@@ -50,7 +50,6 @@ describe("getForwardablePorts", () => {
       name: "foo",
       getSpec(): KubernetesDeployActionSpec {
         return {
-          files: [],
           manifestFiles: [],
           manifestTemplates: [],
           manifests: [],

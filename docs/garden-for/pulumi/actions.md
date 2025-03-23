@@ -1,5 +1,5 @@
 ---
-title: Apply stacks
+title: Applying Pulumi Stacks
 order: 2
 ---
 

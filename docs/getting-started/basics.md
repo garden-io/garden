@@ -1,5 +1,5 @@
 ---
-title: Garden basics
+title: Garden Basics
 order: 2
 ---
 

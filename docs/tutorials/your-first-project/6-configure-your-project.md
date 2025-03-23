@@ -15,7 +15,7 @@ Garden is a powerful and flexible tool, and there are several things to learn al
    your own project root.
 2. Start adding your own actions, and get them building and deploying. Consider using
    [ConfigTemplates](../../config-guides/config-templates.md) if you have a lot of similar actions configs.
-3. Add more environments. Garden works great in CI and in fact that's often the starting point for many teams. Take a look at our [guide on environments and namespaces](../../config-guides/namespaces.md) to learn more.
+3. Add more environments. Garden works great in CI and in fact that's often the starting point for many teams. Take a look at our [guide on environments and namespaces](../../guides/namespaces.md) to learn more.
 
 In summary, **gradually put all the pieces together**, learn the details as you go, and use more and more features as you get comfortable.
 

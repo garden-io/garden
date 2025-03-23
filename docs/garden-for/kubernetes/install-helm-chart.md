@@ -1,7 +1,11 @@
 ---
-title: Install Helm charts
+title: Installing Helm charts
 order: 6
 ---
+
+{% hint style="info" %}
+To use Garden to install Helm charts you need to configure the [remote](./remote-kubernetes.md) or [local](./local-kubernetes.md) Kubernetes providers.
+{% endhint %}
 
 The [Helm](https://helm.sh/) package manager is one of the most commonly used tools for managing Kubernetes manifests. Garden supports using your own Helm charts, alongside your container builds, via the `kubernetes` and `local-kubernetes` providers. This guide shows you how to configure and use 3rd-party (or otherwise external) Helm charts, as well as your own charts in your Garden project. We also go through how to set up tests, runs and code synchronization for your charts.
 

@@ -12,7 +12,7 @@ In the tutorial we'll:
 3. [Add actions to the project](./3-add-actions.md)
 4. [Add tests to the project](./4-testing.md)
 5. [Enable code syncing](./5-code-syncing.md)
-6. [..and discuss next steps](./6-configure-your-project.md)
+6. [...and discuss next steps](./6-configure-your-project.md)
 
 ## Requirements
 

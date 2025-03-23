@@ -211,10 +211,7 @@ export async function getReleaseStatus({
     }
   }
 
-  // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
-  // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to check for
-  // the annotations Garden Cloud adds to Helm Deployments and StatefulSets when pausing an environment.
-  if (ctx.cloudApi && (await isPaused({ ctx, namespace, action, releaseName, log }))) {
+  if (await isPausedByAEC({ ctx, namespace, action, releaseName, log })) {
     state = "outdated"
   }
 
@@ -227,7 +224,7 @@ export async function getReleaseStatus({
 /**
  *  Returns Helm workload resources that have been marked as "paused" by Garden Cloud's AEC functionality
  */
-export async function getPausedResources({
+export async function getResourcesPausedByAEC({
   ctx,
   action,
   namespace,
@@ -268,7 +265,7 @@ export async function getPausedResources({
   return pausedWorkloads
 }
 
-async function isPaused({
+async function isPausedByAEC({
   ctx,
   action,
   namespace,
@@ -281,7 +278,7 @@ async function isPaused({
   releaseName: string
   log: Log
 }) {
-  return (await getPausedResources({ ctx, action, namespace, releaseName, log })).length > 0
+  return (await getResourcesPausedByAEC({ ctx, action, namespace, releaseName, log })).length > 0
 }
 
 export async function getHelmGardenMetadataConfigMapData({

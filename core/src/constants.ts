@@ -39,15 +39,7 @@ export enum GardenApiVersion {
   v2 = "garden.io/v2",
 }
 
-// TODO(0.14): bump this to v1 (or v2?)
-//  Update the comments and log messages in the placed where it's used.
-export const defaultGardenApiVersion = GardenApiVersion.v0
-
 export const supportedApiVersions: string[] = Object.values(GardenApiVersion).map((v) => v as string)
-
-export function gardenApiSupportsActions(apiVersion: GardenApiVersion): boolean {
-  return apiVersion !== GardenApiVersion.v0
-}
 
 export const DEFAULT_BUILD_TIMEOUT_SEC = 600
 export const DEFAULT_TEST_TIMEOUT_SEC = 600
@@ -63,8 +55,7 @@ export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggigno
 
 export const DOCS_BASE_URL = "https://docs.garden.io/bonsai-0.13"
 
-export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
-export const DEFAULT_GROW_CLOUD_DOMAIN = "https://grow.staging.sys.garden"
+export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://beta.app.garden.io"
 
 export const DEFAULT_BROWSER_DIVIDER_WIDTH = 80
 
@@ -80,7 +71,6 @@ export const gardenEnv = {
   ANALYTICS_DEV: env.get("ANALYTICS_DEV").required(false).asBool(),
   // Support the NO_COLOR env var (see https://no-color.org/)
   NO_COLOR: env.get("NO_COLOR").required(false).default("false").asBool(),
-  USE_GARDEN_CLOUD_V2: env.get("USE_GARDEN_CLOUD_V2").required(false).default("false").asBool(),
   GARDEN_AUTH_TOKEN: env.get("GARDEN_AUTH_TOKEN").required(false).asString(),
   GARDEN_CACHE_TTL: env.get("GARDEN_CACHE_TTL").required(false).asInt(),
   GARDEN_DB_DIR: env.get("GARDEN_DB_DIR").required(false).default(GARDEN_GLOBAL_PATH).asString(),

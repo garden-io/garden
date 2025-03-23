@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Primitive, PrimitiveMap, ActionReference } from "../../config/common.js"
+import type { Primitive, PrimitiveMap } from "../../config/common.js"
 import {
   artifactsTargetDescription,
   envVarRegex,
@@ -79,9 +79,7 @@ export interface ContainerVolumeSpecBase {
   hostPath?: string
 }
 
-export interface ContainerVolumeSpec extends ContainerVolumeSpecBase {
-  action?: ActionReference<"Deploy">
-}
+export interface ContainerVolumeSpec extends ContainerVolumeSpecBase {}
 
 export interface ServiceHealthCheckSpec {
   httpGet?: {
@@ -545,26 +543,6 @@ export const volumeSchemaBase = createSchema({
   }),
 })
 
-const volumeSchema = createSchema({
-  name: "container-volume",
-  extend: volumeSchemaBase,
-  keys: () => ({
-    // TODO-0.13.0: remove when kubernetes-container type is ready, better to swap out with raw k8s references
-    action: joi
-      .actionReference()
-      .kind("Deploy")
-      .name("base-volume")
-      .description(
-        dedent`
-        The action reference to a _volume Deploy action_ that should be mounted at \`containerPath\`. The supported action types are \`persistentvolumeclaim\` and \`configmap\`.
-
-        Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-        `
-      ),
-  }),
-  oxor: [["hostPath", "action"]],
-})
-
 export function getContainerVolumesSchema(schema: Joi.ObjectSchema) {
   return joiSparseArray(schema).unique("name").description(dedent`
     List of volumes that should be mounted when starting the container.
@@ -657,7 +635,7 @@ const containerCommonRuntimeSchemaKeys = memoize(() => ({
   env: containerEnvVarsSchema(),
   cpu: containerCpuSchema().default(defaultContainerResources.cpu),
   memory: containerMemorySchema().default(defaultContainerResources.memory),
-  volumes: getContainerVolumesSchema(volumeSchema()),
+  volumes: getContainerVolumesSchema(volumeSchemaBase()),
   privileged: containerPrivilegedSchema(),
   addCapabilities: containerAddCapabilitiesSchema(),
   dropCapabilities: containerDropCapabilitiesSchema(),
@@ -675,8 +653,8 @@ const containerCommonRuntimeSchemaKeys = memoize(() => ({
 }))
 
 const containerImageSchema = memoize(() =>
-  joi.string().allow(false, null).empty([false, null]).description(deline`
-    Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no \`build\` is specified.
+  joi.string().required().description(deline`
+    Specify an image ID to deploy. Should be a valid Docker image identifier. Required.
   `)
 )
 

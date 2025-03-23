@@ -1,5 +1,5 @@
 ---
-title: Environments and namespaces
+title: Environments and Namespaces
 order: 2
 ---
 

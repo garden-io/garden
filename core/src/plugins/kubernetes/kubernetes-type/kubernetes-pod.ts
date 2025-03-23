@@ -39,11 +39,6 @@ import type { KubernetesRunResult } from "../../../plugin/base.js"
 // RUN //
 
 export interface KubernetesPodRunActionSpec extends KubernetesCommonRunSpec {
-  /**
-   * TODO(0.14): remove this field
-   * @deprecated in action configs, use {@link #manifestTemplates} instead.
-   */
-  files: string[]
   manifestFiles: string[]
   manifestTemplates: string[]
   kustomize?: KubernetesKustomizeSpec
@@ -125,7 +120,7 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
       const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
 
       if (action.getSpec("cacheResult")) {
-        const runResultCache = await getRunResultCache(ctx.gardenDirPath)
+        const runResultCache = getRunResultCache(ctx)
         await runResultCache.store({
           ctx,
           log,
@@ -173,7 +168,7 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
       const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
 
       if (action.getSpec("cacheResult")) {
-        const testResultCache = getTestResultCache(ctx.gardenDirPath)
+        const testResultCache = getTestResultCache(ctx)
         await testResultCache.store({
           ctx,
           log,

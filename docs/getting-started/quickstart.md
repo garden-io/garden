@@ -8,8 +8,7 @@ Garden is an all-in-one DevOps automation platform that enables you to build, te
 In this quickstart guide, we'll:
 
 * Install Garden
-* Build an example project with the Garden Remote Container Builder
-* Deploy it to a local Kubernetes cluster (optional)
+* Deploy an example project it to a local Kubernetes cluster
 
 If you don't have Kubernetes installed, you can check out our guide on [installing local Kubernetes](../guides/install-local-kubernetes.md) or simply skip that step.
 
@@ -71,7 +70,7 @@ Then login to Garden Cloud by running the login command from inside the project 
 garden login
 ```
 
-### Step 3a — Build and deploy the project (with Kubernetes)
+### Step 3 — Build and deploy the project
 
 Now we can deploy the example project to our local Kubernetes cluster. We'll deploy the project in sync mode which enables live code syncing and starts the dev console:
 
@@ -79,21 +78,11 @@ Now we can deploy the example project to our local Kubernetes cluster. We'll dep
 garden deploy --sync
 ```
 
-This will build all the containers in this project with the Garden Remote Container Builder and deploy them to your Kubernetes cluster. You can now visit the example project [via the link](http://vote.local.demo.garden/) output by Garden.
+This will build all the containers in this project with the [Garden Remote Container Builder](../garden-for/containers/using-remote-container-builder.md) and deploy them to your Kubernetes cluster. You can now visit the example project [via the link](http://vote.local.demo.garden/) output by Garden.
 
 The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
 
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
-
-### Step 3b — Build the project (without Kubernetes)
-
-To test the project without a Kubernetes installation we can use the `build` command in the `no-k8s` environment which doesn't require Kubernetes:
-
-```
-garden build --env no-k8s
-```
-
-This will build all the containers in this project with the Garden Remote Container Builder.
 
 ## Next Steps
 

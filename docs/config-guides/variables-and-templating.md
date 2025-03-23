@@ -1,6 +1,6 @@
 ---
 order: 1
-title: Variables and templating
+title: Variables and Templating
 ---
 
 This guide introduces the templating capabilities available in Garden configuration files, the available ways to provide variable values, and how to reference outputs across modules and providers.

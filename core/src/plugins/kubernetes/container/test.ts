@@ -44,7 +44,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
   })
 
   if (action.getSpec("cacheResult")) {
-    const testResultCache = getTestResultCache(ctx.gardenDirPath)
+    const testResultCache = getTestResultCache(ctx)
     await testResultCache.store({
       ctx,
       log,

@@ -316,8 +316,7 @@ export async function prepareRunPodSpec({
     imagePullSecrets,
   }
 
-  // This logic is only relevant for `container` Runs and Tests, which need to support mounting `persistentvolumeclaim`
-  // and `configmap` actions (which are only supported for `container` actions, and are currently discouraged).
+  // This logic is only relevant for `container` Runs and Tests
   if (volumes && volumes.length && action.type === "container") {
     configureVolumes(action, preparedPodSpec, volumes)
   } else {

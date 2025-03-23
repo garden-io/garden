@@ -83,7 +83,6 @@ import {
   gardenEnv,
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
-  gardenApiSupportsActions,
 } from "./constants.js"
 import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
@@ -102,7 +101,7 @@ import {
   getActionTypes,
   getActionTypeBases,
 } from "./plugins.js"
-import { dedent, deline, naturalList, wordWrap } from "./util/string.js"
+import { dedent, deline, naturalList } from "./util/string.js"
 import { DependencyGraph } from "./graph/common.js"
 import { Profile, profileAsync } from "./util/profiling.js"
 import type { WorkflowConfig, WorkflowConfigMap } from "./config/workflow.js"
@@ -165,23 +164,15 @@ import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js
 import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
-import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
-import {
-  getCloudDistributionName,
-  getCloudDomain,
-  getCloudLogSectionName,
-  getGardenCloudDomain,
-  isGardenCommunityEdition,
-} from "./cloud/util.js"
+import { getBackendType, getCloudDistributionName, getCloudDomain, getCloudLogSectionName } from "./cloud/util.js"
 import { GrowCloudApi } from "./cloud/grow/api.js"
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
-import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
-import { getProjectApiVersion, setProjectApiVersion } from "./project-api-version.js"
+import { resolveApiVersion, setGloablProjectApiVersion } from "./project-api-version.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -192,7 +183,6 @@ export interface GardenOpts {
   forceRefresh?: boolean
   gardenDirPath?: string
   globalConfigStore?: GlobalConfigStore
-  legacyBuildSync?: boolean
   log?: Log
   /**
    * Log context for logging the start and finish of the Garden class
@@ -233,7 +223,6 @@ export interface GardenParams {
   outputs: OutputSpec[]
   plugins: RegisterPluginParam[]
   production: boolean
-  projectApiVersion: ProjectConfig["apiVersion"]
   projectConfig: ProjectConfig
   projectName: string
   projectRoot: string
@@ -270,7 +259,7 @@ type GardenType = typeof Garden.prototype
 export type GardenWithOldBackend = GardenType & Required<Pick<GardenType, "cloudApi">>
 
 function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
-  const projectApiVersion = params.projectApiVersion
+  const projectApiVersion = params.projectConfig.apiVersion
 
   const builtinPlugins = getBuiltinPlugins(projectApiVersion)
   const customPlugins = params.plugins
@@ -318,7 +307,6 @@ export class Garden {
   public readonly production: boolean
   public readonly projectRoot: string
   public readonly projectName: string
-  public readonly projectApiVersion: GardenApiVersion
   public readonly environmentName: string
   /**
    * The resolved default namespace as defined in the Project config for the current environment.
@@ -380,7 +368,6 @@ export class Garden {
     this.projectName = params.projectName
     this.projectRoot = params.projectRoot
     this.projectSources = params.projectSources || []
-    this.projectApiVersion = params.projectApiVersion
     this.providerConfigs = params.providerConfigs
     this.variables = params.variables
     this.variableOverrides = params.variableOverrides
@@ -423,16 +410,6 @@ export class Garden {
       ignoreFile: params.dotIgnoreFile,
       cache: vcsCache,
     })
-
-    const legacyBuildSync =
-      params.opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : params.opts.legacyBuildSync
-    if (legacyBuildSync) {
-      reportDeprecatedFeatureUsage({
-        apiVersion: params.projectApiVersion,
-        log: params.log,
-        deprecation: "rsyncBuildStaging",
-      })
-    }
 
     this.buildStaging = new BuildStaging(params.projectRoot, params.gardenDirPath)
 
@@ -604,7 +581,12 @@ export class Garden {
 
   getProjectConfigContext() {
     const loggedIn = this.isLoggedIn()
-    return new ProjectConfigContext({ ...this, loggedIn, cloudBackendDomain: this.cloudDomain })
+    return new ProjectConfigContext({
+      ...this,
+      loggedIn,
+      cloudBackendDomain: this.cloudDomain,
+      backendType: getBackendType(this.projectConfig),
+    })
   }
 
   async clearBuilds() {
@@ -1531,16 +1513,6 @@ export class Garden {
       for (const kind of actionKinds) {
         const actionConfigs = groupedResources[kind] || []
 
-        // Verify that the project apiVersion is defined as compatible with action kinds
-        // This is only available with apiVersion `garden.io/v1` or newer.
-        if (actionConfigs.length && !gardenApiSupportsActions(this.projectApiVersion)) {
-          throw new ConfigurationError({
-            message: `Action kinds are only supported in project configurations with "apiVersion: ${
-              GardenApiVersion.v1
-            }" or higher. A detailed migration guide is available at ${makeDocsLinkStyled("misc/migrating-to-bonsai")}`,
-          })
-        }
-
         for (const config of actionConfigs) {
           this.addRawActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
@@ -1884,7 +1856,13 @@ export class Garden {
 
   /** Returns whether the user is logged in to the Garden Cloud */
   public isOldBackendAvailable(): this is GardenWithOldBackend {
-    return !!this.cloudApi
+    const oldBackendAvailable = !!this.cloudApi
+    if (getBackendType(this.projectConfig) === "v2" && oldBackendAvailable) {
+      throw new InternalError({
+        message: "Invalid state: should use backend v2, but logged in to backend v1",
+      })
+    }
+    return oldBackendAvailable
   }
 
   public isLoggedIn(): boolean {
@@ -1914,7 +1892,9 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     }
   }
 
-  setProjectApiVersion(config, log)
+  const apiVersion = resolveApiVersion(config)
+  setGloablProjectApiVersion(apiVersion)
+  config.apiVersion = apiVersion
 
   gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
   const artifactsPath = resolve(gardenDirPath, "artifacts")
@@ -2012,12 +1992,14 @@ async function initCloudApi({
   projectConfig,
   skipCloudConnect,
 }: InitCloudApiParams): Promise<GardenCloudApi | undefined> {
-  if (gardenEnv.USE_GARDEN_CLOUD_V2 || skipCloudConnect) {
+  if (skipCloudConnect) {
     return undefined
   }
 
+  const { id: projectId, organizationId } = projectConfig || {}
+
   try {
-    return await cloudApiFactory({ log, cloudDomain, globalConfigStore })
+    return await cloudApiFactory({ log, cloudDomain, projectId, organizationId, globalConfigStore })
   } catch (err) {
     if (err instanceof CloudApiTokenRefreshError) {
       const distroName = getCloudDistributionName(cloudDomain)
@@ -2031,7 +2013,7 @@ async function initCloudApi({
           `)
 
       // Project is configured for cloud usage => fail early to force re-auth
-      if (projectConfig && projectConfig.id) {
+      if (projectId) {
         throw err
       }
 
@@ -2043,14 +2025,17 @@ async function initCloudApi({
   }
 }
 
-type InitCloudApiParamsV2 = Pick<InitCloudApiParams, "cloudDomain" | "globalConfigStore" | "log">
+type InitCloudApiParamsV2 = Pick<InitCloudApiParams, "cloudDomain" | "globalConfigStore" | "log"> & {
+  organizationId: string
+}
 
 async function initCloudApiV2({
   cloudDomain,
+  organizationId,
   globalConfigStore,
   log,
 }: InitCloudApiParamsV2): Promise<GrowCloudApi | undefined> {
-  return gardenEnv.USE_GARDEN_CLOUD_V2 ? await GrowCloudApi.factory({ cloudDomain, globalConfigStore, log }) : undefined
+  return GrowCloudApi.factory({ cloudDomain, globalConfigStore, log, organizationId, projectId: undefined })
 }
 
 export const resolveGardenParams = profileAsync(async function _resolveGardenParams(
@@ -2078,6 +2063,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     } = partialResolved
 
     let { config: projectConfig, namespace } = partialResolved
+    const { id: projectId, organizationId } = projectConfig
 
     await ensureDir(gardenDirPath)
     await ensureDir(artifactsPath)
@@ -2086,27 +2072,36 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
 
-    const cloudBackendDomain = getCloudDomain(projectConfig.domain)
-    const cloudApi = await initCloudApi({
-      cloudApiFactory,
-      cloudDomain: cloudBackendDomain,
-      globalConfigStore,
-      log,
-      projectConfig,
-      skipCloudConnect,
-    })
+    const cloudBackendDomain = getCloudDomain(projectConfig)
+
+    const cloudApi = projectId
+      ? await initCloudApi({
+          cloudApiFactory,
+          cloudDomain: cloudBackendDomain,
+          globalConfigStore,
+          log,
+          projectConfig,
+          skipCloudConnect,
+        })
+      : undefined
 
     // Use this to interact with Cloud Backend V2
-    const cloudApiV2 = await initCloudApiV2({ cloudDomain: cloudBackendDomain, globalConfigStore, log })
+    const cloudApiV2 = organizationId
+      ? await initCloudApiV2({
+          cloudDomain: cloudBackendDomain,
+          organizationId,
+          globalConfigStore,
+          log,
+        })
+      : undefined
 
     const loggedIn = !!cloudApi || !!cloudApiV2
 
-    const { secrets, cloudProject } = await initCloudProject({
+    const { secrets } = await initCloudProject({
       cloudApi,
       config: projectConfig,
       log,
       projectRoot,
-      projectName,
       environmentName,
       commandName: opts.commandInfo.name,
       skipCloudConnect,
@@ -2120,6 +2115,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       loggedIn,
       cloudBackendDomain,
+      backendType: getBackendType(projectConfig),
       secrets,
       commandInfo,
     })
@@ -2188,10 +2184,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       cloudDomain: cloudBackendDomain,
       cloudApi,
       cloudApiV2,
-      // If the user is logged in and a cloud project exists we use that ID
-      // but fallback to the one set in the config (even if the user isn't logged in).
-      // Same applies for domains.
-      projectId: cloudProject?.id || projectConfig.id,
+      projectId: projectConfig.id,
       projectConfig,
       projectRoot,
       projectName,
@@ -2220,7 +2213,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       forceRefresh: opts.forceRefresh,
       cache: treeCache,
-      projectApiVersion: getProjectApiVersion(),
     }
   })
 })
@@ -2236,7 +2228,6 @@ async function initCloudProject({
   config,
   log,
   projectRoot,
-  projectName,
   environmentName,
   commandName,
   skipCloudConnect,
@@ -2245,31 +2236,22 @@ async function initCloudProject({
   config: ProjectConfig
   log: Log
   projectRoot: string
-  projectName: string
   environmentName: string
   commandName: string
   skipCloudConnect: boolean
 }) {
-  if (gardenEnv.USE_GARDEN_CLOUD_V2 || skipCloudConnect) {
+  if (!cloudApi || skipCloudConnect) {
     return {
       secrets: {},
       cloudProject: undefined,
     }
   }
 
-  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
-  const isCommunityEdition = isGardenCommunityEdition(cloudDomain)
+  const cloudDomain = cloudApi?.domain || getCloudDomain(config)
   const distroName = getCloudDistributionName(cloudDomain)
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
   const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
-
-  if (!cloudApi) {
-    return {
-      secrets: {},
-      cloudProject: undefined,
-    }
-  }
 
   cloudLog.info(`Connecting project...`)
 
@@ -2277,28 +2259,24 @@ async function initCloudProject({
     cloudApi,
     config,
     log: cloudLog,
-    projectName,
     projectRoot,
-    isCommunityEdition,
   })
 
   // Fetch Secrets. Not supported on the community edition.
   let secrets: StringMap = {}
-  if (cloudProject && !isCommunityEdition) {
-    try {
-      secrets = await wrapActiveSpan(
-        "getSecrets",
-        async () =>
-          await cloudApi.getSecrets({
-            log: cloudLog,
-            projectId: cloudProject!.id,
-            environmentName,
-          })
-      )
-      cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
-    } catch (err) {
-      cloudLog.error(`Fetching secrets failed with error: ${err}`)
-    }
+  try {
+    secrets = await wrapActiveSpan(
+      "getSecrets",
+      async () =>
+        await cloudApi.getSecrets({
+          log: cloudLog,
+          projectId: cloudProject!.id,
+          environmentName,
+        })
+    )
+    cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
+  } catch (err) {
+    cloudLog.error(`Fetching secrets failed with error: ${err}`)
   }
 
   cloudLog.success("Ready")
@@ -2307,79 +2285,38 @@ async function initCloudProject({
 }
 
 /**
- * Returns the cloud project for the respective cloud edition (i.e. community or commercial).
+ * Returns the cloud project
  */
 async function getCloudProject({
   cloudApi,
   config,
   log,
-  isCommunityEdition,
   projectRoot,
-  projectName,
 }: {
   cloudApi: GardenCloudApi
   config: ProjectConfig
   log: Log
-  isCommunityEdition: boolean
   projectRoot: string
-  projectName: string
 }) {
+  const projectId = config.id
   const distroName = getCloudDistributionName(cloudApi.domain)
-  const projectIdFromConfig = config.id
 
-  // If logged into community edition, throw if ID is set
-  if (projectIdFromConfig && isCommunityEdition) {
-    const msg = wordWrap(
-      deline`
-        Invalid field 'id' found in project configuration at path ${projectRoot}. The 'id'
-        field should only be set if using a commercial edition of Garden. Please remove to continue
-        using the Garden community edition.
-      `,
-      120
-    )
-    throw new ConfigurationError({ message: msg })
-  }
-
-  // If logged into community edition, return project or throw if it can't be fetched/created
-  if (isCommunityEdition) {
-    log.debug(`Fetching or creating project ${projectName} from ${cloudApi.domain}`)
-    try {
-      const cloudProject = await cloudApi.getOrCreateProjectByName(projectName)
-      return cloudProject
-    } catch (err) {
-      log.error(`Fetching or creating project ${projectName} from ${cloudApi.domain} failed with error: ${err}`)
-      if (err instanceof GotHttpError) {
-        throw new CloudApiError({ responseStatusCode: err.response.statusCode, message: err.message })
-      }
-      throw err
-    }
-  }
-
-  // If logged into commercial edition and ID is not set, log warning and return null
-  if (!projectIdFromConfig) {
-    log.warn(
-      wordWrap(
-        deline`
-            Logged in to ${cloudApi.domain}, but could not find remote project '${projectName}'.
-            Command results for this command run will not be available in ${distroName}.
-          `,
-        120
-      )
-    )
-
-    return null
+  if (!projectId) {
+    throw new InternalError({
+      message: "Invalid state: using backend v1 but projectId is undefined",
+    })
   }
 
   // If logged into commercial edition, return project or throw if unable to fetch by ID
-  log.debug(`Fetching project ${projectIdFromConfig} from ${cloudApi.domain}.`)
+  log.debug(`Fetching project ${projectId} from ${cloudApi.domain}.`)
   try {
-    const cloudProject = await cloudApi.getProjectById(projectIdFromConfig)
+    const cloudProject = await cloudApi.getProjectById(projectId)
     return cloudProject
   } catch (err) {
-    let errorMsg = `Fetching project with ID=${projectIdFromConfig} failed with error: ${err}`
+    let errorMsg = `Fetching project with ID=${projectId} failed with error: ${err}`
     if (err instanceof GotHttpError) {
       if (err.response.statusCode === 404) {
-        const errorHeaderMsg = styles.error(`Project with ID=${projectIdFromConfig} was not found in ${distroName}`)
+        const errorHeaderMsg = styles.error(`Project with ID=${projectId} was not found in ${distroName}`)
         const errorDetailMsg = styles.accent(dedent`
           Either the project has been deleted from ${distroName} or the ID in the project
           level Garden config file at ${styles.highlight(projectRoot)} has been changed and does not match
@@ -2431,7 +2368,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
 
   const config: ProjectConfig = {
     path: root,
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: GardenApiVersion.v2,
     kind: "Project",
     name: "no-project",
     internal: {

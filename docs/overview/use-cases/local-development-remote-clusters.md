@@ -32,7 +32,7 @@ Teams then use Garden’s sync functionality to live reload changes into running
 ## Key features
 
 - **Visualize your dependency graph**, streams logs, and view command history with the [Garden dashboard](https://app.garden.io)
-- **Accelerate build times** with remote image builds and smart caching
+- **Accelerate build times** with [Garden's Remote Container Builder](../../garden-for/containers/building-containers.md) and smart caching
 - **Hot reload** your code to containers running in your local and remote Kubernetes clusters for a smooth inner loop with [Code Synchronization](https://docs.garden.io/guides/code-synchronization).
 
 ## How can my team develop against remote clusters?

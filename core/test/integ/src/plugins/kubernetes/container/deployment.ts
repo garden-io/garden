@@ -27,6 +27,7 @@ import { kilobytesToString, millicpuToString } from "../../../../../../src/plugi
 import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util.js"
 import { isConfiguredForSyncMode } from "../../../../../../src/plugins/kubernetes/status/status.js"
 import type {
+  ContainerBuildAction,
   ContainerDeployAction,
   ContainerDeployActionConfig,
   ContainerDeployOutputs,
@@ -62,6 +63,10 @@ describe("kubernetes container deployment handlers", () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { [mode]: ["deploy." + name] } })
     }
     return garden.resolveAction<ContainerDeployAction>({ action: graph.getDeploy(name), log: garden.log, graph })
+  }
+  async function resolveBuildAction(name: string) {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    return garden.resolveAction<ContainerBuildAction>({ action: graph.getBuild(name), log: garden.log, graph })
   }
 
   beforeEach(async () => {
@@ -393,8 +398,8 @@ describe("kubernetes container deployment handlers", () => {
       expect(resource.spec.template?.spec?.imagePullSecrets).to.eql([{ name: secretName }])
     })
 
-    it("should correctly mount a referenced PVC module", async () => {
-      const action = await resolveDeployAction("volume-reference")
+    it("should correctly mount volume", async () => {
+      const action = await resolveDeployAction("volume-module")
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
@@ -408,63 +413,8 @@ describe("kubernetes container deployment handlers", () => {
         production: false,
       })
 
-      expect(resource.spec.template?.spec?.volumes).to.eql([
-        { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
-      ])
+      expect(resource.spec.template?.spec?.volumes).to.eql([{ name: "test", emptyDir: {} }])
       expect(resource.spec.template?.spec?.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/volume" }])
-    })
-
-    it("should correctly mount a referenced ConfigMap module", async () => {
-      const action = await resolveDeployAction("configmap-reference")
-      const namespace = provider.config.namespace!.name!
-
-      const resource = await createWorkloadManifest({
-        ctx,
-        api,
-        provider,
-        action,
-        imageId: getDeployedImageId(action),
-        namespace,
-        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-        production: false,
-      })
-
-      expect(resource.spec.template?.spec?.volumes).to.eql([
-        {
-          name: "test",
-          configMap: {
-            name: "configmap-module",
-          },
-        },
-      ])
-      expect(resource.spec.template?.spec?.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/config" }])
-    })
-
-    it("should throw if incompatible module is specified as a volume module", async () => {
-      const action = await resolveDeployAction("volume-reference")
-      const namespace = provider.config.namespace!.name!
-
-      action["_config"].spec.volumes = [
-        { name: "test", containerPath: "TODO-G2", action: { name: "simple-service", kind: "Deploy" } },
-      ]
-
-      await expectError(
-        () =>
-          createWorkloadManifest({
-            ctx,
-            api,
-            provider,
-            action,
-            imageId: getDeployedImageId(action),
-            namespace,
-            log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-            production: false,
-          }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.include(
-            "Deploy type=container name=volume-reference (from module volume-reference) specifies a unsupported config simple-service for volume mount test. Only `persistentvolumeclaim` and `configmap` action are supported at this time."
-          )
-      )
     })
   })
 
@@ -481,13 +431,14 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a simple Deploy", async () => {
-        const action = await resolveDeployAction("simple-service")
+        const buildAction = await resolveBuildAction("simple-service")
+        const serviceAction = await resolveDeployAction("simple-service")
 
         const deployTask = new DeployTask({
           garden,
           graph,
           log: garden.log,
-          action,
+          action: serviceAction,
           force: true,
           forceBuild: false,
         })
@@ -495,13 +446,15 @@ describe("kubernetes container deployment handlers", () => {
         garden.events.eventLog = []
         const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getDeployStatuses(results.results)
-        const status = statuses[action.name]
+        const status = statuses[serviceAction.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
 
         expect(findNamespaceStatusEvent(garden.events.eventLog, "container-default")).to.exist
-        expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(`${action.versionString()}`)
+        expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(
+          `${serviceAction.versionString()}`
+        )
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `${action.name}:${action.getBuildAction()?.versionString()}`
+          `${serviceAction.name}:${buildAction.versionString()}`
         )
       })
 
@@ -604,8 +557,8 @@ describe("kubernetes container deployment handlers", () => {
         expect(status.state).to.eql("ready")
       })
 
-      it("should deploy a service referencing a volume module", async () => {
-        const action = await resolveDeployAction("volume-reference")
+      it("should deploy a service with volume mount", async () => {
+        const action = await resolveDeployAction("volume-module")
 
         const deployTask = new DeployTask({
           garden,
@@ -622,9 +575,7 @@ describe("kubernetes container deployment handlers", () => {
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
 
         expect(status.state).eql("ready")
-        expect(resources.Deployment.spec.template.spec.volumes).to.eql([
-          { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
-        ])
+        expect(resources.Deployment.spec.template.spec.volumes).to.eql([{ name: "test", emptyDir: {} }])
         expect(resources.Deployment.spec.template.spec.containers[0].volumeMounts).to.eql([
           { name: "test", mountPath: "/volume" },
         ])

@@ -25,11 +25,9 @@ const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema(
 export const moduleTypes = [
   { name: "exec" },
   { name: "container" },
-  { name: "configmap", pluginName: "local-kubernetes" },
   { name: "helm", pluginName: "local-kubernetes" },
   { name: "jib-container" },
   { name: "kubernetes", pluginName: "local-kubernetes" },
-  { name: "persistentvolumeclaim", pluginName: "local-kubernetes" },
   { name: "templated" },
   { name: "terraform" },
   { name: "pulumi" },
