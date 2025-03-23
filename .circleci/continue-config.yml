@@ -154,9 +154,6 @@ commands:
             - cli/node_modules
             - core/node_modules
             - e2e/node_modules
-            - plugins/conftest/node_modules
-            - plugins/conftest-container/node_modules
-            - plugins/conftest-kubernetes/node_modules
             - plugins/jib/node_modules
             - plugins/maven-container/node_modules
             - plugins/pulumi/node_modules
