@@ -1,6 +1,6 @@
 ---
 title: Installing Local Kubernetes
-order: 5
+order: 60
 ---
 
 ## Docker Desktop

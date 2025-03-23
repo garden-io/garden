@@ -217,7 +217,7 @@ spec:
 
 ```
 
-For more information on synchronization check out the [Code Synchronization Guide](../../config-guides/code-synchronization.md).
+For more information on synchronization check out the [Code Synchronization Guide](../../features/code-synchronization.md).
 
 ## Re-using charts
 

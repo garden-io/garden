@@ -305,7 +305,7 @@ The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider for 
 
 ### Does garden support bi-directional syncing?
 
-Yes! `two-way` sync mode can be configured with Garden sync mode. See [this guide](../config-guides/code-synchronization.md)
+Yes! `two-way` sync mode can be configured with Garden sync mode. See [this guide](../features/code-synchronization.md)
 
 ### Is Garden stable or should I wait for 1.0?
 

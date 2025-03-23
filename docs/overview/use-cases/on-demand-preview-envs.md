@@ -33,11 +33,11 @@ Garden's powerful templating engine ensures that namespaces and hostnames are un
 
 - **View URLs**, logs, and command history with the [Garden dashboard](https://app.garden.io)
 - **Accelerate build times** with [Garden's Remote Container Builder](../../garden-for/containers/building-containers.md) and smart caching
-- **Isolate environments** with [Garden's template syntax](../../config-guides/variables-and-templating.md)
+- **Isolate environments** with [Garden's template syntax](../../features/variables-and-templating.md)
 
 ## How can my team get on-demand preview environments?
 
-Teams typically [adopt Garden in a few phases](../../guides/adopting-garden.md) and setting up on-demand preview environments tends to be the first one.
+Teams typically [adopt Garden in a few phases](../../misc/adopting-garden.md) and setting up on-demand preview environments tends to be the first one.
 
 So with that in mind, these are the recommended next steps:
 
@@ -54,8 +54,8 @@ Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Ga
 ## Further Reading
 
 - [What is Garden](../../overview/what-is-garden.md)
-- [Adopting Garden](../../guides/adopting-garden.md)
-- [Variables and Templating](../../config-guides/variables-and-templating.md)
+- [Adopting Garden](../../misc/adopting-garden.md)
+- [Variables and Templating](../../features/variables-and-templating.md)
 
 ## Examples
 

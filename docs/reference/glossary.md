@@ -8,8 +8,8 @@ Below you'll find a glossary of the main Garden concepts.
 ### Garden CLI
 An open-source standalone binary that's responsible for parsing **Garden config** and executing the **actions** defined there.
 
-### Dashboard
-A [free web app](https://app.garden.io) that's a part of Garden's community tier that adds functionality to the Garden CLI such as storing command results, displaying logs, and more.
+### Garden Cloud
+The backend for the Garden CLI that's used for storing [team-wide caches](../features/team-caching.md), enabling the [Remote Container Builder](../features/remote-container-builder.md), displaying build logs and more.
 
 ### Garden config
 A YAML config file with the ending `garden.yml` that includes some Garden configuration.

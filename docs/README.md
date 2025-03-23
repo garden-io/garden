@@ -62,19 +62,21 @@
 
 ## Features
 
-* [Variables and Templating](./config-guides/variables-and-templating.md)
-* [Config Templates](./config-guides/config-templates.md)
-* [Workflows](./config-guides/workflows.md)
-* [Code Synchronization](./config-guides/code-synchronization.md)
-* [Custom Commands](./config-guides/custom-commands.md)
-* [Remote Sources](./config-guides/remote-sources.md)
+* [Remote Container Builder](./features/remote-container-builder.md)
+* [Team Caching](./features/team-caching.md)
+* [Variables and Templating](./features/variables-and-templating.md)
+* [Config Templates](./features/config-templates.md)
+* [Workflows](./features/workflows.md)
+* [Code Synchronization](./features/code-synchronization.md)
+* [Custom Commands](./features/custom-commands.md)
+* [Remote Sources](./features/remote-sources.md)
 
 ## Guides
 
+* [Connecting a Project](./guides/connecting-project.md)
 * [Environments and Namespaces](./guides/namespaces.md)
 * [Installing Garden](./guides/installation.md)
 * [Including/Excluding files](./guides/include-exclude.md)
-* [How Organizations Adopt Garden](./guides/adopting-garden.md)
 * [Installing Local Kubernetes](./guides/install-local-kubernetes.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using the CLI](./guides/using-the-cli.md)
@@ -158,6 +160,7 @@
 * [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)
 * [Telemetry](./misc/telemetry.md)
+* [How Organizations Adopt Garden](./misc/adopting-garden.md)
 * [New Garden Cloud Version](./misc/cloud-announcement.md)
 * [Migrating to Bonsai](./misc/migrating-to-bonsai.md)
 

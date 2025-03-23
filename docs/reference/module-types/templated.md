@@ -13,7 +13,7 @@ Modules are deprecated and will be removed in version `0.14`. Please use [action
 
 **[DEPRECATED] Please use the new `RenderTemplate` config kind instead.**
 
-A special module type, for rendering [module templates](../../config-guides/config-templates.md). See the [Config Templates guide](../../config-guides/config-templates.md) for more information.
+A special module type, for rendering [module templates](../../features/config-templates.md). See the [Config Templates guide](../../features/config-templates.md) for more information.
 
 Specify the name of a ConfigTemplate with the `template` field, and provide any expected inputs using the `inputs` field. The generated modules becomes sub-modules of this module.
 

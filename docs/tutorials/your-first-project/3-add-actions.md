@@ -190,7 +190,7 @@ spec:
                   image: ${actions.build.web.outputs.deploymentImageId}
 ```
 
-If you have a lot of actions with similar config, you can create [reusable Config Templates](../../config-guides/config-templates.md) to avoid the boilerplate.
+If you have a lot of actions with similar config, you can create [reusable Config Templates](../../features/config-templates.md) to avoid the boilerplate.
 
 Now try deploying the entire project by running the following from the interactive dev console:
 

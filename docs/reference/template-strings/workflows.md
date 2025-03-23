@@ -5,7 +5,7 @@ title: Workflow template context
 
 # Workflow template context
 
-The below keys are available in template strings for [Workflow](../../config-guides/workflows.md) configurations, as well as the commands defined in [Custom Commands](../../config-guides/custom-commands.md).
+The below keys are available in template strings for [Workflow](../../features/workflows.md) configurations, as well as the commands defined in [Custom Commands](../../features/custom-commands.md).
 
 Note that the `{steps.*}` key is only available for the `steps[].command` and `steps[].script` fields in Workflow configs, and may only reference previous steps in the same workflow. See below for more details.
 

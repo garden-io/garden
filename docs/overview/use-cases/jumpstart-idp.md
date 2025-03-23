@@ -12,8 +12,8 @@ The stack might contain a pre-configured Helm chart for a database, Terraform mo
 ## Key features
 
 - **Visualize your microservice stack**, centralize logs, and view command history with the [Garden dashboard](https://app.garden.io)
-- **Pluggable repositories** with [remote sources](../../config-guides/remote-sources.md)
-- **Create re-usable templates** with [Config Templates](../../config-guides/config-templates.md)
+- **Pluggable repositories** with [remote sources](../../features/remote-sources.md)
+- **Create re-usable templates** with [Config Templates](../../features/config-templates.md)
 
 If you're already familiar with Garden and just want to get going, click any of the links above to set up your features.
 
@@ -21,8 +21,8 @@ Navigate to [Examples](#examples) for a selection of pre-configured stacks you c
 
 ## Resources
 
-- Pull in any number of remote repositories to collaborate across teams by setting up [Remote Sources](../../config-guides/remote-sources.md)
-- Use [Config Templates](../../config-guides/config-templates.md) to vend development environments to all your developers
+- Pull in any number of remote repositories to collaborate across teams by setting up [Remote Sources](../../features/remote-sources.md)
+- Use [Config Templates](../../features/config-templates.md) to vend development environments to all your developers
 - If you're coming from Docker Compose, visit our [Migrating From Docker Compose](../../guides/migrating-from-docker-compose.md) guide
 
 {% hint style="info" %}
@@ -33,8 +33,8 @@ Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Ga
 
 - [What is Garden](../../overview/what-is-garden.md)
 - [Using the CLI](../../guides/using-the-cli.md)
-- [Variables and Templating](../../config-guides/variables-and-templating.md)
-- [Adopting Garden](../../guides/adopting-garden.md)
+- [Variables and Templating](../../features/variables-and-templating.md)
+- [Adopting Garden](../../misc/adopting-garden.md)
 
 ## Examples
 

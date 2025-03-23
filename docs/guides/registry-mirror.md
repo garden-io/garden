@@ -1,6 +1,6 @@
 ---
 title: Using a Registry Mirror
-order: 11
+order: 120
 ---
 
 # Using a Registry Mirror

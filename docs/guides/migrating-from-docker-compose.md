@@ -1,6 +1,6 @@
 ---
 title: Migrating from Docker Compose to Garden
-order: 6
+order: 70
 ---
 
 # Migrating from Docker Compose to Garden
@@ -14,7 +14,7 @@ where relevant.
 
 To follow along, you should have:
 
-* Basic familiarity with [Garden](../getting-started/basics.md) and [Sync mode](../config-guides/code-synchronization.md)).
+* Basic familiarity with [Garden](../getting-started/basics.md) and [Sync mode](../features/code-synchronization.md)).
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) running locally.
 * A local Kubernetes cluster running inside Docker Desktop.
 * A project that currently uses Docker Compose (or follow along using the provided example).
@@ -186,7 +186,7 @@ Use `frontend` application's ingress URL from the console output to open the app
 
 ## Running the Garden project in code synchronization mode
 
-You can also try out [live code synchronization](../config-guides/code-synchronization.md) with Garden.
+You can also try out [live code synchronization](../features/code-synchronization.md) with Garden.
 
 Just run:
 

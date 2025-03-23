@@ -52,7 +52,7 @@ In the config above the `local-frontend` deploy action is always enabled when in
 conditionally enable it as well.
 
 You could e.g.
-use [command line variables](https://docs.garden.io/config-guides/variables-and-templating#variable-files-varfiles) to
+use [command line variables](https://docs.garden.io/features/variables-and-templating#variable-files-varfiles) to
 control whether the `local-frontend` deploy action should be enabled or create a custom command.
 
 ## Usage

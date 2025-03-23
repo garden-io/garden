@@ -87,7 +87,7 @@ If there's something you can't find in our docs, we happily encourage you to [jo
     <tr>
       <td><strong>Variables and templating</strong></td>
       <td>An introduction to Garden's powerful templating functionality</td>
-      <td><a href="./config-guides/variables-and-templating.md">Variables and Templating</a></td>
+      <td><a href="./features/variables-and-templating.md">Variables and Templating</a></td>
     </tr>
     <tr>
       <td><strong>Kubernetes</strong></td>

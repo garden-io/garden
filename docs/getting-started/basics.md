@@ -13,6 +13,7 @@ As a convention, the project configuration is in a file called `project.garden.y
 
 ```yaml
 # In project.garden.yml
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 environments:
@@ -27,6 +28,7 @@ So if you're using Garden to deploy to a Kubernetes cluster, you'd add the `kube
 
 ```yaml
 # In project.garden.yml
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 environments:
@@ -88,7 +90,7 @@ The true power of Garden lies in the fact that actions can depend on one another
 apiVersion: garden.io/v2
 kind: Project
 name: my-project
-environments:
+environments: # <--- Specifying environments is required
   - name: dev
 ---
 kind: Run
@@ -105,11 +107,21 @@ spec:
   command: ["echo", "Action say-hello says: '${actions.run.say-hello.outputs.log}'"]
 ```
 
-If you run `garden run say-what` in this project it'll first run the `say-hello` action (because `say-what` depends on it) and then the `say-what` action which prints the output from `say-hello`.
+If you now run:
+
+```console
+garden run say-what
+```
+
+...Garden will first run the `say-hello` action (because `say-what` depends on it) and then the `say-what` action which prints the output from `say-hello`:
+
+```sh
+Action say-hello says: 'Hello gardener'
+```
 
 **And that is essentially the core concept: Actions run in dependency order and can reference the output from each other.**
 
-This is obviously a contrived example where we're using an action that just runs scripts. For real world projects these actions could be containers, Helm charts and even entire Terraform stacks. You tell Garden the "type", and it'll know how to execute it. That's how these simple concepts can be used to build very complex automations.
+This is obviously a contrived example where we're using an action that just runs scripts. For real world projects these actions could be **containers, Helm charts and even entire Terraform stacks**. You tell Garden the "type", and it'll know how to execute it. That's how these simple concepts can be used to build very complex automations.
 
 ## Benefits
 

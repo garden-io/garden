@@ -40,7 +40,7 @@ Garden's smart caching ensures that only the tests belonging to the parts of you
 
 ## How can my team shift testing left?
 
-Teams typically [adopt Garden in a few phases](../../guides/adopting-garden.md) and shifting tests left is one of the main milestones.
+Teams typically [adopt Garden in a few phases](../../misc/adopting-garden.md) and shifting tests left is one of the main milestones.
 
 So with that in mind, these are the recommended next steps:
 
@@ -56,6 +56,6 @@ Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Ga
 ## Further Reading
 
 - [What is Garden](../../overview/what-is-garden.md)
-- [Adopting Garden](../../guides/adopting-garden.md)
-- [Variables and Templating](../../config-guides/variables-and-templating.md)
+- [Adopting Garden](../../misc/adopting-garden.md)
+- [Variables and Templating](../../features/variables-and-templating.md)
 
