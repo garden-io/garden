@@ -397,7 +397,7 @@ The resolved configuration for the provider.
 
 ### `${providers.<provider-name>.config.<config-key>}`
 
-The provider config key value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
+The provider config key value. Refer to individual [provider references](https://docs.garden.io/cedar-0.14/reference/providers) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -413,7 +413,7 @@ The outputs defined by the provider (see individual plugin docs for details).
 
 ### `${providers.<provider-name>.outputs.<output-key>}`
 
-The provider output value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
+The provider output value. Refer to individual [provider references](https://docs.garden.io/cedar-0.14/reference/providers) for details.
 
 | Type                          |
 | ----------------------------- |

@@ -401,7 +401,7 @@ The resolved configuration for the provider.
 
 ### `${providers.<provider-name>.config.<config-key>}`
 
-The provider config key value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
+The provider config key value. Refer to individual [provider references](https://docs.garden.io/cedar-0.14/reference/providers) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -417,7 +417,7 @@ The outputs defined by the provider (see individual plugin docs for details).
 
 ### `${providers.<provider-name>.outputs.<output-key>}`
 
-The provider output value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
+The provider output value. Refer to individual [provider references](https://docs.garden.io/cedar-0.14/reference/providers) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -469,7 +469,7 @@ my-variable: ${modules.<module-name>.path}
 
 ### `${modules.<module-name>.outputs.*}`
 
-The outputs defined by the module (see individual module type [references](https://docs.garden.io/reference/module-types) for details).
+The outputs defined by the module (see individual module type [references](https://docs.garden.io/cedar-0.14/reference/module-types) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -477,7 +477,7 @@ The outputs defined by the module (see individual module type [references](https
 
 ### `${modules.<module-name>.outputs.<output-name>}`
 
-The module output value. Refer to individual [module type references](https://docs.garden.io/reference/module-types) for details.
+The module output value. Refer to individual [module type references](https://docs.garden.io/cedar-0.14/reference/module-types) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -609,7 +609,7 @@ The variables configured on the action.
 
 ### `${runtime.build.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -617,7 +617,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${runtime.build.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -727,7 +727,7 @@ The variables configured on the action.
 
 ### `${runtime.deploy.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -735,7 +735,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${runtime.deploy.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -845,7 +845,7 @@ The variables configured on the action.
 
 ### `${runtime.run.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -853,7 +853,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${runtime.run.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -963,7 +963,7 @@ The variables configured on the action.
 
 ### `${runtime.test.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -971,7 +971,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${runtime.test.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -1081,7 +1081,7 @@ The variables configured on the action.
 
 ### `${runtime.services.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -1089,7 +1089,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${runtime.services.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -1199,7 +1199,7 @@ The variables configured on the action.
 
 ### `${runtime.tasks.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -1207,7 +1207,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${runtime.tasks.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -1325,7 +1325,7 @@ The variables configured on the action.
 
 ### `${actions.build.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -1333,7 +1333,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${actions.build.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -1443,7 +1443,7 @@ The variables configured on the action.
 
 ### `${actions.deploy.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -1451,7 +1451,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${actions.deploy.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -1561,7 +1561,7 @@ The variables configured on the action.
 
 ### `${actions.run.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -1569,7 +1569,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${actions.run.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -1679,7 +1679,7 @@ The variables configured on the action.
 
 ### `${actions.test.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -1687,7 +1687,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${actions.test.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -1797,7 +1797,7 @@ The variables configured on the action.
 
 ### `${actions.services.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -1805,7 +1805,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${actions.services.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -1915,7 +1915,7 @@ The variables configured on the action.
 
 ### `${actions.tasks.<action-name>.outputs.*}`
 
-The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/reference) for details).
+The outputs defined by the action (see individual action/module type [references](https://docs.garden.io/cedar-0.14/reference) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -1923,7 +1923,7 @@ The outputs defined by the action (see individual action/module type [references
 
 ### `${actions.tasks.<action-name>.outputs.<output-name>}`
 
-The action output value. Refer to individual [action/module type references](https://docs.garden.io/reference) for details.
+The action output value. Refer to individual [action/module type references](https://docs.garden.io/cedar-0.14/reference) for details.
 
 | Type                          |
 | ----------------------------- |

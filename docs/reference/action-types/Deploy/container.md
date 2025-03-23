@@ -47,7 +47,7 @@ By default, the directory where the action is defined is used as the source for 
 
 You can override the directory that is used for the build context by setting `source.path`.
 
-You can use `source.repository` to get the source from an external repository. For more information on remote actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
+You can use `source.repository` to get the source from an external repository. For more information on remote actions, please refer to the [Remote Sources guide](https://docs.garden.io/cedar-0.14/advanced/using-remote-sources).
 
 | Type     | Required |
 | -------- | -------- |
@@ -147,7 +147,7 @@ For actions other than _Build_ actions, this is usually not necessary to specify
 
 _Build_ actions have a different behavior, since they generally are based on some files in the source tree, so please reference the docs for more information on those.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -165,7 +165,7 @@ include:
 
 Specify a list of POSIX-style paths or glob patterns that should be explicitly excluded from the action's version.
 
-For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred. For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set `include` paths, or such paths inferred by providers. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred. For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set `include` paths, or such paths inferred by providers. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes when watching is enabled. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -539,7 +539,7 @@ Specifies which files or directories to sync to which paths inside the running c
 
 Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -649,7 +649,7 @@ spec:
 
 [spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > mode
 
-The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for details.
+The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details.
 
 | Type     | Allowed Values                                                                                                                            | Default          | Required |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
@@ -713,7 +713,7 @@ Local mode always takes the precedence over sync mode if there are any conflicti
 
 Health checks are disabled for services running in local mode.
 
-See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+See the [Local Mode guide](https://docs.garden.io/cedar-0.14/guides/running-service-in-local-mode) for more information.
 
 Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 
