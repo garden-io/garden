@@ -87,7 +87,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
       }
 
       throw GrowCloudCacheError.wrap({
-        message: `Error reading data from the Team Cache at ${this.cloudApi.domain}`,
+        message: `Error reading from Team Cache`,
         cause: e,
       })
     }
@@ -123,7 +123,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
       }
 
       throw GrowCloudCacheError.wrap({
-        message: `Error storing data to the Team Cache at ${this.cloudApi.domain}`,
+        message: `Error writing to Team Cache`,
         cause: e,
       })
     }

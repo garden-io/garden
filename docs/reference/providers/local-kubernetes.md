@@ -9,9 +9,9 @@ tocTitle: "`local-kubernetes`"
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that automates and simplifies working with local Kubernetes clusters.
 
-For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/local-k8s) guide.
+For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/cedar-0.14/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/cedar-0.14/kubernetes-plugins/local-k8s) guide.
 
-If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/remote-k8s) guide.
+If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/cedar-0.14/kubernetes-plugins/remote-k8s) guide.
 
 Below is the full schema reference for the provider configuration..
 
@@ -45,7 +45,7 @@ providers:
     # between multiple developers, as well as between your development and CI workflows.
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
-    # [in-cluster building guide](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/guides/in-cluster-building).
+    # [in-cluster building guide](https://docs.garden.io/cedar-0.14/kubernetes-plugins/guides/in-cluster-building).
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
@@ -327,7 +327,7 @@ providers:
       #
       # Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
       #
-      # See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for more
+      # See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more
       # information.
       defaults:
         # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
@@ -577,7 +577,7 @@ Otherwise the utility images are pulled directly from Docker Hub by default.
 
 Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/bonsai-0.13/kubernetes-plugins/guides/in-cluster-building).
+For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/cedar-0.14/kubernetes-plugins/guides/in-cluster-building).
 
 | Type     | Allowed Values                               | Default          | Required |
 | -------- | -------------------------------------------- | ---------------- | -------- |
@@ -1283,7 +1283,7 @@ These are overridden/extended by the settings of any individual sync specs.
 
 Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |

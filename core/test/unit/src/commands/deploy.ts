@@ -110,7 +110,6 @@ const testProvider = () => {
 
 export const defaultDeployOpts = withDefaultGlobalOpts({
   "sync": undefined,
-  "local-mode": undefined,
   "watch": false,
   "force": false,
   "force-build": true, // <----
@@ -495,22 +494,6 @@ describe("DeployCommand", () => {
         opts: {
           ...defaultDeployOpts,
           sync: [],
-        },
-      })
-      expect(persistent).to.be.true
-    })
-
-    it("should return persistent=true if --local-mode is set", async () => {
-      const cmd = new DeployCommand()
-      const log = getRootLogger().createLog()
-      const persistent = cmd.maybePersistent({
-        log,
-        args: {
-          names: undefined,
-        },
-        opts: {
-          ...defaultDeployOpts,
-          "local-mode": [],
         },
       })
       expect(persistent).to.be.true

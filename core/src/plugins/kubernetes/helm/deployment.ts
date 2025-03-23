@@ -22,7 +22,6 @@ import { getForwardablePorts, killPortForwards } from "../port-forward.js"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace.js"
 import { configureSyncMode } from "../sync.js"
 import { KubeApi } from "../api.js"
-import { configureLocalMode, startServiceInLocalMode } from "../local-mode.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
 import type { HelmDeployAction } from "./config.js"
 import { isEmpty } from "lodash-es"
@@ -78,7 +77,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
   const spec = action.getSpec()
-  let attached = false
+  const attached = false
 
   const api = await KubeApi.factory(log, ctx, provider)
 
@@ -247,24 +246,9 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   const mode = action.mode()
 
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
-  // installing/upgrading via Helm, we need to separately update the target here for sync-mode/local-mode.
-  // Local mode always takes precedence over sync mode.
-  let deployedWithLocalMode = false
+  // installing/upgrading via Helm, we need to separately update the target here for sync-mode.
   let updatedManifests: SyncableResource[] = []
-  if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
-    updatedManifests = (
-      await configureLocalMode({
-        ctx,
-        spec: spec.localMode,
-        defaultTarget: spec.defaultTarget,
-        manifests,
-        action,
-        log,
-      })
-    ).updated
-    await apply({ log, ctx, api, provider, manifests: updatedManifests, namespace })
-    deployedWithLocalMode = true
-  } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
+  if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     updatedManifests = (
       await configureSyncMode({
         ctx,
@@ -295,24 +279,11 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   }
   const statuses = await checkResourceStatuses({ api, namespace, waitForJobs: false, manifests, log })
 
-  const forwardablePorts = getForwardablePorts({ resources: manifests, parentAction: action, mode })
+  const forwardablePorts = getForwardablePorts({ resources: manifests, parentAction: action })
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, forwardablePorts || [], log)
 
-  // Local mode always takes precedence over sync mode.
-  if (mode === "local" && spec.localMode && deployedWithLocalMode && updatedManifests.length) {
-    await startServiceInLocalMode({
-      ctx,
-      spec: spec.localMode,
-      targetResource: updatedManifests[0],
-      manifests,
-      action,
-      namespace,
-      log,
-    })
-    attached = true
-  }
   // Get ingresses of deployed resources
   const ingresses = getK8sIngresses(manifests, provider)
 

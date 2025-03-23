@@ -47,7 +47,7 @@ By default, the directory where the action is defined is used as the source for 
 
 You can override the directory that is used for the build context by setting `source.path`.
 
-You can use `source.repository` to get the source from an external repository. For more information on remote actions, please refer to the [Remote Sources guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
+You can use `source.repository` to get the source from an external repository. For more information on remote actions, please refer to the [Remote Sources guide](https://docs.garden.io/cedar-0.14/advanced/using-remote-sources).
 
 | Type     | Required |
 | -------- | -------- |
@@ -147,7 +147,7 @@ For actions other than _Build_ actions, this is usually not necessary to specify
 
 _Build_ actions have a different behavior, since they generally are based on some files in the source tree, so please reference the docs for more information on those.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -165,7 +165,7 @@ include:
 
 Specify a list of POSIX-style paths or glob patterns that should be explicitly excluded from the action's version.
 
-For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred. For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set `include` paths, or such paths inferred by providers. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred. For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set `include` paths, or such paths inferred by providers. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes when watching is enabled. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -539,7 +539,7 @@ Specifies which files or directories to sync to which paths inside the running c
 
 Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -649,7 +649,7 @@ spec:
 
 [spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > mode
 
-The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for details.
+The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details.
 
 | Type     | Allowed Values                                                                                                                            | Default          | Required |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
@@ -694,102 +694,6 @@ Set the default group on files and directories at the target. Specify either an 
 | Type               | Required |
 | ------------------ | -------- |
 | `number \| string` | No       |
-
-### `spec.localMode`
-
-[spec](#spec) > localMode
-
-{% hint style="warning" %}
-**Deprecated**: The local mode will be removed in the next major version of Garden, 0.14.
-{% endhint %}
-
-[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
-
-The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
-Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
-
-Local mode is enabled by setting the `--local` option on the `garden deploy` command.
-Local mode always takes the precedence over sync mode if there are any conflicting service names.
-
-Health checks are disabled for services running in local mode.
-
-See the [Local Mode guide](https://docs.garden.io/bonsai-0.13/guides/running-service-in-local-mode) for more information.
-
-Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `spec.localMode.ports[]`
-
-[spec](#spec) > [localMode](#speclocalmode) > ports
-
-The reverse port-forwards configuration for the local application.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-### `spec.localMode.ports[].local`
-
-[spec](#spec) > [localMode](#speclocalmode) > [ports](#speclocalmodeports) > local
-
-The local port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `spec.localMode.ports[].remote`
-
-[spec](#spec) > [localMode](#speclocalmode) > [ports](#speclocalmodeports) > remote
-
-The remote port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `spec.localMode.command[]`
-
-[spec](#spec) > [localMode](#speclocalmode) > command
-
-The command to run the local application. If not present, then the local application should be started manually.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `spec.localMode.restart`
-
-[spec](#spec) > [localMode](#speclocalmode) > restart
-
-Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
-
-| Type     | Default                         | Required |
-| -------- | ------------------------------- | -------- |
-| `object` | `{"delayMsec":1000,"max":null}` | No       |
-
-### `spec.localMode.restart.delayMsec`
-
-[spec](#spec) > [localMode](#speclocalmode) > [restart](#speclocalmoderestart) > delayMsec
-
-Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `spec.localMode.restart.max`
-
-[spec](#spec) > [localMode](#speclocalmode) > [restart](#speclocalmoderestart) > max
-
-Max number of the local application restarts. Unlimited by default.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `null`  | No       |
 
 ### `spec.image`
 

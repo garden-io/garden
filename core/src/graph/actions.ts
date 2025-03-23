@@ -360,20 +360,6 @@ function getActionMode(config: ActionConfig, actionModes: ActionModeMap, log: Lo
     }
   }
 
-  // Local mode takes precedence over sync
-  // TODO: deduplicate
-  for (const pattern of actionModes.local || []) {
-    if (key === pattern) {
-      explicitMode = true
-      mode = "local"
-      log.silly(() => `Action ${key} set to ${mode} mode, matched on exact key`)
-      break
-    } else if (minimatch(key, pattern)) {
-      mode = "local"
-      log.silly(() => `Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
-      break
-    }
-  }
   return { mode, explicitMode }
 }
 
@@ -953,7 +939,9 @@ function dependenciesFromActionConfig({
   }
 
   // Action template references in spec/variables
-  // -> We avoid depending on action execution when referencing static output keys
+  // - We avoid depending on action execution when referencing static output keys from runtime actions
+  //   (Deploys, Tests and Runs).
+  // - We _do_ depend on action execution when referencing static output keys from Build actions.
   const staticOutputKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
 
   for (const ref of getActionTemplateReferences(config, templateContext)) {
@@ -971,7 +959,7 @@ function dependenciesFromActionConfig({
     const outputKey = ref.keyPath[1]
 
     const refActionKey = actionReferenceToString(ref)
-    const refActionType = configsByKey[refActionKey]?.type
+    const { type: refActionType, kind: refActionKind } = configsByKey[refActionKey] || {}
 
     if (outputType === "outputs") {
       let refStaticOutputKeys: string[] = []
@@ -982,10 +970,14 @@ function dependenciesFromActionConfig({
           : []
       }
 
-      // Avoid execution when referencing the static output keys of the ref action type.
-      // e.g. a helm deploy referencing container build static output deploymentImageName
-      // ${actions.build.my-container.outputs.deploymentImageName}
-      if (!isString(outputKey)) {
+      // Avoid execution when referencing the static output keys of the ref's action type if it's not a Build.
+      // This is because Builds generally don't have side-effects other than producing artifacts, whereas Deploys
+      // and Runs often do.
+      // This improves the user experience for the common use-case of referencing a container image in a runtime
+      // resource (like a `helm` Deploy), where the user intent is almost always that the referenced build should exist
+      // (i.e. the dependency should be processed) before the runtime resource is processed (i.e. deployed or run).
+      // Note: We could also always execute Test actions that are referenced, but we'll stick with only Builds for now.
+      if (!isString(outputKey) || refActionKind === "Build") {
         needsExecuted = true
       } else {
         needsExecuted = !staticOutputKeys.includes(outputKey) && !refStaticOutputKeys.includes(outputKey)

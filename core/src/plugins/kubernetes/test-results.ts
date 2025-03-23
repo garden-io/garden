@@ -12,8 +12,8 @@ import { toActionStatus } from "./util.js"
 import { getActionNamespaceStatus } from "./namespace.js"
 import type { KubernetesPluginContext } from "./config.js"
 import type { KubernetesRunResult } from "../../plugin/base.js"
-import { printEmoji } from "../../logger/util.js"
 import { renderSavedTime } from "./results-cache-base.js"
+import { styles } from "../../logger/styles.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -22,7 +22,8 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   const cachedResult = await cache.load({ action, ctx, keyData: undefined, log })
 
   if (!cachedResult.found) {
-    log.info(`Garden ${cache.brandName} miss ${printEmoji("❌", log)} Reason: ${cachedResult.notFoundReason}`)
+    const reason = `(reason: ${cachedResult.notFoundReason})`
+    log.info(`No cached result found in ${cache.brandName} ${styles.secondary(reason)}`)
 
     return { state: "not-ready", detail: null, outputs: { log: "" } }
   }
@@ -37,7 +38,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   })
 
   const result = cachedResult.result
-  log.info(`Garden ${cache.brandName} hit ${printEmoji("✅", log)} ${renderSavedTime(result)}`)
+  log.info(styles.success(`Cached result found in ${cache.brandName} ${renderSavedTime(result)}`))
 
   return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
 }

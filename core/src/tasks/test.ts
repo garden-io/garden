@@ -14,6 +14,7 @@ import type { TestAction } from "../actions/test.js"
 import type { GetTestResult } from "../plugin/handlers/Test/get-result.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { GardenError } from "../exceptions.js"
+import { makeGetStatusLog } from "./helpers.js"
 
 /**
  * Only throw this error when the test itself failed, and not when Garden failed to execute the test.
@@ -68,9 +69,10 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
+    const log = makeGetStatusLog(this.log, this.force)
 
     const { result: status } = await router.test.getResult({
-      log: this.log,
+      log,
       graph: this.graph,
       action,
     })

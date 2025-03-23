@@ -43,12 +43,6 @@ export async function getHelmTestGarden() {
   return garden
 }
 
-export async function getHelmLocalModeTestGarden() {
-  const projectRoot = getDataDir("test-projects", "helm-local-mode")
-  const garden = await makeTestGarden(projectRoot)
-  return garden
-}
-
 export async function buildHelmModules(garden: Garden | TestGarden, graph: ConfigGraph) {
   const actions = graph.getBuilds()
   const tasks = actions.map(
@@ -584,14 +578,6 @@ ${expectedIngressOutput}
 
     it("should add a --set flag if in sync mode", async () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.api"] } })
-      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-      action["_config"].spec.valueFiles = []
-      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql(["--values", gardenValuesPath])
-    })
-
-    it("should add a default --set flag if the aciton doesn't support it's mode", async () => {
-      // local mode is not configured for the api deploy
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { local: ["deploy.api"] } })
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action["_config"].spec.valueFiles = []
       expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql(["--values", gardenValuesPath])

@@ -23,6 +23,7 @@ import {
   getDefaultProjectConfig,
 } from "../../../helpers.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
+import type { ContainerDeploySpec } from "../../../../src/plugins/container/config.js"
 
 describe("ResolveActionTask", () => {
   let garden: TestGarden
@@ -261,23 +262,33 @@ describe("ResolveActionTask", () => {
 
     it("resolves action mode", async () => {
       garden.setPartialActionConfigs([
+        // Here we use a valid container sync because the action will be validated
         {
           kind: "Deploy",
-          type: "test",
+          type: "container",
           name: "foo",
           spec: {
-            deployCommand: ["${this.mode}"],
-          },
+            // Set so that sync comes up as a supported mode
+            sync: { paths: [{ target: "/app", source: "." }] },
+            command: ["echo", "${this.mode}"],
+            image: "scratch",
+            ports: [
+              {
+                name: "http",
+                containerPort: 8080,
+              },
+            ],
+          } as ContainerDeploySpec,
         },
       ])
 
-      const task = await getTask("Deploy", "foo", { local: ["deploy.foo"] })
+      const task = await getTask("Deploy", "foo", { sync: ["deploy.foo"] })
       const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
-      const spec = resolved.getSpec()
+      const spec = resolved.getSpec() as ContainerDeploySpec
 
-      expect(spec.deployCommand).to.eql(["local"])
+      expect(spec.command).to.eql(["echo", "sync"])
     })
 
     it("correctly merges action and CLI variables", async () => {

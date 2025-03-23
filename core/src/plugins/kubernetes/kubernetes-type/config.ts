@@ -22,8 +22,6 @@ import type {
   KubernetesPodTestAction,
   KubernetesPodTestActionConfig,
 } from "./kubernetes-pod.js"
-import type { KubernetesLocalModeSpec } from "../local-mode.js"
-import { kubernetesLocalModeSchema } from "../local-mode.js"
 import type { ContainerRunOutputs } from "../../container/config.js"
 import { containerRunOutputSchema } from "../../container/config.js"
 import type {
@@ -48,7 +46,6 @@ export interface KubernetesTypeCommonDeploySpec {
 export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
-  localMode?: KubernetesLocalModeSpec
   waitForJobs: boolean
   manifestFiles: string[]
   manifestTemplates: string[]
@@ -155,7 +152,6 @@ export const kubernetesDeploySchema = () =>
       ...kubernetesCommonDeploySpecKeys({ deprecateFiles: true }),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
-      localMode: kubernetesLocalModeSchema(),
       manifestFiles: kubernetesManifestFilesSchema(),
       manifestTemplates: kubernetesManifestTemplatesSchema(),
     })

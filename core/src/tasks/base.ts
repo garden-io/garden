@@ -476,7 +476,8 @@ export function logAndEmitGetStatusEvents<
     const styledName = styles.highlight(this.action.name)
     const logStrings = actionLogStrings[this.action.kind]
 
-    log.info(
+    const level = this.force ? "debug" : "info"
+    log[level](
       `Getting status for ${this.action.kind} ${styledName} (type ${styles.highlight(this.action.type)}) at version ${this.action.versionString()}...`
     )
 

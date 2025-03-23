@@ -95,7 +95,7 @@ disabled: false
 #
 # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source
 # tree, which use the same format as `.gitignore` files. See the [Configuration Files
-# guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+# guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
@@ -115,7 +115,7 @@ include:
 # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
 # field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration
 # Files
-# guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+# guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
 # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -316,7 +316,7 @@ services:
     #
     # Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
     #
-    # See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for more
+    # See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more
     # information.
     sync:
       # Override the default container arguments when in sync mode.
@@ -345,7 +345,7 @@ services:
           exclude:
 
           # The sync mode to use for the given paths. See the [Code Synchronization
-          # guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for details.
+          # guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details.
           mode: one-way-safe
 
           # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644
@@ -369,44 +369,6 @@ services:
           # docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more
           # information.
           defaultGroup:
-
-    # [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the
-    # target resource.
-    #
-    # The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
-    # Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
-    #
-    # Local mode is enabled by setting the `--local` option on the `garden deploy` command.
-    # Local mode always takes the precedence over sync mode if there are any conflicting service names.
-    #
-    # Health checks are disabled for services running in local mode.
-    #
-    # See the [Local Mode guide](https://docs.garden.io/bonsai-0.13/guides/running-service-in-local-mode) for more
-    # information.
-    #
-    # Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
-    # release.
-    localMode:
-      # The reverse port-forwards configuration for the local application.
-      ports:
-        - # The local port to be used for reverse port-forward.
-          local:
-
-          # The remote port to be used for reverse port-forward.
-          remote:
-
-      # The command to run the local application. If not present, then the local application should be started
-      # manually.
-      command:
-
-      # Specifies restarting policy for the local application. By default, the local application will be restarting
-      # infinitely with 1000ms between attempts.
-      restart:
-        # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-        delayMsec: 1000
-
-        # Max number of the local application restarts. Unlimited by default.
-        max: .inf
 
     # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
     # Dockerfile.
@@ -901,7 +863,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
@@ -928,7 +890,7 @@ include:
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -1421,7 +1383,7 @@ Specifies which files or directories to sync to which paths inside the running c
 
 Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1528,7 +1490,7 @@ services:
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > mode
 
-The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for details.
+The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details.
 
 | Type     | Allowed Values                                                                                                                            | Default          | Required |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
@@ -1573,102 +1535,6 @@ Set the default group on files and directories at the target. Specify either an 
 | Type               | Required |
 | ------------------ | -------- |
 | `number \| string` | No       |
-
-### `services[].localMode`
-
-[services](#services) > localMode
-
-{% hint style="warning" %}
-**Deprecated**: The local mode will be removed in the next major version of Garden, 0.14.
-{% endhint %}
-
-[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
-
-The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
-Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
-
-Local mode is enabled by setting the `--local` option on the `garden deploy` command.
-Local mode always takes the precedence over sync mode if there are any conflicting service names.
-
-Health checks are disabled for services running in local mode.
-
-See the [Local Mode guide](https://docs.garden.io/bonsai-0.13/guides/running-service-in-local-mode) for more information.
-
-Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `services[].localMode.ports[]`
-
-[services](#services) > [localMode](#serviceslocalmode) > ports
-
-The reverse port-forwards configuration for the local application.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-### `services[].localMode.ports[].local`
-
-[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > local
-
-The local port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `services[].localMode.ports[].remote`
-
-[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > remote
-
-The remote port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `services[].localMode.command[]`
-
-[services](#services) > [localMode](#serviceslocalmode) > command
-
-The command to run the local application. If not present, then the local application should be started manually.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `services[].localMode.restart`
-
-[services](#services) > [localMode](#serviceslocalmode) > restart
-
-Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
-
-| Type     | Default                         | Required |
-| -------- | ------------------------------- | -------- |
-| `object` | `{"delayMsec":1000,"max":null}` | No       |
-
-### `services[].localMode.restart.delayMsec`
-
-[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > delayMsec
-
-Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `services[].localMode.restart.max`
-
-[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > max
-
-Max number of the local application restarts. Unlimited by default.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `null`  | No       |
 
 ### `services[].image`
 

@@ -43,7 +43,6 @@ import type { DeployState } from "../../../types/service.js"
 import { combineStates } from "../../../types/service.js"
 import { isTruthy, sleep } from "../../../util/util.js"
 import dedent from "dedent"
-import { getWaitForJobs } from "../kubernetes-type/config.js"
 
 export const k8sManifestHashAnnotationKey = gardenAnnotationKey("manifest-hash")
 
@@ -460,7 +459,9 @@ export async function compareDeployedResources({
   log.debug(`Getting currently deployed resource statuses...`)
 
   const deployedObjectStatuses: ResourceStatus[] = await Promise.all(
-    deployedResources.map(async (resource) => resolveResourceStatus({ api, namespace, resource, log }))
+    deployedResources.map(async (resource) =>
+      resolveResourceStatus({ api, namespace, waitForJobs: false, resource, log })
+    )
   )
 
   const resolvedState = resolveResourceStatuses(log, deployedObjectStatuses)
@@ -491,9 +492,6 @@ export async function compareDeployedResources({
     if (deployedResource && isWorkloadResource(deployedResource)) {
       if (isConfiguredForSyncMode(deployedResource)) {
         result.deployedMode = "sync"
-      }
-      if (isConfiguredForLocalMode(deployedResource)) {
-        result.deployedMode = "local"
       }
     }
 
@@ -577,10 +575,6 @@ export async function compareDeployedResources({
 
 export function isConfiguredForSyncMode(resource: SyncableResource): boolean {
   return resource.metadata.annotations?.[gardenAnnotationKey("mode")] === "sync"
-}
-
-export function isConfiguredForLocalMode(resource: SyncableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("mode")] === "local"
 }
 
 function isWorkloadResource(resource: KubernetesResource): resource is KubernetesWorkload {

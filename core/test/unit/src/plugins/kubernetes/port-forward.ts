@@ -30,7 +30,6 @@ describe("getForwardablePorts", () => {
         },
       ],
       parentAction: undefined,
-      mode: "default",
     })
 
     expect(ports).to.eql([
@@ -53,6 +52,7 @@ describe("getForwardablePorts", () => {
         return {
           manifestFiles: [],
           manifestTemplates: [],
+          waitForJobs: true,
           manifests: [],
           portForwards: [
             {
@@ -80,7 +80,6 @@ describe("getForwardablePorts", () => {
         },
       ],
       parentAction: action,
-      mode: "default",
     })
 
     expect(ports).to.eql([
@@ -117,7 +116,6 @@ describe("getForwardablePorts", () => {
         },
       ],
       parentAction: undefined,
-      mode: "default",
     })
 
     expect(ports).to.eql([
@@ -153,7 +151,6 @@ describe("getForwardablePorts", () => {
         },
       ],
       parentAction: undefined,
-      mode: "default",
     })
 
     expect(ports).to.eql([
@@ -207,7 +204,6 @@ describe("getForwardablePorts", () => {
         },
       ],
       parentAction: undefined,
-      mode: "default",
     })
 
     expect(ports).to.eql([

@@ -51,6 +51,7 @@ export class MinikubeGardenIngressController extends GardenIngressComponent {
     //check if ingress controller deployment is ready
     const deploymentStatus = await checkResourceStatus({
       api,
+      waitForJobs: false,
       namespace: "ingress-nginx",
       manifest: nginxKindMainResource,
       log,

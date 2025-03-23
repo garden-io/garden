@@ -195,7 +195,6 @@ function filterResultForExport(result: any) {
       "createdAt",
       "mode",
       "syncMode",
-      "localMode",
       "externalId",
       "externalVersion",
       "forwardablePorts",

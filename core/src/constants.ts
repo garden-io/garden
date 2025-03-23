@@ -53,7 +53,7 @@ export const SUPPORTED_ARCHITECTURES: NodeJS.Architecture[] = ["x64", "arm64"]
 export const SEGMENT_DEV_API_KEY = "D3DUZ3lBSDO3krnuIO7eYDdtlDAjooKW" // ggignore
 export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggignore
 
-export const DOCS_BASE_URL = "https://docs.garden.io/bonsai-0.13"
+export const DOCS_BASE_URL = "https://docs.garden.io/cedar-0.14"
 
 export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://beta.app.garden.io"
 
