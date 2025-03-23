@@ -126,8 +126,7 @@ describe("parse and evaluate template strings with apiVersion: garden.io/v2", ()
             contextOpts: {},
           }),
         {
-          contains:
-            "Invalid template string (${parent.name}?): Could not find key parent. Available keys: actions.",
+          contains: "Invalid template string (${parent.name}?): Could not find key parent. Available keys: actions.",
         }
       )
     })
@@ -200,8 +199,7 @@ describe("parse and evaluate template strings", () => {
             contextOpts: {},
           }),
         {
-          contains:
-            "Invalid template string (${parent.name}?): Could not find key parent. Available keys: actions.",
+          contains: "Invalid template string (${parent.name}?): Could not find key parent. Available keys: actions.",
         }
       )
     })
