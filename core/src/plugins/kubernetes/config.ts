@@ -98,19 +98,6 @@ interface KubernetesStorage {
 const containerBuildModes = ["local-docker", "kaniko", "cluster-buildkit"] as const
 export type ContainerBuildMode = (typeof containerBuildModes)[number]
 
-/**
- * TODO(0.14): remove this
- * To be removed in 0.14
- * @deprecated since 0.13
- */
-export type DefaultDeploymentStrategy = "rolling"
-/**
- * TODO(0.14): remove this
- * To be removed in 0.14
- * @deprecated since 0.13
- */
-export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
-
 export interface NamespaceConfig {
   name: string
   annotations?: StringMap
