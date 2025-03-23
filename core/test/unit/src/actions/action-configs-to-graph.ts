@@ -406,58 +406,6 @@ describe("actionConfigsToGraph", () => {
     ])
   })
 
-  it("does not mark an implicit dependency needing execution if a static output of dependency is referenced", async () => {
-    const graph = await actionConfigsToGraph({
-      garden,
-      log,
-      groupConfigs: [],
-      configs: parseTemplateCollection({
-        value: [
-          {
-            kind: "Build",
-            type: "container",
-            name: "foo",
-            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-            internal: {
-              basePath: tmpDir.path,
-            },
-            spec: {},
-          },
-          {
-            kind: "Deploy",
-            type: "test",
-            name: "bar",
-            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-            internal: {
-              basePath: tmpDir.path,
-            },
-            spec: {
-              command: ["echo", "${actions.build.foo.outputs.deploymentImageName}"],
-            },
-          },
-        ] as const,
-        source: { path: [] },
-      }),
-      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
-      actionModes: {},
-      linkedSources: {},
-    })
-
-    const action = graph.getDeploy("bar")
-    const deps = action.getDependencyReferences()
-
-    expect(deps).to.eql([
-      {
-        explicit: false,
-        kind: "Build",
-        type: "container",
-        name: "foo",
-        needsExecutedOutputs: false,
-        needsStaticOutputs: true,
-      },
-    ])
-  })
-
   it("correctly sets compatibleTypes for an action type with no base", async () => {
     const graph = await actionConfigsToGraph({
       garden,

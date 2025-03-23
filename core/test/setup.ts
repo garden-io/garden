@@ -16,7 +16,7 @@ import { initTestLogger, testProjectTempDirs } from "./helpers.js"
 import mocha from "mocha"
 import sourceMapSupport from "source-map-support"
 import { UnresolvedTemplateValue } from "../src/template/types.js"
-import { setGloablProjectApiVersion } from "../src/project-api-version.js"
+import { setGlobalProjectApiVersion } from "../src/project-api-version.js"
 
 sourceMapSupport.install()
 
@@ -65,7 +65,7 @@ export const mochaHooks = {
 
   beforeEach() {
     // Init globally stored project-level apiVersion, assuming garden.io/v1 for 0.13.
-    setGloablProjectApiVersion(GardenApiVersion.v1)
+    setGlobalProjectApiVersion(GardenApiVersion.v1)
   },
 
   afterEach() {
