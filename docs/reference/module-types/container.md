@@ -95,8 +95,8 @@ disabled: false
 #
 # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source
 # tree, which use the same format as `.gitignore` files. See the [Configuration Files
-# guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
-# for details.
+# guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
+# details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
 #
@@ -114,8 +114,7 @@ include:
 #
 # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
 # field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration
-# Files
-# guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+# Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
 # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -316,8 +315,7 @@ services:
     #
     # Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
     #
-    # See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for more
-    # information.
+    # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
     sync:
       # Override the default container arguments when in sync mode.
       args:
@@ -345,7 +343,7 @@ services:
           exclude:
 
           # The sync mode to use for the given paths. See the [Code Synchronization
-          # guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for details.
+          # guide](https://docs.garden.io/guides/code-synchronization) for details.
           mode: one-way-safe
 
           # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644
@@ -381,8 +379,7 @@ services:
     #
     # Health checks are disabled for services running in local mode.
     #
-    # See the [Local Mode guide](https://docs.garden.io/bonsai-0.13/guides/running-service-in-local-mode) for more
-    # information.
+    # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
     #
     # Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
     # release.
@@ -901,7 +898,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
@@ -928,7 +925,7 @@ include:
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -1421,7 +1418,7 @@ Specifies which files or directories to sync to which paths inside the running c
 
 Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1528,7 +1525,7 @@ services:
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > mode
 
-The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/bonsai-0.13/guides/code-synchronization) for details.
+The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for details.
 
 | Type     | Allowed Values                                                                                                                            | Default          | Required |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
@@ -1592,7 +1589,7 @@ Local mode always takes the precedence over sync mode if there are any conflicti
 
 Health checks are disabled for services running in local mode.
 
-See the [Local Mode guide](https://docs.garden.io/bonsai-0.13/guides/running-service-in-local-mode) for more information.
+See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
 
 Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 
