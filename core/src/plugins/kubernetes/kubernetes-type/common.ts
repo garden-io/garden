@@ -30,7 +30,6 @@ import isGlob from "is-glob"
 import pFilter from "p-filter"
 import { kubectl } from "../kubectl.js"
 import { loadAndValidateYaml } from "../../../config/base.js"
-import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 import type { ActionReference } from "../../../config/common.js"
 
 const { pathExists, readFile } = fsExtra

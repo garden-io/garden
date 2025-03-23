@@ -42,7 +42,7 @@ import {
 } from "../../../../../src/constants.js"
 import { join, resolve } from "path"
 import type { ConvertModuleParams } from "../../../../../src/plugin/handlers/Module/convert.js"
-import { omit, remove } from "lodash-es"
+import { remove } from "lodash-es"
 import type { GardenTask } from "../../../../../src/types/task.js"
 import { taskFromConfig } from "../../../../../src/types/task.js"
 import type { GardenService } from "../../../../../src/types/service.js"

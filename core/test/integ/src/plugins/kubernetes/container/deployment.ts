@@ -58,7 +58,6 @@ import type { ActionMode } from "../../../../../../src/actions/types.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../../../../../../src/plugins/kubernetes/run.js"
 import { k8sGetContainerDeployStatus } from "../../../../../../src/plugins/kubernetes/container/status.js"
-import { ResolvedBuildAction } from "../../../../../../src/actions/build.js"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: TestGarden
@@ -679,7 +678,9 @@ describe("kubernetes container deployment handlers", () => {
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
 
         expect(findNamespaceStatusEvent(garden.events.eventLog, "container-default")).to.exist
-        expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(`${serviceAction.versionString()}`)
+        expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(
+          `${serviceAction.versionString()}`
+        )
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
           `${serviceAction.name}:${buildAction.versionString()}`
         )
