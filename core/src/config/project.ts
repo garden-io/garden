@@ -369,19 +369,6 @@ export const projectSchema = createSchema({
         `
       )
       .example("dev"),
-    dotIgnoreFiles: joi
-      .sparseArray()
-      .items(joi.posixPath().filenameOnly().allow(null))
-      .optional()
-      .description(
-        deline`
-      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-    `
-      )
-      .meta({
-        deprecated: makeDeprecationMessage({ deprecation: "dotIgnoreFiles" }),
-      })
-      .example([".gitignore"]),
     dotIgnoreFile: joi
       .posixPath()
       .filenameOnly()
@@ -389,8 +376,6 @@ export const projectSchema = createSchema({
       .description(
         deline`
       Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-
-      Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the \`dotIgnoreFiles\` field in the project configuration.
 
       Note that this take precedence over the project \`scan.include\` field, and action \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 

@@ -165,17 +165,6 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         \`\`\`
       `,
     },
-    dotIgnoreFiles: {
-      docsSection: "Project configuration",
-      docsHeadline: `The ${style("dotIgnoreFiles")} config field`,
-      warnHint: dedent`
-        The ${style("dotIgnoreFiles")} config field will be removed in Garden 0.14.
-        Use the ${style("dotIgnoreFile")} field instead. It only allows specifying one filename.
-      `,
-      docs: dedent`
-      For more information, please refer to the [${style("dotIgnoreFile")} reference documentation](../reference/project-config.md#dotIgnoreFile).
-      `,
-    },
     apiVersion: {
       docsSection: "Project configuration",
       docsHeadline: `The ${style(`apiVersion`)} config field`,
