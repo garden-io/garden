@@ -429,7 +429,7 @@ describe("Garden", () => {
         await writeFile(
           join(tmpPath, "garden.yml"),
           dedent`
-          apiVersion: garden.io/v1
+          apiVersion: garden.io/v2
           kind: Project
           name: foo
           environments:

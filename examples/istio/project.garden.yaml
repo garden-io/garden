@@ -1,4 +1,4 @@
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: istio-example
 environments:
@@ -6,7 +6,7 @@ environments:
 providers:
   - name: local-kubernetes
     setupIngressController: false
-    namespace: 
+    namespace:
       name: istio-garden-example
-      labels: 
+      labels:
         istio-injection: enabled
