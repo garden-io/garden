@@ -91,7 +91,9 @@ export async function refreshAuthTokenAndWriteToConfigStore(
     }
 
     log.debug({ msg: `Failed to refresh the token.` })
-    if (err.message.toLowerCase().includes("invalid refresh token")) {
+
+    const errHttpStatusCode = err.data?.httpStatus
+    if (errHttpStatusCode === 401) {
       await clearAuthToken(log, globalConfigStore, cloudDomain)
       log.info("Invalid refresh token was removed from the configuration store.")
     }
@@ -100,7 +102,7 @@ export async function refreshAuthTokenAndWriteToConfigStore(
       message: dedent`An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${err.message}
         Please try again.
         `,
-      responseStatusCode: err.data?.httpStatus,
+      responseStatusCode: errHttpStatusCode,
     })
   }
 }
