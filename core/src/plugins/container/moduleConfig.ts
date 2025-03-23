@@ -144,7 +144,11 @@ export const containerModuleSpecSchema = () =>
     .keys({
       build: containerBuildSpecSchema(),
       ...containerCommonBuildSpecKeys(),
-      image: moduleRuntimeContainerImageSchema(),
+      // TODO: validate the image name format
+      image: joi.string().allow(false, null).empty([false, null]).description(deline`
+        Specify the image name for the container. Should be a valid Docker image identifier. If specified and
+        the module does not contain a Dockerfile, this image will be used to deploy services for this module.
+        If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
       include: joiModuleIncludeDirective(dedent`
         If neither \`include\` nor \`exclude\` is set, and the module has a Dockerfile, Garden
         will parse the Dockerfile and automatically set \`include\` to match the files and

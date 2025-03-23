@@ -205,8 +205,9 @@ platforms:
 # See also https://docs.docker.com/build/building/secrets/
 secrets:
 
-# Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
-# Dockerfile.
+# Specify the image name for the container. Should be a valid Docker image identifier. If specified and the module
+# does not contain a Dockerfile, this image will be used to deploy services for this module. If specified and the
+# module does contain a Dockerfile, this identifier is used when pushing the built image.
 image:
 
 # POSIX-style name of a Dockerfile, relative to module root.
@@ -1142,7 +1143,7 @@ secrets:
 
 ### `image`
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
+Specify the image name for the container. Should be a valid Docker image identifier. If specified and the module does not contain a Dockerfile, this image will be used to deploy services for this module. If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.
 
 | Type     | Required |
 | -------- | -------- |
