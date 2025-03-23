@@ -153,12 +153,6 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         For more information, please refer to the [${style("scan")} reference documentation](../reference/project-config.md#scan).
       `,
     },
-    kubernetesClusterInitCommand: {
-      docsSection: "Garden commands",
-      docsHeadline: `${style("garden kubernetes cluster-init")}`,
-      warnHint: "This command will be removed in 0.14. Do not use this command. It has no effect.",
-      docs: null,
-    },
     syncStartCommand: {
       docsSection: "Garden commands",
       docsHeadline: `${style("garden sync start")}`,

@@ -82,12 +82,6 @@ export function getFileSources({
   ctx: PluginContext
   config: KubernetesDeployActionConfig
 }): KubernetesDeployActionSpecFileSources {
-  const files = evaluateKubernetesDeploySpecFiles({
-    ctx,
-    config,
-    filesFieldName: "files",
-    filesFieldSchema: kubernetesManifestTemplatesSchema,
-  })
   const manifestFiles = evaluateKubernetesDeploySpecFiles({
     ctx,
     config,
@@ -101,7 +95,7 @@ export function getFileSources({
     filesFieldSchema: kubernetesManifestTemplatesSchema,
   })
 
-  return { files, manifestFiles, manifestTemplates }
+  return { manifestFiles, manifestTemplates }
 }
 
 export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesDeployAction> => ({

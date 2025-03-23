@@ -18,7 +18,6 @@ import { kubectl, kubectlSpec } from "./kubectl.js"
 import type { KubernetesConfig, KubernetesPluginContext } from "./config.js"
 import { configSchema } from "./config.js"
 import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry.js"
-import { clusterInit } from "./commands/cluster-init.js"
 import { pullImage } from "./commands/pull-image.js"
 import { uninstallGardenServices } from "./commands/uninstall-garden-services.js"
 import { joi, joiIdentifier } from "../../config/common.js"
@@ -151,7 +150,6 @@ export const gardenPlugin = () => {
     commands: [
       cleanupClusterRegistry,
       cleanupUtilDeployment,
-      clusterInit,
       uninstallGardenServices,
       pullImage,
       syncStatus,

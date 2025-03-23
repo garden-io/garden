@@ -1,13 +1,13 @@
 kind: Module
-name: volume-reference
-description: Test module for volume module references
+name: volume-module
+description: Test module for volumes
 type: container
 image: busybox:1.31.1
 include: []
 build:
   dependencies: [simple-service]
 services:
-  - name: volume-reference
+  - name: volume-module
     dependencies: [simple-service]
     command: [sh, -c, "nc -l -p 8080"]
     ports:

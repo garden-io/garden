@@ -11,7 +11,7 @@ import type { ModuleActionHandlers } from "../../../plugin/plugin.js"
 import type { DeployState, ForwardablePort, ServiceStatus } from "../../../types/service.js"
 import { gardenAnnotationKey } from "../../../util/string.js"
 import { KubeApi } from "../api.js"
-import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
+import type { KubernetesCommonRunSpec, KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync.js"
 import { apply, deleteObjectsBySelector } from "../kubectl.js"
 import { streamK8sLogs } from "../logs.js"
@@ -33,7 +33,7 @@ import type { KubernetesModule } from "./module-config.js"
 import { configureKubernetesModule } from "./module-config.js"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode.js"
 import type { ExecBuildConfig } from "../../exec/build.js"
-import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config.js"
+import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig, KubernetesRunActionConfig } from "./config.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
 import type { ActionLog } from "../../../logger/log-entry.js"
 import type { ActionMode, Resolved } from "../../../actions/types.js"
@@ -41,8 +41,7 @@ import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-st
 import type { ResolvedDeployAction } from "../../../actions/deploy.js"
 import { isSha256 } from "../../../util/hashing.js"
 import { prepareSecrets } from "../secrets.js"
-import { GardenApiVersion } from "../../../constants.js"
-import { getGlobalProjectApiVersion } from "../../../project-api-version.js"
+import { KubernetesPodRunActionConfig, KubernetesPodRunActionSpec } from "./kubernetes-pod.js"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -58,24 +57,13 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const service = services[0] // There is always exactly one service in kubernetes modules
     const serviceResource = module.spec.serviceResource
 
-    const files = module.spec.files || []
-    const manifests = module.spec.manifests || []
+    const manifests: KubernetesResource[] = module.spec.manifests || []
 
-    const apiVersion = getGlobalProjectApiVersion()
-    let fileSources: KubernetesDeployActionSpecFileSources
-    if (apiVersion === GardenApiVersion.v2) {
-      fileSources = {
-        files: [],
-        manifestFiles: [],
-        manifestTemplates: files,
-      }
-    } else {
-      fileSources = {
-        files,
-        manifestFiles: [],
-        manifestTemplates: [],
-      }
+    const fileSources: KubernetesDeployActionSpecFileSources = {
+      manifestTemplates: module.spec.files || [],
+      manifestFiles: [],
     }
+    const include = [...fileSources.manifestFiles, ...fileSources.manifestTemplates]
 
     const deployAction: KubernetesDeployActionConfig = {
       kind: "Deploy",
@@ -85,11 +73,21 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       build: dummyBuild?.name,
       dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
-      include: files,
+      include,
       timeout: service.spec.timeout,
 
       spec: {
-        ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
+        ...omit(module.spec, [
+          "name",
+          "build",
+          "files",
+          "dependencies",
+          "serviceResource",
+          "tasks",
+          "tests",
+          "sync",
+          "devMode",
+        ]),
         ...fileSources,
         manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
@@ -115,7 +113,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         continue
       }
 
-      actions.push({
+      const runAction: KubernetesPodRunActionConfig = {
         kind: "Run",
         type: "kubernetes-pod",
         name: task.name,
@@ -127,14 +125,16 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
         timeout: task.spec.timeout,
 
+        // @ts-expect-error this error seems like a compiler bug
         spec: {
-          ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
+          ...omit(task.spec, ["name", "files", "description", "dependencies", "disabled", "timeout"] as const),
           resource,
           ...fileSources,
           manifests,
           namespace: module.spec.namespace,
         },
-      })
+      }
+      actions.push(runAction)
     }
 
     for (const test of tests) {

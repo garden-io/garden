@@ -250,10 +250,6 @@ describe("getManifests", () => {
         manifestSourceFieldName: "manifestTemplates",
       },
       {
-        actionName: "with-build-action-manifests-in-deprecated-files",
-        manifestSourceFieldName: "files",
-      },
-      {
         actionName: "with-build-action-manifests-in-manifest-files",
         manifestSourceFieldName: "manifestFiles",
       },

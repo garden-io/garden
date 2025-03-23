@@ -396,7 +396,7 @@ async function readKustomizeManifests(
 
 export type KubernetesDeployActionSpecFileSources = Pick<
   KubernetesDeployActionSpec,
-  "files" | "manifestFiles" | "manifestTemplates"
+  "manifestFiles" | "manifestTemplates"
 >
 
 export function getSpecFiles({
