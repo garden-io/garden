@@ -190,7 +190,6 @@ function composeKubernetesDeployStatus({
   state,
   remoteResources,
   forwardablePorts,
-  provider,
 }: {
   action: KubernetesDeployAction
   deployedMode: ActionMode

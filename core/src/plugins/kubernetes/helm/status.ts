@@ -46,7 +46,6 @@ interface HelmStatusDetail {
 export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAction> = async (params) => {
   const { ctx, action, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const provider = k8sCtx.provider
 
   const releaseName = getReleaseName(action)
 
