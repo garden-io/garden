@@ -22,6 +22,7 @@ import { k8sContainerStopSync } from "../container/sync.js"
 import { helmGetSyncStatus, helmStartSync } from "./sync.js"
 import { makeDocsLinkPlain } from "../../../docs/common.js"
 import { helmVersion } from "./helm-cli.js"
+import type { ActionModes } from "../../../actions/types.js"
 
 export const getHelmDeployDocs = () => dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
@@ -74,7 +75,7 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
         config.include = config.include.map((path) => posix.join(chartPath, path))
       }
 
-      return { config, supportedModes: { sync: !!config.spec.sync } }
+      return { config, supportedModes: { sync: !!config.spec.sync } satisfies ActionModes }
     },
   },
 })
