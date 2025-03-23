@@ -761,7 +761,7 @@ describe("actionConfigsToGraph", () => {
           },
           spec: {
             // Set so that sync comes up as a supported mode
-            persistent: true,
+            sync: {},
           },
         },
       ],
@@ -792,7 +792,10 @@ describe("actionConfigsToGraph", () => {
           internal: {
             basePath: tmpDir.path,
           },
-          spec: {},
+          spec: {
+            // Set so that sync comes up as a supported mode
+            sync: {},
+          },
         },
       ],
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
@@ -822,7 +825,10 @@ describe("actionConfigsToGraph", () => {
           internal: {
             basePath: tmpDir.path,
           },
-          spec: {},
+          spec: {
+            // Set so that sync comes up as a supported mode
+            sync: {},
+          },
         },
       ],
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
@@ -853,7 +859,10 @@ describe("actionConfigsToGraph", () => {
           internal: {
             basePath: tmpDir.path,
           },
-          spec: {},
+          spec: {
+            // Set so that sync comes up as a supported mode
+            sync: {},
+          },
         },
         {
           kind: "Build",
@@ -864,7 +873,10 @@ describe("actionConfigsToGraph", () => {
           internal: {
             basePath: tmpDir.path,
           },
-          spec: {},
+          spec: {
+            // Set so that sync comes up as a supported mode
+            sync: {},
+          },
         },
       ],
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
@@ -875,7 +887,7 @@ describe("actionConfigsToGraph", () => {
     })
 
     const deploy = graph.getDeploy("foo")
-    expect(deploy.mode()).to.equal("local")
+    expect(deploy.mode()).to.equal("sync")
 
     const build = graph.getBuild("foo")
     expect(build.mode()).to.equal("sync")
