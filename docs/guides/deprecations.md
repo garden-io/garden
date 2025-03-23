@@ -74,10 +74,6 @@ For projects that aren't connected to Garden Cloud/Enterprise, or when you're us
 
 Garden will skip `Test` and `Run` actions that already ran from your local machine, but team members and CI workflows won't be able to benefit from the cache entries on your local machine.
 
-<h2 id="kubernetesclusterinitcommand"><code>garden kubernetes cluster-init</code></h2>
-
-This command will be removed in 0.14. Do not use this command. It has no effect.
-
 <h2 id="syncstartcommand"><code>garden sync start</code></h2>
 
 The command `garden sync start` will only be available inside the dev console (`garden dev`) in the next major version of Garden, 0.14. Do not use it as a standalone Garden command.
