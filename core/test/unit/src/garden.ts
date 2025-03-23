@@ -835,7 +835,7 @@ describe("Garden", () => {
       })
 
       context("projectId is NOT set (Use backend V2)", () => {
-        // TODO(0.14): Add tests for the Backend V2
+        // TODO(0.14.1+): Add tests for the Backend V2
       })
     })
   })
@@ -2996,7 +2996,6 @@ describe("Garden", () => {
     it("should respect custom dotignore files", async () => {
       // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
       // Thus, all exclusions from .gardenignore will be skipped.
-      // TODO-0.14: amend the config core/test/data/test-projects/dotignore-custom/garden.yml
       const projectRoot = getDataDir("test-projects", "dotignore-custom")
       const garden = await makeTestGarden(projectRoot)
       const modules = await garden.resolveModules({ log: garden.log })

@@ -730,7 +730,7 @@ interface DeployResultForExport extends ProcessResultMetadata {
   lastMessage?: string
   lastError?: string
   outputs?: PrimitiveMap
-  // TODO-0.14: Rename to deployState
+  // TODO-0.15: Rename to deployState
   state: DeployState
 }
 
@@ -757,7 +757,7 @@ const deployResultForExportSchema = createSchema({
     lastError: joi.string().description("Latest error status message of the service (if any)."),
     outputs: joiVariables().description("A map of values output from the deployment."),
     runningReplicas: joi.number().description("How many replicas of the service are currently running."),
-    // TODO-0.14: Rename to deployState
+    // TODO-0.15: Rename to deployState
     state: joi
       .string()
       .valid(...deployStates)
@@ -1060,7 +1060,7 @@ export async function handleProcessResults(
   const result: ProcessCommandResult = {
     aborted: false,
     success,
-    // TODO-0.14: Remove graphResults from this type (will also require refactoring test cases that read from this field)
+    // TODO-0.14.1: Remove graphResults from this type (will also require refactoring test cases that read from this field)
     graphResults: graphResultsForExport,
     build: buildResults,
     builds: buildResults, // alias for `build`

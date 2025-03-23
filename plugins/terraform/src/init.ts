@@ -21,7 +21,7 @@ import type { ProviderHandlers } from "@garden-io/sdk/build/src/types.js"
 import { terraform } from "./cli.js"
 import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
-// TODO: 0.14, remove this function
+// TODO: 0.14.1+ (or 0.15?), remove this function
 export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider
 

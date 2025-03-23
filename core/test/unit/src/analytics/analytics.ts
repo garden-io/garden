@@ -260,7 +260,7 @@ describe("AnalyticsHandler", () => {
   })
 
   describe("factory (user is logged in to the backend v2)", async () => {
-    // TODO(0.14): tests
+    // TODO(0.14.1+): tests
   })
 
   describe("factory (user is logged in to the backend v1)", async () => {
