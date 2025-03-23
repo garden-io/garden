@@ -55,7 +55,7 @@ import type { PluginContext } from "../../plugin-context.js"
 import { actionReferenceToString } from "../../actions/base.js"
 import { RootLogger } from "../../logger/logger.js"
 import { styles } from "../../logger/styles.js"
-import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 import { getGlobalProjectApiVersion } from "../../project-api-version.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
@@ -103,7 +103,9 @@ export const configSchema = () =>
           Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
           `),
       // Deprecate old config syntax
-      gardenCloudBuilder: gardenContainerBuilderSchema().meta({ deprecated: true }),
+      gardenCloudBuilder: gardenContainerBuilderSchema().meta({
+        deprecated: makeDeprecationMessage({ deprecation: "gardenCloudBuilder" }),
+      }),
       // Garden Container builder
       gardenContainerBuilder: gardenContainerBuilderSchema(),
     })

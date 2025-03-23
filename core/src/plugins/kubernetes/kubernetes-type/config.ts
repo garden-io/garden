@@ -37,7 +37,7 @@ import type { ApplyParams } from "../kubectl.js"
 import { getGlobalProjectApiVersion } from "../../../project-api-version.js"
 import { GardenApiVersion } from "../../../constants.js"
 import type { Log } from "../../../logger/log-entry.js"
-import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export interface KubernetesTypeCommonDeploySpec {
   // TODO(0.14): remove this field
@@ -162,7 +162,11 @@ export const kubernetesApplyArgsSchema = () =>
 type KubernetesCommonDeployKeyDeprecations = { deprecateFiles: boolean }
 
 export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => ({
-  files: kubernetesManifestTemplatesSchema().meta({ deprecated: deprecations.deprecateFiles }),
+  files: kubernetesManifestTemplatesSchema().meta({
+    deprecated: deprecations.deprecateFiles
+      ? makeDeprecationMessage({ deprecation: "kubernetesActionSpecFiles" })
+      : false,
+  }),
   kustomize: kustomizeSpecSchema(),
   manifests: kubernetesManifestsSchema(),
   patchResources: kubernetesPatchResourcesSchema(),

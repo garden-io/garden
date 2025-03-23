@@ -1371,6 +1371,10 @@ services:
 
 [services](#services) > [volumes](#servicesvolumes) > module
 
+{% hint style="warning" %}
+**Deprecated**: Volume container action references will be removed in Garden 0.14. Use the `kubernetes` action type instead of the `container` action type if you need persistent volume claims or mount configmaps.
+{% endhint %}
+
 The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
 
 When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
@@ -2305,6 +2309,10 @@ tests:
 
 [tests](#tests) > [volumes](#testsvolumes) > module
 
+{% hint style="warning" %}
+**Deprecated**: Volume container action references will be removed in Garden 0.14. Use the `kubernetes` action type instead of the `container` action type if you need persistent volume claims or mount configmaps.
+{% endhint %}
+
 The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
 
 When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
@@ -2678,6 +2686,10 @@ tasks:
 ### `tasks[].volumes[].module`
 
 [tasks](#tasks) > [volumes](#tasksvolumes) > module
+
+{% hint style="warning" %}
+**Deprecated**: Volume container action references will be removed in Garden 0.14. Use the `kubernetes` action type instead of the `container` action type if you need persistent volume claims or mount configmaps.
+{% endhint %}
 
 The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
 

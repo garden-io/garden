@@ -155,7 +155,7 @@ Extra flags to pass to the `docker build` command. Will extend the `spec.extraFl
 [providers](#providers) > gardenCloudBuilder
 
 {% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
+**Deprecated**: The `gardenCloudBuilder` setting in the `container` provider configuration has been renamed to `gardenContainerBuilder`. Use the setting `gardenContainerBuilder` instead of `gardenCloudBuilder`.
 {% endhint %}
 
 | Type     | Required |

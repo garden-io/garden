@@ -664,7 +664,10 @@ const volumeSchema = createSchema({
 
         Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
         `
-      ),
+      )
+      .meta({
+        deprecated: makeDeprecationMessage({ deprecation: "containerVolumeActions" }),
+      }),
   }),
   oxor: [["hostPath", "action"]],
 })
