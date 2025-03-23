@@ -8,14 +8,13 @@
 
 import type { Garden } from "./garden.js"
 import type { SourceConfig } from "./config/project.js"
-import { projectApiVersionSchema } from "./config/project.js"
-import { projectNameSchema, projectSourcesSchema, environmentNameSchema } from "./config/project.js"
-import type { Provider, BaseProviderConfig } from "./config/provider.js"
+import { environmentNameSchema, projectNameSchema, projectSourcesSchema } from "./config/project.js"
+import type { BaseProviderConfig, Provider } from "./config/provider.js"
 import { providerSchema } from "./config/provider.js"
 import { deline } from "./util/string.js"
-import { joi, joiVariables, joiStringMap, joiIdentifier, createSchema } from "./config/common.js"
+import { createSchema, joi, joiIdentifier, joiStringMap, joiVariables } from "./config/common.js"
 import type { PluginTool } from "./util/ext-tools.js"
-import type { ContextWithSchema, ContextResolveOpts } from "./config/template-contexts/base.js"
+import type { ContextResolveOpts, ContextWithSchema } from "./config/template-contexts/base.js"
 import { legacyResolveTemplateString } from "./template/templated-strings.js"
 import type { Log } from "./logger/log-entry.js"
 import { logEntrySchema } from "./plugin/base.js"
@@ -24,13 +23,12 @@ import type { CreateEventLogParams, StringLogLevel } from "./logger/logger.js"
 import { EventLogger, LogLevel } from "./logger/logger.js"
 import { Memoize } from "typescript-memoize"
 import type { ParameterObject, ParameterValues } from "./cli/params.js"
-import type { NamespaceStatus } from "./types/namespace.js"
 import type { ParsedTemplate, ResolvedTemplate } from "./template/types.js"
 import { deepEvaluate } from "./template/evaluate.js"
+import type { BaseNamespaceStatus } from "./types/namespace.js"
 
 export type WrappedFromGarden = Pick<
   Garden,
-  | "projectApiVersion"
   | "projectName"
   | "projectRoot"
   | "gardenDirPath"
@@ -91,7 +89,6 @@ export const pluginContextSchema = createSchema({
       .default(false)
       .description("Indicate if the current environment is a production environment.")
       .example(true),
-    projectApiVersion: projectApiVersionSchema(),
     projectName: projectNameSchema(),
     projectId: joi.string().optional().description("The unique ID of the current project."),
     projectRoot: joi.string().description("The absolute path of the project root."),
@@ -131,6 +128,10 @@ export type PluginEventLogMessage = PluginEventLogContext & {
   msg: string
 }
 
+export type EventNamespaceStatus = BaseNamespaceStatus & {
+  state: "ready" | "missing"
+}
+
 // Define your emitter's types as follows:
 // Key: Event name; Value: Listener function signature
 type PluginEvents = {
@@ -138,7 +139,7 @@ type PluginEvents = {
   done: () => void
   failed: (error?: Error) => void
   log: (msg: PluginEventLogMessage) => void
-  namespaceStatus: (status: NamespaceStatus) => void
+  namespaceStatus: (status: EventNamespaceStatus) => void
 }
 
 type PluginEventType = keyof PluginEvents
@@ -168,7 +169,7 @@ export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventTyp
     // resolution (where `prepareEnvironment` is called, see `ResolveProviderTask`) and inside action handlers.
     //
     // Note: If any other plugin events without action-specific metadata are needed, they should be added here.
-    this.on("namespaceStatus", (status: NamespaceStatus) => {
+    this.on("namespaceStatus", (status: EventNamespaceStatus) => {
       this.garden.events.emit("namespaceStatus", status)
     })
 
@@ -231,7 +232,6 @@ export async function createPluginContext({
     namespace: garden.namespace,
     gardenDirPath: garden.gardenDirPath,
     log: garden.log,
-    projectApiVersion: garden.projectApiVersion,
     projectName: garden.projectName,
     projectRoot: garden.projectRoot,
     projectSources: garden.getProjectSources(),

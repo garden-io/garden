@@ -6,19 +6,18 @@ tocTitle: "`helm`"
 # `helm` Module Type
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 ## Description
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-Refer to the [Helm guide](../../k8s-plugins/actions/deploy/helm.md) for usage instructions.
+Refer to the [Helm guide](../../garden-for/kubernetes/install-helm-chart.md) for usage instructions.
 
 Garden uses Helm 3.16.2.
 
-Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference.
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -318,9 +317,6 @@ sync:
 # Local mode always takes the precedence over sync mode if there are any conflicting service names.
 #
 # Health checks are disabled for services running in local mode.
-#
-# See the [Local Mode guide](https://docs.garden.io/bonsai-0.13/guides/running-service-in-local-mode) for more
-# information.
 #
 # Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
 # release.
@@ -1286,8 +1282,6 @@ Local mode is enabled by setting the `--local` option on the `garden deploy` com
 Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
 Health checks are disabled for services running in local mode.
-
-See the [Local Mode guide](https://docs.garden.io/bonsai-0.13/guides/running-service-in-local-mode) for more information.
 
 Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 

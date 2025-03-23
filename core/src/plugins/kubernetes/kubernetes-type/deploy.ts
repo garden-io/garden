@@ -38,7 +38,7 @@ export const kubernetesDeployDocs = dedent`
 
   You can either (or both) specify the manifests as part of the \`garden.yml\` configuration, or you can refer to one or more files with existing manifests.
 
-  Note that if you include the manifests in the \`garden.yml\` file, you can use [template strings](${DOCS_BASE_URL}/using-garden/variables-and-templating) to interpolate values into the manifests.
+  Note that if you include the manifests in the \`garden.yml\` file, you can use [template strings](${DOCS_BASE_URL}/config-guides/variables-and-templating) to interpolate values into the manifests.
 
   If you need more advanced templating features you can use the [helm](./helm.md) Deploy type.
 `
@@ -82,12 +82,6 @@ export function getFileSources({
   ctx: PluginContext
   config: KubernetesDeployActionConfig
 }): KubernetesDeployActionSpecFileSources {
-  const files = evaluateKubernetesDeploySpecFiles({
-    ctx,
-    config,
-    filesFieldName: "files",
-    filesFieldSchema: kubernetesManifestTemplatesSchema,
-  })
   const manifestFiles = evaluateKubernetesDeploySpecFiles({
     ctx,
     config,
@@ -101,7 +95,7 @@ export function getFileSources({
     filesFieldSchema: kubernetesManifestTemplatesSchema,
   })
 
-  return { files, manifestFiles, manifestTemplates }
+  return { manifestFiles, manifestTemplates }
 }
 
 export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesDeployAction> => ({
@@ -110,19 +104,18 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
   schema: kubernetesDeploySchema(),
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
-    configure: async ({ ctx, log, config }) => {
+    configure: async ({ ctx, config }) => {
       if (!config.spec.kustomize) {
         if (!config.include) {
           config.include = []
         }
 
-        const { files, manifestFiles, manifestTemplates } = getSpecFiles({
+        const { manifestFiles, manifestTemplates } = getSpecFiles({
           actionRef: config,
-          log,
           fileSources: getFileSources({ ctx, config }),
         })
 
-        config.include = uniq([...config.include, ...files, ...manifestTemplates, ...manifestFiles])
+        config.include = uniq([...config.include, ...manifestTemplates, ...manifestFiles])
       }
 
       return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }

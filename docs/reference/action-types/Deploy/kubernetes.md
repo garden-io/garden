@@ -11,12 +11,11 @@ Specify one or more Kubernetes manifests to deploy.
 
 You can either (or both) specify the manifests as part of the `garden.yml` configuration, or you can refer to one or more files with existing manifests.
 
-Note that if you include the manifests in the `garden.yml` file, you can use [template strings](https://docs.garden.io/bonsai-0.13/using-garden/variables-and-templating) to interpolate values into the manifests.
+Note that if you include the manifests in the `garden.yml` file, you can use [template strings](https://docs.garden.io/bonsai-0.13/config-guides/variables-and-templating) to interpolate values into the manifests.
 
 If you need more advanced templating features you can use the [helm](./helm.md) Deploy type.
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `kubernetes` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
@@ -251,10 +250,6 @@ Whether the varfile is optional.
 
 ### `build`
 
-{% hint style="warning" %}
-**Deprecated**: Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
-{% endhint %}
-
 Specify a _Build_ action, and resolve this action from the context of that Build.
 
 For example, you might create an `exec` Build which prepares some manifests, and then reference that in a `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
@@ -284,20 +279,6 @@ Timeout for the deploy to complete, in seconds.
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
-
-### `spec.files[]`
-
-[spec](#spec) > files
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
-
-| Type               | Default | Required |
-| ------------------ | ------- | -------- |
-| `array[posixPath]` | `[]`    | No       |
 
 ### `spec.kustomize`
 
@@ -971,8 +952,6 @@ Local mode is enabled by setting the `--local` option on the `garden deploy` com
 Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
 Health checks are disabled for services running in local mode.
-
-See the [Local Mode guide](https://docs.garden.io/bonsai-0.13/guides/running-service-in-local-mode) for more information.
 
 Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 

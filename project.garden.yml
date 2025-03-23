@@ -1,8 +1,8 @@
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: garden-core
 defaultEnvironment: testing
-modules:
+scan:
   include:
     - "*.garden.yml"
 environments:

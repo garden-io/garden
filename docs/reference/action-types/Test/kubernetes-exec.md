@@ -11,8 +11,7 @@ Executes a Test in an already deployed Kubernetes Pod and waits for it to comple
 
 The `resource` field is used to find the target Pod in the cluster.
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `kubernetes-exec` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
@@ -246,10 +245,6 @@ Whether the varfile is optional.
 | `boolean` | No       |
 
 ### `build`
-
-{% hint style="warning" %}
-**Deprecated**: Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
-{% endhint %}
 
 Specify a _Build_ action, and resolve this action from the context of that Build.
 

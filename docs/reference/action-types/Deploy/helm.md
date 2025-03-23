@@ -9,12 +9,11 @@ tocTitle: "`helm` Deploy"
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-Refer to the [Helm guide](../../../k8s-plugins/actions/deploy/helm.md) for usage instructions.
+Refer to the [Helm guide](../../../garden-for/kubernetes/install-helm-chart.md) for usage instructions.
 
 Garden uses Helm 3.16.2.
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `helm` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
@@ -248,10 +247,6 @@ Whether the varfile is optional.
 | `boolean` | No       |
 
 ### `build`
-
-{% hint style="warning" %}
-**Deprecated**: Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
-{% endhint %}
 
 Specify a _Build_ action, and resolve this action from the context of that Build.
 
@@ -935,8 +930,6 @@ Local mode is enabled by setting the `--local` option on the `garden deploy` com
 Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
 Health checks are disabled for services running in local mode.
-
-See the [Local Mode guide](https://docs.garden.io/bonsai-0.13/guides/running-service-in-local-mode) for more information.
 
 Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 

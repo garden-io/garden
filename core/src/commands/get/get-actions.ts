@@ -16,7 +16,7 @@ import { styles } from "../../logger/styles.js"
 import { dedent, deline, renderTable } from "../../util/string.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
-import { sortBy } from "lodash-es"
+import { omit, sortBy } from "lodash-es"
 
 interface GetActionsCommandResultItem {
   name: string
@@ -25,7 +25,7 @@ interface GetActionsCommandResultItem {
   state?: ActionState
   path?: string
   disabled?: boolean
-  version?: ActionVersion
+  version?: Omit<ActionVersion, "versionStringFull">
   allowPublish?: boolean
   publishId?: string
   moduleName?: string
@@ -239,7 +239,7 @@ export class GetActionsCommand extends Command {
             .map((d) => d.key())
             .sort(),
           disabled: a.isDisabled(),
-          version: a.getFullVersion(),
+          version: omit(a.getFullVersion(), "versionStringFull"),
           allowPublish: a.getConfig().allowPublish ?? undefined,
           publishId: a.getSpec("publishId") ?? undefined,
           moduleName: a.moduleName() ?? undefined,

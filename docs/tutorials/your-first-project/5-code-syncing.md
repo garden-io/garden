@@ -11,7 +11,7 @@ You can think of these actions as blueprints for how to go from zero to a runnin
 
 However, despite Garden's powerful caching functionality, building containers and redeploying services after you make changes to code or config can still be a slow process.
 
-So as a final step, let's enable code syncing (i.e. hot reloading) which means changes we make to our code get live synced to the running service without requiring a rebuild or a redeploy.
+So as a final step, let's enable code syncing (i.e. hot reloading) which means that changes we make to our code get live synced to the running service without requiring a rebuild or a redeploy.
 
 ## Step 1 — Add the sync config to the API Deploy action
 
@@ -36,7 +36,7 @@ Note that this also works for compiled language but an extra compilation step ma
 
 Note also the `defaultTarget` field we added previously. This is how Garden knows what "target" to sync changes to.
 
-[See here](../../guides/code-synchronization.md) for an in-depth guide on code syncing for different action types.
+[See here](../../config-guides/code-synchronization.md) for an in-depth guide on code syncing for different action types.
 
 ## Step 2 — Add the sync config to the web Deploy action
 
@@ -73,9 +73,18 @@ garden deploy --sync
 
 ## Step 4 — Verify that code syncing works
 
-Finally, let's verify that syncing works as expected.
+Finally, let's verify that syncing works as expected by turning on logs for these services by
+running the following in the dev console:
 
-Go to the Live page in the [dashboard](https://app.garden.io), make sure the Logs view is selected and click the "Logs sources" drop down. From there, select the `api` and `web` actions.
+```
+logs --follow
+```
+
+{% hint style="info" %}
+You can turn off logs in the dev console with `hide logs`.
+{% endhint %}
+
+You can also stream them in a separate terminal window by just running `garden logs --follow`.
 
 Now open the `api/app.py` file in your IDE and try changing the string in the `print("Starting API")` statement near the start of the file. You should see in the logs that the API server restarts and that the new log line is printed.
 

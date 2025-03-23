@@ -73,8 +73,9 @@ export async function writeConfigReferenceDocs(
     return await Garden.factory(moduleDirName, {
       commandInfo: { name: "generate-docs", args: {}, opts: {} },
       config: {
+        configPath: import.meta.filename,
         path: moduleDirName,
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name: "generate-docs",
         internal: {
@@ -166,7 +167,7 @@ export async function writeConfigReferenceDocs(
 
   const deprecationWarning = `
   {% hint style="warning" %}
-  Modules are deprecated and will be removed in version \`0.14\`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+  Modules are deprecated and will be removed in version \`0.14\`. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
   {% endhint %}
   `
   moduleReadme.push(deprecationWarning)

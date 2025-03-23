@@ -1,9 +1,7 @@
 ---
-title: Environments and namespaces
-order: 5
+title: Environments and Namespaces
+order: 2
 ---
-
-# Environments and namespaces
 
 Every Garden project has one or more environments that are defined in the project level Garden configuration. Teams often define environments such as `dev`, `ci`, and `prod`.
 

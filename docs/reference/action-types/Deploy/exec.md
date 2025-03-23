@@ -9,8 +9,7 @@ tocTitle: "`exec` Deploy"
 
 Run and manage a persistent process or service with shell commands.
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `exec` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
@@ -244,10 +243,6 @@ Whether the varfile is optional.
 | `boolean` | No       |
 
 ### `build`
-
-{% hint style="warning" %}
-**Deprecated**: Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
-{% endhint %}
 
 Specify a _Build_ action, and resolve this action from the context of that Build.
 

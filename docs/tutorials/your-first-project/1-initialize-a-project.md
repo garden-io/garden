@@ -21,48 +21,54 @@ The example is a three-tier web app with web, API, and database components. Gard
 
 ## Step 2 — Create a project
 
-Next, we'll initialize a Garden project with:
+Next, we'll create a project config file in the root of the example with:
 
 ```sh
-garden create project
+garden create project --name web-app-example
 ```
 
 This will create a basic boilerplate project configuration in the current directory, making it our project root. It will look something like this:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: web-app-example
 
-defaultEnvironment: ephemeral
-
-variables:
-  usernamespace: web-app-example-${kebabcase(local.username)}
+defaultEnvironment: local
 
 environments:
-  - name: ephemeral
-    defaultNamespace: ${var.userNamespace}
-
   - name: local
-    defaultNamespace: ${var.userNamespace}
-
+    defaultNamespace: web-app-example
   - name: remote-dev
-    defaultNamespace: ${var.userNamespace}
-
-  - name: staging
-    production: true
+    defaultNamespace: web-app-example-${kebabCase(local.username)}
+  - name: ci
+    defaultNamespace: web-app-example-${git.branch}-${git.commitHash}
+  - name: preview
     defaultNamespace: web-app-example-${git.branch}
 
 providers:
-  - name: ephemeral-kubernetes
-    environments: [ephemeral]
   - name: local-kubernetes
     environments: [local]
   - name: kubernetes
-    environments: [remote-dev]
-  - name: kubernetes
-    environments: [staging]
+    environments: [remote-dev, ci, preview]
 ```
 
-We have four environments (`ephemeral`, `local`, `remote-dev` and `staging`) and also four provider configurations, one for each environment.
+We have four environments (`local`, `remote-dev`, `ci`, and `preview`) and also two provider configurations (`local-kubernetes` and `kubernetes`).
 
+## Step 3 – Enable Remote Container Builder (optional)
+
+We highly recommend using our [Remote Container Builder](../../garden-for/containers/using-remote-container-builder.md) which can significantly speed up container builds for your Garden projects.
+
+To enable it, update your provider configuration like so:
+
+```yaml
+# In project.garden.yml
+providers:
+  - name: container # <--- Add this!
+    gardenContainerBuilder:
+      enabled: true
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [remote-dev, ci, testing]
+```

@@ -1,7 +1,6 @@
 # Local mode for `container` action type
 
-A very basic demo project for Garden [local mode](../../docs/guides/running-service-in-local-mode.md) for `container`
-build type.
+A very basic demo project for Garden local mode for `container` build type.
 
 This project is based on the [demo-project](../demo-project). The only difference is that this one has 2 backend
 services. Each backend service (or both) can be started in the _local mode_.
@@ -34,8 +33,7 @@ backend implementations return different messages in responses.
 
 ## Limitations
 
-As it has been described in the [local mode guide](../../docs/guides/running-service-in-local-mode.md), a service that
-calls some other services may not work properly in local mode.
+A service that calls some other services may not work properly in local mode.
 
 In this example, the [frontend](./frontend) service can be configured and deployed in local mode. Calls to
 its `/hello-frontend` will be handled by the locally deployed service with no troubles.

@@ -194,7 +194,7 @@ export class GardenCloudHttpClient {
       if (e.code === "DEPTH_ZERO_SELF_SIGNED_CERT" && getCloudDistributionName(this.domain) === "Garden Enterprise") {
         throw new CloudApiError({
           message: dedent`
-          SSL error when communicating to Garden Cloud: ${e}
+          SSL error when communicating to Garden Enterprise: ${e}
 
           If your Garden Cloud instance is self-hosted and you are using a self-signed certificate, Garden will not trust your system's CA certificates.
 

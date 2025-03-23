@@ -89,8 +89,6 @@ export const kubernetesLocalModeSchema = () =>
 
     Health checks are disabled for services running in local mode.
 
-    See the [Local Mode guide](${localModeGuideLink}) for more information.
-
     Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
   `
     )

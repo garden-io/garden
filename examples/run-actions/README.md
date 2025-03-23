@@ -31,6 +31,4 @@ Once `node-migration` finishes, `hello` is deployed and `ruby-migration` is run.
 
 ## Usage
 
-The simplest way to see this in action is to run `garden deploy` or `garden dev` in the project's top-level directory.
-
-For more complex use-cases and additional configuration options please refer to the [docs](../../docs/using-garden/runs.md).
+The simplest way to see this in action is to run `garden deploy` or `garden dev` in the project directory.

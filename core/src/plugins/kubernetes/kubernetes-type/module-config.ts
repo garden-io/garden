@@ -42,6 +42,7 @@ export type KubernetesModule = GardenModule<
 export type KubernetesModuleConfig = KubernetesModule["_config"]
 
 export interface KubernetesServiceSpec extends KubernetesTypeCommonDeploySpec {
+  files: string[]
   dependencies: string[]
   timeout: number
   sync?: KubernetesModuleDevModeSpec

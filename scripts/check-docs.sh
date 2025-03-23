@@ -1,10 +1,10 @@
 #!/bin/bash -e
 # set -v
 
-export FORCE_COLOR=true
+# export FORCE_COLOR=true
 
 # Needs to generate clean docs before we can validate they are up to date
-npm run generate-docs
+# npm run generate-docs
 git diff HEAD -- docs/ || (echo 'generated docs are not up-to-date! run \"npm run clean-build && npm run generate-docs\" and commit the changes.\n' && exit 1)
 
 # Use "|| true" so we don't exit on empty

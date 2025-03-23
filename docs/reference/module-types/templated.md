@@ -6,22 +6,21 @@ tocTitle: "`templated`"
 # `templated` Module Type
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 ## Description
 
 **[DEPRECATED] Please use the new `RenderTemplate` config kind instead.**
 
-A special module type, for rendering [module templates](../../using-garden/config-templates.md). See the [Config Templates guide](../../using-garden/config-templates.md) for more information.
+A special module type, for rendering [module templates](../../config-guides/config-templates.md). See the [Config Templates guide](../../config-guides/config-templates.md) for more information.
 
 Specify the name of a ConfigTemplate with the `template` field, and provide any expected inputs using the `inputs` field. The generated modules becomes sub-modules of this module.
 
 Note that the following common Module configuration fields are disallowed for this module type:
 `build`, `local`, `description`, `include`, `exclude`, `repositoryUrl`, `allowPublish`, `generateFiles`, `variables` and `varfile`
 
-Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference.
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

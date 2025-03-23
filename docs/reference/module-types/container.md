@@ -6,7 +6,7 @@ tocTitle: "`container`"
 # `container` Module Type
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 ## Description
@@ -19,8 +19,7 @@ specify replicas for redundancy, and various platform-specific options are not i
 other module types like [helm](./helm.md) or
 [kubernetes](./kubernetes.md).
 
-Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference.
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -284,18 +283,6 @@ services:
         # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
-        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](./persistentvolumeclaim.md), for example.
-        #
-        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
-        # dependency of this service, as well as a build dependency of this module.
-        #
-        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
-        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
-        # services at the same time. Refer to the documentation of the module type in question to learn more.
-        module:
-
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
     privileged:
@@ -421,7 +408,8 @@ services:
         # Max number of the local application restarts. Unlimited by default.
         max: .inf
 
-    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+    # Dockerfile.
     image:
 
     # List of ingress endpoints that the service exposes.
@@ -595,18 +583,6 @@ tests:
         # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
-        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](./persistentvolumeclaim.md), for example.
-        #
-        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
-        # dependency of this service, as well as a build dependency of this module.
-        #
-        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
-        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
-        # services at the same time. Refer to the documentation of the module type in question to learn more.
-        module:
-
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
     privileged:
@@ -636,7 +612,8 @@ tests:
         # `.garden/artifacts`.
         target: .
 
-    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+    # Dockerfile.
     image:
 
     # Set to false if you don't want the Test action result to be cached. Use this if the Test action needs to be run
@@ -719,18 +696,6 @@ tasks:
         # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
-        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](./persistentvolumeclaim.md), for example.
-        #
-        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
-        # dependency of this service, as well as a build dependency of this module.
-        #
-        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
-        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
-        # services at the same time. Refer to the documentation of the module type in question to learn more.
-        module:
-
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
     privileged:
@@ -760,7 +725,8 @@ tasks:
         # `.garden/artifacts`.
         target: .
 
-    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+    # Dockerfile.
     image:
 
     # Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run
@@ -1367,20 +1333,6 @@ services:
       - hostPath: "/some/dir"
 ```
 
-### `services[].volumes[].module`
-
-[services](#services) > [volumes](#servicesvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
 ### `services[].privileged`
 
 [services](#services) > privileged
@@ -1722,7 +1674,7 @@ Max number of the local application restarts. Unlimited by default.
 
 [services](#services) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2301,20 +2253,6 @@ tests:
       - hostPath: "/some/dir"
 ```
 
-### `tests[].volumes[].module`
-
-[tests](#tests) > [volumes](#testsvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
 ### `tests[].privileged`
 
 [tests](#tests) > privileged
@@ -2427,7 +2365,7 @@ tests:
 
 [tests](#tests) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2675,20 +2613,6 @@ tasks:
       - hostPath: "/some/dir"
 ```
 
-### `tasks[].volumes[].module`
-
-[tasks](#tasks) > [volumes](#tasksvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
 ### `tasks[].privileged`
 
 [tasks](#tasks) > privileged
@@ -2801,7 +2725,7 @@ tasks:
 
 [tasks](#tasks) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
 
 | Type     | Required |
 | -------- | -------- |

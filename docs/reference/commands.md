@@ -2828,7 +2828,7 @@ workflowConfigs:
         # `never`: This step will always be ignored.
         #
         # See the [workflows
-        # guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options) for details
+        # guide](https://docs.garden.io/bonsai-0.13/config-guides/workflows#the-skip-and-when-options) for details
         # and examples.
         when:
 
@@ -4241,13 +4241,8 @@ Logs you in to Garden Cloud. Subsequent commands will have access to cloud featu
 
 #### Usage
 
-    garden login [options]
+    garden login 
 
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--disable-project-check` |  | boolean | Disables the check that this is run from within a Garden Project. Logs you in to the default Garden Cloud domain
 
 
 ### garden logout
@@ -4258,13 +4253,8 @@ Logs you out of Garden Cloud.
 
 #### Usage
 
-    garden logout [options]
+    garden logout 
 
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--disable-project-check` |  | boolean | Disables the check that this is run from within a Garden Project. Logs you out from the default Garden Cloud domain
 
 
 ### garden logs

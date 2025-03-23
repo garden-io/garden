@@ -11,8 +11,7 @@ Deploy a container image, e.g. in a Kubernetes namespace (when used with the `ku
 
 This is a simplified abstraction, which can be convenient for simple deployments, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Deploy types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `container` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
@@ -247,10 +246,6 @@ Whether the varfile is optional.
 
 ### `build`
 
-{% hint style="warning" %}
-**Deprecated**: Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
-{% endhint %}
-
 Specify a _Build_ action, and resolve this action from the context of that Build.
 
 For example, you might create an `exec` Build which prepares some manifests, and then reference that in a `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
@@ -454,18 +449,6 @@ spec:
   volumes:
     - hostPath: "/some/dir"
 ```
-
-### `spec.volumes[].action`
-
-[spec](#spec) > [volumes](#specvolumes) > action
-
-The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type              | Required |
-| ----------------- | -------- |
-| `actionReference` | No       |
 
 ### `spec.privileged`
 
@@ -812,11 +795,11 @@ Max number of the local application restarts. Unlimited by default.
 
 [spec](#spec) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Required.
 
 | Type     | Required |
 | -------- | -------- |
-| `string` | No       |
+| `string` | Yes      |
 
 ### `spec.ingresses[]`
 

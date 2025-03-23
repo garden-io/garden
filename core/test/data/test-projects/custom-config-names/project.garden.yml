@@ -1,7 +1,6 @@
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: test-project-a
-id: test-project-id
 environments:
   - name: local
   - name: other
