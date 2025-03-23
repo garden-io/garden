@@ -442,6 +442,17 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         For more information how to use Persistent Volume Claims using Kubernetes manifests, refer to the [official Kubernetes documentation on configuring persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/).
       `,
     },
+    containerVolumeActions: {
+      docsSection: "Garden action types",
+      docsHeadline: `Volume container action references`,
+      warnHint: `Volume container action references will be removed in Garden 0.14. Use the ${style("kubernetes")} action type instead of the ${style("container")} action type if you need persistent volume claims or mount configmaps.`,
+      docs: dedent`
+        Referencing \`persistentvolumeclaim\` and \`configmap\` action or module types from \`container\` Deploy actions will not be supported anymore in Garden 0.14.
+
+        <!-- markdown-link-check-disable-next-line -->
+        See also the deprecation notices for [the ${style("persistentvolumeclaim")} Deploy action type](#persistentvolumeclaimDeployAction)) and [the ${style("configmap")} Deploy action type](#configmapDeployAction)).
+      `,
+    },
     optionalTemplateValueSyntax: {
       docsSection: "Template Language",
       docsHeadline: `Optional template expressions`,

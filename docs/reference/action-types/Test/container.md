@@ -455,6 +455,10 @@ spec:
 
 [spec](#spec) > [volumes](#specvolumes) > action
 
+{% hint style="warning" %}
+**Deprecated**: Volume container action references will be removed in Garden 0.14. Use the `kubernetes` action type instead of the `container` action type if you need persistent volume claims or mount configmaps.
+{% endhint %}
+
 The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`.
 
 Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.

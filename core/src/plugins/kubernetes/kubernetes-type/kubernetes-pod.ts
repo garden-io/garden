@@ -34,6 +34,7 @@ import type { TestActionConfig, TestAction } from "../../../actions/test.js"
 import { composeCacheableTestResult, testResultCache } from "../test-results.js"
 import { k8sGetTestResult } from "../test-results.js"
 import { toActionStatus } from "../results-cache.js"
+import { makeDeprecationMessage } from "../../../util/deprecations.js"
 
 // RUN //
 
@@ -83,7 +84,9 @@ export const kubernetesRunPodSchema = (kind: ActionKind) => {
       manifests: kubernetesManifestsSchema().description(
         `List of Kubernetes resource manifests to be searched (using \`resource\`e for the pod spec for the ${kind}. If \`files\` is also specified, this is combined with the manifests read from the files.`
       ),
-      files: kubernetesPodManifestTemplatesSchema(kind).meta({ deprecated: true }),
+      files: kubernetesPodManifestTemplatesSchema(kind).meta({
+        deprecated: makeDeprecationMessage({ deprecation: "kubernetesActionSpecFiles" }),
+      }),
       manifestFiles: kubernetesManifestFilesSchema(),
       manifestTemplates: kubernetesPodManifestTemplatesSchema(kind),
       resource: runPodResourceSchema(kind),

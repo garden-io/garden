@@ -286,7 +286,7 @@ Timeout for the deploy to complete, in seconds.
 [spec](#spec) > files
 
 {% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
+**Deprecated**: `spec.files` in `kubernetes` Deploy actions will be removed in Garden 0.14. Use `spec.manifestTemplates` and/or `spec.manifestFiles` instead.
 {% endhint %}
 
 POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.

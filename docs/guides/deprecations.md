@@ -405,6 +405,15 @@ The `persistentvolumeclaim` Deploy action type will be removed in the next major
 
 For more information how to use Persistent Volume Claims using Kubernetes manifests, refer to the [official Kubernetes documentation on configuring persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/).
 
+<h2 id="containervolumeactions">Volume container action references</h2>
+
+Volume container action references will be removed in Garden 0.14. Use the `kubernetes` action type instead of the `container` action type if you need persistent volume claims or mount configmaps.
+
+Referencing `persistentvolumeclaim` and `configmap` action or module types from `container` Deploy actions will not be supported anymore in Garden 0.14.
+
+<!-- markdown-link-check-disable-next-line -->
+See also the deprecation notices for [the `persistentvolumeclaim` Deploy action type](#persistentvolumeclaimDeployAction)) and [the `configmap` Deploy action type](#configmapDeployAction)).
+
 # Template Language
 
 <h2 id="optionaltemplatevaluesyntax">Optional template expressions</h2>

@@ -35,6 +35,7 @@ import {
   volumeSchemaBase,
 } from "./config.js"
 import { kebabCase, mapKeys } from "lodash-es"
+import { makeDeprecationMessage } from "../../util/deprecations.js"
 
 /**
  * PLEASE DO NOT UPDATE THESE SCHEMAS UNLESS ABSOLUTELY NECESSARY, AND IF YOU DO, MAKE SURE
@@ -102,15 +103,19 @@ const moduleVolumesSchema = () =>
   getContainerVolumesSchema(
     volumeSchemaBase()
       .keys({
-        module: joiIdentifier().description(
-          dedent`
+        module: joiIdentifier()
+          .description(
+            dedent`
             The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
 
             When a \`module\` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 
             Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
             `
-        ),
+          )
+          .meta({
+            deprecated: makeDeprecationMessage({ deprecation: "containerVolumeActions" }),
+          }),
       })
       .oxor("hostPath", "module")
   ).description(dedent`
