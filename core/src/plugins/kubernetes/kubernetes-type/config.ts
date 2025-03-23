@@ -38,6 +38,7 @@ import { getGlobalProjectApiVersion } from "../../../project-api-version.js"
 import { GardenApiVersion } from "../../../constants.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import omit from "lodash-es/omit.js"
 
 export interface KubernetesTypeCommonDeploySpec {
   // TODO(0.14): remove this field
@@ -161,22 +162,25 @@ export const kubernetesApplyArgsSchema = () =>
 
 type KubernetesCommonDeployKeyDeprecations = { deprecateFiles: boolean }
 
-export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => ({
-  files: kubernetesManifestTemplatesSchema().meta({ deprecated: deprecations.deprecateFiles }),
-  kustomize: kustomizeSpecSchema(),
-  manifests: kubernetesManifestsSchema(),
-  patchResources: kubernetesPatchResourcesSchema(),
-  namespace: namespaceNameSchema(),
-  portForwards: portForwardsSchema(),
-  timeout: k8sDeploymentTimeoutSchema(),
-  applyArgs: kubernetesApplyArgsSchema(),
-  // TODO-0.14: flip this to true and change default behavior to wait for the jobs
-  waitForJobs: joi
-    .boolean()
-    .optional()
-    // .default(false)
-    .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
-})
+export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => {
+  const keys = {
+    files: kubernetesManifestTemplatesSchema().meta({ deprecated: deprecations.deprecateFiles }),
+    kustomize: kustomizeSpecSchema(),
+    manifests: kubernetesManifestsSchema(),
+    patchResources: kubernetesPatchResourcesSchema(),
+    namespace: namespaceNameSchema(),
+    portForwards: portForwardsSchema(),
+    timeout: k8sDeploymentTimeoutSchema(),
+    applyArgs: kubernetesApplyArgsSchema(),
+    // TODO-0.14: flip this to true and change default behavior to wait for the jobs
+    waitForJobs: joi
+      .boolean()
+      .optional()
+      // .default(false)
+      .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
+  }
+  return deprecations.deprecateFiles ? omit(keys, "files") : keys
+}
 
 export const kubernetesDeploySchema = () =>
   joi

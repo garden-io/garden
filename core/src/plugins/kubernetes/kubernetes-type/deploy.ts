@@ -110,19 +110,18 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
   schema: kubernetesDeploySchema(),
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
-    configure: async ({ ctx, log, config }) => {
+    configure: async ({ ctx, config }) => {
       if (!config.spec.kustomize) {
         if (!config.include) {
           config.include = []
         }
 
-        const { files, manifestFiles, manifestTemplates } = getSpecFiles({
+        const { manifestFiles, manifestTemplates } = getSpecFiles({
           actionRef: config,
-          log,
           fileSources: getFileSources({ ctx, config }),
         })
 
-        config.include = uniq([...config.include, ...files, ...manifestTemplates, ...manifestFiles])
+        config.include = uniq([...config.include, ...manifestTemplates, ...manifestFiles])
       }
 
       return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }

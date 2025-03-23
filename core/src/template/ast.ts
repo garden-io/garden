@@ -556,10 +556,6 @@ export class FormatStringExpression extends TemplateExpression {
       ...args,
       opts: {
         ...args.opts,
-        // nested expressions should never be partially resolved in legacy mode
-        // Otherwise, weird problems can happen if we e.g. partially resolve a sub-expression and pass it to a parameter of a function call.
-        // TODO(0.14): remove legacyAllowPartial
-        legacyAllowPartial: false,
       },
       optional: args.optional || isOptional,
     })
@@ -624,24 +620,14 @@ export class BlockExpression extends AbstractBlockExpression {
   }
 
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
-    const legacyAllowPartial = args.opts.legacyAllowPartial
-
     let result: string = ""
     for (const expr of this.expressions) {
       const r = expr.evaluate({
         ...args,
-        // in legacyAllowPartial mode, all template expressions are optional
-        optional: args.optional || legacyAllowPartial,
+        optional: args.optional,
       })
 
-      // For legacy allow partial mode, other format string expressions might be evaluated, and
-      // we produce a string even when a key hasn't been found.
-      // This is extremely evil, but unfortunately needs to be kept for backwards bug-compatibility.
-      // TODO(0.14): please remove legacyAllowPartial
-      if (legacyAllowPartial && typeof r === "symbol") {
-        result += expr.rawText
-        continue
-      } else if (this.expressions.length === 1) {
+      if (this.expressions.length === 1) {
         // if we evaluate a single expression we are allowed to evaluate to something other than a string
         return r
       }
