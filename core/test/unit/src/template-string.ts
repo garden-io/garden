@@ -126,9 +126,7 @@ describe("parse and evaluate template strings with apiVersion: garden.io/v2", ()
             contextOpts: {},
           }),
         {
-          contains:
-            //  'invalid template string (${parent.name}?): could not find key parent. available keys: actions.'
-            "Invalid template string (${parent.name}?): Could not find key parent. Available keys: actions.",
+          contains: "Invalid template string (${parent.name}?): Could not find key parent. Available keys: actions.",
         }
       )
     })
@@ -157,10 +155,54 @@ describe("parse and evaluate template strings", () => {
     expect(res).to.equal("value")
   })
 
-  it("should ignore the legacy optional suffix from previous Garden versions", () => {
-    const res = legacyResolveTemplateString({ string: "${foo}?", context: new TestContext({ foo: "bar" }) })
-    // The question mark after the template expression should be just a string
-    expect(res).to.equal("bar?")
+  describe("should resolve ? suffix as a regular character", () => {
+    it("should resolve ? as a regular character if the referenced template value exists", () => {
+      const res = legacyResolveTemplateString({ string: "${foo}?", context: new TestContext({ foo: "bar" }) })
+      expect(res).to.equal("bar?")
+    })
+
+    it("should throw the referenced template value with ? does not exists", () => {
+      void expectError(
+        () =>
+          legacyResolveTemplateString({
+            string: "${foo}?",
+            context: new TestContext({}),
+          }),
+        { contains: "Invalid template string (${foo}?): Could not find key foo. Available keys: (none)." }
+      )
+    })
+
+    it("should throw the referenced template value with ? does not exists and surrounded with a prefix and a suffix", () => {
+      void expectError(
+        () =>
+          legacyResolveTemplateString({
+            string: "prefix-${some}?-suffix",
+            context: new TestContext({}),
+          }),
+        {
+          contains:
+            "Invalid template string (prefix-${some}?-suffix): Could not find key some. Available keys: (none).",
+        }
+      )
+    })
+
+    it("should throw if an expression with ? in member expression cannot be resolved", async () => {
+      await expectError(
+        () =>
+          legacyResolveTemplateString({
+            string: '${actions.build["${parent.name}?"]}',
+            context: new TestContext({
+              actions: {
+                build: {},
+              },
+            }),
+            contextOpts: {},
+          }),
+        {
+          contains: "Invalid template string (${parent.name}?): Could not find key parent. Available keys: actions.",
+        }
+      )
+    })
   })
 
   it("should allow undefined values when falling back to another value suffix is present", () => {
@@ -1439,18 +1481,12 @@ describe("parse and evaluate template strings", () => {
       `)
     })
 
-    it("throws if an if block has an optional suffix", () => {
-      void expectError(
-        () =>
-          legacyResolveTemplateString({
-            string: "prefix ${if a}?content ${endif}",
-            context: new TestContext({ a: true }),
-          }),
-        {
-          contains:
-            "Invalid template string (prefix ${if a}?content ${endif}): Cannot specify optional suffix in if-block.",
-        }
-      )
+    it("it ignores ? after an if block", () => {
+      const res = legacyResolveTemplateString({
+        string: "prefix ${if a}?content${endif}",
+        context: new TestContext({ a: true }),
+      })
+      expect(res).to.equal("prefix ?content")
     })
 
     it("throws if an if block doesn't have a matching endif", () => {
