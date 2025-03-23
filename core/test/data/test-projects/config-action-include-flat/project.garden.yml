@@ -16,5 +16,4 @@ include:
 kind: Deploy
 type: test
 name: test-deploy
-spec:
-  image: ${actions.build.test-build.outputs.deploymentImageId}
+build: build.test-build

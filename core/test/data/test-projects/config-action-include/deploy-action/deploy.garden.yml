@@ -1,5 +1,4 @@
 kind: Deploy
 type: test
 name: test-deploy
-dependencies:
-  - "build.test-build"
+build: build.test-build

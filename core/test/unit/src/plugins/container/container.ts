@@ -192,12 +192,6 @@ describe("plugins.container", () => {
         {
           containerPath: ".",
           name: "test-volume",
-          module: "test-pvc",
-        },
-        // a volume with no Module but a hostPath instead
-        {
-          containerPath: ".",
-          name: "test-volume",
           hostPath: "testPath",
         },
       ]
@@ -235,14 +229,9 @@ describe("plugins.container", () => {
       expect(build.dependencies?.length, "builds don't get the pvc dependency").to.eql(0)
 
       for (const runtimeAction of [run, test, deploy] as ContainerRuntimeActionConfig[]) {
-        expect(runtimeAction.dependencies?.length, "dependency is created only for action referenced modules").to.eql(1)
-        expect(runtimeAction.dependencies![0]).to.eql({ name: "test-pvc", kind: "Deploy" })
-        expect(runtimeAction.spec.volumes.length).to.eql(2)
-        expect(runtimeAction.spec.volumes[0]).to.eql({
-          ...omit(volumesSpec[0], "module"),
-          action: { name: "test-pvc", kind: "Deploy" },
-        })
-        expect(runtimeAction.spec.volumes[1]).to.eql({ ...volumesSpec[1], action: undefined })
+        expect(runtimeAction.dependencies?.length).to.eql(0)
+        expect(runtimeAction.spec.volumes.length).to.eql(1)
+        expect(runtimeAction.spec.volumes).to.eql(volumesSpec)
       }
     })
   })
