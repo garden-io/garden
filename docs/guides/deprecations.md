@@ -237,13 +237,6 @@ For more information about Jobs, please refer to the [official Kubernetes docume
 
 # Project configuration
 
-<h2 id="dotignorefiles">The <code>dotIgnoreFiles</code> config field</h2>
-
-The `dotIgnoreFiles` config field will be removed in Garden 0.14.
-Use the `dotIgnoreFile` field instead. It only allows specifying one filename.
-
-For more information, please refer to the [`dotIgnoreFile` reference documentation](../reference/project-config.md#dotIgnoreFile).
-
 <h2 id="apiversion">The <code>apiVersion</code> config field</h2>
 
 Garden 0.14 will introduce breaking changes.
@@ -354,20 +347,6 @@ See also:
 - [`spec.localMode` in the `helm` Deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
 - [`spec.localMode` in the `container` Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
 
-# Environment variables
-
-<h2 id="rsyncbuildstaging"><code>GARDEN_LEGACY_BUILD_STAGE</code></h2>
-
-Do not use `GARDEN_LEGACY_BUILD_STAGE` environment variable. It will be removed in Garden 0.14.
-
-Using the `rsync`-based build staging is not necessary when using the latest versions of Garden.
-
-If you still need to use this environment variable for some reason, please reach out to us on GitHub, Discord or via the customer support.
-
-<h2 id="gardencloudbuilderenvvar"><code>GARDEN_CLOUD_BUILDER</code></h2>
-
-The `GARDEN_CLOUD_BUILDER` environment variable will be removed in Garden 0.14. Use `GARDEN_CONTAINER_BUILDER` instead.
-
 # Garden action types
 
 <h2 id="configmapdeployaction">The <code>configmap</code> Deploy action type</h2>
@@ -431,3 +410,9 @@ For this reason, we will remove the optional template expression syntax. You can
 When using `apiVersion: garden.io/v2`, the optional template syntax has been removed and thus `var.fullUrl` evaluates to `https://example.com/?param=xyz` and resolving the action will fail if `var.baseUrl` doesn't exist.
 
 You can use explicit fallback values using the logical or operator in case you've been relying on the optional template expression syntax.
+
+# Environment variables
+
+<h2 id="gardencloudbuilderenvvar"><code>GARDEN_CLOUD_BUILDER</code></h2>
+
+The `GARDEN_CLOUD_BUILDER` environment variable will be removed in Garden 0.14. Use `GARDEN_CONTAINER_BUILDER` instead.

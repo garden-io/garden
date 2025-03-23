@@ -273,9 +273,8 @@ platforms:
 # See also https://docs.docker.com/build/building/secrets/
 secrets:
 
-# Specify the image name for the container. Should be a valid Docker image identifier. If specified and the module
-# does not contain a Dockerfile, this image will be used to deploy services for this module. If specified and the
-# module does contain a Dockerfile, this identifier is used when pushing the built image.
+# Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+# Dockerfile.
 image:
 
 # POSIX-style name of a Dockerfile, relative to module root.
@@ -488,7 +487,8 @@ services:
         # Max number of the local application restarts. Unlimited by default.
         max: .inf
 
-    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+    # Dockerfile.
     image:
 
     # List of ingress endpoints that the service exposes.
@@ -703,7 +703,8 @@ tests:
         # `.garden/artifacts`.
         target: .
 
-    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+    # Dockerfile.
     image:
 
     # Set to false if you don't want the Test action result to be cached. Use this if the Test action needs to be run
@@ -827,7 +828,8 @@ tasks:
         # `.garden/artifacts`.
         target: .
 
-    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+    # Dockerfile.
     image:
 
     # Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run
@@ -1355,7 +1357,7 @@ secrets:
 
 ### `image`
 
-Specify the image name for the container. Should be a valid Docker image identifier. If specified and the module does not contain a Dockerfile, this image will be used to deploy services for this module. If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1936,7 +1938,7 @@ Max number of the local application restarts. Unlimited by default.
 
 [services](#services) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2641,7 +2643,7 @@ tests:
 
 [tests](#tests) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
 
 | Type     | Required |
 | -------- | -------- |
@@ -3015,7 +3017,7 @@ tasks:
 
 [tasks](#tasks) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
 
 | Type     | Required |
 | -------- | -------- |

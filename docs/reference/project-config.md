@@ -114,13 +114,6 @@ defaultEnvironment: ''
 # Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as
 # `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are
 # ignored when scanning for actions and action sources.
-dotIgnoreFiles:
-
-# Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as
-# `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are
-# ignored when scanning for actions and action sources.
-# Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the `dotIgnoreFiles` field
-# in the project configuration.
 # Note that this take precedence over the project `scan.include` field, and action `include` fields, so any paths
 # matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 # See the [Configuration Files
@@ -467,30 +460,9 @@ Example:
 defaultEnvironment: "dev"
 ```
 
-### `dotIgnoreFiles[]`
-
-{% hint style="warning" %}
-**Deprecated**: The `dotIgnoreFiles` config field will be removed in Garden 0.14.
-Use the `dotIgnoreFile` field instead. It only allows specifying one filename.
-{% endhint %}
-
-Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `array[posixPath]` | No       |
-
-Example:
-
-```yaml
-dotIgnoreFiles:
-  - .gitignore
-```
-
 ### `dotIgnoreFile`
 
 Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the `dotIgnoreFiles` field in the project configuration.
 Note that this take precedence over the project `scan.include` field, and action `include` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
