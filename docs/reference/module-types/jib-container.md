@@ -438,7 +438,8 @@ services:
           # information.
           defaultGroup:
 
-    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+    # Dockerfile.
     image:
 
     # List of ingress endpoints that the service exposes.

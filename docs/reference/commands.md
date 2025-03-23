@@ -532,7 +532,7 @@ Examples:
 
 #### Usage
 
-    garden cloud secrets delete [ids]
+    garden cloud secrets delete [ids] 
 
 #### Arguments
 
@@ -617,7 +617,7 @@ Examples:
 
 #### Usage
 
-    garden cloud users delete [ids]
+    garden cloud users delete [ids] 
 
 #### Arguments
 
@@ -657,7 +657,7 @@ Opens the Garden Community Discord invite link
 
 #### Usage
 
-    garden community
+    garden community 
 
 
 
@@ -681,7 +681,7 @@ Examples:
 
 #### Usage
 
-    garden config analytics-enabled [enable]
+    garden config analytics-enabled [enable] 
 
 #### Arguments
 
@@ -1434,7 +1434,7 @@ stderr:
 
 #### Usage
 
-    garden get graph
+    garden get graph 
 
 
 
@@ -2937,7 +2937,7 @@ This is useful to diagnose issues with ignores, include and exclude for a given 
 
 #### Usage
 
-    garden get files [keys]
+    garden get files [keys] 
 
 #### Arguments
 
@@ -2959,7 +2959,7 @@ This is useful to diagnose issues with ignores, include and exclude for a given 
 
 #### Usage
 
-    garden get linked-repos
+    garden get linked-repos 
 
 
 
@@ -2978,7 +2978,7 @@ Examples:
 
 #### Usage
 
-    garden get outputs
+    garden get outputs 
 
 
 #### Outputs
@@ -3979,7 +3979,7 @@ actions:
 
 #### Usage
 
-    garden get run-result <name>
+    garden get run-result <name> 
 
 #### Arguments
 
@@ -4033,7 +4033,7 @@ artifacts:
 
 #### Usage
 
-    garden get test-result <name> [moduleTestName]
+    garden get test-result <name> [moduleTestName] 
 
 #### Arguments
 
@@ -4111,7 +4111,7 @@ Note that this may include sensitive data, depending on the provider and your co
 
 #### Usage
 
-    garden get workflows [workflows]
+    garden get workflows [workflows] 
 
 #### Arguments
 
@@ -4135,7 +4135,7 @@ Examples:
 
 #### Usage
 
-    garden link source <source> <path>
+    garden link source <source> <path> 
 
 #### Arguments
 
@@ -4169,7 +4169,7 @@ Examples:
 
 #### Usage
 
-    garden link action <action> <path>
+    garden link action <action> <path> 
 
 #### Arguments
 
@@ -4205,7 +4205,7 @@ Examples:
 
 #### Usage
 
-    garden link module <module> <path>
+    garden link module <module> <path> 
 
 #### Arguments
 
@@ -4298,7 +4298,7 @@ Prints all global options (options that can be applied to any command).
 
 #### Usage
 
-    garden options
+    garden options 
 
 
 
@@ -4323,7 +4323,7 @@ Examples:
 
 #### Usage
 
-    garden plugins [plugin] [command]
+    garden plugins [plugin] [command] 
 
 #### Arguments
 
@@ -5162,7 +5162,7 @@ Examples:
 
 #### Usage
 
-    garden workflow <workflow>
+    garden workflow <workflow> 
 
 #### Arguments
 
@@ -5276,7 +5276,7 @@ Examples:
 
 #### Usage
 
-    garden sync stop [names]
+    garden sync stop [names] 
 
 #### Arguments
 
@@ -5301,7 +5301,7 @@ Examples:
 
 #### Usage
 
-    garden sync restart <names>
+    garden sync restart <names> 
 
 #### Arguments
 
@@ -5874,7 +5874,7 @@ This is basically an alias for garden dev --cmd 'deploy --logs', but you can add
 
 #### Usage
 
-    garden up
+    garden up 
 
 
 
@@ -6084,7 +6084,7 @@ Hides the specified warning message. The command and key is generally provided a
 
 #### Usage
 
-    garden util hide-warning <key>
+    garden util hide-warning <key> 
 
 #### Arguments
 
@@ -6109,7 +6109,7 @@ Examples:
 
 #### Usage
 
-    garden util mutagen
+    garden util mutagen 
 
 
 
@@ -6121,7 +6121,7 @@ Useful for diagnosing slow init performance for projects with lots of actions an
 
 #### Usage
 
-    garden util profile-project
+    garden util profile-project 
 
 
 
@@ -6157,7 +6157,7 @@ Examples:
 
 #### Usage
 
-    garden version
+    garden version 
 
 
 
