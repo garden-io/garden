@@ -837,7 +837,7 @@ export class GardenCloudApi {
 
       const rootCause = extractErrorMessageBodyFromGotError(e) ?? e.message
       throw new CloudApiError({
-        message: `Error storing data to Team Cache V1; code=${e.code}; cause: ${rootCause}`,
+        message: `Error writing to Team Cache V1; code=${e.code}; cause: ${rootCause}`,
         responseStatusCode: e.response?.statusCode,
       })
     }
@@ -862,7 +862,7 @@ export class GardenCloudApi {
 
       const rootCause = extractErrorMessageBodyFromGotError(e) ?? e.message
       throw new CloudApiError({
-        message: `Error getting data from Team Cache V1; code=${e.code}; cause: ${rootCause}`,
+        message: `Error reading from Team Cache V1; code=${e.code}; cause: ${rootCause}`,
         responseStatusCode: e.response?.statusCode,
       })
     }

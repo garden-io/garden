@@ -27,6 +27,7 @@ import fsExtra from "fs-extra"
 const { readFile, writeFile } = fsExtra
 import { relative } from "path"
 import { findProjectConfigOrPrintInstructions } from "./helpers.js"
+import { styles } from "../logger/styles.js"
 
 const loginTimeoutSec = 60 * 60 // 1 hour should be enough to sign up and choose/create an organization
 
@@ -92,7 +93,7 @@ export class LoginCommand extends Command<{}, Opts> {
       tokenResponse,
       domain: cloudDomain,
     })
-    log.success({ msg: `Successfully logged in to ${cloudDomain}.`, showDuration: false })
+    log.success({ msg: `\nSuccessfully logged in to ${cloudDomain}.\n`, showDuration: false })
     if (tokenResponse.organizationId) {
       await applyOrganizationId({ log, projectConfig, organizationId: tokenResponse.organizationId })
     }
@@ -130,7 +131,7 @@ export async function login(log: Log, gardenBackend: GardenBackend, events: Even
         return
       }
       clearTimeout(timeout)
-      log.info("Received client auth token.")
+      log.debug("Received client auth token.")
       resolve(tokenResponse)
     })
   })
@@ -188,7 +189,13 @@ async function rewriteProjectConfigFile(log: Log, projectConfigPath: string, org
     const updatedFileContent = rewriteProjectConfigYaml(fileContent, projectConfigPath, organizationId)
     await writeFile(projectConfigPath, updatedFileContent)
     log.info(
-      `Successfully connected your Garden Project with Garden Cloud! Make sure to commit the updated ${relPath} to source control.`
+      dedent`
+        Successfully connected your Garden Project with Garden Cloud!
+
+        Your project configuration on disk has been updated to include the ${styles.highlight("organizationId")} that identifies your project with Garden Cloud.
+
+        Make sure to commit the updated ${styles.highlight(relPath)} to source control.
+      `
     )
   } catch (err) {
     // If the above fails for any reason, we log a helpful message to guide the user to setting the

@@ -162,7 +162,7 @@ describe("enforceLogin", () => {
       // TODO(0.14): Nudge the user to connect the project at the end of command execution
       expect(actualLog[0].level).to.eql(LogLevel.info)
       expectFuzzyMatch(actualLog[0].msg, [
-        `did you know that team cache and container builder can reduce the time it takes to complete garden actions, and avoid unnecessary work?`,
+        `did you know that team cache and container builder can accelerate your container builds and skip repeated execution of tests?`,
       ])
       expect(actualLog[1].level).to.eql(LogLevel.warn)
       expectFuzzyMatch(actualLog[1].msg, [`run garden login to connect your project to garden cloud.`])
@@ -177,7 +177,7 @@ describe("enforceLogin", () => {
       // TODO(0.14): Nudge the user to connect the project at the end of command execution
       expect(actualLog[0].level).to.eql(LogLevel.info)
       expectFuzzyMatch(actualLog[0].msg, [
-        `did you know that team cache and container builder can reduce the time it takes to complete garden actions, and avoid unnecessary work?`,
+        `did you know that team cache and container builder can accelerate your container builds and skip repeated execution of tests?`,
       ])
       expect(actualLog[1].level).to.eql(LogLevel.warn)
       expectFuzzyMatch(actualLog[1].msg, [`run garden login to connect your project to garden cloud.`])
