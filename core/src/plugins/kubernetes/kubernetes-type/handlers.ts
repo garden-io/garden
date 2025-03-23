@@ -48,8 +48,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
   configure: configureKubernetesModule,
 
   convert: async (params) => {
-    const { ctx, module, services, tasks, tests, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } =
-      params
+    const { module, services, tasks, tests, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
     const actions: (ExecBuildConfig | KubernetesActionConfig)[] = []
 
     if (dummyBuild) {

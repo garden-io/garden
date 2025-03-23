@@ -266,7 +266,6 @@ describe("LoginCommand", () => {
         contains: "Project config not found",
       })
     })
-
   })
 
   context("GARDEN_AUTH_TOKEN set in env", () => {

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Primitive, PrimitiveMap, ActionReference } from "../../config/common.js"
+import type { Primitive, PrimitiveMap } from "../../config/common.js"
 import {
   artifactsTargetDescription,
   envVarRegex,
@@ -81,8 +81,7 @@ export interface ContainerVolumeSpecBase {
   hostPath?: string
 }
 
-export interface ContainerVolumeSpec extends ContainerVolumeSpecBase {
-}
+export interface ContainerVolumeSpec extends ContainerVolumeSpecBase {}
 
 export interface ServiceHealthCheckSpec {
   httpGet?: {

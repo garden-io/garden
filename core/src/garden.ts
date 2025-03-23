@@ -172,7 +172,6 @@ import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
-import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
 import { resolveApiVersion, setGloablProjectApiVersion } from "./project-api-version.js"
 
 const defaultLocalAddress = "localhost"

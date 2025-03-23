@@ -8,12 +8,7 @@
 
 import type { Garden } from "./garden.js"
 import type { SourceConfig } from "./config/project.js"
-import {
-  environmentNameSchema,
-  projectApiVersionSchema,
-  projectNameSchema,
-  projectSourcesSchema,
-} from "./config/project.js"
+import { environmentNameSchema, projectNameSchema, projectSourcesSchema } from "./config/project.js"
 import type { BaseProviderConfig, Provider } from "./config/provider.js"
 import { providerSchema } from "./config/provider.js"
 import { deline } from "./util/string.js"

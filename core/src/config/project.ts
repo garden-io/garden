@@ -46,7 +46,6 @@ import { deepResolveContext } from "./template-contexts/base.js"
 import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
-import { makeDeprecationMessage } from "../util/deprecations.js"
 import { getBackendType } from "../cloud/util.js"
 
 export const defaultProjectVarfilePath = "garden.env"
