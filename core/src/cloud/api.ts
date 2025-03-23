@@ -16,12 +16,9 @@ import { omit } from "lodash-es"
 import { dedent, deline } from "../util/string.js"
 import type {
   BaseResponse,
-  CreateEphemeralClusterResponse,
   CreateProjectsForRepoResponse,
   CreateSecretRequest,
   CreateSecretResponse,
-  EphemeralClusterWithRegistry,
-  GetKubeconfigResponse,
   GetProfileResponse,
   GetProjectResponse,
   ListProjectsResponse,
@@ -800,30 +797,6 @@ export class GardenCloudApi {
           },
         },
       }
-    }
-  }
-
-  async createEphemeralCluster(): Promise<EphemeralClusterWithRegistry> {
-    try {
-      const response = await this.post<CreateEphemeralClusterResponse>(`/ephemeral-clusters/`)
-      return response.data
-    } catch (err) {
-      throw new CloudApiError({
-        message: `${extractErrorMessageBodyFromGotError(err) ?? "Creating an ephemeral cluster failed."}`,
-      })
-    }
-  }
-
-  async getKubeConfigForCluster(clusterId: string): Promise<string> {
-    try {
-      const response = await this.get<GetKubeconfigResponse>(`/ephemeral-clusters/${clusterId}/kubeconfig`)
-      return response.data.kubeconfig
-    } catch (err) {
-      throw new CloudApiError({
-        message: `${
-          extractErrorMessageBodyFromGotError(err) ?? "Fetching the Kubeconfig for ephemeral cluster failed."
-        }`,
-      })
     }
   }
 

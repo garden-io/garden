@@ -51,7 +51,8 @@ export async function generateDocs(targetDir: string, getPlugins: () => (GardenP
   console.log("Generating table of contents...")
   await writeTableOfContents(docsRoot, "README.md")
   console.log("Updating the deprecation guide...")
-  await updateDeprecationGuide(docsRoot, "guides/deprecations.md")
+  // TODO: Uncomment this line when we add the first deprecation in deprecations.ts
+  // await updateDeprecationGuide(docsRoot, "guides/deprecations.md")
 }
 
 export async function writeConfigReferenceDocs(
@@ -201,6 +202,8 @@ export async function writeConfigReferenceDocs(
   await renderConfigTemplate("render-template", renderConfigReference(renderTemplateConfigSchema()))
 }
 
+// NOTE: this is only temporarily unused, while we don't have any deprecations
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename: string) {
   const guide = resolve(docsRoot, deprecationGuideFilename)
   const contents = (await readFile(guide)).toString()

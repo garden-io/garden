@@ -71,7 +71,6 @@
 
 ## Guides
 
-* [Deprecations and Updating to Cedar](./guides/deprecations.md)
 * [Environments and Namespaces](./guides/namespaces.md)
 * [Installing Garden](./guides/installation.md)
 * [Including/Excluding files](./guides/include-exclude.md)

@@ -15,15 +15,6 @@
       "path": "../core"
     },
     {
-      "path": "../plugins/conftest"
-    },
-    {
-      "path": "../plugins/conftest-container"
-    },
-    {
-      "path": "../plugins/conftest-kubernetes"
-    },
-    {
       "path": "../plugins/jib"
     },
     {

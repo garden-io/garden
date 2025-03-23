@@ -52,6 +52,7 @@ describe("getForwardablePorts", () => {
         return {
           manifestFiles: [],
           manifestTemplates: [],
+          waitForJobs: true,
           manifests: [],
           portForwards: [
             {

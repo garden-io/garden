@@ -60,9 +60,9 @@ async function getUnhealthyResourceLogs({
   manifests: KubernetesResource[]
   api: KubeApi
 }): Promise<string | null> {
-  const unhealthyResources = (await checkResourceStatuses({ api, namespace, manifests, log })).filter(
-    (r) => r.state === "unhealthy"
-  )
+  const unhealthyResources = (
+    await checkResourceStatuses({ api, namespace, waitForJobs: false, manifests, log })
+  ).filter((r) => r.state === "unhealthy")
   const logsArr = unhealthyResources.map((r) => r.logs).filter(isTruthy)
 
   if (logsArr.length === 0) {
@@ -153,6 +153,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       namespace,
       ctx: k8sCtx,
       provider: k8sCtx.provider,
+      waitForJobs: false, // should we also add a waitForJobs option to the HelmDeployAction?
       actionName: action.key(),
       resources: manifests,
       log,
@@ -269,13 +270,14 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       namespace,
       ctx,
       provider,
+      waitForJobs: false, // should we also add a waitForJobs option to the HelmDeployAction?
       actionName: action.key(),
       resources: updatedManifests, // We only wait for manifests updated for local / sync mode.
       log,
       timeoutSec: timeout,
     })
   }
-  const statuses = await checkResourceStatuses({ api, namespace, manifests, log })
+  const statuses = await checkResourceStatuses({ api, namespace, waitForJobs: false, manifests, log })
 
   const forwardablePorts = getForwardablePorts({ resources: manifests, parentAction: action })
 
@@ -283,7 +285,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   killPortForwards(action, forwardablePorts || [], log)
 
   // Get ingresses of deployed resources
-  const ingresses = getK8sIngresses(manifests, provider)
+  const ingresses = getK8sIngresses(manifests)
 
   return {
     state: "ready",

@@ -13,7 +13,6 @@ import { K3sHelmGardenIngressController } from "./nginx-helm-k3s.js"
 import { Microk8sGardenIngressController } from "./nginx-microk8s.js"
 import { MinikubeGardenIngressController } from "./nginx-minikube.js"
 import { KindGardenIngressController } from "./nginx-kind.js"
-import { EphemeralHelmGardenIngressController } from "./nginx-helm-ephemeral.js"
 import { GardenIngressComponent } from "./ingress-controller-base.js"
 import type { DeployState } from "../../../types/service.js"
 
@@ -50,8 +49,6 @@ export function getGardenIngressController(ctx: KubernetesPluginContext): Garden
       return new K3sHelmGardenIngressController()
     case "generic":
       return new GenericHelmGardenIngressController()
-    case "ephemeral":
-      return new EphemeralHelmGardenIngressController()
     default:
       return clusterType satisfies never
   }

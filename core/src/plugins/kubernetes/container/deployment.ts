@@ -39,7 +39,6 @@ import type { SyncableKind, KubernetesWorkload, KubernetesResource, SupportedRun
 import { k8sGetContainerDeployStatus } from "./status.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run.js"
 import { styles } from "../../../logger/styles.js"
-import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
@@ -49,7 +48,6 @@ export const PRODUCTION_MINIMUM_REPLICAS = 3
 export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
   const { ctx, action, log, force } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const { deploymentStrategy } = k8sCtx.provider.config
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   const imageId = getDeployedImageId(action)
@@ -69,12 +67,6 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     })
   }
 
-  if (deploymentStrategy) {
-    reportDeprecatedFeatureUsage({
-      log,
-      deprecation: "containerDeploymentStrategy",
-    })
-  }
   await deployContainerServiceRolling({ ...params, api, imageId })
 
   const postDeployStatus = await k8sGetContainerDeployStatus(params)
@@ -110,6 +102,7 @@ export const deployContainerServiceRolling = async (
     namespace,
     ctx,
     provider,
+    waitForJobs: false,
     actionName: action.key(),
     resources: manifests,
     log,

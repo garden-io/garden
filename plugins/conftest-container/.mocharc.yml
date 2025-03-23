@@ -1,8 +1,0 @@
-reporter: spec
-spec: build/test/**/*.js
-timeout: 10000
-require:
-  - source-map-support/register
-watch-files:
-  - "build/*.js"
-  - "build/test/*.js"

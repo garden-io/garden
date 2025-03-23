@@ -27,6 +27,7 @@ export class MinikubeGardenIngressController extends GardenIngressComponent {
       // setting the action name to providers is necessary to display the logs in provider-section
       actionName: "providers",
       namespace: "ingress-nginx",
+      waitForJobs: false,
       ctx,
       provider,
       resources: [nginxKindMainResource],
@@ -50,6 +51,7 @@ export class MinikubeGardenIngressController extends GardenIngressComponent {
     //check if ingress controller deployment is ready
     const deploymentStatus = await checkResourceStatus({
       api,
+      waitForJobs: false,
       namespace: "ingress-nginx",
       manifest: nginxKindMainResource,
       log,

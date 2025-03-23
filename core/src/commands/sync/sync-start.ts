@@ -20,7 +20,8 @@ import { createActionLog } from "../../logger/log-entry.js"
 import type { DeployAction } from "../../actions/deploy.js"
 import type { ConfigGraph } from "../../graph/config-graph.js"
 import type { Garden } from "../../index.js"
-import { reportDeprecatedSyncCommandUsage } from "../../util/deprecations.js"
+import { DOCS_MIGRATION_GUIDE_CEDAR, FeatureNotAvailable } from "../../util/deprecations.js"
+import { styles } from "../../logger/styles.js"
 
 const syncStartArgs = {
   names: new StringsParameter({
@@ -102,10 +103,9 @@ export class SyncStartCommand extends Command<Args, Opts> {
     parentCommand,
   }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     if (!parentCommand) {
-      reportDeprecatedSyncCommandUsage({
-        log,
-        deprecation: "syncStartCommand",
-        syncCommandName: this.name,
+      throw new FeatureNotAvailable({
+        link: `${DOCS_MIGRATION_GUIDE_CEDAR}#syncstartcommand`,
+        hint: `This command is only available when using the dev console or in sync mode. Run ${styles.highlight("garden dev")} or ${styles.highlight("garden deploy --sync")} first.`,
       })
     }
 

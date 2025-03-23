@@ -74,6 +74,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       // setting the action name to providers is necessary to display the logs in provider-section
       actionName: "providers",
       namespace,
+      waitForJobs: false,
       ctx,
       provider,
       resources: [nginxHelmMainResource],
@@ -113,7 +114,13 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       // we check that the deployment or daemonset is ready because the status of the helm release
       // can be "deployed" even if the deployed resource is not ready.
       const nginxHelmMainResource = getNginxHelmMainResource(values)
-      const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: nginxHelmMainResource, log })
+      const deploymentStatus = await checkResourceStatus({
+        api,
+        namespace,
+        waitForJobs: false,
+        manifest: nginxHelmMainResource,
+        log,
+      })
       return deploymentStatus.state
     } catch (error) {
       log.debug(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} missing.`)

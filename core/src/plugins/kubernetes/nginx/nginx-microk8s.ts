@@ -35,6 +35,7 @@ export class Microk8sGardenIngressController extends GardenIngressComponent {
       // setting the action name to providers is necessary to display the logs in provider-section
       actionName: "providers",
       namespace: "ingress",
+      waitForJobs: false,
       ctx,
       provider,
       resources: [nginxMainResource],

@@ -88,6 +88,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
           "devMode",
         ]),
         ...fileSources,
+        waitForJobs: true,
         manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
       },
@@ -189,7 +190,6 @@ function composeKubernetesDeployStatus({
   state,
   remoteResources,
   forwardablePorts,
-  provider,
 }: {
   action: KubernetesDeployAction
   deployedMode: ActionMode
@@ -206,7 +206,7 @@ function composeKubernetesDeployStatus({
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
       mode: deployedMode,
-      ingresses: getK8sIngresses(remoteResources, provider),
+      ingresses: getK8sIngresses(remoteResources),
     },
     // TODO-0.13.1
     outputs: {},
@@ -276,7 +276,7 @@ async function getResourceStatuses({
         return { resource, state: "outdated" } as ResourceStatus
       }
 
-      return await resolveResourceStatus({ api, namespace, resource, log })
+      return await resolveResourceStatus({ api, namespace, waitForJobs: false, resource, log })
     })
   )
 }

@@ -13,7 +13,8 @@ import { dedent, naturalList } from "../../util/string.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { createActionLog } from "../../logger/log-entry.js"
-import { reportDeprecatedSyncCommandUsage } from "../../util/deprecations.js"
+import { DOCS_MIGRATION_GUIDE_CEDAR, FeatureNotAvailable } from "../../util/deprecations.js"
+import { styles } from "../../logger/styles.js"
 
 const syncStopArgs = {
   names: new StringsParameter({
@@ -60,10 +61,9 @@ export class SyncStopCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, parentCommand }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     if (!parentCommand) {
-      reportDeprecatedSyncCommandUsage({
-        log,
-        deprecation: "syncStopCommand",
-        syncCommandName: this.name,
+      throw new FeatureNotAvailable({
+        link: `${DOCS_MIGRATION_GUIDE_CEDAR}#syncstopcommand`,
+        hint: `This command is only available when using the dev console or in sync mode. Run ${styles.highlight("garden dev")} or ${styles.highlight("garden deploy --sync")} first.`,
       })
     }
 

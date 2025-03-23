@@ -43,13 +43,6 @@ export const getSupportedPlugins = () => [
     },
   },
   {
-    name: "ephemeral-kubernetes",
-    callback: async () => {
-      const plugin = await import("./kubernetes/ephemeral/ephemeral.js")
-      return plugin.gardenPlugin()
-    },
-  },
-  {
     name: "openshift",
     callback: async () => {
       const plugin = await import("./openshift/openshift.js")

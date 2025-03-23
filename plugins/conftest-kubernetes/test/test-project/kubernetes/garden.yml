@@ -1,4 +1,0 @@
-kind: Module
-type: kubernetes
-name: kubernetes
-files: [deployment.yaml]

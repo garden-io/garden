@@ -249,6 +249,7 @@ export async function ensureBuildkit({
       namespace,
       ctx,
       provider,
+      waitForJobs: false,
       actionName: "garden-buildkit",
       resources: [manifest],
       log: deployLog,

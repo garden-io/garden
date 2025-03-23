@@ -42,8 +42,6 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultUtilImageRegistryDomain, defaultSystemNamespace } from "./constants.js"
 import type { LocalKubernetesClusterType } from "./local/config.js"
-import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
-import { makeDeprecationMessage } from "../../util/deprecations.js"
 import type { ActionKind } from "../../plugin/action-types.js"
 
 export interface ProviderSecretRef {
@@ -127,7 +125,7 @@ export interface ClusterBuildkitCacheConfig {
   registry?: ContainerRegistryConfig
 }
 
-export type KubernetesClusterType = LocalKubernetesClusterType | EphemeralKubernetesClusterType
+export type KubernetesClusterType = LocalKubernetesClusterType
 
 export interface KubernetesConfig extends BaseProviderConfig {
   utilImageRegistryDomain: string
@@ -160,12 +158,6 @@ export interface KubernetesConfig extends BaseProviderConfig {
   context: string
   defaultHostname?: string
   deploymentRegistry?: ContainerRegistryConfig
-  /**
-   * TODO(0.14): remove this
-   * Deprecated. Has no effect since 0.13. To be removed in 0.14.
-   * @deprecated since 0.13
-   */
-  deploymentStrategy?: DeploymentStrategy
   sync?: {
     defaults?: SyncDefaults
   }
@@ -616,18 +608,6 @@ export const kubernetesConfigBase = () =>
         .string()
         .description("A default hostname to use when no hostname is explicitly configured for a service.")
         .example("api.mydomain.com"),
-      deploymentStrategy: joi
-        .string()
-        .allow("rolling", "blue-green")
-        .description(
-          dedent`
-          Sets the deployment strategy for \`container\` deploy actions.
-        `
-        )
-        .meta({
-          experimental: true,
-          deprecated: makeDeprecationMessage({ deprecation: "containerDeploymentStrategy" }),
-        }),
       sync: joi
         .object()
         .keys({

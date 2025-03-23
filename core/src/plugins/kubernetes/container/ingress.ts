@@ -20,7 +20,6 @@ import type { KubernetesResource } from "../types.js"
 import type { V1Ingress, V1Secret } from "@kubernetes/client-node"
 import type { Log } from "../../../logger/log-entry.js"
 import type { Resolved } from "../../../actions/types.js"
-import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral.js"
 
 // Ingress API versions in descending order of preference
 export const supportedIngressApiVersions = ["networking.k8s.io/v1", "networking.k8s.io/v1beta1", "extensions/v1beta1"]
@@ -190,14 +189,8 @@ async function getIngress(
 
   const certificate = await pickCertificate(action, api, provider, hostname)
   // TODO: support other protocols
-  let protocol: ServiceProtocol = !!certificate ? "https" : "http"
-  let port = !!certificate ? provider.config.ingressHttpsPort : provider.config.ingressHttpPort
-
-  // ephemeral-kubernetes ingresses should always be https
-  if (isProviderEphemeralKubernetes(provider)) {
-    protocol = "https"
-    port = provider.config.ingressHttpsPort
-  }
+  const protocol: ServiceProtocol = !!certificate ? "https" : "http"
+  const port = !!certificate ? provider.config.ingressHttpsPort : provider.config.ingressHttpPort
 
   return {
     ...spec,

@@ -316,9 +316,6 @@ providers:
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
-    # Sets the deployment strategy for `container` deploy actions.
-    deploymentStrategy:
-
     # Configuration options for code synchronization.
     sync:
       # Specifies default settings for syncs (e.g. for `container`, `kubernetes` and `helm` services).
@@ -1243,25 +1240,6 @@ Example:
 providers:
   - defaultHostname: "api.mydomain.com"
 ```
-
-### `providers[].deploymentStrategy`
-
-[providers](#providers) > deploymentStrategy
-
-{% hint style="warning" %}
-**Experimental**: this is an experimental feature and the API might change in the future.
-{% endhint %}
-
-{% hint style="warning" %}
-**Deprecated**: The `deploymentStrategy` config field will be removed in Garden 0.14.
-Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
-{% endhint %}
-
-Sets the deployment strategy for `container` deploy actions.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
 
 ### `providers[].sync`
 
