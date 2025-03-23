@@ -22,7 +22,7 @@ export function getGlobalProjectApiVersion(): GardenApiVersion {
   return projectApiVersionGlobal
 }
 
-export function setGloablProjectApiVersion(apiVersion: GardenApiVersion) {
+export function setGlobalProjectApiVersion(apiVersion: GardenApiVersion) {
   projectApiVersionGlobal = apiVersion
 }
 
@@ -44,7 +44,7 @@ export function resolveApiVersion(projectSpec: ProjectConfig, log: Log): GardenA
 
   // HACK: Set project API version globally.
   // This makes it easier to use `reportDeprecatedFeatureUsage`, as it can be difficult at times to pass down the apiVersion
-  setGloablProjectApiVersion(resolvedApiVersion)
+  setGlobalProjectApiVersion(resolvedApiVersion)
 
   if (declaredApiVersion !== GardenApiVersion.v2) {
     // Print the deprecation warning that 0.14 will only support apiVersion v2
