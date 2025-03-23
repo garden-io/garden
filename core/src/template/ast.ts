@@ -543,7 +543,7 @@ export class FormatStringExpression extends TemplateExpression {
 
       reportDeprecatedFeatureUsage({
         log,
-        deprecation: "optionalTemplateValueSyntax",
+        deprecation: "dummy",
       })
 
       const yamlContext = getYamlContext(args.yamlSource)

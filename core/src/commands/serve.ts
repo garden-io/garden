@@ -101,7 +101,7 @@ export class ServeCommand<
     if (opts["local-mode"] !== undefined) {
       reportDeprecatedFeatureUsage({
         log,
-        deprecation: "localMode",
+        deprecation: "dummy",
       })
     }
 

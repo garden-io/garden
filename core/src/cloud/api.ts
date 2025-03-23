@@ -803,30 +803,6 @@ export class GardenCloudApi {
     }
   }
 
-  async createEphemeralCluster(): Promise<EphemeralClusterWithRegistry> {
-    try {
-      const response = await this.post<CreateEphemeralClusterResponse>(`/ephemeral-clusters/`)
-      return response.data
-    } catch (err) {
-      throw new CloudApiError({
-        message: `${extractErrorMessageBodyFromGotError(err) ?? "Creating an ephemeral cluster failed."}`,
-      })
-    }
-  }
-
-  async getKubeConfigForCluster(clusterId: string): Promise<string> {
-    try {
-      const response = await this.get<GetKubeconfigResponse>(`/ephemeral-clusters/${clusterId}/kubeconfig`)
-      return response.data.kubeconfig
-    } catch (err) {
-      throw new CloudApiError({
-        message: `${
-          extractErrorMessageBodyFromGotError(err) ?? "Fetching the Kubeconfig for ephemeral cluster failed."
-        }`,
-      })
-    }
-  }
-
   async createActionResult(request: CreateCachedActionRequest): Promise<CreateCachedActionResponse> {
     try {
       return await this.post<CreateCachedActionResponse>(`/action-cache`, { body: request })

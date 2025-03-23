@@ -24,9 +24,8 @@ import type { ResolvedConfigGraph } from "../../graph/config-graph.js"
 import pMap from "p-map"
 import { styles } from "../../logger/styles.js"
 import { makeDocsLinkStyled } from "../../docs/common.js"
-
 import { syncGuideRelPath } from "../../plugins/kubernetes/constants.js"
-import { reportDeprecatedSyncCommandUsage } from "../../util/deprecations.js"
+import { DOCS_MIGRATION_GUIDE_CEDAR, FeatureNotAvailable } from "../../util/deprecations.js"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -102,10 +101,9 @@ export class SyncStatusCommand extends Command<Args, Opts> {
     parentCommand,
   }: CommandParams<Args, Opts>): Promise<SyncStatusCommandResult> {
     if (!parentCommand) {
-      reportDeprecatedSyncCommandUsage({
-        log,
-        deprecation: "syncStatusCommand",
-        syncCommandName: this.name,
+      throw new FeatureNotAvailable({
+        link: `${DOCS_MIGRATION_GUIDE_CEDAR}#syncstatuscommand`,
+        hint: `This command is only available when using the dev console or in sync mode. Run ${styles.highlight("garden dev")} or ${styles.highlight("garden deploy --sync")} first.`,
       })
     }
 

@@ -24,9 +24,6 @@
   },
   "dependencies": {
     "@garden-io/core": "*",
-    "@garden-io/garden-conftest": "*",
-    "@garden-io/garden-conftest-container": "*",
-    "@garden-io/garden-conftest-kubernetes": "*",
     "@garden-io/garden-jib": "*",
     "@garden-io/garden-pulumi": "*",
     "@garden-io/garden-terraform": "*",

@@ -34,6 +34,7 @@ export class GardenDefaultBackend extends GardenIngressComponent {
       // because the function waitForResources uses actionName as a new Log name
       actionName: "providers",
       namespace,
+      waitForJobs: false,
       ctx,
       provider,
       resources: [deployment],

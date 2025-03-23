@@ -74,6 +74,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       // setting the action name to providers is necessary to display the logs in provider-section
       actionName: "providers",
       namespace,
+      waitForJobs: false,
       ctx,
       provider,
       resources: [nginxHelmMainResource],

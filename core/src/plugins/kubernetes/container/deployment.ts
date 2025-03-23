@@ -59,7 +59,6 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const { ctx, action, log, force } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const mode = action.mode()
-  const { deploymentStrategy } = k8sCtx.provider.config
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   const imageId = getDeployedImageId(action)
@@ -79,12 +78,6 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     })
   }
 
-  if (deploymentStrategy) {
-    reportDeprecatedFeatureUsage({
-      log,
-      deprecation: "containerDeploymentStrategy",
-    })
-  }
   await deployContainerServiceRolling({ ...params, api, imageId })
 
   const postDeployStatus = await k8sGetContainerDeployStatus(params)
@@ -161,6 +154,7 @@ export const deployContainerServiceRolling = async (
     namespace,
     ctx,
     provider,
+    waitForJobs: false,
     actionName: action.key(),
     resources: manifests,
     log,

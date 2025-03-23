@@ -86,7 +86,6 @@ export const gardenEnv = {
     .default(defaultGitScanMode)
     .asEnum(gitScanModes),
   GARDEN_GIT_LOG_UNTRACKED_FILES: env.get("GARDEN_GIT_LOG_UNTRACKED_FILES").required(false).default("false").asBool(),
-  GARDEN_LEGACY_BUILD_STAGE: env.get("GARDEN_LEGACY_BUILD_STAGE").required(false).default("false").asBool(),
   GARDEN_LOG_LEVEL: env.get("GARDEN_LOG_LEVEL").required(false).asString(),
   GARDEN_LOGGER_TYPE: env.get("GARDEN_LOGGER_TYPE").required(false).asString(),
   GARDEN_PROXY_DEFAULT_ADDRESS: env.get("GARDEN_PROXY_DEFAULT_ADDRESS").required(false).asString(),
@@ -107,10 +106,9 @@ export const gardenEnv = {
     .required(false)
     .default("https://get.garden.io/releases")
     .asUrlString(),
-  // GARDEN_CLOUD_BUILDER and GARDEN_CONTAINER_BUILDER will always override the config.
+  // GARDEN_CONTAINER_BUILDER will always override the config.
   // That's why those don't have a default.
   // FIXME: If the environment variable is not set, asBool returns undefined, unlike the type suggests. That's why we cast to `boolean | undefined`.
-  GARDEN_CLOUD_BUILDER: env.get("GARDEN_CLOUD_BUILDER").required(false).asBool() as boolean | undefined,
   GARDEN_CONTAINER_BUILDER: env.get("GARDEN_CONTAINER_BUILDER").required(false).asBool() as boolean | undefined,
   GARDEN_ENABLE_PARTIAL_RESOLUTION: env.get("GARDEN_ENABLE_PARTIAL_RESOLUTION").required(false).asBool(),
   GARDEN_IGNORE_UNCAUGHT_EXCEPTION: env

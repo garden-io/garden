@@ -8,7 +8,6 @@
 
 import type { ServiceIngress, ServiceProtocol } from "../../../types/service.js"
 import type { KubernetesProvider } from "../config.js"
-import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral.js"
 import type { KubernetesIngress, KubernetesResource } from "../types.js"
 
 /**
@@ -42,11 +41,7 @@ export function getK8sIngresses(resources: KubernetesResource[], provider?: Kube
           stringPath = path
         }
 
-        let protocol: ServiceProtocol = tlsHosts.includes(rule.host) ? "https" : "http"
-        // ephemeral-kubernetes ingresses should always be https
-        if (provider && isProviderEphemeralKubernetes(provider)) {
-          protocol = "https"
-        }
+        const protocol: ServiceProtocol = tlsHosts.includes(rule.host) ? "https" : "http"
 
         output.push({
           hostname: rule.host,

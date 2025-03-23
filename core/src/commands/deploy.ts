@@ -176,7 +176,7 @@ export class DeployCommand extends Command<Args, Opts> {
     if (opts["local-mode"] !== undefined) {
       reportDeprecatedFeatureUsage({
         log,
-        deprecation: "localMode",
+        deprecation: "dummy",
       })
     }
 

@@ -461,6 +461,7 @@ export async function ensureUtilDeployment({
       namespace,
       ctx,
       provider,
+      waitForJobs: false,
       actionName: utilDeploymentName,
       resources: [deployment, service],
       log: buildUtilLog,

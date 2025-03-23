@@ -34,10 +34,6 @@ import type {
 } from "./kubernetes-exec.js"
 import { dedent } from "../../../util/string.js"
 import type { ApplyParams } from "../kubectl.js"
-import { getGlobalProjectApiVersion } from "../../../project-api-version.js"
-import { GardenApiVersion } from "../../../constants.js"
-import type { Log } from "../../../logger/log-entry.js"
-import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 import omit from "lodash-es/omit.js"
 
 export interface KubernetesTypeCommonDeploySpec {
@@ -53,30 +49,9 @@ export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySp
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
   localMode?: KubernetesLocalModeSpec
-  // TODO(0.14) make this non-optional with schema-level default values
-  waitForJobs?: boolean
+  waitForJobs: boolean
   manifestFiles: string[]
   manifestTemplates: string[]
-}
-
-// TODO(0.14): change the default for waitForJobs to true in the schema, and remove this function
-export function getWaitForJobs({ waitForJobs, log }: { waitForJobs: boolean | undefined; log: Log }): boolean {
-  // explicitly configured, no need to print warning
-  if (waitForJobs !== undefined) {
-    return waitForJobs
-  }
-
-  const projectApiVersion = getGlobalProjectApiVersion()
-
-  // The default value used to be false in 0.13, and will change to true in 0.14
-  if (projectApiVersion !== GardenApiVersion.v2) {
-    reportDeprecatedFeatureUsage({ log, deprecation: "waitForJobs" })
-    return false
-  }
-
-  // in API version v2, we return true
-  projectApiVersion satisfies GardenApiVersion.v2
-  return true
 }
 
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>
@@ -164,11 +139,10 @@ export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDep
     portForwards: portForwardsSchema(),
     timeout: k8sDeploymentTimeoutSchema(),
     applyArgs: kubernetesApplyArgsSchema(),
-    // TODO-0.14: flip this to true and change default behavior to wait for the jobs
     waitForJobs: joi
       .boolean()
       .optional()
-      // .default(false)
+      .default(true)
       .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
   }
   return deprecations.deprecateFiles ? omit(keys, "files") : keys

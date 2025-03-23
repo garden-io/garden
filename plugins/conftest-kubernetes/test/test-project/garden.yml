@@ -1,8 +1,0 @@
-kind: Project
-name: conftest-kubernetes
-environments:
-  - name: local
-providers:
-  - name: local-kubernetes
-  - name: conftest-kubernetes
-    policyPath: custom-policy

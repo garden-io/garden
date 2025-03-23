@@ -63,10 +63,6 @@ export type GardenContainerBuilderConfig = {
 
 export interface ContainerProviderConfig extends BaseProviderConfig {
   dockerBuildExtraFlags?: string[]
-  /**
-   * @deprecated use {@link #gardenContainerBuilder} instead
-   */
-  gardenCloudBuilder?: GardenContainerBuilderConfig
   gardenContainerBuilder?: GardenContainerBuilderConfig
 }
 
@@ -93,12 +89,8 @@ export const configSchema = () =>
   providerConfigBaseSchema()
     .keys({
       dockerBuildExtraFlags: joi.sparseArray().items(joi.string()).description(dedent`
-          **Stability: Experimental**. Subject to breaking changes within minor releases.
-
-          Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
-          `),
-      // Deprecate old config syntax
-      gardenCloudBuilder: gardenContainerBuilderSchema().meta({ deprecated: true }),
+        Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
+        `),
       // Garden Container builder
       gardenContainerBuilder: gardenContainerBuilderSchema(),
     })

@@ -70,7 +70,7 @@ export interface StatusHandlerParams<T extends BaseResource | KubernetesObject =
   resource: KubernetesServerResource<T>
   log: Log
   resourceVersion?: number
-  waitForJobs?: boolean
+  waitForJobs: boolean
 }
 
 interface StatusHandler<T extends BaseResource | KubernetesObject = BaseResource> {
@@ -132,7 +132,7 @@ const objHandlers: { [kind: string]: StatusHandler } = {
     return { state: "ready", resource }
   },
 
-  Job: async ({ resource, waitForJobs, log }: StatusHandlerParams<V1Job>) => {
+  Job: async ({ resource, waitForJobs }: StatusHandlerParams<V1Job>) => {
     if (
       resource.status?.failed &&
       resource.spec?.backoffLimit &&
@@ -154,12 +154,9 @@ const objHandlers: { [kind: string]: StatusHandler } = {
       return { state: "ready", resource }
     }
 
-    // default value of the waitForJobs flag now depends on `apiVersion`
-    const effectiveWaitForJob = getWaitForJobs({ waitForJobs, log })
-
     // wait for job only if waitForJobs is set, otherwise
     // mark it as ready and proceed.
-    if (effectiveWaitForJob) {
+    if (waitForJobs) {
       return { state: "deploying", resource }
     } else {
       return { state: "ready", resource }
@@ -181,7 +178,7 @@ export async function checkResourceStatuses({
   namespace: string
   manifests: KubernetesResource[]
   log: Log
-  waitForJobs?: boolean
+  waitForJobs: boolean
 }): Promise<ResourceStatus[]> {
   return Promise.all(
     manifests.map(async (manifest) => {
@@ -201,7 +198,7 @@ export async function checkResourceStatus({
   namespace: string
   manifest: KubernetesResource
   log: Log
-  waitForJobs?: boolean
+  waitForJobs: boolean
 }) {
   if (manifest.metadata?.namespace) {
     namespace = manifest.metadata.namespace
@@ -267,7 +264,7 @@ interface WaitParams {
   resources: KubernetesResource[]
   log: Log
   timeoutSec: number
-  waitForJobs?: boolean
+  waitForJobs: boolean
 }
 
 /**
