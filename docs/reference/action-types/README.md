@@ -13,8 +13,6 @@ title: Action Types
   * [`container`](./Deploy/container.md)
   * [`kubernetes`](./Deploy/kubernetes.md)
   * [`helm`](./Deploy/helm.md)
-  * [`configmap`](./Deploy/configmap.md)
-  * [`persistentvolumeclaim`](./Deploy/persistentvolumeclaim.md)
   * [`exec`](./Deploy/exec.md)
   * [`terraform`](./Deploy/terraform.md)
   * [`pulumi`](./Deploy/pulumi.md)

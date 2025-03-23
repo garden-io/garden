@@ -114,127 +114,6 @@ See also [the deprecation notice for the `garden sync start` command](#syncstart
 The `deploymentStrategy` config field will be removed in Garden 0.14.
 Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
 
-# Action configs
-
-<h2 id="kubernetesactionspecfiles"><code>spec.files</code> in <code>kubernetes</code> Deploy actions</h2>
-
-`spec.files` in `kubernetes` Deploy actions will be removed in Garden 0.14. Use `spec.manifestTemplates` and/or `spec.manifestFiles` instead.
-
-If you want to keep using the Garden template language in your Kubernetes manifest files, use `spec.manifestTemplates`.
-
-If you need to keep your Kubernetes manifests files compatible with `kubectl`, in other words, you don't want to use the Garden template language in your manifest files, use `spec.manifestFiles` instead.
-
-Example:
-
-```yaml
-# garden.yml
-kind: Deploy
-type: kubernetes
-name: my-app
-spec:
- manifestFiles:
-   - manifests/**/*.yml # <-- Treat these files as pure Kubernetes manifest files
- manifestTemplates:
-   - manifests/**/*.yml.tpl # <-- Use the Garden template language in files that end with `.yml.tpl`.
-```
-
-### Why
-
-Until now there wasn't a choice: Garden would always attempt to resolve template strings like `${fooBar}` in Kubernetes manifest files.
-
-This becomes problematic when, for example, the Kubernetes manifest contains a bash script:
-
-```yaml
-# manifests/bash-script.yml
-apiVersion: v1
-kind: ConfigMap
-metadata:
- name: bash-scripts
-data:
-   important-bash-script.sh: |
-     #!/bin/bash
-     echo "hello ${USERNAME:=world}"
-```
-
-This manifest file is valid and works when applied using `kubectl apply < manifests/bash-script.yml`.
-
-Using this manifest file like so will not work as expected, but throw a template syntax error:
-
-```yaml
-# garden.yml
-kind: Deploy
-type: kubernetes
-name: bash-scripts
-spec:
- files:
-   - manifests/bash-script.yml # <-- Garden will parse template strings in `manifests/bash-script.yml` and fail with a syntax error.
-```
-
-One way to work around this problem in the past was to escape the template string by prepending a `$` sign in the script; But this work-around also means that the manifest isn't compatible with `kubectl apply` anymore:
-
-```bash
-#!/bin/bash
-echo "hello $${USERNAME:=world}" # <-- This is not a working bash script anymore :(
-```
-
-<h2 id="buildconfigfieldonruntimeactions">The <code>build</code> config field in `container` actions</h2>
-
-Using the `build` config field in `container` actions will not be supported anymore in Garden 0.14.
-
-Instead of using `build`, please reference the `deploymentImageId` output explicitly in each affected `Deploy`, `Run` and `Test` action spec of the `container` action type.
-
-Other action types, like the `exec`, `kubernetes` and `helm` action types, are not affected and `build` can still be used to control the build staging directory of the action.
-
-Referring to a container image via the `build` config field was confusing to some of our users, as it does not work for all action types that can reference containers, for example in `kubernetes` and `helm` actions configs.
-
-That's why we decided to drop support for referencing container images via the `build` config field.
-
-For example, a configuration like
-
-```yaml
-kind: Build
-name: backend
-description: Backend service container image
-type: container
-
----
-kind: Deploy
-name: backend
-description: Backend service container
-type: container
-build: backend # <-- old config style uses `build` field. The `spec.image` did not need to be specified.
-```
-
-should be replaced with
-
-```yaml
-kind: Build
-name: backend
-description: Backend service container image
-type: container
-
----
-kind: Deploy
-name: backend
-description: Backend service container
-type: container
-spec:
- image: ${actions.build.backend.outputs.deploymentImageId} # <--- the new config style is more explicit.
-```
-
-Garden automatically determines the execution order of actions (First building the backend container, then deploying the backend) based on the output references.
-
-<h2 id="waitforjobs"><code>spec.waitForJobs</code> in <code>kubernetes</code> Deploy actions</h2>
-
-In Garden 0.14, the default value of `spec.waitForJobs` will change to `true`.
-
-This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
-
-<!-- markdown-link-check-disable-next-line -->
-To suppress this warning and adopt the new behaviour, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiversion)).
-
-For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
-
 # Project configuration
 
 <h2 id="apiversion">The <code>apiVersion</code> config field</h2>
@@ -347,42 +226,65 @@ See also:
 - [`spec.localMode` in the `helm` Deploy action reference](../reference/action-types/Deploy/helm.md#spec.localmode).
 - [`spec.localMode` in the `container` Deploy action reference](../reference/action-types/Deploy/container.md#spec.localmode).
 
-# Garden action types
+# Action configs
 
-<h2 id="configmapdeployaction">The <code>configmap</code> Deploy action type</h2>
+<h2 id="buildconfigfieldonruntimeactions">The <code>build</code> config field in `container` actions</h2>
 
-The `configmap` Deploy action type will be removed in the next major version of Garden, 0.14. Please use the `kubernetes` Deploy action type with a `configmap` Kubernetes manifest instead.
+Using the `build` config field in `container` actions will not be supported anymore in Garden 0.14.
 
-Example:
+Instead of using `build`, please reference the `deploymentImageId` output explicitly in each affected `Deploy`, `Run` and `Test` action spec of the `container` action type.
+
+Other action types, like the `exec`, `kubernetes` and `helm` action types, are not affected and `build` can still be used to control the build staging directory of the action.
+
+Referring to a container image via the `build` config field was confusing to some of our users, as it does not work for all action types that can reference containers, for example in `kubernetes` and `helm` actions configs.
+
+That's why we decided to drop support for referencing container images via the `build` config field.
+
+For example, a configuration like
 
 ```yaml
-# garden.yml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+---
 kind: Deploy
-type: kubernetes
-name: game-demo-configmap
-spec:
- manifests:
-   - apiVersion: v1
-     kind: ConfigMap
-     metadata:
-       name: game-demo
-     data:
-       player_initial_lives: "3"
-       ui_properties_file_name: "user-interface.properties"
-       game.properties: |
-         enemy.types=aliens,monsters
-         player.maximum-lives=5
-       user-interface.properties: |
-         color.good=purple
-         color.bad=yellow
-         allow.textmode=true
+name: backend
+description: Backend service container
+type: container
+build: backend # <-- old config style uses `build` field. The `spec.image` did not need to be specified.
 ```
 
-<h2 id="persistentvolumeclaimdeployaction">The <code>persistentvolumeclaim</code> Deploy action type</h2>
+should be replaced with
 
-The `persistentvolumeclaim` Deploy action type will be removed in the next major version of Garden, 0.14. Please use the `kubernetes` Deploy action type instead.
+```yaml
+kind: Build
+name: backend
+description: Backend service container image
+type: container
 
-For more information how to use Persistent Volume Claims using Kubernetes manifests, refer to the [official Kubernetes documentation on configuring persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/).
+---
+kind: Deploy
+name: backend
+description: Backend service container
+type: container
+spec:
+ image: ${actions.build.backend.outputs.deploymentImageId} # <--- the new config style is more explicit.
+```
+
+Garden automatically determines the execution order of actions (First building the backend container, then deploying the backend) based on the output references.
+
+<h2 id="waitforjobs"><code>spec.waitForJobs</code> in <code>kubernetes</code> Deploy actions</h2>
+
+In Garden 0.14, the default value of `spec.waitForJobs` will change to `true`.
+
+This means that Deploy actions will wait for Jobs to complete by default when applying Job manifests.
+
+<!-- markdown-link-check-disable-next-line -->
+To suppress this warning and adopt the new behaviour, change the `apiVersion` setting in your project-level configuration to `garden.io/v2` (See also [The `apiVersion` config field](#apiversion)).
+
+For more information about Jobs, please refer to the [official Kubernetes documentation on Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/).
 
 # Template Language
 
