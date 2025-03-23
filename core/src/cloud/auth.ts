@@ -68,7 +68,7 @@ export function enforceLogin({
     // TODO(0.14): Also print this at the end of the command output to increase visibility.
     const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
     cloudLog.info({
-      msg: `Did you know that ${styles.highlight("Team Cache")} and ${styles.highlight("Container Builder")} can reduce the time it takes to complete Garden actions, and avoid unnecessary work?`,
+      msg: `Did you know that ${styles.highlight("Team Cache")} and ${styles.highlight("Container Builder")} can accelerate your container builds and skip repeated execution of tests?`,
     })
     cloudLog.warn({
       msg: `Run ${styles.command("garden login")} to connect your project to ${distroName}.`,

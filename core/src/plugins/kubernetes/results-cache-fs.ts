@@ -96,12 +96,12 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
       }
 
       if (err.code === "ENOENT") {
-        this.log.debug(`Got cache miss for file ${filePath}`)
+        this.log.debug(`No cached result found at ${filePath}`)
         return { found: false, notFoundReason: "Not found." }
       }
 
       throw new LocalFileSystemCacheError({
-        message: `Cannot read data from file ${filePath}`,
+        message: `Cannot read cache data from file ${filePath}`,
         code: err.code,
         cause: err,
       })
@@ -115,11 +115,11 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
         throw err
       }
 
-      this.log.debug(`Deleting corrupted file ${filePath}`)
+      this.log.debug(`Deleting corrupted cache data file ${filePath}`)
       await this.removeFile(filePath)
 
       throw new LocalFileSystemCacheError({
-        message: `Cannot deserialize json from file ${filePath}`,
+        message: `Cannot deserialize JSON from cache data file ${filePath}`,
         cause: err,
       })
     }
@@ -152,7 +152,11 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
         throw err
       }
 
-      throw new LocalFileSystemCacheError({ message: `Cannot remove file ${filePath}`, code: err.code, cause: err })
+      throw new LocalFileSystemCacheError({
+        message: `Cannot remove cache data file ${filePath}`,
+        code: err.code,
+        cause: err,
+      })
     }
   }
 
@@ -168,7 +172,7 @@ export class SimpleLocalFileSystemCacheStorage<ResultShape> implements CacheStor
         const stat = await lstat(cachedFile)
         // If the file is older than `cacheExpiryDays` days, delete it
         if (moment(stat.birthtime).add(this.cacheExpiryDays, "days").isBefore(moment())) {
-          this.log.debug(`file ${filename} is older than ${this.cacheExpiryDays} days, deleting...`)
+          this.log.debug(`cache data file ${filename} is older than ${this.cacheExpiryDays} days, deleting...`)
           await remove(cachedFile)
         }
       } catch (err) {

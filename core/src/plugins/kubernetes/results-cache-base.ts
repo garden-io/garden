@@ -159,7 +159,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
         throw e
       }
 
-      log.verbose(`Error clearing results cache entry for key=${key}: ${e.describe()}`)
+      log.verbose(`Error clearing action cache entry for key=${key}: ${e.describe()}`)
     }
   }
 
@@ -177,8 +177,8 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
         throw e
       }
 
-      log.verbose(`Error getting results cache entry for key=${key}: ${e.describe()}`)
-      return { found: false, notFoundReason: "Unexpected error occurred, see the logs for the details." }
+      log.verbose(`Error reading action cache entry for key=${key}: ${e.describe()}`)
+      return { found: false, notFoundReason: "An unexpected error occurred, see the logs for details." }
     }
 
     if (!cachedValue.found) {
@@ -187,7 +187,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
 
     const validatedResult = this.validateResult(cachedValue.result, log)
     if (validatedResult === undefined) {
-      return { found: false, notFoundReason: "Unexpected error occurred, see the logs for the details." }
+      return { found: false, notFoundReason: "An unexpected error occurred, see the logs for details." }
     }
 
     return { found: true, result: validatedResult }
@@ -212,7 +212,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
         throw e
       }
 
-      log.verbose(`Error storing results cache entry for key=${key}: ${e.describe()}`)
+      log.verbose(`Error writing action cache entry for key=${key}: ${e.describe()}`)
       return undefined
     }
   }

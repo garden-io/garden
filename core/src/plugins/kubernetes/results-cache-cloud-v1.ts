@@ -99,7 +99,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
       const response: GetCachedActionResponse = await this.cloudApi.getActionResult(request)
       const data = response.data
       if (!data.found) {
-        this.log.debug(`Got Team Cache miss for key=${cacheKey}; reason: ${data.notFoundReason}`)
+        this.log.debug(`No result found in Team Cache for key=${cacheKey}; reason: ${data.notFoundReason}`)
         return { found: false, notFoundReason: data.notFoundReason }
       }
 
@@ -110,7 +110,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
       }
 
       throw GardenCloudCacheError.fromCloudApiError({
-        message: `Error reading data from the Team Cache at ${this.cloudApi.domain}`,
+        message: `Error reading from Team Cache`,
         cause: e,
       })
     }
@@ -148,7 +148,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
       }
 
       throw GardenCloudCacheError.fromCloudApiError({
-        message: `Error storing data to the Team Cache at ${this.cloudApi.domain}`,
+        message: `Error writing to Team Cache`,
         cause: e,
       })
     }
