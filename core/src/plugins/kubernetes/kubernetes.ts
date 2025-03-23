@@ -27,11 +27,9 @@ import { dedent } from "../../util/string.js"
 import { kubernetesModuleSpecSchema } from "./kubernetes-type/module-config.js"
 import { helmModuleOutputsSchema, helmModuleSpecSchema } from "./helm/module-config.js"
 import { defaultIngressClass } from "./constants.js"
-import { persistentvolumeclaimDeployDefinition, pvcModuleDefinition } from "./volumes/persistentvolumeclaim.js"
 import { helmSpec } from "./helm/helm-cli.js"
 import { isString } from "lodash-es"
 import { mutagenCliSpec } from "../../mutagen.js"
-import { configmapDeployDefinition, configMapModuleDefinition } from "./volumes/configmap.js"
 import {
   k8sContainerBuildExtension,
   k8sContainerDeployExtension,
@@ -169,12 +167,7 @@ export const gardenPlugin = () => {
     },
 
     createActionTypes: {
-      Deploy: [
-        kubernetesDeployDefinition(),
-        helmDeployDefinition(),
-        configmapDeployDefinition(),
-        persistentvolumeclaimDeployDefinition(),
-      ],
+      Deploy: [kubernetesDeployDefinition(), helmDeployDefinition()],
       Run: [kubernetesExecRunDefinition(), kubernetesPodRunDefinition(), helmPodRunDefinition()],
       Test: [kubernetesExecTestDefinition(), kubernetesPodTestDefinition(), helmPodTestDefinition()],
     },
@@ -203,8 +196,6 @@ export const gardenPlugin = () => {
         handlers: kubernetesHandlers,
         needsBuild: false,
       },
-      pvcModuleDefinition(),
-      configMapModuleDefinition(),
     ],
 
     extendModuleTypes: [

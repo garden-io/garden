@@ -380,45 +380,6 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Garden automatically determines the execution order of actions (First building the backend container, then deploying the backend) based on the output references.
       `,
     },
-    configmapDeployAction: {
-      docsSection: "Garden action types",
-      docsHeadline: `The ${style("configmap")} Deploy action type`,
-      warnHint: `The ${style("configmap")} Deploy action type will be removed in the next major version of Garden, 0.14. Please use the ${style("kubernetes")} Deploy action type with a ${style("configmap")} Kubernetes manifest instead.`,
-      docs: dedent`
-        Example:
-
-        \`\`\`yaml
-        # garden.yml
-        kind: Deploy
-        type: kubernetes
-        name: game-demo-configmap
-        spec:
-          manifests:
-            - apiVersion: v1
-              kind: ConfigMap
-              metadata:
-                name: game-demo
-              data:
-                player_initial_lives: "3"
-                ui_properties_file_name: "user-interface.properties"
-                game.properties: |
-                  enemy.types=aliens,monsters
-                  player.maximum-lives=5
-                user-interface.properties: |
-                  color.good=purple
-                  color.bad=yellow
-                  allow.textmode=true
-        \`\`\`
-      `,
-    },
-    persistentvolumeclaimDeployAction: {
-      docsSection: "Garden action types",
-      docsHeadline: `The ${style("persistentvolumeclaim")} Deploy action type`,
-      warnHint: `The ${style("persistentvolumeclaim")} Deploy action type will be removed in the next major version of Garden, 0.14. Please use the ${style("kubernetes")} Deploy action type instead.`,
-      docs: dedent`
-        For more information how to use Persistent Volume Claims using Kubernetes manifests, refer to the [official Kubernetes documentation on configuring persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/).
-      `,
-    },
     optionalTemplateValueSyntax: {
       docsSection: "Template Language",
       docsHeadline: `Optional template expressions`,

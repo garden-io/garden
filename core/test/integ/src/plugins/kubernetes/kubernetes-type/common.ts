@@ -58,7 +58,7 @@ describe("getManifests", () => {
       })
     })
 
-    it("crashes with yaml syntax error if an if block references variable that does not exist", async () => {
+    it("gives template error if variable does not exists", async () => {
       action = await garden.resolveAction<KubernetesDeployAction>({
         action: graph.getDeploy("legacypartial-ifblock-doesnotexist"),
         log: garden.log,
@@ -66,7 +66,7 @@ describe("getManifests", () => {
       })
 
       await expectError(() => getManifests({ ctx, api, action, log: garden.log, defaultNamespace }), {
-        contains: ["could not parse ifblock-doesnotexist.yaml in directory ", "as valid yaml"],
+        contains: ["invalid template string", "could not find key doesnotexist under var. available keys: greeting"],
       })
     })
 
@@ -877,86 +877,6 @@ describe("readManifests", () => {
           apiVersion: "v1",
           data: {
             hello: "${var.greeting}", // <-- do NOT resolve template strings for manifests defined in spec.manifestFiles
-          },
-          kind: "ConfigMap",
-          metadata: {
-            name: "test-configmap-2",
-          },
-        },
-      ])
-    })
-
-    it("should read manifests from both spec.files and spec.manifestFiles", async () => {
-      const actionName = "with-legacy-files-and-manifest-files"
-      const deployAction = graph.getDeploy(actionName)
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-        action: deployAction,
-        log: garden.log,
-        graph,
-      })
-
-      const declaredManifests = await readManifests(ctx, resolvedAction, garden.log)
-      expect(declaredManifests).to.exist
-
-      const manifests = declaredManifests.map((dm) => dm.manifest)
-      expect(manifests).to.exist
-
-      manifests.sort((left, right) => left.metadata.name.localeCompare(right.metadata.name))
-      expect(manifests).to.eql([
-        {
-          apiVersion: "v1",
-          data: {
-            hello: "world", // <-- resolve template strings for manifests defined in deprecated spec.files
-          },
-          kind: "ConfigMap",
-          metadata: {
-            name: "test-configmap-1",
-          },
-        },
-        {
-          apiVersion: "v1",
-          data: {
-            hello: "${var.greeting}", // <-- do NOT resolve template strings for manifests defined in spec.manifestFiles
-          },
-          kind: "ConfigMap",
-          metadata: {
-            name: "test-configmap-2",
-          },
-        },
-      ])
-    })
-
-    it("should read manifests from both spec.files and spec.manifestTemplates", async () => {
-      const actionName = "with-manifest-templates-and-legacy-files"
-      const deployAction = graph.getDeploy(actionName)
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-        action: deployAction,
-        log: garden.log,
-        graph,
-      })
-
-      const declaredManifests = await readManifests(ctx, resolvedAction, garden.log)
-      expect(declaredManifests).to.exist
-
-      const manifests = declaredManifests.map((dm) => dm.manifest)
-      expect(manifests).to.exist
-
-      manifests.sort((left, right) => left.metadata.name.localeCompare(right.metadata.name))
-      expect(manifests).to.eql([
-        {
-          apiVersion: "v1",
-          data: {
-            hello: "world", // <-- resolve template strings for manifests defined in spec.manifestTemplates
-          },
-          kind: "ConfigMap",
-          metadata: {
-            name: "test-configmap-1",
-          },
-        },
-        {
-          apiVersion: "v1",
-          data: {
-            hello: "world", // <-- resolve template strings for manifests defined in spec.files
           },
           kind: "ConfigMap",
           metadata: {
