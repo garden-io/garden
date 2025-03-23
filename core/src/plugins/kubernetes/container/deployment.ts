@@ -620,42 +620,6 @@ export function configureVolumes(
           path: resolve(action.sourcePath(), volume.hostPath),
         },
       })
-    } else if (volume.action) {
-      // Make sure the action is a supported type
-      const volumeAction = action.getDependency(volume.action)
-
-      if (!volumeAction) {
-        throw new ConfigurationError({
-          message: `${action.longDescription()} specifies action '${
-            volume.action.name
-          }' on volume '${volumeName}' but the Deploy action could not be found. Please make sure it is specified as a dependency on the action.`,
-        })
-      }
-
-      if (volumeAction.isCompatible("persistentvolumeclaim")) {
-        volumes.push({
-          name: volumeName,
-          persistentVolumeClaim: {
-            claimName: volume.action.name,
-          },
-        })
-      } else if (volumeAction.isCompatible("configmap")) {
-        volumes.push({
-          name: volumeName,
-          configMap: {
-            name: volume.action.name,
-          },
-        })
-      } else {
-        throw new ConfigurationError({
-          message: deline`${action.longDescription()} specifies a unsupported config
-          ${styles.highlight(volumeAction.name)} for volume mount ${styles.highlight(
-            volumeName
-          )}. Only \`persistentvolumeclaim\`
-          and \`configmap\` action are supported at this time.
-          `,
-        })
-      }
     } else {
       volumes.push({
         name: volumeName,

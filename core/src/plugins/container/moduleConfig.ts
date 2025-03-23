@@ -44,9 +44,7 @@ import { kebabCase, mapKeys } from "lodash-es"
 // To reduce the amount of edits to make before removing module configs
 export * from "./config.js"
 
-export interface ContainerModuleVolumeSpec extends ContainerVolumeSpecBase {
-  module?: string
-}
+export interface ContainerModuleVolumeSpec extends ContainerVolumeSpecBase {}
 
 export type ContainerServiceSpec = CommonServiceSpec &
   ContainerCommonDeploySpec & {
@@ -58,7 +56,11 @@ export type ContainerTestSpec = BaseTestSpec &
     volumes: ContainerModuleVolumeSpec[]
   }
 export const containerModuleTestSchema = () =>
-  baseTestSpecSchema().keys({ ...containerTestSpecKeys(), volumes: moduleVolumesSchema().default([]) })
+  baseTestSpecSchema().keys({
+    ...containerTestSpecKeys(),
+    image: moduleRuntimeContainerImageSchema(),
+    volumes: moduleVolumesSchema().default([]),
+  })
 
 export type ContainerTaskSpec = BaseTaskSpec &
   ContainerRunActionSpec & {
@@ -66,7 +68,7 @@ export type ContainerTaskSpec = BaseTaskSpec &
   }
 export const containerTaskSchema = () =>
   baseTaskSpecSchema()
-    .keys({ ...containerRunSpecKeys(), volumes: moduleVolumesSchema() })
+    .keys({ ...containerRunSpecKeys(), image: moduleRuntimeContainerImageSchema(), volumes: moduleVolumesSchema() })
     .description("A task that can be run in the container.")
 
 export interface ContainerModuleBuildSpec {
@@ -120,10 +122,17 @@ const moduleVolumesSchema = () =>
     an empty ephemeral volume is created and mounted when deploying the container.
 `)
 
+// image is required in the action deploy schema, but optional in module schema
+const moduleRuntimeContainerImageSchema = () =>
+  joi.string().allow(false, null).empty([false, null]).description(deline`
+  Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
+`)
+
 const containerServiceSchema = () =>
   baseServiceSpecSchema()
     .keys({
       ...containerDeploySchemaKeys(),
+      image: moduleRuntimeContainerImageSchema(),
       sync: containerSyncPathSchema(),
       volumes: moduleVolumesSchema(),
     })
@@ -135,11 +144,7 @@ export const containerModuleSpecSchema = () =>
     .keys({
       build: containerBuildSpecSchema(),
       ...containerCommonBuildSpecKeys(),
-      // TODO: validate the image name format
-      image: joi.string().allow(false, null).empty([false, null]).description(deline`
-        Specify the image name for the container. Should be a valid Docker image identifier. If specified and
-        the module does not contain a Dockerfile, this image will be used to deploy services for this module.
-        If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
+      image: moduleRuntimeContainerImageSchema(),
       include: joiModuleIncludeDirective(dedent`
         If neither \`include\` nor \`exclude\` is set, and the module has a Dockerfile, Garden
         will parse the Dockerfile and automatically set \`include\` to match the files and

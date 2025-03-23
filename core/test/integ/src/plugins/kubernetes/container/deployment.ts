@@ -641,59 +641,6 @@ describe("kubernetes container deployment handlers", () => {
       ])
       expect(resource.spec.template?.spec?.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/volume" }])
     })
-
-    it("should correctly mount a referenced ConfigMap module", async () => {
-      const action = await resolveDeployAction("configmap-reference")
-      const namespace = provider.config.namespace!.name!
-
-      const resource = await createWorkloadManifest({
-        ctx,
-        api,
-        provider,
-        action,
-        imageId: getDeployedImageId(action),
-        namespace,
-        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-        production: false,
-      })
-
-      expect(resource.spec.template?.spec?.volumes).to.eql([
-        {
-          name: "test",
-          configMap: {
-            name: "configmap-module",
-          },
-        },
-      ])
-      expect(resource.spec.template?.spec?.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/config" }])
-    })
-
-    it("should throw if incompatible module is specified as a volume module", async () => {
-      const action = await resolveDeployAction("volume-reference")
-      const namespace = provider.config.namespace!.name!
-
-      action["_config"].spec.volumes = [
-        { name: "test", containerPath: "TODO-G2", action: { name: "simple-service", kind: "Deploy" } },
-      ]
-
-      await expectError(
-        () =>
-          createWorkloadManifest({
-            ctx,
-            api,
-            provider,
-            action,
-            imageId: getDeployedImageId(action),
-            namespace,
-            log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-            production: false,
-          }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.include(
-            "Deploy type=container name=volume-reference (from module volume-reference) specifies a unsupported config simple-service for volume mount test. Only `persistentvolumeclaim` and `configmap` action are supported at this time."
-          )
-      )
-    })
   })
 
   describe("k8sContainerDeploy", () => {

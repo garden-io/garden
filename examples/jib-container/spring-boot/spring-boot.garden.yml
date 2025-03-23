@@ -14,8 +14,8 @@ spec:
 kind: Deploy
 type: container
 name: spring-boot
-build: spring-boot
 spec:
+  image: ${actions.build.spring-boot.outputs.deploymentImageId}
   ports:
     - name: http
       containerPort: 8080
