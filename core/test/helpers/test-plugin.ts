@@ -28,7 +28,7 @@ import { execRunSpecSchema, execRuntimeOutputsSchema } from "../../src/plugins/e
 import { sdk } from "../../src/plugin/sdk.js"
 import { testNow } from "./constants.js"
 import { execBuildHandler, execBuildSpecSchema } from "../../src/plugins/exec/build.js"
-import { ActionModes } from "../../src/actions/types.js"
+import type { ActionModes } from "../../src/actions/types.js"
 
 const s = sdk.schema
 
