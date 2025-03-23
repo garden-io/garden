@@ -23,7 +23,7 @@ import {
   getDefaultProjectConfig,
 } from "../../../helpers.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
-import { ContainerDeploySpec } from "../../../../src/plugins/container/config.js";
+import type { ContainerDeploySpec } from "../../../../src/plugins/container/config.js"
 
 describe("ResolveActionTask", () => {
   let garden: TestGarden
