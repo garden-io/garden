@@ -429,7 +429,7 @@ describe("Garden", () => {
         await writeFile(
           join(tmpPath, "garden.yml"),
           dedent`
-          apiVersion: garden.io/v1
+          apiVersion: garden.io/v2
           kind: Project
           name: foo
           environments:
@@ -513,7 +513,7 @@ describe("Garden", () => {
 
     it("should set the default proxy config if non is specified", async () => {
       const config: ProjectConfig = {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name: "test",
         path: pathFoo,
@@ -538,7 +538,7 @@ describe("Garden", () => {
 
     it("should optionally read the proxy config from the project config", async () => {
       const config: ProjectConfig = {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name: "test",
         path: pathFoo,
@@ -569,7 +569,7 @@ describe("Garden", () => {
       try {
         gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = "example.com"
         const configNoProxy: ProjectConfig = {
-          apiVersion: GardenApiVersion.v1,
+          apiVersion: GardenApiVersion.v2,
           kind: "Project",
           name: "test",
           path: pathFoo,
@@ -583,7 +583,7 @@ describe("Garden", () => {
           variables: { foo: "default", bar: "something" },
         }
         const configWithProxy: ProjectConfig = {
-          apiVersion: GardenApiVersion.v1,
+          apiVersion: GardenApiVersion.v2,
           kind: "Project",
           name: "test",
           path: pathFoo,
@@ -2976,16 +2976,6 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
     })
 
-    // TODO-0.14: remove this and core/test/data/test-projects/project-include-exclude-old-syntax directory
-    it("should respect the modules.include and modules.exclude fields, if specified (old syntax)", async () => {
-      const projectRoot = getDataDir("test-projects", "project-include-exclude-old-syntax")
-      const garden = await makeTestGarden(projectRoot)
-      const modules = await garden.resolveModules({ log: garden.log })
-
-      // Should NOT include "nope" and "module-c"
-      expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
-    })
-
     it("should respect the scan.include and scan.exclude fields, if specified", async () => {
       const projectRoot = getDataDir("test-projects", "project-include-exclude")
       const garden = await makeTestGarden(projectRoot)
@@ -3016,31 +3006,6 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
     })
 
-    // TODO-0.14: Delete this context AND core/test/data/test-projects/dotignore-custom-legacy directory in 0.14
-    context("dotignore files migration to 0.13", async () => {
-      it("should remap singleton array `dotIgnoreFiles` to scalar `dotIgnoreFile`", async () => {
-        // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
-        // Thus, all exclusions from .gardenignore will be skipped.
-        const projectRoot = getDataDir("test-projects", "dotignore-custom-legacy", "with-supported-legacy-config")
-        const garden = await makeTestGarden(projectRoot)
-        const modules = await garden.resolveModules({ log: garden.log })
-
-        // Root-level .customignore excludes "module-b",
-        // and .customignore from "module-c" retains garden.yml file, so the "module-c" is still active.
-        expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
-      })
-
-      it("should throw and error if multi-valued `dotIgnoreFiles` is defined in the config", async () => {
-        // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
-        // Thus, all exclusions from .gardenignore will be skipped.
-        const projectRoot = getDataDir("test-projects", "dotignore-custom-legacy", "with-unsupported-legacy-config")
-        await expectError(() => makeTestGarden(projectRoot), {
-          contains:
-            "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.customignore, .gitignore]",
-        })
-      })
-    })
-
     it("should throw a nice error if module paths overlap", async () => {
       const projectRoot = getDataDir("test-projects", "multiple-module-config-bad")
       const garden = await makeTestGarden(projectRoot)
@@ -3057,23 +3022,6 @@ describe("Garden", () => {
           "you can use the disabled directive to make sure that only one of the modules is enabled",
         ],
       })
-    })
-
-    it("should throw when apiVersion v0 is set in a project with action configs", async () => {
-      const garden = await makeTestGarden(getDataDir("test-projects", "config-action-kind-v0"))
-
-      await expectError(() => garden.scanAndAddConfigs(), {
-        contains: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}" or higher`,
-      })
-    })
-
-    it("should not throw when apiVersion v0 is set in a project without action configs", async () => {
-      const garden = await makeTestGarden(getDataDir("test-projects", "config-valid-v0"))
-      try {
-        await garden.scanAndAddConfigs()
-      } catch (er) {
-        expect.fail("Expected scanAndAddConfigs not to throw")
-      }
     })
 
     describe("missing secrets", () => {

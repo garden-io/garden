@@ -46,7 +46,6 @@ import { deepResolveContext } from "./template-contexts/base.js"
 import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
-import { makeDeprecationMessage } from "../util/deprecations.js"
 import { getBackendType } from "../cloud/util.js"
 
 export const defaultProjectVarfilePath = "garden.env"
@@ -220,7 +219,6 @@ export interface ProjectConfig extends BaseGardenResource {
   proxy?: ProxyConfig
   defaultEnvironment: string
   dotIgnoreFile: string
-  dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
   scan?: ProjectScan
   outputs?: OutputSpec[]
@@ -370,17 +368,6 @@ export const projectSchema = createSchema({
         `
       )
       .example("dev"),
-    dotIgnoreFiles: joiSparseArray(joi.posixPath().filenameOnly())
-      .default([])
-      .description(
-        deline`
-      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-    `
-      )
-      .meta({
-        deprecated: makeDeprecationMessage({ deprecation: "dotIgnoreFiles" }),
-      })
-      .example([".gitignore"]),
     dotIgnoreFile: joi
       .posixPath()
       .filenameOnly()
@@ -388,8 +375,6 @@ export const projectSchema = createSchema({
       .description(
         deline`
       Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-
-      Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the \`dotIgnoreFiles\` field in the project configuration.
 
       Note that this take precedence over the project \`scan.include\` field, and action \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 

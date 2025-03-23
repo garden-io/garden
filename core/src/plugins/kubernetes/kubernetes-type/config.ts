@@ -38,10 +38,9 @@ import { getGlobalProjectApiVersion } from "../../../project-api-version.js"
 import { GardenApiVersion } from "../../../constants.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import omit from "lodash-es/omit.js"
 
 export interface KubernetesTypeCommonDeploySpec {
-  // TODO(0.14): remove this field
-  files: string[]
   kustomize?: KubernetesKustomizeSpec
   patchResources?: KubernetesPatchResource[]
   manifests: KubernetesResource[]
@@ -58,12 +57,6 @@ export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySp
   waitForJobs?: boolean
   manifestFiles: string[]
   manifestTemplates: string[]
-  /**
-   * TODO(0.14): remove this field
-   * Overridden to deprecate it only for actions, not for modules.
-   * @deprecated in action configs, use {@link #manifestTemplates} instead.
-   */
-  files: string[]
 }
 
 // TODO(0.14): change the default for waitForJobs to true in the schema, and remove this function
@@ -161,22 +154,25 @@ export const kubernetesApplyArgsSchema = () =>
 
 type KubernetesCommonDeployKeyDeprecations = { deprecateFiles: boolean }
 
-export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => ({
-  files: kubernetesManifestTemplatesSchema().meta({ deprecated: deprecations.deprecateFiles }),
-  kustomize: kustomizeSpecSchema(),
-  manifests: kubernetesManifestsSchema(),
-  patchResources: kubernetesPatchResourcesSchema(),
-  namespace: namespaceNameSchema(),
-  portForwards: portForwardsSchema(),
-  timeout: k8sDeploymentTimeoutSchema(),
-  applyArgs: kubernetesApplyArgsSchema(),
-  // TODO-0.14: flip this to true and change default behavior to wait for the jobs
-  waitForJobs: joi
-    .boolean()
-    .optional()
-    // .default(false)
-    .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
-})
+export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => {
+  const keys = {
+    files: kubernetesManifestTemplatesSchema().meta({ deprecated: deprecations.deprecateFiles }),
+    kustomize: kustomizeSpecSchema(),
+    manifests: kubernetesManifestsSchema(),
+    patchResources: kubernetesPatchResourcesSchema(),
+    namespace: namespaceNameSchema(),
+    portForwards: portForwardsSchema(),
+    timeout: k8sDeploymentTimeoutSchema(),
+    applyArgs: kubernetesApplyArgsSchema(),
+    // TODO-0.14: flip this to true and change default behavior to wait for the jobs
+    waitForJobs: joi
+      .boolean()
+      .optional()
+      // .default(false)
+      .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
+  }
+  return deprecations.deprecateFiles ? omit(keys, "files") : keys
+}
 
 export const kubernetesDeploySchema = () =>
   joi

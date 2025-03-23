@@ -26,7 +26,7 @@ import {
   validateContainerBuild,
 } from "./build.js"
 import type { ConfigureModuleParams } from "../../plugin/handlers/Module/configure.js"
-import { dedent, deline, naturalList } from "../../util/string.js"
+import { dedent, naturalList } from "../../util/string.js"
 import type { Provider, BaseProviderConfig } from "../../config/provider.js"
 import { providerConfigBaseSchema } from "../../config/provider.js"
 import type { GetModuleOutputsParams } from "../../plugin/handlers/Module/get-outputs.js"
@@ -48,15 +48,10 @@ import type { Resolved } from "../../actions/types.js"
 import { getDeployedImageId } from "../kubernetes/container/util.js"
 import type { DeepPrimitiveMap } from "../../config/common.js"
 import { joi } from "../../config/common.js"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion, gardenEnv } from "../../constants.js"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC, gardenEnv } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 import type { PluginContext } from "../../plugin-context.js"
-import { actionReferenceToString } from "../../actions/base.js"
-import { RootLogger } from "../../logger/logger.js"
-import { styles } from "../../logger/styles.js"
-import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
-import { getGlobalProjectApiVersion } from "../../project-api-version.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
@@ -296,12 +291,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
       }
     }
 
-    for (const volume of spec.volumes) {
-      if (volume.module) {
-        spec.dependencies.push(volume.module)
-      }
-    }
-
     return {
       name,
       dependencies: spec.dependencies,
@@ -311,12 +300,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
   })
 
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => {
-    for (const volume of t.volumes) {
-      if (volume.module) {
-        t.dependencies.push(volume.module)
-      }
-    }
-
     return {
       name: t.name,
       dependencies: t.dependencies,
@@ -327,12 +310,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
   })
 
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => {
-    for (const volume of t.volumes) {
-      if (volume.module) {
-        t.dependencies.push(volume.module)
-      }
-    }
-
     return {
       name: t.name,
       cacheResult: t.cacheResult,
@@ -394,26 +371,16 @@ function convertContainerModuleRuntimeActions(
   const actions: ContainerActionConfig[] = []
 
   let deploymentImageId = module.spec.image
-  if (deploymentImageId) {
-    // If `module.spec.image` is set, but the image id is missing a tag, we need to add the module version as the tag.
+
+  // If the module neeeds container build, we need to add the module version as the tag.
+  // If it doesn't need a container build, the module doesn't have a build action and just downloads a prebuilt image
+  if (needsContainerBuild) {
     deploymentImageId = containerHelpers.getModuleDeploymentImageId(module, module.version, undefined)
   }
 
-  const volumeModulesReferenced: string[] = []
-
   function configureActionVolumes(action: ContainerRuntimeActionConfig, volumeSpec: ContainerModuleVolumeSpec[]) {
     volumeSpec.forEach((v) => {
-      const referencedPvcAction = v.module ? { kind: <const>"Deploy", name: v.module } : undefined
-      action.spec.volumes.push({
-        ...omit(v, "module"),
-        action: referencedPvcAction,
-      })
-      if (referencedPvcAction) {
-        action.dependencies?.push(referencedPvcAction)
-      }
-      if (v.module) {
-        volumeModulesReferenced.push(v.module)
-      }
+      action.spec.volumes.push(v)
     })
     return action
   }
@@ -426,7 +393,6 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: service.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(service.spec.dependencies, buildAction),
 
       timeout: service.spec.timeout || DEFAULT_DEPLOY_TIMEOUT_SEC,
@@ -448,13 +414,12 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: task.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(task.spec.dependencies, buildAction),
       timeout: task.spec.timeout,
 
       spec: {
         ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
-        image: needsContainerBuild ? undefined : module.spec.image,
+        image: deploymentImageId,
         volumes: [],
       },
     }
@@ -469,20 +434,19 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: test.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(test.spec.dependencies, buildAction),
       timeout: test.spec.timeout,
 
       spec: {
         ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
-        image: needsContainerBuild ? undefined : module.spec.image,
+        image: deploymentImageId,
         volumes: [],
       },
     }
     actions.push(configureActionVolumes(action, test.config.spec.volumes))
   }
 
-  return { actions, volumeModulesReferenced }
+  return { actions }
 }
 
 export async function convertContainerModule(params: ConvertModuleParams<ContainerModule>) {
@@ -524,15 +488,8 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
     actions.push(buildAction!)
   }
 
-  const { actions: runtimeActions, volumeModulesReferenced } = convertContainerModuleRuntimeActions(
-    params,
-    buildAction,
-    needsContainerBuild
-  )
+  const { actions: runtimeActions } = convertContainerModuleRuntimeActions(params, buildAction, needsContainerBuild)
   actions.push(...runtimeActions)
-  if (buildAction) {
-    buildAction.dependencies = buildAction.dependencies?.filter((d) => !volumeModulesReferenced.includes(d.name))
-  }
 
   return {
     group: {
@@ -717,58 +674,10 @@ export const gardenPlugin = () =>
 
 function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
   const { build } = action.getConfig()
-  const { image, volumes } = action.getSpec()
 
   if (build) {
-    const log = RootLogger.getInstance().createLog()
-    const configPath = action.configPath()
-    // Report concrete action name for better UX
-    log.warn(
-      deline`Action ${styles.highlight(action.longDescription())}
-          ${configPath ? `- defined in ${styles.highlight(configPath)} -` : ""}
-          specifies deprecated config field ${styles.highlight("build")}.`
-    )
-    // Report general deprecation warning
-    reportDeprecatedFeatureUsage({
-      log,
-      deprecation: "buildConfigFieldOnRuntimeActions",
-    })
-  }
-
-  // TODO(0.14): Make spec.image required in the schema, and remove this if statement.
-  if (getGlobalProjectApiVersion() === GardenApiVersion.v2 && !image) {
     throw new ConfigurationError({
-      message: `${action.longDescription()} must specify \`spec.image\`.`,
+      message: `${action.longDescription()} specified the \`build\` field, which is unsupported for container action types. Use \`spec.image\` instead.`,
     })
-  }
-
-  // TODO(0.14): The entire if/else if/else if block can be removed
-  if (!build && !image) {
-    throw new ConfigurationError({
-      message: `${action.longDescription()} must specify one of \`build\` or \`spec.image\``,
-    })
-  } else if (build && image) {
-    throw new ConfigurationError({
-      message: `${action.longDescription()} specifies both \`build\` and \`spec.image\`. Only one may be specified.`,
-    })
-  } else if (build) {
-    const buildAction = action.getDependency({ kind: "Build", name: build }, { includeDisabled: true })
-    if (buildAction && !buildAction?.isCompatible("container")) {
-      throw new ConfigurationError({
-        message: `${action.longDescription()} build field must specify a container Build, or a compatible type. Got Build action type: ${
-          buildAction.getConfig().type
-        }`,
-      })
-    }
-  }
-
-  for (const volume of volumes) {
-    if (volume.action && !action.hasDependency(volume.action)) {
-      throw new ConfigurationError({
-        message: `${action.longDescription()} references action ${actionReferenceToString(
-          volume.action
-        )} under \`spec.volumes\` but does not declare a dependency on it. Please add an explicit dependency on the volume action.`,
-      })
-    }
   }
 }

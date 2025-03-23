@@ -1,4 +1,0 @@
-kind: Module
-name: module-a
-type: test
-include: ["yes.txt"]

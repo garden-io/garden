@@ -11,4 +11,5 @@ spec:
 kind: Deploy
 type: container
 name: helloworld
-build: helloworld
+spec:
+  image: ${actions.build.helloworld.outputs.deploymentImageId}

@@ -234,26 +234,37 @@ describe("LoginCommand", () => {
     })
   })
 
-  it("should not login if outside project root", async () => {
-    const postfix = randomString()
-    const testToken = {
-      token: `dummy-token-${postfix}`,
-      refreshToken: `dummy-refresh-token-${postfix}`,
-      tokenValidity: 60,
-    }
-    const command = new LoginCommand()
+  context("outside project root", () => {
+    let tmpDirOutsideProjectRoot: TempDirectory
 
-    // this is a bit of a workaround to run outside of the garden root dir
-    const garden = await makeDummyGarden(getDataDir("..", "..", "..", ".."), {
-      commandInfo: { name: "foo", args: {}, opts: {} },
+    before(async () => {
+      tmpDirOutsideProjectRoot = await makeTempDir({ git: false })
+    })
+    after(async () => {
+      await tmpDirOutsideProjectRoot.cleanup()
     })
 
-    setTimeout(() => {
-      garden.events.emit("receivedToken", testToken)
-    }, 500)
+    it("should not login if outside project root", async () => {
+      const postfix = randomString()
+      const testToken = {
+        token: `dummy-token-${postfix}`,
+        refreshToken: `dummy-refresh-token-${postfix}`,
+        tokenValidity: 60,
+      }
+      const command = new LoginCommand()
 
-    await expectError(async () => await command.action(loginCommandParams({ garden, opts: {} })), {
-      contains: "Project config not found",
+      // this is a bit of a workaround to run outside of the garden root dir
+      const garden = await makeDummyGarden(tmpDirOutsideProjectRoot.path, {
+        commandInfo: { name: "foo", args: {}, opts: {} },
+      })
+
+      setTimeout(() => {
+        garden.events.emit("receivedToken", testToken)
+      }, 500)
+
+      await expectError(async () => await command.action(loginCommandParams({ garden, opts: {} })), {
+        contains: "Project config not found",
+      })
     })
   })
 

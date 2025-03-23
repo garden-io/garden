@@ -28,8 +28,6 @@ export function isDeprecatedPlugin(pluginName: string): pluginName is Deprecated
   return false
 }
 
-export type DeprecatedDeployActionType = "configmap" | "persistentvolumeclaim"
-
 export function getDeprecations(style: (s: string) => string = styles.highlight) {
   return {
     loginRequirement: {
@@ -104,80 +102,6 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the ${style(`blue-green`)} strategy) has been removed.`,
       docs: null,
     },
-    kubernetesActionSpecFiles: {
-      docsSection: "Action configs",
-      docsHeadline: `${style("spec.files")} in ${style("kubernetes")} Deploy actions`,
-      warnHint: `${style("spec.files")} in ${style("kubernetes")} Deploy actions will be removed in Garden 0.14. Use ${style("spec.manifestTemplates")} and/or ${style("spec.manifestFiles")} instead.`,
-      docs: dedent`
-        If you want to keep using the Garden template language in your Kubernetes manifest files, use \`spec.manifestTemplates\`.
-
-        If you need to keep your Kubernetes manifests files compatible with \`kubectl\`, in other words, you don't want to use the Garden template language in your manifest files, use \`spec.manifestFiles\` instead.
-
-        Example:
-
-        \`\`\`yaml
-        # garden.yml
-        kind: Deploy
-        type: kubernetes
-        name: my-app
-        spec:
-          manifestFiles:
-            - manifests/**/*.yml # <-- Treat these files as pure Kubernetes manifest files
-          manifestTemplates:
-            - manifests/**/*.yml.tpl # <-- Use the Garden template language in files that end with \`.yml.tpl\`.
-        \`\`\`
-
-        ### Why
-
-        Until now there wasn't a choice: Garden would always attempt to resolve template strings like ${style("${fooBar}")} in Kubernetes manifest files.
-
-        This becomes problematic when, for example, the Kubernetes manifest contains a bash script:
-
-        \`\`\`yaml
-        # manifests/bash-script.yml
-        apiVersion: v1
-        kind: ConfigMap
-        metadata:
-          name: bash-scripts
-        data:
-            important-bash-script.sh: |
-              #!/bin/bash
-              echo "hello \${USERNAME:=world}"
-        \`\`\`
-
-        This manifest file is valid and works when applied using \`kubectl apply < manifests/bash-script.yml\`.
-
-        Using this manifest file like so will not work as expected, but throw a template syntax error:
-
-        \`\`\`yaml
-        # garden.yml
-        kind: Deploy
-        type: kubernetes
-        name: bash-scripts
-        spec:
-          files:
-            - manifests/bash-script.yml # <-- Garden will parse template strings in \`manifests/bash-script.yml\` and fail with a syntax error.
-        \`\`\`
-
-        One way to work around this problem in the past was to escape the template string by prepending a \`$\` sign in the script; But this work-around also means that the manifest isn't compatible with \`kubectl apply\` anymore:
-
-        \`\`\`bash
-        #!/bin/bash
-        echo "hello $\${USERNAME:=world}" # <-- This is not a working bash script anymore :(
-        \`\`\`
-      `,
-    },
-    dotIgnoreFiles: {
-      docsSection: "Project configuration",
-      docsHeadline: `The ${style("dotIgnoreFiles")} config field`,
-      warnHint: dedent`
-        The ${style("dotIgnoreFiles")} config field will be removed in Garden 0.14.
-        Use the ${style("dotIgnoreFile")} field instead. It only allows specifying one filename.
-      `,
-      docs: dedent`
-      For more information, please refer to the [${style("dotIgnoreFile")} reference documentation](../reference/project-config.md#dotIgnoreFile).
-      `,
-    },
     apiVersion: {
       docsSection: "Project configuration",
       docsHeadline: `The ${style(`apiVersion`)} config field`,
@@ -228,12 +152,6 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       docs: dedent`
         For more information, please refer to the [${style("scan")} reference documentation](../reference/project-config.md#scan).
       `,
-    },
-    kubernetesClusterInitCommand: {
-      docsSection: "Garden commands",
-      docsHeadline: `${style("garden kubernetes cluster-init")}`,
-      warnHint: "This command will be removed in 0.14. Do not use this command. It has no effect.",
-      docs: null,
     },
     syncStartCommand: {
       docsSection: "Garden commands",
@@ -391,55 +309,6 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         \`\`\`
 
         Garden automatically determines the execution order of actions (First building the backend container, then deploying the backend) based on the output references.
-      `,
-    },
-    rsyncBuildStaging: {
-      docsSection: "Environment variables",
-      docsHeadline: `${style("GARDEN_LEGACY_BUILD_STAGE")}`,
-      warnHint: `Do not use ${style("GARDEN_LEGACY_BUILD_STAGE")} environment variable. It will be removed in Garden 0.14.`,
-      docs: dedent`
-        Using the ${style("rsync")}-based build staging is not necessary when using the latest versions of Garden.
-
-        If you still need to use this environment variable for some reason, please reach out to us on GitHub, Discord or via the customer support.
-      `,
-    },
-    configmapDeployAction: {
-      docsSection: "Garden action types",
-      docsHeadline: `The ${style("configmap")} Deploy action type`,
-      warnHint: `The ${style("configmap")} Deploy action type will be removed in the next major version of Garden, 0.14. Please use the ${style("kubernetes")} Deploy action type with a ${style("configmap")} Kubernetes manifest instead.`,
-      docs: dedent`
-        Example:
-
-        \`\`\`yaml
-        # garden.yml
-        kind: Deploy
-        type: kubernetes
-        name: game-demo-configmap
-        spec:
-          manifests:
-            - apiVersion: v1
-              kind: ConfigMap
-              metadata:
-                name: game-demo
-              data:
-                player_initial_lives: "3"
-                ui_properties_file_name: "user-interface.properties"
-                game.properties: |
-                  enemy.types=aliens,monsters
-                  player.maximum-lives=5
-                user-interface.properties: |
-                  color.good=purple
-                  color.bad=yellow
-                  allow.textmode=true
-        \`\`\`
-      `,
-    },
-    persistentvolumeclaimDeployAction: {
-      docsSection: "Garden action types",
-      docsHeadline: `The ${style("persistentvolumeclaim")} Deploy action type`,
-      warnHint: `The ${style("persistentvolumeclaim")} Deploy action type will be removed in the next major version of Garden, 0.14. Please use the ${style("kubernetes")} Deploy action type instead.`,
-      docs: dedent`
-        For more information how to use Persistent Volume Claims using Kubernetes manifests, refer to the [official Kubernetes documentation on configuring persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/).
       `,
     },
     optionalTemplateValueSyntax: {

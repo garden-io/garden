@@ -39,11 +39,6 @@ import type { KubernetesRunResult } from "../../../plugin/base.js"
 // RUN //
 
 export interface KubernetesPodRunActionSpec extends KubernetesCommonRunSpec {
-  /**
-   * TODO(0.14): remove this field
-   * @deprecated in action configs, use {@link #manifestTemplates} instead.
-   */
-  files: string[]
   manifestFiles: string[]
   manifestTemplates: string[]
   kustomize?: KubernetesKustomizeSpec

@@ -280,20 +280,6 @@ Timeout for the deploy to complete, in seconds.
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.files[]`
-
-[spec](#spec) > files
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
-
-| Type               | Default | Required |
-| ------------------ | ------- | -------- |
-| `array[posixPath]` | `[]`    | No       |
-
 ### `spec.kustomize`
 
 [spec](#spec) > kustomize

@@ -26,18 +26,13 @@ export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
 
 export interface ContextResolveOpts {
-  // This is kept for backwards compatibility of rendering kubernetes manifests
-  // TODO(0.14): Do not allow the use of template strings in kubernetes manifest files
-  // TODO(0.14): Remove legacyAllowPartial & keepEscapingInTemplateStrings
-  legacyAllowPartial?: boolean
-
   /**
    * When explicitly set to true, this will ensure that escaped template strings
-   * like $${foo.bar} will be kept as-is. This is useful when used together with
-   * `legacyAllowPartial` with the intent to parse the result again. We use this
-   * technique in the `ModuleResolver`.
+   * like $${foo.bar} will be kept as-is. This is useful when the intent to parse
+   * the result again. We use this technique in the `ModuleResolver`.
    *
    * @default false
+   * @deprecated
    */
   keepEscapingInTemplateStrings?: boolean
 

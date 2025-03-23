@@ -1192,7 +1192,7 @@ function getServiceNames(config: ModuleConfig) {
     names.push(...(config.spec.services || []).map((s) => s.name).filter(Boolean))
   }
   // These all map to a single service
-  if (["helm", "kubernetes", "terraform", "pulumi", "configmap", "persistentvolumeclaim"].includes(config.type)) {
+  if (["helm", "kubernetes", "terraform", "pulumi"].includes(config.type)) {
     names.push(config.name)
   }
   return names

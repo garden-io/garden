@@ -450,18 +450,6 @@ spec:
     - hostPath: "/some/dir"
 ```
 
-### `spec.volumes[].action`
-
-[spec](#spec) > [volumes](#specvolumes) > action
-
-The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type              | Required |
-| ----------------- | -------- |
-| `actionReference` | No       |
-
 ### `spec.privileged`
 
 [spec](#spec) > privileged
@@ -577,11 +565,11 @@ spec:
 
 [spec](#spec) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Required.
 
 | Type     | Required |
 | -------- | -------- |
-| `string` | No       |
+| `string` | Yes      |
 
 ### `spec.cacheResult`
 

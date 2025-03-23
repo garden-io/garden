@@ -83,7 +83,6 @@ import {
   gardenEnv,
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
-  gardenApiSupportsActions,
 } from "./constants.js"
 import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
@@ -165,7 +164,6 @@ import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js
 import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
-import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
 import { getBackendType, getCloudDistributionName, getCloudDomain, getCloudLogSectionName } from "./cloud/util.js"
 import { GrowCloudApi } from "./cloud/grow/api.js"
@@ -174,8 +172,7 @@ import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
-import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
-import { getGlobalProjectApiVersion, resolveApiVersion } from "./project-api-version.js"
+import { resolveApiVersion, setGloablProjectApiVersion } from "./project-api-version.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -186,7 +183,6 @@ export interface GardenOpts {
   forceRefresh?: boolean
   gardenDirPath?: string
   globalConfigStore?: GlobalConfigStore
-  legacyBuildSync?: boolean
   log?: Log
   /**
    * Log context for logging the start and finish of the Garden class
@@ -227,7 +223,6 @@ export interface GardenParams {
   outputs: OutputSpec[]
   plugins: RegisterPluginParam[]
   production: boolean
-  projectApiVersion: ProjectConfig["apiVersion"]
   projectConfig: ProjectConfig
   projectName: string
   projectRoot: string
@@ -264,7 +259,7 @@ type GardenType = typeof Garden.prototype
 export type GardenWithOldBackend = GardenType & Required<Pick<GardenType, "cloudApi">>
 
 function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
-  const projectApiVersion = params.projectApiVersion
+  const projectApiVersion = params.projectConfig.apiVersion
 
   const builtinPlugins = getBuiltinPlugins(projectApiVersion)
   const customPlugins = params.plugins
@@ -312,7 +307,6 @@ export class Garden {
   public readonly production: boolean
   public readonly projectRoot: string
   public readonly projectName: string
-  public readonly projectApiVersion: GardenApiVersion
   public readonly environmentName: string
   /**
    * The resolved default namespace as defined in the Project config for the current environment.
@@ -374,7 +368,6 @@ export class Garden {
     this.projectName = params.projectName
     this.projectRoot = params.projectRoot
     this.projectSources = params.projectSources || []
-    this.projectApiVersion = params.projectApiVersion
     this.providerConfigs = params.providerConfigs
     this.variables = params.variables
     this.variableOverrides = params.variableOverrides
@@ -417,15 +410,6 @@ export class Garden {
       ignoreFile: params.dotIgnoreFile,
       cache: vcsCache,
     })
-
-    const legacyBuildSync =
-      params.opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : params.opts.legacyBuildSync
-    if (legacyBuildSync) {
-      reportDeprecatedFeatureUsage({
-        log: params.log,
-        deprecation: "rsyncBuildStaging",
-      })
-    }
 
     this.buildStaging = new BuildStaging(params.projectRoot, params.gardenDirPath)
 
@@ -1529,16 +1513,6 @@ export class Garden {
       for (const kind of actionKinds) {
         const actionConfigs = groupedResources[kind] || []
 
-        // Verify that the project apiVersion is defined as compatible with action kinds
-        // This is only available with apiVersion `garden.io/v1` or newer.
-        if (actionConfigs.length && !gardenApiSupportsActions(this.projectApiVersion)) {
-          throw new ConfigurationError({
-            message: `Action kinds are only supported in project configurations with "apiVersion: ${
-              GardenApiVersion.v1
-            }" or higher. A detailed migration guide is available at ${makeDocsLinkStyled("misc/migrating-to-bonsai")}`,
-          })
-        }
-
         for (const config of actionConfigs) {
           this.addRawActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
@@ -1918,7 +1892,8 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     }
   }
 
-  const apiVersion = resolveApiVersion(config, log)
+  const apiVersion = resolveApiVersion(config)
+  setGloablProjectApiVersion(apiVersion)
   config.apiVersion = apiVersion
 
   gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
@@ -2238,7 +2213,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       forceRefresh: opts.forceRefresh,
       cache: treeCache,
-      projectApiVersion: getGlobalProjectApiVersion(),
     }
   })
 })
@@ -2394,7 +2368,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
 
   const config: ProjectConfig = {
     path: root,
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: GardenApiVersion.v2,
     kind: "Project",
     name: "no-project",
     internal: {

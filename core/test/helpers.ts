@@ -104,7 +104,7 @@ export async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlug
 
 export const getDefaultProjectConfig = (): ProjectConfig =>
   cloneDeep({
-    apiVersion: GardenApiVersion.v1,
+    apiVersion: GardenApiVersion.v2,
     kind: "Project",
     name: "test",
     path: "tmp",

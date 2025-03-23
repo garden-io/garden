@@ -10,8 +10,8 @@ buildAtSource: true
 kind: Deploy
 type: container
 name: openshift-nginx-hello
-build: openshift-nginx-hello
 spec:
+  image: ${actions.build.openshift-nginx-hello.outputs.deploymentImageId}
   ports:
     - name: http
       containerPort: 8080
@@ -31,8 +31,8 @@ kind: Run
 type: container
 name: ls
 description: Lists the contents of the web server directory
-build: openshift-nginx-hello
 spec:
+  image: ${actions.build.openshift-nginx-hello.outputs.deploymentImageId}
   command: ["ls"]
 
 ---
@@ -52,8 +52,8 @@ kind: Test
 type: container
 name: cat
 description: Verifies the existence of the index.html file
-build: openshift-nginx-hello
 spec:
+  image: ${actions.build.openshift-nginx-hello.outputs.deploymentImageId}
   command: ["cat", "index.html"]
 
 ---

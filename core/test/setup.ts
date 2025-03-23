@@ -64,8 +64,8 @@ export const mochaHooks = {
   },
 
   beforeEach() {
-    // Init globally stored project-level apiVersion, assuming garden.io/v1 for 0.13.
-    setGloablProjectApiVersion(GardenApiVersion.v1)
+    // Init globally stored project-level apiVersion, assuming garden.io/v2 for 0.14.
+    setGloablProjectApiVersion(GardenApiVersion.v2)
   },
 
   afterEach() {

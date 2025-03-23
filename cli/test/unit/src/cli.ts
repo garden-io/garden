@@ -35,6 +35,10 @@ describe("runCli", () => {
       initLogger: false,
     })
 
+    if (result?.errors?.length) {
+      throw result.errors[0]
+    }
+
     expect(cli!["plugins"].map((p) => p.name)).to.eql(getBundledPlugins().map((p) => p.name))
 
     const jibTool = result?.result?.tools?.find((t) => t.pluginName === "jib")
