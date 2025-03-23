@@ -220,5 +220,5 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
 
 export function renderSavedTime(result: RunResult): string {
   const renderedDuration = renderTimeDuration(result.startedAt, result.completedAt)
-  return renderedDuration.length === 0 ? "" : `(Saved ${renderedDuration})`
+  return renderedDuration.length === 0 ? "" : `(saved ${renderedDuration})`
 }
