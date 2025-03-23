@@ -394,8 +394,10 @@ function convertContainerModuleRuntimeActions(
   const actions: ContainerActionConfig[] = []
 
   let deploymentImageId = module.spec.image
-  if (deploymentImageId) {
-    // If `module.spec.image` is set, but the image id is missing a tag, we need to add the module version as the tag.
+
+  // If the module neeeds container build, we need to add the module version as the tag.
+  // If it doesn't need a container build, the module doesn't have a build action and just downloads a prebuilt image
+  if (needsContainerBuild) {
     deploymentImageId = containerHelpers.getModuleDeploymentImageId(module, module.version, undefined)
   }
 
@@ -426,7 +428,6 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: service.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(service.spec.dependencies, buildAction),
 
       timeout: service.spec.timeout || DEFAULT_DEPLOY_TIMEOUT_SEC,
@@ -448,13 +449,12 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: task.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(task.spec.dependencies, buildAction),
       timeout: task.spec.timeout,
 
       spec: {
         ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
-        image: needsContainerBuild ? undefined : module.spec.image,
+        image: deploymentImageId,
         volumes: [],
       },
     }
@@ -475,7 +475,7 @@ function convertContainerModuleRuntimeActions(
 
       spec: {
         ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
-        image: needsContainerBuild ? undefined : module.spec.image,
+        image: deploymentImageId,
         volumes: [],
       },
     }
