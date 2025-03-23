@@ -104,7 +104,7 @@ export class IdentifierExpression extends TemplateExpression {
   ) {
     if (!isString(identifier) && !isNumber(identifier)) {
       throw new InternalError({
-        message: `identifier arg for IdentifierExpression must be a string or number. Got: ${typeof identifier}`,
+        message: `identifier arg for IdentifierExpression must be a string or number. Got: ${typeOf(identifier)}`,
       })
     }
     super()
@@ -255,6 +255,14 @@ export function isTruthy(v: TemplatePrimitive | Collection<unknown>): boolean {
   return true
 }
 
+function typeOf(v: TemplatePrimitive | Collection<TemplatePrimitive>): string {
+  // the Javascript expression `typeof null` results in the string "object". That's not helpful in template error messages
+  if (v === null) {
+    return "null"
+  }
+  return typeof v
+}
+
 export class LogicalOrExpression extends LogicalExpression {
   override getActiveBranchChildren(
     context: ConfigContext,
@@ -399,7 +407,7 @@ export class AddExpression extends BinaryExpression {
       return left.concat(right)
     } else {
       throw new TemplateStringError({
-        message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
+        message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeOf(left)} and ${typeOf(right)}).`,
         loc: this.loc,
         yamlSource,
       })
@@ -415,7 +423,7 @@ export class ContainsExpression extends BinaryExpression {
   ): boolean {
     if (!isTemplatePrimitive(element)) {
       throw new TemplateStringError({
-        message: `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof element}).`,
+        message: `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeOf(element)}).`,
         loc: this.loc,
         yamlSource,
       })
@@ -452,7 +460,7 @@ export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
       throw new TemplateStringError({
         message: `Both terms need to be numbers for ${
           this.operator
-        } operator (got ${typeof left} and ${typeof right}).`,
+        } operator (got ${typeOf(left)} and ${typeOf(right)}).`,
         loc: this.loc,
         yamlSource,
       })
@@ -770,7 +778,7 @@ export class MemberExpression extends TemplateExpression {
 
     if (typeof inner !== "string" && typeof inner !== "number") {
       throw new TemplateStringError({
-        message: `Expression in brackets must resolve to a string or number (got ${typeof inner}).`,
+        message: `Expression in brackets must resolve to a string or number (got ${typeOf(inner)}).`,
         loc: this.loc,
         yamlSource: args.yamlSource,
       })

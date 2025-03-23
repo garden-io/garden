@@ -157,23 +157,15 @@ describe("parse and evaluate template strings", () => {
     expect(res).to.equal("value")
   })
 
-  it("should correctly resolve if ? suffix is present but value exists", () => {
+  it("should ignore the legacy optional suffix from previous Garden versions", () => {
     const res = legacyResolveTemplateString({ string: "${foo}?", context: new TestContext({ foo: "bar" }) })
-    expect(res).to.equal("bar")
+    // The question mark after the template expression should be just a string
+    expect(res).to.equal("bar?")
   })
 
-  it("should allow undefined values if ? suffix is present", () => {
-    const res = legacyResolveTemplateString({ string: "${foo}?", context: new TestContext({}) })
-    expect(res).to.equal(undefined)
-  })
-
-  it("should evaluate to undefined if legacyAllowPartial=true", () => {
-    const res = legacyResolveTemplateString({
-      string: "${foo}?",
-      context: new TestContext({}),
-      contextOpts: { legacyAllowPartial: true },
-    })
-    expect(res).to.equal(undefined)
+  it("should allow undefined values when falling back to another value suffix is present", () => {
+    const res = legacyResolveTemplateString({ string: "${foo || null}", context: new TestContext({}) })
+    expect(res).to.equal(null)
   })
 
   it("should not crash when variable in a member expression cannot be resolved legacyAllowPartial=true", () => {
@@ -200,7 +192,7 @@ describe("parse and evaluate template strings", () => {
     await expectError(
       () =>
         legacyResolveTemplateString({
-          string: '${actions.build["${parent.name}?"]}',
+          string: '${actions.build["${parent.name || null}"]}',
           context: new TestContext({
             actions: {
               build: {},
@@ -210,7 +202,7 @@ describe("parse and evaluate template strings", () => {
         }),
       {
         contains:
-          'Invalid template string (${actions.build["${parent.name}?"]}): Expression in brackets must resolve to a string or number (got undefined).',
+          'Invalid template string (${actions.build["${parent.name || null}"]}): Expression in brackets must resolve to a string or number (got null).',
       }
     )
   })
@@ -403,7 +395,7 @@ describe("parse and evaluate template strings", () => {
   })
 
   it("should interpolate an optional format string with a prefix and a suffix", () => {
-    const res = legacyResolveTemplateString({ string: "prefix-${some}?-suffix", context: new TestContext({}) })
+    const res = legacyResolveTemplateString({ string: "prefix-${some || ''}-suffix", context: new TestContext({}) })
     expect(res).to.equal("prefix--suffix")
   })
 
@@ -2103,8 +2095,8 @@ describe("parse and evaluate template collections", () => {
 
   it("should correctly handle optional template strings", () => {
     const obj = {
-      some: "${key}?",
-      other: "${missing}?",
+      some: "${key || null}",
+      other: "${missing || null}",
     }
     const context = new TestContext({
       key: "value",
@@ -2115,7 +2107,7 @@ describe("parse and evaluate template collections", () => {
 
     expect(result).to.eql({
       some: "value",
-      other: undefined,
+      other: null,
     })
   })
 
