@@ -515,9 +515,9 @@ Additional arguments to pass to `kubectl apply`.
 
 Wait until the jobs have been completed. Garden will wait for as long as `timeout`.
 
-| Type      | Required |
-| --------- | -------- |
-| `boolean` | No       |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `spec.defaultTarget`
 
