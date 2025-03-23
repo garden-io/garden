@@ -139,6 +139,7 @@ describe("configureKubernetesModule", () => {
           tests: [testSpec],
           tasks: [taskSpec],
           timeout: 300,
+          waitForJobs: true,
         },
         timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
       },
