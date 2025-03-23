@@ -7,7 +7,6 @@
  */
 
 import type { ServiceIngress, ServiceProtocol } from "../../../types/service.js"
-import type { KubernetesProvider } from "../config.js"
 import type { KubernetesIngress, KubernetesResource } from "../types.js"
 
 /**
@@ -15,7 +14,7 @@ import type { KubernetesIngress, KubernetesResource } from "../types.js"
  *
  * Does a best-effort extraction based on known ingress resource types.
  */
-export function getK8sIngresses(resources: KubernetesResource[], provider?: KubernetesProvider): ServiceIngress[] {
+export function getK8sIngresses(resources: KubernetesResource[]): ServiceIngress[] {
   const output: ServiceIngress[] = []
 
   for (const r of resources.filter(isIngressResource)) {

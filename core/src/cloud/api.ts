@@ -16,12 +16,9 @@ import { omit } from "lodash-es"
 import { dedent, deline } from "../util/string.js"
 import type {
   BaseResponse,
-  CreateEphemeralClusterResponse,
   CreateProjectsForRepoResponse,
   CreateSecretRequest,
   CreateSecretResponse,
-  EphemeralClusterWithRegistry,
-  GetKubeconfigResponse,
   GetProfileResponse,
   GetProjectResponse,
   ListProjectsResponse,

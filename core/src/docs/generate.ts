@@ -202,6 +202,8 @@ export async function writeConfigReferenceDocs(
   await renderConfigTemplate("render-template", renderConfigReference(renderTemplateConfigSchema()))
 }
 
+// NOTE: this is only temporarily unused, while we don't have any deprecations
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename: string) {
   const guide = resolve(docsRoot, deprecationGuideFilename)
   const contents = (await readFile(guide)).toString()

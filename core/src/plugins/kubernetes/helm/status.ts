@@ -74,7 +74,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
     const deployedResources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
 
     forwardablePorts = getForwardablePorts({ resources: deployedResources, parentAction: action })
-    ingresses = getK8sIngresses(deployedResources, provider)
+    ingresses = getK8sIngresses(deployedResources)
 
     if (state === "ready") {
       if (mode === "sync" && spec.sync?.paths && deployedMode !== mode) {

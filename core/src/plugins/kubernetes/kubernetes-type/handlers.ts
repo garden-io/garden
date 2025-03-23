@@ -207,7 +207,7 @@ function composeKubernetesDeployStatus({
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
       mode: deployedMode,
-      ingresses: getK8sIngresses(remoteResources, provider),
+      ingresses: getK8sIngresses(remoteResources),
     },
     // TODO-0.13.1
     outputs: {},

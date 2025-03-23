@@ -1124,7 +1124,15 @@ export class PodRunner {
     await this.createPod({ log, tty: false })
 
     // Wait for Pod to be ready
-    const statuses = await waitForResources({ namespace, waitForJobs: false, ctx, provider, resources: [pod], log, timeoutSec })
+    const statuses = await waitForResources({
+      namespace,
+      waitForJobs: false,
+      ctx,
+      provider,
+      resources: [pod],
+      log,
+      timeoutSec,
+    })
 
     return { status: statuses[0] as ResourceStatus<V1Pod> }
   }

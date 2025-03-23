@@ -285,7 +285,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   killPortForwards(action, forwardablePorts || [], log)
 
   // Get ingresses of deployed resources
-  const ingresses = getK8sIngresses(manifests, provider)
+  const ingresses = getK8sIngresses(manifests)
 
   return {
     state: "ready",
