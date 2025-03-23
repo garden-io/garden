@@ -1,4 +1,4 @@
 kind: Deploy
 type: test
 name: test-deploy
-build: build.test-build
+build: test-build
