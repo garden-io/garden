@@ -77,7 +77,7 @@ const kubernetesPatchResourceSchema = () =>
     strategy: joi
       .string()
       .allow("json", "merge", "strategic")
-      .required()
+      .optional()
       .description(
         dedent`
         The patch strategy to use. One of 'json', 'merge', or 'strategic'. Defaults to 'strategic'.
@@ -86,8 +86,7 @@ const kubernetesPatchResourceSchema = () =>
         https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
         `
       )
-      .default("strategic")
-      .optional(),
+      .default("strategic"),
     patch: joi.object().required().description("The patch to apply.").unknown(true),
   })
 
