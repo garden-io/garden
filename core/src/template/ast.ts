@@ -14,14 +14,12 @@ import { getHelperFunctions } from "./functions/index.js"
 import type { EvaluateTemplateArgs } from "./types.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
-import { type ConfigSource, getYamlContext, validateSchema } from "../config/validation.js"
+import { type ConfigSource, validateSchema } from "../config/validation.js"
 import type { Branch } from "./analysis.js"
-import { TemplateStringError, truncateRawTemplateString } from "./errors.js"
+import { TemplateStringError } from "./errors.js"
 import { styles } from "../logger/styles.js"
 import { GardenApiVersion } from "../constants.js"
 import { getGlobalProjectApiVersion } from "../project-api-version.js"
-import { RootLogger } from "../logger/logger.js"
-import { emitNonRepeatableWarning } from "../warnings.js"
 
 type ASTEvaluateArgs = EvaluateTemplateArgs & {
   readonly yamlSource: ConfigSource
@@ -536,16 +534,6 @@ export class FormatStringExpression extends TemplateExpression {
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const apiVersion = getGlobalProjectApiVersion()
     const isOptional = this.isOptional(apiVersion)
-
-    // TODO(0.14.1): remove this dead code branch - we no longer support the apiVersion v1
-    if (apiVersion === GardenApiVersion.v1 && isOptional) {
-      const log = RootLogger.getInstance().createLog()
-
-      const yamlContext = getYamlContext(args.yamlSource)
-      const locationDesc = yamlContext || styles.highlight(truncateRawTemplateString(this.rawText))
-      const delimiter = !!yamlContext ? "\n" : " "
-      emitNonRepeatableWarning(log, `Found deprecated optional template value syntax in${delimiter}${locationDesc}`)
-    }
 
     const result = this.innerExpression.evaluate({
       ...args,
