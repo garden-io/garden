@@ -229,7 +229,7 @@ export class GrowCloudApi {
 
   async uploadDockerBuildReport(dockerBuildReport: DockerBuildReport) {
     try {
-      return this.api.dockerBuild.create.mutate(dockerBuildReport)
+      return this.api.dockerBuild.create.mutate({ ...dockerBuildReport, organizationId: this.organizationId })
     } catch (err) {
       if (!(err instanceof TRPCClientError)) {
         throw err
@@ -246,6 +246,7 @@ export class GrowCloudApi {
   }: RegisterCloudBuildRequest): Promise<RegisterCloudBuildResponse> {
     try {
       return await this.api.cloudBuilder.registerBuild.mutate({
+        organizationId: this.organizationId,
         platforms,
         mtlsClientPublicKeyPEM,
       })
@@ -267,7 +268,6 @@ export class GrowCloudApi {
 
   async getActionResult({
     schemaVersion,
-    organizationId,
     actionRef,
     actionType,
     cacheKey,
@@ -275,7 +275,7 @@ export class GrowCloudApi {
     try {
       return await this.api.actionCache.getEntry.query({
         schemaVersion,
-        organizationId,
+        organizationId: this.organizationId,
         actionRef,
         actionType,
         cacheKey,
@@ -291,7 +291,6 @@ export class GrowCloudApi {
 
   async createActionResult({
     schemaVersion,
-    organizationId,
     actionRef,
     actionType,
     cacheKey,
@@ -302,7 +301,7 @@ export class GrowCloudApi {
     try {
       return await this.api.actionCache.createEntry.mutate({
         schemaVersion,
-        organizationId,
+        organizationId: this.organizationId,
         actionRef,
         actionType,
         cacheKey,
