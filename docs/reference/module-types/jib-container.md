@@ -1779,7 +1779,7 @@ Set the default group on files and directories at the target. Specify either an 
 [services](#services) > localMode
 
 {% hint style="warning" %}
-**Deprecated**: The local-mode feature was removed in 0.14, and the `spec.localMode` configuration syntax has no effect.
+**Deprecated**: The local-mode feature was completely removed in 0.14, and the `spec.localMode` configuration syntax has no effect. Please remove all `spec.localMode` entries rom your configuration files.
 {% endhint %}
 
 This feature has been deleted.

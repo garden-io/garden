@@ -1256,7 +1256,7 @@ Optionally specify the name of a specific container to sync to. If not specified
 ### `localMode`
 
 {% hint style="warning" %}
-**Deprecated**: The local-mode feature was removed in 0.14, and the `spec.localMode` configuration syntax has no effect.
+**Deprecated**: The local-mode feature was completely removed in 0.14, and the `spec.localMode` configuration syntax has no effect. Please remove all `spec.localMode` entries rom your configuration files.
 {% endhint %}
 
 This feature has been deleted.

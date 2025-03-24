@@ -11,7 +11,7 @@ import { styles } from "../logger/styles.js"
 import { GardenError } from "../exceptions.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
-import { dedent } from "./string.js"
+import { deline } from "./string.js"
 
 const deprecatedPluginNames = [] as const
 export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
@@ -31,12 +31,11 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     localMode: {
       docsSection: "Local mode",
       docsHeadline: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
-      warnHint: dedent`
-        The local-mode feature was removed in 0.14, and the ${style("spec.localMode")} configuration syntax has no effect.
+      warnHint: deline`
+        The local-mode feature was completely removed in 0.14, and the ${style("spec.localMode")} configuration syntax has no effect.
+        Please remove all ${style("spec.localMode")} entries rom your configuration files.
       `,
-      docs: dedent`
-        Use the ${style("sync mode")} instead. You can also consider using [mirrord](https://mirrord.dev/) or [telepresence](https://www.telepresence.io/).
-      `,
+      docs: null,
     },
   } as const
 }
