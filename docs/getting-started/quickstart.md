@@ -64,13 +64,21 @@ git clone https://github.com/garden-io/quickstart-example.git
 cd quickstart-example
 ```
 
-Then login to Garden Cloud by running the login command from inside the project directory you just cloned:
+### Step 3 — Connect your project
+
+Now we need to connect the project to the Garden Cloud backend. This is required to use features such as [team-wide caching](../features/team-caching.md) and the [Remote Container Builder](../features/remote-container-builder.md).
+
+You connect the project via the login command like so:
 
 ```sh
 garden login
 ```
 
-### Step 3 — Build and deploy the project
+You'll be asked to create an account if you haven't already. Once you've logged in an `organizationId` will be added to the project config. This is of course just an example project but in general you should check the Garden config file with the `organizationId` into your source control.
+
+You can [learn more about connecting projects here](../guides/connecting-project.md).
+
+### Step 3 — Deploy the project
 
 Now we can deploy the example project to our local Kubernetes cluster. We'll deploy the project in sync mode which enables live code syncing and starts the dev console:
 
@@ -78,7 +86,7 @@ Now we can deploy the example project to our local Kubernetes cluster. We'll dep
 garden deploy --sync
 ```
 
-This will build all the containers in this project with the [Garden Remote Container Builder](../garden-for/containers/using-remote-container-builder.md) and deploy them to your Kubernetes cluster. You can now visit the example project [via the link](http://vote.local.demo.garden/) output by Garden.
+This will build all the containers in this project with the [Remote Container Builder](../features/remote-container-builder.md) and deploy them to your Kubernetes cluster. You can then visit the example project [via the link](http://vote.local.demo.garden/) output by Garden.
 
 The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
 

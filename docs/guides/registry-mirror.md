@@ -20,6 +20,6 @@ providers:
     utilImageRegistryDomain: https://<my-private-registry-domain>
 ```
 
-This option is available on all the Kubernetes plugins (i.e. `local-kubernetes`, `ephemeral-kubernetes`, and `kubernetes`).
+This option is available for both the `local-kubernetes` and `kubernetes` providers.
 
 Now when you run a Garden command, the utility images will be pulled from the registry mirror.

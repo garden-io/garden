@@ -25,9 +25,9 @@ You can also use the [Builds UI](https://app.garden.io) to view build logs and a
 
 ## Using the Remote Container Builder
 
-To use the Remote Container Builder you need to first [connect your project to Garden Cloud backend](../guides/connecting-project.md).
+To use the Remote Container Builder you need to first [connect your project to the Garden Cloud backend](../guides/connecting-project.md).
 
-Then you need to enable in your project level Garden configuration by adding the following provider config:
+Then you need to enable it in your project level Garden configuration by adding the following provider config:
 
 ```yaml
 
