@@ -260,7 +260,7 @@ providers:
         namespace: <the-secret-namespace>
 ```
 
-This also works for the `local-kubernetes` and `ephemeral-kubernetes` providers.
+This also works for the `local-kubernetes` provider.
 
 **Option 2 — Use a registry mirror:**
 
@@ -275,7 +275,7 @@ providers:
     utilImageRegistryDomain: https://<my-private-registry-domain>
 ```
 
-This also works for the `local-kubernetes` and `ephemeral-kubernetes` providers.
+This also works for the `local-kubernetes` provider.
 
 ## Local scripts
 
