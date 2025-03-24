@@ -229,7 +229,7 @@ export class GrowCloudApi {
 
   async uploadDockerBuildReport(dockerBuildReport: DockerBuildReport) {
     try {
-      return this.api.dockerBuild.create.mutate(dockerBuildReport)
+      return this.api.dockerBuild.create.mutate({ ...dockerBuildReport, organizationId: this.organizationId })
     } catch (err) {
       if (!(err instanceof TRPCClientError)) {
         throw err
@@ -246,6 +246,7 @@ export class GrowCloudApi {
   }: RegisterCloudBuildRequest): Promise<RegisterCloudBuildResponse> {
     try {
       return await this.api.cloudBuilder.registerBuild.mutate({
+        organizationId: this.organizationId,
         platforms,
         mtlsClientPublicKeyPEM,
       })
