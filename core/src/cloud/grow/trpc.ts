@@ -16,15 +16,24 @@ import { getPackageVersion } from "../../util/util.js"
 export type RouterOutput = inferRouterOutputs<AppRouter>
 export type RouterInput = inferRouterInputs<AppRouter>
 
-export type DockerBuildReport = RouterInput["dockerBuild"]["create"]
+/**
+ * Wrapper type for request parameters of the methods of the class {@link GrowCloudApi}.
 
-export type RegisterCloudBuildRequest = RouterInput["cloudBuilder"]["registerBuild"]
+ * Client code should not inject `organizationId` values explicitly.
+ * The `organizationId` is already known and stored in the {@link GrowCloudApi} class,
+ * so the class should use that value to compose tRPC request payloads.
+ */
+export type ClientRequest<T extends { organizationId?: string | undefined }> = Omit<T, "organizationId">
+
+export type DockerBuildReport = ClientRequest<RouterInput["dockerBuild"]["create"]>
+
+export type RegisterCloudBuildRequest = ClientRequest<RouterInput["cloudBuilder"]["registerBuild"]>
 export type RegisterCloudBuildResponse = RouterOutput["cloudBuilder"]["registerBuild"]
 
-export type GetActionResultRequest = RouterInput["actionCache"]["getEntry"]
+export type GetActionResultRequest = ClientRequest<RouterInput["actionCache"]["getEntry"]>
 export type GetActionResultResponse = RouterOutput["actionCache"]["getEntry"]
 
-export type CreateActionResultRequest = RouterInput["actionCache"]["createEntry"]
+export type CreateActionResultRequest = ClientRequest<RouterInput["actionCache"]["createEntry"]>
 export type CreateActionResultResponse = RouterOutput["actionCache"]["createEntry"]
 
 function cloudApiUrl(hostUrl: string): string {
