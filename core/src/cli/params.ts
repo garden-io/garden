@@ -113,9 +113,10 @@ export abstract class Parameter<T> {
     this._getSuggestions = getSuggestions
   }
 
-  // TODO: merge this and the parseString method?
   validate(input: T): T | undefined {
-    // TODO: make sure the error message thrown is nice and readable
+    // TODO: make sure the error is thrown,
+    //  its thrown is nice and readable,
+    //  and the output type is correct
     this.schema.validate(input)
     return input
   }
