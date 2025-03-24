@@ -30,7 +30,7 @@ import type { PluginContext } from "../../plugin-context.js"
 import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
 import type { CloudBuilderAvailableV2 } from "../../cloud/api.js"
-import { spawn, type SpawnOutput } from "../../util/util.js"
+import { renderTimeDurationMs, spawn, type SpawnOutput } from "../../util/util.js"
 import { isSecret, type Secret } from "../../util/secrets.js"
 import { tmpdir } from "os"
 import { join } from "path"
@@ -318,15 +318,21 @@ async function buildContainerInCloudBuilder(params: {
     name: `build.${params.action.name}`,
   })
   if (res.timeSaved > 0) {
-    log.success(`${styles.bold("Accelerated by Remote Container Builder - saved", formatDurationMs(res.timeSaved))}`)
+    log.success(styles.bold(`Accelerated by Remote Container Builder ${renderSavedTime(res.timeSaved)}`))
   }
   return res
+}
+
+function renderSavedTime(timeMs: number): string {
+  const renderedDuration = timeMs === 0 ? "" : formatDurationMs(timeMs)
+  return renderedDuration.length === 0 ? "" : `(saved ${renderedDuration})`
 }
 
 function formatDurationMs(durationMs: number) {
   if (durationMs < 1000) {
     return `${durationMs} ms`
   }
+
   const duration = intervalToDuration({
     start: new Date(0, 0, 0, 0, 0, 0, 0),
     end: new Date(0, 0, 0, 0, 0, 0, durationMs),
