@@ -18,7 +18,7 @@ export type RouterInput = inferRouterInputs<AppRouter>
 
 /**
  * Wrapper type for request parameters of the methods of the class {@link GrowCloudApi}.
-
+ *
  * Client code should not inject `organizationId` values explicitly.
  * The `organizationId` is already known and stored in the {@link GrowCloudApi} class,
  * so the class should use that value to compose tRPC request payloads.
