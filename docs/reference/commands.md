@@ -5378,7 +5378,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` |  | array:string | DEPRECATED: This option will be removed in 0.14. Please use a positional argument &quot;&lt;module name&gt;-&lt;test name&gt;&quot; or &quot;*-&lt;test name&gt;&quot; instead of of &quot;--name&quot;.
+  | `--name` |  | array:string | DEPRECATED: This option will be removed in 0.15. Please use a positional argument &quot;&lt;module name&gt;-&lt;test name&gt;&quot; or &quot;*-&lt;test name&gt;&quot; instead of &quot;--name&quot;.
 This option can be used to run all tests with the specified name (e.g. unit or integ) in declared in any module.
 Note: Since 0.13, using the --name option is equivalent to using the positional argument &quot;*-&lt;test name&gt;&quot;. This means that new tests declared using the new Action kinds will also be executed if their name matches this pattern.
 Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).

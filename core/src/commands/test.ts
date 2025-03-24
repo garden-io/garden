@@ -35,7 +35,7 @@ export const testOpts = {
   // TODO-0.15: remove it?
   "name": new StringsParameter({
     help: deline`
-      DEPRECATED: This option will be removed in 0.14. Please use a positional argument "<module name>-<test name>" or "*-<test name>" instead of of "--name".
+      DEPRECATED: This option will be removed in 0.15. Please use a positional argument "<module name>-<test name>" or "*-<test name>" instead of "--name".
 
       This option can be used to run all tests with the specified name (e.g. unit or integ) in declared in any module.
 
