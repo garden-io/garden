@@ -52,6 +52,7 @@ import { DEFAULT_DEPLOY_TIMEOUT_SEC, gardenEnv } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 import type { PluginContext } from "../../plugin-context.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
@@ -539,7 +540,11 @@ export const gardenPlugin = () =>
           staticOutputsSchema: containerDeployOutputsSchema(),
           handlers: {
             // Other handlers are implemented by other providers (e.g. kubernetes)
-            async configure({ config }) {
+            async configure({ config, log }) {
+              if (config.spec["localMode"]) {
+                reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
+              }
+
               return { config, supportedModes: { sync: !!config.spec.sync } satisfies ActionModes }
             },
 

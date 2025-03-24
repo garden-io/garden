@@ -33,6 +33,7 @@ import type { ArraySchema } from "@hapi/joi"
 import type { KubernetesDeployActionSpecFileSources } from "./common.js"
 import { getSpecFiles } from "./common.js"
 import type { ActionModes } from "../../../actions/types.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -105,7 +106,11 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
   schema: kubernetesDeploySchema(),
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
-    configure: async ({ ctx, config }) => {
+    configure: async ({ ctx, config, log }) => {
+      if (config.spec["localMode"]) {
+        reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
+      }
+
       if (!config.spec.kustomize) {
         if (!config.include) {
           config.include = []
