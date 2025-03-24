@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-import { DOCS_BASE_URL, GardenApiVersion } from "./constants.js"
+import { GardenApiVersion } from "./constants.js"
 import { ConfigurationError, InternalError } from "./exceptions.js"
 import type { ProjectConfig } from "./config/project.js"
 import { styles } from "./logger/styles.js"
