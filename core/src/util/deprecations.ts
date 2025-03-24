@@ -38,12 +38,6 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Use the ${style("sync mode")} instead. You can also consider using [mirrord](https://mirrord.dev/) or [telepresence](https://www.telepresence.io/).
       `,
     },
-    dummy: {
-      docsSection: "Garden plugins",
-      docsHeadline: `${style("container")} provider configuration`,
-      warnHint: `The ${style("gardenCloudBuilder")} setting in the ${style("container")} provider configuration has been renamed to ${style("gardenContainerBuilder")}. Use the setting ${style("gardenContainerBuilder")} instead of ${style("gardenCloudBuilder")}.`,
-      docs: null,
-    },
   } as const
 }
 

@@ -20,7 +20,6 @@ import { TemplateStringError, truncateRawTemplateString } from "./errors.js"
 import { styles } from "../logger/styles.js"
 import { GardenApiVersion } from "../constants.js"
 import { getGlobalProjectApiVersion } from "../project-api-version.js"
-import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 import { RootLogger } from "../logger/logger.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 
@@ -541,11 +540,6 @@ export class FormatStringExpression extends TemplateExpression {
     // TODO(0.14.1): remove this dead code branch - we no longer support the apiVersion v1
     if (apiVersion === GardenApiVersion.v1 && isOptional) {
       const log = RootLogger.getInstance().createLog()
-
-      reportDeprecatedFeatureUsage({
-        log,
-        deprecation: "dummy",
-      })
 
       const yamlContext = getYamlContext(args.yamlSource)
       const locationDesc = yamlContext || styles.highlight(truncateRawTemplateString(this.rawText))
