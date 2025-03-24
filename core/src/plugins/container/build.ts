@@ -30,14 +30,13 @@ import type { PluginContext } from "../../plugin-context.js"
 import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
 import type { CloudBuilderAvailableV2 } from "../../cloud/api.js"
-import { spawn, type SpawnOutput } from "../../util/util.js"
+import { renderTimeDurationMs, spawn, type SpawnOutput } from "../../util/util.js"
 import { isSecret, type Secret } from "../../util/secrets.js"
 import { tmpdir } from "os"
 import { join } from "path"
 import { mkdtemp, readFile } from "fs/promises"
 import type { DockerBuildReport } from "../../cloud/grow/trpc.js"
 import type { ActionRuntime } from "../../plugin/base.js"
-import { formatDuration, intervalToDuration } from "date-fns"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -318,20 +317,14 @@ async function buildContainerInCloudBuilder(params: {
     name: `build.${params.action.name}`,
   })
   if (res.timeSaved > 0) {
-    log.success(`${styles.bold("Accelerated by Garden Container Builder - saved", formatDurationMs(res.timeSaved))}`)
+    log.success(styles.bold(`Accelerated by Remote Container Builder ${renderSavedTime(res.timeSaved)}`))
   }
   return res
 }
 
-function formatDurationMs(durationMs: number) {
-  if (durationMs < 1000) {
-    return `${durationMs} ms`
-  }
-  const duration = intervalToDuration({
-    start: new Date(0, 0, 0, 0, 0, 0, 0),
-    end: new Date(0, 0, 0, 0, 0, 0, durationMs),
-  })
-  return formatDuration(duration, { format: ["hours", "minutes", "seconds"] })
+function renderSavedTime(timeMs: number): string {
+  const renderedDuration = timeMs === 0 ? "" : renderTimeDurationMs(timeMs)
+  return renderedDuration.length === 0 ? "" : `(saved ${renderedDuration})`
 }
 
 async function getDockerMetadata(filePath: string, log: ActionLog) {

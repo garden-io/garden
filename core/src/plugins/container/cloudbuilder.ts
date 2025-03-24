@@ -86,17 +86,17 @@ function makeNotLoggedInError({ isInClusterBuildingConfigured }: CloudBuilderCon
 
   return new ConfigurationError({
     message: dedent`
-        You are not logged in. Run ${styles.command("garden login")} so Garden Container Builder can speed up your container builds.
+        You are not logged in. Run ${styles.command("garden login")} so Remote Container Builder can speed up your container builds.
 
-        If you can't log in right now, disable Garden Container Builder using the environment variable ${styles.bold("GARDEN_CONTAINER_BUILDER=0")}. ${fallbackDescription}`,
+        If you can't log in right now, disable Remote Container Builder using the environment variable ${styles.bold("GARDEN_CONTAINER_BUILDER=0")}. ${fallbackDescription}`,
   })
 }
 
 function makeVersionMismatchWarning({ isInClusterBuildingConfigured }: CloudBuilderConfiguration) {
   return dedent`
-    ${styles.bold("Update Garden to continue to benefit from Garden Container Builder.")}
+    ${styles.bold("Update Garden to continue to benefit from Remote Container Builder.")}
 
-    Your current Garden version is not supported anymore by Garden Container Builder. Please update Garden to the latest version.
+    Your current Garden version is not supported anymore by Remote Container Builder. Please update Garden to the latest version.
 
     Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
 
@@ -234,7 +234,7 @@ class CloudBuilder {
       emitNonRepeatableWarning(
         ctx.log,
         dedent`
-          ${styles.bold("Garden Container Builder is not available.")}
+          ${styles.bold("Remote Container Builder is not available.")}
 
           Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
 

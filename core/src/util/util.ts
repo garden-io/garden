@@ -801,8 +801,16 @@ export function renderTimeUnit(amount: number, unit: "hour" | "minute" | "second
 
 export function renderTimeDuration(start: Date, end: Date): string {
   const durationMs = end.getTime() - start.getTime()
+  return renderTimeDurationMs(durationMs)
+}
+
+export function renderTimeDurationMs(durationMs: number): string {
   if (durationMs === 0) {
     return ""
+  }
+
+  if (durationMs < 1000) {
+    return `${durationMs} ms`
   }
 
   const durationSec = round(durationMs / 1000, 2)

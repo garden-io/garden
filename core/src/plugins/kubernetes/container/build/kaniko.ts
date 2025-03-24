@@ -96,7 +96,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     throw new ConfigurationError({
       message: dedent`
         Unfortunately Kaniko does not support secret build arguments.
-        Garden Container Builder and the Kubernetes BuildKit in-cluster builder both support secrets.
+        Remote Container Builder and the Kubernetes BuildKit in-cluster builder both support secrets.
 
         See also https://github.com/GoogleContainerTools/kaniko/issues/3028
       `,
