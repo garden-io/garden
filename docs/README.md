@@ -84,6 +84,7 @@
 * [Minimal RBAC Configuration for Development Clusters](./guides/rbac-config.md)
 * [Deploying to Production](./guides/deploying-to-production.md)
 * [Using a Registry Mirror](./guides/registry-mirror.md)
+* [Local mode](./guides/deprecations.md)
 
 ## Reference
 
