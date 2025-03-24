@@ -75,8 +75,6 @@ export const kubernetesModuleSpecSchema = () =>
         )
         .keys({
           containerModule: containerModuleSchema(),
-          // TODO: remove in 0.14 (not used, kept for compatibility)
-          hotReloadArgs: joi.any().meta({ internal: true }),
         }),
       tasks: joiSparseArray(kubernetesTaskSchema()),
       tests: joiSparseArray(kubernetesTestSchema()),
