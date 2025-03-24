@@ -319,75 +319,36 @@ export const containerSyncPathSchema = createSchema({
   rename: [["sync", "paths"]],
 })
 
-const defaultLocalModeRestartDelayMsec = 1000
-const defaultLocalModeMaxRestarts = Number.POSITIVE_INFINITY
-
 export const localModeRestartSchema = createSchema({
   name: "local-mode-restart",
-  description: `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`,
   keys: () => ({
-    delayMsec: joi
-      .number()
-      .integer()
-      .greater(-1)
-      .optional()
-      .default(defaultLocalModeRestartDelayMsec)
-      .description(
-        `Delay in milliseconds between the local application restart attempts. The default value is ${defaultLocalModeRestartDelayMsec}ms.`
-      ),
-    max: joi
-      .number()
-      .integer()
-      .greater(-1)
-      .optional()
-      .default(defaultLocalModeMaxRestarts)
-      .allow(defaultLocalModeMaxRestarts)
-      .description("Max number of the local application restarts. Unlimited by default."),
+    delayMsec: joi.number().integer().optional().meta({ internal: true }),
+    max: joi.number().integer().optional().meta({ internal: true }),
   }),
   options: { presence: "optional" },
-  default: {
-    delayMsec: defaultLocalModeRestartDelayMsec,
-    max: defaultLocalModeMaxRestarts,
-  },
+  meta: { internal: true },
 })
 
 export const localModePortsSchema = createSchema({
   name: "local-mode-port",
   keys: () => ({
-    local: joi
-      .number()
-      .integer()
-      .greater(0)
-      .optional()
-      .description("The local port to be used for reverse port-forward."),
-    remote: joi
-      .number()
-      .integer()
-      .greater(0)
-      .optional()
-      .description("The remote port to be used for reverse port-forward."),
+    local: joi.number().integer().optional().meta({ internal: true }),
+    remote: joi.number().integer().optional().meta({ internal: true }),
   }),
+  meta: { internal: true },
 })
 
 export const containerLocalModeSchema = createSchema({
   name: "container-local-mode",
   description: `This feature has been deleted.`,
   keys: () => ({
-    ports: joi
-      .array()
-      .items(localModePortsSchema())
-      .description("The reverse port-forwards configuration for the local application."),
-    command: joi
-      .sparseArray()
-      .optional()
-      .items(joi.string())
-      .description(
-        "The command to run the local application. If not present, then the local application should be started manually."
-      ),
+    ports: joi.array().optional().items(localModePortsSchema()).meta({ internal: true }),
+    command: joi.sparseArray().optional().items(joi.string()).meta({ internal: true }),
     restart: localModeRestartSchema(),
   }),
   meta: {
     deprecated: makeDeprecationMessage({ deprecation: "localMode" }),
+    internal: true,
   },
 })
 

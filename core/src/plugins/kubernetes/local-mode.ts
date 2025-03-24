@@ -8,13 +8,17 @@
 
 import { containerLocalModeSchema } from "../container/config.js"
 
-import { targetResourceSpecSchema } from "./config.js"
+import { joi } from "../../config/common.js"
 
 export const kubernetesLocalModeSchema = () =>
-  containerLocalModeSchema()
-    .keys({
-      target: targetResourceSpecSchema().description(
-        "The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`."
-      ),
-    })
-    .description(`This feature has been deleted.`)
+  containerLocalModeSchema().keys({
+    target: joi
+      .object()
+      .keys({
+        kind: joi.string().optional().meta({ internal: true }),
+        name: joi.string().optional().meta({ internal: true }),
+        podSelector: joi.string().optional().meta({ internal: true }),
+        containerName: joi.string().optional().meta({ internal: true }),
+      })
+      .meta({ internal: true }),
+  })
