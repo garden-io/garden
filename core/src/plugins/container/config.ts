@@ -695,6 +695,7 @@ export const containerDeploySchemaKeys = memoize(() => ({
 export const containerDeploySchema = createSchema({
   name: "container-deploy",
   keys: containerDeploySchemaKeys,
+  // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
   rename: [["devMode", "sync"]],
   meta: { name: "container-deploy" },
 })

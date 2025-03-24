@@ -81,6 +81,7 @@ export const kubernetesModuleSpecSchema = () =>
       tasks: joiSparseArray(kubernetesTaskSchema()),
       tests: joiSparseArray(kubernetesTestSchema()),
     })
+    // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
     .rename("devMode", "sync")
 
 export async function configureKubernetesModule({

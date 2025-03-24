@@ -122,6 +122,7 @@ const containerServiceSchema = () =>
       sync: containerSyncPathSchema(),
       volumes: moduleVolumesSchema(),
     })
+    // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
     .rename("devMode", "sync")
 
 export const containerModuleSpecSchema = () =>
