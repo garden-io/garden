@@ -32,6 +32,7 @@ import { actionKinds } from "../actions/types.js"
 import { fileURLToPath } from "node:url"
 import dedent from "dedent"
 import { getDeprecations } from "../util/deprecations.js"
+import { isErrnoException } from "../exceptions.js"
 
 const { writeFileSync, readFile, writeFile, mkdirp } = fsExtra
 
@@ -207,7 +208,20 @@ export async function writeConfigReferenceDocs(
 
 export async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename: string) {
   const guide = resolve(docsRoot, deprecationGuideFilename)
-  const contents = (await readFile(guide)).toString()
+  let contents: string
+  try {
+    contents = (await readFile(guide)).toString()
+  } catch (err) {
+    if (!isErrnoException(err)) {
+      throw err
+    }
+
+    if (err.code !== "ENOENT") {
+      throw err
+    }
+
+    contents = ""
+  }
 
   const marker = "<!-- DO NOT CHANGE BELOW - AUTO-GENERATED -->"
 
