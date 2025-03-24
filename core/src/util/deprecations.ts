@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
+import { DOCS_BASE_URL } from "../constants.js"
 import { styles } from "../logger/styles.js"
 import { GardenError } from "../exceptions.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
-import { getGlobalProjectApiVersion } from "../project-api-version.js"
+import { deline } from "./string.js"
 
 const deprecatedPluginNames = [] as const
 export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
@@ -26,14 +26,15 @@ export function isDeprecatedPlugin(pluginName: string): pluginName is Deprecated
 }
 
 // This is called by `updateDeprecationGuide` to update deprecations.md in the docs automatically.
-// TODO: uncomment `updateDeprecationGuide` in the docs generator once we have added the first deprecation.
 export function getDeprecations(style: (s: string) => string = styles.highlight) {
   return {
-    // TODO: add real deprecations for 0.15 here, without dummy deprecation there are type errors.
-    dummy: {
-      docsSection: "Garden plugins",
-      docsHeadline: `${style("container")} provider configuration`,
-      warnHint: `The ${style("gardenCloudBuilder")} setting in the ${style("container")} provider configuration has been renamed to ${style("gardenContainerBuilder")}. Use the setting ${style("gardenContainerBuilder")} instead of ${style("gardenCloudBuilder")}.`,
+    localMode: {
+      docsSection: "Local mode",
+      docsHeadline: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
+      warnHint: deline`
+        The local-mode feature was completely removed in 0.14, and the ${style("spec.localMode")} configuration syntax has no effect.
+        Please remove all ${style("spec.localMode")} entries rom your configuration files.
+      `,
       docs: null,
     },
   } as const
@@ -103,16 +104,15 @@ type DeprecationWarningParams = {
 }
 
 export function reportDeprecatedFeatureUsage({ log, deprecation }: DeprecationWarningParams) {
-  const apiVersion = getGlobalProjectApiVersion()
-
-  const docs = getDeprecations(styles.highlight)[deprecation]
-
-  if (apiVersion === GardenApiVersion.v2) {
-    throw new FeatureNotAvailable({
-      hint: docs.warnHint,
-      link: `${DOCS_DEPRECATION_GUIDE}#${deprecation.toLowerCase()}`,
-    })
-  }
+  // TODO: throw it for GardenApiVersion.v3
+  // const apiVersion = getGlobalProjectApiVersion()
+  // const docs = getDeprecations(styles.highlight)[deprecation]
+  // if (apiVersion === GardenApiVersion.v2) {
+  //   throw new FeatureNotAvailable({
+  //     hint: docs.warnHint,
+  //     link: `${DOCS_DEPRECATION_GUIDE}#${deprecation.toLowerCase()}`,
+  //   })
+  // }
 
   const warnMessage = makeDeprecationMessage({ deprecation, includeLink: true, style: true })
   emitNonRepeatableWarning(log, `\nWARNING: ${warnMessage}\n`)

@@ -33,6 +33,7 @@ import { templateStringLiteral } from "../../docs/common.js"
 import { syncGuideLink } from "../kubernetes/constants.js"
 import { makeSecret, type Secret } from "../../util/secrets.js"
 import type { ActionKind } from "../../plugin/action-types.js"
+import { makeDeprecationMessage } from "../../util/deprecations.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -316,6 +317,39 @@ export const containerSyncPathSchema = createSchema({
       .description("Specify one or more source files or directories to automatically sync with the running container."),
   }),
   rename: [["sync", "paths"]],
+})
+
+export const localModeRestartSchema = createSchema({
+  name: "local-mode-restart",
+  keys: () => ({
+    delayMsec: joi.number().integer().optional().meta({ internal: true }),
+    max: joi.number().integer().optional().meta({ internal: true }),
+  }),
+  options: { presence: "optional" },
+  meta: { internal: true },
+})
+
+export const localModePortsSchema = createSchema({
+  name: "local-mode-port",
+  keys: () => ({
+    local: joi.number().integer().optional().meta({ internal: true }),
+    remote: joi.number().integer().optional().meta({ internal: true }),
+  }),
+  meta: { internal: true },
+})
+
+export const containerLocalModeSchema = createSchema({
+  name: "container-local-mode",
+  description: `This feature has been deleted.`,
+  keys: () => ({
+    ports: joi.array().optional().items(localModePortsSchema()).meta({ internal: true }),
+    command: joi.sparseArray().optional().items(joi.string()).meta({ internal: true }),
+    restart: localModeRestartSchema(),
+  }),
+  meta: {
+    deprecated: makeDeprecationMessage({ deprecation: "localMode" }),
+    internal: true,
+  },
 })
 
 const annotationsSchema = memoize(() =>
@@ -672,6 +706,7 @@ export const containerDeploySchemaKeys = memoize(() => ({
       May not be supported by all providers.
     `),
   sync: containerSyncPathSchema(),
+  localMode: containerLocalModeSchema(),
   image: containerImageSchema(),
   ingresses: joiSparseArray(ingressSchema())
     .description("List of ingress endpoints that the service exposes.")

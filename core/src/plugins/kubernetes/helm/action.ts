@@ -23,6 +23,7 @@ import { helmGetSyncStatus, helmStartSync } from "./sync.js"
 import { makeDocsLinkPlain } from "../../../docs/common.js"
 import { helmVersion } from "./helm-cli.js"
 import type { ActionModes } from "../../../actions/types.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export const getHelmDeployDocs = () => dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
@@ -61,7 +62,11 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
       return getPortForwardHandler({ ...params, namespace })
     },
 
-    configure: async ({ config }) => {
+    configure: async ({ config, log }) => {
+      if (config.spec["localMode"]) {
+        reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
+      }
+
       const chartPath = config.spec.chart?.path
       const containsSources = !!chartPath
 
