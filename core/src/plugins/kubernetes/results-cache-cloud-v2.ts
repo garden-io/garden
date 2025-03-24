@@ -58,17 +58,10 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
     return "Team Cache"
   }
 
-  private getOrganizationId(): string {
-    return this.cloudApi.organizationId
-  }
-
   public async get(cacheKey: string, action: Action): Promise<ResultContainer<JsonObject>> {
     try {
-      const organizationId = this.getOrganizationId()
-
       const response: GetActionResultResponse = await this.cloudApi.getActionResult({
         schemaVersion: this.schemaVersion,
-        organizationId,
         actionRef: actionReferenceToString(action),
         actionType: action.type,
         cacheKey,
@@ -104,11 +97,8 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
    */
   public async put(cacheKey: string, value: RunResult, action: Action): Promise<RunResult> {
     try {
-      const organizationId = this.getOrganizationId()
-
       await this.cloudApi.createActionResult({
         schemaVersion: this.schemaVersion,
-        organizationId,
         actionRef: actionReferenceToString(action),
         actionType: action.type,
         cacheKey,

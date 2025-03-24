@@ -268,7 +268,6 @@ export class GrowCloudApi {
 
   async getActionResult({
     schemaVersion,
-    organizationId,
     actionRef,
     actionType,
     cacheKey,
@@ -276,7 +275,7 @@ export class GrowCloudApi {
     try {
       return await this.api.actionCache.getEntry.query({
         schemaVersion,
-        organizationId,
+        organizationId: this.organizationId,
         actionRef,
         actionType,
         cacheKey,
@@ -292,7 +291,6 @@ export class GrowCloudApi {
 
   async createActionResult({
     schemaVersion,
-    organizationId,
     actionRef,
     actionType,
     cacheKey,
@@ -303,7 +301,7 @@ export class GrowCloudApi {
     try {
       return await this.api.actionCache.createEntry.mutate({
         schemaVersion,
-        organizationId,
+        organizationId: this.organizationId,
         actionRef,
         actionType,
         cacheKey,
