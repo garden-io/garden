@@ -144,7 +144,7 @@ export const containerModuleSpecSchema = () =>
         If neither \`include\` nor \`exclude\` is set, and the module
         specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
       `),
-      // TODO: remove in 0.14, keeping around to avoid config failures
+      // TODO(deprecation): deprecate in 0.14
       hotReload: joi.any().meta({ internal: true }),
       dockerfile: joi
         .posixPath()

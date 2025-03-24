@@ -75,7 +75,7 @@ export const kubernetesModuleSpecSchema = () =>
         )
         .keys({
           containerModule: containerModuleSchema(),
-          // TODO: remove in 0.14 (not used, kept for compatibility)
+          // TODO(deprecation): deprecate in 0.14
           hotReloadArgs: joi.any().meta({ internal: true }),
         }),
       tasks: joiSparseArray(kubernetesTaskSchema()),
