@@ -12,14 +12,14 @@ environments:
       show-log: true
 providers:
   - name: kubernetes
-    environments: [testing]
+    environments: [ testing ]
     context: gke_garden-ci_europe-west1-b_core-ci
     namespace: e2e-tests
     defaultHostname: dev-1.sys.garden
     buildMode: cluster-buildkit
     setupIngressController: nginx
   - name: local-kubernetes
-    environments: [local]
+    environments: [ local ]
 variables:
   timeout: 360
   show-log: false

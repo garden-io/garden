@@ -30,6 +30,7 @@ import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
 import { TRPCClientError } from "@trpc/client"
 import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
+import { handleServerNotices } from "./notices.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -159,6 +160,9 @@ export class GrowCloudApi {
     const verificationResult = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.verifyToken.query({
       token: authToken,
     })
+
+    handleServerNotices(verificationResult.notices, cloudLog)
+
     if (!verificationResult.valid) {
       log.debug({ msg: `The stored token was not valid.` })
       return undefined
