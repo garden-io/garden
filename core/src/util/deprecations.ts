@@ -12,6 +12,7 @@ import { GardenError } from "../exceptions.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
 import { getGlobalProjectApiVersion } from "../project-api-version.js"
+import { dedent } from "./string.js"
 
 const deprecatedPluginNames = [] as const
 export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
@@ -26,10 +27,18 @@ export function isDeprecatedPlugin(pluginName: string): pluginName is Deprecated
 }
 
 // This is called by `updateDeprecationGuide` to update deprecations.md in the docs automatically.
-// TODO: uncomment `updateDeprecationGuide` in the docs generator once we have added the first deprecation.
 export function getDeprecations(style: (s: string) => string = styles.highlight) {
   return {
-    // TODO: add real deprecations for 0.15 here, without dummy deprecation there are type errors.
+    localMode: {
+      docsSection: "Local mode",
+      docsHeadline: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
+      warnHint: dedent`
+        The local-mode feature was removed in 0.14, and the ${style("spec.localMode")} configuration syntax has no effect.
+      `,
+      docs: dedent`
+        Use the ${style("sync mode")} instead. You can also consider using [mirrord](https://mirrord.dev/) or [telepresence](https://www.telepresence.io/).
+      `,
+    },
     dummy: {
       docsSection: "Garden plugins",
       docsHeadline: `${style("container")} provider configuration`,

@@ -538,6 +538,7 @@ export class FormatStringExpression extends TemplateExpression {
     const apiVersion = getGlobalProjectApiVersion()
     const isOptional = this.isOptional(apiVersion)
 
+    // TODO(0.14.1): remove this dead code branch - we no longer support the apiVersion v1
     if (apiVersion === GardenApiVersion.v1 && isOptional) {
       const log = RootLogger.getInstance().createLog()
 

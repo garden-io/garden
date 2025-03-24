@@ -332,6 +332,44 @@ sync:
   # workload is used.
   containerName:
 
+# This feature has been deleted.
+localMode:
+  # The reverse port-forwards configuration for the local application.
+  ports:
+    - # The local port to be used for reverse port-forward.
+      local:
+
+      # The remote port to be used for reverse port-forward.
+      remote:
+
+  # The command to run the local application. If not present, then the local application should be started manually.
+  command:
+
+  # Specifies restarting policy for the local application. By default, the local application will be restarting
+  # infinitely with 1000ms between attempts.
+  restart:
+    # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+    delayMsec: 1000
+
+    # Max number of the local application restarts. Unlimited by default.
+    max: .inf
+
+  # The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
+  target:
+    # The kind of Kubernetes resource to find.
+    kind:
+
+    # The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
+    name:
+
+    # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with
+    # matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+    podSelector:
+
+    # The name of a container in the target. Specify this if the target contains more than one container and the main
+    # container is not the first container in the spec.
+    containerName:
+
 # The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module
 # (not to be confused with Kubernetes Service resources).
 #
@@ -1276,6 +1314,138 @@ Set the default group on files and directories at the target. Specify either an 
 [sync](#sync) > containerName
 
 Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `localMode`
+
+{% hint style="warning" %}
+**Deprecated**: The local-mode feature was removed in 0.14, and the `spec.localMode` configuration syntax has no effect.
+{% endhint %}
+
+This feature has been deleted.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `localMode.ports[]`
+
+[localMode](#localmode) > ports
+
+The reverse port-forwards configuration for the local application.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `localMode.ports[].local`
+
+[localMode](#localmode) > [ports](#localmodeports) > local
+
+The local port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `localMode.ports[].remote`
+
+[localMode](#localmode) > [ports](#localmodeports) > remote
+
+The remote port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `localMode.command[]`
+
+[localMode](#localmode) > command
+
+The command to run the local application. If not present, then the local application should be started manually.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `localMode.restart`
+
+[localMode](#localmode) > restart
+
+Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
+
+| Type     | Default                         | Required |
+| -------- | ------------------------------- | -------- |
+| `object` | `{"delayMsec":1000,"max":null}` | No       |
+
+### `localMode.restart.delayMsec`
+
+[localMode](#localmode) > [restart](#localmoderestart) > delayMsec
+
+Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `localMode.restart.max`
+
+[localMode](#localmode) > [restart](#localmoderestart) > max
+
+Max number of the local application restarts. Unlimited by default.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
+
+### `localMode.target`
+
+[localMode](#localmode) > target
+
+The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `localMode.target.kind`
+
+[localMode](#localmode) > [target](#localmodetarget) > kind
+
+The kind of Kubernetes resource to find.
+
+| Type     | Allowed Values                           | Required |
+| -------- | ---------------------------------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | Yes      |
+
+### `localMode.target.name`
+
+[localMode](#localmode) > [target](#localmodetarget) > name
+
+The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `localMode.target.podSelector`
+
+[localMode](#localmode) > [target](#localmodetarget) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `localMode.target.containerName`
+
+[localMode](#localmode) > [target](#localmodetarget) > containerName
+
+The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
 
 | Type     | Required |
 | -------- | -------- |
