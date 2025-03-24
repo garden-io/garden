@@ -40,7 +40,7 @@ export const configSchema = () =>
   kubernetesConfigBase()
     .keys({
       name: joiProviderName("local-kubernetes"),
-      context: k8sContextSchema().optional().allow(null),
+      context: k8sContextSchema().optional().empty(["", null]),
       namespace: namespaceSchema().description(
         "Specify which namespace to deploy services to (defaults to the project name). " +
           "Note that the framework generates other namespaces as well with this name as a prefix."
