@@ -55,7 +55,7 @@ export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggigno
 
 export const DOCS_BASE_URL = "https://docs.garden.io/cedar-0.14"
 
-export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://beta.app.garden.io"
+export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
 export const DEFAULT_BROWSER_DIVIDER_WIDTH = 80
 
