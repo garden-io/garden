@@ -1,4 +1,16 @@
 
+<a name="0.13.56"></a>
+## [0.13.56](https://github.com/garden-io/garden/compare/0.13.55...0.13.56) (2025-03-23)
+
+### Bug Fixes
+
+* add deprecation for action volume references, as that's implied when deprecating `persistentvolumeclaim` and `configmap` action types ([#6976](https://github.com/garden-io/garden/issues/6976))
+* reduce scope of the `build` deprecation to the `container` type ([#6972](https://github.com/garden-io/garden/issues/6972))
+
+### Improvements
+
+* **core**: fixes to output reference logic ([#6983](https://github.com/garden-io/garden/issues/6983))
+
 <a name="0.13.55"></a>
 ## [0.13.55](https://github.com/garden-io/garden/compare/0.13.54...0.13.55) (2025-03-11)
 
