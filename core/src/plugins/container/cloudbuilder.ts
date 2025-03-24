@@ -8,7 +8,7 @@
 import type { PluginContext } from "../../plugin-context.js"
 import type { Resolved } from "../../actions/types.js"
 import type { ContainerBuildAction } from "./config.js"
-import { ConfigurationError, InternalError, isErrnoException } from "../../exceptions.js"
+import { InternalError, isErrnoException } from "../../exceptions.js"
 import type { ContainerProvider, ContainerProviderConfig } from "./container.js"
 import dedent from "dedent"
 import { styles } from "../../logger/styles.js"
