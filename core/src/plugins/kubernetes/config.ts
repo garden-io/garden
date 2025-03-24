@@ -1003,6 +1003,7 @@ export const resourcesSchema = () =>
             defaults if you have many concurrent users.
           `
         )
+        // TODO(deprecation): deprecate in 0.14
         .meta({
           deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
         }),

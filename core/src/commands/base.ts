@@ -852,7 +852,7 @@ export const processCommandResultSchema = createSchema({
       .description(
         "Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them."
       )
-      .meta({ keyPlaceholder: "<Build name>", deprecated: true }),
+      .meta({ keyPlaceholder: "<Build name>", deprecated: true }), // TODO(deprecation): deprecate in 0.14
     deploy: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
       .description("A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.")
       .meta({ keyPlaceholder: "<Deploy name>" }),
@@ -860,7 +860,7 @@ export const processCommandResultSchema = createSchema({
       .description(
         "Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status."
       )
-      .meta({ keyPlaceholder: "<Deploy name>", deprecated: true }),
+      .meta({ keyPlaceholder: "<Deploy name>", deprecated: true }), // TODO(deprecation): deprecate in 0.14
     test: joiStringMap(testResultForExportSchema())
       .description("A map of all Tests that were executed (or scheduled/attempted) and the Test results.")
       .meta({ keyPlaceholder: "<Test name>" }),
@@ -868,7 +868,7 @@ export const processCommandResultSchema = createSchema({
       .description(
         "Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results."
       )
-      .meta({ keyPlaceholder: "<Test name>", deprecated: true }),
+      .meta({ keyPlaceholder: "<Test name>", deprecated: true }), // TODO(deprecation): deprecate in 0.14
     run: joiStringMap(runResultForExportSchema())
       .description("A map of all Runs that were executed (or scheduled/attempted) and the Run results.")
       .meta({ keyPlaceholder: "<Run name>" }),
@@ -876,7 +876,7 @@ export const processCommandResultSchema = createSchema({
       .description(
         "Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results."
       )
-      .meta({ keyPlaceholder: "<Run name>", deprecated: true }),
+      .meta({ keyPlaceholder: "<Run name>", deprecated: true }), // TODO(deprecation): deprecate in 0.14
   }),
 })
 

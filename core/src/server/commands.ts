@@ -316,7 +316,7 @@ export const serverRequestSchema = createSchema({
       .description(
         "Array of args to append to the given command. Kept for backwards compatibility (it's now enough to just use the command string."
       )
-      .meta({ deprecated: true }),
+      .meta({ deprecated: true }), // TODO(deprecation): deprecate in 0.14
     internal: joi
       .boolean()
       .description(
