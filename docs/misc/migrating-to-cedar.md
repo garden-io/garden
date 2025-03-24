@@ -1,6 +1,6 @@
 ---
 order: 6
-title: Migrating to Bonsai
+title: Migrating to Cedar
 ---
 
 # Migrating to Cedar
