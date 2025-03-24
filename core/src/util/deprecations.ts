@@ -41,9 +41,9 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
 export type Deprecation = keyof ReturnType<typeof getDeprecations>
 
-export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
-export const DOCS_MIGRATION_GUIDE_CEDAR = `${DOCS_BASE_URL}/guides/migrating-to-cedar`
-export const DOCS_MIGRATION_GUIDE_BONSAI = `${DOCS_BASE_URL}/guides/migrating-to-bonsai`
+export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/misc/deprecations`
+export const DOCS_MIGRATION_GUIDE_CEDAR = `${DOCS_BASE_URL}/misc/migrating-to-cedar`
+export const DOCS_MIGRATION_GUIDE_BONSAI = `${DOCS_BASE_URL}/misc/migrating-to-bonsai`
 
 export const CURRENT_MAJOR_VERSION = `0.14`
 export const NEXT_MAJOR_VERSION = `the next major release.`
