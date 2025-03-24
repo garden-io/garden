@@ -79,19 +79,6 @@ async function retrieveAvailabilityFromCloud(params: {
   }
 }
 
-function makeNotLoggedInError({ isInClusterBuildingConfigured }: CloudBuilderConfiguration) {
-  const fallbackDescription = isInClusterBuildingConfigured
-    ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
-    : `This forces Garden to use the fall-back option to build images locally.`
-
-  return new ConfigurationError({
-    message: dedent`
-        You are not logged in. Run ${styles.command("garden login")} so Remote Container Builder can speed up your container builds.
-
-        If you can't log in right now, disable Remote Container Builder using the environment variable ${styles.bold("GARDEN_CONTAINER_BUILDER=0")}. ${fallbackDescription}`,
-  })
-}
-
 function makeVersionMismatchWarning({ isInClusterBuildingConfigured }: CloudBuilderConfiguration) {
   return dedent`
     ${styles.bold("Update Garden to continue to benefit from Remote Container Builder.")}
@@ -127,8 +114,11 @@ abstract class AbstractCloudBuilderAvailabilityRetriever<T extends CloudApi> {
 
   public async get({ ctx, action, config }: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
     const cloudApi = this.getCloudApi(ctx)
+
     if (!cloudApi) {
-      throw makeNotLoggedInError(config)
+      throw new InternalError({
+        message: "Cloud API is not available, cloud builder should be disabled",
+      })
     }
 
     const { publicKeyPem } = await getMtlsKeyPair()
@@ -338,25 +328,34 @@ export const cloudBuilder = new CloudBuilder()
 
 function isContainerBuilderEnabled({
   containerProviderConfig,
+  ctx,
 }: {
   ctx: PluginContext
   containerProviderConfig: ContainerProviderConfig
 }) {
-  // handle new config
-  if (!!containerProviderConfig.gardenContainerBuilder) {
-    let isCloudBuilderEnabled = containerProviderConfig.gardenContainerBuilder.enabled || false
+  // TODO: we don't know here if the project is connected to cloud
+  // if (!isLoggedIn && ctx.isProjectConnectedToCloud) {
+  //  log.warn(`Container Builder is not available in offline mode.`)
+  // }
 
-    // The env variable GARDEN_CONTAINER_BUILDER can be used to override the gardenContainerBuilder.enabled config setting.
-    // It will be undefined, if the variable is not set and true/false if GARDEN_CONTAINER_BUILDER=1 or GARDEN_CONTAINER_BUILDER=0.
-    const overrideFromEnv = gardenEnv.GARDEN_CONTAINER_BUILDER
-    if (overrideFromEnv !== undefined) {
-      isCloudBuilderEnabled = overrideFromEnv
-    }
+  // container builder is enabled by default if you're logged in to the new backend
+  // this already takes into account offline mode etc
+  const isEnabledByDefault = !!ctx.cloudApiV2
 
-    return isCloudBuilderEnabled
+  // container builder can be disabled explicitly in the config
+  const explicitConfig = containerProviderConfig.gardenContainerBuilder?.enabled
+  let isCloudBuilderEnabled = explicitConfig === undefined ? isEnabledByDefault : explicitConfig
+
+  // The env variable GARDEN_CONTAINER_BUILDER can be used to override the gardenContainerBuilder.enabled config setting.
+  // It will be undefined, if the variable is not set and true/false if GARDEN_CONTAINER_BUILDER=1 or GARDEN_CONTAINER_BUILDER=0.
+  const overrideFromEnv = gardenEnv.GARDEN_CONTAINER_BUILDER
+  if (overrideFromEnv !== undefined) {
+    isCloudBuilderEnabled = overrideFromEnv
   }
 
-  return false
+  // if not logged in, let's not attempt retrieving the availability
+  const isLoggedIn = !!ctx.cloudApi || !!ctx.cloudApiV2
+  return isLoggedIn && isCloudBuilderEnabled
 }
 
 function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
