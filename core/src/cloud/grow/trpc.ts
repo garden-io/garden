@@ -11,6 +11,7 @@ import { createTRPCClient, httpLink, loggerLink } from "@trpc/client"
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import superjson from "superjson"
 import type { AppRouter } from "./trpc-schema.js"
+import { getPackageVersion } from "../../util/util.js"
 
 export type RouterOutput = inferRouterOutputs<AppRouter>
 export type RouterInput = inferRouterInputs<AppRouter>
@@ -49,6 +50,9 @@ function getTrpcConfig({ hostUrl, tokenGetter }: TrpcConfigParams) {
           if (tokenGetter) {
             headers.set("Authorization", `token ${tokenGetter()}`)
           }
+
+          headers.set("x-client-name", "garden-core")
+          headers.set("x-client-version", getPackageVersion())
 
           // Use standard fetch instead of bunFetch from Grow
           return await fetch(url, { ...options, headers })

@@ -110,6 +110,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               email: string
               role: "admin" | "member"
               expiresAt: Date | null
+              isOwner: boolean
               kind: "account" | "invitation"
             }[]
             nextCursor?: number | undefined
@@ -127,6 +128,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             updatedAt: Date
             email: string
             role: "admin" | "member"
+            isOwner: boolean
           }
         }>
         update: import("@trpc/server").TRPCMutationProcedure<{
@@ -142,6 +144,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             updatedAt: Date
             email: string
             role: "admin" | "member"
+            isOwner: boolean
           }
         }>
         remove: import("@trpc/server").TRPCMutationProcedure<{
@@ -362,6 +365,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             agentConfigurationId: string
           }
           output: {
+            status: string
             id: string
             createdAt: Date
             updatedAt: Date
@@ -383,13 +387,6 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                   buildkitAddress: string
                 }
           }[]
-        }>
-        getStatus: import("@trpc/server").TRPCQueryProcedure<{
-          input: {
-            organizationId: string
-            agentInstanceId: string
-          }
-          output: string
         }>
         restart: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -414,12 +411,13 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             title: string
             userAgent: string
             url: string
-            referrer: string
             pathNameClean: string
+            referrer: string
             prevPage?:
               | {
                   path: string
                   title: string
+                  pathNameClean: string
                 }
               | undefined
           }
@@ -474,7 +472,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                     | "trialing"
                     | "unpaid"
                     | undefined
-                  priceQuantity?: number | undefined
+                  currentPriceQuantity?: number | undefined
+                  maximumPriceQuantity?: number | undefined
                   billingInterval?: "month" | "year" | undefined
                   currentPeriodStart?: Date | undefined
                   currentPeriodEnd?: Date | undefined
@@ -1029,6 +1028,15 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         transformer: true
       },
       import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+        getByToken: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            token: string
+          }
+          output: {
+            organizationName: string
+            inviterName: string
+          }
+        }>
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             organizationId: string
@@ -1223,6 +1231,10 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           }
           output: {
             valid: boolean
+            notices: {
+              message: string
+              severity: "info" | "error" | "warning"
+            }[]
           }
         }>
         refreshToken: import("@trpc/server").TRPCMutationProcedure<{
@@ -1233,6 +1245,10 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             accessToken: string
             refreshToken: string
             tokenValidity: number
+            notices: {
+              message: string
+              severity: "info" | "error" | "warning"
+            }[]
           }
         }>
         revokeToken: import("@trpc/server").TRPCMutationProcedure<{
@@ -1245,7 +1261,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         }>
         createAccessToken: import("@trpc/server").TRPCMutationProcedure<{
           input: {
-            label: string
+            name: string
           }
           output: {
             value: string
@@ -1262,6 +1278,18 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             token: string
           }
           output: void
+        }>
+        listAccessTokens: import("@trpc/server").TRPCQueryProcedure<{
+          input: void
+          output: {
+            value: string
+            type: "access" | "refresh" | "web"
+            createdAt: Date
+            updatedAt: Date
+            accountId: string
+            expiresAt: Date
+            label: string | null
+          }[]
         }>
         listTokens: import("@trpc/server").TRPCQueryProcedure<{
           input: {

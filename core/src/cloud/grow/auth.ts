@@ -17,6 +17,7 @@ import { CloudApiError } from "../../exceptions.js"
 import { clearAuthToken, saveAuthToken } from "../auth.js"
 import { getCloudDistributionName } from "../util.js"
 import dedent from "dedent"
+import { handleServerNotices } from "./notices.js"
 
 export function isTokenExpired(token: ClientAuthToken) {
   const now = new Date()
@@ -42,6 +43,9 @@ export async function isTokenValid({
     const verificationResult = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.verifyToken.query({
       token: authToken,
     })
+
+    handleServerNotices(verificationResult.notices, log)
+
     valid = verificationResult.valid
   } catch (err) {
     if (!(err instanceof TRPCError)) {
@@ -73,6 +77,9 @@ export async function refreshAuthTokenAndWriteToConfigStore(
     const result = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.refreshToken.mutate({
       refreshToken,
     })
+
+    handleServerNotices(result.notices, log)
+
     await saveAuthToken({
       log,
       globalConfigStore,
