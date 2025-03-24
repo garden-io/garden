@@ -527,27 +527,16 @@ export class FormatStringExpression extends TemplateExpression {
     super()
   }
 
-  private isOptional(apiVersion: GardenApiVersion) {
-    return apiVersion === GardenApiVersion.v2 ? false : this.hasOptionalSuffix
-  }
-
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const apiVersion = getGlobalProjectApiVersion()
-    const isOptional = this.isOptional(apiVersion)
 
     const result = this.innerExpression.evaluate({
       ...args,
       opts: {
         ...args.opts,
       },
-      optional: args.optional || isOptional,
+      optional: args.optional,
     })
-
-    // Only if this expression is optional we return undefined instead of symbol.
-    // If merely optional is true in EvaluateArgs, we must return symbol.
-    if (isOptional && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-      return undefined
-    }
 
     if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
       return result
