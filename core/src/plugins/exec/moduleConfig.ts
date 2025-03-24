@@ -176,6 +176,7 @@ export const execServiceSchema = () =>
         `),
       }),
     })
+    // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
     .rename("devMode", "syncMode")
     .description("A service to deploy using shell commands.")
 

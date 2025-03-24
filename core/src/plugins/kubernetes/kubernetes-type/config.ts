@@ -155,6 +155,7 @@ export const kubernetesDeploySchema = () =>
       manifestFiles: kubernetesManifestFilesSchema(),
       manifestTemplates: kubernetesManifestTemplatesSchema(),
     })
+    // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
     .rename("devMode", "sync")
 
 export type KubernetesRunOutputs = ContainerRunOutputs

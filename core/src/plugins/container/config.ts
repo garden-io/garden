@@ -431,12 +431,12 @@ const limitsSchema = createSchema({
       .number()
       .min(10)
       .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)")
-      .meta({ deprecated: true }),
+      .meta({ deprecated: true }), // TODO(deprecation): deprecate in 0.14
     memory: joi
       .number()
       .min(64)
       .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)")
-      .meta({ deprecated: true }),
+      .meta({ deprecated: true }), // TODO(deprecation): deprecate in 0.14
   }),
 })
 
@@ -682,7 +682,7 @@ export const containerDeploySchemaKeys = memoize(() => ({
   timeout: k8sDeploymentTimeoutSchema(),
   limits: limitsSchema()
     .description("Specify resource limits for the service.")
-    .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }),
+    .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }), // TODO(deprecation): deprecate in 0.14
   ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
   replicas: joi.number().integer().description(deline`
     The number of instances of the service to deploy.
@@ -695,6 +695,7 @@ export const containerDeploySchemaKeys = memoize(() => ({
 export const containerDeploySchema = createSchema({
   name: "container-deploy",
   keys: containerDeploySchemaKeys,
+  // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
   rename: [["devMode", "sync"]],
   meta: { name: "container-deploy" },
 })
