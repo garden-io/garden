@@ -163,6 +163,7 @@
 * [How Organizations Adopt Garden](./misc/adopting-garden.md)
 * [New Garden Cloud Version](./misc/cloud-announcement.md)
 * [Migrating to Bonsai](./misc/migrating-to-bonsai.md)
+* [Migrating to Cedar](./misc/migrating-to-cedar.md)
 
 ## Contributing to Garden
 

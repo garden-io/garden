@@ -12,15 +12,15 @@ You can also use the [Builds UI](https://app.garden.io) to view build logs and a
 <figure>
   <picture>
     <source
-      srcset="https://public-assets-for-docs-site.s3.eu-central-1.amazonaws.com/builds-detail-dark.png"
+      srcset="https://public-assets-for-docs-site.s3.eu-central-1.amazonaws.com/build-ui.gif"
       media="(prefers-color-scheme: dark)"
     />
     <img
-      src="https://public-assets-for-docs-site.s3.eu-central-1.amazonaws.com/builds-detail.png"
-      alt="Build details"
+      src="https://public-assets-for-docs-site.s3.eu-central-1.amazonaws.com/build-ui.gif"
+      alt="Build UI"
     />
   </picture>
-  <figcaption>Build details</figcaption>
+  <figcaption>Build UI</figcaption>
 </figure>
 
 ## Using the Remote Container Builder
