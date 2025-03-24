@@ -37,7 +37,6 @@ import { join } from "path"
 import { mkdtemp, readFile } from "fs/promises"
 import type { DockerBuildReport } from "../../cloud/grow/trpc.js"
 import type { ActionRuntime } from "../../plugin/base.js"
-import { formatDuration, intervalToDuration } from "date-fns"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -324,20 +323,8 @@ async function buildContainerInCloudBuilder(params: {
 }
 
 function renderSavedTime(timeMs: number): string {
-  const renderedDuration = timeMs === 0 ? "" : formatDurationMs(timeMs)
+  const renderedDuration = timeMs === 0 ? "" : renderTimeDurationMs(timeMs)
   return renderedDuration.length === 0 ? "" : `(saved ${renderedDuration})`
-}
-
-function formatDurationMs(durationMs: number) {
-  if (durationMs < 1000) {
-    return `${durationMs} ms`
-  }
-
-  const duration = intervalToDuration({
-    start: new Date(0, 0, 0, 0, 0, 0, 0),
-    end: new Date(0, 0, 0, 0, 0, 0, durationMs),
-  })
-  return formatDuration(duration, { format: ["hours", "minutes", "seconds"] })
 }
 
 async function getDockerMetadata(filePath: string, log: ActionLog) {
