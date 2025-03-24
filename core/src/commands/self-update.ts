@@ -21,6 +21,7 @@ import { RuntimeError } from "../exceptions.js"
 import { makeTempDir } from "../util/fs.js"
 import { createReadStream, createWriteStream } from "fs"
 import fsExtra from "fs-extra"
+
 const { copy, mkdirp, move, readdir, remove } = fsExtra
 import { GotHttpError, got } from "../util/http.js"
 import { gardenEnv } from "../constants.js"
@@ -260,7 +261,12 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   }: CommandParams<SelfUpdateArgs, SelfUpdateOpts>): Promise<CommandResult<SelfUpdateResult>> {
     const currentVersion = getPackageVersion()
 
-    let desiredVersion = args.version
+    // FIXME: StringParameter is in fact a number
+    //  The method Parameter.validate ignores the actual validation result,
+    //  and does not ensure the correct type of the output object.
+    //  This is a qick hack to unlock the release,
+    //  let's revisit the parameter validation.
+    let desiredVersion = `${args.version}`
 
     if (desiredVersion && desiredVersion[0] === "v") {
       desiredVersion = desiredVersion.slice(1)
