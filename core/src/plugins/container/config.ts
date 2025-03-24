@@ -677,7 +677,7 @@ export const containerDeploySchemaKeys = memoize(() => ({
     .description("List of ingress endpoints that the service exposes.")
     .example([{ path: "/api", port: "http" }]),
   healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
-  // TODO: remove in 0.14, keeping around to avoid config failures
+  // TODO(deprecation): deprecate in 0.14
   hotReload: joi.any().meta({ internal: true }),
   timeout: k8sDeploymentTimeoutSchema(),
   limits: limitsSchema()
