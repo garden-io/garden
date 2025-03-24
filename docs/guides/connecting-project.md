@@ -76,7 +76,7 @@ garden test --offline
 GARDEN_OFFLINE=true garden deploy
 ```
 
-See also the section above about [creating access token](#creating-personal-access-tokens) for environments like CI where you can't run the interactive `login` command.
+See also the section above about [creating access tokens](#creating-personal-access-tokens) for environments like CI where you can't run the interactive `login` command.
 
 ## Limits
 
