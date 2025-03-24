@@ -14,8 +14,9 @@ import type { Log } from "../../logger/log-entry.js"
 import { getNonAuthenticatedApiClient } from "./trpc.js"
 import { CloudApiTokenRefreshError } from "../api.js"
 import { CloudApiError } from "../../exceptions.js"
-import { saveAuthToken } from "../auth.js"
+import { clearAuthToken, saveAuthToken } from "../auth.js"
 import { getCloudDistributionName } from "../util.js"
+import dedent from "dedent"
 
 export function isTokenExpired(token: ClientAuthToken) {
   const now = new Date()
@@ -90,9 +91,18 @@ export async function refreshAuthTokenAndWriteToConfigStore(
     }
 
     log.debug({ msg: `Failed to refresh the token.` })
+
+    const errHttpStatusCode = err.data?.httpStatus
+    if (errHttpStatusCode === 401) {
+      await clearAuthToken(log, globalConfigStore, cloudDomain)
+      log.info("Invalid refresh token was removed from the configuration store.")
+    }
+
     throw new CloudApiTokenRefreshError({
-      message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${err.message}`,
-      responseStatusCode: err.data?.httpStatus,
+      message: dedent`An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${err.message}
+        Please try again.
+        `,
+      responseStatusCode: errHttpStatusCode,
     })
   }
 }
