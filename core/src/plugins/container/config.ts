@@ -719,6 +719,7 @@ export const containerRegistryConfigSchema = createSchema({
     namespace: joi
       .string()
       .optional()
+      .empty(["", null])
       .description(
         "The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>"
       )
