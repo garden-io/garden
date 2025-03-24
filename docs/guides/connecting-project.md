@@ -60,7 +60,7 @@ GARDEN_AUTH_TOKEN=<my-personal-access-token> garden deploy
 
 ## Offline mode
 
-After you connect your project and set the `organizationId`, you need to remain logged to use Garden.
+After you connect your project and set the `organizationId`, you need to remain logged in to use Garden.
 
 If you're not logged in, the command fails. This to prevent degraded performance such as slower builds or missed cache hits that users might not notice, especially in environments like CI.
 
