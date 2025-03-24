@@ -90,7 +90,6 @@
 
 * [Providers](./reference/providers/README.md)
   * [`container`](./reference/providers/container.md)
-  * [`ephemeral-kubernetes`](./reference/providers/ephemeral-kubernetes.md)
   * [`exec`](./reference/providers/exec.md)
   * [`jib`](./reference/providers/jib.md)
   * [`kubernetes`](./reference/providers/kubernetes.md)
