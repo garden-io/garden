@@ -1,4 +1,27 @@
 
+<a name="0.14.0"></a>
+## [0.14.0](https://github.com/garden-io/garden/compare/0.13.56...0.14.0) (2025-03-24)
+
+### Bug Fixes
+
+* make Remote Container Builder controllable via env var ([#7003](https://github.com/garden-io/garden/issues/7003)) ([e4f96b0d4](https://github.com/garden-io/garden/commit/e4f96b0d4))
+* interpret `null` values and empty strings in more optiona string-based config fields ([9c09c8d6b](https://github.com/garden-io/garden/commit/9c09c8d6b))
+* interpret `null` values and empty strings as `undefined` in `context` config field ([696960ec6](https://github.com/garden-io/garden/commit/696960ec6))
+* allow `null` values in `context` config field of `local-kubernetes` provider ([0488a4ec8](https://github.com/garden-io/garden/commit/0488a4ec8))
+* type error on value passed to toposort ([#6975](https://github.com/garden-io/garden/issues/6975)) ([1916badc0](https://github.com/garden-io/garden/commit/1916badc0))
+* **cloud:** automatically clear locally stored auth token if refresh token is invalid ([#6760](https://github.com/garden-io/garden/issues/6760)) ([04f402a1b](https://github.com/garden-io/garden/commit/04f402a1b))
+* **cloud:** remove unnecessary error translation inside the tRPC client ([#6964](https://github.com/garden-io/garden/issues/6964)) ([930a27e2f](https://github.com/garden-io/garden/commit/930a27e2f))
+* **core:** suppress logs for forced get status calls ([29f01c33d](https://github.com/garden-io/garden/commit/29f01c33d))
+* **logger:** fix alignment for empty lines msg has section ([0cb659a7b](https://github.com/garden-io/garden/commit/0cb659a7b))
+* **self-update:** do not crash on missing numeric version ([#7000](https://github.com/garden-io/garden/issues/7000)) ([69af5e9cf](https://github.com/garden-io/garden/commit/69af5e9cf))
+
+### Features
+
+* enable container builder by default on app.garden.io ([#7005](https://github.com/garden-io/garden/issues/7005)) ([a46dcd84e](https://github.com/garden-io/garden/commit/a46dcd84e))
+* print backend error notices for managing client version phase out ([#6992](https://github.com/garden-io/garden/issues/6992)) ([cc46ff4bb](https://github.com/garden-io/garden/commit/cc46ff4bb))
+* **cloud:** handle organization IDs from new API ([#6961](https://github.com/garden-io/garden/issues/6961)) ([13939490f](https://github.com/garden-io/garden/commit/13939490f))
+* **framework:** automatically infer action dependencies from references of `Build` actions outputs ([#6979](https://github.com/garden-io/garden/issues/6979)) ([9a6235e2d](https://github.com/garden-io/garden/commit/9a6235e2d))
+
 <a name="0.13.54"></a>
 ## [0.13.54](https://github.com/garden-io/garden/compare/0.13.53...0.13.54) (2025-02-20)
 
