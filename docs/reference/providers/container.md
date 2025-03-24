@@ -36,15 +36,15 @@ providers:
 
     gardenContainerBuilder:
       # Enable Remote Container Builder, which can speed up builds significantly using fast machines and extremely
-      # fast caching.
-      #
-      # by running `GARDEN_CONTAINER_BUILDER=1 garden build` you can try Remote Container Builder temporarily without
-      # any changes to your Garden configuration.
-      # The environment variable `GARDEN_CONTAINER_BUILDER` can also be used to override this setting, if enabled in
-      # the configuration. Set it to `false` or `0` to temporarily disable Remote Container Builder.
+      # fast caching. When the project is connected and you're logged in to https://app.garden.io the container
+      # builder will be enabled by default.
       #
       # Under the hood, enabling this option means that Garden will install a remote buildx driver on your local
       # Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
+      #
+      # In addition to this setting, the environment variable `GARDEN_CONTAINER_BUILDER` can be used to override this
+      # setting, if enabled in the configuration. Set it to `false` or `0` to temporarily disable Remote Container
+      # Builder.
       #
       # If service limits are reached, or Remote Container Builder is not available, Garden will fall back to building
       # images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is
@@ -138,12 +138,11 @@ Extra flags to pass to the `docker build` command. Will extend the `spec.extraFl
 
 [providers](#providers) > [gardenContainerBuilder](#providersgardencontainerbuilder) > enabled
 
-Enable Remote Container Builder, which can speed up builds significantly using fast machines and extremely fast caching.
-
-by running `GARDEN_CONTAINER_BUILDER=1 garden build` you can try Remote Container Builder temporarily without any changes to your Garden configuration.
-The environment variable `GARDEN_CONTAINER_BUILDER` can also be used to override this setting, if enabled in the configuration. Set it to `false` or `0` to temporarily disable Remote Container Builder.
+Enable Remote Container Builder, which can speed up builds significantly using fast machines and extremely fast caching. When the project is connected and you're logged in to https://app.garden.io the container builder will be enabled by default.
 
 Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
+
+In addition to this setting, the environment variable `GARDEN_CONTAINER_BUILDER` can be used to override this setting, if enabled in the configuration. Set it to `false` or `0` to temporarily disable Remote Container Builder.
 
 If service limits are reached, or Remote Container Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
 
