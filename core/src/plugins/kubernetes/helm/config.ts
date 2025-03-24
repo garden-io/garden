@@ -20,6 +20,7 @@ import type { KubernetesDeploySyncSpec } from "../sync.js"
 import { kubernetesDeploySyncSchema } from "../sync.js"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy.js"
 import { dedent, deline } from "../../../util/string.js"
+import { kubernetesLocalModeSchema } from "../local-mode.js"
 import type { RunAction, RunActionConfig } from "../../../actions/run.js"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
 import type { ObjectSchema } from "@hapi/joi"
@@ -193,6 +194,7 @@ export const helmDeploySchema = () =>
       chart: helmChartSpecSchema(),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
+      localMode: kubernetesLocalModeSchema(),
     })
     // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
     .rename("devMode", "sync")
