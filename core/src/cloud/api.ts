@@ -793,7 +793,7 @@ export class GardenCloudApi {
           version: "v2",
           availability: {
             available: false,
-            reason: `Failed to determine Garden Container Builder availability: ${extractErrorMessageBodyFromGotError(err) ?? err}`,
+            reason: `Failed to determine Remote Container Builder availability: ${extractErrorMessageBodyFromGotError(err) ?? err}`,
           },
         },
       }

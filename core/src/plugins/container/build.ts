@@ -318,7 +318,7 @@ async function buildContainerInCloudBuilder(params: {
     name: `build.${params.action.name}`,
   })
   if (res.timeSaved > 0) {
-    log.success(`${styles.bold("Accelerated by Garden Container Builder - saved", formatDurationMs(res.timeSaved))}`)
+    log.success(`${styles.bold("Accelerated by Remote Container Builder - saved", formatDurationMs(res.timeSaved))}`)
   }
   return res
 }
