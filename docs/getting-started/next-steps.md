@@ -111,7 +111,7 @@ type: kubernetes
 description: Deploy the api after its been built and the DB seeded
 dependencies: [build.api, run.db-init]
 spec:
-  files: [ api-manifests.yml ]
+  manifestFiles: [ api-manifests.yml ]
 ---
 kind: Test
 name: api-integ

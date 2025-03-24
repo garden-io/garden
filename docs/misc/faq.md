@@ -108,7 +108,7 @@ kind: Deploy
 name: api
 type: kubernetes
 spec:
-  files: [./manifests/*] # <--- The Deploy action source path is still the ./api directory and specify the manifests with relative to it
+  manifestFiles: [./manifests/*] # <--- The Deploy action source path is still the ./api directory and specify the manifests with relative to it
 ```
 
 Alternatively you can hoist the `garden.yml` for the `api` to the root of the project and e.g. call it `api.garden.yml`. In that case your config will look like this:
@@ -126,7 +126,7 @@ kind: Deploy
 name: api
 type: kubernetes
 spec:
-  files: [./api/manifests/*] # <--- The action config is at the root so we need to include the `./api` dir here
+  manifestFiles: [./api/manifests/*] # <--- The action config is at the root so we need to include the `./api` dir here
 ```
 
 If you need the Dockerfile outside of the Build root because you want to share it with other Build actions, you could also consider having a single base image instead and then let each action have its own Dockerfile that's built on the base image. See the [base image example project](../../examples/base-image/README.md) for an example of this.

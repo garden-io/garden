@@ -26,7 +26,7 @@ In any case, you'll need the following values at hand to configure the provider:
 When you have these values you can configure the `kubernetes` provider like so:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 
 environments:

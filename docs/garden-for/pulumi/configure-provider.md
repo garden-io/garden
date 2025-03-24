@@ -7,7 +7,7 @@ order: 1
 
 First, you need to enable the `pulumi` provider in your project configuration. This is as simple as placing it in your list of providers:
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 providers:
@@ -21,7 +21,7 @@ Note that when you use a self managed state backend, Garden's deploy action leve
 
 ```yaml
 ---
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: pulumi
 defaultEnvironment: dev

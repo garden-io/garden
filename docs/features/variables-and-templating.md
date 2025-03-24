@@ -112,7 +112,7 @@ spec:
 And the `+` operator can also be used to concatenate two arrays or strings:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 variables:
   some-values: ["a", "b"]
@@ -189,7 +189,7 @@ This style offer nested template resolution, which is quite powerful, because yo
 For example, you can declare a mapping variable for your project, and look up values by another variable such as the current environment name. To illustrate, here's an excerpt from a project config with a mapping variable:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 variables:
   - replicas:
@@ -527,7 +527,7 @@ Here's an example, where we have some project variables defined in our project c
 
 ```yaml
 # garden.yml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 ...
 variables:
