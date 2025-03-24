@@ -5,11 +5,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-import { GardenApiVersion } from "./constants.js"
+import { DOCS_BASE_URL, GardenApiVersion } from "./constants.js"
 import { ConfigurationError, InternalError } from "./exceptions.js"
 import type { ProjectConfig } from "./config/project.js"
 import { styles } from "./logger/styles.js"
-import { naturalList } from "./util/string.js"
+import { dedent, naturalList } from "./util/string.js"
+import { DOCS_DEPRECATION_GUIDE, DOCS_MIGRATION_GUIDE_BONSAI, DOCS_MIGRATION_GUIDE_CEDAR } from "./util/deprecations.js"
 
 let projectApiVersionGlobal: GardenApiVersion | undefined
 
@@ -29,6 +30,11 @@ const gardenVersionMap: Record<GardenApiVersion, string> = {
   [GardenApiVersion.v1]: "0.13 (Bonsai)",
   [GardenApiVersion.v2]: "0.14 (Cedar)",
 }
+const migrationGuideMap: Record<GardenApiVersion, string> = {
+  [GardenApiVersion.v0]: `0.13 (Bonsai) migration guide at ${DOCS_MIGRATION_GUIDE_BONSAI}`,
+  [GardenApiVersion.v1]: `0.14 (Cedar) migration guide at ${DOCS_MIGRATION_GUIDE_CEDAR}`,
+  [GardenApiVersion.v2]: `0.14 (Cedar) deprecation guide at ${DOCS_DEPRECATION_GUIDE}`,
+}
 const LATEST_STABLE_API_VERSION = GardenApiVersion.v2
 
 export function resolveApiVersion(projectSpec: ProjectConfig): GardenApiVersion {
@@ -46,8 +52,11 @@ export function resolveApiVersion(projectSpec: ProjectConfig): GardenApiVersion 
   if (projectApiVersion !== GardenApiVersion.v2) {
     const gardenVersion = gardenVersionMap[projectApiVersion]
     throw new ConfigurationError({
-      // TODO: add a link to the migration guide
-      message: `Your configuration${atLocation} has been written for Garden ${gardenVersion}. Your current version of Garden is ${gardenVersionMap[LATEST_STABLE_API_VERSION]}.`,
+      message: dedent`
+      Your configuration${atLocation} has been written for Garden ${gardenVersion}. Your current version of Garden is ${gardenVersionMap[LATEST_STABLE_API_VERSION]}.
+
+      Please follow the ${migrationGuideMap[projectApiVersion]} or downgrade to Garden 0.13 by running ${styles.command("garden self-update <version>")}.
+      `,
     })
   }
 
