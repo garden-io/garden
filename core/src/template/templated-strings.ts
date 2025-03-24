@@ -114,7 +114,6 @@ export function parseTemplateString({
     {
       ast,
       escapePrefix,
-      optionalSuffix: "}?",
       parseNested: (nested: string) => {
         const p = parseTemplateString({ rawTemplateString: nested, source })
         if (p instanceof UnresolvedTemplateValue) {

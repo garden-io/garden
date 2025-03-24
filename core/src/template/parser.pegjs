@@ -10,7 +10,6 @@
   const {
     ast,
     escapePrefix,
-    optionalSuffix,
     parseNested,
     TemplateStringError,
   } = options
@@ -224,14 +223,9 @@ FormatString
         return new ast.LiteralExpression(text(), location(), text(), isEscapedValue)
       }
 
-      const isOptional = end[1] === optionalSuffix
-      const expression = new ast.FormatStringExpression(text(), location(), e, isOptional, text())
+      const expression = new ast.FormatStringExpression(text(), location(), e, text())
 
       if (blockOperator && blockOperator.length > 0) {
-        if (isOptional) {
-          throw new TemplateStringError({ message: "Cannot specify optional suffix in if-block.", loc: location() })
-        }
-
         // consequent, alternate, else and endif expressions will be filled in by `buildConditionalTree`
         return new ast.IfBlockExpression(expression)
       }

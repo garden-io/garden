@@ -18,8 +18,6 @@ import { type ConfigSource, validateSchema } from "../config/validation.js"
 import type { Branch } from "./analysis.js"
 import { TemplateStringError } from "./errors.js"
 import { styles } from "../logger/styles.js"
-import { GardenApiVersion } from "../constants.js"
-import { getGlobalProjectApiVersion } from "../project-api-version.js"
 
 type ASTEvaluateArgs = EvaluateTemplateArgs & {
   readonly yamlSource: ConfigSource
@@ -521,15 +519,12 @@ export class FormatStringExpression extends TemplateExpression {
   constructor(
     public readonly rawText: string,
     public readonly loc: Location,
-    private readonly innerExpression: TemplateExpression,
-    private readonly hasOptionalSuffix: boolean
+    private readonly innerExpression: TemplateExpression
   ) {
     super()
   }
 
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
-    const apiVersion = getGlobalProjectApiVersion()
-
     const result = this.innerExpression.evaluate({
       ...args,
       opts: {
@@ -540,11 +535,6 @@ export class FormatStringExpression extends TemplateExpression {
 
     if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
       return result
-    }
-
-    // TODO(0.14): remove the optional support in grammar
-    if (apiVersion === GardenApiVersion.v2 && this.hasOptionalSuffix) {
-      return result + "?"
     }
 
     return result
