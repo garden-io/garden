@@ -243,8 +243,6 @@ export const serviceStatusSchema = createSchema({
     updatedAt: joi.string().description("When the service was last updated by the provider."),
     version: joi.string().description("The Garden module version of the deployed service."),
   }),
-  // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
-  rename: [["devMode", "syncMode"]],
 })
 
 /**
