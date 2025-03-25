@@ -107,6 +107,9 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
     configure: async ({ ctx, config, log }) => {
+      if (config.spec["devMode"]) {
+        reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
+      }
       if (config.spec["localMode"]) {
         reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
       }

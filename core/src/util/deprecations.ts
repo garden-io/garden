@@ -28,6 +28,17 @@ export function isDeprecatedPlugin(pluginName: string): pluginName is Deprecated
 // This is called by `updateDeprecationGuide` to update deprecations.md in the docs automatically.
 export function getDeprecations(style: (s: string) => string = styles.highlight) {
   return {
+    devMode: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `Using ${style("spec.devMode")} configuration field in actions`,
+      warnHint: deline`
+        Please use ${style("spec.sync")} configuration field instead.
+      `,
+      docs: deline`
+        The old fields ${style("spec.devMode")} are automatically converted to ${style("spec.sync")} in Garden 0.14.
+        But that behaviour will be removed in tne next Garden major release.
+      `,
+    },
     localMode: {
       docsSection: "Local mode",
       docsHeadline: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,

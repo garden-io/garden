@@ -540,6 +540,9 @@ export const gardenPlugin = () =>
           handlers: {
             // Other handlers are implemented by other providers (e.g. kubernetes)
             async configure({ config, log }) {
+              if (config.spec["devMode"]) {
+                reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
+              }
               if (config.spec["localMode"]) {
                 reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
               }
