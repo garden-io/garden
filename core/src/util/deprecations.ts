@@ -35,8 +35,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Please use ${style("spec.sync")} configuration field instead.
       `,
       docs: deline`
-        The old fields ${style("spec.devMode")} are automatically converted to ${style("spec.sync")} in Garden 0.14.
-        But that behaviour will be removed in tne next Garden major release.
+        The old fields ${style("spec.devMode")} are automatically converted to ${style("spec.sync")} in Garden 0.14 when using ${style("apiVersion: garden.io/v2")} in the project-level configuration.
       `,
     },
     localMode: {
