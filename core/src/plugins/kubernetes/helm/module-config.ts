@@ -193,7 +193,7 @@ export const helmModuleSpecSchema = () =>
       tests: joiSparseArray(helmTestSchema()).description("The test suite definitions for this module."),
       version: helmChartVersionSchema(),
     })
-    // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
+    // Module configs are deprecated, so we keep syntax translation in module configs
     .rename("devMode", "sync")
 
 export async function configureHelmModule({
