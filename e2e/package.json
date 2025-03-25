@@ -38,7 +38,7 @@
     "lodash-es": "^4.17.21",
     "minimist": "^1.2.8",
     "mocha": "^10.6.0",
-    "prettier": "3.3.3",
+    "prettier": "3.5.3",
     "replace-in-file": "^8.3.0",
     "split2": "^4.2.0",
     "ts-node": "^10.9.2",
