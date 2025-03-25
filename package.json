@@ -61,7 +61,7 @@
     "minimist": "^1.2.6",
     "node-jsonl": "^0.1.0",
     "npm-license-crawler": "^0.2.1",
-    "prettier": "3.3.3",
+    "prettier": "3.5.3",
     "replace-in-file": "^8.3.0",
     "semver": "^7.6.3",
     "shx": "^0.3.2",

@@ -238,7 +238,7 @@
     "nodemon": "^3.1.7",
     "p-event": "^6.0.1",
     "peggy": "^4.2.0",
-    "prettier": "3.3.3",
+    "prettier": "3.5.3",
     "ps-tree": "^1.2.0",
     "serve-static": "^1.16.0",
     "shx": "^0.3.4",
