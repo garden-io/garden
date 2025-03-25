@@ -33,7 +33,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       docsHeadline: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
       warnHint: deline`
         The local-mode feature was completely removed in 0.14, and the ${style("spec.localMode")} configuration syntax has no effect.
-        Please remove all ${style("spec.localMode")} entries rom your configuration files.
+        Please remove all ${style("spec.localMode")} entries from your configuration files.
       `,
       docs: null,
     },

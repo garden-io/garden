@@ -5,4 +5,4 @@
 
 <h2 id="localmode">Using <code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> Deploy actions</h2>
 
-The local-mode feature was completely removed in 0.14, and the `spec.localMode` configuration syntax has no effect. Please remove all `spec.localMode` entries rom your configuration files.
+The local-mode feature was completely removed in 0.14, and the `spec.localMode` configuration syntax has no effect. Please remove all `spec.localMode` entries from your configuration files.
