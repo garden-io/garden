@@ -533,10 +533,6 @@ export class FormatStringExpression extends TemplateExpression {
       optional: args.optional,
     })
 
-    if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-      return result
-    }
-
     return result
   }
 }
