@@ -7,7 +7,7 @@
 
 Please use `spec.sync` configuration field instead.
 
-The old fields `spec.devMode` are automatically converted to `spec.sync` in Garden 0.14. But that behaviour will be removed in tne next Garden major release.
+The old fields `spec.devMode` are automatically converted to `spec.sync` in Garden 0.14 when using `apiVersion: garden.io/v2` in the project-level configuration.
 
 # Local mode
 
