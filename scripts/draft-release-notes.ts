@@ -10,7 +10,6 @@
 /* eslint-disable no-console */
 
 import fsExtra from "fs-extra"
-const { writeFile } = fsExtra
 import { execSync } from "node:child_process"
 import { dirname, resolve } from "node:path"
 import { dedent } from "@garden-io/sdk/build/src/util/string.js"
@@ -18,8 +17,9 @@ import { getChangelog } from "./changelog.js"
 import parseArgs from "minimist"
 import { fileURLToPath } from "node:url"
 
-const moduleDirName = dirname(fileURLToPath(import.meta.url))
+const { writeFile } = fsExtra
 
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 const gardenRoot = resolve(moduleDirName, "..")
 
 function getContributors(prevReleaseTag: string, curReleaseTag: string) {
@@ -44,7 +44,7 @@ Many thanks to [[${contributors}]] for the contributions to this release!
 
 ## Assets
 
-Download the Garden binary for your platform from below or simply run \`garden self-update\` if you already have it installed.
+Download the Garden binary for your platform from below or simply run \`garden self-update ${version}\` if you already have it installed.
 
 * [Garden v${version} for Alpine AMD64 (tar.gz)](https://download.garden.io/core/${version}/garden-${version}-alpine-amd64.tar.gz)
 * [Garden v${version} for Linux AMD64 (tar.gz)](https://download.garden.io/core/${version}/garden-${version}-linux-amd64.tar.gz)
