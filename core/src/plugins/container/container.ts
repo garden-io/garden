@@ -364,10 +364,15 @@ function convertContainerModuleRuntimeActions(
 
   let deploymentImageId = module.spec.image
 
-  // If the module neeeds container build, we need to add the module version as the tag.
+  // If the module needs container build, we need to add the module version as the tag.
   // If it doesn't need a container build, the module doesn't have a build action and just downloads a prebuilt image
-  if (needsContainerBuild) {
-    deploymentImageId = containerHelpers.getModuleDeploymentImageId(module, module.version, undefined)
+  if (needsContainerBuild && buildAction) {
+    // Hack: we are in the container provider, and do not yet have access to kubernetes provider config.
+    //  So, we cannot get the info on the deployment container registry.
+    //  Thus, we use template string here to reference tje deploymentImageId.
+    //  This is safe because module name is validated here,
+    //  and the valid module name always results in a valid template expression.
+    deploymentImageId = `\${actions.build.${buildAction.name}.outputs.deploymentImageId}`
   }
 
   function configureActionVolumes(action: ContainerRuntimeActionConfig, volumeSpec: ContainerModuleVolumeSpec[]) {
