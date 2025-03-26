@@ -64,7 +64,7 @@ using the [`dotIgnoreFiles`](../reference/project-config.md#dotIgnoreFiles) fiel
 apiVersion: garden.io/v2
 kind: Project
 name: my-project
-dotIgnoremanifestFiles: [.gardenignore, .gitignore]
+dotIgnoreFiles: [.gardenignore, .gitignore]
 ```
 
 This behaviour was changed in Garden `0.13`.
