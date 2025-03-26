@@ -6,7 +6,7 @@ order: 1
 First off, you need to enable the provider in your project configuration. This is as simple as placing it in your list of providers:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 providers:
@@ -18,7 +18,7 @@ providers:
 If you'd like to apply the stack when starting Garden, and then reference the stack outputs in other providers (or actions), you need to add a couple of more flags. Here's the project config from the aforementioned [terraform-gke example](https://github.com/garden-io/garden/tree/0.14.0/examples/terraform-gke):
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: terraform-gke
 providers:
@@ -56,7 +56,7 @@ This means you can run `garden deploy` (for the dev env) and it will use the cor
 
 ```yaml
 # In project.garden.yml file
-apiVersion: "garden.io/v1"
+apiVersion: "garden.io/v2"
 kind: Project
 name: terraform-lambda-example
 defaultEnvironment: dev

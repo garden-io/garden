@@ -18,7 +18,7 @@ By default, all directories under the project root are scanned for Garden action
 The `scan.include` and `scan.exclude` fields are a simple way to explicitly specify which directories should be scanned for actions. They both accept a list of POSIX-style paths or globs. For example:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 scan:
@@ -61,7 +61,7 @@ Prior to Garden `0.13`, it was possible to specify _multiple_ ".ignore" files
 using the [`dotIgnoreFiles`](../reference/project-config.md#dotIgnoreFiles) field in a project configuration:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 dotIgnoreFiles: [.gardenignore, .gitignore]
@@ -74,7 +74,7 @@ You can override which filename to use as a _single_ ".ignore" file
 using the [`dotIgnoreFile`](../reference/project-config.md#dotIgnoreFile) field in your project configuration:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 dotIgnoreFile: .gardenignore

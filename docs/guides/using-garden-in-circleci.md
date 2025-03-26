@@ -27,7 +27,7 @@ We deploy to the `preview` environment every time someone makes a pull request o
 
 ```yaml
 # garden.yml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: ci-demo-project
 environments:

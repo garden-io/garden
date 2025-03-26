@@ -35,7 +35,7 @@ type: kubernetes
 name: api
 dependencies: [build.api] # <--- We need to specify the dependency here
 spec:
-  files: [my-manifests.yml]
+  manifestFiles: [my-manifests.yml]
   patchResources:
     - name: api # <--- The name of the resource to patch, should match the name in the K8s manifest
       kind: Deployment # <--- The kind of the resource to patch

@@ -35,7 +35,7 @@ We've added four `*.garden.yml` files, which we'll walk through in detail.
 In the root of the directory, we've added `project.garden.yml` with the following contents:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: compose2garden
 
@@ -58,14 +58,14 @@ For our `backend` application, we've added another Garden configuration file:
 
 ```yaml
 kind: Build
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 name: backend
 description: The backend server image
 type: container
 
 ---
 kind: Deploy
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 name: backend
 description: The backend server container
 type: container
@@ -111,7 +111,7 @@ For the `frontend` application we create separate Garden configuration file:
 
 ```yaml
 kind: Build
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 name: frontend
 description: The frontend server and UI components image
 type: container
@@ -120,7 +120,7 @@ exclude:
 
 ---
 kind: Deploy
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 name: frontend
 description: The frontend server and UI components container
 type: container
@@ -158,7 +158,7 @@ The folder contains only the Garden configuration file:
 
 ```yaml
 kind: Deploy
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 description: MongoDB for storing todo items
 type: container
 name: mongo

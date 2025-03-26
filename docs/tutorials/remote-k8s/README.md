@@ -30,7 +30,7 @@ You will use these when configuring the `kubernetes` plugin. The configuration w
 look something like this:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 
 environments:

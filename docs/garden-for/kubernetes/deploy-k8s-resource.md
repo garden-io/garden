@@ -192,7 +192,7 @@ type: kubernetes
 name: api
 dependencies: [build.api] # <--- This ensures the image is built before its deployed
 spec:
-  files: [my-manifests.yml]
+  manifestFiles: [my-manifests.yml]
 ```
 
 The problem here is that your manifests will likely contain a "hard coded" container image whereas the image built by Garden will have a different version.
@@ -215,7 +215,7 @@ type: kubernetes
 name: api
 dependencies: [build.api]
 spec:
-  files: [my-manifests.yml]
+  manifestFiles: [my-manifests.yml]
   patchResources:
     - name: api # <--- The name of the resource to patch, should match the name in the K8s manifest
       kind: Deployment # <--- The kind of the resource to patch
@@ -246,7 +246,7 @@ type: kubernetes
 name: api
 dependencies: [build.api]
 spec:
-  files: [my-manifests.yml]
+  manifestFiles: [my-manifests.yml]
   manifests:
     - apiVersion: apps/v1
       kind: Deployment
@@ -273,7 +273,7 @@ kind: Deploy
 type: kubernetes
 name: api
 spec:
-  files: [my-manifests.yml]
+  manifestFiles: [my-manifests.yml]
   patchResources:
     - name: api # <--- The name of the resource to patch, should match the name in the K8s manifest
       kind: Deployment # <--- The kind of the resource to patch
@@ -308,7 +308,7 @@ kind: Deploy
 type: kubernetes
 name: api
 spec:
-  files: [my-manifests.yml]
+  manifestFiles: [my-manifests.yml]
   defaultTarget: # <--- The values below should match one of the K8s resources from the manifests
     kind: Deployment
     name: api
@@ -322,7 +322,7 @@ kind: Deploy
 type: kubernetes
 name: api
 spec:
-  files: [my-manifests.yml]
+  manifestFiles: [my-manifests.yml]
   defaultTarget:
     podSelector: # <--- This should match the labels in the desired Pod spec. A random Pod with matching labels will be picked as the target.
       app: api

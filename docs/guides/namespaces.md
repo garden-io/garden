@@ -36,7 +36,7 @@ Below is an opinionated guide on configuring environments and namespaces and the
 The example configuration for this setup would look as follows:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 defaultEnvironment: dev

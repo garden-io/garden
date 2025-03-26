@@ -22,7 +22,7 @@ Now we can finally add them to our Garden config.
 First, add your values to the project level Garden configuration file at the root of your project:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 
 environments:

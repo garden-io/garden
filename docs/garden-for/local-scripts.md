@@ -22,7 +22,7 @@ Here's an example where we run a script to authenticate against a Kubernetes clu
 
 ```yaml
 # In your project level Garden config file
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 
