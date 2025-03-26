@@ -196,7 +196,6 @@ export const helmDeploySchema = () =>
       sync: kubernetesDeploySyncSchema(),
       localMode: kubernetesLocalModeSchema(),
     })
-    // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
     .rename("devMode", "sync")
 
 export type HelmDeployConfig = DeployActionConfig<"helm", HelmDeployActionSpec>

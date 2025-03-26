@@ -63,6 +63,9 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
     },
 
     configure: async ({ config, log }) => {
+      if (config.spec["devMode"]) {
+        reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
+      }
       if (config.spec["localMode"]) {
         reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
       }

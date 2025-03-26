@@ -636,7 +636,6 @@ export const kubernetesConfigBase = () =>
         .example({ disktype: "ssd" })
         .default(() => ({})),
     })
-    // TODO(deprecation): deprecate in 0.14 - the old devMode syntax must be deprecated
     .rename("devMode", "sync")
 
 export const tolerationSchema = () =>
