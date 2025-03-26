@@ -30,7 +30,7 @@ environments: # <--- Every Garden project has one more environments
   - name: ci
 ```
 
-## Step 2 — Configure providers
+## Step 2 — Configure Kubernetes provider
 
 {% hint style="info" %}
 Here we're assuming you're using Garden for Kubernetes workflows which is the most common use case. But you can also start with the [Terraform](../garden-for/terraform/configure-provider.md) or [Pulumi](../garden-for/pulumi/configure-provider.md) providers.
