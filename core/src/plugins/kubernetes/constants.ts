@@ -60,12 +60,6 @@ export function getK8sSyncUtilImagePath(registryDomain: string): DockerImageWith
   return makeImagePath({ imageName: k8sSyncUtilImageName, registryDomain })
 }
 
-export function getK8sReverseProxyImagePath(registryDomain: string): DockerImageWithDigest {
-  const k8sReverseProxyImageName: DockerImageWithDigest =
-    "gardendev/k8s-reverse-proxy:0.1.1@sha256:2dff2275fc8c32cc0eba50eebd7ace6fdb007d9b3f4bd48d94355057324b2394"
-
-  return makeImagePath({ imageName: k8sReverseProxyImageName, registryDomain })
-}
 export function getBuildkitImagePath(registryDomain: string): DockerImageWithDigest {
   const buildkitImageName: DockerImageWithDigest =
     "gardendev/buildkit:v-0.16.0@sha256:ee7aa12e6fdba79ee9838631995fa7c5a12aba9091a0753dedfe891d430c8182"
@@ -79,6 +73,7 @@ export function getBuildkitRootlessImagePath(registryDomain: string): DockerImag
 
   return makeImagePath({ imageName: buildkitRootlessImageName, registryDomain })
 }
+
 export function getDefaultGardenIngressControllerDefaultBackendImagePath(
   registryDomain: string
 ): DockerImageWithDigest {
