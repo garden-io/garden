@@ -177,11 +177,11 @@ One way to work around this problem in the past was to escape the template strin
 echo "hello $${USERNAME:=world}" # <-- This is not a working bash script anymore :(
 ```
 
-<h2 id="buildconfigfieldonruntimeactions">The <code>build</code> config field in `container` actions</h2>
+<h2 id="buildconfigfieldonruntimeactions">The <code>build</code> config field in <code>container</code> actions</h2>
 
 Using the `build` config field in `container` actions will not be supported anymore in Garden 0.14.
 
-Instead of usin g `build`, please reference the `deploymentImageId` output explicitly in each affected `Deploy`, `Run` and `Test` action spec of the `container` action type.
+Instead of using `build`, please reference the `deploymentImageId` output explicitly in each affected `Deploy`, `Run` and `Test` action spec of the `container` action type.
 
 Other action types, like the `exec`, `kubernetes` and `helm` action types, are not affected and `build` can still be used to control the build staging directory of the action.
 

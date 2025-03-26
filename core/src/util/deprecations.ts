@@ -346,10 +346,10 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     buildConfigFieldOnRuntimeActions: {
       docsSection: "Action configs",
-      docsHeadline: `The ${style("build")} config field in \`container\` actions`,
+      docsHeadline: `The ${style("build")} config field in ${style("container")} actions`,
       warnHint: `Using the ${style("build")} config field in ${style("container")} actions will not be supported anymore in Garden 0.14.`,
       docs: dedent`
-        Instead of usin g \`build\`, please reference the \`deploymentImageId\` output explicitly in each affected \`Deploy\`, \`Run\` and \`Test\` action spec of the \`container\` action type.
+        Instead of using \`build\`, please reference the \`deploymentImageId\` output explicitly in each affected \`Deploy\`, \`Run\` and \`Test\` action spec of the \`container\` action type.
 
         Other action types, like the \`exec\`, \`kubernetes\` and \`helm\` action types, are not affected and \`build\` can still be used to control the build staging directory of the action.
 
