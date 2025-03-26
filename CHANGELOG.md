@@ -1,4 +1,12 @@
 
+<a name="0.14.1"></a>
+## [0.14.1](https://github.com/garden-io/garden/compare/0.14.0...0.14.1) (2025-03-26)
+
+### Bug Fixes
+
+* **k8s:** update to nginx ingress controller 1.12.1 that is not affected by RCE vulnerability ([#7030](https://github.com/garden-io/garden/issues/7030)) ([67fda4b05](https://github.com/garden-io/garden/commit/67fda4b05))
+* **module-k8s:** fix `deploymentImageId` in module conversion ([#7026](https://github.com/garden-io/garden/issues/7026)) ([09df856af](https://github.com/garden-io/garden/commit/09df856af))
+
 <a name="0.14.0"></a>
 ## [0.14.0](https://github.com/garden-io/garden/compare/0.13.56...0.14.0) (2025-03-24)
 
