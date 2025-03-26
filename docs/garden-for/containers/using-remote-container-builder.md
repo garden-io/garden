@@ -21,34 +21,13 @@ garden login
 
 If this is your first time logging in, you'll be asked to sign up.
 
-### Step 2 — Configure the `container` provider
+### Step 2 — Configure the `container` provider (optional)
 
-To enable the Remote Container Builder, add the following to your project level configuration under the `provider` field:
+The Remote Container Builder is enabled by default once you've logged in, so no further configuration is required.
 
-```yaml
-  - name: container
-    gardenContainerBuilder:
-      enabled: true
-```
+If you want more granular control and e.g. only enable the container builder in certain environments you can do that via `container` provider in your project level configuration.
 
-Afterwards your project config should look something like this:
-
-```yaml
-kind: Project
-name: my-project
-environments:
-  - name: dev
-  - name: ci
-
-providers:
-  - name: container
-    gardenContainerBuilder:
-      enabled: true
-  - name: kubernetes
-    # ...
-```
-
-You can also enable the Remote Container Builder in specific environments like so:
+For example:
 
 ```yaml
 kind: Project
@@ -59,8 +38,8 @@ environments:
   - name: ci
 
 providers:
-  - name: container
-    environments: [remote-dev, ci] # <-- Specify the environment
+  - name: container # <--- We configure the container builder under the `container` provider
+    environments: [remote-dev, ci] # <-- Here we specify what environments in should be enabled in
     gardenContainerBuilder:
       enabled: true
   - name: kubernetes
@@ -83,7 +62,9 @@ You can then check out the results in the [new Builds UI](https://app.garden.io)
 
 ## Next steps
 
-If you haven't already, check out our docs on [building containers](./building-containers.md) to learn how to add `container` Build actions to your project that can be built by the Remote Container Builder and used by other actions, e.g. to:
+If you haven't already, check out our docs on [building containers](./building-containers.md) to learn how to add `container` Build actions to your project. Note that the Remote Container Builder also supports [multi-platform builds](./building-containers.md#doing-multi-platform-builds)!
+
+Your `container` actions will be built by the container builder and can be used by other actions, e.g. to:
 
 - [Deploy K8s resources](../kubernetes/deploy-k8s-resource.md)
 - [Install Helm charts](../kubernetes/install-helm-chart.md)

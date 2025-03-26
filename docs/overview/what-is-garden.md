@@ -13,9 +13,9 @@ Garden is for teams that run their workloads on Kubernetes and want a better exp
 
 Garden is used by:
 
-* **Platform Engineers** who use Garden as an integral component of their internal development platform (IDP). Garden allows them to standardize configuration and workflows across teams with heterogeneous tech stacks and to abstract away the gnarly bits so that feature teams can focus on the fun stuff ([learn more here](./use-cases/jumpstart-idp.md)).
-* **DevOps Engineers** who use Garden to build fast and portable CI pipelines ([learn more here](./use-cases/portable-ci-pipelines.md)).
-* **Application Developers** who use Garden to develop and test in production-like environments that they can spin up on-demand, without waiting for CI ([learn more here](./use-cases/local-development-remote-clusters.md)).
+* **Platform Engineers** who use Garden as an integral component of their internal development platform (IDP). Garden allows them to standardize configuration and workflows across teams with heterogeneous tech stacks and to abstract away the gnarly bits so that feature teams can focus on the fun stuff ([learn more](./use-cases/jumpstart-idp.md)).
+* **DevOps Engineers** who use Garden to build fast and portable CI pipelines ([learn more](./use-cases/portable-ci-pipelines.md)).
+* **Application Developers** who use Garden to develop and test in production-like environments that they can spin up on-demand, without waiting for CI ([learn more](./use-cases/local-development-remote-clusters.md)).
 
 ## How it works
 
