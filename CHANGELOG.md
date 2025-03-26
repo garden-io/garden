@@ -1,4 +1,11 @@
 
+<a name="0.13.57"></a>
+## [0.13.57](https://github.com/garden-io/garden/compare/0.14.0...0.13.57) (2025-03-26)
+
+### Bug Fixes
+
+* **k8s:** update to nginx ingress controller 1.12.1 that is not affected by RCE vulnerability ([#7031](https://github.com/garden-io/garden/issues/7031)) ([5843370e1](https://github.com/garden-io/garden/commit/5843370e1))
+
 <a name="0.13.56"></a>
 ## [0.13.56](https://github.com/garden-io/garden/compare/0.13.55...0.13.56) (2025-03-23)
 
