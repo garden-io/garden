@@ -84,7 +84,7 @@
 * [Minimal RBAC Configuration for Development Clusters](./guides/rbac-config.md)
 * [Deploying to Production](./guides/deploying-to-production.md)
 * [Using a Registry Mirror](./guides/registry-mirror.md)
-* [Local mode](./guides/deprecations.md)
+* [Old configuration syntax](./guides/deprecations.md)
 
 ## Reference
 
@@ -160,6 +160,7 @@
 * [New Garden Cloud Version](./misc/cloud-announcement.md)
 * [Migrating to Cedar](./misc/migrating-to-cedar.md)
 * [Migrating to Bonsai](./misc/migrating-to-bonsai.md)
+* [Ingress NGINX Vulnerability](./misc/nginx-vulnerability.md)
 
 ## Contributing to Garden
 
