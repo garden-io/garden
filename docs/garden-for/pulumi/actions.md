@@ -25,7 +25,7 @@ spec:
     my-variable: pineapple
   # Variables defined in varfiles will also be merged into the stack config in declaration
   # order (and take precedence over variables defined in this Deploy action's pulumiVariables).
-  pulumiVarmanifestFiles: [my-default-varfile.yaml, dev.yaml]
+  pulumiVarfiles: [my-default-varfile.yaml, dev.yaml]
 ```
 
 In case you want to use different backends for different Garden environments and you want to use deploy action specific pulumi managed state backend organizations, you can configure your deploy actions as follows. This example uses two different pulumi backends. For the `prod` environment it uses the pulumi managed state backend and for the `dev` environment it uses a self managed S3 backend.
