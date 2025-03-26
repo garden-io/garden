@@ -328,10 +328,6 @@ export class GardenCloudApi {
     }
   }
 
-  sessionRegistered(id: string) {
-    return this.registeredSessions.has(id)
-  }
-
   async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
     let response: ListProjectsResponse
 
@@ -601,10 +597,6 @@ export class GardenCloudApi {
     this.log.debug(`Checked client auth token with ${this.distroName} - valid: ${valid}`)
 
     return valid
-  }
-
-  getProjectUrl(projectId: string) {
-    return new URL(`/projects/${projectId}`, this.domain)
   }
 
   getCommandResultUrl({ projectId, sessionId, shortId }: { projectId: string; sessionId: string; shortId: string }) {

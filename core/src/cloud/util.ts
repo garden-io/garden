@@ -66,7 +66,3 @@ export function getCloudDomain(projectConfig: ProjectConfig): string {
 export function getBackendType(projectConfig: ProjectConfig): "v1" | "v2" {
   return projectConfig.id ? "v1" : "v2"
 }
-
-export function isGardenCommunityEdition(cloudDomain: string): boolean {
-  return cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
-}
