@@ -163,7 +163,7 @@ spec:
 Project-wide exclusion rules can be set on the `local-kubernetes` and `kubernetes` providers:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 ...
 providers:
@@ -220,7 +220,7 @@ This example demonstrates several of the more advanced options. For more details
 sections above.
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 ...
 providers:

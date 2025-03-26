@@ -44,7 +44,7 @@ We achieve this via the `backendConfig` field on the `terraform` Deploy action s
 
 ```yaml
 # In project.garden.yml file
-apiVersion: "garden.io/v1"
+apiVersion: "garden.io/v2"
 kind: Project
 name: terraform-lambda-example
 defaultEnvironment: dev
