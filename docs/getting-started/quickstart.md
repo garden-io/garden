@@ -3,7 +3,7 @@ title: Quickstart
 order: 1
 ---
 
-Garden is an all-in-one DevOps automation platform that enables you to build, test, and deploy your applications and infrastructure in a single, unified workflow.
+Garden is a DevOps automation tool for developing and testing Kubernetes apps faster.
 
 In this quickstart guide, we'll:
 
@@ -53,7 +53,7 @@ This will significantly speed up the first Garden build of large projects on Win
 
 {% endtabs %}
 
-For more detailed installation instructions, please see our [Installation guide](../guides/installation.md).
+For more detailed installation instructions, see our [Installation guide](../guides/installation.md).
 
 ### Step 2 — Clone the example project
 
@@ -88,7 +88,7 @@ garden deploy --sync
 
 This will build all the containers in this project with the [Remote Container Builder](../features/remote-container-builder.md) and deploy them to your Kubernetes cluster. You can then visit the example project [via the link](http://vote.local.demo.garden/) output by Garden.
 
-The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
+The quickstart also includes unit and integration tests. To run your unit test, just run `test unit`. To run your integration test, run `test integ`. Easy!
 
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
 
