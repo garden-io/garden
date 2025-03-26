@@ -1,14 +1,14 @@
 # Release process
 
-We have a dedicated release branch, `latest-release`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/main/scripts/release.ts). Once we're ready to release, we reset the `latest-release` branch to `main` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `main` and cherry-pick them to the `latest-release` branch. We repeat this process until all issues have been resolved and we can make a proper release.
+We have a dedicated release branch, `latest-release-0.13`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/0.13/scripts/release.ts). Once we're ready to release, we reset the `latest-release-0.13` branch to `0.13` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `main` and cherry-pick them to the `latest-release-0.13` branch. We repeat this process until all issues have been resolved and we can make a proper release.
 
-This procedure allows us to continue merging features into `main` without them being included in the release.
+This procedure allows us to continue merging features into `0.13` without them being included in the release.
 
-On every merge to `main` we also publish an **unstable** release with the version `edge-bonsai` that is always flagged as a pre-release.
+On every merge to `0.13` we also publish an **unstable** release with the version `edge-bonsai` that is always flagged as a pre-release.
 
 ## Release script
 
-The [release script](https://github.com/garden-io/garden/blob/main/scripts/release.ts) has the signature:
+The [release script](https://github.com/garden-io/garden/blob/0.13/scripts/release.ts) has the signature:
 
 ```sh
 ./scripts/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
@@ -29,9 +29,9 @@ To make a new release, set your current working directory to the garden root dir
 
 First, you need to prepare the release binaries and run some manual tests:
 
-1. **Checkout to the `latest-release` branch**.
-2. Reset `latest-release` to `main` with `git reset --hard origin/main`
-3. Run `git log` to make sure that the latest commit is the expected one and there are no unwanted changes from `main` included in the release.
+1. **Checkout to the `latest-release-0.13` branch**.
+2. Reset `latest-release-0.13` to `0.13` with `git reset --hard origin/0.13`
+3. Run `git log` to make sure that the latest commit is the expected one and there are no unwanted changes from `0.13` included in the release.
 4. Run `./scripts/release.ts patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
 5. Wait for the CI build job to get the binaries from the [GitHub Releases page](https://github.com/garden-io/garden/releases).
 
@@ -47,7 +47,7 @@ Once the release CI job is done, a draft release will appear in GitHub. That dra
 4. Make a pull request for the branch that was pushed by the script and make sure it's merged as soon as possible.
 5. Update the [`CHANGELOG.md`](./CHANGELOG.md) if manual changes in the release nodes were necessary (e.g. removing commits that were reverted).
 6. Run `npm install` and commit the updated `package-lock.json`.
-7. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
+7. Make sure the `latest-release-0.13` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
 8. Check the `update-homebrew` GitHub Action run successfully and merge the relevant PR in the [homebrew repo](https://github.com/garden-io/homebrew-garden/pulls). **Use regular merge with the merge commit.**
 9. Install the Homebrew package and make sure it works okay:
     - `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
