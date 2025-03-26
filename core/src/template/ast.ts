@@ -14,14 +14,10 @@ import { getHelperFunctions } from "./functions/index.js"
 import type { EvaluateTemplateArgs } from "./types.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
-import { type ConfigSource, getYamlContext, validateSchema } from "../config/validation.js"
+import { type ConfigSource, validateSchema } from "../config/validation.js"
 import type { Branch } from "./analysis.js"
-import { TemplateStringError, truncateRawTemplateString } from "./errors.js"
+import { TemplateStringError } from "./errors.js"
 import { styles } from "../logger/styles.js"
-import { GardenApiVersion } from "../constants.js"
-import { getGlobalProjectApiVersion } from "../project-api-version.js"
-import { RootLogger } from "../logger/logger.js"
-import { emitNonRepeatableWarning } from "../warnings.js"
 
 type ASTEvaluateArgs = EvaluateTemplateArgs & {
   readonly yamlSource: ConfigSource
@@ -523,52 +519,19 @@ export class FormatStringExpression extends TemplateExpression {
   constructor(
     public readonly rawText: string,
     public readonly loc: Location,
-    private readonly innerExpression: TemplateExpression,
-    private readonly hasOptionalSuffix: boolean
+    private readonly innerExpression: TemplateExpression
   ) {
     super()
   }
 
-  private isOptional(apiVersion: GardenApiVersion) {
-    return apiVersion === GardenApiVersion.v2 ? false : this.hasOptionalSuffix
-  }
-
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
-    const apiVersion = getGlobalProjectApiVersion()
-    const isOptional = this.isOptional(apiVersion)
-
-    // TODO(0.14.1): remove this dead code branch - we no longer support the apiVersion v1
-    if (apiVersion === GardenApiVersion.v1 && isOptional) {
-      const log = RootLogger.getInstance().createLog()
-
-      const yamlContext = getYamlContext(args.yamlSource)
-      const locationDesc = yamlContext || styles.highlight(truncateRawTemplateString(this.rawText))
-      const delimiter = !!yamlContext ? "\n" : " "
-      emitNonRepeatableWarning(log, `Found deprecated optional template value syntax in${delimiter}${locationDesc}`)
-    }
-
     const result = this.innerExpression.evaluate({
       ...args,
       opts: {
         ...args.opts,
       },
-      optional: args.optional || isOptional,
+      optional: args.optional,
     })
-
-    // Only if this expression is optional we return undefined instead of symbol.
-    // If merely optional is true in EvaluateArgs, we must return symbol.
-    if (isOptional && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-      return undefined
-    }
-
-    if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-      return result
-    }
-
-    // TODO(0.14): remove the optional support in grammar
-    if (apiVersion === GardenApiVersion.v2 && this.hasOptionalSuffix) {
-      return result + "?"
-    }
 
     return result
   }
