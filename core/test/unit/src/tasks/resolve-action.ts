@@ -546,6 +546,7 @@ describe("ResolveActionTask", () => {
           inputsSchemaDefaults: {},
           internal: {
             basePath: garden.projectRoot,
+            configFilePath: "template.yaml",
           },
         },
       }
