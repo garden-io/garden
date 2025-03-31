@@ -15,9 +15,7 @@ import { getLinkedSources } from "../../util/ext-source-util.js"
 import { renderTable } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 
-const getLinkedReposArguments = {}
-
-type Args = typeof getLinkedReposArguments
+type Args = {}
 
 export class GetLinkedReposCommand extends Command {
   name = "linked-repos"

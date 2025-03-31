@@ -70,8 +70,8 @@ const selfUpdateOpts = {
 export type SelfUpdateArgs = typeof selfUpdateArgs
 export type SelfUpdateOpts = typeof selfUpdateOpts
 
-const versionScopes = ["major", "minor", "patch"] as const
-export type VersionScope = (typeof versionScopes)[number]
+const _versionScopes = ["major", "minor", "patch"] as const
+export type VersionScope = (typeof _versionScopes)[number]
 
 function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>): VersionScope {
   if (opts["major"]) {
