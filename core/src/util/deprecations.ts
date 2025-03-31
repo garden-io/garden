@@ -83,6 +83,14 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         The ${style("resources.sync")} config field in the ${style("kubernetes")} provider was only used for the ${style("cluster-docker")} build mode, which was removed in Garden 0.13.",
       `,
     },
+    workflowLimits: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `Using ${style("limits")} configuration field in workflows`,
+      warnHint: deline`
+        Please use the ${style("resources.limits")} configuration field instead.
+      `,
+      docs: null,
+    },
   } as const
 }
 
