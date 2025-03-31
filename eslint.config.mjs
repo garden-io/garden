@@ -8,8 +8,17 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import js from "@eslint/js"
 import { FlatCompat } from "@eslint/eslintrc"
+import stylistic from "@stylistic/eslint-plugin"
 
+/**
+ * Set this to avoid error like "Error: Key "rules": Key "header/header": should NOT have more than 0 items."
+ * See https://github.com/Stuk/eslint-plugin-header/issues/57#issuecomment-2566346001
+ */
+header.rules.header.meta.schema = false
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const __filename = fileURLToPath(import.meta.url)
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = path.dirname(__filename)
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -34,6 +43,7 @@ export default defineConfig([
       header,
       "chai-expect": chaiExpect,
       "chai-friendly": chaiFriendly,
+      "@stylistic": stylistic,
     },
 
     rules: {
@@ -46,7 +56,7 @@ export default defineConfig([
         },
       ],
 
-      "@typescript-eslint/quotes": [
+      "@stylistic/quotes": [
         "error",
         "double",
         {
@@ -55,14 +65,21 @@ export default defineConfig([
         },
       ],
 
+      // We allow empty functions for cases where callbacks are required but unneeded
       "@typescript-eslint/no-empty-function": "warn",
-      "@typescript-eslint/ban-types": "warn",
+      // We use `{}` everywhere.
+      // To make this safe, we need to actually go through all the cases and see
+      // if it's supposed to be a plain object, any object, or really means "anything".
+      "@typescript-eslint/no-empty-object-type": "warn",
+      "@typescript-eslint/no-restricted-types": "warn",
+      "@typescript-eslint/no-unsafe-function-type": "warn",
+      "@typescript-eslint/no-wrapper-object-types": "warn",
       "arrow-body-style": "off",
       "jsdoc/check-indentation": "off",
       "jsdoc/newline-after-description": "off",
       "no-console": "error",
       "no-unneeded-ternary": "error",
-      "no-unused-expressions": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
 
       "chai-friendly/no-unused-expressions": [
         "error",
@@ -106,11 +123,15 @@ export default defineConfig([
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
           destructuredArrayIgnorePattern: "^_",
+          caughtErrors: "none", // fixme: fail on unused caught errors, disabled for compatibility
+          caughtErrorsIgnorePattern: "^_",
         },
       ],
 
       "@typescript-eslint/consistent-type-imports": "error",
       "@typescript-eslint/no-explicit-any": "warn",
+
+      "@typescript-eslint/no-non-null-asserted-optional-chain": "warn", // TODO: "error"
     },
   },
 ])
