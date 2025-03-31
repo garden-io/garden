@@ -264,9 +264,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     // FIXME: StringParameter is in fact a number
     //  The method Parameter.validate ignores the actual validation result,
     //  and does not ensure the correct type of the output object.
-    //  This is a qick hack to unlock the release,
+    //  This is a quick hack to unlock the release,
     //  let's revisit the parameter validation.
-    let desiredVersion = `${args.version}`
+    // The version can still be `undefined`, so we prevent from converting it to string "undefined"
+    let desiredVersion = args.version === undefined ? undefined : `${args.version}`
 
     if (desiredVersion && desiredVersion[0] === "v") {
       desiredVersion = desiredVersion.slice(1)
