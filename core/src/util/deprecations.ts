@@ -93,6 +93,14 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: null,
     },
+    workflowLimits: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `Using ${style("limits")} configuration field in workflows`,
+      warnHint: deline`
+        Please use the ${style("resources.limits")} configuration field instead.
+      `,
+      docs: null,
+    },
   } as const
 }
 
