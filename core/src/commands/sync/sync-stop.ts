@@ -114,7 +114,7 @@ export class SyncStopCommand extends Command<Args, Opts> {
         await router.deploy.stopSync({ log: actionLog, action, graph })
 
         // Halt any active monitors for the sync
-        garden.monitors.find({ type: "sync", key: action.name }).map((m) => m.stop())
+        await Promise.all(garden.monitors.find({ type: "sync", key: action.name }).map((m) => m.stop()))
 
         actionLog.info("Syncing successfully stopped.")
       })
