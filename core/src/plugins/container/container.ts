@@ -395,17 +395,19 @@ function convertContainerModuleRuntimeActions(
   const { module, services, tasks, tests, prepareRuntimeDependencies } = convertParams
   const actions: ContainerActionConfig[] = []
 
-  let deploymentImageId = module.spec.image
+  let deploymentImageId: string | undefined
 
   // If the module needs container build, we need to add the module version as the tag.
   // If it doesn't need a container build, the module doesn't have a build action and just downloads a prebuilt image
   if (needsContainerBuild && buildAction) {
     // Hack: we are in the container provider, and do not yet have access to kubernetes provider config.
     //  So, we cannot get the info on the deployment container registry.
-    //  Thus, we use template string here to reference tje deploymentImageId.
+    //  Thus, we use template string here to reference the deploymentImageId.
     //  This is safe because module name is validated here,
     //  and the valid module name always results in a valid template expression.
     deploymentImageId = `\${actions.build.${buildAction.name}.outputs.deploymentImageId}`
+  } else {
+    deploymentImageId = module.spec.image
   }
 
   const volumeModulesReferenced: string[] = []
@@ -441,7 +443,7 @@ function convertContainerModuleRuntimeActions(
       timeout: service.spec.timeout || DEFAULT_DEPLOY_TIMEOUT_SEC,
       spec: {
         ...omit(service.spec, ["name", "dependencies", "disabled"]),
-        image: deploymentImageId,
+        image: needsContainerBuild ? undefined : deploymentImageId,
         volumes: [],
       },
     }
@@ -463,7 +465,7 @@ function convertContainerModuleRuntimeActions(
 
       spec: {
         ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
-        image: needsContainerBuild ? undefined : module.spec.image,
+        image: needsContainerBuild ? undefined : deploymentImageId,
         volumes: [],
       },
     }
@@ -484,7 +486,7 @@ function convertContainerModuleRuntimeActions(
 
       spec: {
         ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
-        image: needsContainerBuild ? undefined : module.spec.image,
+        image: needsContainerBuild ? undefined : deploymentImageId,
         volumes: [],
       },
     }
