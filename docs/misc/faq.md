@@ -186,22 +186,6 @@ garden run <run-name>
 
 This will run the Run even if the result is cached.
 
-### How do I clear cached Run results?
-
-Garden stores the Run results as a ConfigMap in your namespace. You can delete them manually with this command:
-
-```console
-kubectl delete -n <your-namespace> $(kubectl get configmap -n <your-namespace> -o name | grep run-result)
-```
-
-You can also run it manually with:
-
-```console
-garden run <run-name>
-```
-
-This will run the Run even if the result is cached.
-
 ## Secrets
 
 ### How do I mount secrets as volumes?
