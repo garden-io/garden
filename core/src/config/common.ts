@@ -238,7 +238,6 @@ export let joi: Schema = Joi.extend({
   rules: {
     allowGlobs: {
       method() {
-        // eslint-disable-next-line no-invalid-this
         return this.$_setFlag("allowGlobs", true)
       },
       validate(value) {
@@ -248,7 +247,6 @@ export let joi: Schema = Joi.extend({
     },
     absoluteOnly: {
       method() {
-        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("absoluteOnly")
       },
       validate(value, { error }) {
@@ -261,7 +259,6 @@ export let joi: Schema = Joi.extend({
     },
     filenameOnly: {
       method() {
-        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("filenameOnly")
       },
       validate(value, { error }) {
@@ -274,7 +271,6 @@ export let joi: Schema = Joi.extend({
     },
     relativeOnly: {
       method() {
-        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("relativeOnly")
       },
       validate(value, { error }) {
@@ -287,7 +283,6 @@ export let joi: Schema = Joi.extend({
     },
     subPathOnly: {
       method() {
-        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("subPathOnly")
       },
       validate(value, { error }) {
@@ -322,7 +317,6 @@ joi = joi.extend({
   rules: {
     requireHash: {
       method() {
-        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("requireHash")
       },
       validate(value, { error }) {
@@ -408,9 +402,8 @@ joi = joi.extend({
   rules: {
     jsonSchema: {
       method(jsonSchema: JSONSchemaType<unknown>) {
-        // eslint-disable-next-line no-invalid-this
         this.$_setFlag("jsonSchema", jsonSchema)
-        // eslint-disable-next-line no-invalid-this
+
         return this.$_addRule(<any>{ name: "jsonSchema", args: { jsonSchema } })
       },
       args: [
@@ -454,9 +447,8 @@ joi = joi.extend({
 
     zodSchema: {
       method(zodSchema: z.ZodObject<any>) {
-        // eslint-disable-next-line no-invalid-this
         this.$_setFlag("zodSchema", zodSchema)
-        // eslint-disable-next-line no-invalid-this
+
         return this.$_addRule(<any>{ name: "zodSchema", args: { zodSchema } })
       },
       args: [
@@ -771,7 +763,6 @@ joi = joi.extend({
         },
       ],
       method(value: string) {
-        // eslint-disable-next-line no-invalid-this
         return this.$_setFlag("kind", value)
       },
       validate(value) {
@@ -787,7 +778,6 @@ joi = joi.extend({
         },
       ],
       method(value: string) {
-        // eslint-disable-next-line no-invalid-this
         return this.$_setFlag("name", value)
       },
       validate(value) {
