@@ -33,7 +33,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       docsHeadline: `${style("hotReload")} configuration field in modules`,
       warnHint: deline`
         The module-level ${style("hotReload")} configuration field was removed in Garden 0.13 and has no effect.
-        Please use ${style("sync")} configuration field instead.
+        Please use actions with the ${style("sync")} mode instead.
       `,
       docs: deline`
         See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
@@ -44,7 +44,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       docsHeadline: `${style("serviceResource.hotReloadArgs")} configuration field in modules`,
       warnHint: deline`
         The module-level ${style("serviceResource.hotReload")} configuration field was removed in Garden 0.13 and has no effect.
-        Please do not use it.
+        Please use actions with the ${style("sync")} mode instead.
       `,
       docs: deline`
         See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
@@ -53,8 +53,9 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     devMode: {
       docsSection: "Old configuration syntax",
-      docsHeadline: `Using ${style("spec.devMode")} configuration field in actions`,
+      docsHeadline: `${style("spec.devMode")} configuration field in actions`,
       warnHint: deline`
+        The ${style("spec.devMode")} configuration field in actions is deprecated in Garden 0.14.
         Please use ${style("spec.sync")} configuration field instead.
       `,
       docs: deline`
@@ -62,8 +63,8 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
     },
     localMode: {
-      docsSection: "Local mode",
-      docsHeadline: `Using ${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
       warnHint: deline`
         The local-mode feature was completely removed in 0.14, and the ${style("spec.localMode")} configuration syntax has no effect.
         Please remove all ${style("spec.localMode")} entries from your configuration files.

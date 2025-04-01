@@ -5,24 +5,22 @@
 
 <h2 id="hotreload"><code>hotReload</code> configuration field in modules</h2>
 
-The module-level `hotReload` configuration field was removed in Garden 0.13 and has no effect. Please use `sync` configuration field instead.
+The module-level `hotReload` configuration field was removed in Garden 0.13 and has no effect. Please use actions with the `sync` mode instead.
 
 See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
 
 <h2 id="hotreloadargs"><code>serviceResource.hotReloadArgs</code> configuration field in modules</h2>
 
-The module-level `serviceResource.hotReload` configuration field was removed in Garden 0.13 and has no effect. Please do not use it.
+The module-level `serviceResource.hotReload` configuration field was removed in Garden 0.13 and has no effect. Please use actions with the `sync` mode instead.
 
 See the [Code Synchronization Guide](../features/code-synchronization.md) for details. See also the [deprecation notice for `hotReload` configuration field in modules](#hotreload)
 
-<h2 id="devmode">Using <code>spec.devMode</code> configuration field in actions</h2>
+<h2 id="devmode"><code>spec.devMode</code> configuration field in actions</h2>
 
-Please use `spec.sync` configuration field instead.
+The `spec.devMode` configuration field in actions is deprecated in Garden 0.14. Please use `spec.sync` configuration field instead.
 
 The old fields `spec.devMode` are automatically converted to `spec.sync` in Garden 0.14 when using `apiVersion: garden.io/v2` in the project-level configuration.
 
-# Local mode
-
-<h2 id="localmode">Using <code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> Deploy actions</h2>
+<h2 id="localmode"><code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> Deploy actions</h2>
 
 The local-mode feature was completely removed in 0.14, and the `spec.localMode` configuration syntax has no effect. Please remove all `spec.localMode` entries from your configuration files.
