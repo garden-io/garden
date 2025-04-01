@@ -28,6 +28,29 @@ export function isDeprecatedPlugin(pluginName: string): pluginName is Deprecated
 // This is called by `updateDeprecationGuide` to update deprecations.md in the docs automatically.
 export function getDeprecations(style: (s: string) => string = styles.highlight) {
   return {
+    hotReload: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("hotReload")} configuration field in modules`,
+      warnHint: deline`
+        The module-level ${style("hotReload")} configuration field was removed in Garden 0.13 and has no effect.
+        Please use ${style("sync")} configuration field instead.
+      `,
+      docs: deline`
+        See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
+      `,
+    },
+    hotReloadArgs: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("serviceResource.hotReloadArgs")} configuration field in modules`,
+      warnHint: deline`
+        The module-level ${style("serviceResource.hotReload")} configuration field was removed in Garden 0.13 and has no effect.
+        Please do not use it.
+      `,
+      docs: deline`
+        See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
+        See also the [deprecation notice for ${style("hotReload")} configuration field in modules](#hotreload)
+      `,
+    },
     devMode: {
       docsSection: "Old configuration syntax",
       docsHeadline: `Using ${style("spec.devMode")} configuration field in actions`,

@@ -3,6 +3,18 @@
 
 # Old configuration syntax
 
+<h2 id="hotreload"><code>hotReload</code> configuration field in modules</h2>
+
+The module-level `hotReload` configuration field was removed in Garden 0.13 and has no effect. Please use `sync` configuration field instead.
+
+See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
+
+<h2 id="hotreloadargs"><code>serviceResource.hotReloadArgs</code> configuration field in modules</h2>
+
+The module-level `serviceResource.hotReload` configuration field was removed in Garden 0.13 and has no effect. Please do not use it.
+
+See the [Code Synchronization Guide](../features/code-synchronization.md) for details. See also the [deprecation notice for `hotReload` configuration field in modules](#hotreload)
+
 <h2 id="devmode">Using <code>spec.devMode</code> configuration field in actions</h2>
 
 Please use `spec.sync` configuration field instead.
