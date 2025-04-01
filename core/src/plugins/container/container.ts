@@ -241,7 +241,7 @@ const progressToolSpec: PluginToolSpec = {
   ],
 }
 
-// TODO: remove in 0.14. validation should be in the action validation handler.
+// TODO: remove in 0.15. validation should be in the action validation handler.
 export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate services
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map((spec) => {

@@ -158,7 +158,7 @@ export const configTemplateSchema = createSchema({
       .description(
         "Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided all inputs will be accepted."
       ),
-    // TODO: remove in 0.14
+    // TODO(deprecation): deprecate in 0.14 and remove in 0.15
     modules: joi
       .array()
       .items(moduleSchema())
