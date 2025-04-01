@@ -1474,7 +1474,7 @@ export class Garden {
       }
 
       // Convert type:templated modules to Render configs
-      // TODO: remove in 0.14
+      // TODO(0.15): remove modules
       const rawTemplatedModules = rawModuleConfigs.filter((m) => m.type === "templated") as TemplatedModuleConfig[]
       // -> removed templated modules from the module config list
       rawModuleConfigs = rawModuleConfigs.filter((m) => m.type !== "templated")
