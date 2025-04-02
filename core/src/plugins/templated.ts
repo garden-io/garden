@@ -15,7 +15,7 @@ import { dedent, naturalList } from "../util/string.js"
 import { omit } from "lodash-es"
 import { templatedModuleSpecSchema } from "../config/render-template.js"
 
-// TODO: remove in 0.14, replaced with Render kind
+// TODO: remove in 0.15, replaced with Render kind
 
 export interface TemplatedModuleSpec extends ModuleSpec {
   template: string
