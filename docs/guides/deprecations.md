@@ -13,7 +13,7 @@ See the [Code Synchronization Guide](../features/code-synchronization.md) for de
 
 The module-level `serviceResource.hotReload` configuration field was removed in Garden 0.13 and has no effect. Please use actions with the `sync` mode instead.
 
-See the [Code Synchronization Guide](../features/code-synchronization.md) for details. See also the [deprecation notice for `hotReload` configuration field in modules](#hotreload)
+See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
 
 <h2 id="devmode"><code>spec.devMode</code> configuration field in actions</h2>
 

@@ -46,9 +46,10 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         The module-level ${style("serviceResource.hotReload")} configuration field was removed in Garden 0.13 and has no effect.
         Please use actions with the ${style("sync")} mode instead.
       `,
+      // TODO: add "See also the [deprecation notice for ${style("hotReload")} configuration field in modules](#hotreload)."
+      //  Now check-docs does not recognize the anchor links.
       docs: deline`
         See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
-        See also the [deprecation notice for ${style("hotReload")} configuration field in modules](#hotreload)
       `,
     },
     devMode: {
