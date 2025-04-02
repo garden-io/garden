@@ -412,7 +412,7 @@ Volume container action references will be removed in Garden 0.14. Use the `kube
 Referencing `persistentvolumeclaim` and `configmap` action or module types from `container` Deploy actions will not be supported anymore in Garden 0.14.
 
 <!-- markdown-link-check-disable-next-line -->
-See also the deprecation notices for [the `persistentvolumeclaim` Deploy action type](#persistentvolumeclaimDeployAction)) and [the `configmap` Deploy action type](#configmapDeployAction)).
+See also the deprecation notices for [the `persistentvolumeclaim` Deploy action type](#persistentvolumeclaimdeployaction) and [the `configmap` Deploy action type](#configmapdeployaction).
 
 # Template Language
 
