@@ -68,7 +68,7 @@ export interface RenderTemplateConfig extends BaseGardenResource {
   inputs?: DeepPrimitiveMap
 }
 
-// TODO: remove in 0.14
+// TODO(deprecation): deprecate in 0.14 and remove in 0.15
 export const templatedModuleSpecSchema = createSchema({
   name: "templated-module",
   keys: () => ({
@@ -181,7 +181,7 @@ export async function renderConfigTemplate({
     inputs: InputContext.forRenderTemplate(config, template),
   })
 
-  // TODO: remove in 0.14
+  // TODO(deprecation): deprecate in 0.14 and remove in 0.15
   const modules = await renderModules({ garden, template, context, renderConfig: resolved })
 
   const configs = await renderConfigs({ garden, log, template, context, renderConfig: resolved })
