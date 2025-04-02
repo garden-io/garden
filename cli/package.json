@@ -34,16 +34,16 @@
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
-    "@types/chai": "^5.0.1",
+    "@types/chai": "^5.2.1",
     "@types/fs-extra": "^11.0.4",
     "@types/mocha": "^10.0.10",
     "@types/tar": "^6.1.11",
     "@types/unzipper": "^0.10.10",
-    "chai": "^5.1.2",
+    "chai": "^5.2.0",
     "fs-extra": "^11.2.0",
     "lodash-es": "^4.17.21",
     "minimist": "^1.2.8",
-    "mocha": "^11.0.1",
+    "mocha": "^11.1.0",
     "typescript": "^5.5.3"
   },
   "scripts": {
