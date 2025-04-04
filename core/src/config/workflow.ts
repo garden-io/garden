@@ -406,6 +406,20 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
 
   if (resolvedConfig.limits) {
     reportDeprecatedFeatureUsage({ deprecation: "workflowLimits", log })
+
+    if (resolvedConfig.resources.limits) {
+      emitNonRepeatableWarning(
+        log,
+        deline`
+          You have specified both ${styles.highlight("resources.limits")} and ${styles.bold("deprecated")} ${styles.highlight("limits")}
+          in your workload config at ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}.
+
+          ${styles.bold(`Garden will use the values defined in the deprecated ${styles.highlight("limits")}!!!`)}.
+          Please use only ${styles.highlight("resources.limits")} field in your workflow configuration.
+      `
+      )
+    }
+
     resolvedConfig.resources.limits = resolvedConfig.limits
   }
 
