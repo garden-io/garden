@@ -97,6 +97,10 @@ describe("plugins.container", () => {
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
   })
 
+  afterEach(() => {
+    garden.close()
+  })
+
   describe("convertContainerModule", () => {
     const getModuleConvertBaseParams = ({
       module,

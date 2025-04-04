@@ -144,11 +144,9 @@ export async function getContainerTestGarden(
 describe("kubernetes container module handlers", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  // let provider: KubernetesProvider
 
   before(async () => {
     garden = await makeTestGarden(root)
-    // provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
   })
 
   beforeEach(async () => {

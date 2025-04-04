@@ -588,6 +588,7 @@ describe("kubernetes Pod runner functions", () => {
   })
 
   after(async () => {
+    garden.close()
     if (cleanup) {
       cleanup()
     }
@@ -661,6 +662,10 @@ describe("kubernetes Pod runner functions", () => {
         action: helmAction,
         provider: helmCtx.provider,
       })
+    })
+
+    after(() => {
+      helmGarden && helmGarden.close()
     })
 
     beforeEach(async () => {

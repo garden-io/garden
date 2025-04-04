@@ -8,6 +8,7 @@
 
 import { expect } from "chai"
 import fsExtra from "fs-extra"
+
 const { mkdirp, pathExists, readFile, remove, writeFile } = fsExtra
 import { join } from "path"
 import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
@@ -249,6 +250,10 @@ describe("sync mode deployments and sync behavior", () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     })
 
+    afterEach(() => {
+      garden.close()
+    })
+
     it("should return a simple sync spec converted from a kubernetes or helm module", async () => {
       // Since the sync specs for both `kubernetes` and `helm` modules have the type
       // `KubernetesModuleDevModeSpec`, we don't need separate test cases for each of those two module types here.
@@ -387,6 +392,10 @@ describe("sync mode deployments and sync behavior", () => {
         await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       )
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    })
+
+    afterEach(() => {
+      garden.close()
     })
 
     it("converts a sync spec from a container Deploy action", async () => {
