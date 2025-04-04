@@ -30,3 +30,9 @@ The local-mode feature was completely removed in 0.14, and the `spec.localMode` 
 The `resources.sync` config field in the `kubernetes` provider has no effect in Garden 0.13 and 0.14., Please remove it from your `kubernetes` provider configuration.
 
 The `resources.sync` config field in the `kubernetes` provider was only used for the `cluster-docker` build mode, which was removed in Garden 0.13.",
+
+# Unsupported commands
+
+<h2 id="kubernetesplugincleanupclusterregistrycommand"><code>cleanup-cluster-registry</code></h2>
+
+The `cleanup-cluster-registry` comamnd in the `kubernetes` and `local-kubernetes` plugins is not supported in Garden 0.14. This command no longer has any effect as of version 0.13! Please remove this from any pipelines running it.

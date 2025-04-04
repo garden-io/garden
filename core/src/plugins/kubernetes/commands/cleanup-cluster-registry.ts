@@ -7,8 +7,8 @@
  */
 
 import type { PluginCommand } from "../../../plugin/command.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
-// TODO(deprecation): deprecate in 0.14 and remove in 0.15
 export const cleanupClusterRegistry: PluginCommand = {
   name: "cleanup-cluster-registry",
   description: "[NO LONGER USED]",
@@ -16,12 +16,7 @@ export const cleanupClusterRegistry: PluginCommand = {
   title: "Cleaning up caches and unused images from the in-cluster registry",
 
   handler: async ({ log }) => {
-    const result = {}
-
-    log.warn(
-      "This command no longer has any effect as of version 0.13! You probably want to remove this from any pipelines running it :)"
-    )
-
-    return { result }
+    reportDeprecatedFeatureUsage({ deprecation: "kubernetesPluginCleanupClusterRegistryCommand", log })
+    return { result: {} }
   },
 }
