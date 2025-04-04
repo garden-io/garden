@@ -30,3 +30,7 @@ The local-mode feature was completely removed in 0.14, and the `spec.localMode` 
 The `resources.sync` config field in the `kubernetes` provider has no effect in Garden 0.13 and 0.14., Please remove it from your `kubernetes` provider configuration.
 
 The `resources.sync` config field in the `kubernetes` provider was only used for the `cluster-docker` build mode, which was removed in Garden 0.13.",
+
+<h2 id="workflowlimits">Using <code>limits</code> configuration field in workflows</h2>
+
+Please use the `resources.limits` configuration field instead.
