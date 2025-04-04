@@ -3441,6 +3441,10 @@ describe("Garden", () => {
         })
       })
 
+      afterEach(() => {
+        garden.close()
+      })
+
       it("resolves referenced project variables", async () => {
         garden.setPartialModuleConfigs([
           {
@@ -5001,6 +5005,10 @@ describe("Garden", () => {
         })
       })
 
+      afterEach(() => {
+        gardenA.close()
+      })
+
       it("should return module version if there are no dependencies", async () => {
         const module = await gardenA.resolveModule("module-a")
         gardenA.vcs = handlerA
@@ -5281,6 +5289,10 @@ describe("Garden", () => {
     beforeEach(async () => {
       garden = await makeTestGardenA()
       key = randomString()
+    })
+
+    afterEach(() => {
+      garden.close()
     })
 
     describe("hideWarning", () => {

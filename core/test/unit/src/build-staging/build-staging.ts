@@ -121,6 +121,10 @@ describe("BuildStaging", () => {
       buildStaging = garden.buildStaging
     })
 
+    after(() => {
+      garden && garden.close()
+    })
+
     beforeEach(async () => {
       tmpDir = await makeTempDir()
       tmpPath = await realpath(tmpDir.path)

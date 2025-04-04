@@ -117,6 +117,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
   })
 
   afterEach(async () => {
+    garden.close()
     await tmpDir.cleanup()
   })
 
@@ -1556,6 +1557,10 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
       ignoreFile: garden.dotIgnoreFile,
       cache: garden.treeCache,
     })
+  })
+
+  afterEach(() => {
+    garden.close()
   })
 
   describe("getTreeVersion", () => {

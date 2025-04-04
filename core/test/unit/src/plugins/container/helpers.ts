@@ -83,6 +83,10 @@ describe("containerHelpers", () => {
     td.replace(Garden.prototype, "resolveModuleVersion", async () => dummyVersion)
   })
 
+  afterEach(() => {
+    garden.close()
+  })
+
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
     return moduleFromConfig({ garden, log, config: parsed.moduleConfig, buildDependencies: [] })
