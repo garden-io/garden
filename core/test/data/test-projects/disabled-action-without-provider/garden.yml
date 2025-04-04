@@ -1,0 +1,32 @@
+apiVersion: garden.io/v2
+kind: Project
+name: my-project
+environments:
+  - name: no-k8s
+  - name: k8s
+
+providers:
+  - name: local-kubernetes
+    namespace: env-repro
+    environments: [k8s]
+
+---
+kind: Deploy
+name: k8s-deploy
+type: kubernetes
+disabled: true
+environments: ["k8s"] # also fails with disabled: true
+spec:
+  manifests:
+    - apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: my-configmap
+      data:
+        foo: bar
+---
+kind: Run
+name: say-hi
+type: exec
+spec:
+  command: ["echo", "Hi ${local.username}"]

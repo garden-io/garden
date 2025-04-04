@@ -4271,6 +4271,25 @@ describe("Garden", () => {
       expect(a.isDisabled()).to.be.false
       expect(b.isDisabled()).to.be.true
     })
+
+    it("should not throw if disabled action does not have a configured provider", async () => {
+      // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
+      const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
+        environmentString: "no-k8s",
+      })
+
+      // The disabled action with no provider configured should not cause an error
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      // The enabled acton 'say-hi' should be unreachable from graph-lookups
+      void expectError(() => graph.getDeploy("k8s-deploy"), {
+        contains: "Deploy type=kubernetes name=k8s-deploy is disabled",
+      })
+
+      // The enabled acton 'say-hi' should be reachable from graph-lookups
+      const sayHiRun = graph.getRun("say-hi")
+      expect(sayHiRun.isDisabled()).to.be.false
+    })
   })
 
   context("module type has a base", () => {
