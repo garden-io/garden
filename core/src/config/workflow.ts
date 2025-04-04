@@ -19,7 +19,6 @@ import {
   unusedApiVersionSchema,
 } from "./common.js"
 import { deline, dedent } from "../util/string.js"
-import type { ServiceLimitSpec } from "../plugins/container/moduleConfig.js"
 import type { Garden } from "../garden.js"
 import { WorkflowConfigContext } from "./template-contexts/workflow.js"
 import { validateConfig } from "./validation.js"
@@ -31,6 +30,14 @@ import type { BaseGardenResource, GardenResource } from "./base.js"
 import type { GardenApiVersion } from "../constants.js"
 import { DOCS_BASE_URL } from "../constants.js"
 import { deepEvaluate } from "../template/evaluate.js"
+import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { emitNonRepeatableWarning } from "../warnings.js"
+import { styles } from "../logger/styles.js"
+
+export interface WorkflowLimitSpec {
+  cpu: number
+  memory: number
+}
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -60,12 +67,16 @@ export interface WorkflowConfig extends BaseGardenResource {
   envVars: PrimitiveMap
   kind: "Workflow"
   resources: {
-    requests: ServiceLimitSpec
-    limits: ServiceLimitSpec
+    requests: WorkflowLimitSpec
+    limits: WorkflowLimitSpec
   }
   keepAliveHours?: number
   files?: WorkflowFileSpec[]
-  limits?: ServiceLimitSpec
+  /**
+   * TODO(0.15): remove this
+   * @deprecated use {@link #resources.limits} instead
+   */
+  limits?: WorkflowLimitSpec
   steps: WorkflowStepSpec[]
   triggers?: TriggerSpec[]
 }
@@ -139,12 +150,11 @@ export const workflowConfigSchema = createSchema({
         requests: workflowResourceRequestsSchema().default(defaultWorkflowRequests),
         limits: workflowResourceLimitsSchema().default(defaultWorkflowLimits),
       })
-      // .default(() => ({}))
       .meta({ enterprise: true }),
     limits: workflowResourceLimitsSchema().meta({
       enterprise: true,
-      deprecated: "Please use the `resources.limits` field instead.",
-    }), // TODO(deprecation): deprecate in 0.14
+      deprecated: makeDeprecationMessage({ deprecation: "workflowLimits" }),
+    }),
     steps: joiSparseArray(workflowStepSchema()).required().min(1).description(deline`
         The steps the workflow should run. At least one step is required. Steps are run sequentially.
         If a step fails, subsequent steps are skipped.
@@ -394,14 +404,22 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
     ),
   }
 
-  /**
-   * TODO: Remove support for workflow.limits the next time we make a release with breaking changes.
-   *
-   * workflow.limits is deprecated, so we copy its values into workflow.resources.limits if workflow.limits
-   * is specified.
-   */
-
   if (resolvedConfig.limits) {
+    reportDeprecatedFeatureUsage({ deprecation: "workflowLimits", log })
+
+    if (resolvedConfig.resources.limits) {
+      emitNonRepeatableWarning(
+        log,
+        deline`
+          You have specified both ${styles.highlight("resources.limits")} and ${styles.bold("deprecated")} ${styles.highlight("limits")}
+          in your workload config at ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}.
+
+          ${styles.bold(`Garden will use the values defined in the deprecated ${styles.highlight("limits")}!!!`)}.
+          Please use only ${styles.highlight("resources.limits")} field in your workflow configuration.
+      `
+      )
+    }
+
     resolvedConfig.resources.limits = resolvedConfig.limits
   }
 
