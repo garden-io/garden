@@ -72,6 +72,17 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: null,
     },
+    kubernetesProviderSyncResourceLimit: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("resources.sync")} config field in the ${style("kubernetes")} provider`,
+      warnHint: deline`
+        The ${style("resources.sync")} config field in the ${style("kubernetes")} provider has no effect in Garden 0.13 and 0.14.,
+        Please remove it from your ${style("kubernetes")} provider configuration.
+      `,
+      docs: deline`
+        The ${style("resources.sync")} config field in the ${style("kubernetes")} provider was only used for the ${style("cluster-docker")} build mode, which was removed in Garden 0.13.",
+      `,
+    },
   } as const
 }
 

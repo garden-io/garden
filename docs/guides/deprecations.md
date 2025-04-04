@@ -24,3 +24,9 @@ The old fields `spec.devMode` are automatically converted to `spec.sync` in Gard
 <h2 id="localmode"><code>spec.localMode</code> configuration field in <code>helm</code>, <code>kubernetes</code> and <code>container</code> Deploy actions</h2>
 
 The local-mode feature was completely removed in 0.14, and the `spec.localMode` configuration syntax has no effect. Please remove all `spec.localMode` entries from your configuration files.
+
+<h2 id="kubernetesprovidersyncresourcelimit"><code>resources.sync</code> config field in the <code>kubernetes</code> provider</h2>
+
+The `resources.sync` config field in the `kubernetes` provider has no effect in Garden 0.13 and 0.14., Please remove it from your `kubernetes` provider configuration.
+
+The `resources.sync` config field in the `kubernetes` provider was only used for the `cluster-docker` build mode, which was removed in Garden 0.13.",
