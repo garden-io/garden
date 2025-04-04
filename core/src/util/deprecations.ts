@@ -82,7 +82,7 @@ export const DOCS_MIGRATION_GUIDE_CEDAR = `${DOCS_BASE_URL}/misc/migrating-to-ce
 export const DOCS_MIGRATION_GUIDE_BONSAI = `${DOCS_BASE_URL}/misc/migrating-to-bonsai`
 
 export const CURRENT_MAJOR_VERSION = `0.14`
-export const NEXT_MAJOR_VERSION = `the next major release.`
+export const NEXT_MAJOR_VERSION = `the next major release`
 
 export function makeDeprecationMessage({
   deprecation,
