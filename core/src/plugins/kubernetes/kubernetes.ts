@@ -45,6 +45,7 @@ import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kuber
 import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec.js"
 import { makeDocsLinkPlain, makeDocsLinkStyled } from "../../docs/common.js"
 import { cleanupUtilDeployment } from "./commands/cleanup-garden-util.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 5
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 20
@@ -56,6 +57,10 @@ export async function configureProvider({
   config,
   log,
 }: ConfigureProviderParams<KubernetesConfig>) {
+  if ("sync" in config.resources) {
+    reportDeprecatedFeatureUsage({ deprecation: "kubernetesProviderSyncResourceLimit", log })
+  }
+
   // Convert string shorthand to canonical format
   if (isString(config.namespace)) {
     config.namespace = { name: config.namespace }

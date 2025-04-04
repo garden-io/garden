@@ -82,7 +82,6 @@ export interface KubernetesResourceSpec {
 
 interface KubernetesResources {
   builder: KubernetesResourceSpec
-  sync: KubernetesResourceSpec
   util: KubernetesResourceSpec
 }
 
@@ -179,16 +178,6 @@ export const defaultResources: KubernetesResources = {
     requests: {
       cpu: 100,
       memory: 512,
-    },
-  },
-  sync: {
-    limits: {
-      cpu: 500,
-      memory: 512,
-    },
-    requests: {
-      cpu: 100,
-      memory: 90,
     },
   },
   util: {
@@ -995,18 +984,10 @@ export const resourcesSchema = () =>
 
             This pod is created in each garden namespace.
           `),
-      sync: resourceSchema(defaultResources.sync, true)
-        .description(
-          dedent`
-            Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
-            ahead of building images. This generally is not resource intensive, but you might want to adjust the
-            defaults if you have many concurrent users.
-          `
-        )
-        // TODO(deprecation): deprecate in 0.14
-        .meta({
-          deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
-        }),
+      // TODO(0.15): remove this
+      // This config has no effect.
+      // It was used only by `cluster-docker` build mode which was removed in 0.13.
+      sync: joi.any().meta({ internal: true }),
     })
     .default(defaultResources).description(deline`
         Resource requests and limits for the in-cluster builder..
