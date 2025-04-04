@@ -11,7 +11,7 @@ import type {
   ContainerBuildAction,
   ContainerResourcesSpec,
   ContainerRuntimeAction,
-  ServiceLimitSpec,
+  LegacyServiceLimitSpec,
 } from "../../container/moduleConfig.js"
 import type { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
 import { ConfigurationError } from "../../../exceptions.js"
@@ -36,7 +36,7 @@ export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>): st
 
 export function getResourceRequirements(
   resources: ContainerResourcesSpec,
-  limits?: ServiceLimitSpec
+  limits?: LegacyServiceLimitSpec
 ): V1ResourceRequirements {
   const maxCpu = limits?.cpu || resources.cpu.max
   const maxMemory = limits?.memory || resources.memory.max

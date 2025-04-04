@@ -19,7 +19,6 @@ import {
   unusedApiVersionSchema,
 } from "./common.js"
 import { deline, dedent } from "../util/string.js"
-import type { ServiceLimitSpec } from "../plugins/container/moduleConfig.js"
 import type { Garden } from "../garden.js"
 import { WorkflowConfigContext } from "./template-contexts/workflow.js"
 import { validateConfig } from "./validation.js"
@@ -32,6 +31,11 @@ import type { GardenApiVersion } from "../constants.js"
 import { DOCS_BASE_URL } from "../constants.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import { makeDeprecationMessage } from "../util/deprecations.js"
+
+export interface WorkflowLimitSpec {
+  cpu: number
+  memory: number
+}
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -61,12 +65,12 @@ export interface WorkflowConfig extends BaseGardenResource {
   envVars: PrimitiveMap
   kind: "Workflow"
   resources: {
-    requests: ServiceLimitSpec
-    limits: ServiceLimitSpec
+    requests: WorkflowLimitSpec
+    limits: WorkflowLimitSpec
   }
   keepAliveHours?: number
   files?: WorkflowFileSpec[]
-  limits?: ServiceLimitSpec
+  limits?: WorkflowLimitSpec
   steps: WorkflowStepSpec[]
   triggers?: TriggerSpec[]
 }
