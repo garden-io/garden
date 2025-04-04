@@ -9,9 +9,9 @@ The module-level `hotReload` configuration field was removed in Garden 0.13 and 
 
 See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
 
-<h2 id="hotreloadargs"><code>serviceResource.hotReloadArgs</code> configuration field in modules</h2>
+<h2 id="hotreloadargs"><code>serviceResource.hotReloadArgs</code> configuration field in <code>kubernetes</code> modules</h2>
 
-The module-level `serviceResource.hotReload` configuration field was removed in Garden 0.13 and has no effect. Please use actions with the `sync` mode instead.
+The `serviceResource.hotReload` configuration field in `kubernetes` modules was removed in Garden 0.13 and has no effect. Please use actions with the `sync` mode instead.
 
 See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
 
@@ -21,6 +21,6 @@ The `spec.devMode` configuration field in actions is deprecated in Garden 0.14. 
 
 The old fields `spec.devMode` are automatically converted to `spec.sync` in Garden 0.14 when using `apiVersion: garden.io/v2` in the project-level configuration.
 
-<h2 id="localmode"><code>spec.localMode</code> in <code>helm</code>, <code>kubernetes</code> and <code>container</code> Deploy actions</h2>
+<h2 id="localmode"><code>spec.localMode</code> configuration field in <code>helm</code>, <code>kubernetes</code> and <code>container</code> Deploy actions</h2>
 
 The local-mode feature was completely removed in 0.14, and the `spec.localMode` configuration syntax has no effect. Please remove all `spec.localMode` entries from your configuration files.

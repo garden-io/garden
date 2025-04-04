@@ -41,9 +41,9 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     hotReloadArgs: {
       docsSection: "Old configuration syntax",
-      docsHeadline: `${style("serviceResource.hotReloadArgs")} configuration field in modules`,
+      docsHeadline: `${style("serviceResource.hotReloadArgs")} configuration field in ${style("kubernetes")} modules`,
       warnHint: deline`
-        The module-level ${style("serviceResource.hotReload")} configuration field was removed in Garden 0.13 and has no effect.
+        The ${style("serviceResource.hotReload")} configuration field in ${style("kubernetes")} modules was removed in Garden 0.13 and has no effect.
         Please use actions with the ${style("sync")} mode instead.
       `,
       // TODO: add "See also the [deprecation notice for ${style("hotReload")} configuration field in modules](#hotreload)."
@@ -65,7 +65,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
     },
     localMode: {
       docsSection: "Old configuration syntax",
-      docsHeadline: `${style("spec.localMode")} in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
+      docsHeadline: `${style("spec.localMode")} configuration field in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
       warnHint: deline`
         The local-mode feature was completely removed in 0.14, and the ${style("spec.localMode")} configuration syntax has no effect.
         Please remove all ${style("spec.localMode")} entries from your configuration files.
