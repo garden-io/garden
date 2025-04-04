@@ -15,7 +15,7 @@ kind: Deploy
 name: k8s-deploy
 type: kubernetes
 disabled: true
-environments: ["k8s"] # also fails with disabled: true
+environments: ["k8s"]
 spec:
   manifests:
     - apiVersion: v1
