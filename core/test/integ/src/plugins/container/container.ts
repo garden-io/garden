@@ -68,6 +68,7 @@ describe("plugins.container", () => {
 
   afterEach(() => {
     sinon.restore()
+    garden && garden.close()
   })
 
   async function getTestBuild(cfg: BuildActionConfig): Promise<Executed<ContainerBuildAction>> {

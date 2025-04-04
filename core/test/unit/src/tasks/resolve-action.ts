@@ -36,6 +36,10 @@ describe("ResolveActionTask", () => {
     log = garden.log
   })
 
+  afterEach(() => {
+    garden.close()
+  })
+
   async function getTask(kind: ActionKind, name: string, actionModes: ActionModeMap = {}) {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true, actionModes })
     const action = graph.getActionByRef({ kind, name })

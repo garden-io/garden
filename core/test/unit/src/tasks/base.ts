@@ -68,6 +68,10 @@ describe("BaseActionTask", () => {
     log = garden.log
   })
 
+  afterEach(() => {
+    garden.close()
+  })
+
   describe("resolveStatusDependencies", () => {
     it("returns the resolve task for the action", async () => {
       const action = graph.getTest("module-a-integ")

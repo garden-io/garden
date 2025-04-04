@@ -40,11 +40,11 @@ describe("Watcher", () => {
     }
   })
 
-  beforeEach(async () => {
+  beforeEach(() => {
     garden.events.clearLog()
   })
 
-  after(async () => {
+  after(() => {
     garden.close()
   })
 

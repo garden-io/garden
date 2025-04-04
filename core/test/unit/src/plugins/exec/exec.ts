@@ -71,6 +71,10 @@ describe("exec plugin", () => {
       await garden.clearBuilds()
     })
 
+    afterEach(() => {
+      garden.close()
+    })
+
     it("should run a script on init in the project root, if configured", async () => {
       const _garden = await makeTestGarden(testProjectRoot, {
         plugins: [plugin],

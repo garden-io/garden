@@ -29,6 +29,10 @@ describe("It should manage ingress controller for respective cluster type", () =
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
+  after(() => {
+    garden && garden.close()
+  })
+
   beforeEach(async () => {
     await init()
   })

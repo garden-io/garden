@@ -51,6 +51,10 @@ describe("getManifests", () => {
       api = await KubeApi.factory(garden.log, ctx, provider)
     })
 
+    after(() => {
+      garden && garden.close()
+    })
+
     beforeEach(async () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     })
@@ -163,6 +167,10 @@ describe("getManifests", () => {
       api = await KubeApi.factory(garden.log, ctx, provider)
     })
 
+    after(() => {
+      garden && garden.close()
+    })
+
     beforeEach(async () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       action = await garden.resolveAction<KubernetesDeployAction>({
@@ -237,6 +245,10 @@ describe("getManifests", () => {
       })) as KubernetesProvider
       ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       api = await KubeApi.factory(garden.log, ctx, provider)
+    })
+
+    after(() => {
+      garden && garden.close()
     })
 
     beforeEach(async () => {
@@ -767,6 +779,10 @@ describe("readManifests", () => {
       name: "local-kubernetes",
     })) as KubernetesProvider
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+  })
+
+  after(() => {
+    garden && garden.close()
   })
 
   beforeEach(async () => {

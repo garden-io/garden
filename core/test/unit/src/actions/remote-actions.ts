@@ -38,6 +38,10 @@ describe("remote actions", () => {
       await garden.clearBuilds()
     })
 
+    afterEach(() => {
+      garden.close()
+    })
+
     it("remote action source path should default to repository root", async () => {
       const action = graph.getBuild("remote-action-a")
       const resolvedAction = await garden.resolveAction({ action, log, graph })

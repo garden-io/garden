@@ -38,6 +38,7 @@ describe("runContainerTask", () => {
 
   after(async () => {
     if (cleanup) {
+      garden && garden.close()
       cleanup()
     }
   })

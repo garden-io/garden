@@ -72,6 +72,7 @@ describe("AnalyticsHandler", () => {
 
   after(async () => {
     await resetAnalyticsConfig()
+    garden.close()
   })
 
   beforeEach(async () => {
@@ -85,6 +86,7 @@ describe("AnalyticsHandler", () => {
     await mockServer.stop()
     mockServer.reset()
   })
+
   describe("factory", () => {
     beforeEach(async () => {
       garden = await makeTestGardenA()
@@ -96,6 +98,7 @@ describe("AnalyticsHandler", () => {
       // Flush so queued events don't leak between tests
       await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
+      garden.close()
     })
 
     it("should initialize the analytics config if missing", async () => {
@@ -288,6 +291,7 @@ describe("AnalyticsHandler", () => {
     afterEach(async () => {
       await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
+      garden.close()
     })
 
     it("should not replace the anonymous user ID with the Cloud user ID", async () => {
@@ -392,6 +396,7 @@ describe("AnalyticsHandler", () => {
       // Flush so queued events don't leak between tests
       await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
+      garden.close()
     })
 
     it("should return the event with the correct project metadata", async () => {
@@ -757,6 +762,7 @@ describe("AnalyticsHandler", () => {
       // Flush so queued events don't leak between tests
       await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
+      garden.close()
     })
 
     it("should return the event as a success", async () => {
@@ -979,6 +985,7 @@ describe("AnalyticsHandler", () => {
       // Flush so queued events don't leak between tests
       await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
+      garden.close()
     })
 
     it("should wait for pending events on network delays", async () => {

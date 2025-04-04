@@ -30,6 +30,10 @@ describe("Helm Pod Run", () => {
     garden = await getHelmTestGarden()
   })
 
+  after(() => {
+    garden && garden.close()
+  })
+
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })

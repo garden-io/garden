@@ -62,6 +62,10 @@ describe("ResolveProviderTask", () => {
     })
   })
 
+  afterEach(() => {
+    garden.close()
+  })
+
   it("should resolve status if no cached status exists", async () => {
     const provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     expect(provider.status.cached).to.be.undefined

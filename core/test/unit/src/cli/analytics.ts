@@ -35,6 +35,8 @@ describe("cli analytics", () => {
 
     await resetAnalyticsConfig()
     nock.cleanAll()
+
+    garden.close()
   })
 
   let garden: TestGarden

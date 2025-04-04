@@ -25,12 +25,16 @@ describe("preprocessActionConfig", () => {
     tmpDir = await makeTempDir({ git: true, initialCommit: false })
   })
 
+  after(async () => {
+    await tmpDir.cleanup()
+  })
+
   beforeEach(async () => {
     garden = await makeGarden(tmpDir, noOpTestPlugin())
   })
 
-  after(async () => {
-    await tmpDir.cleanup()
+  afterEach(() => {
+    garden.close()
   })
 
   context("validation", () => {
