@@ -15,8 +15,8 @@ const archMap = {
   x64: "amd64" as const,
 } as const
 const supportedArchitectures = ["386", "amd64", "arm64"] as const
-const supportedPlatforms = ["darwin", "windows", "linux", "alpine"] as const
-export type Platform = (typeof supportedPlatforms)[number]
+const _supportedPlatforms = ["darwin", "windows", "linux", "alpine"] as const
+export type Platform = (typeof _supportedPlatforms)[number]
 export type Architecture = (typeof supportedArchitectures)[number]
 
 export function getPlatform(): Platform {

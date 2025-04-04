@@ -24,7 +24,6 @@ import type { Garden } from "../../../../src/index.js"
 import { FakeGardenCloudApi } from "../../../helpers/api.js"
 import dedent from "dedent"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function loginCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: {} }) {
   const log = garden.log
   return {

@@ -125,7 +125,6 @@ export function getHostnamesFromPem(crtData: string) {
   const altNames = cert.subjectAltName?.split(",").map((s) => s.trim()) ?? []
 
   for (const altName of altNames) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [_type, name] = altName.split(":")
     hostnames.push(name)
   }

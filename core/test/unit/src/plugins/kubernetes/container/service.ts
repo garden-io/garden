@@ -21,6 +21,10 @@ describe("createServiceResources", () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
   })
 
+  afterEach(async () => {
+    garden.close()
+  })
+
   it("should return service resources", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const rawAction = graph.getDeploy("service-a")

@@ -12,7 +12,6 @@ import { envVarRegex, identifierRegex, joiIdentifierDescription, userIdentifierR
 
 // Add metadata support to schemas. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
 declare module "zod" {
-  // eslint-disable-next-line @typescript-eslint/no-shadow
   interface ZodType {
     getMetadata(): Record<string, any>
     setMetadata(meta: Record<string, any>): this
