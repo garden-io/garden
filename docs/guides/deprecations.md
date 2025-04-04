@@ -35,8 +35,15 @@ The `resources.sync` config field in the `kubernetes` provider was only used for
 
 Please use the `resources.limits` configuration field instead.
 
+Note! If the deprecated field `limits` is defined in the workflow config,
+Garden 0.14 automatically copies the field's contents to the `resources.limits`,
+even if the `resources.limits` is defined explicitly.
+
+Please do not use both `limits` and `resources.limits` simultaneously,
+and use only `resources.limits`. Otherwise, the values from the old field `limits` will be used.
+
 # Unsupported commands
 
 <h2 id="kubernetesplugincleanupclusterregistrycommand"><code>cleanup-cluster-registry</code></h2>
 
-The `cleanup-cluster-registry` comamnd in the `kubernetes` and `local-kubernetes` plugins is not supported in Garden 0.14. This command no longer has any effect as of version 0.13! Please remove this from any pipelines running it.
+The `cleanup-cluster-registry` command in the `kubernetes` and `local-kubernetes` plugins is not supported in Garden 0.14. This command no longer has any effect as of version 0.13! Please remove this from any pipelines running it.

@@ -30,7 +30,9 @@ import type { BaseGardenResource, GardenResource } from "./base.js"
 import type { GardenApiVersion } from "../constants.js"
 import { DOCS_BASE_URL } from "../constants.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import { makeDeprecationMessage } from "../util/deprecations.js"
+import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { emitNonRepeatableWarning } from "../warnings.js"
+import { styles } from "../logger/styles.js"
 
 export interface WorkflowLimitSpec {
   cpu: number
@@ -70,6 +72,10 @@ export interface WorkflowConfig extends BaseGardenResource {
   }
   keepAliveHours?: number
   files?: WorkflowFileSpec[]
+  /**
+   * TODO(0.15): remove this
+   * @deprecated use {@link #resources.limits} instead
+   */
   limits?: WorkflowLimitSpec
   steps: WorkflowStepSpec[]
   triggers?: TriggerSpec[]
@@ -398,14 +404,8 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
     ),
   }
 
-  /**
-   * TODO: Remove support for workflow.limits the next time we make a release with breaking changes.
-   *
-   * workflow.limits is deprecated, so we copy its values into workflow.resources.limits if workflow.limits
-   * is specified.
-   */
-
   if (resolvedConfig.limits) {
+    reportDeprecatedFeatureUsage({ deprecation: "workflowLimits", log })
     resolvedConfig.resources.limits = resolvedConfig.limits
   }
 
