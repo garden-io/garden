@@ -143,6 +143,10 @@ describe("GraphSolver", () => {
     garden = await makeTestGarden(projectRoot)
   })
 
+  afterEach(() => {
+    garden.close()
+  })
+
   function makeTask(params: MakeOptional<TestTaskParams, "garden" | "log" | "force">) {
     const _garden = params.garden || garden
     return new TestTask({

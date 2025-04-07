@@ -55,6 +55,7 @@ describe("kubernetes configureProvider", () => {
   })
 
   afterEach(async () => {
+    garden.close()
     await tmpDir.cleanup()
   })
 

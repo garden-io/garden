@@ -51,6 +51,7 @@ describe.skip("ensureBuildkit", () => {
   })
 
   after(async () => {
+    garden && garden.close()
     if (cleanup) {
       cleanup()
     }

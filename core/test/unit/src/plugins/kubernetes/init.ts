@@ -117,8 +117,11 @@ describe("kubernetes init", () => {
   let ctx: PluginContext
   let api: KubeApi
 
-  before(() => {
+  before(async () => {
     process.env.KUBECONFIG = join(projectRoot, "kubeconfig.yml")
+    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
+    ctx = await garden.getPluginContext({ provider: basicProvider, templateContext: undefined, events: undefined })
+    ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
   })
 
   after(() => {
@@ -127,6 +130,7 @@ describe("kubernetes init", () => {
     } else {
       delete process.env.KUBECONFIG
     }
+    garden.close()
   })
 
   function jsonLoadBase64(data: string) {
@@ -134,11 +138,9 @@ describe("kubernetes init", () => {
   }
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
-    ctx = await garden.getPluginContext({ provider: basicProvider, templateContext: undefined, events: undefined })
-    ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
     api = await KubeApi.factory(garden.log, ctx, basicProvider)
   })
+
   describe("kubernetes init", () => {
     describe("when simple login or cred helpers are present", () => {
       beforeEach(async () => {
@@ -162,6 +164,7 @@ describe("kubernetes init", () => {
         )
         td.replace(api, "upsert")
       })
+
       it("should merge both", async () => {
         const res = await prepareDockerAuth(api, basicProvider, "default")
         const dockerAuth = jsonLoadBase64(res.data![dockerAuthSecretKey])
@@ -171,6 +174,7 @@ describe("kubernetes init", () => {
         expect(dockerAuth.credHelpers.myDockerRepo).to.equal("ecr-helper")
       })
     })
+
     describe("when both simple login and cred helpers are missing", () => {
       beforeEach(async () => {
         const core = td.replace(api, "core")
@@ -230,8 +234,12 @@ describe("kubernetes init", () => {
 
   describe("ingress and networking check", () => {
     const ingressClassResourceName = "name-for-testing"
-    beforeEach(async () => {
+
+    before(async () => {
       garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
+    })
+
+    beforeEach(async () => {
       td.replace(
         api,
         "listResources",
@@ -241,14 +249,18 @@ describe("kubernetes init", () => {
           }
       )
     })
+
     after(() => {
       td.reset()
+      garden.close()
     })
+
     it("should warn if custom ingressclass has been set but no matching resource exists with v1 api", async () => {
       const warnings = await getIngressMisconfigurationWarnings("custom-name", "networking.k8s.io/v1", garden.log, api)
       expect(warnings.length).to.be.eq(1)
       expect(warnings[0]).to.include("no matching IngressClass resource was found in the cluster")
     })
+
     it("should not warn if custom ingressclass has not been set", async () => {
       const undefinedIngressName = undefined
       const warnings = await getIngressMisconfigurationWarnings(
@@ -259,6 +271,7 @@ describe("kubernetes init", () => {
       )
       expect(warnings.length).to.be.eq(0)
     })
+
     it("should not warn if custom ingressclass has been set but older api is used", async () => {
       const warnings = await getIngressMisconfigurationWarnings(
         "custom-name",
@@ -268,6 +281,7 @@ describe("kubernetes init", () => {
       )
       expect(warnings.length).to.be.eq(0)
     })
+
     it("should not warn if custom ingressclass has not been set but older api is used", async () => {
       const undefinedIngressName = undefined
       const warnings = await getIngressMisconfigurationWarnings(

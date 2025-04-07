@@ -77,6 +77,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
     })
 
     afterEach(async () => {
+      garden && garden.close()
       if (cleanup) {
         cleanup()
       }
@@ -589,6 +590,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
   let provider: KubernetesProvider
   let ctx: KubernetesPluginContext
   let api: KubeApi
+
   after(async () => {
     if (garden) {
       garden.close()
@@ -606,10 +608,12 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
     })) as KubernetesPluginContext
     api = await KubeApi.factory(log, ctx, provider)
   }
+
   grouped("kaniko").context("kaniko service account annotations", () => {
     beforeEach(async () => {
       await init("kaniko")
     })
+
     it("should deploy a garden builder serviceAccount with specified annotations in the project namespace", async () => {
       const annotations = {
         "iam.gke.io/gcp-service-account": "workload-identity-gar@garden-ci.iam.gserviceaccount.com",
