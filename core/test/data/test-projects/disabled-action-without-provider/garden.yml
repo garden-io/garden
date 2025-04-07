@@ -26,6 +26,20 @@ spec:
         foo: bar
 
 ---
+kind: Deploy
+name: k8s-deploy-disabled-via-env-config
+type: kubernetes
+environments: ["k8s"] # the action is only enabled in k8s environment
+spec:
+  manifests:
+    - apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: my-configmap
+      data:
+        foo: bar
+
+---
 kind: Run
 name: say-hi
 type: exec
