@@ -4272,23 +4272,29 @@ describe("Garden", () => {
       expect(b.isDisabled()).to.be.true
     })
 
-    it("should not throw if disabled action does not have a configured provider", async () => {
-      // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
-      const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
-        environmentString: "no-k8s",
+    describe("disabled actions", () => {
+      context("should not throw if disabled action does not have a configured provider", () => {
+        it("when action is disabled explicitly via `disabled: true` flag", async () => {
+          // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
+          const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
+            environmentString: "no-k8s",
+          })
+
+          // The disabled action with no provider configured should not cause an error
+          const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          // The action 'k8s-deploy-disabled-via-flag' is disabled via disabled:true flag,
+          // and should be unreachable from graph-lookups.
+          const actionName = "k8s-deploy-disabled-via-flag"
+          void expectError(() => graph.getDeploy(actionName), {
+            contains: `Deploy type=kubernetes name=${actionName} is disabled`,
+          })
+
+          // The enabled acton 'say-hi' should be reachable from graph-lookups
+          const sayHiRun = graph.getRun("say-hi")
+          expect(sayHiRun.isDisabled()).to.be.false
+        })
       })
-
-      // The disabled action with no provider configured should not cause an error
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-
-      // The enabled acton 'say-hi' should be unreachable from graph-lookups
-      void expectError(() => graph.getDeploy("k8s-deploy"), {
-        contains: "Deploy type=kubernetes name=k8s-deploy is disabled",
-      })
-
-      // The enabled acton 'say-hi' should be reachable from graph-lookups
-      const sayHiRun = graph.getRun("say-hi")
-      expect(sayHiRun.isDisabled()).to.be.false
     })
   })
 
