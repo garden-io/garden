@@ -459,7 +459,7 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
 
-  if (!actionTypes[kind][type] && !config.disabled) {
+  if (!actionTypes[kind][type] && !actionIsDisabled(config, garden.environmentName)) {
     const availableKinds: ActionKind[] = []
     actionKinds.forEach((actionKind) => {
       if (actionTypes[actionKind][type]) {

@@ -12,9 +12,9 @@ providers:
 
 ---
 kind: Deploy
-name: k8s-deploy
+name: k8s-deploy-disabled-via-flag
 type: kubernetes
-disabled: true
+disabled: true # the action is disabled explicitly in all envs
 environments: ["k8s"]
 spec:
   manifests:
@@ -24,6 +24,21 @@ spec:
         name: my-configmap
       data:
         foo: bar
+
+---
+kind: Deploy
+name: k8s-deploy-disabled-via-env-config
+type: kubernetes
+environments: ["k8s"] # the action is only enabled in k8s environment
+spec:
+  manifests:
+    - apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: my-configmap
+      data:
+        foo: bar
+
 ---
 kind: Run
 name: say-hi
