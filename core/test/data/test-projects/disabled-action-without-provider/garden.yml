@@ -15,7 +15,6 @@ kind: Deploy
 name: k8s-deploy-disabled-via-flag
 type: kubernetes
 disabled: true # the action is disabled explicitly in all envs
-environments: ["k8s"]
 spec:
   manifests:
     - apiVersion: v1
