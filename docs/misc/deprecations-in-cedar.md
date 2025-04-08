@@ -45,4 +45,4 @@ The `resources.sync` config field in the `kubernetes` provider was only used for
 
 <h2 id="kubernetesplugincleanupclusterregistrycommand"><code>cleanup-cluster-registry</code></h2>
 
-The `cleanup-cluster-registry` comamnd in the `kubernetes` and `local-kubernetes` plugins is not supported in Garden 0.14. This command no longer has any effect as of version 0.13! Please remove this from any pipelines running it.
+The `cleanup-cluster-registry` command in the `kubernetes` and `local-kubernetes` plugins is not supported in Garden 0.14. This command no longer has any effect as of version 0.13! Please remove this from any pipelines running it.
