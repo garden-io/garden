@@ -432,7 +432,10 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         if (!key.startsWith("submodule")) {
           continue
         }
-        spec.path && submodules.push(spec)
+
+        if (isSubmoduleConfig(spec)) {
+          submodules.push(spec)
+        }
       }
     }
 
@@ -440,7 +443,15 @@ export class GitSubTreeHandler extends AbstractGitHandler {
   }
 }
 
-async function parseGitConfig(filePath: string) {
+function hasStringProperty(obj: object, propertyName: string): boolean {
+  return propertyName in obj && typeof obj[propertyName] === "string"
+}
+
+function isSubmoduleConfig(obj: object): obj is Submodule {
+  return hasStringProperty(obj, "path") && hasStringProperty(obj, "url")
+}
+
+async function parseGitConfig(filePath: string): Promise<object> {
   const buffer = await readFile(filePath, { encoding: "utf-8" })
   return parseIni(buffer)
 }
