@@ -47,6 +47,8 @@ redirects:
 
   # Redirects set after 2023–09–22
   tutorials/migrating-to-bonsai: guides/migrating-to-bonsai.md
+  guides/migrating-to-bonsai: misc/migrating-to-bonsai.md
+  guides/deprecations.md: misc/deprecations.md
   guides/using-garden-in-ci: use-cases/portable-ci-pipelines.md
   overview/use-cases: use-cases/portable-pipelines.md
 
