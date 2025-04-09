@@ -1,4 +1,4 @@
-class GardenCli < Formula
+class GardenCliAT013 < Formula
   desc "Development engine for Kubernetes"
   homepage "https://garden.io"
 
