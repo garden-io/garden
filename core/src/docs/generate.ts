@@ -56,7 +56,7 @@ export async function generateDocs(targetDir: string, getPlugins: () => (GardenP
   await writeTableOfContents(docsRoot, "README.md")
 
   console.log("Updating the deprecation guide...")
-  await updateDeprecationGuide(docsRoot, "misc/deprecations-in-cedar.md")
+  await updateDeprecationGuide(docsRoot, "misc/deprecations.md")
 }
 
 export async function writeConfigReferenceDocs(

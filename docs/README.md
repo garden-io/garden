@@ -157,7 +157,7 @@
 * [Telemetry](./misc/telemetry.md)
 * [How Organizations Adopt Garden](./misc/adopting-garden.md)
 * [New Garden Cloud Version](./misc/cloud-announcement.md)
-* [Deprecations in Cedar](./misc/deprecations-in-cedar.md)
+* [Deprecations](./misc/deprecations.md)
 * [Migrating to Cedar](./misc/migrating-to-cedar.md)
 * [Migrating to Bonsai](./misc/migrating-to-bonsai.md)
 * [Ingress NGINX Vulnerability](./misc/nginx-vulnerability.md)
