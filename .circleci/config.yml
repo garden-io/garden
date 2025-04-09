@@ -208,7 +208,7 @@ commands:
       - run:
           name: Install kind
           command: |
-            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.18.0/kind-linux-amd64
+            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.27.0/kind-linux-amd64
             chmod +x kind-linux-amd64
             sudo mv kind-linux-amd64 /usr/local/bin/kind
       - run:
@@ -1406,10 +1406,6 @@ workflows:
       # k8s versions is tested, and that the most recent versions are broadly tested.
       # The kind tests are the cheapest to run so we use many of those,
       # but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      - test-kind:
-          name: vm-1.29-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.29.8@sha256:d46b7aa29567e93b27f7531d258c372e829d7224b25e3fc6ffdefed12476d3aa
       - test-microk8s:
           name: vm-1.30-microk8s
           requires: [build]
@@ -1423,11 +1419,15 @@ workflows:
           requires: [ build ]
           kubernetesVersion: "v1.31.0"
           minikubeVersion: "v1.34.0"
+      - test-kind:
+          name: vm-1.32-kind
+          requires: [ build ]
+          kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
 
       - test-plugins:
           <<: *only-internal-prs
-          requires: [build]
-          kindNodeImage: kindest/node:1.29.8@sha256:d46b7aa29567e93b27f7531d258c372e829d7224b25e3fc6ffdefed12476d3aa
+          requires: [ build ]
+          kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
 
       # This is only for edge release (Overrides version to edge-bonsai)
       - build:
