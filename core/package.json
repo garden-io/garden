@@ -228,7 +228,7 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jsdoc": "^50.2.2",
     "eslint-plugin-no-null": "^1.0.2",
-    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react": "^7.37.5",
     "finalhandler": "^1.3.1",
     "google-auth-library": "^9.14.1",
     "md5": "^2.3.0",
