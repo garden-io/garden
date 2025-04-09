@@ -12,7 +12,7 @@ import {
   defaultGardenIngressControllerKubeWebhookCertGenImage,
 } from "../constants.js"
 
-const INGRESS_NGINX_CONTROLLER_VERSION = "1.12.0"
+const INGRESS_NGINX_CONTROLLER_VERSION = "1.12.1"
 
 export function kindNginxGetManifests(namespace: string): KubernetesResource[] {
   return [

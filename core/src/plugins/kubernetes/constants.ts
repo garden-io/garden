@@ -90,7 +90,8 @@ export function getDefaultGardenIngressControllerDefaultBackendImagePath(
 
 export const defaultKanikoImageName: DockerImageWithDigest =
   "gcr.io/kaniko-project/executor:v1.11.0-debug@sha256:32ba2214921892c2fa7b5f9c4ae6f8f026538ce6b2105a93a36a8b5ee50fe517"
+// The sha256 hashes can be found in https://explore.ggcr.dev/?repo=registry.k8s.io
 export const defaultGardenIngressControllerImage: DockerImageWithDigest =
-  "registry.k8s.io/ingress-nginx/controller:v1.12.0@sha256:e6b8de175acda6ca913891f0f727bca4527e797d52688cbe9fec9040d6f6b6fa"
+  "registry.k8s.io/ingress-nginx/controller:v1.12.0@sha256:d2fbc4ec70d8aa2050dd91a91506e998765e86c96f32cffb56c503c9c34eed5b"
 export const defaultGardenIngressControllerKubeWebhookCertGenImage: DockerImageWithDigest =
   "registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.1@sha256:0de05718b59dc33b57ddfb4d8ad5f637cefd13eafdec0e1579d782b3483c27c3"

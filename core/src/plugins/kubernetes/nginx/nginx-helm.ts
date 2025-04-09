@@ -21,7 +21,7 @@ import { GardenIngressComponent } from "./ingress-controller-base.js"
 import { styles } from "../../../logger/styles.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
-const HELM_INGRESS_NGINX_VERSION = "4.12.0"
+const HELM_INGRESS_NGINX_VERSION = "4.12.1"
 const HELM_INGRESS_NGINX_CHART = "ingress-nginx"
 const HELM_INGRESS_NGINX_RELEASE_NAME = "garden-nginx"
 const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"

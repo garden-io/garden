@@ -450,7 +450,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Referencing \`persistentvolumeclaim\` and \`configmap\` action or module types from \`container\` Deploy actions will not be supported anymore in Garden 0.14.
 
         <!-- markdown-link-check-disable-next-line -->
-        See also the deprecation notices for [the ${style("persistentvolumeclaim")} Deploy action type](#persistentvolumeclaimDeployAction)) and [the ${style("configmap")} Deploy action type](#configmapDeployAction)).
+        See also the deprecation notices for [the ${style("persistentvolumeclaim")} Deploy action type](#persistentvolumeclaimdeployaction) and [the ${style("configmap")} Deploy action type](#configmapdeployaction).
       `,
     },
     optionalTemplateValueSyntax: {

@@ -11,7 +11,7 @@ tocTitle: "`jib`"
 
 Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib action type](../action-types/Build/jib-container.md).
 
-Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.13.56/examples/jib-container) to see it in action.
+Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.13.57/examples/jib-container) to see it in action.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 

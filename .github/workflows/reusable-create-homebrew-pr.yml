@@ -94,7 +94,7 @@ jobs:
           sed -i 's|{{amdSha256}}|${{ needs.fetch-release-checksums.outputs.amd-sha256 }}|g' "${OUTPUT_FILE}"
         env:
           TEMPLATE: garden/support/homebrew-formula.rb.j2
-          OUTPUT_FILE: homebrew-garden/Formula/garden-cli.rb
+          OUTPUT_FILE: homebrew-garden/Formula/garden-cli@0.13.rb
 
       - name: Create PR on Homebrew Repository
         if: inputs.release-condition != 'false'
