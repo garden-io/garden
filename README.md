@@ -69,7 +69,7 @@ name: api
 type: kubernetes
 dependencies: [build.api, deploy.postgres]
 spec:
-  files: [./manifests/api/**/*]
+  manifestFiles: [./manifests/api/**/*]
 ---
 kind: Test
 name: integ
