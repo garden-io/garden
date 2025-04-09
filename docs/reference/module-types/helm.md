@@ -15,7 +15,7 @@ Specify a Helm chart (either in your repository or remote from a registry) to de
 
 Refer to the [Helm guide](../../k8s-plugins/actions/deploy/helm.md) for usage instructions.
 
-Garden uses Helm 3.16.2.
+Garden uses Helm 3.17.2.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
