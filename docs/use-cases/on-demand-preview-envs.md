@@ -60,4 +60,4 @@ Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Ga
 
 ## Examples
 
-- [Kubernetes Deploy action example project](https://github.com/garden-io/garden/tree/0.13.57/examples/k8s-deploy-patch-resources)
+- [Kubernetes Deploy action example project](https://github.com/garden-io/garden/tree/0.13.58/examples/k8s-deploy-patch-resources)
