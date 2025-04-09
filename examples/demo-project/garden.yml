@@ -10,14 +10,6 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [ local ]
-#    resources:
-#      sync:
-#        requests:
-#          cpu: 100
-#          memory: 128
-#        limits:
-#          cpu: 500
-#          memory: 512
   - name: kubernetes
     environments: [ remote ]
     # Replace the below values as appropriate
