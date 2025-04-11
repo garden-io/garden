@@ -11,7 +11,7 @@ import { styles } from "../logger/styles.js"
 import { GardenError } from "../exceptions.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
-import { deline } from "./string.js"
+import { dedent, deline } from "./string.js"
 
 const deprecatedPluginNames = [] as const
 export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
@@ -92,6 +92,21 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Please remove this from any pipelines running it.
       `,
       docs: null,
+    },
+    workflowLimits: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `Using ${style("limits")} configuration field in workflows`,
+      warnHint: deline`
+        Please use the ${style("resources.limits")} configuration field instead.
+      `,
+      docs: dedent`
+        Note! If the deprecated field ${style("limits")} is defined in the workflow config,
+        Garden 0.14 automatically copies the field's contents to the ${style("resources.limits")},
+        even if the ${style("resources.limits")} is defined explicitly.
+
+        Please do not use both ${style("limits")} and ${style("resources.limits")} simultaneously,
+        and use only ${style("resources.limits")}. Otherwise, the values from the old field ${style("limits")} will be used.
+      `,
     },
   } as const
 }
