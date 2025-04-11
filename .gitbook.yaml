@@ -29,6 +29,14 @@ redirects:
   module-types/terraform: reference/module-types/terraform.md
   reference/module-template-config: reference/config-template-config.md
   using-garden/module-templates: using-garden/config-templates.md
+  # Some redirections for legacy Garden Cloud
+  using-garden/configuration-overview: getting-started/basics.md
+  using-garden/variables-and-templating: features/variables-and-templating
+  using-garden/workflows: features/workflows.md
+  kubernetes-plugins/about: using-garden-with/kubernetes.md
+  v/enterprise/features/cloud-builder#configuration: features/remote-container-builder.md
+  v/enterprise/features/cloud-builder: features/remote-container-builder.md
+  terraform-plugin/about: using-garden-with/terraform.md
 
   # Redirects after docs restructure (https://github.com/garden-io/garden/pull/3467)
   advanced/terraform: terraform-plugin/about.md
