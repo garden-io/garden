@@ -46,7 +46,6 @@ The `modules` configuration field `ConfigTemplate` action kinds is deprecated in
 
 For more information, please refer to the [`configs` reference documentation](../reference/config-template-config.md#configs).
 
-
 # Unsupported commands
 
 <h2 id="kubernetesplugincleanupclusterregistrycommand"><code>cleanup-cluster-registry</code></h2>
