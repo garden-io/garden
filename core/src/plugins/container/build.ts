@@ -235,8 +235,14 @@ async function buildxBuildContainer({
       env: dockerEnvVars,
     })
   } catch (e) {
+    // Wrap unknown error as internal to ensure the build report sending,
+    // the error will be rethrown later
     dockerBuildError = toGardenError(e)
-    if (dockerBuildError.message.includes("docker exporter does not currently support exporting manifest lists")) {
+
+    // Check if there are any actual configuration errors,
+    // and craft user-friendly error messages with hints
+    const messageLowercase = dockerBuildError.message.toLowerCase()
+    if (messageLowercase.includes("docker exporter does not currently support exporting manifest lists")) {
       dockerBuildError = new ConfigurationError({
         message: dedent`
           Your local docker image store does not support loading multi-platform images.
@@ -244,7 +250,7 @@ async function buildxBuildContainer({
           Learn more at https://docs.docker.com/go/build-multi-platform/
         `,
       })
-    } else if (dockerBuildError.message.includes("Multi-platform build is not supported for the docker driver")) {
+    } else if (messageLowercase.includes("multi-platform build is not supported for the docker driver")) {
       dockerBuildError = new ConfigurationError({
         message: dedent`
           Your local docker daemon does not support building multi-platform images.
@@ -254,7 +260,7 @@ async function buildxBuildContainer({
           Learn more at https://docs.docker.com/go/build-multi-platform/
         `,
       })
-    } else if (dockerBuildError.message.includes("failed to push")) {
+    } else if (messageLowercase.includes("failed to push")) {
       dockerBuildError = new ConfigurationError({
         message: dedent`
           The Docker daemon failed to push the image to the registry.
