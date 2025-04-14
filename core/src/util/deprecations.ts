@@ -83,6 +83,16 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         The ${style("resources.sync")} config field in the ${style("kubernetes")} provider was only used for the ${style("cluster-docker")} build mode, which was removed in Garden 0.13.",
       `,
     },
+    kubernetesPluginCleanupClusterRegistryCommand: {
+      docsSection: "Unsupported commands",
+      docsHeadline: `${style("cleanup-cluster-registry")}`,
+      warnHint: deline`
+        The ${style("cleanup-cluster-registry")} command in the ${style("kubernetes")} and ${style("local-kubernetes")} plugins is not supported in Garden 0.14.
+        This command no longer has any effect as of version 0.13!
+        Please remove this from any pipelines running it.
+      `,
+      docs: null,
+    },
     configTemplateModules: {
       docsSection: "Old configuration syntax",
       docsHeadline: `${style("modules")} configuration field ${style("ConfigTemplate")} action kinds`,

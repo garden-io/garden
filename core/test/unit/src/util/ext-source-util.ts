@@ -34,6 +34,10 @@ describe("ext-source-util", () => {
     garden = await makeTestGardenA()
   })
 
+  afterEach(() => {
+    garden.close()
+  })
+
   describe("getRemoteSourceLocalPath", () => {
     it("should return the path to a remote project source", () => {
       const url = "banana"

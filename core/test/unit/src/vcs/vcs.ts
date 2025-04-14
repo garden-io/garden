@@ -95,6 +95,10 @@ describe("VcsHandler", () => {
     })
   })
 
+  afterEach(() => {
+    gardenA.close()
+  })
+
   describe("getTreeVersion", () => {
     it("should sort the list of files in the returned version", async () => {
       const moduleConfig = await gardenA.resolveModule("module-a")

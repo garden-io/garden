@@ -24,6 +24,10 @@ describe("TestTask", () => {
     log = garden.log
   })
 
+  afterEach(() => {
+    garden.close()
+  })
+
   describe("process", () => {
     it("should emit testStatus events", async () => {
       garden.events.eventLog = []

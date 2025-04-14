@@ -4,7 +4,7 @@ ARG VARIANT=root
 
 # NOTE: This is not the node version Garden itself will run in. Garden binaries have node "built in" and the version installed on the system does not matter.
 # The main reason we base these images off of the Node image is for Azure DevOps Support.
-FROM node:23.10.0-bookworm-slim@sha256:b89d748ea010f4d276c9d45c750fa5f371cef3fcc7486f739f07e5aad1b998a8 as garden-bookworm-base-root
+FROM node:23.11.0-bookworm-slim@sha256:dfb18d8011c0b3a112214a32e772d9c6752131ffee512e974e59367e46fcee52 as garden-bookworm-base-root
 
 FROM garden-bookworm-base-root as garden-base-root
 # system dependencies
@@ -68,8 +68,8 @@ WORKDIR /project
 # garden-aws-base
 #
 FROM garden-base-root as garden-aws-base
-ENV AWSCLI_VERSION=2.23.2
-ENV AWSCLI_SHA256="8c1e46af60d53d91e09ed9dae8082ae49a868bc456afe92131f24de9fc3e07c9"
+ENV AWSCLI_VERSION=2.25.12
+ENV AWSCLI_SHA256="c97a31c540b3c097dad0222a0228f188a2014cfb7b8f24afd5791780bf8d27c6"
 
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" -o "awscliv2.zip"
 RUN echo "${AWSCLI_SHA256}  awscliv2.zip" | sha256sum -c
@@ -80,8 +80,8 @@ RUN ./aws/install
 # garden-gcloud-base
 #
 FROM garden-base as garden-gcloud-base
-ENV GCLOUD_VERSION=516.0.0
-ENV GCLOUD_SHA256="db87082d9e001ba19c300cba061d1eba1d2a3ffa245845b9905f3190d4bc547f"
+ENV GCLOUD_VERSION=517.0.0
+ENV GCLOUD_SHA256="03b48c9b3dfaaf49db6b6ffab7949882d430e264ce5cd96f351c185fd8d6e3a4"
 
 RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
 RUN echo "${GCLOUD_SHA256}  google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" | sha256sum -c
@@ -93,7 +93,7 @@ RUN ./google-cloud-sdk/bin/gcloud components install kubectl gke-gcloud-auth-plu
 # garden-azure-base
 #
 FROM garden-base-root as garden-azure-base
-ENV AZURE_CLI_VERSION=2.68.0
+ENV AZURE_CLI_VERSION=2.71.0
 
 RUN apt-get update
 RUN apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
@@ -122,7 +122,7 @@ COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/l
 # garden-aws
 #
 FROM garden-base as garden-aws
-ENV AWSCLI_VERSION=2.23.2
+ENV AWSCLI_VERSION=2.25.12
 # Copy aws cli
 RUN mkdir -p ${HOME}/aws-cli
 COPY --chown=$USER:root --from=garden-aws-base /usr/local/aws-cli ${HOME}/aws-cli
@@ -143,7 +143,7 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 # garden-aws-gloud
 #
 FROM garden-base as garden-aws-gcloud
-ENV AWSCLI_VERSION=2.23.2
+ENV AWSCLI_VERSION=2.25.12
 
 # Copy aws cli
 RUN mkdir -p ${HOME}/aws-cli
@@ -160,7 +160,7 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 # garden-aws-gloud-azure
 #
 FROM garden-base as garden-aws-gcloud-azure
-ENV AWSCLI_VERSION=2.23.2
+ENV AWSCLI_VERSION=2.25.12
 
 # Copy aws cli
 RUN mkdir -p ${HOME}/aws-cli

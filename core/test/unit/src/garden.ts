@@ -3441,6 +3441,10 @@ describe("Garden", () => {
         })
       })
 
+      afterEach(() => {
+        garden.close()
+      })
+
       it("resolves referenced project variables", async () => {
         garden.setPartialModuleConfigs([
           {
@@ -4272,23 +4276,50 @@ describe("Garden", () => {
       expect(b.isDisabled()).to.be.true
     })
 
-    it("should not throw if disabled action does not have a configured provider", async () => {
-      // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
-      const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
-        environmentString: "no-k8s",
+    describe("disabled actions", () => {
+      context("should not throw if disabled action does not have a configured provider", () => {
+        it("when action is disabled explicitly via `disabled: true` flag", async () => {
+          // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
+          const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
+            environmentString: "no-k8s",
+          })
+
+          // The disabled action with no provider configured should not cause an error
+          const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          // The action 'k8s-deploy-disabled-via-flag' is disabled via disabled:true flag,
+          // and should be unreachable from graph-lookups.
+          const actionName = "k8s-deploy-disabled-via-flag"
+          void expectError(() => graph.getDeploy(actionName), {
+            contains: `Deploy type=kubernetes name=${actionName} is disabled`,
+          })
+
+          // The enabled acton 'say-hi' should be reachable from graph-lookups
+          const sayHiRun = graph.getRun("say-hi")
+          expect(sayHiRun.isDisabled()).to.be.false
+        })
+
+        it("when action is disabled implicitly via environment config", async () => {
+          // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
+          const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
+            environmentString: "no-k8s",
+          })
+
+          // The disabled action with no provider configured should not cause an error
+          const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          // The action 'k8s-deploy-disabled-via-env-config' is disabled via the environment config,
+          // and should be unreachable from graph-lookups.
+          const actionName = "k8s-deploy-disabled-via-env-config"
+          void expectError(() => graph.getDeploy(actionName), {
+            contains: `Deploy type=kubernetes name=${actionName} is disabled`,
+          })
+
+          // The enabled acton 'say-hi' should be reachable from graph-lookups
+          const sayHiRun = graph.getRun("say-hi")
+          expect(sayHiRun.isDisabled()).to.be.false
+        })
       })
-
-      // The disabled action with no provider configured should not cause an error
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-
-      // The enabled acton 'say-hi' should be unreachable from graph-lookups
-      void expectError(() => graph.getDeploy("k8s-deploy"), {
-        contains: "Deploy type=kubernetes name=k8s-deploy is disabled",
-      })
-
-      // The enabled acton 'say-hi' should be reachable from graph-lookups
-      const sayHiRun = graph.getRun("say-hi")
-      expect(sayHiRun.isDisabled()).to.be.false
     })
   })
 
@@ -5001,6 +5032,10 @@ describe("Garden", () => {
         })
       })
 
+      afterEach(() => {
+        gardenA.close()
+      })
+
       it("should return module version if there are no dependencies", async () => {
         const module = await gardenA.resolveModule("module-a")
         gardenA.vcs = handlerA
@@ -5281,6 +5316,10 @@ describe("Garden", () => {
     beforeEach(async () => {
       garden = await makeTestGardenA()
       key = randomString()
+    })
+
+    afterEach(() => {
+      garden.close()
     })
 
     describe("hideWarning", () => {

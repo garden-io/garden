@@ -32,6 +32,10 @@ describe("kubernetes-type pod Run", () => {
     garden = await getKubernetesTestGarden()
   })
 
+  after(() => {
+    garden && garden.close()
+  })
+
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })

@@ -31,6 +31,10 @@ describe("exec plugin", () => {
     actionB = await resolveAction({ action: graph.getRun("task-b"), log, graph, garden })
   })
 
+  afterEach(() => {
+    garden.close()
+  })
+
   it("should run a run", async () => {
     await executeAction({ action: actionA, graph, log, garden })
   })

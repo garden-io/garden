@@ -1,4 +1,19 @@
 
+<a name="0.14.2"></a>
+## [0.14.2](https://github.com/garden-io/garden/compare/0.14.1...0.14.2) (2025-04-09)
+
+### Bug Fixes
+
+* do not throw on unknown action types for disabled actions ([#7062](https://github.com/garden-io/garden/issues/7062)) ([619ddd8ff](https://github.com/garden-io/garden/commit/619ddd8ff))
+* **git:** replace vulnerable parse-git-config with ini file parser  ([#7086](https://github.com/garden-io/garden/issues/7086)) ([9b8b7826e](https://github.com/garden-io/garden/commit/9b8b7826e))
+* **graph:** use a special helper to check if an action is disabled ([#7069](https://github.com/garden-io/garden/issues/7069)) ([4db004ca1](https://github.com/garden-io/garden/commit/4db004ca1))
+* **self-update:** fix version detection when use `--major` flag ([#7045](https://github.com/garden-io/garden/issues/7045)) ([976de249b](https://github.com/garden-io/garden/commit/976de249b))
+* **sync:** await monitors stop on `sync stop` completion ([#7056](https://github.com/garden-io/garden/issues/7056)) ([88f564aa5](https://github.com/garden-io/garden/commit/88f564aa5))
+
+### Bundled Tool Version Updates
+
+* **helm:** update version to 3.17.2 ([#7084](https://github.com/garden-io/garden/issues/7084)) ([9392233ac](https://github.com/garden-io/garden/commit/9392233ac))
+
 <a name="0.14.1"></a>
 ## [0.14.1](https://github.com/garden-io/garden/compare/0.14.0...0.14.1) (2025-03-26)
 
