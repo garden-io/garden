@@ -288,6 +288,10 @@ async function buildxBuildContainer({
   const timeSaved = output?.timeSaved || 0
 
   if (dockerBuildError !== null) {
+    // Throw user-friendly configuration error with hint is it was detected
+    if (dockerBuildError instanceof ConfigurationError) {
+      throw dockerBuildError
+    }
     throw new BuildError({
       message: `docker build failed: ${dockerErrorLogs.join("\n") || dockerBuildError.message}`,
     })
