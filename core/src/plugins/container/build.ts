@@ -222,7 +222,7 @@ async function buildxBuildContainer({
   const startedAt = new Date()
   const cmdOpts = ["buildx", "build", ...dockerFlags, "--file", dockerfilePath]
   let res: SpawnOutput = { all: "", stdout: "", stderr: "", code: 1, proc: null }
-  let buildError: GardenError | null = null
+  let dockerBuildError: GardenError | null = null
   try {
     res = await containerHelpers.dockerCli({
       cwd: buildPath,
@@ -235,17 +235,17 @@ async function buildxBuildContainer({
       env: dockerEnvVars,
     })
   } catch (e) {
-    buildError = toGardenError(e)
-    if (buildError.message.includes("docker exporter does not currently support exporting manifest lists")) {
-      buildError = new ConfigurationError({
+    dockerBuildError = toGardenError(e)
+    if (dockerBuildError.message.includes("docker exporter does not currently support exporting manifest lists")) {
+      dockerBuildError = new ConfigurationError({
         message: dedent`
           Your local docker image store does not support loading multi-platform images.
           If you are using Docker Desktop, you can turn on the experimental containerd image store.
           Learn more at https://docs.docker.com/go/build-multi-platform/
         `,
       })
-    } else if (buildError.message.includes("Multi-platform build is not supported for the docker driver")) {
-      buildError = new ConfigurationError({
+    } else if (dockerBuildError.message.includes("Multi-platform build is not supported for the docker driver")) {
+      dockerBuildError = new ConfigurationError({
         message: dedent`
           Your local docker daemon does not support building multi-platform images.
           If you are using Docker Desktop, you can turn on the experimental containerd image store.
@@ -254,8 +254,8 @@ async function buildxBuildContainer({
           Learn more at https://docs.docker.com/go/build-multi-platform/
         `,
       })
-    } else if (buildError.message.includes("failed to push")) {
-      buildError = new ConfigurationError({
+    } else if (dockerBuildError.message.includes("failed to push")) {
+      dockerBuildError = new ConfigurationError({
         message: dedent`
           The Docker daemon failed to push the image to the registry.
           Please make sure that you are logged in and that you
@@ -263,29 +263,33 @@ async function buildxBuildContainer({
         `,
       })
     }
-  } finally {
-    let timeSaved = 0
-    if (ctx.cloudApiV2) {
-      const output = await sendBuildReport({
-        metadataFile,
-        cmdOpts,
-        startedAt,
-        dockerLogs,
-        dockerCommandResult: res,
-        runtime,
-        ctx,
-        log,
-      })
-      timeSaved = output?.timeSaved || 0
-    }
-
-    if (buildError !== null) {
-      throw new BuildError({
-        message: `docker build failed: ${dockerErrorLogs.join("\n") || buildError.message}`,
-      })
-    }
-    return { buildResult: res, timeSaved }
   }
+
+  // Send build report in any case (success/failure),
+  // before returning successful result or throeing an error.
+  let timeSaved = 0
+  if (ctx.cloudApiV2) {
+    // This function is fail-safe
+    const output = await sendBuildReport({
+      metadataFile,
+      cmdOpts,
+      startedAt,
+      dockerLogs,
+      dockerCommandResult: res,
+      runtime,
+      ctx,
+      log,
+    })
+    timeSaved = output?.timeSaved || 0
+  }
+
+  if (dockerBuildError !== null) {
+    throw new BuildError({
+      message: `docker build failed: ${dockerErrorLogs.join("\n") || dockerBuildError.message}`,
+    })
+  }
+
+  return { buildResult: res, timeSaved }
 }
 
 async function buildContainerInCloudBuilder(params: {
