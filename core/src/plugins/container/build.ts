@@ -292,8 +292,21 @@ async function buildxBuildContainer({
     if (dockerBuildError instanceof ConfigurationError) {
       throw dockerBuildError
     }
+
+    // If any Docker error logs were intercepted,
+    // throw an error with the intercepted error output,
+    // and without verbose Docker JSON logs.
+    if (dockerErrorLogs.length > 0) {
+      throw new BuildError({
+        message: `docker build failed: ${dockerErrorLogs.join("\n")}`,
+      })
+    }
+
+    // Otherwise, throw an error with original message,
+    // which can be huge and contain the JSON logs from the Docker process.
+    // TODO: check if this is a real-life scenario
     throw new BuildError({
-      message: `docker build failed: ${dockerErrorLogs.join("\n") || dockerBuildError.message}`,
+      message: `docker build failed: ${dockerBuildError.message}`,
     })
   }
 
