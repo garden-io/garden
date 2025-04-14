@@ -267,7 +267,6 @@ async function buildxBuildContainer({
 
   // Send build report in any case (success/failure),
   // before returning successful result or throeing an error.
-  let timeSaved = 0
   // This function is fail-safe,
   // and prints a user-friendly warning if a user is not logged in.
   const output = await sendBuildReport({
@@ -280,7 +279,7 @@ async function buildxBuildContainer({
     ctx,
     log,
   })
-  timeSaved = output?.timeSaved || 0
+  const timeSaved = output?.timeSaved || 0
 
   if (dockerBuildError !== null) {
     throw new BuildError({
