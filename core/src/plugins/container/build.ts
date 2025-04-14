@@ -268,20 +268,19 @@ async function buildxBuildContainer({
   // Send build report in any case (success/failure),
   // before returning successful result or throeing an error.
   let timeSaved = 0
-  if (ctx.cloudApiV2) {
-    // This function is fail-safe
-    const output = await sendBuildReport({
-      metadataFile,
-      cmdOpts,
-      startedAt,
-      dockerLogs,
-      dockerCommandResult: res,
-      runtime,
-      ctx,
-      log,
-    })
-    timeSaved = output?.timeSaved || 0
-  }
+  // This function is fail-safe,
+  // and prints a user-friendly warning if a user is not logged in.
+  const output = await sendBuildReport({
+    metadataFile,
+    cmdOpts,
+    startedAt,
+    dockerLogs,
+    dockerCommandResult: res,
+    runtime,
+    ctx,
+    log,
+  })
+  timeSaved = output?.timeSaved || 0
 
   if (dockerBuildError !== null) {
     throw new BuildError({
