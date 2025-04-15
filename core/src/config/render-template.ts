@@ -39,6 +39,7 @@ import { serialiseUnresolvedTemplates, UnresolvedTemplateValue } from "../templa
 import { isArray, isPlainObject } from "../util/objects.js"
 import { InputContext } from "./template-contexts/input.js"
 import { getBackendType } from "../cloud/util.js"
+import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -181,7 +182,6 @@ export async function renderConfigTemplate({
     inputs: InputContext.forRenderTemplate(config, template),
   })
 
-  // TODO(deprecation): deprecate in 0.14 and remove in 0.15
   const modules = await renderModules({ garden, template, context, renderConfig: resolved })
 
   const configs = await renderConfigs({ garden, log, template, context, renderConfig: resolved })
@@ -189,6 +189,9 @@ export async function renderConfigTemplate({
   return { resolved, modules, configs }
 }
 
+/**
+ * TODO(deprecation): deprecate in 0.14 and remove in 0.15
+ */
 async function renderModules({
   garden,
   template,
@@ -200,6 +203,10 @@ async function renderModules({
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
 }): Promise<ModuleConfig[]> {
+  if (template.modules !== undefined) {
+    reportDeprecatedFeatureUsage({ deprecation: "configTemplateModules", log: garden.log })
+  }
+
   return Promise.all(
     (template.modules || []).map(async (m, index) => {
       // @ts-expect-error todo: correct types for unresolved configs

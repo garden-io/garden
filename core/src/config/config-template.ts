@@ -18,7 +18,6 @@ import type { Garden } from "../garden.js"
 import { ConfigurationError } from "../exceptions.js"
 import { resolve, posix, dirname } from "path"
 import fsExtra from "fs-extra"
-const { readFile } = fsExtra
 import { ProjectConfigContext } from "./template-contexts/project.js"
 import type { ActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
@@ -27,6 +26,9 @@ import { deepEvaluate } from "../template/evaluate.js"
 import type { JSONSchemaType } from "ajv"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { getBackendType } from "../cloud/util.js"
+import { makeDeprecationMessage } from "../util/deprecations.js"
+
+const { readFile } = fsExtra
 
 const inputTemplatePattern = "${inputs.*}"
 const parentNameTemplate = "${parent.name}"
@@ -158,7 +160,6 @@ export const configTemplateSchema = createSchema({
       .description(
         "Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided all inputs will be accepted."
       ),
-    // TODO(deprecation): deprecate in 0.14 and remove in 0.15
     modules: joi
       .array()
       .items(moduleSchema())
@@ -170,7 +171,8 @@ export const configTemplateSchema = createSchema({
 
         **Important: Make sure you use templates for any identifiers that must be unique, such as module names, service names and task names. Otherwise you'll inevitably run into configuration errors. The module names can reference the ${inputTemplatePattern}, ${parentNameTemplate} and ${templateNameTemplate} keys. Other identifiers can also reference those, plus any other keys available for module templates (see [the module context reference](${moduleTemplateReferenceUrl})).**
         `
-      ),
+      )
+      .meta({ deprecated: makeDeprecationMessage({ deprecation: "configTemplateModules" }) }),
     configs: joi
       .array()
       .items(templatedResourceSchema())

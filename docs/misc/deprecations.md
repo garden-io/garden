@@ -40,6 +40,12 @@ The `resources.sync` config field in the `kubernetes` provider has no effect in 
 
 The `resources.sync` config field in the `kubernetes` provider was only used for the `cluster-docker` build mode, which was removed in Garden 0.13.",
 
+<h2 id="configtemplatemodules"><code>modules</code> configuration field <code>ConfigTemplate</code> action kinds</h2>
+
+The `modules` configuration field `ConfigTemplate` action kinds is deprecated in Garden 0.14. Please use the `configs` field instead, and use actions instead of modules.
+
+For more information, please refer to the [`configs` reference documentation](../reference/config-template-config.md#configs).
+
 # Unsupported commands
 
 <h2 id="kubernetesplugincleanupclusterregistrycommand"><code>cleanup-cluster-registry</code></h2>

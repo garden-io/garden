@@ -243,6 +243,10 @@ Path to a JSON schema file describing the expected inputs for the template. Must
 
 ### `modules[]`
 
+{% hint style="warning" %}
+**Deprecated**: The `modules` configuration field `ConfigTemplate` action kinds is deprecated in Garden 0.14. Please use the `configs` field instead, and use actions instead of modules.
+{% endhint %}
+
 A list of modules this template will output. The schema for each is the same as when you create modules normally in configuration files, with the addition of a `path` field, which allows you to specify a sub-directory to set as the module root.
 
 In addition to any template strings you can normally use for modules (see [the reference](./template-strings/modules.md)), you can reference the inputs described by the inputs schema for the template, using ${inputs.*} template strings, as well as ${parent.name} and ${template.name}, to reference the name of the module using the template, and the name of the template itself, respectively. This also applies to file contents specified under the `files` key.

@@ -93,6 +93,17 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: null,
     },
+    configTemplateModules: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("modules")} configuration field ${style("ConfigTemplate")} action kinds`,
+      warnHint: deline`
+        The ${style("modules")} configuration field ${style("ConfigTemplate")} action kinds is deprecated in Garden 0.14.
+        Please use the ${style("configs")} field instead, and use actions instead of modules.
+      `,
+      docs: deline`
+        For more information, please refer to the [${style("configs")} reference documentation](../reference/config-template-config.md#configs).
+      `,
+    },
   } as const
 }
 
