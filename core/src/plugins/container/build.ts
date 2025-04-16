@@ -316,9 +316,9 @@ async function buildContainerInCloudBuilder(params: {
   const log = params.ctx.log.createLog({
     name: `build.${params.action.name}`,
   })
-  if (res.timeSaved > 0) {
-    log.success(styles.bold(`Accelerated by Remote Container Builder ${renderSavedTime(res.timeSaved)}`))
-  }
+
+  log.success(styles.bold(`Accelerated by Remote Container Builder ${renderSavedTime(res.timeSaved)}`))
+
   return res
 }
 
