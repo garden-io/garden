@@ -167,6 +167,46 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   }
 }
 
+function detectConfigurationError(dockerErrorLogs: string[]): ConfigurationError | undefined {
+  for (const dockerErrorLogLine of dockerErrorLogs) {
+    const errorMessageLowercase = dockerErrorLogLine.toLowerCase()
+
+    if (errorMessageLowercase.includes("docker exporter does not currently support exporting manifest lists")) {
+      return new ConfigurationError({
+        message: dedent`
+          Your local docker image store does not support loading multi-platform images.
+          If you are using Docker Desktop, you can turn on the experimental containerd image store.
+          Learn more at https://docs.docker.com/go/build-multi-platform/
+        `,
+      })
+    }
+
+    if (errorMessageLowercase.includes("multi-platform build is not supported for the docker driver")) {
+      return new ConfigurationError({
+        message: dedent`
+          Your local docker daemon does not support building multi-platform images.
+          If you are using Docker Desktop, you can turn on the experimental containerd image store.
+          To build multi-platform images locally with other local docker platforms,
+          you can add a custom buildx builder of type docker-container.
+          Learn more at https://docs.docker.com/go/build-multi-platform/
+        `,
+      })
+    }
+
+    if (errorMessageLowercase.includes("failed to push")) {
+      return new ConfigurationError({
+        message: dedent`
+          The Docker daemon failed to push the image to the registry.
+          Please make sure that you are logged in and that you
+          have sufficient permissions on this machine to push to the registry.
+        `,
+      })
+    }
+  }
+
+  return undefined
+}
+
 async function buildxBuildContainer({
   action,
   outputStream,
@@ -222,7 +262,8 @@ async function buildxBuildContainer({
   const startedAt = new Date()
   const cmdOpts = ["buildx", "build", ...dockerFlags, "--file", dockerfilePath]
   let res: SpawnOutput = { all: "", stdout: "", stderr: "", code: 1, proc: null }
-  let dockerBuildError: GardenError | null = null
+  let dockerBuildError: GardenError | undefined
+  let dockerBuildConfigError: ConfigurationError | undefined
   try {
     res = await containerHelpers.dockerCli({
       cwd: buildPath,
@@ -240,35 +281,8 @@ async function buildxBuildContainer({
     dockerBuildError = toGardenError(e)
 
     // Check if there are any actual configuration errors,
-    // and craft user-friendly error messages with hints
-    const messageLowercase = dockerBuildError.message.toLowerCase()
-    if (messageLowercase.includes("docker exporter does not currently support exporting manifest lists")) {
-      dockerBuildError = new ConfigurationError({
-        message: dedent`
-          Your local docker image store does not support loading multi-platform images.
-          If you are using Docker Desktop, you can turn on the experimental containerd image store.
-          Learn more at https://docs.docker.com/go/build-multi-platform/
-        `,
-      })
-    } else if (messageLowercase.includes("multi-platform build is not supported for the docker driver")) {
-      dockerBuildError = new ConfigurationError({
-        message: dedent`
-          Your local docker daemon does not support building multi-platform images.
-          If you are using Docker Desktop, you can turn on the experimental containerd image store.
-          To build multi-platform images locally with other local docker platforms,
-          you can add a custom buildx builder of type docker-container.
-          Learn more at https://docs.docker.com/go/build-multi-platform/
-        `,
-      })
-    } else if (messageLowercase.includes("failed to push")) {
-      dockerBuildError = new ConfigurationError({
-        message: dedent`
-          The Docker daemon failed to push the image to the registry.
-          Please make sure that you are logged in and that you
-          have sufficient permissions on this machine to push to the registry.
-        `,
-      })
-    }
+    // and craft user-friendly error messages with hints.
+    dockerBuildConfigError = detectConfigurationError(dockerErrorLogs)
   }
 
   // Send build report in any case (success/failure),
@@ -287,12 +301,12 @@ async function buildxBuildContainer({
   })
   const timeSaved = output?.timeSaved || 0
 
-  if (dockerBuildError !== null) {
-    // Throw user-friendly configuration error with hint is it was detected
-    if (dockerBuildError instanceof ConfigurationError) {
-      throw dockerBuildError
-    }
+  // Throw user-friendly configuration error with hint is it was detected
+  if (!!dockerBuildConfigError) {
+    throw dockerBuildConfigError
+  }
 
+  if (!!dockerBuildError) {
     // If any Docker error logs were intercepted,
     // throw an error with the intercepted error output,
     // and without verbose Docker JSON logs.
