@@ -437,7 +437,6 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: service.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(service.spec.dependencies, buildAction),
 
       timeout: service.spec.timeout || DEFAULT_DEPLOY_TIMEOUT_SEC,
@@ -459,7 +458,6 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: task.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(task.spec.dependencies, buildAction),
       timeout: task.spec.timeout,
 
@@ -480,7 +478,6 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: test.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(test.spec.dependencies, buildAction),
       timeout: test.spec.timeout,
 
