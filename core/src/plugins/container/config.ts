@@ -33,7 +33,6 @@ import { templateStringLiteral } from "../../docs/common.js"
 import { syncGuideLink } from "../kubernetes/constants.js"
 import { makeSecret, type Secret } from "../../util/secrets.js"
 import type { ActionKind } from "../../plugin/action-types.js"
-import { makeDeprecationMessage } from "../../util/deprecations.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -347,7 +346,7 @@ export const containerLocalModeSchema = createSchema({
     restart: localModeRestartSchema(),
   }),
   meta: {
-    deprecated: makeDeprecationMessage({ deprecation: "localMode" }),
+    deprecation: "localMode",
     internal: true,
   },
 })
