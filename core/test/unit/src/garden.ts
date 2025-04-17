@@ -676,12 +676,12 @@ describe("Garden", () => {
         configStoreTmpDir = await makeTempDir()
       })
 
-      after(async () => {
+      afterEach(async () => {
         await configStoreTmpDir.cleanup()
         nock.cleanAll()
       })
 
-      // This means the logged in user is on a commerical edition
+      // This means the logged in user is on a commercial edition
       context("domain is set", () => {
         const fakeCloudDomain = "https://example.com"
         const scope = nock(fakeCloudDomain)

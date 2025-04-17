@@ -105,6 +105,7 @@ describe("SelfUpdateCommand", () => {
   })
 
   afterEach(async () => {
+    nock.cleanAll()
     try {
       if (tempDir) {
         await tempDir.cleanup()
