@@ -7,9 +7,7 @@
  */
 
 import { containerHelpers } from "./helpers.js"
-import type { GardenError } from "../../exceptions.js"
-import { BuildError } from "../../exceptions.js"
-import { ConfigurationError, InternalError, toGardenError } from "../../exceptions.js"
+import { BuildError, ConfigurationError, GardenError, InternalError, toGardenError } from "../../exceptions.js"
 import type { PrimitiveMap } from "../../config/common.js"
 import split2 from "split2"
 import type { BuildActionHandler } from "../../plugin/action-types.js"
@@ -262,7 +260,7 @@ async function buildxBuildContainer({
   const startedAt = new Date()
   const cmdOpts = ["buildx", "build", ...dockerFlags, "--file", dockerfilePath]
   let res: SpawnOutput = { all: "", stdout: "", stderr: "", code: 1, proc: null }
-  let dockerBuildError: GardenError | undefined
+  let dockerBuildError: unknown | undefined
   let dockerBuildConfigError: ConfigurationError | undefined
   try {
     res = await containerHelpers.dockerCli({
@@ -276,9 +274,9 @@ async function buildxBuildContainer({
       env: dockerEnvVars,
     })
   } catch (e) {
-    // Wrap unknown error as internal to ensure the build report sending,
-    // the error will be rethrown later
-    dockerBuildError = toGardenError(e)
+    // Intercept any unknown error to ensure the build report sending,
+    // the error will be processed later and re-thrown if necessary.
+    dockerBuildError = e
 
     // Check if there are any actual configuration errors,
     // and craft user-friendly error messages with hints.
@@ -316,12 +314,16 @@ async function buildxBuildContainer({
       })
     }
 
-    // Otherwise, throw an error with original message,
-    // which can be huge and contain the JSON logs from the Docker process.
-    // TODO: check if this is a real-life scenario
-    throw new BuildError({
-      message: `docker build failed: ${dockerBuildError.message}`,
-    })
+    // Otherwise, process the original error.
+    // This might not be a real-life scenario,
+    // because the Docker error logs should be not empty.
+    if (dockerBuildError instanceof GardenError) {
+      throw new BuildError({
+        message: `docker build failed: ${dockerBuildError.message}`,
+      })
+    }
+
+    throw dockerBuildError
   }
 
   return { buildResult: res, timeSaved }
