@@ -21,7 +21,7 @@ export abstract class BaseKeyDescription<T = any> {
   abstract experimental: boolean
   abstract required: boolean
 
-  constructor(
+  protected constructor(
     public name: string | undefined,
     public level: number,
     public parent?: BaseKeyDescription

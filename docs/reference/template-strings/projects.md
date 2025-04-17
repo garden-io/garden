@@ -289,11 +289,3 @@ Example:
 my-variable: ${git.originUrl}
 ```
 
-### `${secrets.<secret-name>}`
-
-The secret's value.
-
-| Type     |
-| -------- |
-| `string` |
-
