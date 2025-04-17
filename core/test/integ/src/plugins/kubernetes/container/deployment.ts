@@ -28,6 +28,7 @@ import { kilobytesToString, millicpuToString } from "../../../../../../src/plugi
 import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util.js"
 import { isConfiguredForSyncMode } from "../../../../../../src/plugins/kubernetes/status/status.js"
 import type {
+  ContainerBuildAction,
   ContainerDeployAction,
   ContainerDeployActionConfig,
   ContainerDeployOutputs,
@@ -66,6 +67,11 @@ describe("kubernetes container deployment handlers", () => {
   let ctx: KubernetesPluginContext
   let provider: KubernetesProvider
   let api: KubeApi
+
+  async function resolveBuildAction(name: string) {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    return garden.resolveAction<ContainerBuildAction>({ action: graph.getBuild(name), log: garden.log, graph })
+  }
 
   async function resolveDeployAction(name: string, mode: ActionMode = "default") {
     if (mode !== "default") {
@@ -709,13 +715,14 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a simple Deploy", async () => {
-        const action = await resolveDeployAction("simple-service")
+        const buildAction = await resolveBuildAction("simple-service")
+        const serviceAction = await resolveDeployAction("simple-service")
 
         const deployTask = new DeployTask({
           garden,
           graph,
           log: garden.log,
-          action,
+          action: serviceAction,
           force: true,
           forceBuild: false,
         })
@@ -723,13 +730,15 @@ describe("kubernetes container deployment handlers", () => {
         garden.events.eventLog = []
         const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getDeployStatuses(results.results)
-        const status = statuses[action.name]
+        const status = statuses[serviceAction.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
 
         expect(findNamespaceStatusEvent(garden.events.eventLog, "container-default")).to.exist
-        expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(`${action.versionString()}`)
+        expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(
+          `${serviceAction.versionString()}`
+        )
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `${action.name}:${action.getBuildAction()?.versionString()}`
+          `${serviceAction.name}:${buildAction.versionString()}`
         )
       })
 
