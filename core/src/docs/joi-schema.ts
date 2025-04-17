@@ -14,6 +14,7 @@ import type { JoiDescription } from "../config/common.js"
 import { metadataFromDescription } from "../config/common.js"
 import { safeDumpYaml } from "../util/serialization.js"
 import { zodToJsonSchema } from "zod-to-json-schema"
+import { makeDeprecationMessage } from "../util/deprecations.js"
 
 export class JoiKeyDescription extends BaseKeyDescription {
   private joiDescription: JoiDescription
@@ -53,10 +54,13 @@ export class JoiKeyDescription extends BaseKeyDescription {
 
     const metas: any = extend({}, ...(joiDescription.metas || []))
 
-    this.deprecated = joiDescription.parent?.deprecated || !!metas.deprecated
-    if (typeof metas.deprecated === "string") {
+    this.deprecated = joiDescription.parent?.deprecated || !!metas.deprecated || !!metas.deprecation
+    if (!!metas.deprecation) {
+      this.deprecationMessage = makeDeprecationMessage({ deprecation: metas.deprecation })
+    } else if (typeof metas.deprecated === "string") {
       this.deprecationMessage = metas.deprecated
     }
+
     this.description = joiDescription.flags?.description
     this.experimental = joiDescription.parent?.experimental || !!metas.experimental
     this.internal = joiDescription.parent?.internal || !!metas.internal
