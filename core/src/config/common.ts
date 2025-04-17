@@ -76,7 +76,7 @@ export const includeGuideLink = makeDocsLinkPlain(
 export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
 // Extend the Joi module with our custom rules
-interface MetadataKeys {
+export interface MetadataKeys {
   // Unique name to identify in error messages etc
   name?: string
   // Flag as an advanced feature, to be advised in generated docs
@@ -113,9 +113,7 @@ export interface JoiDescription extends Joi.Description {
     presence?: string
     only?: boolean
   }
-  metas?: {
-    [key: string]: object
-  }[]
+  metas?: MetadataKeys[]
 }
 
 // Unfortunately we need to explicitly extend each type (just extending the AnySchema doesn't work).
