@@ -443,7 +443,7 @@ function convertContainerModuleRuntimeActions(
       timeout: service.spec.timeout || DEFAULT_DEPLOY_TIMEOUT_SEC,
       spec: {
         ...omit(service.spec, ["name", "dependencies", "disabled"]),
-        image: needsContainerBuild ? undefined : deploymentImageId,
+        image: deploymentImageId,
         volumes: [],
       },
     }
@@ -465,7 +465,7 @@ function convertContainerModuleRuntimeActions(
 
       spec: {
         ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
-        image: needsContainerBuild ? undefined : deploymentImageId,
+        image: deploymentImageId,
         volumes: [],
       },
     }
@@ -486,7 +486,7 @@ function convertContainerModuleRuntimeActions(
 
       spec: {
         ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
-        image: needsContainerBuild ? undefined : deploymentImageId,
+        image: deploymentImageId,
         volumes: [],
       },
     }
