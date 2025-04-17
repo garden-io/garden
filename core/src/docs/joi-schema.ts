@@ -59,7 +59,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
     }
     this.description = joiDescription.flags?.description
     this.experimental = joiDescription.parent?.experimental || !!metas.experimental
-    this.internal = joiDescription.parent?.internal || !!metas.internal
+    this.internal = parent?.internal || !!metas.internal
   }
 
   override formatType() {

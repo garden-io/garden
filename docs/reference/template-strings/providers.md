@@ -291,14 +291,6 @@ Example:
 my-variable: ${git.originUrl}
 ```
 
-### `${secrets.<secret-name>}`
-
-The secret's value.
-
-| Type     |
-| -------- |
-| `string` |
-
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration, including environment-specific variables.
