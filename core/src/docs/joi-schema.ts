@@ -16,7 +16,7 @@ import { safeDumpYaml } from "../util/serialization.js"
 import { zodToJsonSchema } from "zod-to-json-schema"
 
 export class JoiKeyDescription extends BaseKeyDescription {
-  private joiDescription: JoiDescription
+  private readonly joiDescription: JoiDescription
 
   override deprecated: boolean
   override deprecationMessage: string | undefined
@@ -53,7 +53,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
 
     const metas: MetadataKeys = extend({}, ...(joiDescription.metas || []))
 
-    this.deprecated = joiDescription.parent?.deprecated || !!metas.deprecated
+    this.deprecated = parent?.deprecated || !!metas.deprecated
     if (typeof metas.deprecated === "string") {
       this.deprecationMessage = metas.deprecated
     }

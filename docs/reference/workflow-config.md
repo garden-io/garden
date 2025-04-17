@@ -351,6 +351,10 @@ The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 
 
 [limits](#limits) > cpu
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
 
 | Type     | Required |
@@ -360,6 +364,10 @@ The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 
 ### `limits.memory`
 
 [limits](#limits) > memory
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
 
