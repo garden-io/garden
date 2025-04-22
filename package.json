@@ -43,7 +43,7 @@
     "dependency-graph": "^0.11.0",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.23.0",
-    "eslint": "^9.23.0",
+    "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.5",
     "eslint-plugin-jsdoc": "^50.6.9",
