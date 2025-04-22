@@ -12,8 +12,13 @@ mounts a secret that enables it to communicate with the container registry).
 
 ## Dependencies
 
-This image depends on [k8s-sync](../k8s-sync).
+This image depends on [k8s-sync](../k8s-sync) and used it as a base image.
+So, this image should be updated on every `k8s-sync` update.
 
 ## Version update
 
-See the [k8s-sync README.md](../k8s-sync/README.md) to get more information about the version update.
+1. First, update the [base `k8s-sync` image](../k8s-sync/README.md) if necessary.
+2. Update the [Dockerfile](./Dockerfile) if necessary (this can be skipped if only the base `k8s-sync` image was updated).
+3. Bump the version by updating `variables.release-tag` in [garden.yml](./garden.yml).
+4. Build and publish the new `k8s-util` image.
+5. Change the image name in the code by using the newly published image id in the function `getK8sUtilImagePath` in [constants.ts](../../core/src/plugins/kubernetes/constants.ts).
