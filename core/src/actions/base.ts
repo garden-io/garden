@@ -1,51 +1,52 @@
 /*
- * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import titleize from "titleize"
-import type { ConfigGraph, GetActionOpts, PickTypeByKind, ResolvedConfigGraph } from "../graph/config-graph.js"
-import type { ActionReference } from "../config/common.js"
+import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph"
 import {
-  createSchema,
+  ActionReference,
+  DeepPrimitiveMap,
   includeGuideLink,
   joi,
-  joiArray,
   joiIdentifier,
   joiRepositoryUrl,
   joiSparseArray,
   joiUserIdentifier,
-  joiVarfile,
   joiVariables,
   parseActionReference,
+  createSchema,
   unusedApiVersionSchema,
-} from "../config/common.js"
-import { DOCS_BASE_URL } from "../constants.js"
-import { dedent, naturalList, stableStringify } from "../util/string.js"
-import type { ActionVersion, ModuleVersion, TreeVersion } from "../vcs/vcs.js"
-import { fullHashStrings, SHORT_VERSION_HASH_LENGTH } from "../vcs/vcs.js"
-import { getActionSourcePath, hashStrings, versionStringPrefix } from "../vcs/vcs.js"
-import type { BuildAction, ResolvedBuildAction } from "./build.js"
-import type { ActionKind } from "../plugin/action-types.js"
+} from "../config/common"
+import { DOCS_BASE_URL } from "../constants"
+import { dedent, naturalList, stableStringify } from "../util/string"
+import { DependencyVersions, hashStrings, ModuleVersion, TreeVersion, versionStringPrefix } from "../vcs/vcs"
+import type { BuildAction, ResolvedBuildAction } from "./build"
+import type { ActionKind } from "../plugin/action-types"
 import pathIsInside from "path-is-inside"
-import { actionOutputsSchema } from "../plugin/handlers/base/base.js"
-import type { GraphResult, GraphResults } from "../graph/results.js"
-import type { RunResult } from "../plugin/base.js"
+import { actionOutputsSchema } from "../plugin/handlers/base/base"
+import type { GraphResult, GraphResults } from "../graph/results"
+import type { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
-import { flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash-es"
-import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
+import cloneDeep from "fast-copy"
+import { flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash"
+import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import { relative } from "path"
-import { InternalError } from "../exceptions.js"
-import type {
+import { InternalError } from "../exceptions"
+import {
   Action,
   ActionConfig,
   ActionDependency,
+  actionKinds,
   ActionMode,
   ActionModes,
   ActionReferenceMap,
+  actionStateTypes,
   ActionStatus,
   ActionWrapperParams,
   BaseActionConfig,
@@ -54,23 +55,15 @@ import type {
   GetOutputValueType,
   ResolvedAction,
   ResolvedActionWrapperParams,
-} from "./types.js"
-import { actionKinds, actionStates } from "./types.js"
-import { baseInternalFieldsSchema, varfileDescription } from "../config/base.js"
-import type { DeployAction } from "./deploy.js"
-import type { TestAction } from "./test.js"
-import type { RunAction } from "./run.js"
-import type { Log } from "../logger/log-entry.js"
-import { createActionLog } from "../logger/log-entry.js"
-import { joinWithPosix } from "../util/fs.js"
-import type { LinkedSource } from "../config-store/local.js"
-import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
-import { styles } from "../logger/styles.js"
-import { dirname } from "node:path"
-import type { ResolvedTemplate } from "../template/types.js"
-import type { WorkflowConfig } from "../config/workflow.js"
-import type { VariablesContext } from "../config/template-contexts/variables.js"
-import { deepMap } from "../util/objects.js"
+} from "./types"
+import { baseInternalFieldsSchema, varfileDescription } from "../config/base"
+import { PickTypeByKind } from "../graph/config-graph"
+import { DeployAction } from "./deploy"
+import { TestAction } from "./test"
+import { RunAction } from "./run"
+import { createActionLog, Log } from "../logger/log-entry"
+import { joinWithPosix, normalizeRelativePath } from "../util/fs"
+import { LinkedSource } from "../config-store/local"
 
 // TODO: split this file
 
@@ -91,20 +84,18 @@ const actionSourceSpecSchema = createSchema({
   description: dedent`
     By default, the directory where the action is defined is used as the source for the build context.
 
-    You can override the directory that is used for the build context by setting \`source.path\`.
+    You can override this by setting either \`source.path\` to another (POSIX-style) path relative to the action source directory, or \`source.repository\` to get the source from an external repository.
 
-    You can use \`source.repository\` to get the source from an external repository. For more information on remote actions, please refer to the [Remote Sources guide](${DOCS_BASE_URL}/advanced/using-remote-sources).`,
+    If using \`source.path\`, you must make sure the target path is in a git repository.
+
+    For \`source.repository\` behavior, please refer to the [Remote Sources guide](${DOCS_BASE_URL}/advanced/using-remote-sources).
+  `,
   keys: () => ({
     path: joi
       .posixPath()
       .relativeOnly()
       .description(
-        dedent`
-          A relative POSIX-style path to the source directory for this action.
-
-          If specified together with \`source.repository\`, the path will be relative to the repository root.
-
-          Otherwise, the path will be relative to the directory containing the Garden configuration file.`
+        `A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!`
       ),
     repository: joi
       .object()
@@ -115,12 +106,11 @@ const actionSourceSpecSchema = createSchema({
         `When set, Garden will import the action source from this repository, but use this action configuration (and not scan for configs in the separate repository).`
       ),
   }),
+  oxor: [["path", "repository"]],
   meta: { name: "action-source", advanced: true, templateContext: ActionConfigContext },
 })
 
-export const includeExcludeSchema = memoize(() => joi.sparseArray().items(joi.posixPath().allowGlobs().subPathOnly()))
-
-const varfileName = "my-action.${environment.name}.env"
+export const includeExcludeSchema = memoize(() => joi.array().items(joi.posixPath().allowGlobs().subPathOnly()))
 
 export const baseActionConfigSchema = createSchema({
   name: "action-config-base",
@@ -183,14 +173,6 @@ export const baseActionConfigSchema = createSchema({
       `
       )
       .meta({ templateContext: ActionConfigContext }),
-    environments: joi
-      .sparseArray()
-      .items(joi.string())
-      .description(
-        dedent`
-        If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand for the \`disabled\` field with an expression for environments. For example, \`environments: ["prod"]\` is equivalent to \`disabled: \${environment.name != "prod"}\`.
-        `
-      ),
 
     // Version/file handling (Note: Descriptions and behaviors are different on Build actions!)
     include: includeExcludeSchema()
@@ -234,7 +216,7 @@ export const baseActionConfigSchema = createSchema({
           A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.
         `
       ),
-    varfiles: joiArray(joiVarfile())
+    varfiles: joiSparseArray(joi.posixPath())
       .description(
         dedent`
           Specify a list of paths (relative to the directory where the action is defined) to a file containing variables, that we apply on top of the action-level \`variables\` field, and take precedence over group-level variables (if applicable) and project-level variables, in that order.
@@ -243,15 +225,9 @@ export const baseActionConfigSchema = createSchema({
 
           ${varfileDescription}
 
-          To use different varfiles in different environments, you can template in the environment name to the varfile name, e.g. \`varfile: "${varfileName}"\` (this assumes that the corresponding varfiles exist).
+          To use different varfiles in different environments, you can template in the environment name to the varfile name, e.g. \`varfile: "my-action.\$\{environment.name\}.env\` (this assumes that the corresponding varfiles exist).
 
-          If a listed varfile cannot be found, throwing an error.
-          To add optional varfiles, you can use a list item object with a \`path\` and an optional \`optional\` boolean field.
-          \`\`\`yaml
-          varfiles:
-            - path: my-action.env
-              optional: true
-          \`\`\`
+          If a listed varfile cannot be found, it is ignored.
         `
       )
       .example("my-action.env")
@@ -284,9 +260,7 @@ export const baseRuntimeActionConfigSchema = createSchema({
       `
         )
       )
-      .meta({
-        templateContext: ActionConfigContext,
-      }),
+      .meta({ templateContext: ActionConfigContext }),
   }),
   extend: baseActionConfigSchema,
 })
@@ -296,7 +270,7 @@ export const actionStatusSchema = createSchema({
   keys: () => ({
     state: joi
       .string()
-      .allow(...actionStates)
+      .allow(...actionStateTypes)
       .only()
       .required()
       .description("The state of the action."),
@@ -339,10 +313,29 @@ export interface ActionDescription {
   version: ActionVersion
 }
 
+
+export type ActionFile = {
+  // relative path from the actions base or build path.
+  relativePath: string
+  source: "vcs" | "dependency"
+  // absolute path on this computer.
+  // If source === "vcs", then it's the absolute path to the file in the VCS.
+  // If source === "dependency", then it's the absolute path to the file in the build folder the action we depend on.
+  absolutePath: string
+}
+
+export interface ActionVersion {
+  versionString: string
+  dependencyVersions: DependencyVersions
+  configVersion: string
+  sourceVersion: string
+  files: ActionFile[]
+}
+
 export abstract class BaseAction<
   C extends BaseActionConfig = BaseActionConfig,
-  StaticOutputs extends Record<string, unknown> = any,
-  RuntimeOutputs extends Record<string, unknown> = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any,
 > {
   // TODO: figure out why kind and type come out as any types on Action type
   public readonly kind: C["kind"]
@@ -376,7 +369,7 @@ export abstract class BaseAction<
   protected readonly projectRoot: string
   protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
-  protected readonly variables: VariablesContext
+  protected readonly variables: DeepPrimitiveMap
 
   constructor(protected readonly params: ActionWrapperParams<C>) {
     this.kind = params.config.kind
@@ -423,12 +416,10 @@ export abstract class BaseAction<
    * Verbose string description of the action. Useful for logging and error messages.
    */
   longDescription(): string {
-    let d = `${styles.highlight(this.kind)} type=${styles.highlight.bold(this.type)} name=${styles.highlight.bold(
-      this.name
-    )}`
+    let d = `${chalk.white(this.kind)} type=${chalk.bold.white(this.type)} name=${chalk.bold.white(this.name)}`
 
     if (this._moduleName) {
-      d += ` (from module ${styles.highlight.bold(this._moduleName)})`
+      d += ` (from module ${chalk.bold.white(this._moduleName)})`
     }
 
     return d
@@ -436,7 +427,8 @@ export abstract class BaseAction<
 
   isDisabled(): boolean {
     // TODO: return true if group is disabled
-    return actionIsDisabled(this._config, this.graph.environmentName)
+    // TODO: implement environments field on action config
+    return actionIsDisabled(this._config, "TODO")
   }
 
   /**
@@ -448,7 +440,7 @@ export abstract class BaseAction<
       return true
     }
 
-    const path = this.sourcePath()
+    const path = this.basePath()
 
     for (const source of linkedSources) {
       if (path === source.path || pathIsInside(path, source.path)) {
@@ -469,20 +461,21 @@ export abstract class BaseAction<
     return internal?.groupName
   }
 
-  sourcePath(): string {
-    const config = this._config
-    const basePath = this.remoteSourcePath || config.internal.basePath
+  // TODO: rename to sourcePath
+  basePath(): string {
+    const basePath = this.remoteSourcePath || this._config.internal.basePath
+    const sourceRelPath = this._config.source?.path
 
-    return getActionSourcePath(basePath, config)
+    if (sourceRelPath) {
+      // TODO: validate that this is a directory here?
+      return joinWithPosix(basePath, sourceRelPath)
+    } else {
+      return basePath
+    }
   }
 
   configPath() {
     return this._config.internal.configFilePath
-  }
-
-  effectiveConfigFileLocation() {
-    const configPath = this.configPath()
-    return !!configPath ? dirname(configPath) : this.sourcePath()
   }
 
   moduleName(): string | null {
@@ -498,7 +491,8 @@ export abstract class BaseAction<
         contentHash: version.sourceVersion,
         versionString: version.versionString,
         dependencyVersions: version.dependencyVersions,
-        files: version.files,
+        // TODO: is this what we want?
+        files: this.getFilesFromSource().map((f) => f.absolutePath),
       }
     }
   }
@@ -551,23 +545,48 @@ export abstract class BaseAction<
     const dependencyVersions = fromPairs(depPairs)
 
     const configVersion = this.configVersion()
-    const sourceVersion = this._treeVersion.contentHash
-    const fullHash = fullHashStrings([configVersion, sourceVersion, ...flatten(sortedDeps)])
-    const versionString = versionStringPrefix + fullHash.slice(0, SHORT_VERSION_HASH_LENGTH)
-    const versionStringFull = versionStringPrefix + fullHash
+    const versionString =
+      versionStringPrefix + hashStrings([configVersion, this._treeVersion.contentHash, ...flatten(sortedDeps)])
 
     return {
       configVersion,
-      sourceVersion,
+      sourceVersion: this._treeVersion.contentHash,
       versionString,
-      versionStringFull,
       dependencyVersions,
-      files: this._treeVersion.files,
+      files: this.getFiles()
     }
+  }
+
+  @Memoize()
+  getFiles(): ActionFile[] {
+    return [
+      ...this.getFilesFromDependencies(),
+      ...this.getFilesFromSource()
+    ].flat()
+  }
+
+  @Memoize()
+  getFilesFromSource(): ActionFile[] {
+    return this._treeVersion.files.map((absolutePath) => ({
+      relativePath: normalizeRelativePath(this.basePath(), absolutePath),
+      source: "vcs",
+      absolutePath,
+    }))
+  }
+
+  @Memoize()
+  getFilesFromDependencies(): ActionFile[] {
+    // Needs to be overridden in the BuildAction
+    return []
   }
 
   treeVersion() {
     return this._treeVersion
+  }
+
+  @Memoize()
+  private stringifyConfig() {
+    return stableStringify(omit(this._config, "internal"))
   }
 
   /**
@@ -575,7 +594,7 @@ export abstract class BaseAction<
    */
   @Memoize()
   configVersion() {
-    return getActionConfigVersion(this._config)
+    return versionStringPrefix + hashStrings([this.stringifyConfig()])
   }
 
   /**
@@ -592,16 +611,12 @@ export abstract class BaseAction<
     }
   }
 
-  getVariablesContext(): VariablesContext {
+  getVariables(): DeepPrimitiveMap {
     return this.variables
   }
 
   versionString(): string {
     return this.getFullVersion().versionString
-  }
-
-  versionStringFull(): string {
-    return this.getFullVersion().versionStringFull
   }
 
   getInternal(): BaseActionConfig["internal"] {
@@ -611,9 +626,7 @@ export abstract class BaseAction<
   getConfig(): C
   getConfig<K extends keyof C>(key: K): C[K]
   getConfig(key?: keyof C["spec"]) {
-    const res = key ? this._config[key] : this._config
-    // basically a clone that leaves unresolved template values intact as-is, as they are immutable.
-    return deepMap(res, (v) => v) as typeof res
+    return cloneDeep(key ? this._config[key] : this._config)
   }
 
   /**
@@ -671,40 +684,12 @@ export abstract class BaseAction<
       actionName: this.name,
     })
   }
-
-  get statusConcurrencyLimit(): number | undefined {
-    return this._config.internal.statusConcurrencyLimit
-  }
-
-  /**
-   * Allows plugins to control the concurrency limit of action status task nodes.
-   *
-   * Falls back to default concurrency limit defined in the Task class.
-   */
-  set statusConcurrencyLimit(limit: number | undefined) {
-    this._config.internal.statusConcurrencyLimit = limit
-  }
-
-  /**
-   * Allows plugins to control the concurrency limit of action execution task nodes.
-   *
-   * Falls back to default concurrency limit defined in the Task class.
-   */
-  set executeConcurrencyLimit(limit: number | undefined) {
-    this._config.internal.executeConcurrencyLimit = limit
-  }
-
-  get executeConcurrencyLimit(): number | undefined {
-    return this._config.internal.executeConcurrencyLimit
-  }
-
-  abstract getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask
 }
 
 export abstract class RuntimeAction<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  StaticOutputs extends Record<string, unknown> = any,
-  RuntimeOutputs extends Record<string, unknown> = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
   /**
    * Return the Build action specified on the `build` field if defined, otherwise null
@@ -725,7 +710,7 @@ export abstract class RuntimeAction<
    */
   getBuildPath() {
     const buildAction = this.getBuildAction()
-    return buildAction?.getBuildPath() || this.sourcePath()
+    return buildAction?.getBuildPath() || this.basePath()
   }
 }
 
@@ -733,8 +718,8 @@ export abstract class RuntimeAction<
 // FIXME: Might be possible to remove in a later TypeScript version or through some hacks.
 export interface ResolvedActionExtension<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  StaticOutputs extends Record<string, unknown> = any,
-  RuntimeOutputs extends Record<string, unknown> = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any,
 > {
   getDependencyResult(ref: ActionReference | Action): GraphResult | null
 
@@ -750,16 +735,14 @@ export interface ResolvedActionExtension<
 
   getOutputs(): StaticOutputs
 
-  getVariablesContext(): VariablesContext
-
-  getResolvedVariables(): Record<string, ResolvedTemplate>
+  getVariables(): DeepPrimitiveMap
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ResolvedRuntimeAction<
     Config extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-    StaticOutputs extends Record<string, unknown> = any,
-    RuntimeOutputs extends Record<string, unknown> = any,
+    StaticOutputs extends {} = any,
+    RuntimeOutputs extends {} = any,
   >
   extends RuntimeAction<Config, StaticOutputs, RuntimeOutputs>
   implements ResolvedActionExtension<Config, StaticOutputs, RuntimeOutputs>
@@ -783,11 +766,6 @@ export abstract class ResolvedRuntimeAction<
     this.executedDependencies = params.executedDependencies
     this.resolvedDependencies = params.resolvedDependencies
     this._staticOutputs = params.staticOutputs
-    this._config = {
-      ...this._config,
-      // makes sure the variables show up in the `garden get config` command
-      variables: params.resolvedVariables,
-    }
     this._config.spec = params.spec
     this._config.internal.inputs = params.inputs
   }
@@ -828,9 +806,7 @@ export abstract class ResolvedRuntimeAction<
   getSpec(): Config["spec"]
   getSpec<K extends keyof Config["spec"]>(key: K): Config["spec"][K]
   getSpec(key?: keyof Config["spec"]) {
-    const res = key ? this._config.spec[key] : this._config.spec
-    // basically a clone that leaves unresolved template values intact as-is, as they are immutable.
-    return deepMap(res, (v) => v) as typeof res
+    return cloneDeep(key ? this._config.spec[key] : this._config.spec)
   }
 
   getOutput<K extends keyof StaticOutputs>(key: K): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
@@ -840,29 +816,24 @@ export abstract class ResolvedRuntimeAction<
   getOutputs() {
     return this._staticOutputs
   }
-
-  getResolvedVariables(): Record<string, ResolvedTemplate> {
-    return this.params.resolvedVariables
-  }
 }
 
 export interface ExecutedActionExtension<
   _ extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  StaticOutputs extends Record<string, unknown> = any,
-  RuntimeOutputs extends Record<string, unknown> = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any,
 > {
   getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
     key: K
   ): GetOutputValueType<K, StaticOutputs, RuntimeOutputs>
-
   getOutputs(): StaticOutputs & RuntimeOutputs
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ExecutedRuntimeAction<
     C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-    StaticOutputs extends Record<string, unknown> = any,
-    RuntimeOutputs extends Record<string, unknown> = any,
+    StaticOutputs extends {} = any,
+    RuntimeOutputs extends {} = any,
   >
   extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs>
   implements ExecutedActionExtension<C, StaticOutputs, RuntimeOutputs>
@@ -921,15 +892,7 @@ export function actionRefMatches(a: ActionReference, b: ActionReference) {
   return a.kind === b.kind && a.name === b.name
 }
 
-export function getSourceAbsPath(basePath: string, sourceRelPath: string) {
-  // TODO: validate that this is a directory here?
-  return joinWithPosix(basePath, sourceRelPath)
-}
-
-export function describeActionConfig(config: ActionConfig | WorkflowConfig) {
-  if (config.kind === "Workflow") {
-    return `${config.kind} ${config.name}`
-  }
+export function describeActionConfig(config: ActionConfig) {
   const d = `${config.type} ${config.kind} ${config.name}`
   if (config.internal?.moduleName) {
     return d + ` (from module ${config.internal?.moduleName})`
@@ -963,33 +926,7 @@ export function addActionDependency(dep: ActionDependency, dependencies: ActionD
   dependencies.push(dep)
 }
 
-export function actionIsDisabled(config: ActionConfig, environmentName: string): boolean {
-  return config.disabled === true || (!!config.environments && !config.environments.includes(environmentName))
-}
-
-/**
- * We omit a few fields here that should not affect versioning directly:
- * - The internal field (basePath, configFilePath etc.) are not relevant to the config version.
- * - The source, include and exclude stanzas are implicitly factored into the tree version.
- *   Those are handled separately in {@link VcsHandler},
- *   see {@link VcsHandler.getTreeVersion} and {@link VcsHandler.getFiles}.
- * - The description field is just informational, shouldn't affect execution.
- * - The disabled flag is not relevant to the config version, since it only affects execution.
- * - The variables and varfiles are only relevant if they have an effect on a relevant piece of configuration and thus can be omitted.
- */
-const nonVersionedActionConfigKeys = [
-  "internal",
-  "source",
-  "include",
-  "exclude",
-  "description",
-  "disabled",
-  "variables",
-  "varfiles",
-] as const
-export type NonVersionedActionConfigKey = keyof Pick<BaseActionConfig, (typeof nonVersionedActionConfigKeys)[number]>
-
-export function getActionConfigVersion<C extends BaseActionConfig>(config: C) {
-  const configToHash = omit(config, ...nonVersionedActionConfigKeys)
-  return versionStringPrefix + hashStrings([stableStringify(configToHash)])
+export function actionIsDisabled(config: ActionConfig, _environmentName: string): boolean {
+  // TODO: implement environment fields and check if environment is disabled
+  return config.disabled === true
 }

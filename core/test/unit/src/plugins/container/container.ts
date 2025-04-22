@@ -1,54 +1,47 @@
 /*
- * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as td from "testdouble"
+import td from "testdouble"
 
-import type { PluginContext } from "../../../../../src/plugin-context.js"
-import type { ContainerProvider } from "../../../../../src/plugins/container/container.js"
+import { PluginContext } from "../../../../../src/plugin-context"
 import {
   gardenPlugin,
+  ContainerProvider,
   convertContainerModule,
   configureContainerModule,
-} from "../../../../../src/plugins/container/container.js"
-import type { TestGarden } from "../../../../helpers.js"
-import { expectError, getDataDir, makeTestGarden } from "../../../../helpers.js"
-import type { Log } from "../../../../../src/logger/log-entry.js"
-import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
-import type { GardenModule } from "../../../../../src/types/module.js"
-import { moduleFromConfig } from "../../../../../src/types/module.js"
+} from "../../../../../src/plugins/container/container"
+import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
+import { Log } from "../../../../../src/logger/log-entry"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
+import { GardenModule, moduleFromConfig } from "../../../../../src/types/module"
 import { expect } from "chai"
-import type {
+import {
   ContainerBuildActionSpec,
   ContainerModule,
   ContainerModuleConfig,
   ContainerRuntimeActionConfig,
-} from "../../../../../src/plugins/container/moduleConfig.js"
-import {
   defaultContainerResources,
   defaultDeploymentStrategy,
   defaultDockerfileName,
-} from "../../../../../src/plugins/container/moduleConfig.js"
-import type { ExecBuildConfig } from "../../../../../src/plugins/exec/build.js"
+} from "../../../../../src/plugins/container/moduleConfig"
+import { ExecBuildConfig } from "../../../../../src/plugins/exec/build"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
   GardenApiVersion,
-} from "../../../../../src/constants.js"
-import { join, resolve } from "path"
-import type { ConvertModuleParams } from "../../../../../src/plugin/handlers/Module/convert.js"
-import { remove } from "lodash-es"
-import type { GardenTask } from "../../../../../src/types/task.js"
-import { taskFromConfig } from "../../../../../src/types/task.js"
-import type { GardenService } from "../../../../../src/types/service.js"
-import { serviceFromConfig } from "../../../../../src/types/service.js"
-import type { GardenTest } from "../../../../../src/types/test.js"
-import { testFromConfig } from "../../../../../src/types/test.js"
+} from "../../../../../src/constants"
+import { resolve } from "path"
+import { ConvertModuleParams } from "../../../../../src/plugin/handlers/Module/convert"
+import { omit } from "lodash"
+import { GardenTask, taskFromConfig } from "../../../../../src/types/task"
+import { GardenService, serviceFromConfig } from "../../../../../src/types/service"
+import { GardenTest, testFromConfig } from "../../../../../src/types/test"
 
 describe("plugins.container", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -91,14 +84,10 @@ describe("plugins.container", () => {
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
-    containerProvider = await garden.resolveProvider({ log: garden.log, name: "container" })
+    containerProvider = await garden.resolveProvider(garden.log, "container")
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
     graph = await garden.getConfigGraph({ log, emit: false })
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
-  })
-
-  afterEach(() => {
-    garden.close()
   })
 
   describe("convertContainerModule", () => {
@@ -122,15 +111,15 @@ describe("plugins.container", () => {
           basePath: "module-a",
         },
       },
-      convertBuildDependency: () => ({ kind: "Build", type: "container", name: "buildDep" }),
-      convertRuntimeDependencies: () => [{ kind: "Deploy", type: "container", name: "runtimeDep" }],
+      convertBuildDependency: () => ({ kind: "Build", name: "buildDep" }),
+      convertRuntimeDependencies: () => [{ kind: "Deploy", name: "runtimeDep" }],
       convertTestName: () => "testName",
       ctx,
       dummyBuild: undefined,
       log,
       module,
       prepareRuntimeDependencies: prepareRuntimeDependencies
-        ? () => [{ kind: "Deploy", type: "container", name: "preopRuntimeDep" }]
+        ? () => [{ kind: "Deploy", name: "preopRuntimeDep" }]
         : () => [],
       services,
       tasks,
@@ -155,11 +144,8 @@ describe("plugins.container", () => {
 
     it("returns the dummy Build action if no Dockerfile and an exec Build is needed", async () => {
       const module = graph.getModule("module-a") as ContainerModule
-
-      // remove automatically picked up Dockerfile
-      const defaultDockerfilePath = join(module.path, defaultDockerfileName)
-      remove(module.version.files, (f) => f === defaultDockerfilePath)
-
+      // TODO
+      // module.version.files.pop() // remove automatically picked up Dockerfile
       const dummyBuild: ExecBuildConfig = {
         internal: {
           basePath: ".",
@@ -193,6 +179,12 @@ describe("plugins.container", () => {
     it("correctly converts a module with volume usage", async () => {
       const module = graph.getModule("module-a") as ContainerModule
       const volumesSpec = [
+        {
+          containerPath: ".",
+          name: "test-volume",
+          module: "test-pvc",
+        },
+        // a volume with no Module but a hostPath instead
         {
           containerPath: ".",
           name: "test-volume",
@@ -233,9 +225,14 @@ describe("plugins.container", () => {
       expect(build.dependencies?.length, "builds don't get the pvc dependency").to.eql(0)
 
       for (const runtimeAction of [run, test, deploy] as ContainerRuntimeActionConfig[]) {
-        expect(runtimeAction.dependencies?.length).to.eql(0)
-        expect(runtimeAction.spec.volumes.length).to.eql(1)
-        expect(runtimeAction.spec.volumes).to.eql(volumesSpec)
+        expect(runtimeAction.dependencies?.length, "dependency is created only for action referenced modules").to.eql(1)
+        expect(runtimeAction.dependencies![0]).to.eql({ name: "test-pvc", kind: "Deploy" })
+        expect(runtimeAction.spec.volumes.length).to.eql(2)
+        expect(runtimeAction.spec.volumes[0]).to.eql({
+          ...omit(volumesSpec[0], "module"),
+          action: { name: "test-pvc", kind: "Deploy" },
+        })
+        expect(runtimeAction.spec.volumes[1]).to.eql({ ...volumesSpec[1], action: undefined })
       }
     })
   })
@@ -248,7 +245,7 @@ describe("plugins.container", () => {
         config: moduleConfig,
         buildDependencies: [],
         forceVersion: true,
-        scanRoot: projectRoot,
+        scanRoot: garden.projectRoot,
       })
     }
 
@@ -394,7 +391,6 @@ describe("plugins.container", () => {
             name: "unit",
             args: ["echo", "OK"],
             artifacts: [],
-            cacheResult: true,
             dependencies: [],
             disabled: false,
             env: {
@@ -489,7 +485,6 @@ describe("plugins.container", () => {
                 name: "unit",
                 args: ["echo", "OK"],
                 artifacts: [],
-                cacheResult: true,
                 dependencies: [],
                 disabled: false,
                 env: {
@@ -582,7 +577,6 @@ describe("plugins.container", () => {
                 name: "unit",
                 args: ["echo", "OK"],
                 artifacts: [],
-                cacheResult: true,
                 dependencies: [],
                 disabled: false,
                 env: {
@@ -598,6 +592,169 @@ describe("plugins.container", () => {
           ],
         },
       })
+    })
+
+    it("should add service volume modules as build and runtime dependencies", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        disabled: false,
+        apiVersion: GardenApiVersion.v0,
+        name: "module-a",
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [
+            {
+              name: "service-a",
+              annotations: {},
+              args: ["echo"],
+              dependencies: [],
+              daemon: false,
+              disabled: false,
+              ingresses: [],
+              env: {},
+              healthCheck: {},
+              limits: {
+                cpu: 123,
+                memory: 456,
+              },
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              ports: [],
+              replicas: 1,
+              volumes: [
+                {
+                  name: "test",
+                  containerPath: "/",
+                  module: "volume-module",
+                },
+              ],
+              deploymentStrategy: defaultDeploymentStrategy,
+            },
+          ],
+          tasks: [],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      const result = await configureContainerModule({ ctx, moduleConfig, log })
+
+      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.serviceConfigs[0].dependencies).to.eql(["volume-module"])
+    })
+
+    it("should add task volume modules as build and runtime dependencies", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        disabled: false,
+        apiVersion: GardenApiVersion.v0,
+        name: "module-a",
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [],
+          tasks: [
+            {
+              name: "task-a",
+              args: [],
+              artifacts: [],
+              cacheResult: true,
+              dependencies: [],
+              disabled: false,
+              env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
+              volumes: [
+                {
+                  name: "test",
+                  containerPath: "/",
+                  module: "volume-module",
+                },
+              ],
+            },
+          ],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      const result = await configureContainerModule({ ctx, moduleConfig, log })
+
+      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.taskConfigs[0].dependencies).to.eql(["volume-module"])
+    })
+
+    it("should add test volume modules as build and runtime dependencies", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        disabled: false,
+        apiVersion: GardenApiVersion.v0,
+        name: "module-a",
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [],
+          tasks: [],
+          tests: [
+            {
+              name: "test-a",
+              args: [],
+              artifacts: [],
+              dependencies: [],
+              disabled: false,
+              env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
+              volumes: [
+                {
+                  name: "test",
+                  containerPath: "/",
+                  module: "volume-module",
+                },
+              ],
+            },
+          ],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      const result = await configureContainerModule({ ctx, moduleConfig, log })
+
+      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.testConfigs[0].dependencies).to.eql(["volume-module"])
     })
 
     it("should fail with invalid port in ingress spec", async () => {
@@ -660,7 +817,6 @@ describe("plugins.container", () => {
               name: "unit",
               args: ["echo", "OK"],
               artifacts: [],
-              cacheResult: true,
               dependencies: [],
               disabled: false,
               env: {},

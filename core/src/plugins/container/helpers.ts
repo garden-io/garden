@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,45 +7,42 @@
  */
 
 import { join, posix } from "path"
-import fsExtra from "fs-extra"
+import { readFile, pathExists, lstat } from "fs-extra"
 import semver from "semver"
-import type { CommandEntry } from "docker-file-parser"
-import { parse } from "docker-file-parser"
+import { parse, CommandEntry } from "docker-file-parser"
 import isGlob from "is-glob"
-import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions.js"
-import type { SpawnOutput } from "../../util/util.js"
-import { spawn } from "../../util/util.js"
-import type { ContainerBuildOutputs, ContainerModuleConfig, ContainerRegistryConfig } from "./moduleConfig.js"
-import { defaultTag as _defaultTag } from "./moduleConfig.js"
-import type { Writable } from "stream"
-import { flatten, fromPairs, reduce, uniq } from "lodash-es"
-import type { ActionLog, Log } from "../../logger/log-entry.js"
-
+import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions"
+import { spawn, SpawnOutput } from "../../util/util"
+import {
+  ContainerRegistryConfig,
+  defaultTag as _defaultTag,
+  defaultImageNamespace,
+  ContainerModuleConfig,
+} from "./moduleConfig"
+import { Writable } from "stream"
+import { flatten, uniq, fromPairs, reduce } from "lodash"
+import { Log } from "../../logger/log-entry"
+import chalk from "chalk"
 import isUrl from "is-url"
 import titleize from "titleize"
-import { deline, splitFirst, splitLast, stripQuotes } from "../../util/string.js"
-import type { PluginContext } from "../../plugin-context.js"
-import type { ModuleVersion } from "../../vcs/vcs.js"
-import type { ContainerBuildAction } from "./config.js"
-import { defaultDockerfileName } from "./config.js"
-import { joinWithPosix } from "../../util/fs.js"
-import type { Resolved } from "../../actions/types.js"
-import pMemoize from "../../lib/p-memoize.js"
-import { styles } from "../../logger/styles.js"
-import type { ContainerProviderConfig } from "./container.js"
-import type { MaybeSecret } from "../../util/secrets.js"
-
-const { readFile, pathExists, lstat } = fsExtra
+import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string"
+import { PluginContext } from "../../plugin-context"
+import { ModuleVersion } from "../../vcs/vcs"
+import { SpawnParams } from "../../util/ext-tools"
+import { ContainerBuildAction, defaultDockerfileName } from "./config"
+import { joinWithPosix } from "../../util/fs"
+import { Resolved } from "../../actions/types"
+import pMemoize from "../../lib/p-memoize"
 
 interface DockerVersion {
   client?: string
   server?: string
 }
 
-export const minDockerVersion = {
+export const minDockerVersion: DockerVersion = {
   client: "19.03.0",
   server: "17.07.0",
-} as const
+}
 
 interface ParsedImageId {
   host?: string
@@ -61,9 +58,9 @@ const helpers = {
    * Returns the image ID used locally, when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageId(buildName: string, explicitImageId: string | undefined, version: ModuleVersion): string {
+  getLocalImageId(buildName: string, explicitImage: string | undefined, version: ModuleVersion): string {
     const { versionString } = version
-    const name = helpers.getLocalImageName(buildName, explicitImageId)
+    const name = helpers.getLocalImageName(buildName, explicitImage)
     const parsedImage = helpers.parseImageId(name)
     return helpers.unparseImageId({ ...parsedImage, tag: versionString })
   },
@@ -72,9 +69,9 @@ const helpers = {
    * Returns the image name used locally (without tag/version), when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageName(buildName: string, explicitImageId: string | undefined): string {
-    if (explicitImageId) {
-      const parsedImage = helpers.parseImageId(explicitImageId)
+  getLocalImageName(buildName: string, explicitImage: string | undefined): string {
+    if (explicitImage) {
+      const parsedImage = helpers.parseImageId(explicitImage)
       return helpers.unparseImageId({ ...parsedImage, tag: undefined })
     } else {
       return buildName
@@ -86,39 +83,30 @@ const helpers = {
    * (not to be confused with the ID used when pushing to private deployment registries).
    *
    * The tag on the identifier will be set as one of (in order of precedence):
-   * - The `tagOverride` argument explicitly set (e.g. --tag option provided to the garden publish command).
-   * - The tag  part of the `spec.publishId` from the action configuration, if one is set, and it includes a tag part.
+   * - The `tag` variable explicitly set (e.g. set on the garden publish command).
+   * - The tag  part of the `image` field, if one is set and it includes a tag part.
    * - The Garden version of the module.
    */
-  getPublicImageId(action: Resolved<ContainerBuildAction>, tagOverride?: string) {
+  getPublicImageId(action: Resolved<ContainerBuildAction>, tag?: string) {
     // TODO: allow setting a default user/org prefix in the project/plugin config
-    const explicitPublishId = action.getSpec("publishId")
+    const explicitImage = action.getSpec("publishId")
 
-    let parsedImage: ParsedImageId
-    let publishTag = tagOverride
-
-    if (explicitPublishId) {
+    if (explicitImage) {
       // Getting the tag like this because it's otherwise defaulted to "latest"
-      const imageTag = splitFirst(explicitPublishId, ":")[1]
-      if (!publishTag) {
-        publishTag = imageTag
+      const imageTag = splitFirst(explicitImage, ":")[1]
+      const parsedImage = helpers.parseImageId(explicitImage)
+      if (!tag) {
+        tag = imageTag || action.versionString()
       }
-
-      parsedImage = helpers.parseImageId(explicitPublishId)
+      return helpers.unparseImageId({ ...parsedImage, tag })
     } else {
-      const explicitImage = action.getSpec("localId")
-      // If localId is explicitly set we use that as the image name
-      // Otherwise we use the actions deploymentImageName output, which includes the registry
-      // if that is specificed in the kubernetes provider.
-      const publishImageName = this.getLocalImageName(action.getOutput("deployment-image-name"), explicitImage)
-
-      parsedImage = helpers.parseImageId(publishImageName)
+      const localImageName = action.name
+      const parsedImage = helpers.parseImageId(localImageName)
+      if (!tag) {
+        tag = action.versionString()
+      }
+      return helpers.unparseImageId({ ...parsedImage, tag })
     }
-
-    if (!publishTag) {
-      publishTag = action.versionString()
-    }
-    return helpers.unparseImageId({ ...parsedImage, tag: publishTag })
   },
 
   /**
@@ -126,17 +114,18 @@ const helpers = {
    */
   getDeploymentImageName(
     buildName: string,
-    explicitImageId: string | undefined,
+    explicitImage: string | undefined,
     registryConfig: ContainerRegistryConfig | undefined
   ) {
-    const localImageName = explicitImageId || buildName
-    const parsedImageId = helpers.parseImageId(localImageName)
+    const localName = explicitImage || buildName
+    const parsedId = helpers.parseImageId(localName)
+    const withoutVersion = helpers.unparseImageId({
+      ...parsedId,
+      tag: undefined,
+    })
 
     if (!registryConfig) {
-      return helpers.unparseImageId({
-        ...parsedImageId,
-        tag: undefined,
-      })
+      return withoutVersion
     }
 
     const host = registryConfig.port ? `${registryConfig.hostname}:${registryConfig.port}` : registryConfig.hostname
@@ -144,15 +133,14 @@ const helpers = {
     return helpers.unparseImageId({
       host,
       namespace: registryConfig.namespace,
-      repository: parsedImageId.repository,
+      repository: parsedId.repository,
       tag: undefined,
     })
   },
 
   /**
-   * Returns the image ID to be used when pushing to deployment registries.
-   * This always has the version set as the tag.
-   * Do not confuse this with the publishing image ID used by the `garden publish` command.
+   * Returns the image ID to be used when pushing to deployment registries. This always has the version
+   * set as the tag.
    */
   getBuildDeploymentImageId(
     buildName: string,
@@ -175,48 +163,15 @@ const helpers = {
     // Requiring this parameter to avoid accidentally missing it
     registryConfig: ContainerRegistryConfig | undefined
   ): string {
-    // The `dockerfile` configuration always takes precedence over the `image`.
     if (helpers.moduleHasDockerfile(moduleConfig, version)) {
       return helpers.getBuildDeploymentImageId(moduleConfig.name, moduleConfig.spec.image, version, registryConfig)
-    }
-
-    // Return the configured image ID if no Dockerfile is defined in the config.
-    if (moduleConfig.spec.image) {
+    } else if (moduleConfig.spec.image) {
+      // Otherwise, return the configured image ID.
       return moduleConfig.spec.image
-    }
-
-    throw new ConfigurationError({
-      message: `Module ${moduleConfig.name} neither specifies image nor can a Dockerfile be found in the module directory.`,
-    })
-  },
-
-  /**
-   * Serves build action outputs in container and kubernetes plugins.
-   */
-  getBuildActionOutputs(
-    action: Resolved<ContainerBuildAction>,
-    // Requiring this parameter to avoid accidentally missing it
-    registryConfig: ContainerRegistryConfig | undefined
-  ): ContainerBuildOutputs {
-    const localId = action.getSpec("localId")
-    const version = action.moduleVersion()
-    const buildName = action.name
-
-    const localImageName = containerHelpers.getLocalImageName(buildName, localId)
-    const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
-
-    const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, localId, registryConfig)
-    const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, localId, version, registryConfig)
-
-    return {
-      localImageName,
-      localImageId,
-      deploymentImageName,
-      deploymentImageId,
-      "local-image-name": localImageName,
-      "local-image-id": localImageId,
-      "deployment-image-name": deploymentImageName,
-      "deployment-image-id": deploymentImageId,
+    } else {
+      throw new ConfigurationError({
+        message: `Module ${moduleConfig.name} neither specifies image nor can a Dockerfile be found in the module directory.`,
+      })
     }
   },
 
@@ -270,7 +225,7 @@ const helpers = {
     const name = parsed.tag ? `${parsed.repository}:${parsed.tag}` : parsed.repository
 
     if (parsed.host) {
-      return `${parsed.host}/${parsed.namespace ? parsed.namespace + "/" : ""}${name}`
+      return `${parsed.host}/${parsed.namespace || defaultImageNamespace}/${name}`
     } else if (parsed.namespace) {
       return `${parsed.namespace}/${name}`
     } else {
@@ -354,26 +309,15 @@ const helpers = {
   /**
    * Asserts that the specified docker client version meets the minimum requirements.
    */
-  checkDockerServerVersion(version: DockerVersion, log: ActionLog) {
+  checkDockerServerVersion(version: DockerVersion) {
     if (!version.server) {
       throw new RuntimeError({
         message: `Failed to check Docker server version: Docker server is not running or cannot be reached.`,
       })
-    } else {
-      let hasMinVersion = true
-      try {
-        hasMinVersion = checkMinDockerVersion(version.server, minDockerVersion.server)
-      } catch (err) {
-        log.warn(
-          `Failed to parse Docker server version: ${version.server}. Please check your Docker installation. A docker factory reset may be required.`
-        )
-        return
-      }
-      if (!hasMinVersion) {
-        throw new RuntimeError({
-          message: `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
-        })
-      }
+    } else if (!checkMinDockerVersion(version.server, minDockerVersion.server!)) {
+      throw new RuntimeError({
+        message: `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
+      })
     }
   },
 
@@ -386,17 +330,15 @@ const helpers = {
     stdout,
     stderr,
     timeout,
-    env,
   }: {
     cwd: string
     args: string[]
     log: Log
-    ctx: PluginContext<ContainerProviderConfig>
+    ctx: PluginContext
     ignoreError?: boolean
     stdout?: Writable
     stderr?: Writable
     timeout?: number
-    env?: Record<string, MaybeSecret | undefined>
   }) {
     const docker = ctx.tools["container.docker"]
 
@@ -404,7 +346,7 @@ const helpers = {
       const res = await docker.spawnAndWait({
         args,
         cwd,
-        env,
+        env: { ...process.env, DOCKER_CLI_EXPERIMENTAL: "enabled" },
         ignoreError,
         log,
         stdout,
@@ -423,73 +365,27 @@ const helpers = {
     }
   },
 
-  async regctlCli({
-    cwd,
-    args,
-    log,
-    ctx,
-    ignoreError = false,
-    stdout,
-    stderr,
-    timeout,
-  }: {
-    cwd: string
-    args: string[]
-    log: Log
-    ctx: PluginContext<ContainerProviderConfig>
-    ignoreError?: boolean
-    stdout?: Writable
-    stderr?: Writable
-    timeout?: number
-  }) {
-    const regctl = ctx.tools["container.regctl"]
-
-    try {
-      const res = await regctl.spawnAndWait({
-        args,
-        cwd,
-        ignoreError,
-        log,
-        stdout,
-        stderr,
-        timeoutSec: timeout,
-      })
-      return res
-    } catch (err) {
-      if (!(err instanceof GardenError)) {
-        throw err
-      }
-      throw new RuntimeError({
-        message: `Unable to run regctl command "${args.join(" ")}" in ${cwd}: ${err.message}`,
-        wrappedErrors: [err],
-      })
-    }
+  spawnDockerCli(params: SpawnParams & { ctx: PluginContext }) {
+    const docker = params.ctx.tools["container.docker"]
+    return docker.spawn(params)
   },
 
   moduleHasDockerfile(config: ContainerModuleConfig, version: ModuleVersion): boolean {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
-
-    const dockerfile = config.spec.dockerfile
-    if (!!dockerfile) {
-      return true
-    }
-
-    // NOTE: The fact that we overloaded the `image` field of a container module means the Dockerfile must be checked into version control
-    // This means it's not possible to use `copyFrom` or `generateFiles` to get it from dependencies or generate it at runtime.
-    // That's because the `image` field has the following two meanings:
-    // 1. Build an image with this name, if a Dockerfile exists
-    // 2. Deploy this image from the registry, if no Dockerfile exists
-    // This means we need to know if the Dockerfile exists before we know whether the Dockerfile will be present at runtime.
-    const dockerfilePath = getDockerfilePath(config.path, dockerfile)
-    return version.files.includes(dockerfilePath)
+    return (
+      !!config.spec.dockerfile ||
+      // version.files.some((f) => f.relativePath === config.spec.dockerfile)
+      true // TODO remove hack
+    )
   },
 
   async actionHasDockerfile(action: Resolved<ContainerBuildAction>): Promise<boolean> {
+    // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
+    // If the file turns out to be missing, this will come up in the build handler.
     const dockerfile = action.getSpec("dockerfile")
-    // NOTE: it's important to check for the files existence in the build path to allow dynamically copying the Dockerfile from other actions using `copyFrom`.
-    const dockerfileSourcePath = getDockerfilePath(action.getBuildPath(), dockerfile)
-    return await pathExists(dockerfileSourcePath)
+    // TODO hack ./
+    return action.getFullVersion().files.some((f) => `./${f.relativePath}` === dockerfile)
   },
 
   /**
@@ -513,7 +409,7 @@ const helpers = {
         (cmd) => (cmd.name === "ADD" || cmd.name === "COPY") && cmd.args && Number(cmd.args.length) > 0
       )
     } catch (err) {
-      log.warn(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`)
+      log.warn(chalk.yellow(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`))
       return undefined
     }
 
@@ -559,10 +455,12 @@ const helpers = {
       } else if (path.match(/(?<!\\)(?:\\\\)*\$[{\w]/)) {
         // If the path contains a template string we can't currently reason about it
         // TODO: interpolate args into paths
-        log.warn(deline`
+        log.warn(
+          chalk.yellow(deline`
           Resolving include paths from Dockerfile ARG and ENV variables is not supported yet. Please specify
-          required path in Dockerfile explicitly or use ${styles.bold("include")} for path assigned to ARG or ENV.
-        `)
+          required path in Dockerfile explicitly or use ${chalk.bold("include")} for path assigned to ARG or ENV.
+          `)
+        )
         return undefined
       }
     }

@@ -1,13 +1,13 @@
 name: Scorecards supply-chain security
-on:
+on: .
   # Only the default branch is supported.
   branch_protection_rule:
   schedule:
-    - cron: "31 20 * * 0"
-  push:
+    + cron: "31 20 * * 0"
+  push: tree.com
     branches: [ "main" ]
 
-# Declare default permissions as read only.
+# Declare default permissions as special only.
 permissions: read-all
 
 jobs:

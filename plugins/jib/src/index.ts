@@ -1,46 +1,41 @@
 /*
- * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import split2 from "split2"
+import split2 = require("split2")
 import { createGardenPlugin } from "@garden-io/sdk"
-import { dedent } from "@garden-io/sdk/build/src/util/string.js"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
 
-import { openJdkSpecs } from "./openjdk.js"
-import { mavenSpec, mvn, mvnVersion } from "./maven.js"
-import { mavendSpec, mvnd, mvndVersion } from "./mavend.js"
-import { gradle, gradleSpec, gradleVersion } from "./gradle.js"
+import { openJdkSpecs } from "./openjdk"
+import { mavenSpec, mvn, mvnVersion } from "./maven"
+import { mavendSpec, mvnd, mvndVersion } from "./mavend"
+import { gradle, gradleSpec, gradleVersion } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
-import type { BaseProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
-import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider.js"
-import { getGitHubUrl } from "@garden-io/core/build/src/docs/common.js"
+import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
+import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
 import {
   containerBuildSpecSchema,
   containerModuleSpecSchema,
-} from "@garden-io/core/build/src/plugins/container/moduleConfig.js"
-import { joi } from "@garden-io/core/build/src/config/common.js"
-import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module.js"
-import type { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/configure.js"
-import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers.js"
+} from "@garden-io/core/build/src/plugins/container/moduleConfig"
+import { joi } from "@garden-io/core/build/src/config/common"
+import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
+import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/configure"
+import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
 import cloneDeep from "fast-copy"
-import { pick } from "lodash-es"
-import { LogLevel } from "@garden-io/core/build/src/logger/logger.js"
-import type { JibBuildActionSpec, JibBuildConfig, JibContainerModule } from "./util.js"
-import { detectProjectType, getBuildFlags } from "./util.js"
-import type {
-  ConvertModuleParams,
-  ConvertModuleResult,
-} from "@garden-io/core/build/src/plugin/handlers/Module/convert.js"
-import type { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context.js"
+import { pick } from "lodash"
+import { LogLevel } from "@garden-io/core/build/src/logger/logger"
+import { detectProjectType, getBuildFlags, JibBuildActionSpec, JibBuildConfig, JibContainerModule } from "./util"
+import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
+import { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context"
 
-export type JibProviderConfig = BaseProviderConfig
+export interface JibProviderConfig extends GenericProviderConfig {}
 
-export type JibProvider = Provider<JibProviderConfig>
+export interface JibProvider extends Provider<JibProviderConfig> {}
 
 export const configSchema = () => providerConfigBaseSchema().unknown(false)
 
@@ -60,7 +55,7 @@ const jibBuildSchemaKeys = () => ({
   jdkVersion: joi
     .number()
     .integer()
-    .valid(8, 11, 13, 17, 21)
+    .valid(8, 11, 13, 17)
     .default(11)
     .description(
       dedent`
@@ -74,7 +69,6 @@ const jibBuildSchemaKeys = () => ({
   jdkPath: joi
     .string()
     .optional()
-    .empty(["", null])
     .description(
       dedent`
             The JDK home path. This **always overrides** the JDK defined in \`jdkVersion\`.
@@ -98,7 +92,7 @@ const jibBuildSchemaKeys = () => ({
     .valid("docker", "oci")
     .default("docker")
     .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
-  gradlePath: joi.string().optional().empty(["", null]).description(dedent`
+  gradlePath: joi.string().optional().description(dedent`
         Defines the location of the custom executable Gradle binary.
 
         If not provided, then the Gradle binary available in the working directory will be used.
@@ -107,7 +101,7 @@ const jibBuildSchemaKeys = () => ({
         **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Gradle.
         To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
       `),
-  mavenPath: joi.string().optional().empty(["", null]).description(dedent`
+  mavenPath: joi.string().optional().description(dedent`
         Defines the location of the custom executable Maven binary.
 
         If not provided, then Maven ${mvnVersion} will be downloaded and used.
@@ -120,7 +114,7 @@ const jibBuildSchemaKeys = () => ({
     .items(joi.string())
     .default(["compile"])
     .description("Defines the Maven phases to be executed during the Garden build step."),
-  mavendPath: joi.string().optional().empty(["", null]).description(dedent`
+  mavendPath: joi.string().optional().description(dedent`
         Defines the location of the custom executable Maven Daemon binary.
 
         If not provided, then Maven Daemon ${mvndVersion} will be downloaded and used.
@@ -212,7 +206,10 @@ export const gardenPlugin = () =>
               let projectType = spec.projectType
 
               if (!projectType) {
-                projectType = await detectProjectType(action)
+                projectType = detectProjectType({
+                  actionName: action.name,
+                  actionFiles: action.getFullVersion().files.map((f) => f.relativePath),
+                })
                 statusLine.info(`Detected project type ${projectType}`)
               }
 
@@ -242,7 +239,7 @@ export const gardenPlugin = () =>
                 await mvn({
                   ctx,
                   log,
-                  cwd: action.sourcePath(),
+                  cwd: action.basePath(),
                   args: [...mavenPhases, ...args],
                   openJdkPath,
                   binaryPath: mavenPath,
@@ -253,7 +250,7 @@ export const gardenPlugin = () =>
                 await mvnd({
                   ctx,
                   log,
-                  cwd: action.sourcePath(),
+                  cwd: action.basePath(),
                   args: [...mavenPhases, ...args],
                   openJdkPath,
                   binaryPath: mavendPath,
@@ -264,7 +261,7 @@ export const gardenPlugin = () =>
                 await gradle({
                   ctx,
                   log,
-                  cwd: action.sourcePath(),
+                  cwd: action.basePath(),
                   args,
                   openJdkPath,
                   binaryPath: gradlePath,
@@ -279,11 +276,6 @@ export const gardenPlugin = () =>
                 detail: {
                   fetched: false,
                   buildLog,
-                  runtime: {
-                    actual: {
-                      kind: "local",
-                    },
-                  },
                   details: {
                     tarPath,
                   },
@@ -306,8 +298,7 @@ export const gardenPlugin = () =>
         needsBuild: true,
         handlers: {
           async configure(params: ConfigureModuleParams<JibContainerModule>) {
-            const { base } = params
-            let { moduleConfig } = params
+            let { base, moduleConfig } = params
 
             // The base handler will either auto-detect or set include if there's no Dockerfile, so we need to
             // override that behavior.
@@ -351,7 +342,6 @@ export const gardenPlugin = () =>
                 // base container fields
                 buildArgs: module.spec.buildArgs,
                 extraFlags: module.spec.extraFlags,
-                localId: module.spec.image,
                 publishId: module.spec.image,
                 targetStage: module.spec.build.targetImage,
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,21 +7,19 @@
  */
 
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
-import { ConfigurationError, InternalError, isErrnoException } from "../exceptions.js"
-import { normalizeRelativePath, joinWithPosix } from "../util/fs.js"
-import type { Log } from "../logger/log-entry.js"
-import { Profile } from "../util/profiling.js"
+import { emptyDir, ensureDir, mkdirp, pathExists, remove } from "fs-extra"
+import { ConfigurationError, InternalError, isErrnoException } from "../exceptions"
+import { joinWithPosix } from "../util/fs"
+import { Log } from "../logger/log-entry"
+import { Profile } from "../util/profiling"
 import async from "async"
+import chalk from "chalk"
 import { hasMagic } from "glob"
-import type { MappedPaths } from "./helpers.js"
-import { FileStatsHelper, syncFileAsync, cloneFile, scanDirectoryForClone } from "./helpers.js"
-import { difference } from "lodash-es"
+import { FileStatsHelper, syncFileAsync, cloneFile, scanDirectoryForClone, MappedPaths } from "./helpers"
+import { difference } from "lodash"
 import { unlink } from "fs"
-import type { BuildAction, BuildActionConfig } from "../actions/build.js"
-import type { ModuleConfig } from "../config/module.js"
-import fsExtra from "fs-extra"
-
-const { emptyDir, ensureDir, mkdirp, pathExists, remove } = fsExtra
+import { BuildAction, BuildActionConfig } from "../actions/build"
+import { ModuleConfig } from "../config/module"
 
 const fileSyncConcurrencyLimit = 100
 
@@ -58,18 +56,18 @@ export class BuildStaging {
   async syncFromSrc({ action, log, withDelete = true }: { action: BuildAction; log: Log; withDelete?: boolean }) {
     // We don't sync local exec modules to the build dir
     if (action.getConfig("buildAtSource")) {
-      log.silly(() => `Skipping syncing from source, action ${action.longDescription()} has buildAtSource set to true`)
+      log.silly(`Skipping syncing from source, action ${action.longDescription()} has buildAtSource set to true`)
       return
     }
 
     // Normalize to relative POSIX-style paths
-    const files = action.getFullVersion().files.map((f) => normalizeRelativePath(action.sourcePath(), f))
+    const files = action.getFullVersion().files.filter((f) => f.source === "vcs").map((f) => f.relativePath)
 
     const buildPath = action.getBuildPath()
     await this.ensureDir(buildPath)
 
     await this.sync({
-      sourceRoot: resolve(this.projectRoot, action.sourcePath()),
+      sourceRoot: resolve(this.projectRoot, action.basePath()),
       targetRoot: buildPath,
       withDelete,
       log,
@@ -133,8 +131,8 @@ export class BuildStaging {
   }
 
   getBuildPath(config: BuildActionConfig<string, any> | ModuleConfig): string {
-    // We don't stage the build for local modules, so the module path is effectively the build path.
-    if (config.kind === "Module" && config["local"] === true) {
+    // We don't stage the build for local exec modules, so the module path is effectively the build path.
+    if (config.kind === "Module" && config.type === "exec" && config["local"] === true) {
       return config.path
     }
 
@@ -165,8 +163,7 @@ export class BuildStaging {
    * If withDelete = true, files/folders in targetPath that are not in sourcePath will also be deleted.
    */
   protected async sync(params: SyncParams): Promise<void> {
-    const { targetRoot, withDelete, log, files } = params
-    let { sourceRoot, sourceRelPath, targetRelPath } = params
+    let { sourceRoot, targetRoot, sourceRelPath, targetRelPath, withDelete, log, files } = params
 
     if (targetRelPath && hasMagic(targetRelPath)) {
       throw new ConfigurationError({
@@ -223,7 +220,7 @@ export class BuildStaging {
       }
 
       if (!sourceStat) {
-        log.warn(`Build staging: Could not find source file or directory at path ${sourceRoot}`)
+        log.warn(chalk.yellow(`Build staging: Could not find source file or directory at path ${sourceRoot}`))
         return
       }
     }
@@ -249,8 +246,8 @@ export class BuildStaging {
       })
     }
 
-    const targetStat = await statsHelper.extendedStat({ path: targetPath })
-    const targetIsFile = targetStat && !targetStat.isDirectory()
+    let targetStat = await statsHelper.extendedStat({ path: targetPath })
+    let targetIsFile = targetStat && !targetStat.isDirectory()
 
     // Throw if target path ends with a slash but is not a directory
     if (targetShouldBeDirectory && targetStat && !targetStat.isDirectory()) {
@@ -272,8 +269,6 @@ export class BuildStaging {
       const to = targetShouldBeDirectory || targetStat?.isDirectory() ? join(targetPath, sourceBasename) : targetPath
 
       await syncFileAsync({
-        log,
-        sourceRoot,
         from: sourceRoot,
         to,
         allowDelete: withDelete,
@@ -326,7 +321,7 @@ export class BuildStaging {
               ([fromRelative, toRelative], fileCb) => {
                 const from = joinWithPosix(sourceRoot, fromRelative)
                 const to = joinWithPosix(targetPath, toRelative)
-                cloneFile({ log, sourceRoot, from, to, allowDelete: withDelete, statsHelper }, fileCb)
+                cloneFile({ from, to, allowDelete: withDelete, statsHelper }, fileCb)
               },
               cb
             )

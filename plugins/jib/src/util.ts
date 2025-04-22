@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,20 +7,17 @@
  */
 
 import { resolve } from "path"
-import type { GardenModule } from "@garden-io/sdk/build/src/types.js"
-import { ConfigurationError } from "@garden-io/core/build/src/exceptions.js"
-import { getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build.js"
-import type {
+import { GardenModule } from "@garden-io/sdk/build/src/types"
+import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
+import { getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build"
+import {
   ContainerBuildActionSpec,
   ContainerModuleBuildSpec,
   ContainerModuleSpec,
-} from "@garden-io/core/build/src/plugins/container/moduleConfig.js"
-import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "@garden-io/core/build/src/actions/build.js"
-import type { ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config.js"
-import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
-
-import fsExtra from "fs-extra"
-const { pathExists } = fsExtra
+} from "@garden-io/core/build/src/plugins/container/moduleConfig"
+import { BuildAction, BuildActionConfig } from "@garden-io/core/build/src/actions/build"
+import { ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config"
+import { Resolved } from "@garden-io/core/build/src/actions/types"
 
 interface JibBuildSpec {
   dockerBuild?: boolean
@@ -44,7 +41,7 @@ interface JibModuleSpec extends ContainerModuleSpec {
 
 export type JibBuildActionSpec = ContainerBuildActionSpec & JibBuildSpec
 export type JibBuildConfig = BuildActionConfig<"jib-container", JibBuildActionSpec>
-export type JibBuildAction = BuildAction<JibBuildConfig, ContainerBuildOutputs, Record<string, unknown>>
+export type JibBuildAction = BuildAction<JibBuildConfig, ContainerBuildOutputs, {}>
 
 export type JibContainerModule = GardenModule<JibModuleSpec>
 export type JibPluginType = "gradle" | "maven" | "mavend"
@@ -61,32 +58,35 @@ const gradlePaths = [
 const mavenPaths = ["pom.xml", ".mvn"]
 const mavendPaths = ["pom.xml", ".mvnd"]
 
-export async function detectProjectType(action: ResolvedBuildAction): Promise<JibPluginType> {
+export function detectProjectType({
+  actionName,
+  actionFiles,
+}: {
+  actionName: string
+  actionFiles: string[]
+}): JibPluginType {
   // TODO: support the Jib CLI
 
   for (const filename of gradlePaths) {
-    const path = resolve(action.getBuildPath(), filename)
-    if (await pathExists(path)) {
+    if (actionFiles.includes(filename)) {
       return "gradle"
     }
   }
 
   for (const filename of mavenPaths) {
-    const path = resolve(action.getBuildPath(), filename)
-    if (await pathExists(path)) {
+    if (actionFiles.includes(filename)) {
       return "maven"
     }
   }
 
   for (const filename of mavendPaths) {
-    const path = resolve(action.getBuildPath(), filename)
-    if (await pathExists(path)) {
+    if (actionFiles.includes(filename)) {
       return "mavend"
     }
   }
 
   throw new ConfigurationError({
-    message: `Could not detect a gradle or maven project to build ${action.longDescription()}`,
+    message: `Could not detect a gradle or maven project to build ${actionName}`,
   })
 }
 
@@ -123,7 +123,7 @@ export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: Jib
   // TODO: don't assume action path is the project root
   // Unlike many other types,
   // jib-container builds are done from the source directory instead of the build staging directory.
-  const tarPath = resolve(action.sourcePath(), targetDir, tarFilename)
+  const tarPath = resolve(action.basePath(), targetDir, tarFilename)
 
   const dockerBuildArgs = getDockerBuildArgs(action.versionString(), buildArgs)
   const outputs = action.getOutputs()

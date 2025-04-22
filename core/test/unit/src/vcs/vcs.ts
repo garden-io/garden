@@ -389,7 +389,7 @@ describe("hashModuleVersion", () => {
       }
       const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
       const b = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [
-        { name: "dep", contentHash: "abcdefabced", versionString: "blabalbalba", files: [], dependencyVersions: {} },
+        { name: "dep", contentHash: "abcdefabced", versionString: "blabalbalba", dependencyVersions: {}, files: [], },
       ])
       expect(a).to.not.equal(b)
     })
@@ -436,7 +436,7 @@ describe("hashModuleVersion", () => {
       }
       const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
       const b = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [
-        { name: "dep", contentHash: "abcdefabced", versionString: "blabalbalba", files: [], dependencyVersions: {} },
+        { name: "dep", contentHash: "abcdefabced", versionString: "blabalbalba", dependencyVersions: {}, files: [], },
       ])
       expect(a).to.not.equal(b)
     })
