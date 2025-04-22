@@ -212,24 +212,24 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .default(defaults.limits.cpu)
             .description("CPU limit in millicpu.")
             .example(defaults.limits.cpu)
-            .meta({ deprecated }),
+            .meta({ deprecation: deprecated }),
           memory: joi
             .number()
             .integer()
             .default(defaults.limits.memory)
             .description("Memory limit in megabytes.")
             .example(defaults.limits.memory)
-            .meta({ deprecated }),
+            .meta({ deprecation: deprecated }),
           ephemeralStorage: joi
             .number()
             .integer()
             .optional()
             .description("Ephemeral storage limit in megabytes.")
             .example(8192)
-            .meta({ deprecated }),
+            .meta({ deprecation: deprecated }),
         })
         .default(defaults.limits)
-        .meta({ deprecated }),
+        .meta({ deprecation: deprecated }),
       requests: joi
         .object()
         .keys({
@@ -239,24 +239,24 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .default(defaults.requests.cpu)
             .description("CPU request in millicpu.")
             .example(defaults.requests.cpu)
-            .meta({ deprecated }),
+            .meta({ deprecation: deprecated }),
           memory: joi
             .number()
             .integer()
             .default(defaults.requests.memory)
             .description("Memory request in megabytes.")
             .example(defaults.requests.memory)
-            .meta({ deprecated }),
+            .meta({ deprecation: deprecated }),
           ephemeralStorage: joi
             .number()
             .integer()
             .optional()
             .description("Ephemeral storage request in megabytes.")
             .example(8192)
-            .meta({ deprecated }),
+            .meta({ deprecation: deprecated }),
         })
         .default(defaults.requests)
-        .meta({ deprecated }),
+        .meta({ deprecation: deprecated }),
     })
     .default(defaults)
 
