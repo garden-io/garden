@@ -9,7 +9,7 @@ tocTitle: "`local-kubernetes`"
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that automates and simplifies working with local Kubernetes clusters.
 
-For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/kubernetes-plugins/local-k8s) guide.
+For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/kubernetes-plugins/local-k8s) guide. The [Quickstart Guide](https://docs.garden.io/basics/quickstart) guide is also helpful as an introduction.
 
 If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/kubernetes-plugins/remote-k8s) guide.
 
@@ -198,10 +198,6 @@ providers:
       # Annotations may have an effect on the behaviour of certain components, for example autoscalers.
       annotations:
 
-      # Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to
-      # set up IRSA with in-cluster building.
-      serviceAccountAnnotations:
-
     # Setting related to Jib image builds.
     jib:
       # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
@@ -265,10 +261,6 @@ providers:
       # are specifically set under `util.annotations`
       annotations:
 
-      # Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up
-      # IRSA with in-cluster building.
-      serviceAccountAnnotations:
-
       util:
         # Specify tolerations to apply to each garden-util pod.
         tolerations:
@@ -323,15 +315,15 @@ providers:
         # `.git` directories and `.garden` directories are always ignored.
         exclude:
 
-        # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644
+        # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644
         # (user can read/write, everyone else can read). See the [Mutagen
         # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-        fileMode: 420
+        fileMode:
 
         # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
-        # 0o755 (user can read/write, everyone else can read). See the [Mutagen
+        # 0755 (user can read/write, everyone else can read). See the [Mutagen
         # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-        directoryMode: 493
+        directoryMode:
 
         # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
         # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
@@ -864,26 +856,6 @@ providers:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 ```
 
-### `providers[].clusterBuildkit.serviceAccountAnnotations`
-
-[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > serviceAccountAnnotations
-
-Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-Example:
-
-```yaml
-providers:
-  - clusterBuildkit:
-      ...
-      serviceAccountAnnotations:
-          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
-```
-
 ### `providers[].jib`
 
 [providers](#providers) > jib
@@ -1042,26 +1014,6 @@ providers:
       ...
       annotations:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
-```
-
-### `providers[].kaniko.serviceAccountAnnotations`
-
-[providers](#providers) > [kaniko](#providerskaniko) > serviceAccountAnnotations
-
-Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-Example:
-
-```yaml
-providers:
-  - kaniko:
-      ...
-      serviceAccountAnnotations:
-          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
 ```
 
 ### `providers[].kaniko.util`
@@ -1270,21 +1222,21 @@ providers:
 
 [providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > fileMode
 
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `0o644` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `providers[].sync.defaults.directoryMode`
 
 [providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > directoryMode
 
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `0o755` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `providers[].sync.defaults.owner`
 

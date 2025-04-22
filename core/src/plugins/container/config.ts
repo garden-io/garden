@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Primitive, PrimitiveMap, ActionReference } from "../../config/common.js"
 import {
   artifactsTargetDescription,
   envVarRegex,
@@ -15,23 +14,25 @@ import {
   joiSparseArray,
   joiStringMap,
   joiUserIdentifier,
+  Primitive,
+  PrimitiveMap,
   createSchema,
-} from "../../config/common.js"
-import type { ArtifactSpec } from "../../config/validation.js"
-import { ingressHostnameSchema, linkUrlSchema } from "../../types/service.js"
-import { DEFAULT_PORT_PROTOCOL } from "../../constants.js"
-import { dedent, deline } from "../../util/string.js"
-import { syncGuideLink } from "../kubernetes/sync.js"
-import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config.js"
-import { localModeGuideLink } from "../kubernetes/local-mode.js"
-import type { BuildAction, BuildActionConfig } from "../../actions/build.js"
-import type { DeployAction, DeployActionConfig } from "../../actions/deploy.js"
-import type { TestAction, TestActionConfig } from "../../actions/test.js"
-import type { RunAction, RunActionConfig } from "../../actions/run.js"
-import { memoize } from "lodash-es"
-import type Joi from "@hapi/joi"
-import type { OctalPermissionMask } from "../kubernetes/types.js"
-import { templateStringLiteral } from "../../docs/common.js"
+  ActionReference,
+} from "../../config/common"
+import { ArtifactSpec } from "../../config/validation"
+import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
+import { DEFAULT_PORT_PROTOCOL } from "../../constants"
+import { dedent, deline } from "../../util/string"
+import { syncGuideLink } from "../kubernetes/sync"
+import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config"
+import { localModeGuideLink } from "../kubernetes/local-mode"
+import { BuildAction, BuildActionConfig } from "../../actions/build"
+import { DeployAction, DeployActionConfig } from "../../actions/deploy"
+import { TestAction, TestActionConfig } from "../../actions/test"
+import { RunAction, RunActionConfig } from "../../actions/run"
+import { memoize } from "lodash"
+import Joi from "@hapi/joi"
+import { OctalPermissionMask } from "../kubernetes/types"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -191,7 +192,7 @@ export const syncModeSchema = memoize(() =>
 
 const octalPermissionValidationRangeError = deline`
 Mode permission bits out of range.
-Please specify a number between 0 and 0o777 in octal representation. The number needs to be prefixed with '0o' in YAML, e.g. 0o777.
+Please specify a number between 0 and 0777 in octal representation. The number needs to be prefixed with a leading zero in YAML, e.g. 0777.
 `
 const octalPermissionValidationErrors: Joi.LanguageMessages = {
   "number.min": octalPermissionValidationRangeError,
@@ -204,10 +205,9 @@ export const syncDefaultFileModeSchema = memoize(() =>
     .min(0o0)
     .max(0o777)
     .default(0o644)
-    .meta({ isOctal: true })
     .messages(octalPermissionValidationErrors)
     .description(
-      "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). " +
+      "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644 (user can read/write, everyone else can read). " +
         permissionsDocs
     )
 )
@@ -218,10 +218,9 @@ export const syncDefaultDirectoryModeSchema = memoize(() =>
     .min(0o0)
     .max(0o777)
     .default(0o755)
-    .meta({ isOctal: true })
     .messages(octalPermissionValidationErrors)
     .description(
-      "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). " +
+      "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0755 (user can read/write, everyone else can read). " +
         permissionsDocs
     )
 )
@@ -238,27 +237,6 @@ export const syncDefaultGroupSchema = memoize(() =>
     .description("Set the default group on files and directories at the target. " + ownerDocs)
 )
 
-const exampleActionRef = templateStringLiteral("actions.build.my-container-image.sourcePath")
-const backSlash = "`\\`"
-const forwardSlash = "`/`"
-
-export const syncSourcePathSchema = memoize(() =>
-  joi
-    .string()
-    .default(".")
-    .description(
-      deline`
-        Path to a local directory to be synchronized with the target.
-
-        This should generally be a templated path to another action's source path (e.g. ${exampleActionRef}), or a relative path.
-
-        If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (${forwardSlash}) as a delimiter, as Windows-style paths with back slashes (${backSlash}) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.
-
-        Defaults to the Deploy action's config's directory if no value is provided.
-        `
-    )
-    .example("src")
-)
 export const syncTargetPathSchema = memoize(() =>
   joi
     .posixPath()
@@ -276,7 +254,15 @@ export const syncTargetPathSchema = memoize(() =>
 const containerSyncSchema = createSchema({
   name: "container-sync",
   keys: () => ({
-    source: syncSourcePathSchema(),
+    source: joi
+      .string()
+      .default(".")
+      .description(
+        deline`
+        POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+        `
+      )
+      .example("src"),
     target: syncTargetPathSchema(),
     exclude: syncExcludeSchema(),
     mode: syncModeSchema(),
@@ -579,7 +565,7 @@ export const portSchema = createSchema({
         for \`servicePort\`.
 
         This is the port you would expose in your Dockerfile and that your process listens on.
-        This is commonly a non-privileged port like 8080 for security reasons.
+        This is commonly a non-priviledged port like 8080 for security reasons.
 
         The service port maps to the container port:
 
@@ -896,7 +882,6 @@ const artifactsSchema = memoize(() =>
 export interface ContainerTestOutputs {
   log: string
 }
-
 export const containerTestOutputSchema = createSchema({
   name: "container-test-output",
   keys: () => ({
@@ -932,7 +917,7 @@ export const containerTestActionSchema = createSchema({
 
 // RUN //
 
-export type ContainerRunOutputs = ContainerTestOutputs
+export interface ContainerRunOutputs extends ContainerTestOutputs {}
 
 export const containerRunOutputSchema = () => containerTestOutputSchema()
 
@@ -1092,3 +1077,4 @@ export type ContainerRuntimeActionConfig =
   | ContainerDeployActionConfig
   | ContainerRunActionConfig
   | ContainerTestActionConfig
+export type ContainerAction = ContainerRuntimeAction | ContainerBuildAction

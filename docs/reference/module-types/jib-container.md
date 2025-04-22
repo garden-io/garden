@@ -6,12 +6,12 @@ tocTitle: "`jib-container`"
 # `jib-container` Module Type
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.13.20/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.13.9/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -380,13 +380,8 @@ services:
 
       # Specify one or more source files or directories to automatically sync with the running container.
       paths:
-        - # Path to a local directory to be synchronized with the target.
-          # This should generally be a templated path to another action's source path (e.g.
-          # `${actions.build.my-container-image.sourcePath}`), or a relative path.
-          # If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`)
-          # as a delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some
-          # platforms, but they are not portable and will not work for users on other platforms.
-          # Defaults to the Deploy action's config's directory if no value is provided.
+        - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if
+          # no value is provided.
           source: .
 
           # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -401,15 +396,15 @@ services:
           # guide](https://docs.garden.io/guides/code-synchronization) for details.
           mode: one-way-safe
 
-          # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644
+          # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644
           # (user can read/write, everyone else can read). See the [Mutagen
           # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-          defaultFileMode: 420
+          defaultFileMode:
 
           # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
-          # 0o755 (user can read/write, everyone else can read). See the [Mutagen
+          # 0755 (user can read/write, everyone else can read). See the [Mutagen
           # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-          defaultDirectoryMode: 493
+          defaultDirectoryMode:
 
           # Set the default owner of files and directories at the target. Specify either an integer ID or a string
           # name. See the [Mutagen
@@ -527,7 +522,7 @@ services:
         # The port exposed on the container by the running process. This will also be the default value for
         # `servicePort`.
         # This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a
-        # non-privileged port like 8080 for security reasons.
+        # non-priviledged port like 8080 for security reasons.
         # The service port maps to the container port:
         # `servicePort:80 -> containerPort:8080 -> process:8080`
         containerPort:
@@ -927,9 +922,9 @@ The chosen version will be downloaded by Garden and used to define `JAVA_HOME` e
 
 To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
 
-| Type     | Allowed Values    | Default | Required |
-| -------- | ----------------- | ------- | -------- |
-| `number` | 8, 11, 13, 17, 21 | `11`    | Yes      |
+| Type     | Allowed Values | Default | Required |
+| -------- | -------------- | ------- | -------- |
+| `number` | 8, 11, 13, 17  | `11`    | Yes      |
 
 ### `build.jdkPath`
 
@@ -1629,10 +1624,7 @@ Specify one or more source files or directories to automatically sync with the r
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > source
 
-Path to a local directory to be synchronized with the target.
-This should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path.
-If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.
-Defaults to the Deploy action's config's directory if no value is provided.
+POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -1706,21 +1698,21 @@ The sync mode to use for the given paths. See the [Code Synchronization guide](h
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > defaultFileMode
 
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `0o644` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `services[].sync.paths[].defaultDirectoryMode`
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > defaultDirectoryMode
 
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `0o755` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `services[].sync.paths[].defaultOwner`
 
@@ -2105,7 +2097,7 @@ The protocol of the port.
 [services](#services) > [ports](#servicesports) > containerPort
 
 The port exposed on the container by the running process. This will also be the default value for `servicePort`.
-This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a non-privileged port like 8080 for security reasons.
+This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a non-priviledged port like 8080 for security reasons.
 The service port maps to the container port:
 `servicePort:80 -> containerPort:8080 -> process:8080`
 

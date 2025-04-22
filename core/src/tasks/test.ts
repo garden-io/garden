@@ -6,25 +6,30 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams } from "../tasks/base.js"
-import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndEmitProcessingEvents } from "../tasks/base.js"
-import { Profile } from "../util/profiling.js"
-import { resolvedActionToExecuted } from "../actions/helpers.js"
-import type { TestAction } from "../actions/test.js"
-import type { GetTestResult } from "../plugin/handlers/Test/get-result.js"
-import { OtelTraced } from "../util/open-telemetry/decorators.js"
-import { GardenError } from "../exceptions.js"
+import { find } from "lodash"
+import minimatch from "minimatch"
 
-/**
- * Only throw this error when the test itself failed, and not when Garden failed to execute the test.
- *
- * Unexpected errors should just bubble up; When the test ran successfully, but it reported a failure (e.g. linter found issues).
- *
- * TODO: This probably should not be handled with an exception and instead just be an object that represents a run failure or success.
- *   For now however, we use the error and should be careful with how we use it.
- */
-class TestFailedError extends GardenError {
-  override type = "test-failed"
+import {
+  BaseActionTaskParams,
+  ActionTaskProcessParams,
+  ExecuteActionTask,
+  ActionTaskStatusParams,
+  emitGetStatusEvents,
+  emitProcessingEvents,
+} from "../tasks/base"
+import { Profile } from "../util/profiling"
+import { ModuleConfig } from "../config/module"
+import { resolvedActionToExecuted } from "../actions/helpers"
+import { TestAction } from "../actions/test"
+import { GetTestResult } from "../plugin/handlers/Test/get-result"
+import { TestConfig } from "../config/test"
+import { moduleTestNameToActionName } from "../types/module"
+import { OtelTraced } from "../util/open-telemetry/decorators"
+
+class TestError extends Error {
+  override toString() {
+    return this.message
+  }
 }
 
 export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
@@ -64,8 +69,9 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       }
     },
   })
-  @(logAndEmitGetStatusEvents<TestAction>)
+  @(emitGetStatusEvents<TestAction>)
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
+    this.log.verbose("Checking status...")
     const action = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
 
@@ -75,12 +81,17 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       action,
     })
 
+    this.log.verbose("Status check complete")
+
     const testResult = status?.detail
 
     const version = action.versionString()
     const executedAction = resolvedActionToExecuted(action, { status })
 
     if (testResult && testResult.success) {
+      if (!this.force) {
+        this.log.success("Already passed")
+      }
       return {
         ...status,
         version,
@@ -105,9 +116,11 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       }
     },
   })
-  @(logAndEmitProcessingEvents<TestAction>)
+  @(emitProcessingEvents<TestAction>)
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
+
+    this.log.info(`Running...`)
 
     const router = await this.garden.getActionRouter()
 
@@ -122,9 +135,12 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       })
       status = output.result
     } catch (err) {
+      this.log.error(`Failed running test`)
+
       throw err
     }
     if (status.detail?.success) {
+      this.log.success(`Success`)
     } else {
       const exitCode = status.detail?.exitCode
       const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`
@@ -132,13 +148,23 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       if (status.detail?.diagnosticErrorMsg) {
         this.log.debug(`Additional context for the error:\n\n${status.detail.diagnosticErrorMsg}`)
       }
-      throw new TestFailedError({ message: status.detail?.log || "The test failed, but it did not output anything." })
+      throw new TestError(status.detail?.log)
     }
 
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 }
 
-export function createTestTask(params: TestTaskParams) {
-  return new TestTask(params)
+export function filterTestConfigs(module: ModuleConfig, filterNames?: string[]): ModuleConfig["testConfigs"] {
+  const acceptableTestConfig = (test: TestConfig) => {
+    if (test.disabled) {
+      return false
+    }
+    if (!filterNames || filterNames.length === 0) {
+      return true
+    }
+    const testName = moduleTestNameToActionName(module.name, test.name)
+    return find(filterNames, (n: string) => minimatch(testName, n))
+  }
+  return module.testConfigs.filter(acceptableTestConfig)
 }

@@ -3,4 +3,4 @@ type: kubernetes
 name: with-build-action
 build: exec-build
 spec:
-  files: [ "*.yaml" ]
+  files: ["deployment.yaml"]

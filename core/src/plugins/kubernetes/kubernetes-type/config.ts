@@ -90,7 +90,7 @@ const kubernetesPatchResourceSchema = () =>
   })
 
 export const kubernetesFilesSchema = () =>
-  joiSparseArray(joi.posixPath().subPathOnly().allowGlobs()).description(
+  joiSparseArray(joi.posixPath().subPathOnly()).description(
     "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
   )
 

@@ -6,7 +6,7 @@ tocTitle: "`helm`"
 # `helm` Module Type
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../tutorials/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 ## Description
@@ -243,13 +243,8 @@ sync:
 
   # Specify one or more source files or directories to automatically sync with the running container.
   paths:
-    - # Path to a local directory to be synchronized with the target.
-      # This should generally be a templated path to another action's source path (e.g.
-      # `${actions.build.my-container-image.sourcePath}`), or a relative path.
-      # If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a
-      # delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some platforms, but
-      # they are not portable and will not work for users on other platforms.
-      # Defaults to the Deploy action's config's directory if no value is provided.
+    - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no
+      # value is provided.
       source: .
 
       # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -264,15 +259,15 @@ sync:
       # guide](https://docs.garden.io/guides/code-synchronization) for details.
       mode: one-way-safe
 
-      # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644
+      # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644 (user
+      # can read/write, everyone else can read). See the [Mutagen
+      # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+      defaultFileMode:
+
+      # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0755
       # (user can read/write, everyone else can read). See the [Mutagen
       # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-      defaultFileMode: 420
-
-      # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
-      # 0o755 (user can read/write, everyone else can read). See the [Mutagen
-      # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-      defaultDirectoryMode: 493
+      defaultDirectoryMode:
 
       # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
       # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
@@ -420,7 +415,7 @@ tasks:
     # The command/entrypoint used to run inside the container.
     command:
 
-    # The arguments to pass to the command/entrypoint used for execution.
+    # The arguments to pass to the command/entypoint used for execution.
     args:
 
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
@@ -1104,10 +1099,7 @@ Specify one or more source files or directories to automatically sync with the r
 
 [sync](#sync) > [paths](#syncpaths) > source
 
-Path to a local directory to be synchronized with the target.
-This should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path.
-If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.
-Defaults to the Deploy action's config's directory if no value is provided.
+POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -1178,21 +1170,21 @@ The sync mode to use for the given paths. See the [Code Synchronization guide](h
 
 [sync](#sync) > [paths](#syncpaths) > defaultFileMode
 
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `0o644` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `sync.paths[].defaultDirectoryMode`
 
 [sync](#sync) > [paths](#syncpaths) > defaultDirectoryMode
 
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `0o755` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `sync.paths[].defaultOwner`
 
@@ -1553,7 +1545,7 @@ tasks:
 
 [tasks](#tasks) > args
 
-The arguments to pass to the command/entrypoint used for execution.
+The arguments to pass to the command/entypoint used for execution.
 
 | Type            | Required |
 | --------------- | -------- |

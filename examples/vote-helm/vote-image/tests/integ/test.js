@@ -1,6 +1,15 @@
 const axios = require('axios');
 const { expect } = require('chai');
 
+const axiosRetry = require('axios-retry');
+axiosRetry(axios, {
+  retries: 2, // number of retries
+  retryDelay: (retryCount) => {
+      console.log(`axios retry attempt: ${retryCount}`);
+      return retryCount * 2000; // time interval between retries
+  },
+})
+
 describe('GET /', () => {
   it('respond with 200', async () => {
     const result = await axios.get('http://vote', {});

@@ -6,21 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import unixify from "unixify"
-import klaw from "klaw"
-import { glob } from "glob"
+import unixify = require("unixify")
+import klaw = require("klaw")
+import glob from "glob"
 import tmp from "tmp-promise"
-import fsExtra from "fs-extra"
-const { pathExists, readFile, writeFile, lstat, realpath } = fsExtra
+import { pathExists, readFile, writeFile, lstat, realpath, Stats } from "fs-extra"
 import { join, basename, win32, posix } from "path"
 import { platform } from "os"
 
-import { FilesystemError } from "../exceptions.js"
-import type { VcsHandler } from "../vcs/vcs.js"
-import type { Log } from "../logger/log-entry.js"
-import { exec } from "./util.js"
-import micromatch from "micromatch"
-import { uuidv4 } from "./random.js"
+import { FilesystemError } from "../exceptions"
+import { VcsHandler } from "../vcs/vcs"
+import { Log } from "../logger/log-entry"
+import { ModuleConfig } from "../config/module"
+import pathIsInside from "path-is-inside"
+import { exec } from "./util"
+import type Micromatch from "micromatch"
+import { uuidv4 } from "./random"
 
 export const defaultConfigFilename = "garden.yml"
 export const configFilenamePattern = "*garden.y*ml"
@@ -63,6 +64,54 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
 }
 
 /**
+ * Returns a list of overlapping modules.
+ *
+ * If a module does not set `include` or `exclude`, and another module is in its path (including
+ * when the other module has the same path), the module overlaps with the other module.
+ */
+export interface ModuleOverlap {
+  module: ModuleConfig
+  overlaps: ModuleConfig[]
+}
+
+export function detectModuleOverlap({
+  projectRoot,
+  gardenDirPath,
+  moduleConfigs,
+}: {
+  projectRoot: string
+  gardenDirPath: string
+  moduleConfigs: ModuleConfig[]
+}): ModuleOverlap[] {
+  // Don't consider overlap between disabled modules, or where one of the modules is disabled
+  const enabledModules = moduleConfigs.filter((m) => !m.disabled)
+
+  let overlaps: ModuleOverlap[] = []
+  for (const config of enabledModules) {
+    if (!!config.include || !!config.exclude) {
+      continue
+    }
+    const matches = enabledModules
+      .filter(
+        (compare) =>
+          config.name !== compare.name &&
+          pathIsInside(compare.path, config.path) &&
+          // Don't consider overlap between modules in root and those in the .garden directory
+          !(config.path === projectRoot && pathIsInside(compare.path, gardenDirPath))
+      )
+      .sort((a, b) => (a.name > b.name ? 1 : -1))
+
+    if (matches.length > 0) {
+      overlaps.push({
+        module: config,
+        overlaps: matches,
+      })
+    }
+  }
+  return overlaps
+}
+
+/**
  * Helper function to check whether a given filename is a valid Garden config filename
  */
 export function isConfigFilename(filename: string) {
@@ -75,7 +124,7 @@ export function isConfigFilename(filename: string) {
 }
 
 export async function getChildDirNames(parentDir: string): Promise<string[]> {
-  const dirNames: string[] = []
+  let dirNames: string[] = []
   // Filter on hidden dirs by default. We could make the filter function a param if needed later
   const filter = (item: string) => !basename(item).startsWith(".")
 
@@ -169,23 +218,42 @@ export function normalizeRelativePath(root: string, path: string) {
 /**
  * Joins a POSIX-formatted path with a `basePath` of any format/platform.
  */
-export function joinWithPosix(basePath: string, posixRelPath = "") {
+export function joinWithPosix(basePath: string, posixRelPath: string = "") {
   return join(basePath, ...posixRelPath.split("/"))
 }
 
 /**
  * Return a list of all files in directory at `path`
  */
-export async function listDirectory(path: string, { recursive = true } = {}) {
+export async function listDirectory(path: string, { recursive = true } = {}): Promise<string[]> {
   const pattern = recursive ? "**/*" : "*"
-  return glob(pattern, { cwd: path, dot: true })
+
+  return new Promise((resolve, reject) => {
+    glob(pattern, { cwd: path, dot: true }, (err, files) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve(files)
+      }
+    })
+  })
+}
+
+let _micromatch: typeof Micromatch
+
+function micromatch() {
+  if (!_micromatch) {
+    // Note: lazy-loading for startup performance
+    _micromatch = require("micromatch").match
+  }
+  return _micromatch
 }
 
 /**
  * Given a list of `paths`, return a list of paths that match any of the given `patterns`
  */
 export function matchGlobs(paths: string[], patterns: string[]): string[] {
-  return micromatch(paths, patterns, { dot: true })
+  return micromatch()(paths, patterns, { dot: true })
 }
 
 /**
@@ -233,7 +301,7 @@ export async function getWorkingCopyId(gardenDirPath: string) {
  */
 export async function isDirectory(path: string) {
   if (!(await pathExists(path))) {
-    throw new FilesystemError({ message: `Path ${path} does not exist` })
+    throw new FilesystemError({ message: `Path ${path} does not exist`, detail: { path } })
   }
 
   const stat = await lstat(path)
@@ -271,7 +339,7 @@ export async function makeTempDir({
  *
  * @param stats an fs.Stats instance
  */
-export function getStatsType(stats: fsExtra.Stats) {
+export function getStatsType(stats: Stats) {
   if (stats.isBlockDevice()) {
     return "block device"
   } else if (stats.isCharacterDevice()) {

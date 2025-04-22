@@ -14,7 +14,413 @@ This is a simplified abstraction, which can be convenient for simple deployments
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
 
+The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
+
 `container` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+
+## Complete YAML Schema
+
+The values in the schema below are the default values.
+
+```yaml
+# The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
+# defined by your configured providers.
+type:
+
+# A valid name for the action. Must be unique across all actions of the same _kind_ in your project.
+name:
+
+# A description of the action.
+description:
+
+# By default, the directory where the action is defined is used as the source for the build context.
+#
+# You can override this by setting either `source.path` to another (POSIX-style) path relative to the action source
+# directory, or `source.repository` to get the source from an external repository.
+#
+# If using `source.path`, you must make sure the target path is in a git repository.
+#
+# For `source.repository` behavior, please refer to the [Remote Sources
+# guide](https://docs.garden.io/advanced/using-remote-sources).
+source:
+  # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in
+  # a git repository!
+  path:
+
+  # When set, Garden will import the action source from this repository, but use this action configuration (and not
+  # scan for configs in the separate repository).
+  repository:
+    # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
+    # branch or tag, with the format: <git remote url>#<branch|tag>
+    url:
+
+# A list of other actions that this action depends on, and should be built, deployed or run (depending on the action
+# type) before processing this action.
+#
+# Each dependency should generally be expressed as a `"<kind>.<name>"` string, where _<kind>_ is one of `build`,
+# `deploy`, `run` or `test`, and _<name>_ is the name of the action to depend on.
+#
+# You may also optionally specify a dependency as an object, e.g. `{ kind: "Build", name: "some-image" }`.
+#
+# Any empty values (i.e. null or empty strings) are ignored, so that you can conditionally add in a dependency via
+# template expressions.
+dependencies: []
+
+# Set this to `true` to disable the action. You can use this with conditional template strings to disable actions
+# based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`).
+# This can be handy when you only need certain actions for specific environments, e.g. only for development.
+#
+# For Build actions, this means the build is not performed _unless_ it is declared as a dependency by another enabled
+# action (in which case the Build is assumed to be necessary for the dependant action to be run or built).
+#
+# For other action kinds, the action is skipped in all scenarios, and dependency declarations to it are ignored. Note
+# however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the action is
+# disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional
+# expressions.
+disabled: false
+
+# Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus will
+# affect the computed _version_ of the action.
+#
+# For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred. An
+# exception would be e.g. an `exec` action without a `build` reference, where the relevant files cannot be inferred
+# and you want to define which files should affect the version of the action, e.g. to make sure a Test action is run
+# when certain files are modified.
+#
+# _Build_ actions have a different behavior, since they generally are based on some files in the source tree, so
+# please reference the docs for more information on those.
+#
+# Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source
+# tree, which use the same format as `.gitignore` files. See the [Configuration Files
+# guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
+# details.
+include:
+
+# Specify a list of POSIX-style paths or glob patterns that should be explicitly excluded from the action's version.
+#
+# For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred. For
+# _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set `include`
+# paths, or such paths inferred by providers. See the [Configuration Files
+# guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
+# details.
+#
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes when watching is enabled. Use the project `scan.exclude` field to affect those,
+# if you have large directories that should not be watched for changes.
+exclude:
+
+# A map of variables scoped to this particular action. These are resolved before any other parts of the action
+# configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that
+# order. They may reference group-scoped and project-scoped variables, and generally can use any template strings
+# normally allowed when resolving the action.
+variables:
+
+# Specify a list of paths (relative to the directory where the action is defined) to a file containing variables, that
+# we apply on top of the action-level `variables` field, and take precedence over group-level variables (if
+# applicable) and project-level variables, in that order.
+#
+# If you specify multiple paths, they are merged in the order specified, i.e. the last one takes precedence over the
+# previous ones.
+#
+# The format of the files is determined by the configured file's extension:
+#
+# * `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+# * `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may
+# contain any value type.
+# * `.json` - JSON. Must contain a single JSON _object_ (not an array).
+#
+# _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested
+# objects and arrays._
+#
+# To use different varfiles in different environments, you can template in the environment name to the varfile name,
+# e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles exist).
+#
+# If a listed varfile cannot be found, it is ignored.
+varfiles: []
+
+# Specify a _Build_ action, and resolve this action from the context of that Build.
+#
+# For example, you might create an `exec` Build which prepares some manifests, and then reference that in a
+# `kubernetes` _Deploy_ action, and the resulting manifests from the Build.
+#
+# This would mean that instead of looking for manifest files relative to this action's location in your project
+# structure, the output directory for the referenced `exec` Build would be the source.
+build:
+
+kind:
+
+# Timeout for the deploy to complete, in seconds.
+timeout: 300
+
+spec:
+  # The command/entrypoint to run the container with.
+  command:
+
+  # The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
+  args:
+
+  # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
+  # `GARDEN`) and values must be primitives or references to secrets.
+  env: {}
+
+  cpu:
+    # The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
+    # CPU)
+    min: 10
+
+    # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in
+    # no limit being set.
+    max: 1000
+
+  memory:
+    # The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1
+    # GB)
+    min: 90
+
+    # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
+    # no limit being set.
+    max: 1024
+
+  # List of volumes that should be mounted when starting the container.
+  #
+  # Note: If neither `hostPath` nor `action` is specified,
+  # an empty ephemeral volume is created and mounted when deploying the container.
+  volumes:
+    - # The name of the allocated volume.
+      name:
+
+      # The path where the volume should be mounted in the container.
+      containerPath:
+
+      # _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
+      # and providers. Some providers may not support it at all._
+      #
+      # A local path or path on the node that's running the container, to mount in the container, relative to the
+      # config source directory (or absolute).
+      hostPath:
+
+      # The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported
+      # action types are `persistentvolumeclaim` and `configmap`.
+      #
+      # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
+      # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
+      # services at the same time. Refer to the documentation of the module type in question to learn more.
+      action:
+
+  # If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent
+  # to root on the host. Defaults to false.
+  privileged:
+
+  # POSIX capabilities to add when running the container.
+  addCapabilities:
+
+  # POSIX capabilities to remove when running the container.
+  dropCapabilities:
+
+  # Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).
+  tty: false
+
+  # Specifies the container's deployment strategy.
+  deploymentStrategy: RollingUpdate
+
+  # Annotations to attach to the service _(note: May not be applicable to all providers)_.
+  #
+  # When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can
+  # generally specify the annotations intended for both Pods or Services here, and the ones that don't apply on either
+  # side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will be safely
+  # ignored there, and vice versa).
+  annotations: {}
+
+  # Whether to run the service as a daemon (to ensure exactly one instance runs per node). May not be supported by all
+  # providers.
+  daemon: false
+
+  # Specifies which files or directories to sync to which paths inside the running containers of the service when it's
+  # in sync mode, and overrides for the container command and/or arguments.
+  #
+  # Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
+  #
+  # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
+  sync:
+    # Override the default container arguments when in sync mode.
+    args:
+
+    # Override the default container command (i.e. entrypoint) when in sync mode.
+    command:
+
+    # Specify one or more source files or directories to automatically sync with the running container.
+    paths:
+      - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no
+        # value is provided.
+        source: .
+
+        # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
+        target:
+
+        # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+        #
+        # `.git` directories and `.garden` directories are always ignored.
+        exclude:
+
+        # The sync mode to use for the given paths. See the [Code Synchronization
+        # guide](https://docs.garden.io/guides/code-synchronization) for details.
+        mode: one-way-safe
+
+        # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644
+        # (user can read/write, everyone else can read). See the [Mutagen
+        # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+        defaultFileMode:
+
+        # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
+        # 0755 (user can read/write, everyone else can read). See the [Mutagen
+        # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+        defaultDirectoryMode:
+
+        # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
+        # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+        # more information.
+        defaultOwner:
+
+        # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
+        # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+        # more information.
+        defaultGroup:
+
+  # [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target
+  # resource.
+  #
+  # The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
+  # Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
+  #
+  # Local mode is enabled by setting the `--local` option on the `garden deploy` command.
+  # Local mode always takes the precedence over sync mode if there are any conflicting service names.
+  #
+  # Health checks are disabled for services running in local mode.
+  #
+  # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+  #
+  # Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
+  # release.
+  localMode:
+    # The reverse port-forwards configuration for the local application.
+    ports:
+      - # The local port to be used for reverse port-forward.
+        local:
+
+        # The remote port to be used for reverse port-forward.
+        remote:
+
+    # The command to run the local application. If not present, then the local application should be started manually.
+    command:
+
+    # Specifies restarting policy for the local application. By default, the local application will be restarting
+    # infinitely with 1000ms between attempts.
+    restart:
+      # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+      delayMsec: 1000
+
+      # Max number of the local application restarts. Unlimited by default.
+      max: .inf
+
+  # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+  image:
+
+  # List of ingress endpoints that the service exposes.
+  ingresses:
+    - # Annotations to attach to the ingress (Note: May not be applicable to all providers)
+      annotations: {}
+
+      # The hostname that should route to this service. Defaults to the default hostname configured in the provider
+      # configuration.
+      #
+      # Note that if you're developing locally you may need to add this hostname to your hosts file.
+      hostname:
+
+      # The link URL for the ingress to show in the console and in dashboards. Also used when calling the service with
+      # the `call` command.
+      #
+      # Use this if the actual URL is different from what's specified in the ingress, e.g. because there's a load
+      # balancer in front of the service that rewrites the paths.
+      #
+      # Otherwise Garden will construct the link URL from the ingress spec.
+      linkUrl:
+
+      # The path which should be routed to the service.
+      path: /
+
+      # The name of the container port where the specified paths should be routed.
+      port:
+
+  # Specify how the service's health should be checked after deploying.
+  healthCheck:
+    # Set this to check the service's health by making an HTTP request.
+    httpGet:
+      # The path of the service's health check endpoint.
+      path:
+
+      # The name of the port where the service's health check endpoint should be available.
+      port:
+
+      scheme: HTTP
+
+    # Set this to check the service's health by running a command in its container.
+    command:
+
+    # Set this to check the service's health by checking if this TCP port is accepting connections.
+    tcpPort:
+
+    # The maximum number of seconds to wait until the readiness check counts as failed.
+    readinessTimeoutSeconds: 3
+
+    # The maximum number of seconds to wait until the liveness check counts as failed.
+    livenessTimeoutSeconds: 3
+
+  # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+  timeout: 300
+
+  # List of ports that the service container exposes.
+  ports:
+    - # The name of the port (used when referencing the port elsewhere in the service configuration).
+      name:
+
+      # The protocol of the port.
+      protocol: TCP
+
+      # The port exposed on the container by the running process. This will also be the default value for
+      # `servicePort`.
+      # This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a
+      # non-priviledged port like 8080 for security reasons.
+      # The service port maps to the container port:
+      # `servicePort:80 -> containerPort:8080 -> process:8080`
+      containerPort:
+
+      # Specify a preferred local port to attach to when creating a port-forward to the service port. If this port is
+      # busy, a warning will be shown and an alternative port chosen.
+      localPort:
+
+      # The port exposed on the service. Defaults to `containerPort` if not specified.
+      # This is the port you use when calling a service from another service within the cluster. For example, if your
+      # service name is my-service and the service port is 8090, you would call it with:
+      # http://my-service:8090/some-endpoint.
+      # It is common to use port 80, the default port number, so that you can call the service directly with
+      # http://my-service/some-endpoint.
+      # The service port maps to the container port:
+      # `servicePort:80 -> containerPort:8080 -> process:8080`
+      servicePort:
+
+      # Set this to expose the service on the specified port on the host node (may not be supported by all providers).
+      # Set to `true` to have the cluster pick a port automatically, which is most often advisable if the cluster is
+      # shared by multiple users.
+      # This allows you to call the service from the outside by the node's IP address and the port number set in this
+      # field.
+      nodePort:
+
+  # The number of instances of the service to deploy. Defaults to 3 for environments configured with `production:
+  # true`, otherwise 1.
+  # Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true` or if
+  # the provider doesn't support multiple replicas.
+  replicas:
+```
 
 ## Configuration Keys
 
@@ -556,10 +962,7 @@ Specify one or more source files or directories to automatically sync with the r
 
 [spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > source
 
-Path to a local directory to be synchronized with the target.
-This should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path.
-If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.
-Defaults to the Deploy action's config's directory if no value is provided.
+POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -636,21 +1039,21 @@ The sync mode to use for the given paths. See the [Code Synchronization guide](h
 
 [spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > defaultFileMode
 
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `0o644` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `spec.sync.paths[].defaultDirectoryMode`
 
 [spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > defaultDirectoryMode
 
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `0o755` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `spec.sync.paths[].defaultOwner`
 
@@ -1037,7 +1440,7 @@ The protocol of the port.
 [spec](#spec) > [ports](#specports) > containerPort
 
 The port exposed on the container by the running process. This will also be the default value for `servicePort`.
-This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a non-privileged port like 8080 for security reasons.
+This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a non-priviledged port like 8080 for security reasons.
 The service port maps to the container port:
 `servicePort:80 -> containerPort:8080 -> process:8080`
 
@@ -1222,4 +1625,3 @@ The ID of the image that was deployed.
 | Type     |
 | -------- |
 | `string` |
-

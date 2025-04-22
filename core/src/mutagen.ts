@@ -7,34 +7,35 @@
  */
 
 import AsyncLock from "async-lock"
+import Bluebird from "bluebird"
+import chalk from "chalk"
 import dedent from "dedent"
-import type EventEmitter from "events"
-import type { ExecaReturnValue } from "execa"
-import fsExtra from "fs-extra"
-
-const { mkdirp, pathExists } = fsExtra
+import EventEmitter from "events"
+import { ExecaReturnValue } from "execa"
+import { mkdirp, pathExists } from "fs-extra"
 import hasha from "hasha"
 import pRetry from "p-retry"
 import { join } from "path"
 import respawn from "respawn"
 import split2 from "split2"
-import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants.js"
-import { ChildProcessError, GardenError } from "./exceptions.js"
-import pMemoize from "./lib/p-memoize.js"
-import type { Log } from "./logger/log-entry.js"
-import type { PluginContext } from "./plugin-context.js"
-import type { PluginToolSpec } from "./plugin/tools.js"
-import { syncGuideLink } from "./plugins/kubernetes/sync.js"
-import { TypedEventEmitter } from "./util/events.js"
-import { PluginTool } from "./util/ext-tools.js"
-import { deline } from "./util/string.js"
-import { registerCleanupFunction, sleep } from "./util/util.js"
-import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
-import { styles } from "./logger/styles.js"
+import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants"
+import { GardenBaseError } from "./exceptions"
+import pMemoize from "./lib/p-memoize"
+import { Log } from "./logger/log-entry"
+import { PluginContext } from "./plugin-context"
+import { PluginToolSpec } from "./plugin/tools"
+import { syncGuideLink } from "./plugins/kubernetes/sync"
+import { TypedEventEmitter } from "./util/events"
+import { PluginTool } from "./util/ext-tools"
+import { deline } from "./util/string"
+import { registerCleanupFunction, sleep } from "./util/util"
+import { emitNonRepeatableWarning } from "./warnings"
+import { OctalPermissionMask } from "./plugins/kubernetes/types"
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
 const crashMessage = `Synchronization monitor has crashed ${maxRestarts} times. Aborting.`
+const syncLogPrefix = "[sync]:"
 
 export const mutagenAgentPath = "/.garden/mutagen-agent"
 
@@ -128,7 +129,7 @@ interface ActiveSync {
   mutagenParameters: string[]
 }
 
-export class MutagenError extends GardenError {
+export class MutagenError extends GardenBaseError {
   type = "mutagen"
 }
 
@@ -142,7 +143,7 @@ interface MutagenMonitorParams {
   dataDir: string
 }
 
-const monitorLock = new AsyncLock()
+let monitorLock = new AsyncLock()
 let _monitor: _MutagenMonitor
 
 export function getMutagenMonitor(params: MutagenMonitorParams) {
@@ -207,10 +208,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
       await ensureDataDir(dataDir)
 
-      const mutagenOpts = [mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"]
-      log.silly(() => `Spawning mutagen using respawn: "${mutagenOpts.join(" ")}"`)
-
-      const proc = respawn(mutagenOpts, {
+      const proc = respawn([mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"], {
         cwd: dataDir,
         name: "mutagen",
         env: {
@@ -227,7 +225,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       this.proc = proc
 
       proc.on("crash", () => {
-        log.warn(crashMessage)
+        log.warn(chalk.yellow(crashMessage))
       })
 
       proc.on("exit", (code: number) => {
@@ -240,16 +238,13 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
         const str = data.toString().trim()
         // This is a little dumb, to detect if the log line starts with a timestamp, but ya know...
         // it'll basically work for the next 979 years :P.
-        const msg = styles.primary(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
+        const msg = chalk.gray(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
         if (msg.includes("Unable") && lastDaemonError !== msg) {
           log.warn(msg)
           // Make sure we don't spam with repeated messages
           lastDaemonError = msg
         } else {
-          log.silly({
-            symbol: "empty",
-            msg,
-          })
+          log.silly({ symbol: "empty", msg })
         }
       }
 
@@ -282,7 +277,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
           if (resolved) {
             log.debug({
               symbol: "empty",
-              msg: "Mutagen monitor re-started",
+              msg: chalk.green("Mutagen monitor re-started"),
             })
           }
         })
@@ -366,7 +361,7 @@ export class Mutagen {
       ]
 
       const { logSection: section } = activeSync
-      const syncLog = this.log.createLog({ name: section, origin: "sync" })
+      const syncLog = this.log.createLog({ name: section })
 
       for (const problem of problems) {
         if (!activeSync.lastProblems.includes(problem)) {
@@ -397,7 +392,7 @@ export class Mutagen {
       if (syncCount > activeSync.lastSyncCount && !activeSync.initialSyncComplete) {
         syncLog.info({
           symbol: "success",
-          msg: `Completed initial sync ${description}`,
+          msg: chalk.white(`${syncLogPrefix} Completed initial sync ${description}`),
         })
         activeSync.initialSyncComplete = true
       }
@@ -418,7 +413,7 @@ export class Mutagen {
       }
 
       if (statusMsg) {
-        syncLog.info(statusMsg)
+        syncLog.info(`${syncLogPrefix} ${statusMsg}`)
         activeSync.lastStatusMsg = statusMsg
       }
 
@@ -482,8 +477,8 @@ export class Mutagen {
         params.push("--default-directory-mode", modeToString(defaultDirectoryMode))
       }
 
-      const active = await this.getActiveSyncSessions()
-      const existing = active.find((s) => s.name === key)
+      const active = await this.getActiveSyncSessions(log)
+      let existing = active.find((s) => s.name === key)
 
       if (existing) {
         // TODO: compare existing sync instead of just re-creating naively (need help from Mutagen side)
@@ -534,9 +529,6 @@ export class Mutagen {
       delete this.activeSyncs[key]
       log.debug(`Mutagen sync ${key} terminated.`)
     } catch (err) {
-      if (!(err instanceof ChildProcessError)) {
-        throw err
-      }
       // Ignore other errors, which should mean the sync wasn't found
       if (err.message.includes("unable to connect to daemon")) {
         throw err
@@ -555,7 +547,7 @@ export class Mutagen {
         const unableToFlush = err.message.match(/unable to flush session/)
         if (unableToFlush) {
           this.log.warn(
-            styles.primary(
+            chalk.gray(
               `Could not flush synchronization changes, retrying (attempt ${err.attemptNumber}/${err.retriesLeft})...`
             )
           )
@@ -572,22 +564,20 @@ export class Mutagen {
    * Ensure all active syncs are completed.
    */
   async flushAllSyncs(log: Log) {
-    const active = await this.getActiveSyncSessions()
-    await Promise.all(
-      active.map(async (session) => {
-        try {
-          await this.flushSync(session.name)
-        } catch (err) {
-          log.warn(`Failed to flush sync '${session.name}: ${err}`)
-        }
-      })
-    )
+    const active = await this.getActiveSyncSessions(log)
+    await Bluebird.map(active, async (session) => {
+      try {
+        await this.flushSync(session.name)
+      } catch (err) {
+        log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
+      }
+    })
   }
 
   /**
    * List all Mutagen sync sessions.
    */
-  async getActiveSyncSessions(): Promise<SyncSession[]> {
+  async getActiveSyncSessions(log: Log): Promise<SyncSession[]> {
     const res = await this.execCommand(["sync", "list", "--template={{ json . }}"])
     return parseSyncListResult(res)
   }
@@ -643,18 +633,17 @@ export class Mutagen {
           env: getMutagenEnv(this.dataDir),
         })
       } catch (err) {
-        if (!(err instanceof ChildProcessError)) {
-          throw err
-        }
         const unableToConnect = err.message.match(/unable to connect to daemon/)
         if (unableToConnect && loops < 10) {
           loops += 1
-          this.log.warn(
-            styles.primary(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`)
-          )
+          this.log.warn(chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`))
           await this.ensureDaemon()
           await sleep(2000 + loops * 500)
         } else {
+          emitNonRepeatableWarning(
+            this.log,
+            `Consider making your Garden project path shorter. Syncing could fail because of Unix socket path length limitations. It's recommended that the Garden project path does not exceed ${MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT} characters. The actual value depends on the platform and the mutagen version.`
+          )
           throw err
         }
       }
@@ -662,12 +651,10 @@ export class Mutagen {
   }
 
   async terminateSyncs() {
-    await Promise.all(
-      Object.keys(this.activeSyncs).map(async (key) => {
-        await this.execCommand(["sync", "terminate", key])
-        delete this.activeSyncs[key]
-      })
-    )
+    await Bluebird.map(Object.keys(this.activeSyncs), async (key) => {
+      await this.execCommand(["sync", "terminate", key])
+      delete this.activeSyncs[key]
+    })
   }
 
   async restartDaemonProc() {
@@ -784,28 +771,34 @@ export interface SyncSession {
 }
 
 /**
+ * Exceeding this limit may cause mutagen daemon failures because of the Unix socket path length limitations.
+ * See
+ * https://github.com/garden-io/garden/issues/4527#issuecomment-1584286590
+ * https://github.com/mutagen-io/mutagen/issues/433#issuecomment-1440352501
+ * https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars/367012#367012
+ */
+const MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT = 70
+
+/**
  * Returns mutagen data directory path based on the project dir.
- *
- * It always computes sha256 hash of a project dir path, uses first 9 characters of hash as directory name,
+ * If the project path longer than `MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT`, it computes
+ * hash of project dir path, uses first 9 characters of hash as directory name
  * and creates a directory in $HOME/.garden/mutagen.
  *
- * This approach ensures that sync source path is never too long to get into one of the known issues with Mutagen,
- * the sync tool that we use as a main synchronization machinery.
- * The Mutagen daemon may fail if the source sync path is too long because of the Unix socket path length limitations.
- * See:
- * <ul>
- *   <li>https://github.com/garden-io/garden/issues/4527#issuecomment-1584286590</li>
- *   <li>https://github.com/mutagen-io/mutagen/issues/433#issuecomment-1440352501</li>
- *   <li>https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars/367012#367012</li>
- * </ul>
+ * However, if the path is not longer than `MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT`, then
+ * it uses the ./project-root/.garden/mutagen directory.
  */
 export function getMutagenDataDir(path: string, log: Log) {
-  const hash = hasha(path, { algorithm: "sha256" }).slice(0, 9)
-  const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
-  log.verbose(
-    `Your Garden project path looks too long, that might cause errors while starting the syncs. Garden will create a new directory to manage syncs at path: ${shortPath}.`
-  )
-  return shortPath
+  if (path.length > MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT) {
+    const hash = hasha(path, { algorithm: "sha256" }).slice(0, 9)
+    const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
+    log.verbose(
+      `Your Garden project path looks too long, that might cause errors while starting the syncs. Garden will create a new directory to manage syncs at path: ${shortPath}.`
+    )
+    return shortPath
+  }
+  // if path is not too long, then use relative directory to the project
+  return join(path, MUTAGEN_DIR_NAME)
 }
 
 export function getMutagenEnv(dataDir: string) {
@@ -822,23 +815,15 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
     parsed = JSON.parse(res.stdout)
   } catch (err) {
     throw new MutagenError({
-      message: dedent`
-        Could not parse response from mutagen sync list: ${res.stdout}
-
-        Full output:
-        ${res.all}
-        `,
+      message: `Could not parse response from mutagen sync list: ${res.stdout}`,
+      detail: { res },
     })
   }
 
   if (!Array.isArray(parsed)) {
     throw new MutagenError({
-      message: dedent`
-        Unexpected response from mutagen sync list: ${parsed}. Got: ${typeof parsed}
-
-        Full output:
-        ${res.all}
-        `,
+      message: `Unexpected response from mutagen sync list: ${parsed}`,
+      detail: { res, parsed },
     })
   }
 
@@ -883,16 +868,6 @@ export const mutagenCliSpec: PluginToolSpec = {
       },
     },
     {
-      platform: "linux",
-      architecture: "arm64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_linux_arm64_v0.15.0.tar.gz",
-      sha256: "80f108fc316223d8c3d1a48def18192e666b33a334b75aa3ebcc95938b774e64",
-      extract: {
-        format: "tar",
-        targetPath: "mutagen",
-      },
-    },
-    {
       platform: "windows",
       architecture: "amd64",
       url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_windows_amd64_v0.15.0.zip",
@@ -916,17 +891,17 @@ async function isValidLocalPath(syncPoint: string) {
 
 function formatSyncConflict(sourceDescription: string, targetDescription: string, conflict: SyncConflict): string {
   return dedent`
-    Sync conflict detected at path ${styles.accent(
+    Sync conflict detected at path ${chalk.white(
       conflict.root
     )} in sync from ${sourceDescription} to ${targetDescription}.
 
     Until the conflict is resolved, the conflicting paths will not be synced.
 
-    If conflicts come up regularly at this destination, you may want to use either the ${styles.accent(
+    If conflicts come up regularly at this destination, you may want to use either the ${chalk.white(
       "one-way-replica"
-    )} or ${styles.accent("one-way-replica-reverse")} sync modes instead.
+    )} or ${chalk.white("one-way-replica-reverse")} sync modes instead.
 
-    See the code synchronization guide for more details: ${styles.accent(syncGuideLink + "#sync-modes")}`
+    See the code synchronization guide for more details: ${chalk.white(syncGuideLink + "#sync-modes")}`
 }
 
 /**

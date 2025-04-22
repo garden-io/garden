@@ -7,36 +7,32 @@
  */
 
 import { expect } from "chai"
-import fsExtra from "fs-extra"
-const { mkdirp, pathExists, readFile, remove, writeFile } = fsExtra
+import { mkdirp, pathExists, readFile, remove, writeFile } from "fs-extra"
 import { join } from "path"
-import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
-import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status.js"
-import type { Log } from "../../../../../src/logger/log-entry.js"
-import { createActionLog } from "../../../../../src/logger/log-entry.js"
-import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
-import { getMutagenMonitor, Mutagen } from "../../../../../src/mutagen.js"
-import type { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types.js"
-import { execInWorkload } from "../../../../../src/plugins/kubernetes/util.js"
-import { dedent } from "../../../../../src/util/string.js"
-import { sleep } from "../../../../../src/util/util.js"
-import { getContainerTestGarden } from "./container/container.js"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
+import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
+import { createActionLog, Log } from "../../../../../src/logger/log-entry"
+import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
+import { getMutagenMonitor, Mutagen } from "../../../../../src/mutagen"
+import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
+import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
+import { dedent } from "../../../../../src/util/string"
+import { sleep } from "../../../../../src/util/util"
+import { getContainerTestGarden } from "./container/container"
 import {
   convertContainerSyncSpec,
   convertKubernetesModuleDevModeSpec,
-} from "../../../../../src/plugins/kubernetes/sync.js"
-import type { HelmModuleConfig } from "../../../../../src/plugins/kubernetes/helm/module-config.js"
-import type { KubernetesModuleConfig } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config.js"
-import type { TestGarden } from "../../../../helpers.js"
-import { cleanProject } from "../../../../helpers.js"
-import type { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig.js"
-import { resolveAction } from "../../../../../src/graph/actions.js"
-import { DeployTask } from "../../../../../src/tasks/deploy.js"
-import { MUTAGEN_DIR_NAME } from "../../../../../src/constants.js"
+} from "../../../../../src/plugins/kubernetes/sync"
+import { HelmModuleConfig } from "../../../../../src/plugins/kubernetes/helm/module-config"
+import { KubernetesModuleConfig } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
+import { TestGarden, cleanProject } from "../../../../helpers"
+import { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig"
+import { resolveAction } from "../../../../../src/graph/actions"
+import { DeployTask } from "../../../../../src/tasks/deploy"
+import { MUTAGEN_DIR_NAME } from "../../../../../src/constants"
 
 describe("sync mode deployments and sync behavior", () => {
   let garden: TestGarden
-  let cleanup: (() => void) | undefined
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
   let provider: KubernetesProvider
@@ -58,12 +54,6 @@ describe("sync mode deployments and sync behavior", () => {
     await init("local")
   })
 
-  after(async () => {
-    if (cleanup) {
-      cleanup()
-    }
-  })
-
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
@@ -78,7 +68,7 @@ describe("sync mode deployments and sync behavior", () => {
   })
 
   const init = async (environmentName: string) => {
-    ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { noTempDir: true }))
+    garden = await getContainerTestGarden(environmentName, { noTempDir: true })
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,
@@ -125,7 +115,7 @@ describe("sync mode deployments and sync behavior", () => {
     const workload = status.detail?.detail.workload!
 
     // First, we create a file locally and verify that it gets synced into the pod
-    const actionPath = action.sourcePath()
+    const actionPath = action.basePath()
     await writeFile(join(actionPath, "made_locally"), "foo")
     await sleep(300)
     const execRes = await execInPod(["/bin/sh", "-c", "cat /tmp/made_locally"], log, workload)
@@ -186,7 +176,7 @@ describe("sync mode deployments and sync behavior", () => {
     })
 
     const workload = status.detail?.detail.workload!
-    const actionPath = action.sourcePath()
+    const actionPath = action.basePath()
 
     // First, we create a non-ignored file locally
     await writeFile(join(actionPath, "made_locally"), "foo")
@@ -268,6 +258,8 @@ describe("sync mode deployments and sync behavior", () => {
             target: {
               kind: "Deployment",
               name: "some-deployment",
+              containerName: undefined,
+              podSelector: undefined,
             },
             mode: "two-way",
             sourcePath: join(module.path, "src"),
@@ -324,6 +316,8 @@ describe("sync mode deployments and sync behavior", () => {
             target: {
               kind: "Deployment",
               name: "some-deployment",
+              containerName: undefined,
+              podSelector: undefined,
             },
             mode: "two-way",
             exclude: ["bad/things"],
@@ -397,7 +391,7 @@ describe("sync mode deployments and sync behavior", () => {
             mode: "two-way",
             defaultDirectoryMode: 0o755,
             defaultFileMode: 0o644,
-            sourcePath: join(action.sourcePath(), "src"),
+            sourcePath: join(action.basePath(), "src"),
             containerPath: "/app/src",
           },
         ],
