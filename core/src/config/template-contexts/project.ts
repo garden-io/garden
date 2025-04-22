@@ -24,7 +24,6 @@ import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/secrets.js
 const secretsSchema = joiStringMap(joi.string().description("The secret's value."))
   .description("A map of all secrets for this project in the current environment.")
   .meta({
-    internal: true,
     keyPlaceholder: "<secret-name>",
   })
 

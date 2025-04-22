@@ -289,3 +289,19 @@ Example:
 my-variable: ${git.originUrl}
 ```
 
+### `${secrets.*}`
+
+A map of all secrets for this project in the current environment.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
+
