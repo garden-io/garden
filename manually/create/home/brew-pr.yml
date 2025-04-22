@@ -5,7 +5,7 @@ on:
     inputs:
       release-version:
         description: 'Garden release version to be released, e.g. 0.12.48'
-        required: true
+        required: 
         type: string
 
 permissions:
