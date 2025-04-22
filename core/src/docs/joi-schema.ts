@@ -10,7 +10,7 @@ import { uniq, isFunction, extend, isArray, isPlainObject } from "lodash-es"
 import { BaseKeyDescription, isArrayType } from "./common.js"
 import { findByName } from "../util/util.js"
 import { JsonKeyDescription } from "./json-schema.js"
-import type { JoiDescription } from "../config/common.js"
+import type { JoiDescription, MetadataKeys } from "../config/common.js"
 import { metadataFromDescription } from "../config/common.js"
 import { safeDumpYaml } from "../util/serialization.js"
 import { zodToJsonSchema } from "zod-to-json-schema"
@@ -52,10 +52,10 @@ export class JoiKeyDescription extends BaseKeyDescription {
     const presenceRequired = joiDescription.flags?.presence === "required"
     this.required = presenceRequired || this.allowedValuesOnly
 
-    const metas: any = extend({}, ...(joiDescription.metas || []))
+    const metas: MetadataKeys = extend({}, ...(joiDescription.metas || []))
 
     this.deprecated = joiDescription.parent?.deprecated || !!metas.deprecated || !!metas.deprecation
-    if (!!metas.deprecation) {
+    if (!!metas.deprecation && typeof metas.deprecation !== "boolean") {
       this.deprecationMessage = makeDeprecationMessage({ deprecation: metas.deprecation })
     } else if (typeof metas.deprecated === "string") {
       this.deprecationMessage = metas.deprecated
@@ -127,7 +127,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
       )
 
       if (renderPatternKeys && objSchema.patterns && objSchema.patterns.length > 0) {
-        const metas: any = extend({}, ...(objSchema.metas || []))
+        const metas: MetadataKeys = extend({}, ...(objSchema.metas || []))
         childDescriptions.push(
           new JoiKeyDescription({
             joiDescription: objSchema.patterns[0].rule as JoiDescription as JoiDescription,

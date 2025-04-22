@@ -77,19 +77,19 @@ export const includeGuideLink = makeDocsLinkPlain(
 export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
 // Extend the Joi module with our custom rules
-interface MetadataKeys {
+export interface MetadataKeys {
   // Unique name to identify in error messages etc
   name?: string
   // Flag as an advanced feature, to be advised in generated docs
   advanced?: boolean
   // Flag as deprecated. Set to a string to provide a deprecation message for docs.
   /**
-   * Deprecated is deprecated :P
+   * deprecated is deprecated :P
    * @deprecated use {@link #deprecation} flag instead
    */
   deprecated?: boolean | string
   // Flag as deprecated. Set to automatically generate a message for docs.
-  deprecation?: Deprecation
+  deprecation?: Deprecation | boolean
   // Field is specific to Garden Cloud/Enterprise
   enterprise?: boolean
   // Indicate this schema is expected to be extended by e.g. plugins
