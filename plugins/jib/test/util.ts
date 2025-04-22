@@ -1,37 +1,28 @@
 /*
- * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { TestGarden } from "@garden-io/sdk/build/src/testing.js"
-import { expectError, makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
+import { expectError, makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import { expect } from "chai"
-import type { JibBuildAction } from "../src/util.js"
-import { detectProjectType, getBuildFlags } from "../src/util.js"
-import { dirname, join, resolve } from "node:path"
-import type { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph.js"
-import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
-import { gardenPlugin } from "../src/index.js"
-import { fileURLToPath } from "node:url"
-import { rm } from "node:fs/promises"
-import fsExtra from "fs-extra"
-const { createFile } = fsExtra
-
-const moduleDirName = dirname(fileURLToPath(import.meta.url))
+import { detectProjectType, getBuildFlags, JibBuildAction } from "../src/util"
+import { resolve } from "path"
+import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
+import { Resolved } from "@garden-io/core/build/src/actions/types"
+import { gardenPlugin } from "../src/index"
 
 describe("util", function () {
   // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
-  const projectRoot = resolve(moduleDirName, "../../test/", "test-project")
+  const projectRoot = resolve(__dirname, "../../test/", "test-project")
 
   let garden: TestGarden
   let graph: ResolvedConfigGraph
   let action: Resolved<JibBuildAction>
-  let buildPath: string
 
   before(async () => {
     garden = await makeTestGarden(projectRoot, {
@@ -42,35 +33,38 @@ describe("util", function () {
   beforeEach(async () => {
     graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
     action = graph.getBuild("foo")
-    buildPath = action.getBuildPath()
   })
 
-  describe("detectProjectType", async () => {
-    afterEach(async () => {
-      try {
-        await rm(join(`${buildPath}/build.gradle`), { recursive: true })
-      } catch (e) {}
-      try {
-        await rm(join(`${buildPath}/pom.xml`), { recursive: true })
-      } catch (e) {}
+  describe("detectProjectType", () => {
+    it("returns gradle if action files include a gradle config", () => {
+      expect(
+        detectProjectType({
+          actionName: "foo",
+          actionFiles: ["build.gradle"],
+        })
+      ).to.equal("gradle")
     })
 
-    it("returns gradle if action files include a gradle config", async () => {
-      await createFile(resolve(buildPath, "build.gradle"))
-
-      expect(await detectProjectType(action)).to.equal("gradle")
+    it("returns maven if action files include a maven config", () => {
+      expect(
+        detectProjectType({
+          actionName: "foo",
+          actionFiles: ["pom.xml"],
+        })
+      ).to.equal("maven")
     })
 
-    it("returns maven if action files include a maven config", async () => {
-      await createFile(resolve(buildPath, "pom.xml"))
-
-      expect(await detectProjectType(action)).to.equal("maven")
-    })
-
-    it("throws if no maven or gradle config is in the action file list", async () => {
-      await expectError(() => detectProjectType(action), {
-        contains: `Could not detect a gradle or maven project to build ${action.longDescription()}`,
-      })
+    it("throws if no maven or gradle config is in the action file list", () => {
+      void expectError(
+        () =>
+          detectProjectType({
+            actionName: "foo",
+            actionFiles: [],
+          }),
+        {
+          contains: "Could not detect a gradle or maven project to build foo",
+        }
+      )
     })
   })
 
@@ -96,6 +90,7 @@ describe("util", function () {
     it("correctly sets the target for maven", () => {
       action["_staticOutputs"].deploymentImageId = imageId
 
+      const versionString = action.getFullVersion().versionString
       const { args } = getBuildFlags(action, "maven")
 
       expect(args).to.include("jib:build")

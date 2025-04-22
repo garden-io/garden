@@ -1,17 +1,23 @@
 /*
- * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
-import type { ActionReference } from "../config/common.js"
-import { createSchema, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common.js"
-import { ActionConfigContext } from "../config/template-contexts/actions.js"
-import type { GraphResult, GraphResults } from "../graph/results.js"
-import { dedent } from "../util/string.js"
+import { isAbsolute, join } from "path"
+import {
+  ActionReference,
+  createSchema,
+  includeGuideLink,
+  joi,
+  joiSparseArray,
+  joiUserIdentifier,
+} from "../config/common"
+import { ActionConfigContext } from "../config/template-contexts/actions"
+import type { GraphResult, GraphResults } from "../graph/results"
+import { dedent } from "../util/string"
 import type {
   BaseActionConfig,
   ResolvedActionWrapperParams,
@@ -21,17 +27,21 @@ import type {
   ExecutedAction,
   ResolvedAction,
   GetOutputValueType,
-} from "./types.js"
-import type { ResolvedActionExtension, ExecutedActionExtension } from "./base.js"
-import { baseActionConfigSchema, BaseAction, includeExcludeSchema, actionReferenceToString } from "./base.js"
-import type { ResolvedConfigGraph } from "../graph/config-graph.js"
-import type { ActionVersion } from "../vcs/vcs.js"
+} from "./types"
+import {
+  baseActionConfigSchema,
+  BaseAction,
+  includeExcludeSchema,
+  actionReferenceToString,
+  ResolvedActionExtension,
+  ExecutedActionExtension,
+  ActionVersion,
+  ActionFile,
+} from "./base"
+import { ResolvedConfigGraph } from "../graph/config-graph"
 import { Memoize } from "typescript-memoize"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants.js"
-import { createBuildTask } from "../tasks/build.js"
-import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
-import { ResolveActionTask } from "../tasks/resolve-action.js"
-import type { ResolvedTemplate } from "../template/types.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants"
+import { ConfigurationError } from "../exceptions"
 
 export interface BuildCopyFrom {
   build: string
@@ -59,10 +69,7 @@ export const copyFromSchema = createSchema({
       .description(
         "POSIX-style path or filename of the directory or file(s) to copy to the target, relative to the build path of the source build."
       ),
-    targetPath: joi
-      .posixPath()
-      .subPathOnly()
-      .default((parent) => parent.sourcePath).description(dedent`
+    targetPath: joi.posixPath().subPathOnly().default("").description(dedent`
       POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
       Defaults to to same as source path.
     `),
@@ -88,9 +95,9 @@ export const buildActionConfigSchema = createSchema({
         dedent`
         By default, builds are _staged_ in \`.garden/build/<build name>\` and that directory is used as the build context. This is done to avoid builds contaminating the source tree, which can end up confusing version computation, or a build including files that are not intended to be part of it. In most scenarios, the default behavior is desired and leads to the most predictable and verifiable builds, as well as avoiding potential confusion around file watching.
 
-        You _can_ override this by setting \`buildAtSource: true\`, which basically sets the build root for this action at the location of the Build action config in the source tree. This means e.g. that the build command in \`exec\` Builds runs at the source, and for Docker image builds the build is initiated from the source directory.
+        You _can_ override this by setting \`buildAtSource: true\`, which basically sets the build root for this action at the location of the Build action config in the source tree. This means e.g. that the build command in \`exec\` Builds runs at the source, and for \`docker-image\` builds the build is initiated from the source directory.
 
-        An important implication is that \`include\` and \`exclude\` directives for the action, as well as \`.gardenignore\` files, only affect version hash computation but are otherwise not effective in controlling the build context. This may lead to unexpected variation in builds with the same version hash. **This may also slow down code synchronization to remote destinations, e.g. when performing remote Docker image builds.**
+        An important implication is that \`include\` and \`exclude\` directives for the action, as well as \`.gardenignore\` files, only affect version hash computation but are otherwise not effective in controlling the build context. This may lead to unexpected variation in builds with the same version hash. **This may also slow down code synchronization to remote destinations, e.g. when performing remote \`docker-image\` builds.**
 
         Additionally, any \`exec\` runtime actions (and potentially others) that reference this Build with the \`build\` field, will run from the source directory of this action.
 
@@ -143,10 +150,10 @@ export const buildActionConfigSchema = createSchema({
 
 export class BuildAction<
   C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
-  StaticOutputs extends Record<string, unknown> = any,
-  RuntimeOutputs extends Record<string, unknown> = any,
+  StaticOutputs extends {} = any,
+  RuntimeOutputs extends {} = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind = "Build" as const
+  override kind: "Build" = "Build"
   // TODO:
   // `_staticOutputs` is abstract since the base class uses it but doesn't define it in the constructor.
   // In this case this would also be the case, but the class isn't actually abstract so it needs it to be defined.
@@ -163,7 +170,7 @@ export class BuildAction<
    * similar changes to the underlying build-relevant parts of the module config, or to the included sources.
    */
   @Memoize()
-  override getFullVersion(): ActionVersion {
+  override  getFullVersion(): ActionVersion {
     const actionVersion = super.getFullVersion()
     if (this._moduleVersion) {
       actionVersion.versionString = this.moduleVersion().versionString
@@ -171,32 +178,58 @@ export class BuildAction<
     return actionVersion
   }
 
+  @Memoize()
+  override getFilesFromDependencies(): ActionFile[] {
+    return (this.getConfig("copyFrom") || []).flatMap((copy) => {
+      const sourceBuild = this.getDependency({ kind: "Build", name: copy.build })
+
+      if (!sourceBuild) {
+        throw new ConfigurationError({
+          message: `${this.longDescription()} specifies build '${
+            copy.build
+          }' in \`copyFrom\` which could not be found.`,
+        })
+      }
+
+      if (isAbsolute(copy.sourcePath)) {
+        throw new ConfigurationError({
+          message: `Source path in build dependency copy spec must be a relative path. Actually got '${copy.sourcePath}'`,
+        })
+      }
+
+      if (isAbsolute(copy.targetPath)) {
+        throw new ConfigurationError({
+          message: `Target path in build dependency copy spec must be a relative path. Actually got '${copy.targetPath}'`,
+        })
+      }
+
+      return {
+          // TODO: target path
+          relativePath: copy.targetPath,
+          source: "dependency",
+          absolutePath: `${join(sourceBuild.getBuildPath(), copy.sourcePath)}`
+        } as ActionFile
+      })
+    }
+
   /**
    * Returns the build path for the action. The path is generally `<project root>/.garden/build/<action name>`.
    * If `buildAtSource: true` is set on the config, the path is the base path of the action.
    */
   getBuildPath() {
     if (this._config.buildAtSource) {
-      return this.sourcePath()
+      return this.basePath()
     } else {
       return join(this.baseBuildDirectory, this.name)
     }
-  }
-
-  override getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
-    return createBuildTask({ ...baseParams, action: this })
-  }
-
-  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
-    return new ResolveActionTask({ ...baseParams, action: this })
   }
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
 export class ResolvedBuildAction<
     C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
-    StaticOutputs extends Record<string, unknown> = any,
-    RuntimeOutputs extends Record<string, unknown> = any,
+    StaticOutputs extends {} = any,
+    RuntimeOutputs extends {} = any,
   >
   extends BuildAction<C, StaticOutputs, RuntimeOutputs>
   implements ResolvedActionExtension<C, StaticOutputs, RuntimeOutputs>
@@ -248,16 +281,12 @@ export class ResolvedBuildAction<
   getOutputs() {
     return this._staticOutputs
   }
-
-  getResolvedVariables(): Record<string, ResolvedTemplate> {
-    return this.params.resolvedVariables
-  }
 }
 
 export class ExecutedBuildAction<
     C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
-    StaticOutputs extends Record<string, unknown> = any,
-    RuntimeOutputs extends Record<string, unknown> = any,
+    StaticOutputs extends {} = any,
+    RuntimeOutputs extends {} = any,
   >
   extends ResolvedBuildAction<C, StaticOutputs, RuntimeOutputs>
   implements ExecutedActionExtension<C, StaticOutputs, RuntimeOutputs>

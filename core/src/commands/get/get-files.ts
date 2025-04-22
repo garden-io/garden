@@ -1,18 +1,18 @@
 /*
- * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { fromPairs } from "lodash-es"
-import { StringsParameter } from "../../cli/params.js"
-import { joi } from "../../config/common.js"
-import { printHeader } from "../../logger/util.js"
-import type { CommandParams, CommandResult } from "../base.js"
-import { Command } from "../base.js"
-import { styles } from "../../logger/styles.js"
+import { fromPairs } from "lodash"
+import { StringsParameter } from "../../cli/params"
+import { joi } from "../../config/common"
+import { printHeader } from "../../logger/util"
+import { Command, CommandParams, CommandResult } from "../base"
+import chalk from "chalk"
+import { ActionFile } from "../../actions/base"
 
 const getFilesArgs = {
   keys: new StringsParameter({
@@ -25,7 +25,7 @@ type Args = typeof getFilesArgs
 type Opts = {}
 
 interface Result {
-  [key: string]: string[]
+  [key: string]: ActionFile[]
 }
 
 export class GetFilesCommand extends Command<Args, Opts> {
@@ -36,14 +36,15 @@ export class GetFilesCommand extends Command<Args, Opts> {
 
   override arguments = getFilesArgs
 
-  override outputsSchema = () => joi.object().pattern(joi.string(), joi.array().items(joi.string()).required())
+  // TODO: change output schema
+  override outputsSchema = () => joi.object().pattern(joi.string(), joi.array().items(joi.object()).required())
 
   override printHeader({ log }) {
     printHeader(log, "Get Files", "🗂️")
   }
 
   async action({ garden, log, args }: CommandParams<Args, Opts>): Promise<CommandResult<Result>> {
-    const graph = await garden.getConfigGraph({ log, emit: false, statusOnly: true })
+    const graph = await garden.getConfigGraph({ log, emit: false })
     const actions = graph.getActions({ refs: args.keys?.length ? args.keys : undefined })
 
     const result = fromPairs(
@@ -52,8 +53,8 @@ export class GetFilesCommand extends Command<Args, Opts> {
         const files = a.getFullVersion().files
 
         log.info("")
-        log.info(styles.highlight(key))
-        log.info(files.length ? files.map((f) => "- " + f).join("\n") : "(none)")
+        log.info(chalk.cyanBright(key))
+        log.info(files.length ? files.map((f) => `- ${f.relativePath} (from ${f.source}; absolute path: ${f.absolutePath})`).join("\n") : "(none)")
 
         return [key, files]
       })
