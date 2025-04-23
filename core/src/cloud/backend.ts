@@ -129,8 +129,9 @@ export class GrowCloudBackend extends AbstractGardenBackend {
   }
 
   override getAuthRedirectConfig(): AuthRedirectConfig {
+    const addOrganizationIdParam = !!this.config.organizationId ? `&organizationId=${this.config.organizationId}` : ""
     return {
-      getLoginUrl: (port) => new URL(`/login?port=${port}`, this.config.cloudDomain).href,
+      getLoginUrl: (port) => new URL(`/login?port=${port}${addOrganizationIdParam}`, this.config.cloudDomain).href,
       successUrl: `${new URL("/confirm-cli-auth", this.config.cloudDomain).href}?cliLoginSuccess=true`,
       extractAuthToken: (query) => {
         const token = growCloudTokenSchema.safeParse(query)
