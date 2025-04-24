@@ -21,6 +21,12 @@ import type { VariablesContext } from "./variables.js"
 import { getCloudDistributionName } from "../../cloud/util.js"
 import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/secrets.js"
 
+const secretsSchema = joiStringMap(joi.string().description("The secret's value."))
+  .description("A map of all secrets for this project in the current environment.")
+  .meta({
+    keyPlaceholder: "<secret-name>",
+  })
+
 class LocalContext extends ContextWithSchema {
   @schema(
     joi
@@ -296,14 +302,7 @@ export interface ProjectConfigContextParams extends DefaultEnvironmentContextPar
  * `secrets`.
  */
 export class ProjectConfigContext extends DefaultEnvironmentContext {
-  @schema(
-    joiStringMap(joi.string().description("The secret's value."))
-      .description("A map of all secrets for this project in the current environment.")
-      .meta({
-        internal: true,
-        keyPlaceholder: "<secret-name>",
-      })
-  )
+  @schema(secretsSchema)
   public readonly secrets: PrimitiveMap
   private readonly _cloudBackendDomain: string
   private readonly _loggedIn: boolean
@@ -371,14 +370,7 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
   public var: VariablesContext
 
-  @schema(
-    joiStringMap(joi.string().description("The secret's value."))
-      .description("A map of all secrets for this project in the current environment.")
-      .meta({
-        internal: true,
-        keyPlaceholder: "<secret-name>",
-      })
-  )
+  @schema(secretsSchema)
   public override secrets: PrimitiveMap
 
   constructor(params: EnvironmentConfigContextParams) {
