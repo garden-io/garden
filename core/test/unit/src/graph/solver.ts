@@ -291,12 +291,12 @@ describe("GraphSolver", () => {
       throw new Error(`Throwing error in process method`)
     }
 
-    const { result } = await processTask(taskB)
+    const { error, result } = await processTask(taskB)
 
     expect(result).to.exist
     expect(result!.aborted).to.be.true
     expect(result!.success).to.be.false
-    expect(result!.error).to.exist
+    expect(error).to.exist
   })
 
   it("cascades an error recursively from dependency and fails the execution (3 tasks)", async () => {
@@ -308,12 +308,12 @@ describe("GraphSolver", () => {
       throw new Error(`Throwing error in process method`)
     }
 
-    const { result } = await processTask(taskC)
+    const { error, result } = await processTask(taskC)
 
     expect(result).to.exist
     expect(result!.aborted).to.be.true
     expect(result!.success).to.be.false
-    expect(result!.error).to.exist
+    expect(error).to.exist
   })
 
   it("cascades an error from dependency to dependant and fails the execution with throwOnError=true", async () => {
