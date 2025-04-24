@@ -14,7 +14,7 @@ import { uuidv4 } from "../util/random.js"
 import { Profile } from "../util/profiling.js"
 import { TypedEventEmitter } from "../util/events.js"
 import { keyBy } from "lodash-es"
-import type { GraphResult, TaskEventBase } from "./results.js"
+import type { GraphResult, GraphResultFromTask, TaskEventBase } from "./results.js"
 import { GraphResults, resultToString } from "./results.js"
 import { gardenEnv } from "../constants.js"
 import type { Garden } from "../garden.js"
@@ -39,6 +39,11 @@ export interface SolveParams<T extends BaseTask = BaseTask> extends SolveOpts {
 export interface SolveResult<T extends Task = Task> {
   error: GraphResultError | null
   results: GraphResults<T>
+}
+
+export interface SingleTaskSolveResult<T extends Task = Task> {
+  error: GraphResultError | null
+  result: GraphResultFromTask<T> | null
 }
 
 @Profile()
