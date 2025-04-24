@@ -172,7 +172,7 @@ export async function writeConfigReferenceDocs(
 
   const deprecationWarning = `
   {% hint style="warning" %}
-  Modules are deprecated and will be removed in version \`0.14\`. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
+  Modules are deprecated and planned to be removed. We do not recommend using modules. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
   {% endhint %}
   `
   moduleReadme.push(deprecationWarning)
