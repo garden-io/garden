@@ -333,7 +333,7 @@ describe("GraphSolver", () => {
 
     expect(error).to.exist
     expect(error).to.be.instanceOf(GardenError)
-    expect((error as GardenError).type).to.be("graph")
+    expect((error as GardenError).type).to.eql("graph")
   })
 
   it("recursively aborts unprocessed task requests when a dependency fails", async () => {
