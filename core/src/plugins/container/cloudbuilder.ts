@@ -158,7 +158,6 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
       organizationId: cloudProject.organization.id,
       actionUid: action.uid,
       actionName: action.name,
-      actionVersion: action.getFullVersion().toString(),
       coreSessionId: ctx.sessionId,
       // if platforms are not set, we default to linux/amd64
       platforms: action.getSpec().platforms || ["linux/amd64"],
