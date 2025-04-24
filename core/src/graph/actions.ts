@@ -982,9 +982,10 @@ function dependenciesFromActionConfig({
         needsExecuted = true
       } else {
         needsExecuted = !staticOutputKeys.includes(outputKey) && !refStaticOutputKeys.includes(outputKey)
-        if (refActionKind === "Build") {
-          isExplicit = true
-        }
+      }
+
+      if (refActionKind === "Build") {
+        isExplicit = true
       }
     }
 
