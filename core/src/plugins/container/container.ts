@@ -83,7 +83,7 @@ export const gardenContainerBuilderSchema = () =>
       enabled: joi.boolean().default(false).description(dedent`
             Enable Garden Container Builder, which can speed up builds significantly using fast machines and extremely fast caching.
 
-            by running \`GARDEN_CONTAINER_BUILDER=1 garden build\` you can try Garden Container Builder temporarily without any changes to your Garden configuration.
+            By running \`GARDEN_CONTAINER_BUILDER=1 garden build\` you can try Garden Container Builder temporarily without any changes to your Garden configuration.
             The environment variable \`GARDEN_CONTAINER_BUILDER\` can also be used to override this setting, if enabled in the configuration. Set it to \`false\` or \`0\` to temporarily disable Garden Container Builder.
 
             Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
