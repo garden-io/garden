@@ -166,6 +166,10 @@ Extra flags to pass to the `docker build` command. Will extend the `spec.extraFl
 
 [providers](#providers) > [gardenCloudBuilder](#providersgardencloudbuilder) > enabled
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Enable Garden Container Builder, which can speed up builds significantly using fast machines and extremely fast caching.
 
 By running `GARDEN_CONTAINER_BUILDER=1 garden build` you can try Garden Container Builder temporarily without any changes to your Garden configuration.

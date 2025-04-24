@@ -1730,24 +1730,6 @@ providers:
         # The module spec, as defined by the provider plugin.
         spec:
 
-            # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
-            # directory (for remote modules this means the root of the module repository, otherwise the directory of
-            # the module configuration).
-            #
-            # Note that any existing file with the same name will be overwritten. If the path contains one or more
-            # directories, they will be automatically created if missing.
-            targetPath:
-
-            # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to
-            # false to skip resolving template strings. Note that this does not apply when setting the `value` field,
-            # since that's resolved earlier when parsing the configuration.
-            resolveTemplates:
-
-            # The desired file contents as a string.
-            value:
-
-            sourcePath:
-
         # The name of the parent module (e.g. a templated module that generated this module), if applicable.
         parentName:
 
@@ -2682,24 +2664,6 @@ moduleConfigs:
     # The module spec, as defined by the provider plugin.
     spec:
 
-        # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
-        # directory (for remote modules this means the root of the module repository, otherwise the directory of the
-        # module configuration).
-        #
-        # Note that any existing file with the same name will be overwritten. If the path contains one or more
-        # directories, they will be automatically created if missing.
-        targetPath:
-
-        # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
-        # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
-        # resolved earlier when parsing the configuration.
-        resolveTemplates:
-
-        # The desired file contents as a string.
-        value:
-
-        sourcePath:
-
     # The name of the parent module (e.g. a templated module that generated this module), if applicable.
     parentName:
 
@@ -3251,24 +3215,6 @@ modules:
 
     # The module spec, as defined by the provider plugin.
     spec:
-
-        # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
-        # directory (for remote modules this means the root of the module repository, otherwise the directory of the
-        # module configuration).
-        #
-        # Note that any existing file with the same name will be overwritten. If the path contains one or more
-        # directories, they will be automatically created if missing.
-        targetPath:
-
-        # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
-        # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
-        # resolved earlier when parsing the configuration.
-        resolveTemplates:
-
-        # The desired file contents as a string.
-        value:
-
-        sourcePath:
 
     # The name of the parent module (e.g. a templated module that generated this module), if applicable.
     parentName:
