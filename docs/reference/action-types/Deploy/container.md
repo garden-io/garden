@@ -742,6 +742,10 @@ Note! This feature is still experimental. Some incompatible changes can be made 
 
 [spec](#spec) > [localMode](#speclocalmode) > ports
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The reverse port-forwards configuration for the local application.
 
 | Type            | Required |
@@ -751,6 +755,10 @@ The reverse port-forwards configuration for the local application.
 ### `spec.localMode.ports[].local`
 
 [spec](#spec) > [localMode](#speclocalmode) > [ports](#speclocalmodeports) > local
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The local port to be used for reverse port-forward.
 
@@ -762,6 +770,10 @@ The local port to be used for reverse port-forward.
 
 [spec](#spec) > [localMode](#speclocalmode) > [ports](#speclocalmodeports) > remote
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The remote port to be used for reverse port-forward.
 
 | Type     | Required |
@@ -771,6 +783,10 @@ The remote port to be used for reverse port-forward.
 ### `spec.localMode.command[]`
 
 [spec](#spec) > [localMode](#speclocalmode) > command
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The command to run the local application. If not present, then the local application should be started manually.
 
@@ -782,6 +798,10 @@ The command to run the local application. If not present, then the local applica
 
 [spec](#spec) > [localMode](#speclocalmode) > restart
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
 
 | Type     | Default                         | Required |
@@ -792,6 +812,10 @@ Specifies restarting policy for the local application. By default, the local app
 
 [spec](#spec) > [localMode](#speclocalmode) > [restart](#speclocalmoderestart) > delayMsec
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
 
 | Type     | Default | Required |
@@ -801,6 +825,10 @@ Delay in milliseconds between the local application restart attempts. The defaul
 ### `spec.localMode.restart.max`
 
 [spec](#spec) > [localMode](#speclocalmode) > [restart](#speclocalmoderestart) > max
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 Max number of the local application restarts. Unlimited by default.
 

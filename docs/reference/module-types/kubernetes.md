@@ -1365,6 +1365,10 @@ Note! This feature is still experimental. Some incompatible changes can be made 
 
 [localMode](#localmode) > ports
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The reverse port-forwards configuration for the local application.
 
 | Type            | Required |
@@ -1374,6 +1378,10 @@ The reverse port-forwards configuration for the local application.
 ### `localMode.ports[].local`
 
 [localMode](#localmode) > [ports](#localmodeports) > local
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The local port to be used for reverse port-forward.
 
@@ -1385,6 +1393,10 @@ The local port to be used for reverse port-forward.
 
 [localMode](#localmode) > [ports](#localmodeports) > remote
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The remote port to be used for reverse port-forward.
 
 | Type     | Required |
@@ -1394,6 +1406,10 @@ The remote port to be used for reverse port-forward.
 ### `localMode.command[]`
 
 [localMode](#localmode) > command
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The command to run the local application. If not present, then the local application should be started manually.
 
@@ -1405,6 +1421,10 @@ The command to run the local application. If not present, then the local applica
 
 [localMode](#localmode) > restart
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
 
 | Type     | Default                         | Required |
@@ -1414,6 +1434,10 @@ Specifies restarting policy for the local application. By default, the local app
 ### `localMode.restart.delayMsec`
 
 [localMode](#localmode) > [restart](#localmoderestart) > delayMsec
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
 
@@ -1425,6 +1449,10 @@ Delay in milliseconds between the local application restart attempts. The defaul
 
 [localMode](#localmode) > [restart](#localmoderestart) > max
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Max number of the local application restarts. Unlimited by default.
 
 | Type     | Default | Required |
@@ -1434,6 +1462,10 @@ Max number of the local application restarts. Unlimited by default.
 ### `localMode.target`
 
 [localMode](#localmode) > target
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
 
@@ -1445,6 +1477,10 @@ The remote Kubernetes resource to proxy traffic from. If specified, this is used
 
 [localMode](#localmode) > [target](#localmodetarget) > kind
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The kind of Kubernetes resource to find.
 
 | Type     | Allowed Values                           | Required |
@@ -1454,6 +1490,10 @@ The kind of Kubernetes resource to find.
 ### `localMode.target.name`
 
 [localMode](#localmode) > [target](#localmodetarget) > name
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
 
@@ -1465,6 +1505,10 @@ The name of the resource, of the specified `kind`. If specified, you must also s
 
 [localMode](#localmode) > [target](#localmodetarget) > podSelector
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
 
 | Type     | Required |
@@ -1474,6 +1518,10 @@ A map of string key/value labels to match on any Pods in the namespace. When spe
 ### `localMode.target.containerName`
 
 [localMode](#localmode) > [target](#localmodetarget) > containerName
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
 
