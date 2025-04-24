@@ -78,9 +78,9 @@ describe("preprocessActionConfig", () => {
   })
 
   context("template strings", () => {
-    context("implicit dependencies inferred from actoin output references", () => {
+    context("implicit dependencies inferred from action output references", () => {
       context("a static output is referenced", () => {
-        it("should inject an executed=true dependency when the ref is a Build", async () => {
+        it("should inject an explicit=true dependency when the ref is a Build", async () => {
           garden = await makeGarden(
             tmpDir,
             customizedTestPlugin({
@@ -142,16 +142,17 @@ describe("preprocessActionConfig", () => {
 
           expect(res.dependencies).to.eql([
             {
-              explicit: false,
+              explicit: true, // <-----
               kind: "Build",
               name: "build-dep",
-              needsExecutedOutputs: true, // <-----
-              needsStaticOutputs: false, // <-----
+              needsExecutedOutputs: false, // <-----
+              needsStaticOutputs: true, // <-----
               type: "test",
             },
           ])
         })
-        it("should not inject an executed=true dependency when the ref is a Run", async () => {
+
+        it("should not inject an explicit=true dependency when the ref is a Run", async () => {
           garden = await makeGarden(
             tmpDir,
             customizedTestPlugin({
@@ -213,7 +214,7 @@ describe("preprocessActionConfig", () => {
 
           expect(res.dependencies).to.eql([
             {
-              explicit: false,
+              explicit: false, // <-----
               kind: "Run",
               name: "run-dep",
               needsExecutedOutputs: false, // <-----
