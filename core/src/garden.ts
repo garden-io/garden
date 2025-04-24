@@ -628,9 +628,9 @@ export class Garden {
     return this.solver.solve(params)
   }
 
-  async processTask<T extends Task>(task: T, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
+  async processTask<T extends Task>(task: T, opts: SolveOpts): Promise<{ result: GraphResultFromTask<T> | null }> {
     const { results } = await this.solver.solve({ tasks: [task], ...opts })
-    return results.getResult(task)
+    return { result: results.getResult(task) }
   }
 
   /**

@@ -163,7 +163,7 @@ describe("GraphSolver", () => {
 
   it("processes a single task without dependencies", async () => {
     const task = makeTask({})
-    const result = await processTask(task, { throwOnError: true })
+    const { result } = await processTask(task, { throwOnError: true })
 
     expect(result).to.exist
     expect(result!.type).to.equal("test")
@@ -177,7 +177,7 @@ describe("GraphSolver", () => {
 
   it("returns status for task without processing if it's status is ready and force=false", async () => {
     const task = makeTask({ state: "ready" })
-    const result = await processTask(task, { throwOnError: true })
+    const { result } = await processTask(task, { throwOnError: true })
 
     expect(result).to.exist
     expect(result!.result?.state).to.equal("ready")
@@ -186,7 +186,7 @@ describe("GraphSolver", () => {
 
   it("processes task if it's status is ready and force=true", async () => {
     const task = makeTask({ state: "ready", force: true })
-    const result = await processTask(task, { throwOnError: true })
+    const { result } = await processTask(task, { throwOnError: true })
 
     expect(result).to.exist
     expect(result!.result?.state).to.equal("ready")
@@ -220,7 +220,7 @@ describe("GraphSolver", () => {
       throw new Error(`Throwing error in process method`)
     }
 
-    const result = await processTask(task)
+    const { result } = await processTask(task)
 
     expect(result).to.exist
     expect(result!.error).to.exist
@@ -243,7 +243,7 @@ describe("GraphSolver", () => {
       })
     }
 
-    const result = await processTask(task)
+    const { result } = await processTask(task)
 
     expect(result).to.exist
     expect(result!.error).to.exist
@@ -276,7 +276,7 @@ describe("GraphSolver", () => {
       throw new Error(`Throwing error in status method`)
     }
 
-    const result = await processTask(task)
+    const { result } = await processTask(task)
 
     expect(result).to.exist
     expect(result!.error).to.exist
@@ -291,7 +291,7 @@ describe("GraphSolver", () => {
       throw new Error(`Throwing error in process method`)
     }
 
-    const result = await processTask(taskB)
+    const { result } = await processTask(taskB)
 
     expect(result).to.exist
     expect(result!.aborted).to.be.true
@@ -308,7 +308,7 @@ describe("GraphSolver", () => {
       throw new Error(`Throwing error in process method`)
     }
 
-    const result = await processTask(taskC)
+    const { result } = await processTask(taskC)
 
     expect(result).to.exist
     expect(result!.aborted).to.be.true
@@ -371,7 +371,7 @@ describe("GraphSolver", () => {
   it("returns status directly and skips processing if state is ready", async () => {
     const taskA = makeTask({ state: "ready" })
 
-    const result = await processTask(taskA)
+    const { result } = await processTask(taskA)
 
     expect(result!.outputs["processed"]).to.equal(false)
   })
@@ -380,7 +380,7 @@ describe("GraphSolver", () => {
     const taskA = makeTask({ name: "task-a", state: "ready" })
     const taskB = makeTask({ name: "task-b", dependencies: [taskA] })
 
-    const result = await processTask(taskB)
+    const { result } = await processTask(taskB)
 
     const depResults = result!.dependencyResults?.["test.task-b"]
 

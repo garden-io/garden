@@ -240,7 +240,7 @@ export function Profile(profiler?: Profiler) {
 
       const wrapped = function (this: any, ...args: any[]) {
         const start = performance.now()
-        // eslint-disable-next-line no-invalid-this
+
         const result = originalMethod.apply(this, args)
 
         if (!profiler!.isEnabled()) {
