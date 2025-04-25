@@ -7,7 +7,7 @@ title: Module Types
 
 
   {% hint style="warning" %}
-  Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+  Modules are deprecated and planned to be removed. We do not recommend using modules. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
   {% endhint %}
   
 * [`exec`](./exec.md)
