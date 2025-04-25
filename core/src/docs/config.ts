@@ -96,7 +96,7 @@ function makeMarkdownDescription(description: BaseKeyDescription, { showRequired
     ...description,
     breadCrumbs,
     experimentalFeature: description.experimental,
-    deprecated: !!description.deprecated,
+    deprecated: description.deprecated,
     deprecatedDescription,
     formattedExample,
     title: description.fullKey(),

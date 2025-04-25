@@ -79,7 +79,7 @@ export const kubernetesRunPodSchema = (kind: ActionKind) => {
       manifests: kubernetesManifestsSchema().description(
         `List of Kubernetes resource manifests to be searched (using \`resource\`e for the pod spec for the ${kind}. If \`files\` is also specified, this is combined with the manifests read from the files.`
       ),
-      files: kubernetesPodManifestTemplatesSchema(kind).meta({ deprecated: true }),
+      files: kubernetesPodManifestTemplatesSchema(kind).meta({ deprecation: true }),
       manifestFiles: kubernetesManifestFilesSchema(),
       manifestTemplates: kubernetesPodManifestTemplatesSchema(kind),
       resource: runPodResourceSchema(kind),
