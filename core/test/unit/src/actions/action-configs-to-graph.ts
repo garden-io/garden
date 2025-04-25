@@ -26,6 +26,7 @@ import { clearVarfileCache } from "../../../../src/config/base.js"
 import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 import { deepResolveContext } from "../../../../src/config/template-contexts/base.js"
 import { setGlobalProjectApiVersion } from "../../../../src/project-api-version.js"
+import { ActionDependencyAttributes } from "../../../../src/actions/types.js"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory
@@ -357,115 +358,77 @@ describe("actionConfigsToGraph", () => {
   })
 
   describe("when implicit dependency is references via non-static output", () => {
+    async function assertDependencyAttributes(attrs: ActionDependencyAttributes) {
+      const graph = await actionConfigsToGraph({
+        garden,
+        log,
+        groupConfigs: [],
+        configs: parseTemplateCollection({
+          value: [
+            {
+              kind: "Build",
+              type: "test",
+              name: "foo",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+              internal: {
+                basePath: tmpDir.path,
+              },
+              spec: {},
+            },
+            {
+              kind: "Build",
+              type: "test",
+              name: "bar",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+              internal: {
+                basePath: tmpDir.path,
+              },
+              spec: {
+                command: ["echo", "${actions.build.foo.outputs.bar}"],
+              },
+            },
+          ] as const,
+          source: { path: [] },
+        }),
+        moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
+        actionModes: {},
+        linkedSources: {},
+      })
+
+      const action = graph.getBuild("bar")
+      const deps = action.getDependencyReferences()
+
+      expect(deps).to.eql([
+        {
+          kind: "Build",
+          type: "test",
+          name: "foo",
+          ...attrs,
+        },
+      ])
+    }
+
     context("with apiVersion: garden.io/v2", () => {
       beforeEach(() => {
         setGlobalProjectApiVersion(GardenApiVersion.v2)
       })
 
       it("flags implicit dependency as needing execution and explicit if a non-static output is referenced", async () => {
-        const graph = await actionConfigsToGraph({
-          garden,
-          log,
-          groupConfigs: [],
-          configs: parseTemplateCollection({
-            value: [
-              {
-                kind: "Build",
-                type: "test",
-                name: "foo",
-                timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-                internal: {
-                  basePath: tmpDir.path,
-                },
-                spec: {},
-              },
-              {
-                kind: "Build",
-                type: "test",
-                name: "bar",
-                timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-                internal: {
-                  basePath: tmpDir.path,
-                },
-                spec: {
-                  command: ["echo", "${actions.build.foo.outputs.bar}"],
-                },
-              },
-            ] as const,
-            source: { path: [] },
-          }),
-          moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
-          actionModes: {},
-          linkedSources: {},
+        await assertDependencyAttributes({
+          explicit: true, // <--- referenced builds are treated as if they were explicit dependencies
+          needsExecutedOutputs: true,
+          needsStaticOutputs: false,
         })
-
-        const action = graph.getBuild("bar")
-        const deps = action.getDependencyReferences()
-
-        expect(deps).to.eql([
-          {
-            explicit: true, // <--- referenced builds are treated as if they were explicit dependencies
-            kind: "Build",
-            type: "test",
-            name: "foo",
-            needsExecutedOutputs: true,
-            needsStaticOutputs: false,
-          },
-        ])
       })
     })
 
     context("with apiVersion: garden.io/v1", () => {
       it("flags implicit dependency as needing execution if a non-static output is referenced", async () => {
-        const graph = await actionConfigsToGraph({
-          garden,
-          log,
-          groupConfigs: [],
-          configs: parseTemplateCollection({
-            value: [
-              {
-                kind: "Build",
-                type: "test",
-                name: "foo",
-                timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-                internal: {
-                  basePath: tmpDir.path,
-                },
-                spec: {},
-              },
-              {
-                kind: "Build",
-                type: "test",
-                name: "bar",
-                timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-                internal: {
-                  basePath: tmpDir.path,
-                },
-                spec: {
-                  command: ["echo", "${actions.build.foo.outputs.bar}"],
-                },
-              },
-            ] as const,
-            source: { path: [] },
-          }),
-          moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
-          actionModes: {},
-          linkedSources: {},
+        await assertDependencyAttributes({
+          explicit: false, // <--- referenced builds are still treated as implicit dependencies
+          needsExecutedOutputs: true,
+          needsStaticOutputs: false,
         })
-
-        const action = graph.getBuild("bar")
-        const deps = action.getDependencyReferences()
-
-        expect(deps).to.eql([
-          {
-            explicit: false,
-            kind: "Build",
-            type: "test",
-            name: "foo",
-            needsExecutedOutputs: true,
-            needsStaticOutputs: false,
-          },
-        ])
       })
     })
   })
