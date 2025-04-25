@@ -1,4 +1,4 @@
-apiVersion: garden.io/v2
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 environments:
