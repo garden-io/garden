@@ -35,6 +35,16 @@ import { ChildProcessError, DeploymentError } from "../../../../../../src/except
 import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants.js"
 import { join } from "node:path"
+import type { Garden } from "../../../../../../src/garden.js"
+
+async function cleanupDeploys({ garden, graph }: { graph: ConfigGraph; garden: Garden }) {
+  // https://app.circleci.com/pipelines/github/garden-io/garden/15885/workflows/6026638c-7544-45a8-bc07-16f8963c5b9f/jobs/265663?invite=true#step-113-577
+  // sometimes the release is already purged
+  try {
+    const actions = await garden.getActionRouter()
+    await actions.deleteDeploys({ graph, log: garden.log })
+  } catch {}
+}
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -55,8 +65,7 @@ describe("helmDeploy in local-mode", () => {
   after(async () => {
     LocalModeProcessRegistry.getInstance().shutdown()
     ProxySshKeystore.getInstance(garden.log).shutdown(garden.log)
-    const actions = await garden.getActionRouter()
-    await actions.deleteDeploys({ graph, log: garden.log })
+    await cleanupDeploys({ graph, garden })
     if (garden) {
       garden.close()
     }
@@ -124,15 +133,10 @@ describe("helmDeploy", () => {
   })
 
   after(async () => {
-    // https://app.circleci.com/pipelines/github/garden-io/garden/15885/workflows/6026638c-7544-45a8-bc07-16f8963c5b9f/jobs/265663?invite=true#step-113-577
-    // sometimes the release is already purged
-    try {
-      const actions = await garden.getActionRouter()
-      await actions.deleteDeploys({ graph, log: garden.log })
-      if (garden) {
-        garden.close()
-      }
-    } catch {}
+    await cleanupDeploys({ graph, garden })
+    if (garden) {
+      garden.close()
+    }
   })
 
   context("normal behaviour", () => {

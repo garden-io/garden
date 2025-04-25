@@ -63,7 +63,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
 
   async function executeBuild(buildActionName: string) {
     const action = await garden.resolveAction({ action: graph.getBuild(buildActionName), graph, log })
-    const result = await garden.processTask(new BuildTask({ action, force: true, garden, graph, log }), {
+    const { result } = await garden.processTask(new BuildTask({ action, force: true, garden, graph, log }), {
       throwOnError: true,
     })
     return result?.result?.executedAction!
