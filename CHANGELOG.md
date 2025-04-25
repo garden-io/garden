@@ -1,17 +1,14 @@
 
 <a name="0.13.59"></a>
-## [0.13.59](https://github.com/garden-io/garden/compare/0.14.2...0.13.59) (2025-04-25)
+## [0.13.59](https://github.com/garden-io/garden/compare/0.13.58...0.13.59) (2025-04-25)
 
 ### Bug Fixes
 
 * do not throw on unknown action types for disabled actions ([#7177](https://github.com/garden-io/garden/issues/7177)) ([5bad9b748](https://github.com/garden-io/garden/commit/5bad9b748))
 * prevent unnecessary execution of builds referenced in runtime actions ([#7176](https://github.com/garden-io/garden/issues/7176)) ([fffcdb245](https://github.com/garden-io/garden/commit/fffcdb245))
 * **container:** always respect env vars to control remote builder ([#7168](https://github.com/garden-io/garden/issues/7168)) ([96241e5d9](https://github.com/garden-io/garden/commit/96241e5d9))
-* **git:** replace vulnerable parse-git-config with ini file parser ([#7094](https://github.com/garden-io/garden/issues/7094)) ([16c66f3c1](https://github.com/garden-io/garden/commit/16c66f3c1))
-* **k8s:** update to nginx ingress controller 1.12.1 that is not affected by RCE vulnerability ([#7031](https://github.com/garden-io/garden/issues/7031)) ([5843370e1](https://github.com/garden-io/garden/commit/5843370e1))
 * **module-k8s:** fix `deploymentImageId` in module conversion ([#7029](https://github.com/garden-io/garden/issues/7029)) ([00d156de8](https://github.com/garden-io/garden/commit/00d156de8))
 * **solver:** throw if a dependency failed and `throwOnError` is true ([#7175](https://github.com/garden-io/garden/issues/7175)) ([7780b56ea](https://github.com/garden-io/garden/commit/7780b56ea))
-* **sync:** await monitors stop on `sync stop` completion ([#7061](https://github.com/garden-io/garden/issues/7061)) ([ad92dbe4f](https://github.com/garden-io/garden/commit/ad92dbe4f))
 
 ### Bundled Tool Version Updates
 
