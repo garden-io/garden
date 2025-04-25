@@ -4485,6 +4485,52 @@ describe("Garden", () => {
       expect(a.isDisabled()).to.be.false
       expect(b.isDisabled()).to.be.true
     })
+
+    describe("disabled actions", () => {
+      context("should not throw if disabled action does not have a configured provider", () => {
+        it("when action is disabled explicitly via `disabled: true` flag", async () => {
+          // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
+          const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
+            environmentString: "no-k8s",
+          })
+
+          // The disabled action with no provider configured should not cause an error
+          const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          // The action 'k8s-deploy-disabled-via-flag' is disabled via disabled:true flag,
+          // and should be unreachable from graph-lookups.
+          const actionName = "k8s-deploy-disabled-via-flag"
+          void expectError(() => graph.getDeploy(actionName), {
+            contains: `Deploy type=kubernetes name=${actionName} is disabled`,
+          })
+
+          // The enabled acton 'say-hi' should be reachable from graph-lookups
+          const sayHiRun = graph.getRun("say-hi")
+          expect(sayHiRun.isDisabled()).to.be.false
+        })
+
+        it("when action is disabled implicitly via environment config", async () => {
+          // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
+          const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
+            environmentString: "no-k8s",
+          })
+
+          // The disabled action with no provider configured should not cause an error
+          const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          // The action 'k8s-deploy-disabled-via-env-config' is disabled via the environment config,
+          // and should be unreachable from graph-lookups.
+          const actionName = "k8s-deploy-disabled-via-env-config"
+          void expectError(() => graph.getDeploy(actionName), {
+            contains: `Deploy type=kubernetes name=${actionName} is disabled`,
+          })
+
+          // The enabled acton 'say-hi' should be reachable from graph-lookups
+          const sayHiRun = graph.getRun("say-hi")
+          expect(sayHiRun.isDisabled()).to.be.false
+        })
+      })
+    })
   })
 
   context("module type has a base", () => {
