@@ -354,7 +354,7 @@ describe("actionConfigsToGraph", () => {
     ])
   })
 
-  it("flags implicit dependency as needing execution if a non-static output is referenced", async () => {
+  it("flags implicit dependency as needing execution and explicit if a non-static output is referenced", async () => {
     const graph = await actionConfigsToGraph({
       garden,
       log,
@@ -396,7 +396,7 @@ describe("actionConfigsToGraph", () => {
 
     expect(deps).to.eql([
       {
-        explicit: false,
+        explicit: true,
         kind: "Build",
         type: "test",
         name: "foo",
