@@ -17,7 +17,7 @@ import { zodToJsonSchema } from "zod-to-json-schema"
 import { makeDeprecationMessage } from "../util/deprecations.js"
 
 export class JoiKeyDescription extends BaseKeyDescription {
-  private joiDescription: JoiDescription
+  private readonly joiDescription: JoiDescription
 
   override deprecated: boolean
   override deprecationMessage: string | undefined
@@ -54,7 +54,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
 
     const metas: MetadataKeys = extend({}, ...(joiDescription.metas || []))
 
-    this.deprecated = joiDescription.parent?.deprecated || !!metas.deprecated || !!metas.deprecation
+    this.deprecated = parent?.deprecated || !!metas.deprecated || !!metas.deprecation
     if (!!metas.deprecation && typeof metas.deprecation !== "boolean") {
       this.deprecationMessage = makeDeprecationMessage({ deprecation: metas.deprecation })
     } else if (typeof metas.deprecated === "string") {
@@ -63,7 +63,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
 
     this.description = joiDescription.flags?.description
     this.experimental = joiDescription.parent?.experimental || !!metas.experimental
-    this.internal = joiDescription.parent?.internal || !!metas.internal
+    this.internal = parent?.internal || !!metas.internal
   }
 
   override formatType() {
@@ -198,7 +198,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
  * Returns an object schema description if applicable for the field, that is if the provided schema is an
  * object schema _or_ if it's an "alternatives" schema where one alternative is an object schema.
  */
-function getObjectSchema(d: JoiDescription) {
+function getObjectSchema(d: JoiDescription): JoiDescription | undefined {
   const { type } = d
 
   if (type === "alternatives") {
@@ -208,8 +208,11 @@ function getObjectSchema(d: JoiDescription) {
         return nestedObjSchema
       }
     }
+    return undefined
   } else if (type === "object" || type === "customObject") {
     return d
+  } else {
+    return undefined
   }
 }
 

@@ -946,6 +946,7 @@ function dependenciesFromActionConfig({
 
   for (const ref of getActionTemplateReferences(config, templateContext)) {
     let needsExecuted = false
+    let isExplicit = false
 
     const outputType = ref.keyPath[0]
 
@@ -970,16 +971,28 @@ function dependenciesFromActionConfig({
           : []
       }
 
-      // Avoid execution when referencing the static output keys of the ref's action type if it's not a Build.
-      // This is because Builds generally don't have side-effects other than producing artifacts, whereas Deploys
-      // and Runs often do.
-      // This improves the user experience for the common use-case of referencing a container image in a runtime
-      // resource (like a `helm` Deploy), where the user intent is almost always that the referenced build should exist
-      // (i.e. the dependency should be processed) before the runtime resource is processed (i.e. deployed or run).
-      // Note: We could also always execute Test actions that are referenced, but we'll stick with only Builds for now.
-      if (!isString(outputKey) || refActionKind === "Build") {
+      /*
+        If a referenced dependency is a Build, then we re-mark it as explicit dependency.
+        It will have the same effect as if it was explicitly referenced in the configuration.
+
+        This is safe, because Builds generally don't have side-effects other than producing artifacts,
+        whereas Deploys and Runs often do.
+
+        This improves the user experience for the common use-case of referencing a container image in a runtime
+        resource (like a `helm` Deploy), where the user intent is almost always that the referenced build should exist
+        (i.e. the dependency should be processed) before the runtime resource is processed (i.e. deployed or run).
+
+        Note: We could also always execute Test actions that are referenced, but we'll stick with only Builds for now.
+       */
+      if (refActionKind === "Build") {
+        isExplicit = true
+      }
+
+      if (!isString(outputKey)) {
+        // If the output key is not resolved yet, we just mark at as needing execution.
         needsExecuted = true
       } else {
+        // Otherwise, we avoid execution when referencing the static output keys of the ref's action type.
         needsExecuted = !staticOutputKeys.includes(outputKey) && !refStaticOutputKeys.includes(outputKey)
       }
     }
@@ -990,7 +1003,7 @@ function dependenciesFromActionConfig({
     }
 
     addDep(omit(refWithType, ["keyPath"]), {
-      explicit: false,
+      explicit: isExplicit,
       needsExecutedOutputs: needsExecuted,
       needsStaticOutputs: !needsExecuted,
     })

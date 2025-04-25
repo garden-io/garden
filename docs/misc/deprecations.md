@@ -40,6 +40,17 @@ The `resources.sync` config field in the `kubernetes` provider has no effect in 
 
 The `resources.sync` config field in the `kubernetes` provider was only used for the `cluster-docker` build mode, which was removed in Garden 0.13.",
 
+<h2 id="workflowlimits">Using <code>limits</code> configuration field in workflows</h2>
+
+Please use the `resources.limits` configuration field instead.
+
+Note! If the deprecated field `limits` is defined in the workflow config,
+Garden 0.14 automatically copies the field's contents to the `resources.limits`,
+even if the `resources.limits` is defined explicitly.
+
+Please do not use both `limits` and `resources.limits` simultaneously,
+and use only `resources.limits`. Otherwise, the values from the old field `limits` will be used.
+
 # Unsupported commands
 
 <h2 id="kubernetesplugincleanupclusterregistrycommand"><code>cleanup-cluster-registry</code></h2>

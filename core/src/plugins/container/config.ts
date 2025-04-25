@@ -36,7 +36,7 @@ import type { ActionKind } from "../../plugin/action-types.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
-export const defaultContainerLimits: ServiceLimitSpec = {
+export const defaultContainerLimits: LegacyServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
   memory: 1024, // = 1024MB = 1GB
 }
@@ -94,9 +94,10 @@ export interface ServiceHealthCheckSpec {
 }
 
 /**
- * DEPRECATED: Use {@link ContainerResourcesSpec} instead.
+ * TODO(0.15): remove this
+ * @deprecated use {@link ContainerResourcesSpec} instead.
  */
-export interface ServiceLimitSpec {
+export interface LegacyServiceLimitSpec {
   cpu: number
   memory: number
 }
@@ -611,7 +612,7 @@ interface ContainerCommonRuntimeSpec {
   command?: string[]
   env: PrimitiveMap
 
-  limits?: ServiceLimitSpec
+  limits?: LegacyServiceLimitSpec
   cpu: ContainerResourcesSpec["cpu"]
   memory: ContainerResourcesSpec["memory"]
 

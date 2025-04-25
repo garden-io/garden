@@ -762,15 +762,7 @@ export class GardenCloudApi {
   async registerCloudBuilderBuild({
     organizationId,
     ...body
-  }: {
-    organizationId: string
-    actionName: string
-    actionUid: string
-    actionVersion: string
-    coreSessionId: string
-    platforms: string[]
-    mtlsClientPublicKeyPEM: string | undefined
-  }): Promise<RegisterCloudBuilderBuildResponse> {
+  }: RegisterBuildRequestV2): Promise<RegisterCloudBuilderBuildResponse> {
     try {
       return await this.post<RegisterCloudBuilderBuildResponse>(
         `/organizations/${organizationId}/cloudbuilder/builds/`,
@@ -835,6 +827,17 @@ export class GardenCloudApi {
 }
 
 // TODO(cloudbuilder): import these from api-types
+type RegisterBuildRequestV2 = {
+  organizationId: string
+  actionUid: string
+  actionName: string
+  coreSessionId: string
+  platforms: string[]
+
+  // for authentication against the builder
+  // If not specified, the private key will be generated server-side.
+  mtlsClientPublicKeyPEM?: string
+}
 type RegisterCloudBuilderBuildResponseV2 = {
   data: {
     version: "v2"
