@@ -396,7 +396,7 @@ describe("actionConfigsToGraph", () => {
 
     expect(deps).to.eql([
       {
-        explicit: true,
+        explicit: true, // <--- referenced builds are treated as if they were explicit dependencies
         kind: "Build",
         type: "test",
         name: "foo",
