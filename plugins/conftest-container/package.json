@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-conftest-container",
-  "version": "0.13.58",
+  "version": "0.13.59",
   "description": "Auto-generator for the conftest plugin and Garden container modules",
   "type": "module",
   "main": "build/src/index.js",

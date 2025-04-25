@@ -1,4 +1,21 @@
 
+<a name="0.13.59"></a>
+## [0.13.59](https://github.com/garden-io/garden/compare/0.13.58...0.13.59) (2025-04-25)
+
+### Bug Fixes
+
+* do not throw on unknown action types for disabled actions ([#7177](https://github.com/garden-io/garden/issues/7177)) ([5bad9b748](https://github.com/garden-io/garden/commit/5bad9b748))
+* prevent unnecessary execution of builds referenced in runtime actions ([#7176](https://github.com/garden-io/garden/issues/7176)) ([fffcdb245](https://github.com/garden-io/garden/commit/fffcdb245))
+* **container:** always respect env vars to control remote builder ([#7168](https://github.com/garden-io/garden/issues/7168)) ([96241e5d9](https://github.com/garden-io/garden/commit/96241e5d9))
+* **module-k8s:** fix `deploymentImageId` in module conversion ([#7029](https://github.com/garden-io/garden/issues/7029)) ([00d156de8](https://github.com/garden-io/garden/commit/00d156de8))
+* **solver:** throw if a dependency failed and `throwOnError` is true ([#7175](https://github.com/garden-io/garden/issues/7175)) ([7780b56ea](https://github.com/garden-io/garden/commit/7780b56ea))
+
+### Bundled Tool Version Updates
+
+* **helm:** update version to 3.17.2 ([#7119](https://github.com/garden-io/garden/issues/7119)) ([927116a65](https://github.com/garden-io/garden/commit/927116a65))
+* **kubectl:** update version to 1.32.3 ([#7120](https://github.com/garden-io/garden/issues/7120)) ([f9d7adba9](https://github.com/garden-io/garden/commit/f9d7adba9))
+* **mutagen:** update mutagen to 0.18.1 and base alpine image to 3.21.3 ([#7161](https://github.com/garden-io/garden/issues/7161)) ([78fc32e13](https://github.com/garden-io/garden/commit/78fc32e13))
+
 <a name="0.13.58"></a>
 ## [0.13.58](https://github.com/garden-io/garden/compare/0.13.57...0.13.58) (2025-04-09)
 
