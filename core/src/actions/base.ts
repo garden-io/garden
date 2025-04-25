@@ -78,9 +78,9 @@ const actionInternalFieldsSchema = createSchema({
   name: "action-config-internal-fields",
   extend: baseInternalFieldsSchema,
   keys: () => ({
-    groupName: joi.string().optional().meta({ internal: true }),
-    moduleName: joi.string().optional().meta({ internal: true }),
-    resolved: joi.boolean().optional().meta({ internal: true }),
+    groupName: joi.string().optional(),
+    moduleName: joi.string().optional(),
+    resolved: joi.boolean().optional(),
   }),
   allowUnknown: true,
   meta: { internal: true },

@@ -323,8 +323,8 @@ export const containerSyncPathSchema = createSchema({
 export const localModeRestartSchema = createSchema({
   name: "local-mode-restart",
   keys: () => ({
-    delayMsec: joi.number().integer().optional().meta({ internal: true }),
-    max: joi.number().integer().optional().meta({ internal: true }),
+    delayMsec: joi.number().integer().optional(),
+    max: joi.number().integer().optional(),
   }),
   options: { presence: "optional" },
   meta: { internal: true },
@@ -333,8 +333,8 @@ export const localModeRestartSchema = createSchema({
 export const localModePortsSchema = createSchema({
   name: "local-mode-port",
   keys: () => ({
-    local: joi.number().integer().optional().meta({ internal: true }),
-    remote: joi.number().integer().optional().meta({ internal: true }),
+    local: joi.number().integer().optional(),
+    remote: joi.number().integer().optional(),
   }),
   meta: { internal: true },
 })
@@ -343,8 +343,8 @@ export const containerLocalModeSchema = createSchema({
   name: "container-local-mode",
   description: `This feature has been deleted.`,
   keys: () => ({
-    ports: joi.array().optional().items(localModePortsSchema()).meta({ internal: true }),
-    command: joi.sparseArray().optional().items(joi.string()).meta({ internal: true }),
+    ports: joi.array().optional().items(localModePortsSchema()),
+    command: joi.sparseArray().optional().items(joi.string()),
     restart: localModeRestartSchema(),
   }),
   meta: {
