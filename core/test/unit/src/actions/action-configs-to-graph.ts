@@ -26,7 +26,7 @@ import { clearVarfileCache } from "../../../../src/config/base.js"
 import { parseTemplateCollection } from "../../../../src/template/templated-collections.js"
 import { deepResolveContext } from "../../../../src/config/template-contexts/base.js"
 import { setGlobalProjectApiVersion } from "../../../../src/project-api-version.js"
-import { ActionDependencyAttributes } from "../../../../src/actions/types.js"
+import type { ActionDependencyAttributes } from "../../../../src/actions/types.js"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory
