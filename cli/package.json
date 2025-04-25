@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/cli",
-  "version": "0.13.58",
+  "version": "0.13.59",
   "description": "Cloud native testing platform for testing and developing container applications on Kubernetes",
   "type": "module",
   "repository": {
