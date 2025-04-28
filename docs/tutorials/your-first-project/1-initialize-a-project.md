@@ -39,6 +39,9 @@ defaultEnvironment: local
 environments:
   - name: local
     defaultNamespace: web-app-example
+    variable:
+      hostname:
+        "local.demo.garden"
   - name: remote-dev
     defaultNamespace: web-app-example-${kebabCase(local.username)}
   - name: ci
