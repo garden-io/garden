@@ -125,7 +125,7 @@ description: Deploy the API
 dependencies: [build.api, run.db-seed] # <--- We need to build the api and seed the DB before deploying it
 
 spec:
-  manifestFiles: [./manifests/*] # <--- Tell Garden what manifests to use
+  manifestTemplates: [./manifests/*] # <--- Tell Garden what manifests to use
 
   defaultTarget: # <--- This tells Garden what "target" to use for logs, code syncing and more
     kind: Deployment
@@ -170,7 +170,7 @@ name: web
 type: kubernetes
 dependencies: [build.web, deploy.api]
 spec:
-  manifestFiles: [./manifests/*]
+  manifestTemplates: [./manifests/*]
 
   # Default target for syncs and exec commands
   defaultTarget:
