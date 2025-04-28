@@ -10,36 +10,36 @@ permissions:
   contents: read
 
 jobs:
-  release-npm:
-    runs-on: macos-latest
-    steps:
-      - name: Set Environment Variables
-        run: echo "SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-8)" >> "$GITHUB_ENV"
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Use Node.js 21.x
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 21.x
-      - name: Build package
-        run: |
-          npm ci
-          npm run build
-      - name: Setup npm registry authentication
-        working-directory: ./core
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-      - name: Publish edge version if pre-release
-        if: github.event.release.prerelease == true
-        working-directory: ./core
-        run: |
-          CURRENT_CORE_VERSION="$(node -e "console.log(require('./package.json').version);")"
-          npm version "$CURRENT_CORE_VERSION-edge.$SHORT_SHA"
-          npm publish --tag edge
-      - name: Publish stable version if normal release
-        if: github.event.release.prerelease != true
-        working-directory: ./core
-        run: |
-          npm publish
+#  release-npm:
+#    runs-on: macos-latest
+#    steps:
+#      - name: Set Environment Variables
+#        run: echo "SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-8)" >> "$GITHUB_ENV"
+#      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+#      - name: Use Node.js 21.x
+#        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+#        with:
+#          node-version: 21.x
+#      - name: Build package
+#        run: |
+#          npm ci
+#          npm run build
+#      - name: Setup npm registry authentication
+#        working-directory: ./core
+#        run: |
+#          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+#      - name: Publish edge version if pre-release
+#        if: github.event.release.prerelease == true
+#        working-directory: ./core
+#        run: |
+#          CURRENT_CORE_VERSION="$(node -e "console.log(require('./package.json').version);")"
+#          npm version "$CURRENT_CORE_VERSION-edge.$SHORT_SHA"
+#          npm publish --tag edge
+#      - name: Publish stable version if normal release
+#        if: github.event.release.prerelease != true
+#        working-directory: ./core
+#        run: |
+#          npm publish
 
   release-homebrew:
     uses: ./.github/workflows/reusable-create-homebrew-pr.yml
