@@ -39,7 +39,7 @@ defaultEnvironment: local
 environments:
   - name: local
     defaultNamespace: web-app-example
-    variable:
+    variables:
       hostname:
         "local.demo.garden"
   - name: remote-dev
