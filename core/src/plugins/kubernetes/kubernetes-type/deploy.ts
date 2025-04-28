@@ -45,7 +45,15 @@ export const kubernetesDeployDocs = dedent`
   If you need more advanced templating features you can use the [helm](./helm.md) Deploy type.
 `
 
-export function evaluateKubernetesDeploySpecFiles({
+/**
+ * Evaluates the value of a given spec field if it is a template string.
+ *
+ * @param ctx the plugin context
+ * @param config the kubernetes Deploy action configuration
+ * @param filesFieldName the name of the Deploy action spec's field
+ * @param filesFieldSchema the schema to validate the resolved value of the action spec's field
+ */
+export function evaluateKubernetesDeploySpecField({
   ctx,
   config,
   filesFieldName,
@@ -84,13 +92,13 @@ export function getFileSources({
   ctx: PluginContext
   config: KubernetesDeployActionConfig
 }): KubernetesDeployActionSpecFileSources {
-  const manifestFiles = evaluateKubernetesDeploySpecFiles({
+  const manifestFiles = evaluateKubernetesDeploySpecField({
     ctx,
     config,
     filesFieldName: "manifestFiles",
     filesFieldSchema: kubernetesManifestFilesSchema,
   })
-  const manifestTemplates = evaluateKubernetesDeploySpecFiles({
+  const manifestTemplates = evaluateKubernetesDeploySpecField({
     ctx,
     config,
     filesFieldName: "manifestTemplates",
