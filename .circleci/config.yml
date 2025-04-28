@@ -14,6 +14,11 @@ workflows:
       - path-filtering/filter:
           base-revision: main
           config-path: .circleci/continue-config.yml
+          # Set Python as 3.9 instead of default 3.8.
+          # Otherwise, this job fails with an error:
+          # ERROR: This script does not work on Python 3.8. The minimum supported Python version is 3.9. Please use https://bootstrap.pypa.io/pip/3.8/get-pip.py instead.
+          # See https://app.circleci.com/pipelines/github/garden-io/garden/30557/workflows/604a6d0e-fa95-499f-9326-4913225b7314/jobs/645108
+          tag: '3.9'
           mapping: |
             support/.* run-test-dockerhub true
             .circleci/.* run-test-dockerhub true
