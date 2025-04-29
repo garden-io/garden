@@ -118,7 +118,7 @@ build:
       <name>:
 
 # [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
-# them. Please do not use this alias, it will be removed in one of the future releases.
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -251,7 +251,7 @@ deploy:
       <name>:
 
 # [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
-# status. Please do not use this alias, it will be removed in one of the future releases.
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -361,7 +361,7 @@ test:
     log:
 
 # [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
-# Please do not use this alias, it will be removed in one of the future releases.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -398,7 +398,7 @@ run:
     log:
 
 # [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
-# Please do not use this alias, it will be removed in one of the future releases.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -1085,7 +1085,7 @@ build:
       <name>:
 
 # [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
-# them. Please do not use this alias, it will be removed in one of the future releases.
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -1218,7 +1218,7 @@ deploy:
       <name>:
 
 # [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
-# status. Please do not use this alias, it will be removed in one of the future releases.
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -1328,7 +1328,7 @@ test:
     log:
 
 # [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
-# Please do not use this alias, it will be removed in one of the future releases.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -1365,7 +1365,7 @@ run:
     log:
 
 # [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
-# Please do not use this alias, it will be removed in one of the future releases.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -4381,7 +4381,7 @@ build:
       <name>:
 
 # [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
-# them. Please do not use this alias, it will be removed in one of the future releases.
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -4514,7 +4514,7 @@ deploy:
       <name>:
 
 # [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
-# status. Please do not use this alias, it will be removed in one of the future releases.
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -4624,7 +4624,7 @@ test:
     log:
 
 # [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
-# Please do not use this alias, it will be removed in one of the future releases.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -4661,7 +4661,7 @@ run:
     log:
 
 # [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
-# Please do not use this alias, it will be removed in one of the future releases.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -4813,7 +4813,7 @@ build:
       <name>:
 
 # [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
-# them. Please do not use this alias, it will be removed in one of the future releases.
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -4946,7 +4946,7 @@ deploy:
       <name>:
 
 # [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
-# status. Please do not use this alias, it will be removed in one of the future releases.
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -5056,7 +5056,7 @@ test:
     log:
 
 # [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
-# Please do not use this alias, it will be removed in one of the future releases.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -5093,7 +5093,7 @@ run:
     log:
 
 # [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
-# Please do not use this alias, it will be removed in one of the future releases.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -5402,7 +5402,7 @@ build:
       <name>:
 
 # [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
-# them. Please do not use this alias, it will be removed in one of the future releases.
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -5535,7 +5535,7 @@ deploy:
       <name>:
 
 # [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
-# status. Please do not use this alias, it will be removed in one of the future releases.
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -5645,7 +5645,7 @@ test:
     log:
 
 # [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
-# Please do not use this alias, it will be removed in one of the future releases.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -5682,7 +5682,7 @@ run:
     log:
 
 # [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
-# Please do not use this alias, it will be removed in one of the future releases.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.

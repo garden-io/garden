@@ -850,7 +850,7 @@ export const processCommandResultSchema = createSchema({
       .meta({ keyPlaceholder: "<Build name>" }),
     builds: joiIdentifierMap(buildResultForExportSchema().keys(resultMetadataKeys()))
       .description(
-        "[DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them. Please do not use this alias, it will be removed in one of the future releases."
+        "[DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them. Please do not use this alias, it will be removed in a future release."
       )
       .meta({ keyPlaceholder: "<Build name>" }),
     deploy: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
@@ -858,7 +858,7 @@ export const processCommandResultSchema = createSchema({
       .meta({ keyPlaceholder: "<Deploy name>" }),
     deployments: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
       .description(
-        "[DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status. Please do not use this alias, it will be removed in one of the future releases."
+        "[DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status. Please do not use this alias, it will be removed in a future release."
       )
       .meta({ keyPlaceholder: "<Deploy name>" }),
     test: joiStringMap(testResultForExportSchema())
@@ -866,7 +866,7 @@ export const processCommandResultSchema = createSchema({
       .meta({ keyPlaceholder: "<Test name>" }),
     tests: joiStringMap(testResultForExportSchema())
       .description(
-        "[DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results. Please do not use this alias, it will be removed in one of the future releases."
+        "[DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results. Please do not use this alias, it will be removed in a future release."
       )
       .meta({ keyPlaceholder: "<Test name>" }),
     run: joiStringMap(runResultForExportSchema())
@@ -874,7 +874,7 @@ export const processCommandResultSchema = createSchema({
       .meta({ keyPlaceholder: "<Run name>" }),
     tasks: joiStringMap(runResultForExportSchema())
       .description(
-        "[DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results. Please do not use this alias, it will be removed in one of the future releases."
+        "[DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results. Please do not use this alias, it will be removed in a future release."
       )
       .meta({ keyPlaceholder: "<Run name>" }),
   }),
