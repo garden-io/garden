@@ -858,7 +858,7 @@ export const processCommandResultSchema = createSchema({
       .meta({ keyPlaceholder: "<Deploy name>" }),
     deployments: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
       .description(
-        "Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status."
+        "Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status."
       )
       .meta({ keyPlaceholder: "<Deploy name>", deprecated: true }), // TODO(deprecation): deprecate in 0.14
     test: joiStringMap(testResultForExportSchema())
@@ -874,7 +874,7 @@ export const processCommandResultSchema = createSchema({
       .meta({ keyPlaceholder: "<Run name>" }),
     tasks: joiStringMap(runResultForExportSchema())
       .description(
-        "Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results."
+        "Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results."
       )
       .meta({ keyPlaceholder: "<Run name>", deprecated: true }), // TODO(deprecation): deprecate in 0.14
   }),

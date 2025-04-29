@@ -249,7 +249,7 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -394,7 +394,7 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -1212,7 +1212,7 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -1357,7 +1357,7 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -4504,7 +4504,7 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -4649,7 +4649,7 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -4932,7 +4932,7 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -5077,7 +5077,7 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -5517,7 +5517,7 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -5662,7 +5662,7 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
