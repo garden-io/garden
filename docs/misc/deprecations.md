@@ -46,8 +46,8 @@ The `spec.files` configuration field in `kubernetes-pod` action type has no effe
 
 See the reference documentation for details.
 
-For `Run` action kind see [`spec.manifestFiles`](../reference/action-types/run/kubernetes-pod.md#spec.manifestFiles) and [`spec.manifestTemplates`](../reference/action-types/run/kubernetes-pod.md#spec.manifestFiles).
-For `Test` action kind see [`spec.manifestFiles`](../reference/action-types/test/kubernetes-pod.md#spec.manifestFiles) and [`spec.manifestTemplates`](../reference/action-types/test/kubernetes-pod.md#spec.manifestFiles).
+For `Run` action kind see [`spec.manifestFiles`](../reference/action-types/run/kubernetes-pod.md#spec.manifestfiles) and [`spec.manifestTemplates`](../reference/action-types/run/kubernetes-pod.md#spec.manifesttemplates).
+For `Test` action kind see [`spec.manifestFiles`](../reference/action-types/test/kubernetes-pod.md#spec.manifestfiles) and [`spec.manifestTemplates`](../reference/action-types/test/kubernetes-pod.md#spec.manifesttemplates).
 
 <h2 id="workflowlimits"><code>limits</code> configuration field in workflows</h2>
 

@@ -93,8 +93,8 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       docs: dedent`
         See the reference documentation for details.
 
-        For ${style("Run")} action kind see [${style("spec.manifestFiles")}](../reference/action-types/run/kubernetes-pod.md#spec.manifestFiles) and [${style("spec.manifestTemplates")}](../reference/action-types/run/kubernetes-pod.md#spec.manifestFiles).
-        For ${style("Test")} action kind see [${style("spec.manifestFiles")}](../reference/action-types/test/kubernetes-pod.md#spec.manifestFiles) and [${style("spec.manifestTemplates")}](../reference/action-types/test/kubernetes-pod.md#spec.manifestFiles).
+        For ${style("Run")} action kind see [${style("spec.manifestFiles")}](../reference/action-types/run/kubernetes-pod.md#spec.manifestfiles) and [${style("spec.manifestTemplates")}](../reference/action-types/run/kubernetes-pod.md#spec.manifesttemplates).
+        For ${style("Test")} action kind see [${style("spec.manifestFiles")}](../reference/action-types/test/kubernetes-pod.md#spec.manifestfiles) and [${style("spec.manifestTemplates")}](../reference/action-types/test/kubernetes-pod.md#spec.manifesttemplates).
       `,
     },
     kubernetesPluginCleanupClusterRegistryCommand: {
