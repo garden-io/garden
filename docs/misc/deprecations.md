@@ -49,7 +49,7 @@ See the reference documentation for details.
 For `Run` action kind see [`spec.manifestFiles`](../reference/action-types/run/kubernetes-pod.md#spec.manifestFiles) and [`spec.manifestTemplates`](../reference/action-types/run/kubernetes-pod.md#spec.manifestFiles).
 For `Test` action kind see [`spec.manifestFiles`](../reference/action-types/test/kubernetes-pod.md#spec.manifestFiles) and [`spec.manifestTemplates`](../reference/action-types/test/kubernetes-pod.md#spec.manifestFiles).
 
-<h2 id="workflowlimits">Using <code>limits</code> configuration field in workflows</h2>
+<h2 id="workflowlimits"><code>limits</code> configuration field in workflows</h2>
 
 Please use the `resources.limits` configuration field instead.
 
