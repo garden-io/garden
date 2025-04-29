@@ -117,7 +117,7 @@
     "p-map": "^7.0.3",
     "p-props": "^6.0.0",
     "p-queue": "^8.1.0",
-    "p-retry": "^6.1.0",
+    "p-retry": "^6.2.1",
     "parse-duration": "^2.1.4",
     "path-is-inside": "^1.0.2",
     "pluralize": "^8.0.0",
