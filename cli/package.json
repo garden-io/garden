@@ -46,7 +46,7 @@
     "fs-extra": "^11.2.0",
     "lodash-es": "^4.17.21",
     "minimist": "^1.2.8",
-    "mocha": "^11.0.1",
+    "mocha": "^11.1.0",
     "typescript": "^5.5.3"
   },
   "scripts": {
