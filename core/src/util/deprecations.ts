@@ -83,6 +83,20 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         The ${style("resources.sync")} config field in the ${style("kubernetes")} provider was only used for the ${style("cluster-docker")} build mode, which was removed in Garden 0.13.",
       `,
     },
+    kubernetesPodSpecFiles: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("spec.files")} configuration field in ${style("kubernetes-pod")} action type`,
+      warnHint: deline`
+        The ${style("spec.files")} configuration field in ${style("kubernetes-pod")} action type has no effect.
+        Please remove it and use ${style("spec.manifestFiles")} or ${style("spec.manifestTemplates")} instead.
+      `,
+      docs: dedent`
+        See the reference documentation for details.
+
+        For ${style("Run")} action kind see [${style("spec.manifestFiles")}](../reference/action-types/run/kubernetes-pod.md#spec.manifestFiles) and [${style("spec.manifestTemplates")}](../reference/action-types/run/kubernetes-pod.md#spec.manifestFiles).
+        For ${style("Test")} action kind see [${style("spec.manifestFiles")}](../reference/action-types/test/kubernetes-pod.md#spec.manifestFiles) and [${style("spec.manifestTemplates")}](../reference/action-types/test/kubernetes-pod.md#spec.manifestFiles).
+      `,
+    },
     kubernetesPluginCleanupClusterRegistryCommand: {
       docsSection: "Unsupported commands",
       docsHeadline: `${style("cleanup-cluster-registry")}`,

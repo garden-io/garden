@@ -40,6 +40,15 @@ The `resources.sync` config field in the `kubernetes` provider has no effect in 
 
 The `resources.sync` config field in the `kubernetes` provider was only used for the `cluster-docker` build mode, which was removed in Garden 0.13.",
 
+<h2 id="kubernetespodspecfiles"><code>spec.files</code> configuration field in <code>kubernetes-pod</code> action type</h2>
+
+The `spec.files` configuration field in `kubernetes-pod` action type has no effect. Please remove it and use `spec.manifestFiles` or `spec.manifestTemplates` instead.
+
+See the reference documentation for details.
+
+For `Run` action kind see [`spec.manifestFiles`](../reference/action-types/run/kubernetes-pod.md#spec.manifestFiles) and [`spec.manifestTemplates`](../reference/action-types/run/kubernetes-pod.md#spec.manifestFiles).
+For `Test` action kind see [`spec.manifestFiles`](../reference/action-types/test/kubernetes-pod.md#spec.manifestFiles) and [`spec.manifestTemplates`](../reference/action-types/test/kubernetes-pod.md#spec.manifestFiles).
+
 <h2 id="workflowlimits">Using <code>limits</code> configuration field in workflows</h2>
 
 Please use the `resources.limits` configuration field instead.
