@@ -51,17 +51,17 @@ describe("getResourceRequirements", () => {
 describe("resolveResourceLimits", () => {
   it("should prioritize deprecated limits param", () => {
     const { resolvedResources } = resolveResourceLimits(
-      { cpu: { max: 1, min: 1 }, memory: { max: null, min: 1 } },
-      { cpu: 50, memory: 50 }
+      { cpu: { max: 10, min: 1 }, memory: { max: null, min: 1 } }, // non-deprecated resource limit spec
+      { cpu: 50, memory: 50 } // deprecated resource limit spec
     )
     expect(resolvedResources).to.eql({
-      requests: {
-        cpu: "1m",
-        memory: "1Mi",
+      cpu: {
+        max: 50, // <-- taken from deprecated resource limit spec
+        min: 1, // <-- taken from non-deprecated resource limit spec
       },
-      limits: {
-        cpu: "50m",
-        memory: "50Mi",
+      memory: {
+        max: 50, // <-- taken from deprecated resource limit spec
+        min: 1, // <-- taken from non-deprecated resource limit spec
       },
     })
   })
