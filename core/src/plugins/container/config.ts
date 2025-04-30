@@ -98,8 +98,8 @@ export interface ServiceHealthCheckSpec {
  * @deprecated use {@link ContainerResourcesSpec} instead.
  */
 export interface LegacyServiceLimitSpec {
-  cpu: number
-  memory: number
+  cpu: number | undefined
+  memory: number | undefined
 }
 
 export interface ContainerResourcesSpec {
