@@ -211,25 +211,21 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .integer()
             .default(defaults.limits.cpu)
             .description("CPU limit in millicpu.")
-            .example(defaults.limits.cpu)
-            .meta({ deprecated }),
+            .example(defaults.limits.cpu),
           memory: joi
             .number()
             .integer()
             .default(defaults.limits.memory)
             .description("Memory limit in megabytes.")
-            .example(defaults.limits.memory)
-            .meta({ deprecated }),
+            .example(defaults.limits.memory),
           ephemeralStorage: joi
             .number()
             .integer()
             .optional()
             .description("Ephemeral storage limit in megabytes.")
-            .example(8192)
-            .meta({ deprecated }),
+            .example(8192),
         })
-        .default(defaults.limits)
-        .meta({ deprecated }),
+        .default(defaults.limits),
       requests: joi
         .object()
         .keys({
@@ -238,22 +234,19 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .integer()
             .default(defaults.requests.cpu)
             .description("CPU request in millicpu.")
-            .example(defaults.requests.cpu)
-            .meta({ deprecated }),
+            .example(defaults.requests.cpu),
           memory: joi
             .number()
             .integer()
             .default(defaults.requests.memory)
             .description("Memory request in megabytes.")
-            .example(defaults.requests.memory)
-            .meta({ deprecated }),
+            .example(defaults.requests.memory),
           ephemeralStorage: joi
             .number()
             .integer()
             .optional()
             .description("Ephemeral storage request in megabytes.")
-            .example(8192)
-            .meta({ deprecated }),
+            .example(8192),
         })
         .default(defaults.requests)
         .meta({ deprecated }),

@@ -77,10 +77,8 @@ export const kubernetesModuleSpecSchema = () =>
         )
         .keys({
           containerModule: containerModuleSchema(),
-          hotReloadArgs: joi.any().meta({
-            internal: true,
-            // no need to compose deprecation message here, because thid field is hidden and does not appear in the reference docs
-          }),
+          // TODO(0.15): remove this
+          hotReloadArgs: joi.any().meta({ internal: true }),
         }),
       tasks: joiSparseArray(kubernetesTaskSchema()),
       tests: joiSparseArray(kubernetesTestSchema()),
