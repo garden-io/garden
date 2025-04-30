@@ -31,7 +31,7 @@ import { resolve } from "path"
 import { killPortForwards } from "../port-forward.js"
 import { prepareSecrets } from "../secrets.js"
 import { configureSyncMode, convertContainerSyncSpec } from "../sync.js"
-import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util.js"
+import { getDeployedImageId, getResourceRequirements, getSecurityContext, resolveResourceLimits } from "./util.js"
 import type { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types.js"
 import type { ActionMode, Resolved } from "../../../actions/types.js"
 import { ConfigurationError, DeploymentError } from "../../../exceptions.js"
@@ -232,13 +232,14 @@ export async function createWorkloadManifest({
   })
 
   const { cpu, memory, limits } = spec
+  const resolvedResourceLimits = resolveResourceLimits({ cpu, memory }, limits)
 
   const container: V1Container = {
     name: action.name,
     image: imageId,
     env,
     ports: [],
-    resources: getResourceRequirements({ cpu, memory }, limits),
+    resources: getResourceRequirements(resolvedResourceLimits),
     imagePullPolicy: "IfNotPresent",
     securityContext: {
       allowPrivilegeEscalation: spec.privileged || false,
