@@ -609,6 +609,10 @@ interface ContainerCommonRuntimeSpec {
   command?: string[]
   env: PrimitiveMap
 
+  /**
+   * TODO(0.15) remove this
+   * @deprecated use {@link #cpu} and {@link #memory} instead
+   */
   limits?: LegacyServiceLimitSpec
   cpu: ContainerResourcesSpec["cpu"]
   memory: ContainerResourcesSpec["memory"]
