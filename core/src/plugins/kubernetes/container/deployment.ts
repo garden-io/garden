@@ -39,6 +39,7 @@ import type { SyncableKind, KubernetesWorkload, KubernetesResource, SupportedRun
 import { k8sGetContainerDeployStatus } from "./status.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run.js"
 import { styles } from "../../../logger/styles.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
 
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
@@ -232,14 +233,19 @@ export async function createWorkloadManifest({
   })
 
   const { cpu, memory, limits } = spec
-  const resolvedResourceLimits = resolveResourceLimits({ cpu, memory }, limits)
+  const { resolvedResources, warning } = resolveResourceLimits({ cpu, memory }, limits)
+  if (warning) {
+    const config = action.getConfig()
+    const warnSuffix = `Check your ${styles.highlight(action.key())} action configuration at ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}`
+    emitNonRepeatableWarning(log, `${warning}\n${warnSuffix}`)
+  }
 
   const container: V1Container = {
     name: action.name,
     image: imageId,
     env,
     ports: [],
-    resources: getResourceRequirements(resolvedResourceLimits),
+    resources: getResourceRequirements(resolvedResources),
     imagePullPolicy: "IfNotPresent",
     securityContext: {
       allowPrivilegeEscalation: spec.privileged || false,
