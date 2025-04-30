@@ -315,8 +315,7 @@ async function buildxBuildContainer({
     }
 
     // Otherwise, process the original error.
-    // This might not be a real-life scenario,
-    // because the Docker error logs should be not empty.
+    // The Docker error logs can be empty in case if docker command failed to start (e.g. it got unrecognized opts/flags or wrong args).
     if (dockerBuildError instanceof GardenError) {
       throw new BuildError({
         message: `docker build failed: ${dockerBuildError.message}`,
