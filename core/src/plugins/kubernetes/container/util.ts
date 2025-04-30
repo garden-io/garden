@@ -34,12 +34,9 @@ export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>): st
   }
 }
 
-export function getResourceRequirements(
-  resources: ContainerResourcesSpec,
-  limits?: LegacyServiceLimitSpec
-): V1ResourceRequirements {
-  const maxCpu = limits?.cpu || resources.cpu.max
-  const maxMemory = limits?.memory || resources.memory.max
+export function getResourceRequirements(resources: ContainerResourcesSpec): V1ResourceRequirements {
+  const maxCpu = resources.cpu.max
+  const maxMemory = resources.memory.max
 
   const resourceReq: V1ResourceRequirements = {
     requests: {
@@ -58,6 +55,25 @@ export function getResourceRequirements(
   }
 
   return resourceReq
+}
+
+export function resolveResourceLimits(
+  resources: ContainerResourcesSpec,
+  limits?: LegacyServiceLimitSpec
+): ContainerResourcesSpec {
+  const maxCpu = limits?.cpu || resources.cpu.max
+  const maxMemory = limits?.memory || resources.memory.max
+
+  return {
+    cpu: {
+      min: resources.cpu.min,
+      max: maxCpu,
+    },
+    memory: {
+      min: resources.memory.min,
+      max: maxMemory,
+    },
+  }
 }
 
 export function getSecurityContext(
