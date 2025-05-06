@@ -33,7 +33,7 @@
     "@types/treeify": "^1.0.3",
     "@types/yargs": "^17.0.33",
     "@typescript-eslint/eslint-plugin": "^8.31.0",
-    "@typescript-eslint/parser": "^8.31.0",
+    "@typescript-eslint/parser": "^8.32.0",
     "@stylistic/eslint-plugin": "^4.2.0",
     "ansi-regex": "^6.1.0",
     "chalk": "^5.4.1",
