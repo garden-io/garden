@@ -19,8 +19,12 @@ import type { Log } from "../logger/log-entry.js"
 import { getNonAuthenticatedApiClient } from "./grow/trpc.js"
 import { getBackendType } from "./util.js"
 import type { ProjectConfig } from "../config/project.js"
+import { renderZodError } from "../config/zod.js"
 
-function getFirstValue(v: string | string[]) {
+function getFirstValue(v: string | string[] | undefined | null) {
+  if (v === undefined || v === null) {
+    return undefined
+  }
   return isArray(v) ? v[0] : v
 }
 
@@ -68,6 +72,16 @@ export abstract class AbstractGardenBackend implements GardenBackend {
   abstract revokeToken(params: RevokeAuthTokenParams): Promise<void>
 }
 
+export const gardenCloudTokenSchema = z.object({
+  jwt: z.string().describe("JWT token"),
+  rt: z.string().describe("Refresh token"),
+  jwtVal: z
+    .number()
+    .or(z.string())
+    .transform((value) => parseInt(value.toString(), 10))
+    .describe("JWT token validity period"),
+})
+
 export class GardenCloudBackend extends AbstractGardenBackend {
   override get cloudApiFactory(): GardenCloudApiFactory {
     return GardenCloudApi.factory
@@ -78,12 +92,21 @@ export class GardenCloudBackend extends AbstractGardenBackend {
       getLoginUrl: (port) => new URL(`/clilogin/${port}`, this.config.cloudDomain).href,
       successUrl: new URL("/clilogin/success", this.config.cloudDomain).href,
       extractAuthToken: (query): AuthToken => {
-        const { jwt, rt, jwtVal } = query
+        const rawToken = {
+          jwt: getFirstValue(query.jwt),
+          rt: getFirstValue(query.rt),
+          jwtVal: getFirstValue(query.jwtVal),
+        }
+
+        const token = gardenCloudTokenSchema.safeParse(rawToken)
+        if (!token.success) {
+          throw new InternalError({ message: `"Invalid query parameters": ${renderZodError(token.error)}` })
+        }
 
         return {
-          token: getFirstValue(jwt!),
-          refreshToken: getFirstValue(rt!),
-          tokenValidity: parseInt(getFirstValue(jwtVal!), 10),
+          token: token.data.jwt,
+          refreshToken: token.data.rt,
+          tokenValidity: token.data.jwtVal,
         }
       },
     }
@@ -136,8 +159,7 @@ export class GrowCloudBackend extends AbstractGardenBackend {
       extractAuthToken: (query): AuthToken => {
         const token = growCloudTokenSchema.safeParse(query)
         if (!token.success) {
-          // TODO: Better error handling
-          throw new InternalError({ message: "Invalid query parameters" })
+          throw new InternalError({ message: `"Invalid query parameters": ${renderZodError(token.error)}` })
         }
 
         return {
