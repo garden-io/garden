@@ -78,12 +78,12 @@ export class GardenCloudBackend extends AbstractGardenBackend {
       getLoginUrl: (port) => new URL(`/clilogin/${port}`, this.config.cloudDomain).href,
       successUrl: new URL("/clilogin/success", this.config.cloudDomain).href,
       extractAuthToken: (query) => {
-        const { jwt, rt, jwtval } = query
+        const { jwt, rt, jwtVal } = query
         // TODO: validate properly
         return {
           token: getFirstValue(jwt!),
           refreshToken: getFirstValue(rt!),
-          tokenValidity: parseInt(getFirstValue(jwtval!), 10),
+          tokenValidity: parseInt(getFirstValue(jwtVal!), 10),
         }
       },
     }
