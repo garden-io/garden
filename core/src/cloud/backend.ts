@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { AuthRedirectServerConfig } from "./auth.js"
+import type { AuthRedirectServerConfig, AuthToken } from "./auth.js"
 import { isArray } from "lodash-es"
 import { z } from "zod"
 import { InternalError } from "../exceptions.js"
@@ -77,9 +77,9 @@ export class GardenCloudBackend extends AbstractGardenBackend {
     return {
       getLoginUrl: (port) => new URL(`/clilogin/${port}`, this.config.cloudDomain).href,
       successUrl: new URL("/clilogin/success", this.config.cloudDomain).href,
-      extractAuthToken: (query) => {
+      extractAuthToken: (query): AuthToken => {
         const { jwt, rt, jwtVal } = query
-        // TODO: validate properly
+
         return {
           token: getFirstValue(jwt!),
           refreshToken: getFirstValue(rt!),
@@ -133,7 +133,7 @@ export class GrowCloudBackend extends AbstractGardenBackend {
     return {
       getLoginUrl: (port) => new URL(`/login?port=${port}${addOrganizationIdParam}`, this.config.cloudDomain).href,
       successUrl: `${new URL("/confirm-cli-auth", this.config.cloudDomain).href}?cliLoginSuccess=true`,
-      extractAuthToken: (query) => {
+      extractAuthToken: (query): AuthToken => {
         const token = growCloudTokenSchema.safeParse(query)
         if (!token.success) {
           // TODO: Better error handling
