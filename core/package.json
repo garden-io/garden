@@ -169,7 +169,7 @@
     "@commitlint/cli": "^19.6.0",
     "@commitlint/config-conventional": "^19.7.1",
     "@garden-io/platform-api-types": "1.1131.0",
-    "@google-cloud/artifact-registry": "^3.5.0",
+    "@google-cloud/artifact-registry": "^4.0.1",
     "@types/archiver": "^6.0.3",
     "@types/async": "^3.2.24",
     "@types/async-lock": "^1.4.2",
