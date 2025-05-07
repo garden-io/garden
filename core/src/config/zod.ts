@@ -14,8 +14,11 @@ import { envVarRegex, identifierRegex, joiIdentifierDescription, userIdentifierR
 declare module "zod" {
   interface ZodType {
     getMetadata(): Record<string, any>
+
     setMetadata(meta: Record<string, any>): this
+
     getExample(): any
+
     example(value: any): this
   }
 }
@@ -85,9 +88,9 @@ export function renderZodError(error: z.ZodError): string {
   return error.issues
     .map((i: Zod.ZodIssue) => {
       if (i.message === "Required" && i["expected"] && i["received"]) {
-        return `Expected ${i["expected"]}, but received ${i["received"]}`
+        return `Expected ${i["expected"]} at field '${i["path"]}', but received ${i["received"]}`
       } else {
-        return i.message
+        return `${i.message} at field '${i["path"]}'`
       }
     })
     .join("\n")
