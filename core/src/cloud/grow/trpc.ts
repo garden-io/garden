@@ -23,7 +23,7 @@ export type RouterInput = inferRouterInputs<AppRouter>
  * The `organizationId` is already known and stored in the {@link GrowCloudApi} class,
  * so the class should use that value to compose tRPC request payloads.
  */
-export type ClientRequest<T extends { organizationId?: string | undefined }> = Omit<T, "organizationId">
+export type ClientRequest<T extends { organizationId: string }> = Omit<T, "organizationId">
 
 export type DockerBuildReport = ClientRequest<RouterInput["dockerBuild"]["create"]>
 
