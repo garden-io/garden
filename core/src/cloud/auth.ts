@@ -235,7 +235,8 @@ export class AuthRedirectServer {
     app.use(http.allowedMethods())
     app.use(http.routes())
     app.on("error", (err) => {
-      this.log.error(`Auth redirect request failed with status ${err.status}: ${err.message}`)
+      this.log.error(`Auth redirect request failed with the error: ${err.message}`)
+      throw err
     })
     this.server = app.listen(port)
     this.app = app
