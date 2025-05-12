@@ -45,10 +45,11 @@ export const terraformBackendConfigSchema = () =>
 
         If Garden sees that the backend has changes, it'll re-initialize Terraform and set the new values.
       `
-    ).example(dedent`
-      bucket: \$\{environment.name\}-bucket
-      key: tf-state/\$\{local.username\}/terraform.tfstate
-    `)
+    )
+    .example({
+      bucket: "${environment.name}-bucket",
+      key: "tf-state/${local.username}/terraform.tfstate",
+    })
 
 export const variablesSchema = () => joiStringMap(joi.any())
 
