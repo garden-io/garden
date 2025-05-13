@@ -246,7 +246,7 @@
     "sinon": "^20.0.0",
     "testdouble": "^3.20.2",
     "timekeeper": "^2.2.0",
-    "type-fest": "^4.39.1",
+    "type-fest": "^4.41.0",
     "typescript": "^5.5.3",
     "utility-types": "^3.11.0"
   },
