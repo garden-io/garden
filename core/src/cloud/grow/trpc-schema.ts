@@ -46,8 +46,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             name: string
             email: string
             password: string
-            port?: number | undefined
             organizationId?: string | undefined
+            port?: number | undefined
             invitationToken?: string | undefined
           }
           output: {
@@ -58,8 +58,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           input: {
             email: string
             password: string
-            port?: number | undefined
             organizationId?: string | undefined
+            port?: number | undefined
             invitationToken?: string | undefined
           }
           output: {
@@ -75,8 +75,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         oauthUrlRedirect: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             provider: "github"
-            port?: number | undefined
             organizationId?: string | undefined
+            port?: number | undefined
             invitationToken?: string | undefined
           }
           output: {
@@ -203,10 +203,10 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
       import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
         createEntry: import("@trpc/server").TRPCMutationProcedure<{
           input: {
+            organizationId: string
             actionType: string
             startedAt: string
             completedAt: string
-            organizationId: string
             schemaVersion: string
             actionRef: string
             cacheKey: string
@@ -218,8 +218,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         }>
         getEntry: import("@trpc/server").TRPCQueryProcedure<{
           input: {
-            actionType: string
             organizationId: string
+            actionType: string
             schemaVersion: string
             actionRef: string
             cacheKey: string
@@ -274,8 +274,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             id: string
             createdAt: Date
             updatedAt: Date
-            registrationToken: string
             organizationId: string
+            registrationToken: string
             description: string
             registries: Map<
               string,
@@ -440,13 +440,6 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             organizationId: string
           }
           output: {
-            products: {
-              name: string
-              id: `prod_${string}`
-              description: string | null
-              metadata: Record<string, unknown>
-              defaultPrice?: `price_${string}` | undefined
-            }[]
             prices: {
               id: `price_${string}`
               product: `prod_${string}`
@@ -456,6 +449,13 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               } | null
               unitAmount: number | null
               unitAmountDecimal: string | null
+            }[]
+            products: {
+              name: string
+              id: `prod_${string}`
+              description: string | null
+              metadata: Record<string, unknown>
+              defaultPrice?: `price_${string}` | undefined
             }[]
             billingProfile?:
               | {
@@ -510,8 +510,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
       import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
         registerBuild: import("@trpc/server").TRPCMutationProcedure<{
           input: {
+            organizationId: string
             platforms: string[]
-            organizationId?: string | undefined
             mtlsClientPublicKeyPEM?: string | undefined
           }
           output: {
@@ -568,6 +568,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             status: "unknown" | "error" | "active" | "success" | "cancelled"
+            organizationId: string
             startedAt: Date
             completedAt: Date | null
             command: string
@@ -576,16 +577,15 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             gitBranchName: string | null
             gitCommitHash: string | null
             gitIsDirty: boolean | null
-            organizationId?: string | undefined
           }
           output: {
             status: "unknown" | "error" | "active" | "success" | "cancelled"
             id: string
             createdAt: Date
             updatedAt: Date
+            organizationId: string
             startedAt: Date
             completedAt: Date
-            organizationId: string
             accountId: string
             command: string
             clientVersion: string
@@ -605,9 +605,9 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               id: string
               createdAt: Date
               updatedAt: Date
+              organizationId: string
               startedAt: Date
               completedAt: Date
-              organizationId: string
               accountId: string
               command: string
               clientVersion: string
@@ -640,7 +640,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             organizationId: string
             cursor?: number | undefined
             perPage?: number | undefined
-            sortOrder?: "desc" | "asc" | undefined
+            sortOrder?: "asc" | "desc" | undefined
             dates?:
               | {
                   from?: number | undefined
@@ -654,9 +654,9 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               id: string
               createdAt: Date
               updatedAt: Date
+              organizationId: string
               startedAt: Date
               completedAt: Date
-              organizationId: string
               accountId: string
               command: string
               clientVersion: string
@@ -671,7 +671,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         timelineChart: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             organizationId: string
-            sortOrder?: "desc" | "asc" | undefined
+            sortOrder?: "asc" | "desc" | undefined
             dates?:
               | {
                   from?: number | undefined
@@ -701,6 +701,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             status: "success" | "failure"
+            organizationId: string
             startedAt: Date
             completedAt: Date
             platforms: string[]
@@ -725,7 +726,6 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               }
             }
             imageTags: string[]
-            organizationId?: string | undefined
             dockerMetadata?:
               | import("zod").objectInputType<
                   {
@@ -769,7 +769,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             organizationId: string
             cursor?: number | undefined
             perPage?: number | undefined
-            sortOrder?: "desc" | "asc" | undefined
+            sortOrder?: "asc" | "desc" | undefined
           }
           output: {
             items: {
@@ -777,8 +777,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               id: string
               createdAt: Date
               updatedAt: Date
-              startedAt: Date
               organizationId: string
+              startedAt: Date
               accountId: string
               dockerRawjsonLogs: Record<string, unknown>[]
               actualRuntime: string
@@ -815,8 +815,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             id: string
             createdAt: Date
             updatedAt: Date
-            startedAt: Date
             organizationId: string
+            startedAt: Date
             accountId: string
             dockerRawjsonLogs: Record<string, unknown>[]
             actualRuntime: string
@@ -1168,6 +1168,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             id: string
             createdAt: Date
             updatedAt: Date
+            plan: "free" | "trial" | "team" | "enterprise"
           }
         }>
         getById: import("@trpc/server").TRPCQueryProcedure<{
@@ -1179,7 +1180,9 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             id: string
             createdAt: Date
             updatedAt: Date
-            usersCount: number
+            plan: "free" | "trial" | "team" | "enterprise"
+            activeUsersCount: number
+            usedSeatsCount: number
           }
         }>
         list: import("@trpc/server").TRPCQueryProcedure<{
@@ -1193,6 +1196,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               id: string
               createdAt: Date
               updatedAt: Date
+              plan: "free" | "trial" | "team" | "enterprise"
             }[]
             nextCursor?: number | undefined
           }
@@ -1207,6 +1211,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             id: string
             createdAt: Date
             updatedAt: Date
+            plan: "free" | "trial" | "team" | "enterprise"
           }
         }>
         hardDelete: import("@trpc/server").TRPCMutationProcedure<{
