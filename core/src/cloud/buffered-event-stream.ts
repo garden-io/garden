@@ -185,10 +185,6 @@ export class BufferedEventStream {
     this.startInterval()
   }
 
-  isClosed() {
-    return this.closed
-  }
-
   startInterval() {
     this.intervalId = setInterval(() => {
       this.flushBuffered()
