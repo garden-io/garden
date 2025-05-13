@@ -13,8 +13,17 @@ import type { Log } from "../../logger/log-entry.js"
 import type { EventName, Events, GardenEventAnyListener } from "../../events/events.js"
 import { LogLevel } from "../../logger/logger.js"
 import type { LogEntryEventPayload } from "../buffered-event-stream.js"
+import type {
+  Event as GrpcEvent,
+  GardenEventIngestionService,
+} from "@buf/garden_grow-platform.bufbuild_es/private/events/events_pb.js"
+import { EventContextSchema, EventSchema } from "@buf/garden_grow-platform.bufbuild_es/private/events/events_pb.js"
+import { create } from "@bufbuild/protobuf"
+import type { Client } from "@connectrpc/connect"
+import type { WritableIterable } from "@connectrpc/connect/protocol"
+import { createWritableIterable } from "@connectrpc/connect/protocol"
 
-const ulid = monotonicFactory()
+const nextEventUlid = monotonicFactory()
 
 export class GrowBufferedEventStream {
   private readonly garden: GardenWithNewBackend
@@ -23,19 +32,43 @@ export class GrowBufferedEventStream {
   private readonly eventListener: GardenEventAnyListener<EventName>
   private readonly logListener: GardenEventAnyListener<"logEntry">
 
+  // TODO: add sessionUlid to Garden and make it non-optional in GardenWithNewBackend types
+  private readonly sessionUlid: string
+
+  private readonly client: Client<typeof GardenEventIngestionService>
+
+  /**
+   * Maps a globally _monotonic_ ULID (event ID) to the corresponding event's payload.
+   */
+  private readonly eventBuffer = new Map<string, GrpcEvent>()
+
+  private outputStream: WritableIterable<GrpcEvent> | undefined
   private closed: boolean
 
-  constructor({ garden, log }: { garden: GardenWithNewBackend; log: Log }) {
+  constructor({
+    garden,
+    log,
+    sessionUlid,
+    client,
+  }: {
+    garden: GardenWithNewBackend
+    log: Log
+    sessionUlid: string
+    client: Client<typeof GardenEventIngestionService>
+  }) {
     this.garden = garden
     this.log = log
+    this.sessionUlid = sessionUlid
+    this.client = client
     this.closed = false
 
+    // TODO: make sure it waits for the callback function completion
     registerCleanupFunction("grow-stream-session-cancelled-event", () => {
       if (this.closed) {
         return
       }
 
-      this.handleEvent("sessionCancelled", {})
+      void this.handleEvent("sessionCancelled", {})
       this.close().catch(() => {})
     })
 
@@ -46,8 +79,8 @@ export class GrowBufferedEventStream {
     }
     this.log.root.events.onAny(this.logListener)
 
-    this.eventListener = (name, payload) => {
-      this.handleEvent(name, payload)
+    this.eventListener = async (name, payload) => {
+      await this.handleEvent(name, payload)
     }
     this.garden.events.onAny(this.eventListener)
 
@@ -78,8 +111,36 @@ export class GrowBufferedEventStream {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  handleEvent<T extends EventName>(name: T, payload: Events[T]) {
-    // TODO: event handling
+  async handleEvent<T extends EventName>(name: T, payload: Events[T]) {
+    const event: GrpcEvent = create(EventSchema, {
+      eventId: nextEventUlid(),
+      context: create(EventContextSchema, {
+        organizationId: this.garden.cloudApiV2.organizationId,
+        sessionId: this.sessionUlid,
+      }),
+    })
+
+    this.eventBuffer.set(event.eventId, event)
+    await this.outputStream?.write(event)
+  }
+
+  async streamEvents() {
+    this.outputStream = createWritableIterable<GrpcEvent>()
+    // this.eventBuffer.values(async (e) => this.outputStream?.write(e))
+
+    try {
+      const ackStream = this.client.ingestEventStream(this.outputStream)
+      for await (const nextAck of ackStream) {
+        if (!nextAck.success) {
+          this.log.debug(`Server failed to process event with ulid=${nextAck.eventId}`)
+        }
+
+        this.eventBuffer.delete(nextAck.eventId)
+      }
+    } finally {
+      this.outputStream.close()
+      this.outputStream = undefined
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
