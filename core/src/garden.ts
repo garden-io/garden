@@ -257,6 +257,7 @@ interface ResolveProviderParams {
 
 type GardenType = typeof Garden.prototype
 export type GardenWithOldBackend = GardenType & Required<Pick<GardenType, "cloudApi">>
+export type GardenWithNewBackend = GardenType & Required<Pick<GardenType, "cloudApiV2">>
 
 function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
   const projectApiVersion = params.projectConfig.apiVersion
