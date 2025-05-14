@@ -180,6 +180,10 @@ export class GrowBufferedEventStream {
     )
 
     this.eventBuffer.set(event.eventId, event)
+
+    // NOTE: we don't need to wait for the promise to resolve.
+    // If sending the event fails, it will be retried as it lives in the event buffer.
+    // See the caller of `streamEvents`.
     void this.outputStream?.write(event)
   }
 
@@ -269,10 +273,11 @@ export class GrowBufferedEventStream {
 
     this.log.debug(() => "GrowBufferedEventStream: Connected")
 
+    // we synchronously flush all events into the output stream, to ensure that we don't send events out-of-order
+    this.flushEventBuffer()
+
     try {
-      // We concurrently consume the ack stream and flush the buffer of unacknowledged events.
-      // Consuming and writing sequentially can cause deadlocks
-      await Promise.all([this.consumeAcks(ackStream), this.flushEventBuffer()])
+      await this.consumeAcks(ackStream)
     } finally {
       this.outputStream?.close()
       this.outputStream = undefined
@@ -302,18 +307,26 @@ export class GrowBufferedEventStream {
     }
   }
 
-  private async flushEventBuffer() {
+  /**
+   * Flushes the event buffer to the output stream.
+   * We do this in synchronous fashion (without waiting for the event to be consumed) to avoid
+   * out-of-order events, if we receive new events while we're still flushing.
+   */
+  private flushEventBuffer() {
     if (this.eventBuffer.size === 0) {
       return
     }
 
     this.log.debug(() => `GrowBufferedEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
+    // NOTE: The Map implementation in the javascript runtime guarantees that values will be iterated in the order they were added (FIFO).
     for (const event of this.eventBuffer.values()) {
       if (!this.outputStream) {
         this.log.debug(() => `GrowBufferedEventStream: Stream closed during flush`)
         break
       }
-      await this.outputStream.write(event)
+      // NOTE: we're not waiting for the promise to resolve on purpose, as we want to synchronously flush all events
+      // to the underlying queue avoiding out-of-order event transmission.
+      void this.outputStream.write(event)
     }
   }
 }
