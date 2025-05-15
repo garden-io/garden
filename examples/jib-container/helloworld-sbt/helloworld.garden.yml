@@ -1,0 +1,56 @@
+# TODO: This action should work once Garden supports sbt for the jib-container type
+#
+kind: Build
+type: jib-container
+name: helloworld-sbt
+spec:
+  # Push to local docker daemon when running a local cluster
+  # Note: You could also specify a deploymentRegistry or set the `image` field if you prefer to push to a registry,
+  #       but that'll obviously be much slower.
+  dockerBuild: ${environment.name == "local"}
+---
+kind: Deploy
+type: container
+name: helloworld-sbt
+spec:
+  image: ${actions.build.helloworld-sbt.outputs.deploymentImageId}
+
+
+
+
+#  -- What follows is the workaround for missing support for the above --
+
+# ---
+# apiVersion: garden.io/v0
+# kind: Module
+# type: exec
+# name: sbt-build-jar
+# description: Build the spark api
+# include:
+#   - "**/*"
+# exclude:
+#   - "target/**/*"
+#   - "project/target/**/*"
+
+# local: true
+
+# build:
+#   command:
+#     - sbt
+#     - -batch
+#     - '"Hello / assembly"'
+# ---
+# apiVersion: garden.io/v0
+# kind: Module
+# type: container
+# name: sbt-build-container
+# description: Spark API
+# include:
+#   - Dockerfile
+#   - entrypoint.sh
+#   - version.sbt
+#   - target/scala-3.7.0/*.jar
+# local: true
+# build:
+#   dependencies:
+#     - name: sbt-build-jar
