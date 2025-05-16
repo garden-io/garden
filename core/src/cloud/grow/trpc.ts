@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CreateTRPCClient } from "@trpc/client"
+import type { CreateTRPCClient, TRPCClientError } from "@trpc/client"
 import { createTRPCClient, httpLink, loggerLink } from "@trpc/client"
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import superjson from "superjson"
 import type { AppRouter } from "./trpc-schema.js"
 import { getPackageVersion } from "../../util/util.js"
+import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
+import { isError } from "lodash-es"
 
 export type RouterOutput = inferRouterOutputs<AppRouter>
 export type RouterInput = inferRouterInputs<AppRouter>
@@ -80,3 +82,23 @@ export function getNonAuthenticatedApiClient(trpcConfigParams: Omit<TrpcConfigPa
 }
 
 export type ApiClient = CreateTRPCClient<AppRouter>
+
+export function describeTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
+  const errorDescriptions: string[] = []
+
+  let currentError: Error | undefined = err
+  while (currentError !== undefined) {
+    const errorType = currentError.constructor.name
+    const errorMsg = currentError.message
+
+    errorDescriptions.push(`${errorType}: ${errorMsg}`)
+
+    if (isError(currentError.cause)) {
+      currentError = currentError.cause
+    } else {
+      currentError = undefined
+    }
+  }
+
+  return errorDescriptions.join("; caused by: ")
+}

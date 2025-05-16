@@ -11,7 +11,7 @@ import { TRPCError } from "@trpc/server"
 import { getHTTPStatusCodeFromError } from "@trpc/server/http"
 import type { ClientAuthToken, GlobalConfigStore } from "../../config-store/global.js"
 import type { Log } from "../../logger/log-entry.js"
-import { getNonAuthenticatedApiClient } from "./trpc.js"
+import { describeTRPCClientError, getNonAuthenticatedApiClient } from "./trpc.js"
 import { CloudApiTokenRefreshError } from "../api.js"
 import { CloudApiError } from "../../exceptions.js"
 import { clearAuthToken, saveAuthToken } from "../auth.js"
@@ -63,7 +63,11 @@ export async function isTokenValid({
     }
 
     if (err instanceof TRPCClientError) {
-      throw GrowCloudError.wrapTRPCClientError(err)
+      const errorDesc = describeTRPCClientError(err)
+      throw new GrowCloudError({
+        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${errorDesc}`,
+        cause: err,
+      })
     }
 
     throw err
@@ -108,8 +112,9 @@ export async function refreshAuthTokenAndWriteToConfigStore(
       log.info("Invalid refresh token was removed from the configuration store.")
     }
 
+    const message = describeTRPCClientError(err)
     throw new CloudApiTokenRefreshError({
-      message: dedent`An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${err.message}
+      message: dedent`An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${message}
         Please try again.
         `,
       responseStatusCode: errHttpStatusCode,
