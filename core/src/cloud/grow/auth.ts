@@ -109,7 +109,7 @@ export async function refreshAuthTokenAndWriteToConfigStore(
     const errHttpStatusCode = err.data?.httpStatus
     if (errHttpStatusCode === 401) {
       await clearAuthToken(log, globalConfigStore, cloudDomain)
-      log.info("Invalid refresh token was removed from the configuration store.")
+      log.debug("Invalid refresh token was removed from the configuration store.")
     }
 
     const message = describeTRPCClientError(err)
