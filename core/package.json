@@ -122,7 +122,6 @@
     "path-is-inside": "^1.0.2",
     "pluralize": "^8.0.0",
     "prop-types": "^15.8.1",
-    "proper-lockfile": "^4.1.2",
     "proper-url-join": "^2.1.2",
     "proxy-agent": "^6.5.0",
     "qs": "^6.13.1",
