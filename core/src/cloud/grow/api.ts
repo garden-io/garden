@@ -19,7 +19,7 @@ import type {
   RegisterCloudBuildRequest,
   RegisterCloudBuildResponse,
 } from "./trpc.js"
-import { getAuthenticatedApiClient } from "./trpc.js"
+import { describeTRPCClientError, getAuthenticatedApiClient } from "./trpc.js"
 import type { GardenErrorParams } from "../../exceptions.js"
 import { CloudApiError, GardenError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
@@ -45,7 +45,11 @@ export class GrowCloudError extends GardenError {
   }
 
   public static wrapTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
-    return new GrowCloudError({ message: err.message, cause: err })
+    const detailedErrorMessage = describeTRPCClientError(err)
+    return new GrowCloudError({
+      message: `An error occurred while calling Garden Backend: ${detailedErrorMessage}`,
+      cause: err,
+    })
   }
 }
 
