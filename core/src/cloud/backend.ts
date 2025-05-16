@@ -11,15 +11,16 @@ import { isArray } from "lodash-es"
 import { z } from "zod"
 import { InternalError } from "../exceptions.js"
 import type { CloudApiFactory, GardenCloudApiFactory } from "./api.js"
-import { GardenCloudApi } from "./api.js"
+import { CloudApiTokenRefreshError, GardenCloudApi } from "./api.js"
 import type { GrowCloudApiFactory } from "./grow/api.js"
 import { GrowCloudApi } from "./grow/api.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import type { Log } from "../logger/log-entry.js"
-import { getNonAuthenticatedApiClient } from "./grow/trpc.js"
-import { getBackendType } from "./util.js"
+import { getBackendType, getCloudDistributionName } from "./util.js"
 import type { ProjectConfig } from "../config/project.js"
 import { renderZodError } from "../config/zod.js"
+import { revokeAuthToken } from "./grow/auth.js"
+import { GotHttpError } from "../util/http.js"
 
 function getFirstValue(v: string | string[] | undefined | null) {
   if (v === undefined || v === null) {
@@ -130,6 +131,15 @@ export class GardenCloudBackend extends AbstractGardenBackend {
 
     try {
       await cloudApi.post("token/logout", { headers: { Cookie: `rt=${clientAuthToken?.refreshToken}` } })
+    } catch (err) {
+      if (!(err instanceof GotHttpError)) {
+        throw err
+      }
+
+      throw new CloudApiTokenRefreshError({
+        message: `An error occurred while revoking client auth token with ${getCloudDistributionName(this.config.cloudDomain)}: ${err.message}`,
+        responseStatusCode: err.response?.statusCode,
+      })
     } finally {
       cloudApi.close()
     }
@@ -173,10 +183,8 @@ export class GrowCloudBackend extends AbstractGardenBackend {
     }
   }
 
-  override async revokeToken({ clientAuthToken }: RevokeAuthTokenParams): Promise<void> {
-    await getNonAuthenticatedApiClient({ hostUrl: this.config.cloudDomain }).token.revokeToken.mutate({
-      token: clientAuthToken.token,
-    })
+  override async revokeToken({ clientAuthToken, log }: RevokeAuthTokenParams): Promise<void> {
+    await revokeAuthToken({ clientAuthToken, cloudDomain: this.config.cloudDomain, log })
   }
 }
 

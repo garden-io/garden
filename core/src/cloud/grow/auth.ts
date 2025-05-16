@@ -121,3 +121,30 @@ export async function refreshAuthTokenAndWriteToConfigStore(
     })
   }
 }
+
+export async function revokeAuthToken({
+  clientAuthToken,
+  cloudDomain,
+  log,
+}: {
+  clientAuthToken: ClientAuthToken
+  cloudDomain: string
+  log: Log
+}) {
+  try {
+    await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.revokeToken.mutate({
+      token: clientAuthToken.token,
+    })
+  } catch (err) {
+    if (!(err instanceof TRPCClientError)) {
+      throw err
+    }
+
+    log.debug({ msg: `Failed to revoke the token.` })
+
+    const message = describeTRPCClientError(err)
+    throw new CloudApiTokenRefreshError({
+      message: `An error occurred while revoking client auth token with ${getCloudDistributionName(cloudDomain)}: ${message}`,
+    })
+  }
+}
