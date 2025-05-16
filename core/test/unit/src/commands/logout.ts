@@ -176,10 +176,12 @@ describe("LogoutCommand", () => {
     await command.action(logoutCommandParams({ garden }))
 
     const tokenAfterLogout = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
-    const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
-
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Successfully logged out from https://example.invalid.")
+
+    const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.warn).join("\n")
+    expect(logOutput).to.include(
+      "The following issue occurred while logging out from https://example.invalid (your session will be cleared regardless)"
+    )
   })
 
   it("should remove token even if API calls fail", async () => {
@@ -217,10 +219,12 @@ describe("LogoutCommand", () => {
     await command.action(logoutCommandParams({ garden }))
 
     const tokenAfterLogout = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
-    const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
-
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Successfully logged out from https://example.invalid.")
+
+    const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.warn).join("\n")
+    expect(logOutput).to.include(
+      "The following issue occurred while logging out from https://example.invalid (your session will be cleared regardless)"
+    )
   })
 
   it("should not logout if outside project root", async () => {
