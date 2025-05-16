@@ -83,13 +83,22 @@ export function getNonAuthenticatedApiClient(trpcConfigParams: Omit<TrpcConfigPa
 
 export type ApiClient = CreateTRPCClient<AppRouter>
 
+export function isAggregateError(err: Error): err is AggregateError {
+  return err.constructor.name === "AggregateError"
+}
+
 export function describeTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
   const errorDescriptions: string[] = []
 
   let currentError: Error | undefined = err
   while (currentError !== undefined) {
     const errorType = currentError.constructor.name
-    const errorMsg = currentError.message
+    const errorMsg = isAggregateError(currentError)
+      ? currentError.errors
+          .map((e) => (isError(e) ? e.message : ""))
+          .filter((m) => !!m)
+          .join("; ")
+      : currentError.message
 
     errorDescriptions.push(`${errorType}: ${errorMsg}`)
 
