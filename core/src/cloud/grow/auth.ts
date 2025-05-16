@@ -18,6 +18,7 @@ import { clearAuthToken, saveAuthToken } from "../auth.js"
 import { getCloudDistributionName } from "../util.js"
 import dedent from "dedent"
 import { handleServerNotices } from "./notices.js"
+import { GrowCloudError } from "./api.js"
 
 export function isTokenExpired(token: ClientAuthToken) {
   const now = new Date()
@@ -36,8 +37,6 @@ export async function isTokenValid({
   cloudDomain: string
   log: Log
 }): Promise<boolean> {
-  let valid = false
-
   try {
     log.debug(`Checking client auth token with ${getCloudDistributionName(cloudDomain)}`)
     const verificationResult = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.verifyToken.query({
@@ -46,25 +45,29 @@ export async function isTokenValid({
 
     handleServerNotices(verificationResult.notices, log)
 
-    valid = verificationResult.valid
+    const tokenValid = verificationResult.valid
+    log.debug(`Checked client auth token with ${getCloudDistributionName(cloudDomain)} - valid: ${tokenValid}`)
+    return tokenValid
   } catch (err) {
-    if (!(err instanceof TRPCError)) {
-      throw err
+    // TODO: check whether it can be a TRPCError, and not a TRPCClientError;
+    //  this might be a dead-code branch, keeping here for compatibility
+    if (err instanceof TRPCError) {
+      const httpCode = getHTTPStatusCodeFromError(err)
+
+      if (httpCode !== 401) {
+        throw new CloudApiError({
+          message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${err.message}`,
+          responseStatusCode: httpCode,
+        })
+      }
     }
 
-    const httpCode = getHTTPStatusCodeFromError(err)
-
-    if (httpCode !== 401) {
-      throw new CloudApiError({
-        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${err.message}`,
-        responseStatusCode: httpCode,
-      })
+    if (err instanceof TRPCClientError) {
+      throw GrowCloudError.wrapTRPCClientError(err)
     }
+
+    throw err
   }
-
-  log.debug(`Checked client auth token with ${getCloudDistributionName(cloudDomain)} - valid: ${valid}`)
-
-  return valid
 }
 
 export async function refreshAuthTokenAndWriteToConfigStore(
