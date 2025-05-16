@@ -47,6 +47,7 @@ export class LogOutCommand extends Command<{}, Opts> {
       }
 
       await gardenBackend.revokeToken({ clientAuthToken, globalConfigStore, log })
+      log.success(`Successfully logged out from ${cloudDomain}.`)
     } catch (err) {
       const msg = dedent`
       The following issue occurred while logging out from ${cloudDomain} (your session will be cleared regardless): ${err}\n
@@ -54,7 +55,6 @@ export class LogOutCommand extends Command<{}, Opts> {
       log.warn(msg)
     } finally {
       await clearAuthToken(log, globalConfigStore, cloudDomain)
-      log.success(`Successfully logged out from ${cloudDomain}.`)
     }
 
     return {}
