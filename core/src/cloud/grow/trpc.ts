@@ -91,9 +91,17 @@ type ErrorCause = { type: string; msg: string }
 
 export function getErrorCauseChain(err: TRPCClientError<InferrableClientTypes>): ErrorCause[] {
   const errorCauses: ErrorCause[] = []
+  const seen = new Set<Error>()
 
   let currentError: Error | undefined = err
   while (currentError !== undefined) {
+    // to avoid potential circular causes
+    if (seen.has(currentError)) {
+      break
+    }
+
+    seen.add(currentError)
+
     const errorType = currentError.constructor.name
     const errorMsg = isAggregateError(currentError)
       ? currentError.errors
@@ -102,7 +110,8 @@ export function getErrorCauseChain(err: TRPCClientError<InferrableClientTypes>):
           .join("; ")
       : currentError.message
 
-    errorCauses.push({ type: errorType, msg: errorMsg })
+    const errorCause = { type: errorType, msg: errorMsg }
+    errorCauses.push(errorCause)
 
     if (isError(currentError.cause)) {
       currentError = currentError.cause
