@@ -610,6 +610,7 @@ export class Mutagen {
       retries: 5,
       minTimeout: 1000,
       onFailedAttempt: async (err) => {
+        this.log.debug(() => err.stack || err.message)
         const unableToFlush = err.message.match(/unable to flush session/)
         if (unableToFlush) {
           this.log.warn(
