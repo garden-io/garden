@@ -114,7 +114,7 @@ export async function refreshAuthTokenAndWriteToConfigStore(
 
     const message = describeTRPCClientError(err)
     throw new CloudApiTokenRefreshError({
-      message: dedent`An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${message}
+      message: dedent`An error occurred while refreshing client auth token with ${getCloudDistributionName(cloudDomain)}: ${message}
         Please try again.
         `,
       responseStatusCode: errHttpStatusCode,
