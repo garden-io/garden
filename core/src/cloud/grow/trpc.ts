@@ -87,8 +87,10 @@ export function isAggregateError(err: Error): err is AggregateError {
   return err.constructor.name === "AggregateError"
 }
 
-export function describeTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
-  const errorDescriptions: string[] = []
+type ErrorCause = { type: string; msg: string }
+
+export function getErrorCauseChain(err: TRPCClientError<InferrableClientTypes>): ErrorCause[] {
+  const errorCauses: ErrorCause[] = []
 
   let currentError: Error | undefined = err
   while (currentError !== undefined) {
@@ -100,7 +102,7 @@ export function describeTRPCClientError(err: TRPCClientError<InferrableClientTyp
           .join("; ")
       : currentError.message
 
-    errorDescriptions.push(`${errorType}: ${errorMsg}`)
+    errorCauses.push({ type: errorType, msg: errorMsg })
 
     if (isError(currentError.cause)) {
       currentError = currentError.cause
@@ -109,5 +111,44 @@ export function describeTRPCClientError(err: TRPCClientError<InferrableClientTyp
     }
   }
 
-  return errorDescriptions.join("; caused by: ")
+  return errorCauses
+}
+
+type TRPCErrorDesc = {
+  short: string
+  detailed: () => string
+}
+
+/**
+ * Collects deduplicated chain of error messages.
+ *
+ * @param errorCauses the list of the errors
+ */
+function getShortDesc(errorCauses: ErrorCause[]): string {
+  const errorMessages = new Set<string>()
+  for (const errorCause of errorCauses) {
+    errorMessages.add(errorCause.msg)
+  }
+  return [...errorMessages].join(": ")
+}
+
+/**
+ * Collects the actual chain of error messages with the corresponding constructor names.
+ *
+ * @param errorCauses the list of the errors
+ */
+function getDetailedDesc(errorCauses: ErrorCause[]): string {
+  const errorMessages: string[] = []
+  for (const errorCause of errorCauses) {
+    errorMessages.push(`${errorCause.type}: ${errorCause.msg}`)
+  }
+  return errorMessages.join("; caused by: ")
+}
+
+export function describeTRPCClientError(err: TRPCClientError<InferrableClientTypes>): TRPCErrorDesc {
+  const errorCauses = getErrorCauseChain(err)
+  return {
+    short: getShortDesc(errorCauses),
+    detailed: () => getDetailedDesc(errorCauses),
+  }
 }

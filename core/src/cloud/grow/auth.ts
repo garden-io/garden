@@ -64,8 +64,9 @@ export async function isTokenValid({
 
     if (err instanceof TRPCClientError) {
       const errorDesc = describeTRPCClientError(err)
+      log.debug(errorDesc.detailed)
       throw new GrowCloudError({
-        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${errorDesc}`,
+        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${errorDesc.short}`,
         cause: err,
       })
     }
@@ -112,9 +113,10 @@ export async function refreshAuthTokenAndWriteToConfigStore(
       log.debug("Invalid refresh token was removed from the configuration store.")
     }
 
-    const message = describeTRPCClientError(err)
+    const errorDesc = describeTRPCClientError(err)
+    log.debug(errorDesc.detailed)
     throw new CloudApiTokenRefreshError({
-      message: dedent`An error occurred while refreshing client auth token with ${getCloudDistributionName(cloudDomain)}: ${message}
+      message: dedent`An error occurred while refreshing client auth token with ${getCloudDistributionName(cloudDomain)}: ${errorDesc.short}
         Please try again.
         `,
       responseStatusCode: errHttpStatusCode,
@@ -142,9 +144,10 @@ export async function revokeAuthToken({
 
     log.debug({ msg: `Failed to revoke the token.` })
 
-    const message = describeTRPCClientError(err)
+    const errorDesc = describeTRPCClientError(err)
+    log.debug(errorDesc.detailed)
     throw new CloudApiTokenRefreshError({
-      message: `An error occurred while revoking client auth token with ${getCloudDistributionName(cloudDomain)}: ${message}`,
+      message: `An error occurred while revoking client auth token with ${getCloudDistributionName(cloudDomain)}: ${errorDesc.short}`,
     })
   }
 }

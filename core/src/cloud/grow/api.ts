@@ -45,9 +45,9 @@ export class GrowCloudError extends GardenError {
   }
 
   public static wrapTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
-    const detailedErrorMessage = describeTRPCClientError(err)
+    const errorDesc = describeTRPCClientError(err)
     return new GrowCloudError({
-      message: `An error occurred while calling Garden Backend: ${detailedErrorMessage}`,
+      message: `An error occurred while calling Garden Backend: ${errorDesc.short}`,
       cause: err,
     })
   }
