@@ -592,7 +592,8 @@ Example:
 
 ```yaml
 backendConfig:
-    "bucket: ${environment.name\\}-bucket\nkey: tf-state/${local.username\\}/terraform.tfstate"
+    bucket: ${environment.name}-bucket
+    key: tf-state/${local.username}/terraform.tfstate
 ```
 
 
