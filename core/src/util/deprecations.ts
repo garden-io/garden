@@ -172,7 +172,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
 
         When using \`apiVersion: garden.io/v1\` in your project-level configuration, Garden will not throw errors when referencing variables or secrets that do not exist in Kubernetes manifest template files.
 
-        When using \`apiVersion: garden.io/v2\` in the project-level configurationm Garden will always throw an error when secrets or variables do not exist. If the secret or variable is meant to be optional, you can provide a default value using the logical or operator (Example: \`${var.enable_xyz || false}\`).
+        When using \`apiVersion: garden.io/v2\` in the project-level configuration Garden will always throw an error when secrets or variables do not exist. If the secret or variable is meant to be optional, you can provide a default value using the logical or operator (Example: \`\${var.enable_xyz || false}\`).
 
         #### Why
         
