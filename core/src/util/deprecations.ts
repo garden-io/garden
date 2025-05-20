@@ -110,7 +110,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       warnHint: `${style("spec.files")} in ${style("kubernetes")} Deploy actions will be removed in Garden 0.14. Use ${style("spec.manifestTemplates")} and/or ${style("spec.manifestFiles")} instead.`,
       docs: dedent`
         ### Using templates in Kubernetes manifest files
-      
+
         If you want to keep using the Garden template language in your Kubernetes manifest files, use \`spec.manifestTemplates\`.
 
         If you need to keep your Kubernetes manifests files compatible with \`kubectl\`, in other words, you don't want to use the Garden template language in your manifest files, use \`spec.manifestFiles\` instead.
@@ -175,9 +175,9 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         When using \`apiVersion: garden.io/v2\` in the project-level configuration Garden will always throw an error when secrets or variables do not exist. If the secret or variable is meant to be optional, you can provide a default value using the logical or operator (Example: \`\${var.enable_xyz || false}\`).
 
         #### Why
-        
+
         Ignoring errors when referencing variables or secrets that do not exist can lead to confusing follow-up problems in your infrastructure, and even security issues.
-        
+
         Consider this example:
 
 
@@ -188,7 +188,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         metadata:
           name: cookie-config
         data:
-            cookie-encryption-key: ${secrets.COOKIE_ENCRYPTION_KEY}
+            cookie-encryption-key: \${secrets.COOKIE_ENCRYPTION_KEY}
         \`\`\`
 
         In older versions of Garden or when using \`apiVersion: garden.io/v1\` in your project-level configuration, the plain string \`\${secrets.COOKIE_ENCRYPTION_KEY}\` might end up being used as an insecure encryption key, if the secret named \`COOKIE_ENCRYPTION_KEY\` did not exist.
