@@ -40,7 +40,8 @@ export type WrappedFromGarden = Pick<
   | "environmentName"
   | "namespace"
   | "production"
-  | "sessionId"
+  | "sessionUlid"
+  | "parentSessionUlid"
 >
 
 export interface CommandInfo {
@@ -100,7 +101,7 @@ export const pluginContextSchema = createSchema({
         "Helper function to resolve a template string in a legacy way, given the same templating context as was used to render the configuration before calling the handler. Accepts any data type, and returns the same data type back with all template strings resolved."
       ),
     deepEvaluate: joi.function().description("Helper function to deeply resolve parsed template strings."),
-    sessionId: joi.string().description("The unique ID of the currently active session."),
+    sessionUlid: joi.string().description("The unique ID of the currently active session."),
     tools: joiStringMap(joi.object()),
     workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     cloudApi: joi.any().optional(),
@@ -162,8 +163,8 @@ export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventTyp
     this.abortHandler = () => this.emit("abort")
 
     // Always respond to exit and restart events
-    this.garden.events.onKey("_exit", this.abortHandler, garden.sessionId)
-    this.garden.events.onKey("_restart", this.abortHandler, garden.sessionId)
+    this.garden.events.onKey("_exit", this.abortHandler, garden.sessionUlid)
+    this.garden.events.onKey("_restart", this.abortHandler, garden.sessionUlid)
 
     // Always pipe `namespaceStatus` events to the main event bus, since we need this to happen both during provider
     // resolution (where `prepareEnvironment` is called, see `ResolveProviderTask`) and inside action handlers.
@@ -251,7 +252,8 @@ export async function createPluginContext({
         source: undefined,
       })
     },
-    sessionId: garden.sessionId,
+    sessionUlid: garden.sessionUlid,
+    parentSessionUlid: garden.parentSessionUlid,
     tools: await garden.getTools(),
     workingCopyId: garden.workingCopyId,
     cloudApi: garden.cloudApi,

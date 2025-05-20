@@ -31,6 +31,7 @@ import type { Server } from "http"
 import { createServer } from "http"
 import semver from "semver"
 import nock from "nock"
+import { ulid } from "ulid"
 
 describe("version helpers", () => {
   describe("isEdgeVersion", () => {
@@ -91,7 +92,11 @@ describe("SelfUpdateCommand", () => {
   let tempDir: TempDirectory
 
   before(async () => {
-    garden = await makeDummyGarden("/tmp", { commandInfo: { name: command.name, args: {}, opts: {} } })
+    garden = await makeDummyGarden("/tmp", {
+      commandInfo: { name: command.name, args: {}, opts: {} },
+      sessionUlid: ulid(),
+      parentSessionUlid: null,
+    })
 
     // Serve small static files to avoid slow HTTP requests during testing
     const staticServerPort = await getPort()

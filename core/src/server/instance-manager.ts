@@ -38,6 +38,7 @@ import {
 import type { GardenInstanceKeyParams } from "./helpers.js"
 import { getGardenInstanceKey } from "./helpers.js"
 import { styles } from "../logger/styles.js"
+import type { ULID } from "ulid"
 
 interface InstanceContext {
   garden: Garden
@@ -52,7 +53,7 @@ interface ProjectRootContext {
 
 interface GardenInstanceManagerParams {
   readonly log: Log
-  readonly sessionId: string
+  readonly sessionId: ULID
   readonly plugins: GardenPluginReference[]
   readonly serveCommand: ServeCommand
   readonly extraCommands?: Command[]
@@ -64,7 +65,7 @@ interface GardenInstanceManagerParams {
 let _manager: GardenInstanceManager | undefined
 
 export class GardenInstanceManager {
-  public readonly sessionId: string
+  public readonly sessionUlid: ULID
   public readonly monitors: MonitorManager
   public readonly serveCommand?: ServeCommand
 
@@ -96,7 +97,7 @@ export class GardenInstanceManager {
     plugins,
   }: GardenInstanceManagerParams) {
     this.serveCommand = serveCommand
-    this.sessionId = sessionId
+    this.sessionUlid = sessionId
     this.instances = new Map()
     this.projectRoots = new Map()
     this.cloudApis = new Map()
@@ -160,16 +161,17 @@ export class GardenInstanceManager {
         log.debug(`Instance key: ${key}`)
 
         garden = await Garden.factory(params.projectRoot, {
-          // The sessionId should be the same as the surrounding process.
-          // For each command run, this will be set as the parentSessionId,
-          // and the command-specific Garden (cloned in `Command.run()`) gets its own sessionId.
-          sessionId: this.sessionId,
           monitors: this.monitors,
           plugins: this.plugins,
           ...this.defaultOpts,
           ...garden?.opts,
           ...opts,
           ...params,
+          // The sessionId should be the same as the surrounding process.
+          // For each command run, this will be set as the parentSessionId,
+          // and the command-specific Garden (cloned in `Command.run()`) gets its own sessionId.
+          sessionUlid: this.sessionUlid,
+          parentSessionUlid: null,
         })
         this.set(log, garden)
 
@@ -346,7 +348,7 @@ export class GardenInstanceManager {
     args,
     opts,
     environmentString,
-    sessionId,
+    sessionUlid,
   }: {
     command?: Command
     projectConfig: ProjectConfig
@@ -355,7 +357,7 @@ export class GardenInstanceManager {
     args: ParameterValues<ParameterObject>
     opts: ParameterValues<ParameterObject>
     environmentString?: string
-    sessionId: string
+    sessionUlid: ULID
   }) {
     const gardenOpts: GardenOpts = {
       commandInfo: { name: command ? command.getFullName() : "serve", args, opts: omitUndefined(opts) },
@@ -365,7 +367,8 @@ export class GardenInstanceManager {
       log,
       plugins: this.plugins,
       variableOverrides: parseCliVarFlags(opts.var),
-      sessionId,
+      sessionUlid,
+      parentSessionUlid: null,
     }
 
     const projectRoot = projectConfig.path
@@ -397,10 +400,10 @@ export class GardenInstanceManager {
       // if the command isn't started in a Garden project root. This is a no-op if it's already registered.
       // FIXME: We still need to rethink on the Cloud side how sessions are scoped
       await cloudApi.registerSession({
-        parentSessionId: undefined,
+        parentSessionUlid: undefined,
         projectId: garden.projectId,
         // Use the process (i.e. parent command) session ID for the serve/dev command session
-        sessionId: this.sessionId,
+        sessionUlid: this.sessionUlid,
         commandInfo: garden.commandInfo,
         // set localServerPort only for dev/serve commands
         localServerPort:

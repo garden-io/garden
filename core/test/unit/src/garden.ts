@@ -81,6 +81,7 @@ import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 import { deepResolveContext } from "../../../src/config/template-contexts/base.js"
 import { VariablesContext } from "../../../src/config/template-contexts/variables.js"
+import { ulid } from "ulid"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -436,9 +437,17 @@ describe("Garden", () => {
             - name: local
         `
         )
-        await expectError(async () => Garden.factory(tmpPath, { commandInfo: { name: "test", args: {}, opts: {} } }), {
-          type: "runtime",
-        })
+        await expectError(
+          async () =>
+            Garden.factory(tmpPath, {
+              commandInfo: { name: "test", args: {}, opts: {} },
+              sessionUlid: ulid(),
+              parentSessionUlid: null,
+            }),
+          {
+            type: "runtime",
+          }
+        )
       } finally {
         await dir.cleanup()
       }

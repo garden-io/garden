@@ -18,6 +18,7 @@ import { DevCommand } from "../../../../src/commands/dev.js"
 import { ValidateCommand } from "../../../../src/commands/validate.js"
 import { uuidv4 } from "../../../../src/util/random.js"
 import { trimLineEnds, getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
+import { ulid } from "ulid"
 
 describe("Command", () => {
   describe("renderHelp", () => {
@@ -270,7 +271,7 @@ describe("Command", () => {
         const log = garden.log
 
         const devCmd = new DevCommand()
-        const devCmdSessionId = uuidv4()
+        const devCmdSessionId = ulid()
 
         const validateCmd = new ValidateCommand()
         const buildCmd = new BuildCommand()
@@ -281,8 +282,8 @@ describe("Command", () => {
           args: {},
           opts: withDefaultGlobalOpts({ resolve: undefined }),
           garden,
-          sessionId: uuidv4(),
-          parentSessionId: devCmdSessionId,
+          sessionUlid: ulid(),
+          parentSessionUlid: devCmdSessionId,
           parentCommand: devCmd,
         })
 
@@ -305,8 +306,8 @@ describe("Command", () => {
           args: {},
           opts: withDefaultGlobalOpts({ resolve: undefined }),
           garden,
-          sessionId: uuidv4(),
-          parentSessionId: devCmdSessionId,
+          sessionUlid: ulid(),
+          parentSessionUlid: devCmdSessionId,
           parentCommand: devCmd,
         })
 
@@ -315,8 +316,8 @@ describe("Command", () => {
           args: { names: undefined },
           opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
           garden,
-          sessionId: uuidv4(),
-          parentSessionId: devCmdSessionId,
+          sessionUlid: ulid(),
+          parentSessionUlid: devCmdSessionId,
           parentCommand: devCmd,
         })
 

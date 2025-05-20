@@ -51,12 +51,12 @@ import type { Log } from "../logger/log-entry.js"
 import type { GardenProcess } from "../config-store/global.js"
 import { GlobalConfigStore } from "../config-store/global.js"
 import { registerProcess } from "../process.js"
-import { uuidv4 } from "../util/random.js"
 import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
 import type minimist from "minimist"
 import { styles } from "../logger/styles.js"
+import { ulid } from "ulid"
 
 const { pathExists } = fsExtra
 
@@ -228,9 +228,9 @@ ${renderCommands(commands)}
     await validateRuntimeRequirementsCached(log, globalConfigStore, checkRequirements)
 
     command.printHeader({ log, args: parsedArgs, opts: parsedOpts })
-    const sessionId = uuidv4()
+    const sessionUlid = ulid()
 
-    return withSessionContext({ sessionId }, async () => {
+    return withSessionContext({ sessionUlid: sessionUlid }, async () => {
       const gardenLog = log.createLog({ name: "garden", showDuration: true })
       // Log context for printing the start and finish of Garden initialization when not using the dev console
       const gardenInitLog =
@@ -246,6 +246,8 @@ ${renderCommands(commands)}
       }
 
       const contextOpts: GardenOpts = {
+        sessionUlid: sessionUlid,
+        parentSessionUlid: null,
         commandInfo,
         environmentString: environmentName,
         globalConfigStore,
@@ -296,7 +298,7 @@ ${renderCommands(commands)}
             // Update the db record for the process
             await globalConfigStore.update("activeProcesses", String(processRecord.pid), {
               command: command.name,
-              sessionId,
+              sessionId: sessionUlid,
               persistent,
               serverHost: server?.getUrl() || null,
               serverAuthKey: server?.authKey || null,
@@ -332,8 +334,8 @@ ${renderCommands(commands)}
           log: garden.log,
           args: parsedArgs,
           opts: parsedOpts,
-          sessionId,
-          parentSessionId: null,
+          sessionUlid,
+          parentSessionUlid: null,
         })
 
         if (garden.monitors.anyMonitorsActive()) {

@@ -34,6 +34,7 @@ import type { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-st
 import type { DeployStatusForEventPayload } from "../types/service.js"
 import type { RunStatusForEventPayload } from "../plugin/plugin.js"
 import { styles } from "../logger/styles.js"
+import type { ULID } from "ulid"
 
 /**
  * Creates a corresponding Resolved version of the given Action, given the additional parameters needed.
@@ -143,12 +144,12 @@ export async function getDeployStatusPayloads({
   router,
   graph,
   log,
-  sessionId,
+  sessionUlid,
 }: {
   router: ActionRouter
   graph: ResolvedConfigGraph
   log: Log
-  sessionId: string
+  sessionUlid: ULID
 }) {
   const actions = graph.getDeploys()
 
@@ -165,7 +166,7 @@ export async function getDeployStatusPayloads({
           startedAt,
           force: false,
           action,
-          sessionId,
+          sessionUlid,
           // TODO: Once needed, send ActionRuntime information to Cloud; See getBuildStatusPayloads
           runtime: undefined,
         }) as ActionStatusPayload<DeployStatusForEventPayload>
@@ -180,12 +181,12 @@ export async function getBuildStatusPayloads({
   router,
   graph,
   log,
-  sessionId,
+  sessionUlid,
 }: {
   router: ActionRouter
   graph: ResolvedConfigGraph
   log: Log
-  sessionId: string
+  sessionUlid: ULID
 }) {
   const actions = graph.getBuilds()
 
@@ -202,7 +203,7 @@ export async function getBuildStatusPayloads({
           startedAt,
           force: false,
           action,
-          sessionId,
+          sessionUlid,
           runtime: (result.detail ?? {}).runtime,
         }) as ActionStatusPayload<BuildStatusForEventPayload>
 
@@ -216,12 +217,12 @@ export async function getTestStatusPayloads({
   router,
   graph,
   log,
-  sessionId,
+  sessionUlid,
 }: {
   router: ActionRouter
   graph: ResolvedConfigGraph
   log: Log
-  sessionId: string
+  sessionUlid: ULID
 }) {
   const actions = graph.getTests()
 
@@ -237,7 +238,7 @@ export async function getTestStatusPayloads({
           startedAt,
           force: false,
           action,
-          sessionId,
+          sessionUlid,
           // TODO: Once needed, send ActionRuntime information to Cloud; See getBuildStatusPayloads
           runtime: undefined,
         }) as ActionStatusPayload<RunStatusForEventPayload>
@@ -251,12 +252,12 @@ export async function getRunStatusPayloads({
   router,
   graph,
   log,
-  sessionId,
+  sessionUlid,
 }: {
   router: ActionRouter
   graph: ResolvedConfigGraph
   log: Log
-  sessionId: string
+  sessionUlid: ULID
 }) {
   const actions = graph.getRuns()
 
@@ -273,7 +274,7 @@ export async function getRunStatusPayloads({
           startedAt,
           force: false,
           action,
-          sessionId,
+          sessionUlid,
           // TODO: Once needed, send ActionRuntime information to Cloud; See getBuildStatusPayloads
           runtime: undefined,
         }) as ActionStatusPayload<RunStatusForEventPayload>

@@ -41,6 +41,7 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants.js"
 import { styles } from "../logger/styles.js"
 import type { GardenCli } from "./cli.js"
+import { ulid } from "ulid"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = styles.warning("🌼  > ")
@@ -720,12 +721,12 @@ ${styles.accent.underline("Keys:")}
       this.renderStatus()
     }
 
-    const sessionId = uuidv4()
+    const sessionUlid = ulid()
 
     await withSessionContext(
       {
-        sessionId,
-        parentSessionId: this.manager.sessionId,
+        sessionUlid,
+        parentSessionUlid: this.manager.sessionUlid,
       },
       () =>
         wrapActiveSpan("spawnChildGarden", async () => {
@@ -763,7 +764,7 @@ ${styles.accent.underline("Keys:")}
                 log: this.log,
                 args,
                 opts,
-                sessionId,
+                sessionUlid,
               })
             )
           } catch (error) {
@@ -785,8 +786,8 @@ ${styles.accent.underline("Keys:")}
               ...prepareParams,
               garden,
               cli: this.cli,
-              sessionId,
-              parentSessionId: this.manager.sessionId,
+              sessionUlid,
+              parentSessionUlid: this.manager.sessionUlid,
             })
             .then((output: CommandResult) => {
               if (output.errors?.length) {
@@ -807,7 +808,7 @@ ${styles.accent.underline("Keys:")}
             .finally(() => {
               delete this.runningCommands[id]
               this.renderStatus()
-              garden.events.clearKey(sessionId)
+              garden.events.clearKey(sessionUlid)
             })
         })
     )

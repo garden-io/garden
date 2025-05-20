@@ -21,6 +21,7 @@ const { pathExists, readFile, writeFile } = fsExtra
 import { loadAll } from "js-yaml"
 import { safeDumpYaml } from "../../../../../src/util/serialization.js"
 import { GardenApiVersion } from "../../../../../src/constants.js"
+import { ulid } from "ulid"
 
 describe("CreateProjectCommand", () => {
   const command = new CreateProjectCommand()
@@ -29,7 +30,11 @@ describe("CreateProjectCommand", () => {
 
   beforeEach(async () => {
     tmp = await makeTempDir({ git: true, initialCommit: false })
-    garden = await makeDummyGarden(tmp.path, { commandInfo: { name: "create project", args: {}, opts: {} } })
+    garden = await makeDummyGarden(tmp.path, {
+      commandInfo: { name: "create project", args: {}, opts: {} },
+      sessionUlid: ulid(),
+      parentSessionUlid: null,
+    })
   })
 
   afterEach(async () => {

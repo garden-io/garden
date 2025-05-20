@@ -14,6 +14,7 @@ import type { Logger } from "../../../../src/logger/logger.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { sanitizeValue } from "../../../../src/util/logging.js"
 import { projectRootA } from "../../../helpers.js"
+import { ulid } from "ulid"
 
 describe("sanitizeValue", () => {
   const logger: Logger = getRootLogger()
@@ -131,7 +132,11 @@ describe("sanitizeValue", () => {
 
   it("replaces Garden instances", async () => {
     const obj = {
-      a: await makeDummyGarden(projectRootA, { commandInfo: { name: "foo", args: {}, opts: {} } }),
+      a: await makeDummyGarden(projectRootA, {
+        commandInfo: { name: "foo", args: {}, opts: {} },
+        sessionUlid: ulid(),
+        parentSessionUlid: null,
+      }),
     }
     const res = sanitizeValue(obj)
     expect(res).to.eql({

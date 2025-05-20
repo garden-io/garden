@@ -224,7 +224,7 @@ export class _GetDeployStatusCommand extends ConsoleCommand {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
     const deployActions = graph.getDeploys({ includeDisabled: false }).sort((a, b) => (a.name > b.name ? 1 : -1))
-    const deployStatuses = await getDeployStatusPayloads({ router, graph, log, sessionId: garden.sessionId })
+    const deployStatuses = await getDeployStatusPayloads({ router, graph, log, sessionUlid: garden.sessionUlid })
 
     const commandLog = log.createLog({ fixLevel: LogLevel.silly })
     const syncStatuses = await getSyncStatuses({ garden, graph, deployActions, log: commandLog, skipDetail: true })
@@ -270,13 +270,13 @@ export class _GetActionStatusesCommand extends ConsoleCommand {
   async action({ garden, log }: CommandParams): Promise<CommandResult<GetActionStatusesCommandResult>> {
     const router = await garden.getActionRouter()
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
-    const sessionId = garden.sessionId
+    const sessionUlid = garden.sessionUlid
 
     const actions = await pProps({
-      build: getBuildStatusPayloads({ router, graph, log, sessionId }),
-      deploy: getDeployStatusPayloads({ router, graph, log, sessionId }),
-      test: getTestStatusPayloads({ router, graph, log, sessionId }),
-      run: getRunStatusPayloads({ router, graph, log, sessionId }),
+      build: getBuildStatusPayloads({ router, graph, log, sessionUlid }),
+      deploy: getDeployStatusPayloads({ router, graph, log, sessionUlid }),
+      test: getTestStatusPayloads({ router, graph, log, sessionUlid }),
+      run: getRunStatusPayloads({ router, graph, log, sessionUlid }),
     })
 
     return { result: { actions } }
@@ -438,7 +438,7 @@ export async function resolveRequest({
     args: cmdArgs,
     opts: cmdOpts,
     environmentString: request.environment,
-    sessionId,
+    sessionUlid: sessionId,
   })
 
   cmdLog.context.gardenKey = garden.getInstanceKey()

@@ -193,7 +193,7 @@ export class GrowBufferedEventStream {
       value: create(GardenCommandEventSchema, {
         // TODO: use ulid
         // TODO: add sessionId to the event payload, otherwise this will not behave as expected
-        commandId: this.garden.sessionId,
+        commandId: this.garden.sessionUlid,
 
         // completed now
         completedAt: timestampFromDate(new Date()),

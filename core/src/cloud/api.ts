@@ -44,6 +44,8 @@ import { GardenCloudHttpClient } from "./http-client.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
 import type { GrowCloudApiFactory } from "./grow/api.js"
 import type { JsonObject } from "type-fest"
+import type { ULID, UUID } from "ulid"
+import { ulidToUUID } from "ulid"
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 
@@ -456,8 +458,8 @@ export class GardenCloudApi {
   }
 
   async registerSession({
-    parentSessionId,
-    sessionId,
+    parentSessionUlid,
+    sessionUlid,
     projectId,
     commandInfo,
     localServerPort,
@@ -465,8 +467,8 @@ export class GardenCloudApi {
     namespace,
     isDevCommand,
   }: {
-    parentSessionId: string | undefined
-    sessionId: string
+    parentSessionUlid: ULID | undefined
+    sessionUlid: ULID
     projectId: string
     commandInfo: CommandInfo
     localServerPort: number | undefined
@@ -474,11 +476,15 @@ export class GardenCloudApi {
     namespace: string
     isDevCommand: boolean
   }): Promise<CloudSession | undefined> {
-    let session = this.registeredSessions.get(sessionId)
+    let session = this.registeredSessions.get(sessionUlid)
 
     if (session) {
       return session
     }
+
+    // convert parent session ULID to UUID for old backend
+    const parentSessionId = parentSessionUlid ? ulidToUUID(parentSessionUlid) : undefined
+    const sessionId = ulidToUUID(sessionUlid)
 
     try {
       const body = {
@@ -501,7 +507,7 @@ export class GardenCloudApi {
       this.log.debug(`Successfully registered session with ${this.distroName}.`)
 
       session = { api: this, id: sessionId, projectId, ...res }
-      this.registeredSessions.set(sessionId, session)
+      this.registeredSessions.set(sessionUlid, session)
       return session
     } catch (err) {
       if (!(err instanceof GotHttpError)) {
@@ -599,9 +605,10 @@ export class GardenCloudApi {
     return valid
   }
 
-  getCommandResultUrl({ projectId, sessionId, shortId }: { projectId: string; sessionId: string; shortId: string }) {
+  getCommandResultUrl({ projectId, sessionUlid, shortId }: { projectId: string; sessionUlid: ULID; shortId: string }) {
+    const commandUid = ulidToUUID(sessionUlid)
     // fallback to full url if shortid is missing
-    const path = shortId ? `/go/command/${shortId}` : `/projects/${projectId}/commands/${sessionId}`
+    const path = shortId ? `/go/command/${shortId}` : `/projects/${projectId}/commands/${commandUid}`
     return new URL(path, this.domain)
   }
 
@@ -610,8 +617,8 @@ export class GardenCloudApi {
     return new URL(path, this.domain)
   }
 
-  getRegisteredSession(sessionId: string) {
-    return this.registeredSessions.get(sessionId)
+  getRegisteredSession(sessionUlid: ULID) {
+    return this.registeredSessions.get(sessionUlid)
   }
 
   async getSecrets({ log, projectId, environmentName }: GetSecretsParams): Promise<StringMap> {
@@ -829,9 +836,9 @@ export class GardenCloudApi {
 // TODO(cloudbuilder): import these from api-types
 type RegisterBuildRequestV2 = {
   organizationId: string
-  actionUid: string
+  actionUid: UUID
   actionName: string
-  coreSessionId: string
+  coreSessionId: UUID
   platforms: string[]
 
   // for authentication against the builder

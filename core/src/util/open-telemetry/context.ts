@@ -7,18 +7,19 @@
  */
 
 import * as opentelemetry from "@opentelemetry/sdk-node"
+import type { ULID } from "ulid"
 
 const SESSION_ID_CONTEXT_KEY = opentelemetry.api.createContextKey("sessionIdContext")
 const PARENT_SESSION_ID_CONTEXT_KEY = opentelemetry.api.createContextKey("parentSessionIdContext")
 
 export type SessionContext = {
-  sessionId?: string
-  parentSessionId?: string
+  sessionUlid?: ULID
+  parentSessionUlid?: ULID
 }
 
 export type SessionContextOptions = {
-  sessionId: string
-  parentSessionId?: string | null
+  sessionUlid: ULID
+  parentSessionUlid?: ULID | null
 }
 
 /**
@@ -36,7 +37,7 @@ export function getSessionContext(): SessionContext {
   const sessionId = context.getValue(SESSION_ID_CONTEXT_KEY) as string | undefined
   const parentSessionId = context.getValue(PARENT_SESSION_ID_CONTEXT_KEY) as string | undefined
 
-  return { sessionId, parentSessionId }
+  return { sessionUlid: sessionId, parentSessionUlid: parentSessionId }
 }
 
 /**
@@ -62,7 +63,7 @@ export function bindActiveContext<T>(target: T): T {
  * @returns A promise resolving with the callback's return value
  */
 export function withSessionContext<T>(sessionContextOptions: SessionContextOptions, fn: () => Promise<T>): Promise<T> {
-  const { sessionId, parentSessionId } = sessionContextOptions
+  const { sessionUlid: sessionId, parentSessionUlid: parentSessionId } = sessionContextOptions
   const activeContext = getActiveContext()
 
   let newContext = activeContext.setValue(SESSION_ID_CONTEXT_KEY, sessionId)

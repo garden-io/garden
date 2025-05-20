@@ -86,7 +86,7 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
   override async action(params: ActionParams): Promise<CommandResult> {
     const { log } = params
 
-    this.setProps(params.garden.sessionId, params.cli?.plugins || [])
+    this.setProps(params.garden.sessionUlid, params.cli?.plugins || [])
 
     const logger = log.root
     const terminalWriter = logger.getWriters().display
@@ -195,7 +195,7 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
 
     // override the session for this manager to ensure we inherit from
     // the initial garden dummy instance
-    const manager = this.getManager(log, garden.sessionId)
+    const manager = this.getManager(log, garden.sessionUlid)
 
     const quit = () => {
       this.commandLine?.disable("🌷  Thanks for stopping by, love you! ❤️")

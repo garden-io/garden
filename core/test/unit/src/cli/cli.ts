@@ -41,6 +41,7 @@ import { TestGardenCli } from "../../../helpers/cli.js"
 import { RuntimeError } from "../../../../src/exceptions.js"
 import dedent from "dedent"
 import { deepResolveContext } from "../../../../src/config/template-contexts/base.js"
+import { ulid } from "ulid"
 
 /**
  * Helper functions for removing/resetting the global logger config which is set when
@@ -1227,6 +1228,8 @@ describe("cli", () => {
       await mkdirp(path)
       const garden = await makeDummyGarden(path, {
         commandInfo: { name: "foo", args: {}, opts: {} },
+        sessionUlid: ulid(),
+        parentSessionUlid: null,
       })
       const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(garden).to.be.ok
@@ -1239,6 +1242,8 @@ describe("cli", () => {
       const garden = await makeDummyGarden(path, {
         environmentString: "test.foo",
         commandInfo: { name: "foo", args: {}, opts: {} },
+        sessionUlid: ulid(),
+        parentSessionUlid: null,
       })
       expect(garden).to.be.ok
       expect(garden.environmentName).to.equal("foo")
@@ -1246,7 +1251,11 @@ describe("cli", () => {
 
     it("should initialise and resolve config graph in a project with invalid config", async () => {
       const root = getDataDir("test-project-invalid-config")
-      const garden = await makeDummyGarden(root, { commandInfo: { name: "foo", args: {}, opts: {} } })
+      const garden = await makeDummyGarden(root, {
+        commandInfo: { name: "foo", args: {}, opts: {} },
+        sessionUlid: ulid(),
+        parentSessionUlid: null,
+      })
       const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(garden).to.be.ok
       expect(dg.getModules()).to.not.throw
@@ -1254,7 +1263,11 @@ describe("cli", () => {
 
     it("should initialise and resolve config graph in a project with template strings", async () => {
       const root = getDataDir("test-project-templated")
-      const garden = await makeDummyGarden(root, { commandInfo: { name: "foo", args: {}, opts: {} } })
+      const garden = await makeDummyGarden(root, {
+        commandInfo: { name: "foo", args: {}, opts: {} },
+        sessionUlid: ulid(),
+        parentSessionUlid: null,
+      })
       const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(garden).to.be.ok
       expect(dg.getModules()).to.not.throw

@@ -15,6 +15,8 @@ import { pick } from "lodash-es"
 import type { BuildState } from "../plugin/handlers/Build/get-status.js"
 import type { ActionStatusDetailedState, ActionCompleteState } from "./action-status-events.js"
 import type { ActionRuntime } from "../plugin/base.js"
+import type { ULID } from "ulid"
+import { ulidToUUID } from "ulid"
 
 type ActionKind = "build" | "deploy" | "run" | "test"
 
@@ -61,14 +63,14 @@ export function makeActionStatusPayloadBase({
   force,
   operation,
   startedAt,
-  sessionId,
+  sessionUlid,
   runtime,
 }: {
   action: Action
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
-  sessionId: string
+  sessionUlid: ULID
   runtime: ActionRuntime | undefined
 }) {
   return {
@@ -79,7 +81,8 @@ export function makeActionStatusPayloadBase({
     actionType: action.type,
     actionUid: action.uid,
     moduleName: action.moduleName(),
-    sessionId,
+    // NOTE: the old backend expects the sessionId to be a UUID
+    sessionId: ulidToUUID(sessionUlid),
     startedAt,
     operation,
     force,
@@ -97,20 +100,20 @@ export function makeActionGetStatusPayload({
   action,
   force,
   startedAt,
-  sessionId,
+  sessionUlid,
   runtime,
 }: {
   action: Action
   force: boolean
   startedAt: string
-  sessionId: string
+  sessionUlid: ULID
   runtime: ActionRuntime | undefined
 }) {
   const payloadAttrs = makeActionStatusPayloadBase({
     action,
     force,
     startedAt,
-    sessionId,
+    sessionUlid,
     runtime,
     operation: "getStatus",
   })
@@ -133,20 +136,20 @@ export function makeActionProcessingPayload({
   action,
   force,
   startedAt,
-  sessionId,
+  sessionUlid,
   runtime,
 }: {
   action: Action
   force: boolean
   startedAt: string
-  sessionId: string
+  sessionUlid: ULID
   runtime: ActionRuntime | undefined
 }) {
   const payloadAttrs = makeActionStatusPayloadBase({
     action,
     force,
     startedAt,
-    sessionId,
+    sessionUlid,
     runtime,
     operation: "process",
   })
@@ -182,7 +185,7 @@ export function makeActionCompletePayload<
   force,
   operation,
   startedAt,
-  sessionId,
+  sessionUlid,
   runtime,
 }: {
   result: R
@@ -190,10 +193,10 @@ export function makeActionCompletePayload<
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
-  sessionId: string
+  sessionUlid: ULID
   runtime: ActionRuntime | undefined
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionId, runtime })
+  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionUlid, runtime })
   const actionKind = action.kind.toLowerCase() as Lowercase<Action["kind"]>
 
   // Map the result state to one of the allowed "complete" states.
@@ -264,17 +267,17 @@ export function makeActionFailedPayload({
   force,
   operation,
   startedAt,
-  sessionId,
+  sessionUlid,
   runtime,
 }: {
   action: Action
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
-  sessionId: string
+  sessionUlid: ULID
   runtime: ActionRuntime | undefined
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionId, runtime })
+  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionUlid, runtime })
 
   const payload = {
     ...payloadAttrs,

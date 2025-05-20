@@ -46,6 +46,7 @@ import { createServer } from "http"
 import { defaultServerPort } from "../commands/serve.js"
 
 import { styles } from "../logger/styles.js"
+import { ulid, type ULID } from "ulid"
 
 const skipLogsForCommands = ["autocomplete"]
 const serverLogName = "garden-server"
@@ -142,7 +143,7 @@ export class GardenServer extends EventEmitter {
 
   public port: number | undefined
   public readonly authKey: string
-  public readonly sessionId: string
+  public readonly sessionUlid: ULID
 
   constructor({ log, manager, port, defaultProjectRoot, serveCommand }: GardenServerParams) {
     super()
@@ -153,7 +154,7 @@ export class GardenServer extends EventEmitter {
     this.globalConfigStore = new GlobalConfigStore()
     this.port = port
     this.defaultProjectRoot = defaultProjectRoot
-    this.sessionId = manager.sessionId
+    this.sessionUlid = manager.sessionUlid
     this.authKey = randomString(24)
     this.incomingEvents = new EventBus()
     this.activePersistentRequests = {}
@@ -239,7 +240,7 @@ export class GardenServer extends EventEmitter {
 
     if (processRecord) {
       await this.globalConfigStore.update("activeProcesses", String(process.pid), {
-        sessionId: this.sessionId,
+        sessionId: this.sessionUlid,
         serverHost: this.getBaseUrl(),
         serverAuthKey: this.authKey,
       })
@@ -331,7 +332,7 @@ export class GardenServer extends EventEmitter {
       const sessionId = ctx.query.sessionId
 
       // We allow either sessionId or authKey ro authorize
-      if (authToken !== this.authKey && sessionId !== this.sessionId) {
+      if (authToken !== this.authKey && sessionId !== this.sessionUlid) {
         return ctx.throw(401, `Unauthorized request`)
       }
       return next()
@@ -376,8 +377,8 @@ export class GardenServer extends EventEmitter {
         const result = await command.run({
           ...prepareParams,
           garden,
-          sessionId: uuidv4(),
-          parentSessionId: this.sessionId,
+          sessionUlid: ulid(),
+          parentSessionUlid: this.sessionUlid,
         })
         this.debugLog.debug(`Command '${command.name}' completed successfully`)
         ctx.response.body = sanitizeValue(result)
@@ -471,7 +472,7 @@ export class GardenServer extends EventEmitter {
         })
       }
 
-      if (ctx.query.key !== this.authKey && ctx.query.sessionId !== this.sessionId) {
+      if (ctx.query.key !== this.authKey && ctx.query.sessionId !== this.sessionUlid) {
         send("error", { message: `401 Unauthorized` })
         const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
         websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
@@ -671,8 +672,8 @@ export class GardenServer extends EventEmitter {
             return command.run({
               ...prepareParams,
               garden,
-              sessionId: commandSessionId,
-              parentSessionId: this.sessionId,
+              sessionUlid: commandSessionId,
+              parentSessionUlid: this.sessionUlid,
               overrideLogLevel: internal ? LogLevel.silly : undefined,
             })
           })
@@ -773,7 +774,7 @@ export class GardenServer extends EventEmitter {
       const cloudApi = await this.manager.getCloudApi(garden)
 
       // Use the server session ID. That is, the "main" session ID that belongs to the parent serve command.
-      const sessionIdForConfigLoad = this.sessionId
+      const sessionIdForConfigLoad = this.sessionUlid
       garden = garden.cloneForCommand(sessionIdForConfigLoad, cloudApi)
 
       const cloudSession = garden.cloudApi?.getRegisteredSession(sessionIdForConfigLoad)
@@ -844,7 +845,7 @@ export class GardenServer extends EventEmitter {
 
 interface CommandResponseBase {
   requestId: string
-  sessionId: string
+  sessionId: ULID
   command: string
   /**
    * The command string originally requested by the caller if applicable.

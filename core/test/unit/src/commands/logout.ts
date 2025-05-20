@@ -21,6 +21,7 @@ import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import type { Garden } from "../../../../src/index.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
 import { getStoredAuthToken, saveAuthToken } from "../../../../src/cloud/auth.js"
+import { ulid } from "ulid"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function logoutCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
@@ -229,6 +230,8 @@ describe("LogoutCommand", () => {
     // this is a bit of a workaround to run outside of the garden root dir
     const garden = await makeDummyGarden(getDataDir("..", "..", "..", ".."), {
       commandInfo: { name: "foo", args: {}, opts: {} },
+      sessionUlid: ulid(),
+      parentSessionUlid: null,
     })
 
     await expectError(
