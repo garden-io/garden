@@ -40,8 +40,10 @@ import { UtilCommand } from "./util/util.js"
 import { ValidateCommand } from "./validate.js"
 import { UpCommand } from "./up.js"
 import { VersionCommand } from "./version.js"
+import { AiCommand } from "./ai.js"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
+  new AiCommand(),
   new BuildCommand(),
   new CloudCommand(),
   new CommunityCommand(),
