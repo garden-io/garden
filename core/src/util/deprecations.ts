@@ -191,7 +191,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
             cookie-encryption-key: ${secrets.COOKIE_ENCRYPTION_KEY}
         \`\`\`
 
-        In older versions of Garden or when using  \`apiVersion: garden.io/v1\` in your project-level configuration, the plain string \`${secrets.COOKIE_ENCRYPTION_KEY}\` might end up being used as an insecure encryption key, if the secret named \`COOKIE_ENCRYPTION_KEY\` did not exist.
+        In older versions of Garden or when using \`apiVersion: garden.io/v1\` in your project-level configuration, the plain string \`\${secrets.COOKIE_ENCRYPTION_KEY}\` might end up being used as an insecure encryption key, if the secret named \`COOKIE_ENCRYPTION_KEY\` did not exist.
 
         Starting with Garden Cedar and when using  \`apiVersion: garden.io/v1\` in your project-level configuration, Garden will throw an error instead.
       `,
