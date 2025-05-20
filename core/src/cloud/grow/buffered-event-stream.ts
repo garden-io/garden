@@ -199,7 +199,7 @@ export class GrowBufferedEventStream {
   }
 
   private handleCommandCompleted(event: GrpcEvent, payload: EventPayload<"sessionCompleted">) {
-    const sessionUid = payload.$context?.sessionId
+    const sessionUid = payload.$context?.sessionId // this will be defined if we're in a `garden dev` or `garden serve` session.
     const commandId = sessionUid ? uuidToULID(sessionUid) : this.garden.sessionUlid
 
     event.eventData = {
@@ -214,7 +214,7 @@ export class GrowBufferedEventStream {
     }
   }
   private handleCommandFailed(event: GrpcEvent, payload: EventPayload<"sessionFailed">) {
-    const sessionUid = payload.$context?.sessionId
+    const sessionUid = payload.$context?.sessionId // this will be defined if we're in a `garden dev` or `garden serve` session.
     const commandId = sessionUid ? uuidToULID(sessionUid) : this.garden.sessionUlid
 
     event.eventData = {
@@ -230,7 +230,8 @@ export class GrowBufferedEventStream {
   }
 
   private handleCommandStarted(event: GrpcEvent, payload: EventPayload<"commandInfo">) {
-    const commandId = payload.$context?.sessionId || this.garden.sessionUlid
+    const sessionUid = payload.$context?.sessionId // this will be defined if we're in a `garden dev` or `garden serve` session.
+    const commandId = sessionUid ? uuidToULID(sessionUid) : this.garden.sessionUlid
 
     event.eventData = {
       case: "commandEvent",
