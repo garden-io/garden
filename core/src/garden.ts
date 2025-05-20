@@ -457,7 +457,9 @@ export class Garden {
     this.registeredPlugins = getRegisteredPlugins(params)
     this.resolvedProviders = {}
 
-    this.events = new EventBus({ gardenKey: this.getInstanceKey() })
+    this.events = new EventBus({
+      gardenKey: this.getInstanceKey(),
+    })
     // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
     this.version = getPackageVersion()
     this.monitors = params.monitors || new MonitorManager(this.log, this.events)
@@ -545,6 +547,7 @@ export class Garden {
       // FIXME: Right now Garden is directly emitting events internally in the shape the old backend expected.
       // TODO: Introduce an internal event shape, and decouple the code base from the shape the old backend expects.
       sessionId: ulidToUUID(sessionUlid),
+      _parentSessionUlid: parentSessionUlid,
     })
     // We make sure events emitted in the context of the command are forwarded to the parent Garden event bus.
     garden.events.onAny((name, payload) => {
@@ -1869,7 +1872,7 @@ export class Garden {
     return suggestions
   }
 
-  /** Returns whether the user is logged in to the Garden Cloud */
+  /** Returns whether the user is logged in to the "old" Garden Cloud */
   public isOldBackendAvailable(): this is GardenWithOldBackend {
     const oldBackendAvailable = !!this.cloudApi
     if (getBackendType(this.projectConfig) === "v2" && oldBackendAvailable) {
@@ -1878,6 +1881,16 @@ export class Garden {
       })
     }
     return oldBackendAvailable
+  }
+  /** Returns whether the user is logged in to the "new" Garden Cloud */
+  public isNewBackendAvailable(): this is GardenWithNewBackend {
+    const newBackendAvailable = !!this.cloudApiV2
+    if (getBackendType(this.projectConfig) === "v1" && newBackendAvailable) {
+      throw new InternalError({
+        message: "Invalid state: should use backend v1, but logged in to backend v2",
+      })
+    }
+    return newBackendAvailable
   }
 
   public isLoggedIn(): boolean {

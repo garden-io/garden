@@ -43,6 +43,7 @@ import { styles } from "../logger/styles.js"
 import { clearVarfileCache } from "../config/base.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
 import { ulidToUUID, type ULID } from "ulid"
+import { GrowBufferedEventStream } from "../cloud/grow/buffered-event-stream.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -343,36 +344,47 @@ export abstract class Command<
           opts: optionsWithAliasValues(this, allOpts),
         }
 
-        const cloudEventStream = new BufferedEventStream({
-          log,
-          cloudSession,
-          maxLogLevel: eventLogLevel,
-          garden,
-          streamEvents: this.streamEvents,
-          streamLogEntries: this.streamLogEntries,
-        })
-
         let result: CommandResult<R>
 
+        let cloudEventStream: BufferedEventStream | GrowBufferedEventStream | undefined
+        if (cloudSession) {
+          cloudEventStream = new BufferedEventStream({
+            log,
+            cloudSession,
+            maxLogLevel: eventLogLevel,
+            garden,
+            streamEvents: this.streamEvents,
+            streamLogEntries: this.streamLogEntries,
+          })
+        } else if (garden.isNewBackendAvailable() && this.streamEvents) {
+          cloudEventStream = new GrowBufferedEventStream({
+            log,
+            garden,
+            shouldStreamLogEntries: this.streamLogEntries,
+            eventIngestionService: garden.cloudApiV2.eventIngestionService,
+          })
+        }
+
+        if (cloudEventStream) {
+          log.silly(() => `Connecting Garden instance events to Cloud API`)
+        }
+
         try {
-          if (cloudSession && this.streamEvents) {
-            log.silly(() => `Connecting Garden instance events to Cloud API`)
-            garden.events.emit("commandInfo", {
-              ...commandInfo,
-              environmentName: garden.environmentName,
-              environmentId: cloudSession.environmentId,
-              projectName: garden.projectName,
-              projectId: cloudSession.projectId,
-              namespaceName: garden.namespace,
-              namespaceId: cloudSession.namespaceId,
-              coreVersion: getPackageVersion(),
-              vcsBranch: garden.vcsInfo.branch,
-              vcsCommitHash: garden.vcsInfo.commitHash,
-              vcsOriginUrl: garden.vcsInfo.originUrl,
-              // NOTE: for backwards compatibility with the old backend, we use the UUID format.
-              sessionId: ulidToUUID(garden.sessionUlid),
-            })
-          }
+          garden.events.emit("commandInfo", {
+            ...commandInfo,
+            environmentName: garden.environmentName,
+            environmentId: cloudSession?.environmentId,
+            projectName: garden.projectName,
+            projectId: cloudSession?.projectId,
+            namespaceName: garden.namespace,
+            namespaceId: cloudSession?.namespaceId,
+            coreVersion: getPackageVersion(),
+            vcsBranch: garden.vcsInfo.branch,
+            vcsCommitHash: garden.vcsInfo.commitHash,
+            vcsOriginUrl: garden.vcsInfo.originUrl,
+            // NOTE: for backwards compatibility with the old backend, we use the UUID format.
+            sessionId: ulidToUUID(garden.sessionUlid),
+          })
 
           // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
           if (await this.isAllowedToRun(garden, log, allOpts)) {
@@ -429,7 +441,7 @@ export abstract class Command<
             garden.close()
             parentGarden.nestedSessions.delete(sessionUlid)
           }
-          await cloudEventStream.close()
+          await cloudEventStream?.close()
         }
 
         // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to

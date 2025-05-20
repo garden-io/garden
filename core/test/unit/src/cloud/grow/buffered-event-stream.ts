@@ -85,7 +85,12 @@ describe("GrowBufferedEventStream", () => {
     log = getRootLogger().createLog()
     garden = (await makeTestGardenA()) as any
     garden.cloudApiV2 = { organizationId: "fake-organization-id" } as any
-    bufferedEventStream = new GrowBufferedEventStream({ log, garden, sessionUlid: ulid(), client: mockClient })
+    bufferedEventStream = new GrowBufferedEventStream({
+      log,
+      garden,
+      eventIngestionService: mockClient,
+      shouldStreamLogEntries: true,
+    })
   })
 
   it("should send start command event (flush on connect)", async () => {

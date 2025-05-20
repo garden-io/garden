@@ -24,9 +24,10 @@ interface EventContext {
   gardenKey?: string
   // NOTE: To maintain backwards compatibility with the old backend, we are encoding the ULID in UUID format.
   sessionId?: UUID
+  _parentSessionUlid?: ULID
 }
 
-type EventPayload<T extends EventName> = Events[T] & { $context?: EventContext }
+export type EventPayload<T extends EventName = EventName> = Events[T] & { $context?: EventContext }
 
 export type GardenEventListener<T extends EventName> = (payload: EventPayload<T>) => void
 export type GardenEventAnyListener<E extends EventName = any> = (name: E, payload: EventPayload<E>) => void
@@ -159,7 +160,7 @@ export interface CommandInfoPayload extends CommandInfo {
   environmentName: string
   environmentId?: string
   projectName: string
-  projectId: string
+  projectId?: string
   namespaceName: string
   namespaceId?: string
   coreVersion: string

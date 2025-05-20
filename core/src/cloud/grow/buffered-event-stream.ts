@@ -7,11 +7,11 @@
  */
 
 import { timestampFromDate } from "@bufbuild/protobuf/wkt"
-import { monotonicFactory } from "ulid"
+import { monotonicFactory, uuidToULID } from "ulid"
 import type { GardenWithNewBackend } from "../../garden.js"
 import { registerCleanupFunction, sleep } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
-import type { CommandInfoPayload, EventName, Events, GardenEventAnyListener } from "../../events/events.js"
+import type { EventName, EventPayload, GardenEventAnyListener } from "../../events/events.js"
 import { LogLevel } from "../../logger/logger.js"
 import type { LogEntryEventPayload } from "../buffered-event-stream.js"
 import type {
@@ -42,10 +42,9 @@ export class GrowBufferedEventStream {
   private readonly eventListener: GardenEventAnyListener<EventName>
   private readonly logListener: GardenEventAnyListener<"logEntry">
 
-  // TODO: add sessionUlid to Garden and make it non-optional in GardenWithNewBackend types
-  private readonly sessionUlid: string
+  private readonly shouldStreamLogEntries: boolean
 
-  private readonly client: Client<typeof GardenEventIngestionService>
+  private readonly eventIngestionService: Client<typeof GardenEventIngestionService>
 
   /**
    * Maps a globally _monotonic_ ULID (event ID) to the corresponding event's payload.
@@ -53,29 +52,29 @@ export class GrowBufferedEventStream {
   private readonly eventBuffer = new Map<string, GrpcEvent>()
 
   private outputStream: WritableIterable<GrpcEvent> | undefined
-  private closed: boolean
+  private isClosed: boolean
   private readonly closeCallbacks: (() => void)[] = []
 
   constructor({
     garden,
     log,
-    sessionUlid,
-    client,
+    eventIngestionService,
+    shouldStreamLogEntries,
   }: {
     garden: GardenWithNewBackend
     log: Log
-    sessionUlid: string
-    client: Client<typeof GardenEventIngestionService>
+    eventIngestionService: Client<typeof GardenEventIngestionService>
+    shouldStreamLogEntries: boolean
   }) {
     this.garden = garden
     this.log = log
-    this.sessionUlid = sessionUlid
-    this.client = client
-    this.closed = false
+    this.eventIngestionService = eventIngestionService
+    this.isClosed = false
+    this.shouldStreamLogEntries = shouldStreamLogEntries
 
     // TODO: make sure it waits for the callback function completion
     registerCleanupFunction("grow-stream-session-cancelled-event", () => {
-      if (this.closed) {
+      if (this.isClosed) {
         return
       }
 
@@ -96,16 +95,18 @@ export class GrowBufferedEventStream {
     this.garden.events.onAny(this.eventListener)
 
     setTimeout(async () => {
-      this.log.debug("GrowBufferedEventStream: Starting loop")
+      this.log.silly("GrowBufferedEventStream: Starting loop")
 
-      while (!this.closed) {
-        this.log.debug("GrowBufferedEventStream: Connecting ...")
+      while (!this.isClosed) {
+        this.log.silly("GrowBufferedEventStream: Connecting ...")
 
         try {
           await this.streamEvents()
         } catch (err) {
           if (err instanceof ConnectError) {
-            this.log.debug(`GrowBufferedEventStream: Error while streaming events: ${err}`)
+            this.log.silly(`GrowBufferedEventStream: Error while streaming events: ${err}`)
+            this.log.silly("GrowBufferedEventStream: Retrying in 1 second...")
+            await sleep(1000)
           } else {
             // This will become an unhandled error and will cause the process to crash.
             throw err
@@ -116,7 +117,7 @@ export class GrowBufferedEventStream {
   }
 
   async close() {
-    if (this.closed) {
+    if (this.isClosed) {
       return
     }
 
@@ -124,10 +125,10 @@ export class GrowBufferedEventStream {
     this.log.root.events.offAny(this.logListener)
 
     if (this.eventBuffer.size === 0) {
-      this.log.debug(
+      this.log.silly(
         "GrowBufferedEventStream: Close called and no events waiting for acknowledgement. Disconnecting..."
       )
-      this.closed = true
+      this.isClosed = true
       // close the connection as well
       this.outputStream?.close()
       return
@@ -150,33 +151,43 @@ export class GrowBufferedEventStream {
     ])
 
     this.outputStream?.close()
-    this.closed = true
+    this.isClosed = true
   }
 
-  private handleEvent<T extends EventName>(name: T, payload: Events[T]) {
+  private handleEvent<T extends EventName>(name: T, payload: EventPayload<T>) {
+    // use the parent session ID of the event payload, if not available use the garden parent session ID, if not available use the garden session ID
+    // This means outside of `garden dev`, the session ID will always be the same as the command ID (As we're using the session ID as command ID).
+    const parentSessionUlid =
+      payload.$context?._parentSessionUlid || this.garden.parentSessionUlid || this.garden.sessionUlid
     const event: GrpcEvent = create(EventSchema, {
       eventId: nextEventUlid(),
       context: create(EventContextSchema, {
         organizationId: this.garden.cloudApiV2.organizationId,
-        sessionId: this.sessionUlid,
+        sessionId: parentSessionUlid,
       }),
     })
 
     if (name === "commandInfo") {
-      this.handleCommandStarted(event, payload as any) // TODO: fix type
+      this.handleCommandStarted(event, payload as EventPayload<"commandInfo">)
     }
     if (name === "sessionCompleted") {
-      this.handleCommandCompleted(event)
+      this.handleCommandCompleted(event, payload as EventPayload<"sessionCompleted">)
+    }
+    if (name === "sessionFailed") {
+      this.handleCommandFailed(event, payload as EventPayload<"sessionFailed">)
     }
 
-    if (event.eventData === undefined) {
-      this.log.debug(`GrowBufferedEventStream: Ignoring event ${name} (ulid=${event.eventId})`)
+    if (event.eventData.value === undefined) {
+      this.log.silly(`GrowBufferedEventStream: Ignoring event ${name} (ulid=${event.eventId})`)
       return
     }
 
-    this.log.debug(
+    this.log.silly(
       () =>
         `GrowBufferedEventStream: ${this.outputStream ? "Sending" : "Buffering"} event ${event.eventData.case} (ulid=${event.eventId})`
+    )
+    this.log.silly(
+      () => `GrowBufferedEventStream: ${JSON.stringify(event, (_, v) => (typeof v === "bigint" ? v.toString() : v))}`
     )
 
     this.eventBuffer.set(event.eventId, event)
@@ -184,16 +195,17 @@ export class GrowBufferedEventStream {
     // NOTE: we don't need to wait for the promise to resolve.
     // If sending the event fails, it will be retried as it lives in the event buffer.
     // See the caller of `streamEvents`.
-    void this.outputStream?.write(event)
+    void this.outputStream?.write(event).catch((_) => undefined)
   }
 
-  private handleCommandCompleted(event: GrpcEvent) {
+  private handleCommandCompleted(event: GrpcEvent, payload: EventPayload<"sessionCompleted">) {
+    const sessionUid = payload.$context?.sessionId
+    const commandId = sessionUid ? uuidToULID(sessionUid) : this.garden.sessionUlid
+
     event.eventData = {
       case: "commandEvent",
       value: create(GardenCommandEventSchema, {
-        // TODO: use ulid
-        // TODO: add sessionId to the event payload, otherwise this will not behave as expected
-        commandId: this.garden.sessionUlid,
+        commandId,
 
         // completed now
         completedAt: timestampFromDate(new Date()),
@@ -201,13 +213,29 @@ export class GrowBufferedEventStream {
       }),
     }
   }
+  private handleCommandFailed(event: GrpcEvent, payload: EventPayload<"sessionFailed">) {
+    const sessionUid = payload.$context?.sessionId
+    const commandId = sessionUid ? uuidToULID(sessionUid) : this.garden.sessionUlid
 
-  private handleCommandStarted(event: GrpcEvent, payload: CommandInfoPayload) {
     event.eventData = {
       case: "commandEvent",
       value: create(GardenCommandEventSchema, {
-        // TODO: use ulid
-        commandId: payload.sessionId,
+        commandId,
+
+        // completed now
+        completedAt: timestampFromDate(new Date()),
+        status: GardenCommandEvent_Status.FAILED,
+      }),
+    }
+  }
+
+  private handleCommandStarted(event: GrpcEvent, payload: EventPayload<"commandInfo">) {
+    const commandId = payload.$context?.sessionId || this.garden.sessionUlid
+
+    event.eventData = {
+      case: "commandEvent",
+      value: create(GardenCommandEventSchema, {
+        commandId,
 
         // started now
         startedAt: timestampFromDate(new Date()),
@@ -263,15 +291,18 @@ export class GrowBufferedEventStream {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private handleLogEntry(logEntry: LogEntryEventPayload) {
+    if (!this.shouldStreamLogEntries) {
+      return
+    }
     // TODO: logs handling
   }
 
   private async streamEvents() {
     this.outputStream = createWritableIterable<GrpcEvent>()
 
-    const ackStream = this.client.ingestEventStream(this.outputStream)
+    const ackStream = this.eventIngestionService.ingestEventStream(this.outputStream)
 
-    this.log.debug(() => "GrowBufferedEventStream: Connected")
+    this.log.silly(() => "GrowBufferedEventStream: Connected")
 
     // we synchronously flush all events into the output stream, to ensure that we don't send events out-of-order
     this.flushEventBuffer()
@@ -288,15 +319,15 @@ export class GrowBufferedEventStream {
     for await (const nextAck of ackStream) {
       if (!nextAck.success) {
         // NOTE: We expect the server to also close the stream in case of an error, so we can retry emitting events on the next attempt.
-        this.log.debug(`Server failed to process event with ulid=${nextAck.eventId}`)
+        this.log.silly(`Server failed to process event with ulid=${nextAck.eventId}`)
       }
 
       // Remove acknowledged event from the buffer
-      this.log.debug(() => `GrowBufferedEventStream: Received ack for event ${nextAck.eventId}`)
+      this.log.silly(() => `GrowBufferedEventStream: Received ack for event ${nextAck.eventId}`)
       this.eventBuffer.delete(nextAck.eventId)
 
       if (this.closeCallbacks.length && this.eventBuffer.size === 0) {
-        this.log.debug("All events have been acknowledged. Disconnecting...")
+        this.log.silly("All events have been acknowledged. Disconnecting...")
         for (const callback of this.closeCallbacks) {
           // Call all the callbacks to notify that the stream is closed
           callback()
@@ -317,16 +348,16 @@ export class GrowBufferedEventStream {
       return
     }
 
-    this.log.debug(() => `GrowBufferedEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
+    this.log.silly(() => `GrowBufferedEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
     // NOTE: The Map implementation in the javascript runtime guarantees that values will be iterated in the order they were added (FIFO).
     for (const event of this.eventBuffer.values()) {
       if (!this.outputStream) {
-        this.log.debug(() => `GrowBufferedEventStream: Stream closed during flush`)
+        this.log.silly(() => `GrowBufferedEventStream: Stream closed during flush`)
         break
       }
       // NOTE: we're not waiting for the promise to resolve on purpose, as we want to synchronously flush all events
       // to the underlying queue avoiding out-of-order event transmission.
-      void this.outputStream.write(event)
+      void this.outputStream.write(event).catch((_) => undefined)
     }
   }
 }

@@ -114,7 +114,7 @@ export class ServeCommand<
           log,
           args: {},
           opts: {},
-          sessionUlid: sessionUlid,
+          sessionUlid,
           environmentString: opts.env,
         })
         if (this.commandLine) {

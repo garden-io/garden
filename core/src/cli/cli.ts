@@ -230,7 +230,7 @@ ${renderCommands(commands)}
     command.printHeader({ log, args: parsedArgs, opts: parsedOpts })
     const sessionUlid = ulid()
 
-    return withSessionContext({ sessionUlid: sessionUlid }, async () => {
+    return withSessionContext({ sessionUlid }, async () => {
       const gardenLog = log.createLog({ name: "garden", showDuration: true })
       // Log context for printing the start and finish of Garden initialization when not using the dev console
       const gardenInitLog =
@@ -246,7 +246,7 @@ ${renderCommands(commands)}
       }
 
       const contextOpts: GardenOpts = {
-        sessionUlid: sessionUlid,
+        sessionUlid,
         parentSessionUlid: null,
         commandInfo,
         environmentString: environmentName,
