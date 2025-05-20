@@ -507,6 +507,39 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           "Detected change in backend config, will re-initialize Terraform with '-reconfigure' flag"
         )
       })
+
+      it("uses backendConfig for commamnds", async () => {
+        const testGarden = await makeTestGarden(testRootBackendConfig, {
+          plugins: [gardenPlugin()],
+          environmentString: "local",
+          forceRefresh: true,
+          variableOverrides: {
+            "tf-version": terraformVersion,
+            "address": `http://localhost:${port}/terraform/state?some-dynamic-key-using-plugin-command`,
+          },
+        })
+        const provider = (await testGarden.resolveProvider({
+          log: testGarden.log,
+          statusOnly: true,
+          name: "terraform",
+        })) as TerraformProvider
+        const ctx = await testGarden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+        const graph = await testGarden.getConfigGraph({ log: testGarden.log, emit: false })
+        const command = findByName(getTerraformCommands(), "plan-root")!
+        await command.handler({
+          ctx,
+          garden: testGarden,
+          args: ["-input=false"],
+          log: testGarden.log,
+          graph,
+        })
+
+        const requests = server.getInterceptedRequests()
+        console.log("**REQUESTS***")
+        console.log(JSON.stringify(requests, null, 4))
+        const requestUrl = requests[0].url
+        expect(requestUrl).to.eql("/terraform/state?some-dynamic-key-using-plugin-command")
+      })
     })
   })
 
@@ -1134,6 +1167,40 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         expect(messages).to.include(
           "Detected change in backend config, will re-initialize Terraform with '-reconfigure' flag"
         )
+      })
+
+      it("uses backendConfig for commamnds", async () => {
+        const testGarden = await makeTestGarden(testRootBackendConfigAction, {
+          plugins: [gardenPlugin()],
+          environmentString: "local",
+          variableOverrides: {
+            "tf-version": terraformVersion,
+          },
+        })
+        const provider = (await testGarden.resolveProvider({
+          log: testGarden.log,
+          statusOnly: true,
+          name: "terraform",
+        })) as TerraformProvider
+        const ctx = await testGarden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+        const graph = await testGarden.getConfigGraph({ log: testGarden.log, emit: false })
+        const action = graph.getDeploy("tf-backendconfig-deploy") as TerraformDeploy
+        action._config.spec.backendConfig = {
+          address: `http://localhost:${port}/terraform/state?some-dynamic-key-for-action-using-plugin-command`,
+        }
+
+        const command = findByName(getTerraformCommands(), "plan-action")!
+        await command.handler({
+          ctx,
+          garden: testGarden,
+          args: ["tf-backendconfig-deploy", "-input=false"],
+          log: garden.log,
+          graph,
+        })
+
+        const requests = server.getInterceptedRequests()
+        const requestUrl = requests[0].url
+        expect(requestUrl).to.eql("/terraform/state?some-dynamic-key-for-action-using-plugin-command")
       })
     })
   })
