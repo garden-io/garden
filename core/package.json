@@ -58,7 +58,7 @@
     "cross-spawn": "^7.0.5",
     "crypto-random-string": "^5.0.0",
     "date-fns": "^4.1.0",
-    "dedent": "^1.5.3",
+    "dedent": "^1.6.0",
     "deline": "^1.0.4",
     "dependency-graph": "^0.11.0",
     "directory-tree": "^3.5.2",
