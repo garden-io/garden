@@ -49,6 +49,20 @@ See the reference documentation for details.
 For the `Run` action kind see [`spec.manifestFiles`](../reference/action-types/Run/kubernetes-pod.md#spec.manifestfiles) and [`spec.manifestTemplates`](../reference/action-types/Run/kubernetes-pod.md#spec.manifesttemplates).
 For the `Test` action kind see [`spec.manifestFiles`](../reference/action-types/Test/kubernetes-pod.md#spec.manifestfiles) and [`spec.manifestTemplates`](../reference/action-types/Test/kubernetes-pod.md#spec.manifesttemplates).
 
+<h2 id="containerdeployactionlimits"><code>spec.limits</code> configuration field in <code>container</code> Deploy action</h2>
+
+Please use the `cpu` and `memory` configuration fields instead.
+
+Note! If the deprecated field [`spec.limits`](../reference/action-types/deploy/container#spec.limits)
+explicitly defines any cpu or memory limits in the `container` Deploy action,
+Garden 0.14 automatically copies the field's contents to the `spec.cpu` and `spec.memory`,
+even if the latter are defined explicitly.
+
+Please do not use both `spec.limits` and `spec.cpu` and/or `spec.memory` simultaneously,
+and use only the latter pair of fields. Otherwise, the values from the old field `spec.limits` will be used.
+
+See [`spec.cpu`](../reference/action-types/deploy/container#spec.cpu) and [`spec.memory`](../reference/action-types/deploy/container#spec.memory)
+
 <h2 id="workflowlimits"><code>limits</code> configuration field in workflows</h2>
 
 Please use the `resources.limits` configuration field instead.

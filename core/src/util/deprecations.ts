@@ -107,6 +107,24 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: null,
     },
+    containerDeployActionLimits: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("spec.limits")} configuration field in ${style("container")} Deploy action`,
+      warnHint: deline`
+        Please use the ${style("cpu")} and ${style("memory")} configuration fields instead.
+      `,
+      docs: dedent`
+        Note! If the deprecated field [${style("spec.limits")}](../reference/action-types/deploy/container#spec.limits)
+        explicitly defines any cpu or memory limits in the ${style("container")} Deploy action,
+        Garden 0.14 automatically copies the field's contents to the ${style("spec.cpu")} and ${style("spec.memory")},
+        even if the latter are defined explicitly.
+
+        Please do not use both ${style("spec.limits")} and ${style("spec.cpu")} and/or ${style("spec.memory")} simultaneously,
+        and use only the latter pair of fields. Otherwise, the values from the old field ${style("spec.limits")} will be used.
+
+        See [${style("spec.cpu")}](../reference/action-types/deploy/container#spec.cpu) and [${style("spec.memory")}](../reference/action-types/deploy/container#spec.memory)
+      `,
+    },
     workflowLimits: {
       docsSection: "Old configuration syntax",
       docsHeadline: `${style("limits")} configuration field in workflows`,

@@ -9,13 +9,13 @@
 import type { Primitive, PrimitiveMap } from "../../config/common.js"
 import {
   artifactsTargetDescription,
+  createSchema,
   envVarRegex,
   joi,
   joiPrimitive,
   joiSparseArray,
   joiStringMap,
   joiUserIdentifier,
-  createSchema,
 } from "../../config/common.js"
 import type { ArtifactSpec } from "../../config/validation.js"
 import { ingressHostnameSchema, linkUrlSchema } from "../../types/service.js"
@@ -33,6 +33,7 @@ import { templateStringLiteral } from "../../docs/common.js"
 import { syncGuideLink } from "../kubernetes/constants.js"
 import { makeSecret, type Secret } from "../../util/secrets.js"
 import type { ActionKind } from "../../plugin/action-types.js"
+import { makeDeprecationMessage } from "../../util/deprecations.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -468,7 +469,7 @@ const limitsSchema = createSchema({
       .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)"),
   }),
   description: "Specify resource limits for the service.",
-  meta: { deprecated: "Please use the `cpu` and `memory` fields instead." }, // TODO(deprecation): deprecate in 0.14
+  meta: { deprecated: makeDeprecationMessage({ deprecation: "containerDeployActionLimits" }) },
 })
 
 export const containerCpuSchema = () =>
