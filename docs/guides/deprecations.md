@@ -120,6 +120,8 @@ Do not use this config field. It has no effect as the experimental support for b
 
 `spec.files` in `kubernetes` Deploy actions will be removed in Garden 0.14. Use `spec.manifestTemplates` and/or `spec.manifestFiles` instead.
 
+### Using templates in Kubernetes manifest files
+
 If you want to keep using the Garden template language in your Kubernetes manifest files, use `spec.manifestTemplates`.
 
 If you need to keep your Kubernetes manifests files compatible with `kubectl`, in other words, you don't want to use the Garden template language in your manifest files, use `spec.manifestFiles` instead.
@@ -138,7 +140,7 @@ spec:
    - manifests/**/*.yml.tpl # <-- Use the Garden template language in files that end with `.yml.tpl`.
 ```
 
-### Why
+#### Why
 
 Until now there wasn't a choice: Garden would always attempt to resolve template strings like `${fooBar}` in Kubernetes manifest files.
 
@@ -176,6 +178,33 @@ One way to work around this problem in the past was to escape the template strin
 #!/bin/bash
 echo "hello $${USERNAME:=world}" # <-- This is not a working bash script anymore :(
 ```
+
+### Errors when variables do not exist
+
+When using `apiVersion: garden.io/v1` in your project-level configuration, Garden will not throw errors when referencing variables or secrets that do not exist in Kubernetes manifest template files.
+
+When using `apiVersion: garden.io/v2` in the project-level configuration Garden will always throw an error when secrets or variables do not exist. If the secret or variable is meant to be optional, you can provide a default value using the logical or operator (Example: `${var.enable_xyz || false}`).
+
+#### Why
+
+Ignoring errors when referencing variables or secrets that do not exist can lead to confusing follow-up problems in your infrastructure, and even security issues.
+
+Consider this example:
+
+
+```yaml
+# manifests/cookie-config.yml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: cookie-config
+data:
+   cookie-encryption-key: ${secrets.COOKIE_ENCRYPTION_KEY}
+```
+
+In older versions of Garden or when using `apiVersion: garden.io/v1` in your project-level configuration, the plain string `${secrets.COOKIE_ENCRYPTION_KEY}` might end up being used as an insecure encryption key, if the secret named `COOKIE_ENCRYPTION_KEY` did not exist.
+
+Starting with Garden Cedar and when using  `apiVersion: garden.io/v1` in your project-level configuration, Garden will throw an error instead.
 
 <h2 id="buildconfigfieldonruntimeactions">The <code>build</code> config field in <code>container</code> actions</h2>
 
