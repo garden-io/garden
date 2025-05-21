@@ -56,7 +56,7 @@ import { pipeline } from "node:stream/promises"
 import type { GardenCloudApiFactory } from "../cloud/api.js"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
-import { ulid } from "ulid"
+import { ulid, ulidToUUID } from "ulid"
 
 const { mkdirp, remove } = fsExtra
 
@@ -230,6 +230,10 @@ export class TestGarden extends Garden {
     garden["globalConfigStore"] = new GlobalConfigStore(globalDir)
 
     return garden
+  }
+
+  public get oldBackendSessionUuid() {
+    return ulidToUUID(this.sessionUlid)
   }
 
   protected override clearConfigs() {
