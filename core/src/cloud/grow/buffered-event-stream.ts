@@ -35,6 +35,9 @@ import {
 
 const nextEventUlid = monotonicFactory()
 
+// remove this once the new event system is in production
+const isNewBackendEventSystemInProduction = false
+
 export class GrowBufferedEventStream {
   private readonly garden: GardenWithNewBackend
   private readonly log: Log
@@ -107,6 +110,12 @@ export class GrowBufferedEventStream {
             this.log.silly(`GrowBufferedEventStream: Error while streaming events: ${err}`)
             this.log.silly("GrowBufferedEventStream: Retrying in 1 second...")
             await sleep(1000)
+          } else if (!isNewBackendEventSystemInProduction) {
+            // This is a temporary workaround to avoid crashing the process when the new event system is not in production.
+            // In production, we want to crash the process to surface the issue.
+            this.log.debug(`GrowBufferedEventStream: Unexpected error while streaming events: ${err}`)
+            this.log.debug("GrowBufferedEventStream: Bailing out.")
+            break
           } else {
             // This will become an unhandled error and will cause the process to crash.
             throw err
@@ -139,19 +148,23 @@ export class GrowBufferedEventStream {
       this.closeCallbacks.push(resolve)
     })
 
+    const timeout = isNewBackendEventSystemInProduction ? 10000 : 1000 // use 1 second to avoid long waits when we didn't launch the event system yet.
     // wait max 10 seconds for the events to be acknowledged
     await Promise.race([
       promise,
       (async () => {
-        await sleep(10000)
-        this.log.warn(
-          "Not all events were acknowledged within 10 seconds. Information in Garden Cloud may be incomplete."
+        await sleep(timeout)
+        const logWarn = isNewBackendEventSystemInProduction
+          ? this.log.warn.bind(this.log)
+          : this.log.debug.bind(this.log)
+        logWarn(
+          `Not all events were acknowledged within ${timeout / 1000} seconds. Information in Garden Cloud may be incomplete.`
         )
       })(),
     ])
 
-    this.outputStream?.close()
     this.isClosed = true
+    this.outputStream?.close()
   }
 
   private handleEvent<T extends EventName>(name: T, payload: EventPayload<T>) {
