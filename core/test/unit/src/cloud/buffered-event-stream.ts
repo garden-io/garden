@@ -7,14 +7,26 @@
  */
 
 import { expect } from "chai"
-import type { StreamEvent, LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream.js"
+import type { LogEntryEventPayload, StreamEvent } from "../../../../src/cloud/buffered-event-stream.js"
 import { BufferedEventStream } from "../../../../src/cloud/buffered-event-stream.js"
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
 import { makeTestGardenA } from "../../../helpers.js"
 import { find, isMatch, range, repeat } from "lodash-es"
+import type { CloudSession, GardenCloudApi } from "../../../../src/cloud/api.js"
 
 function makeDummyRecord(sizeKb: number) {
   return { someKey: repeat("a", sizeKb * 1024) }
+}
+
+const mockCloudSession: CloudSession = {
+  // this api is never called in the tests below, all caller functions are overridden in the individual tests
+  api: {} as GardenCloudApi,
+  // we do not need any correct values of these for this test suite
+  id: "fake-session-ulid",
+  shortId: "fake-short-id",
+  projectId: "fake-project-id",
+  environmentId: "fake-namespace-id",
+  namespaceId: "fake-namespace-id",
 }
 
 describe("BufferedEventStream", () => {
@@ -28,7 +40,7 @@ describe("BufferedEventStream", () => {
 
     const garden = await makeTestGardenA()
 
-    const bufferedEventStream = new BufferedEventStream({ log, garden, maxLogLevel, cloudSession: undefined })
+    const bufferedEventStream = new BufferedEventStream({ log, garden, maxLogLevel, cloudSession: mockCloudSession })
 
     bufferedEventStream["getTargets"] = () => {
       return [{ enterprise: true }]
@@ -72,7 +84,7 @@ describe("BufferedEventStream", () => {
         garden,
         targets,
         maxLogLevel,
-        cloudSession: undefined,
+        cloudSession: mockCloudSession,
       })
       await bufferedEventStream.close()
       bufferedEventStream["maxBatchBytes"] = maxBatchBytes
@@ -94,7 +106,7 @@ describe("BufferedEventStream", () => {
         garden,
         targets,
         maxLogLevel,
-        cloudSession: undefined,
+        cloudSession: mockCloudSession,
       })
       await bufferedEventStream.close()
       bufferedEventStream["maxBatchBytes"] = maxBatchBytes

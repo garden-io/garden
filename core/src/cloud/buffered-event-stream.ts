@@ -8,9 +8,9 @@
 
 import stringify from "json-stringify-safe"
 
-import type { Events, EventName, GardenEventAnyListener } from "../events/events.js"
+import type { EventName, Events, GardenEventAnyListener } from "../events/events.js"
 import { shouldStreamEvent } from "../events/events.js"
-import type { LogMetadata, Log, LogEntry, LogContext } from "../logger/log-entry.js"
+import type { Log, LogContext, LogEntry, LogMetadata } from "../logger/log-entry.js"
 import { got } from "../util/http.js"
 
 import type { LogLevel } from "../logger/logger.js"
@@ -87,10 +87,10 @@ interface ApiBatchBase {
 
 export interface ApiEventBatch extends ApiBatchBase {
   events: StreamEvent[]
-  environmentId?: string
-  namespaceId?: string
+  environmentId: string
+  namespaceId: string
   // TODO: Remove the `environment` and `namespace` params once we no longer need to support Cloud/Enterprise
-  // versions that expect them.
+  //   versions that expect them.
   environment: string
   namespace: string
 }
@@ -102,7 +102,7 @@ export interface ApiLogBatch extends ApiBatchBase {
 export interface BufferedEventStreamParams {
   log: Log
   maxLogLevel: LogLevel
-  cloudSession: CloudSession | undefined
+  cloudSession: CloudSession
   garden: Garden
   streamEvents?: boolean
   streamLogEntries?: boolean
@@ -120,7 +120,7 @@ export interface BufferedEventStreamParams {
  */
 export class BufferedEventStream {
   protected log: Log
-  protected cloudSession?: CloudSession
+  protected cloudSession: CloudSession
   protected maxLogLevel: LogLevel
 
   protected _targets: StreamTarget[]
@@ -274,8 +274,8 @@ export class BufferedEventStream {
       workflowRunUid: this.workflowRunUid,
       sessionId: ulidToUUID(this.garden.sessionUlid),
       projectUid: this.garden.projectId || undefined,
-      environmentId: this.cloudSession?.environmentId,
-      namespaceId: this.cloudSession?.namespaceId,
+      environmentId: this.cloudSession.environmentId,
+      namespaceId: this.cloudSession.namespaceId,
       environment: this.garden.environmentName,
       namespace: this.garden.namespace,
     }
@@ -306,11 +306,10 @@ export class BufferedEventStream {
     try {
       await Promise.all(
         this.getTargets().map((target) => {
-          const api = this.cloudSession?.api
-          if (target.enterprise && api?.domain) {
+          if (target.enterprise) {
             // Need to cast so the compiler doesn't complain that the two returns from the map
             // aren't equivalent. Shouldn't matter in this case since we're not collecting the return value.
-            return api.post<any>(path, {
+            return this.cloudSession.api.post<any>(path, {
               body: data,
               retry: true,
               retryDescription: `Flushing ${description}`,
