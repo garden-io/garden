@@ -15,7 +15,7 @@ import type {
   ContainerActionConfig,
   ContainerBuildActionConfig,
   ContainerModule,
-  ContainerModuleVolumeSpec,
+  ContainerVolumeSpec,
   ContainerRuntimeActionConfig,
 } from "./moduleConfig.js"
 import { containerModuleOutputsSchema, containerModuleSpecSchema, defaultDockerfileName } from "./moduleConfig.js"
@@ -375,7 +375,7 @@ function convertContainerModuleRuntimeActions(
     deploymentImageId = `\${actions.build.${buildAction.name}.outputs.deploymentImageId}`
   }
 
-  function configureActionVolumes(action: ContainerRuntimeActionConfig, volumeSpec: ContainerModuleVolumeSpec[]) {
+  function configureActionVolumes(action: ContainerRuntimeActionConfig, volumeSpec: ContainerVolumeSpec[]) {
     volumeSpec.forEach((v) => {
       action.spec.volumes.push(v)
     })

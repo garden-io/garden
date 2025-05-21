@@ -74,13 +74,11 @@ export interface ServicePortSpec {
   nodePort?: number | true
 }
 
-export interface ContainerVolumeSpecBase {
+export interface ContainerVolumeSpec {
   name: string
   containerPath: string
   hostPath?: string
 }
-
-export interface ContainerVolumeSpec extends ContainerVolumeSpecBase {}
 
 export interface ServiceHealthCheckSpec {
   httpGet?: {
