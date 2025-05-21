@@ -688,7 +688,8 @@ ${styles.accent.underline("Keys:")}
     args: PrepareParams["args"]
     opts: PrepareParams["opts"]
   }) {
-    const id = uuidv4()
+    // Do not confuse this with the concept of a "command id" that is used in the new events model
+    const runningCommandTrackingId = uuidv4()
     const width = getTermWidth() - 2
 
     const prepareParams: PrepareParams = {
@@ -717,7 +718,7 @@ ${styles.accent.underline("Keys:")}
     if (!command.isDevCommand) {
       this.flashMessage(getCmdsRunningMsg([name]))
       logCommandStart({ commandName: rawArgs.join(" "), width, log: this.log })
-      this.runningCommands[id] = { command, params: prepareParams }
+      this.runningCommands[runningCommandTrackingId] = { command, params: prepareParams }
       this.renderStatus()
     }
 
@@ -769,7 +770,7 @@ ${styles.accent.underline("Keys:")}
             )
           } catch (error) {
             this.flashError(getCmdFailMsg(name))
-            delete this.runningCommands[id]
+            delete this.runningCommands[runningCommandTrackingId]
             this.renderStatus()
             this.log.error({ error: toGardenError(error) })
             return
@@ -806,7 +807,7 @@ ${styles.accent.underline("Keys:")}
               this.flashError(getCmdFailMsg(name))
             })
             .finally(() => {
-              delete this.runningCommands[id]
+              delete this.runningCommands[runningCommandTrackingId]
               this.renderStatus()
               garden.events.clearKey(sessionUlid)
             })
