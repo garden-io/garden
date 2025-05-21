@@ -107,7 +107,7 @@ export function resolveResourceLimits(
       You have specified both ${naturalList(newConfigFields)} and ${styles.bold("deprecated")} ${naturalList(legacyConfigFields)}
       in your action config.
 
-      ${styles.bold(`Garden will use the values defined in the deprecated ${styles.highlight("spec.limits")}!!!`)}.
+      ${styles.bold(`Garden will use the values defined in the deprecated ${styles.highlight("spec.limits")}!`)}.
       Please use only ${styles.highlight("spec.cpu")} and ${styles.highlight("spec.memory")} fields in your action configuration.`
 
   return { resolvedResources, warning }
