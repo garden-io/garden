@@ -45,7 +45,8 @@ import { defaultServerPort } from "../commands/serve.js"
 import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 
 import { styles } from "../logger/styles.js"
-import { ulid, type ULID, uuidToULID } from "ulid"
+import type { ULID, UUID } from "ulid"
+import { ulid, uuidToULID } from "ulid"
 import { createBufferedEventStream } from "../cloud/util.js"
 
 const skipLogsForCommands = ["autocomplete"]
@@ -586,7 +587,7 @@ export class GardenServer extends EventEmitter {
       return send("error", { message: "Could not parse message as JSON" })
     }
 
-    const requestId: string = request.id
+    const requestId: UUID = request.id
     const requestType: string = request.type
 
     try {
@@ -669,10 +670,11 @@ export class GardenServer extends EventEmitter {
 
             requestLog?.info(`Running command ${cmdNameStr}`)
 
+            const sessionUlid: ULID = uuidToULID(commandSessionId)
             return command.run({
               ...prepareParams,
               garden,
-              sessionUlid: uuidToULID(commandSessionId),
+              sessionUlid,
               parentSessionUlid: this.sessionUlid,
               overrideLogLevel: internal ? LogLevel.silly : undefined,
             })
