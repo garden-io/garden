@@ -468,7 +468,7 @@ const limitsSchema = createSchema({
       .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)"),
   }),
   description: "Specify resource limits for the service.",
-  meta: { deprecated: makeDeprecationMessage({ deprecation: "containerDeployActionLimits" }) },
+  meta: { deprecation: "containerDeployActionLimits" },
 })
 
 export const containerCpuSchema = () =>
