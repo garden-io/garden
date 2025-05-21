@@ -257,11 +257,7 @@ export class BufferedEventStream {
   }
 
   private getTargets() {
-    if (this.cloudSession) {
-      return [{ enterprise: true }, ...this._targets]
-    } else {
-      return this._targets
-    }
+    return [{ enterprise: true }, ...this._targets]
   }
 
   private async flushEvents(events: StreamEvent[]) {
