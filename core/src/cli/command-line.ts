@@ -23,7 +23,6 @@ import type { Log } from "../logger/log-entry.js"
 import { getTermWidth, renderDivider } from "../logger/util.js"
 import type { GardenInstanceManager } from "../server/instance-manager.js"
 import { TypedEventEmitter } from "../util/events.js"
-import { uuidv4 } from "../util/random.js"
 import { sleep } from "../util/util.js"
 import type { AutocompleteSuggestion } from "./autocomplete.js"
 import {
@@ -688,8 +687,6 @@ ${styles.accent.underline("Keys:")}
     args: PrepareParams["args"]
     opts: PrepareParams["opts"]
   }) {
-    // Do not confuse this with the concept of a "command id" that is used in the new events model
-    const runningCommandTrackingId = uuidv4()
     const width = getTermWidth() - 2
 
     const prepareParams: PrepareParams = {
@@ -700,6 +697,7 @@ ${styles.accent.underline("Keys:")}
       parentCommand: this.serveCommand,
     }
 
+    const sessionUlid = ulid()
     const name = command.getFullName()
 
     if (!command.allowInDevCommand(prepareParams)) {
@@ -718,11 +716,9 @@ ${styles.accent.underline("Keys:")}
     if (!command.isDevCommand) {
       this.flashMessage(getCmdsRunningMsg([name]))
       logCommandStart({ commandName: rawArgs.join(" "), width, log: this.log })
-      this.runningCommands[runningCommandTrackingId] = { command, params: prepareParams }
+      this.runningCommands[sessionUlid] = { command, params: prepareParams }
       this.renderStatus()
     }
-
-    const sessionUlid = ulid()
 
     await withSessionContext(
       {
@@ -770,7 +766,7 @@ ${styles.accent.underline("Keys:")}
             )
           } catch (error) {
             this.flashError(getCmdFailMsg(name))
-            delete this.runningCommands[runningCommandTrackingId]
+            delete this.runningCommands[sessionUlid]
             this.renderStatus()
             this.log.error({ error: toGardenError(error) })
             return
@@ -807,7 +803,7 @@ ${styles.accent.underline("Keys:")}
               this.flashError(getCmdFailMsg(name))
             })
             .finally(() => {
-              delete this.runningCommands[runningCommandTrackingId]
+              delete this.runningCommands[sessionUlid]
               this.renderStatus()
               garden.events.clearKey(sessionUlid)
             })
