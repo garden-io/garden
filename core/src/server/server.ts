@@ -777,10 +777,8 @@ export class GardenServer extends EventEmitter {
       const sessionIdForConfigLoad = this.sessionUlid
       garden = garden.cloneForCommand(sessionIdForConfigLoad, cloudApi)
 
-      const cloudSession = garden.cloudApi?.getRegisteredSession(sessionIdForConfigLoad)
-
       const cloudEventStream = createBufferedEventStream({
-        cloudSession,
+        sessionUlid: sessionIdForConfigLoad,
         log,
         garden,
         opts: { shouldStreamEvents: true, shouldStreamLogs: false },

@@ -344,7 +344,7 @@ export abstract class Command<
         let result: CommandResult<R>
 
         const cloudEventStream = createBufferedEventStream({
-          cloudSession,
+          sessionUlid: garden.sessionUlid,
           log,
           garden,
           opts: { shouldStreamEvents: this.streamEvents, shouldStreamLogs: this.streamLogEntries },

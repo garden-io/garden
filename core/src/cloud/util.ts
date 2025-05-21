@@ -7,12 +7,12 @@
  */
 import type { ProjectConfig } from "../config/project.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
-import type { CloudSession } from "./api.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Garden } from "../garden.js"
 import { BufferedEventStream } from "./buffered-event-stream.js"
 import { GrowBufferedEventStream } from "./grow/buffered-event-stream.js"
 import { eventLogLevel } from "../logger/logger.js"
+import type { ULID } from "ulid"
 
 export type GardenCloudDistroName = "Garden Enterprise" | "Garden Cloud"
 
@@ -74,19 +74,26 @@ export function getBackendType(projectConfig: ProjectConfig): "v1" | "v2" {
 }
 
 interface CreateBufferedEventStreamParams {
-  cloudSession: CloudSession | undefined
+  sessionUlid: ULID
   log: Log
   garden: Garden
   opts: { shouldStreamEvents: boolean; shouldStreamLogs: boolean }
 }
 
 export function createBufferedEventStream({
-  cloudSession,
+  sessionUlid,
   log,
   garden,
   opts,
 }: CreateBufferedEventStreamParams): BufferedEventStream | GrowBufferedEventStream | undefined {
-  if (cloudSession) {
+  if (garden.isOldBackendAvailable()) {
+    const cloudApi = garden.cloudApi
+    const cloudSession = cloudApi.getRegisteredSession(sessionUlid)
+    if (!cloudSession) {
+      log.debug(`Cannot find session ${sessionUlid}. No events will be sent to ${cloudApi.distroName}.`)
+      return undefined
+    }
+
     return new BufferedEventStream({
       log,
       cloudSession,
@@ -106,5 +113,6 @@ export function createBufferedEventStream({
     })
   }
 
+  log.debug(`Neither old nor new backend is available. No events will be sent to the Garden Cloud API.`)
   return undefined
 }
