@@ -34,7 +34,6 @@ import { GardenInstanceManager } from "../../../../src/server/instance-manager.j
 import fsExtra from "fs-extra"
 
 const { mkdirp } = fsExtra
-import { uuidv4 } from "../../../../src/util/random.js"
 import type { Garden } from "../../../../src/garden.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
@@ -81,7 +80,7 @@ describe("cli", () => {
   let cli: GardenCli
   const globalConfigStore = new GlobalConfigStore()
   const log = getRootLogger().createLog()
-  const sessionId = uuidv4()
+  const sessionUlid = ulid()
 
   beforeEach(() => {
     cli = new TestGardenCli()
@@ -528,7 +527,7 @@ describe("cli", () => {
             defaultProjectRoot: projectRootA,
             manager: GardenInstanceManager.getInstance({
               log,
-              sessionUlid: sessionId,
+              sessionUlid,
               serveCommand,
               plugins: [],
             }),
