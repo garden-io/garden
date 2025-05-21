@@ -310,7 +310,7 @@ export async function createWorkloadManifest({
     const deploymentStrategy = spec.deploymentStrategy
     if (deploymentStrategy === "RollingUpdate") {
       // Need the <any> cast because the library types are busted
-      deployment.spec!.strategy = <any>{
+      deployment.spec!.strategy = {
         type: deploymentStrategy,
         rollingUpdate: {
           // This is optimized for fast re-deployment.
