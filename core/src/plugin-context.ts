@@ -102,6 +102,11 @@ export const pluginContextSchema = createSchema({
       ),
     deepEvaluate: joi.function().description("Helper function to deeply resolve parsed template strings."),
     sessionUlid: joi.string().description("The unique ID of the currently active session."),
+    parentSessionUlid: joi
+      .string()
+      .optional()
+      .empty([null, ""])
+      .description("The unique ID of the currently active parent session."),
     tools: joiStringMap(joi.object()),
     workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     cloudApi: joi.any().optional(),
