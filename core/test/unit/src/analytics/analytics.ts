@@ -41,7 +41,6 @@ import { resolveMsg } from "../../../../src/logger/log-entry.js"
 import { getLocal } from "mockttp"
 import { sleep } from "../../../../src/util/util.js"
 import { type ActionConfigMap } from "../../../../src/actions/types.js"
-import { ulidToUUID } from "ulid"
 
 const mockServer = getLocal()
 

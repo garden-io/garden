@@ -16,7 +16,6 @@ import dedent from "dedent"
 import { BuildCommand } from "../../../../src/commands/build.js"
 import { DevCommand } from "../../../../src/commands/dev.js"
 import { ValidateCommand } from "../../../../src/commands/validate.js"
-import { uuidv4 } from "../../../../src/util/random.js"
 import { trimLineEnds, getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
 import { ulid } from "ulid"
 

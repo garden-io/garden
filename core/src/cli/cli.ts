@@ -527,7 +527,7 @@ ${renderCommands(commands)}
       }
     }
 
-    let commandResult: CommandResult<any> | undefined
+    let commandResult: CommandResult | undefined
     let analytics: AnalyticsHandler | undefined
 
     if (!processRecord) {

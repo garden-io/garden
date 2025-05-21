@@ -19,7 +19,7 @@ import { omitUndefined } from "../util/objects.js"
 import { renderDuration } from "./util.js"
 import { styles } from "./styles.js"
 import { getStyle } from "./renderers.js"
-import type { ULID, UUID } from "ulid"
+import type { UUID } from "ulid"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
