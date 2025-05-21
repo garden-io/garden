@@ -45,7 +45,7 @@ import { defaultServerPort } from "../commands/serve.js"
 import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 
 import { styles } from "../logger/styles.js"
-import { ulid, type ULID } from "ulid"
+import { ulid, type ULID, uuidToULID } from "ulid"
 import { createBufferedEventStream } from "../cloud/util.js"
 
 const skipLogsForCommands = ["autocomplete"]
@@ -672,7 +672,7 @@ export class GardenServer extends EventEmitter {
             return command.run({
               ...prepareParams,
               garden,
-              sessionUlid: commandSessionId,
+              sessionUlid: uuidToULID(commandSessionId),
               parentSessionUlid: this.sessionUlid,
               overrideLogLevel: internal ? LogLevel.silly : undefined,
             })
