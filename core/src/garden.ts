@@ -1882,6 +1882,7 @@ export class Garden {
     }
     return oldBackendAvailable
   }
+
   /** Returns whether the user is logged in to the "new" Garden Cloud */
   public isNewBackendAvailable(): this is GardenWithNewBackend {
     const newBackendAvailable = !!this.cloudApiV2
@@ -2175,8 +2176,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     // Update the log context
     log.context.gardenKey = getGardenInstanceKey({ environmentName, namespace, projectRoot, variableOverrides })
-    log.context.sessionId = opts.sessionUlid
-    log.context.parentSessionId = opts.parentSessionUlid ?? undefined
+    log.context.sessionId = ulidToUUID(opts.sessionUlid)
+    log.context.parentSessionId = opts.parentSessionUlid ? ulidToUUID(opts.parentSessionUlid) : undefined
 
     // Setting this after resolving the gardenKey above because we don't want the default namespace resolved there
     namespace = pickedEnv.namespace
