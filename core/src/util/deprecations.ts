@@ -107,6 +107,25 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: null,
     },
+    containerDeployActionLimits: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("spec.limits")} configuration field in ${style("container")} Deploy action`,
+      warnHint: deline`
+        Please use the ${style("cpu")} and ${style("memory")} configuration fields instead.
+      `,
+      docs: dedent`
+        Note! If the deprecated field [${style("spec.limits")}](../reference/action-types/Deploy/container.md#spec.limits)
+        is defined in the ${style("container")} Deploy action config,
+        Garden 0.14 automatically copies the field's contents to the ${style("spec.cpu")} and ${style("spec.memory")},
+        even if the latter are defined explicitly.
+
+        Please do not use both ${style("spec.limits")} and ${style("spec.cpu")} and/or ${style("spec.memory")} simultaneously,
+        and use only the latter pair of fields. Otherwise, the values from the old field ${style("spec.limits")} will be used.
+
+        See [${style("spec.cpu")}](../reference/action-types/Deploy/container.md#spec.cpu)
+        and [${style("spec.memory")}](../reference/action-types/Deploy/container.md#spec.memory) for the new syntax details.
+      `,
+    },
     workflowLimits: {
       docsSection: "Old configuration syntax",
       docsHeadline: `${style("limits")} configuration field in workflows`,
@@ -114,12 +133,14 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         Please use the ${style("resources.limits")} configuration field instead.
       `,
       docs: dedent`
-        Note! If the deprecated field ${style("limits")} is defined in the workflow config,
+        Note! If the deprecated field [${style("limits")}](../reference/workflow-config.md#limits) is defined in the workflow config,
         Garden 0.14 automatically copies the field's contents to the ${style("resources.limits")},
-        even if the ${style("resources.limits")} is defined explicitly.
+        even if the latter is defined explicitly.
 
         Please do not use both ${style("limits")} and ${style("resources.limits")} simultaneously,
         and use only ${style("resources.limits")}. Otherwise, the values from the old field ${style("limits")} will be used.
+
+        See [${style("resources.limits")}](../reference/workflow-config.md#resources.limits) for the new syntax details.
       `,
     },
   } as const

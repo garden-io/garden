@@ -7,7 +7,10 @@
  */
 
 import { expect } from "chai"
-import { getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util.js"
+import {
+  getResourceRequirements,
+  resolveResourceLimits,
+} from "../../../../../../src/plugins/kubernetes/container/util.js"
 
 describe("getResourceRequirements", () => {
   it("should return resources", () => {
@@ -43,18 +46,22 @@ describe("getResourceRequirements", () => {
       },
     })
   })
+})
 
+describe("resolveResourceLimits", () => {
   it("should prioritize deprecated limits param", () => {
-    expect(
-      getResourceRequirements({ cpu: { max: 1, min: 1 }, memory: { max: null, min: 1 } }, { cpu: 50, memory: 50 })
-    ).to.eql({
-      requests: {
-        cpu: "1m",
-        memory: "1Mi",
+    const { resolvedResources } = resolveResourceLimits(
+      { cpu: { max: 10, min: 1 }, memory: { max: null, min: 1 } }, // non-deprecated resource limit spec
+      { cpu: 50, memory: 50 } // deprecated resource limit spec
+    )
+    expect(resolvedResources).to.eql({
+      cpu: {
+        max: 50, // <-- taken from deprecated resource limit spec
+        min: 1, // <-- taken from non-deprecated resource limit spec
       },
-      limits: {
-        cpu: "50m",
-        memory: "50Mi",
+      memory: {
+        max: 50, // <-- taken from deprecated resource limit spec
+        min: 1, // <-- taken from non-deprecated resource limit spec
       },
     })
   })

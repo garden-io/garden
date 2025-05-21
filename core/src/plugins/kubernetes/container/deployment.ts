@@ -31,7 +31,7 @@ import { resolve } from "path"
 import { killPortForwards } from "../port-forward.js"
 import { prepareSecrets } from "../secrets.js"
 import { configureSyncMode, convertContainerSyncSpec } from "../sync.js"
-import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util.js"
+import { getDeployedImageId, getResourceRequirements, getSecurityContext, resolveResourceLimits } from "./util.js"
 import type { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types.js"
 import type { ActionMode, Resolved } from "../../../actions/types.js"
 import { ConfigurationError, DeploymentError } from "../../../exceptions.js"
@@ -39,6 +39,7 @@ import type { SyncableKind, KubernetesWorkload, KubernetesResource, SupportedRun
 import { k8sGetContainerDeployStatus } from "./status.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run.js"
 import { styles } from "../../../logger/styles.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
 
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
@@ -232,13 +233,19 @@ export async function createWorkloadManifest({
   })
 
   const { cpu, memory, limits } = spec
+  const { resolvedResources, warning } = resolveResourceLimits({ cpu, memory }, limits)
+  if (warning) {
+    const config = action.getConfig()
+    const warnSuffix = `Check your ${styles.highlight(action.key())} action configuration at ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}`
+    emitNonRepeatableWarning(log, `${warning}\n${warnSuffix}`)
+  }
 
   const container: V1Container = {
     name: action.name,
     image: imageId,
     env,
     ports: [],
-    resources: getResourceRequirements({ cpu, memory }, limits),
+    resources: getResourceRequirements(resolvedResources),
     imagePullPolicy: "IfNotPresent",
     securityContext: {
       allowPrivilegeEscalation: spec.privileged || false,

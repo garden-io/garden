@@ -19,7 +19,7 @@ import type {
   RegisterCloudBuildRequest,
   RegisterCloudBuildResponse,
 } from "./trpc.js"
-import { getAuthenticatedApiClient, getNonAuthenticatedApiClient } from "./trpc.js"
+import { describeTRPCClientError, getAuthenticatedApiClient } from "./trpc.js"
 import type { GardenErrorParams } from "../../exceptions.js"
 import { CloudApiError, GardenError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
@@ -30,7 +30,6 @@ import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
 import { TRPCClientError } from "@trpc/client"
 import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
-import { handleServerNotices } from "./notices.js"
 import { createGrpcTransport } from "@connectrpc/connect-node"
 import { createClient } from "@connectrpc/connect"
 import { GardenEventIngestionService } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
@@ -49,7 +48,11 @@ export class GrowCloudError extends GardenError {
   }
 
   public static wrapTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
-    return new GrowCloudError({ message: err.message, cause: err })
+    const errorDesc = describeTRPCClientError(err)
+    return new GrowCloudError({
+      message: `An error occurred while calling Garden Backend: ${errorDesc.short}`,
+      cause: err,
+    })
   }
 }
 
@@ -160,13 +163,9 @@ export class GrowCloudApi {
       ).accessToken
     }
 
-    const verificationResult = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.verifyToken.query({
-      token: authToken,
-    })
+    const tokenValid = await isTokenValid({ cloudDomain, authToken, log })
 
-    handleServerNotices(verificationResult.notices, cloudLog)
-
-    if (!verificationResult.valid) {
+    if (!tokenValid) {
       log.debug({ msg: `The stored token was not valid.` })
       return undefined
     }

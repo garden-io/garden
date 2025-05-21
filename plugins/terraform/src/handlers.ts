@@ -31,9 +31,10 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
 
   const variables = spec.variables
   const workspace = spec.workspace || null
+  const backendConfig = spec.backendConfig
 
   await ensureWorkspace({ log, ctx, provider, root, workspace })
-  await ensureTerraformInit({ log, ctx, provider, root, backendConfig: spec.backendConfig })
+  await ensureTerraformInit({ log, ctx, provider, root, backendConfig })
 
   const status = await getStackStatus({
     ctx,

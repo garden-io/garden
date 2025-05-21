@@ -896,7 +896,7 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 [spec](#spec) > limits
 
 {% hint style="warning" %}
-**Deprecated**: Please use the `cpu` and `memory` fields instead.
+**Deprecated**: Please use the `cpu` and `memory` configuration fields instead.
 {% endhint %}
 
 Specify resource limits for the service.

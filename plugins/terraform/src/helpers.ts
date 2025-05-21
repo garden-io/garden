@@ -94,7 +94,7 @@ const terraformValidateOutputSchema = s
 
 /**
  * Reads the current backend config from the `.terraform/terraform.tfstate` file and
- * compares it to the backend config supplied by the user via the Garden config (passed)
+ * compares it to the backend config supplied by the user via the Garden config passed
  * as an argument to this function.
  *
  * Returns true if the user defined backend config is different from the one in the `tfstate` file.
@@ -125,7 +125,7 @@ export async function hasBackendConfigChanged({
     throw err
   }
 
-  const currentBackendConfig = tfState?.backend?.["config"] as { [key: string]: string } | undefined
+  const currentBackendConfig = tfState?.backend?.["config"] as { [key: string]: string | null | undefined } | undefined
 
   const hasChanged =
     (currentBackendConfig &&
@@ -209,7 +209,7 @@ export async function ensureTerraformInit(params: TerraformParams & { backendCon
     // It failed when running "terraform init": in this case we only add the error from the
     // first validation try
     if (initError) {
-      const resultErrors = res.diagnostics.map((d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`)
+      const resultErrors = res.diagnostics.map((d) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`)
       errorMsg += dedent`\n\n${resultErrors.join("\n")}
 
         Garden tried running "terraform init" but got the following error:\n

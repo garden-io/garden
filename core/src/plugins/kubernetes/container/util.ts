@@ -17,6 +17,8 @@ import type { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/clie
 import { ConfigurationError } from "../../../exceptions.js"
 import type { Resolved } from "../../../actions/types.js"
 import { kilobytesToString, megabytesToString, millicpuToString } from "../util.js"
+import { deline, naturalList } from "../../../util/string.js"
+import { styles } from "../../../logger/styles.js"
 
 export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>): string {
   const explicitImage = action.getSpec().image
@@ -34,12 +36,9 @@ export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>): st
   }
 }
 
-export function getResourceRequirements(
-  resources: ContainerResourcesSpec,
-  limits?: LegacyServiceLimitSpec
-): V1ResourceRequirements {
-  const maxCpu = limits?.cpu || resources.cpu.max
-  const maxMemory = limits?.memory || resources.memory.max
+export function getResourceRequirements(resources: ContainerResourcesSpec): V1ResourceRequirements {
+  const maxCpu = resources.cpu.max
+  const maxMemory = resources.memory.max
 
   const resourceReq: V1ResourceRequirements = {
     requests: {
@@ -58,6 +57,60 @@ export function getResourceRequirements(
   }
 
   return resourceReq
+}
+
+/**
+ * TODO(0.15): remove this
+ * @param resources the resource limits defined via new config syntax
+ * @param limits the resource limits defined via old config syntax
+ */
+export function resolveResourceLimits(
+  resources: ContainerResourcesSpec,
+  limits?: LegacyServiceLimitSpec
+): { resolvedResources: ContainerResourcesSpec; warning: string | undefined } {
+  const maxCpu = limits?.cpu || resources.cpu.max
+  const maxMemory = limits?.memory || resources.memory.max
+
+  const resolvedResources = {
+    cpu: {
+      min: resources.cpu.min,
+      max: maxCpu,
+    },
+    memory: {
+      min: resources.memory.min,
+      max: maxMemory,
+    },
+  }
+
+  const conflicts: ("memory" | "cpu")[] = []
+  if (limits) {
+    if (resources.cpu.max && limits.cpu) {
+      conflicts.push("cpu")
+    }
+    if (resources.memory.max && limits.memory) {
+      conflicts.push("memory")
+    }
+  }
+
+  if (conflicts.length === 0) {
+    return { resolvedResources, warning: undefined }
+  }
+
+  const legacyConfigFields: string[] = []
+  const newConfigFields: string[] = []
+  for (const conflict of conflicts) {
+    legacyConfigFields.push(styles.highlight(`spec.limits.${conflict}`))
+    newConfigFields.push(styles.highlight(`spec.${conflict}.max`))
+  }
+
+  const warning = deline`
+      You have specified both ${naturalList(newConfigFields)} and ${styles.bold("deprecated")} ${naturalList(legacyConfigFields)}
+      in your action config.
+
+      ${styles.bold(`Garden will use the values defined in the deprecated ${styles.highlight("spec.limits")}!`)}.
+      Please use only ${styles.highlight("spec.cpu")} and ${styles.highlight("spec.memory")} fields in your action configuration.`
+
+  return { resolvedResources, warning }
 }
 
 export function getSecurityContext(
