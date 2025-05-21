@@ -21,6 +21,7 @@ import micromatch from "micromatch"
 import type { GardenInstanceManager } from "./instance-manager.js"
 import { isDirectory } from "../util/fs.js"
 import fsExtra from "fs-extra"
+
 const { pathExists } = fsExtra
 import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
@@ -41,6 +42,7 @@ import {
   getTestStatusPayloads,
 } from "../actions/helpers.js"
 import pProps from "p-props"
+import { uuidToULID } from "ulid"
 
 const autocompleteArguments = {
   input: new StringParameter({
@@ -428,7 +430,8 @@ export async function resolveRequest({
 
   const cmdLog = serverLogger.createLog({})
 
-  const sessionId = request.id || uuidv4()
+  const requestUuid = request.id || uuidv4()
+  const sessionUlid = uuidToULID(requestUuid)
 
   const garden = await manager.getGardenForRequest({
     command,
@@ -438,11 +441,11 @@ export async function resolveRequest({
     args: cmdArgs,
     opts: cmdOpts,
     environmentString: request.environment,
-    sessionUlid: sessionId,
+    sessionUlid,
   })
 
   cmdLog.context.gardenKey = garden.getInstanceKey()
-  cmdLog.context.sessionId = sessionId
+  cmdLog.context.sessionId = sessionUlid
 
   return {
     garden,
