@@ -40,7 +40,7 @@ const moduleDirName = dirname(fileURLToPath(import.meta.url))
  *
  * Used for testing the `backendConfig` logic.
  */
-export class TerraformMockBackendServer {
+export class MockTerraformBackendServer {
   private server: http.Server
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private interceptedRequests: any[] = []
@@ -399,23 +399,30 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
     })
 
-    context("backendConfig defined", () => {
+    context("backendConfig defined for provider", () => {
       const testRootBackendConfig = resolve(moduleDirName, "../../test/", "test-project-backendconfig")
       tfRoot = join(testRootBackendConfig, "tf")
-      stateDirPath = join(tfRoot, ".terraform")
+      const tfDirPath = join(tfRoot, ".terraform")
+      // Keep track of servers so we can stop them at end of test suite
+      const tfServers: MockTerraformBackendServer[] = []
 
-      let server: TerraformMockBackendServer
-      let port: number
-
-      before(async () => {
-        port = await getPort()
-        server = new TerraformMockBackendServer(port)
+      const startMockTerraformBackendServer = async () => {
+        const port = await getPort()
+        const server = new MockTerraformBackendServer(port)
         await server.start()
-      })
+        tfServers.push(server)
+
+        return { server, port }
+      }
+
+      const resetBackendConfigProject = async () => {
+        if (tfDirPath && (await pathExists(tfDirPath))) {
+          await remove(tfDirPath)
+        }
+      }
 
       beforeEach(async () => {
-        await reset()
-        server.clearInterceptedRequests()
+        await resetBackendConfigProject()
       })
 
       afterEach(async () => {
@@ -423,10 +430,14 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       after(async () => {
-        await server.stop()
+        for (const server of tfServers) {
+          await server.stop()
+        }
+        await resetBackendConfigProject()
       })
 
       it("should dynamically set backend config", async () => {
+        const { server, port } = await startMockTerraformBackendServer()
         const testGarden = await makeTestGarden(testRootBackendConfig, {
           plugins: [gardenPlugin()],
           environmentString: "local",
@@ -449,6 +460,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should NOT re-initialize Terraform if no state file present", async () => {
+        const { port } = await startMockTerraformBackendServer()
         const testGarden = await makeTestGarden(testRootBackendConfig, {
           plugins: [gardenPlugin()],
           environmentString: "local",
@@ -458,9 +470,11 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
             "address": `http://localhost:${port}/terraform/state?some-dynamic-key`,
           },
         })
+
         await testGarden.resolveProvider({ log: testGarden.log, name: "terraform" })
 
         const messages = getRootLogMessages(testGarden.log, (e) => e.level === LogLevel.info)
+
         // A fresh test project won't have a statefile
         expect(messages).to.not.include(
           "Detected change in backend config, will re-initialize Terraform with '-reconfigure' flag"
@@ -468,6 +482,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should re-initialize Terraform with -reconfigure flag if backendConfig changes", async () => {
+        const { server, port } = await startMockTerraformBackendServer()
         const testGardenA = await makeTestGarden(testRootBackendConfig, {
           plugins: [gardenPlugin()],
           environmentString: "local",
@@ -509,6 +524,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("uses backendConfig for commamnds", async () => {
+        const { server, port } = await startMockTerraformBackendServer()
         const testGarden = await makeTestGarden(testRootBackendConfig, {
           plugins: [gardenPlugin()],
           environmentString: "local",
@@ -535,8 +551,6 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
 
         const requests = server.getInterceptedRequests()
-        console.log("**REQUESTS***")
-        console.log(JSON.stringify(requests, null, 4))
         const requestUrl = requests[0].url
         expect(requestUrl).to.eql("/terraform/state?some-dynamic-key-using-plugin-command")
       })
@@ -999,25 +1013,30 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
     })
 
-    context("backendConfig defined", () => {
+    context("backendConfig defined for action", () => {
       const testRootBackendConfigAction = resolve(moduleDirName, "../../test/", "test-project-backendconfig-action")
       tfRoot = join(testRootBackendConfigAction, "tf")
-      stateDirPath = join(tfRoot, ".terraform")
+      const tfDirPath = join(tfRoot, ".terraform")
+      // Keep track of servers so we can stop them at end of test suite
+      const tfServers: MockTerraformBackendServer[] = []
 
-      let server: TerraformMockBackendServer
-      let port: number
-
-      before(async () => {
-        port = await getPort()
-        server = new TerraformMockBackendServer(port)
+      const startMockTerraformBackendServer = async () => {
+        const port = await getPort()
+        const server = new MockTerraformBackendServer(port)
         await server.start()
-      })
+        tfServers.push(server)
+
+        return { server, port }
+      }
+
+      const resetBackendConfigActionProject = async () => {
+        if (tfDirPath && (await pathExists(tfDirPath))) {
+          await remove(tfDirPath)
+        }
+      }
 
       beforeEach(async () => {
-        tfRoot = join(testRootBackendConfigAction, "tf")
-        stateDirPath = join(tfRoot, ".terraform")
-        await reset()
-        server.clearInterceptedRequests()
+        await resetBackendConfigActionProject()
       })
 
       afterEach(async () => {
@@ -1025,10 +1044,14 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       after(async () => {
-        await server.stop()
+        for (const server of tfServers) {
+          await server.stop()
+        }
+        await resetBackendConfigActionProject()
       })
 
       it("should dynamically set backend config", async () => {
+        const { server, port } = await startMockTerraformBackendServer()
         const testGarden = await makeTestGarden(testRootBackendConfigAction, {
           plugins: [gardenPlugin()],
           environmentString: "local",
@@ -1065,6 +1088,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should NOT re-initialize Terraform if no state file present", async () => {
+        const { port } = await startMockTerraformBackendServer()
         const testGarden = await makeTestGarden(testRootBackendConfigAction, {
           plugins: [gardenPlugin()],
           environmentString: "local",
@@ -1095,6 +1119,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         await testGarden.processTasks({ tasks: [deployTask], throwOnError: true })
 
         const messages = getRootLogMessages(testGarden.log, (e) => e.level === LogLevel.info)
+
         // A fresh test project won't have a statefile
         expect(messages).to.not.include(
           "Detected change in backend config, will re-initialize Terraform with '-reconfigure' flag"
@@ -1102,6 +1127,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should re-initialize Terraform with -reconfigure flag if backendConfig changes", async () => {
+        const { server, port } = await startMockTerraformBackendServer()
         const testGarden = await makeTestGarden(testRootBackendConfigAction, {
           plugins: [gardenPlugin()],
           environmentString: "local",
@@ -1170,6 +1196,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("uses backendConfig for commamnds", async () => {
+        const { server, port } = await startMockTerraformBackendServer()
         const testGarden = await makeTestGarden(testRootBackendConfigAction, {
           plugins: [gardenPlugin()],
           environmentString: "local",

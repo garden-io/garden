@@ -125,7 +125,7 @@ export async function hasBackendConfigChanged({
     throw err
   }
 
-  const currentBackendConfig = tfState?.backend?.["config"] as { [key: string]: string } | undefined
+  const currentBackendConfig = tfState?.backend?.["config"] as { [key: string]: string | null | undefined } | undefined
 
   const hasChanged =
     (currentBackendConfig &&
