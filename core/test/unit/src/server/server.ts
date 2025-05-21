@@ -79,10 +79,6 @@ describe("GardenServer", () => {
     await gardenServer.close()
   })
 
-  beforeEach(async () => {
-    manager.set(garden.log, garden)
-  })
-
   it("should show no URL on startup", async () => {
     const line = gardenServer["statusLog"]!
     expect(line.getLatestEntry()).to.be.undefined
