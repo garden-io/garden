@@ -1,7 +1,6 @@
 apiVersion: garden.io/v2
 kind: Project
 name: garden-support-images
-domain: https://grow.garden.io
 environments:
   - name: local
 providers:
