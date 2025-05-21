@@ -824,6 +824,21 @@ export class GardenCloudApi {
       })
     }
   }
+
+  async revokeToken(clientAuthToken: ClientAuthToken) {
+    try {
+      await this.post("token/logout", { headers: { Cookie: `rt=${clientAuthToken?.refreshToken}` } })
+    } catch (err) {
+      if (!(err instanceof GotHttpError)) {
+        throw err
+      }
+
+      throw new CloudApiTokenRefreshError({
+        message: `An error occurred while revoking client auth token with ${this.distroName}: ${err.message}`,
+        responseStatusCode: err.response?.statusCode,
+      })
+    }
+  }
 }
 
 // TODO(cloudbuilder): import these from api-types
