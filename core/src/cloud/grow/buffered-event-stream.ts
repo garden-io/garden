@@ -18,8 +18,8 @@ import type {
   Event as GrpcEvent,
   GardenEventIngestionService,
   EventResponse,
-} from "@buf/garden_grow-platform.bufbuild_es/private/events/events_pb.js"
-import { EventContextSchema, EventSchema } from "@buf/garden_grow-platform.bufbuild_es/private/events/events_pb.js"
+} from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
+import { EventContextSchema, EventSchema } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
 import { create } from "@bufbuild/protobuf"
 import { ConnectError, type Client } from "@connectrpc/connect"
 import type { WritableIterable } from "@connectrpc/connect/protocol"
@@ -31,7 +31,7 @@ import {
   GardenCommandEvent_InvocationMetadataSchema,
   GardenCommandEvent_Status,
   GardenCommandEventSchema,
-} from "@buf/garden_grow-platform.bufbuild_es/private/events/garden-command/garden-command_pb.js"
+} from "@buf/garden_grow-platform.bufbuild_es/public/events/garden-command/garden-command_pb.js"
 
 const nextEventUlid = monotonicFactory()
 

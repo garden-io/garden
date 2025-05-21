@@ -8,15 +8,15 @@
 
 import { expect } from "chai"
 import { createClient, createRouterTransport } from "@connectrpc/connect"
-import type { Event } from "@buf/garden_grow-platform.bufbuild_es/private/events/events_pb.js"
+import type { Event } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
 import {
   EventResponseSchema,
   EventSchema,
   GardenEventIngestionService,
-} from "@buf/garden_grow-platform.bufbuild_es/private/events/events_pb.js"
+} from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
 import { create } from "@bufbuild/protobuf"
 import { ulid } from "ulid"
-import { GardenCommandEventSchema } from "@buf/garden_grow-platform.bufbuild_es/private/events/garden-command/garden-command_pb.js"
+import { GardenCommandEventSchema } from "@buf/garden_grow-platform.bufbuild_es/public/events/garden-command/garden-command_pb.js"
 import type { GardenWithNewBackend } from "../../../../../src/garden.js"
 import { GrowBufferedEventStream } from "../../../../../src/cloud/grow/buffered-event-stream.js"
 import type { Log } from "../../../../../src/logger/log-entry.js"

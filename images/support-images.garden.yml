@@ -1,6 +1,7 @@
 apiVersion: garden.io/v2
 kind: Project
 name: garden-support-images
+organizationId: 0dbe175b-0894-46e5-a18f-82f25d2d232a
 domain: https://grow.garden.io
 environments:
   - name: local
