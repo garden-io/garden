@@ -7,10 +7,10 @@
  */
 
 import fsExtra from "fs-extra"
+import AsyncLock from "async-lock"
 
 const { ensureFile, readFile } = fsExtra
 import type { z, ZodType } from "zod"
-import { lock } from "proper-lockfile"
 import writeFileAtomic from "write-file-atomic"
 import { InternalError } from "../exceptions.js"
 
@@ -19,6 +19,12 @@ type I<T extends ZodType<any>> = z.infer<T>
 
 export abstract class ConfigStore<T extends z.ZodObject<any>> {
   fileMode: number | undefined
+
+  // to prevent concurrent writes from the same garden process
+  // does not prevent concurrent writes from multiple CLI instances.
+  // For protection against data corruption we use atomic writes, and we accept data loss in case
+  // of concurrent writes from multiple processes.
+  private lock = new AsyncLock()
 
   abstract schema: T
 
@@ -36,14 +42,19 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
     section?: S,
     key?: K
   ): Promise<I<T> | I<T>[S] | I<T>[S][K] | undefined> {
-    const config = await this.readConfig()
-    if (section === undefined) {
-      return config
-    } else if (key === undefined) {
-      return config[section]
-    } else {
-      return config[section][key]
-    }
+    const path = this.getConfigPath()
+
+    // we also acquire the lock to make sure we get the latest version of the config in case a write is in progress
+    return await this.lock.acquire(path, async () => {
+      const config = await this.readConfig()
+      if (section === undefined) {
+        return config
+      } else if (key === undefined) {
+        return config[section]
+      } else {
+        return config[section][key]
+      }
+    })
   }
 
   /**
@@ -52,8 +63,8 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
   async set<S extends keyof I<T>, _K extends keyof I<T>[S]>(section: S, value: I<T>[S]): Promise<void>
   async set<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K, value: I<T>[S][K]): Promise<void>
   async set<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K | I<T>[S], value?: I<T>[S][K]) {
-    const release = await this.lock()
-    try {
+    const path = this.getConfigPath()
+    await this.lock.acquire(path, async () => {
       const config = await this.readConfig()
       if (value === undefined) {
         config[section] = <I<T>[S]>key
@@ -62,9 +73,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
       }
       const validated = this.validate(config, "updating")
       await this.writeConfig(validated)
-    } finally {
-      await release()
-    }
+    })
   }
 
   /**
@@ -89,8 +98,8 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
     nameOrPartialValue: N | Partial<I<T>[S][K]>,
     value?: I<T>[S][K][N]
   ) {
-    const release = await this.lock()
-    try {
+    const path = this.getConfigPath()
+    await this.lock.acquire(path, async () => {
       const config = await this.readConfig()
       const record = config[section]?.[key]
 
@@ -110,17 +119,15 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
 
       const validated = this.validate(config, "updating")
       await this.writeConfig(validated)
-    } finally {
-      await release()
-    }
+    })
   }
 
   /**
    * Delete the given object/record from the specified section, if it exists.
    */
   async delete<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K) {
-    const release = await this.lock()
-    try {
+    const path = this.getConfigPath()
+    await this.lock.acquire(path, async () => {
       const config = await this.readConfig()
 
       if (config[section]?.[key]) {
@@ -128,9 +135,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
         const validated = this.validate(config, "deleting from")
         await this.writeConfig(validated)
       }
-    } finally {
-      await release()
-    }
+    })
   }
 
   async clear() {
@@ -149,43 +154,9 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
     }
   }
 
-  private async lock() {
-    const path = this.getConfigPath()
-    await ensureFile(path)
-
-    // HACK: override the lock compromised handler to bubble up a thrown error as a Promise rejection instead
-    // NOTE: this allows the execution to continue, and the writeFile function potentially overwrites the config written by another call
-    const compromiseHandler = (err, reject) => {
-      // eslint-disable-next-line
-      console.log("Warning: The lock on the global config store was compromised. Updating the config anyway.")
-      reject(err)
-    }
-
-    return new Promise<() => Promise<void>>((resolve, reject) => {
-      const onCompromise = (err) => compromiseHandler(err, reject)
-      this._wrappedLock(path, onCompromise).then(resolve).catch(reject)
-    })
-  }
-
-  // NOTE: Inner helper for the lock function. Do not use directly. This exists to avoid fail-stop when releasing the lock fails
-  private async _wrappedLock(path: string, onCompromised: (err) => void): Promise<() => Promise<void>> {
-    const release = await lock(path, { retries: 5, stale: 5000, onCompromised })
-
-    return async () => {
-      try {
-        await release()
-      } catch (err) {
-        // eslint-disable-next-line
-        console.log(
-          "Warning: Unable to release the lock on the global config store; lock was already released. If you run into this error repeatedly, please report on our GitHub or Discord"
-        )
-        throw err
-      }
-    }
-  }
-
   private async readConfig(): Promise<I<T>> {
     const configPath = this.getConfigPath()
+    await ensureFile(configPath)
 
     let parsed: I<T>
     try {
