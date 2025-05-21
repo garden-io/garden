@@ -40,16 +40,42 @@ The `resources.sync` config field in the `kubernetes` provider has no effect in 
 
 The `resources.sync` config field in the `kubernetes` provider was only used for the `cluster-docker` build mode, which was removed in Garden 0.13.",
 
-<h2 id="workflowlimits">Using <code>limits</code> configuration field in workflows</h2>
+<h2 id="kubernetespodspecfiles"><code>spec.files</code> configuration field in <code>kubernetes-pod</code> action type</h2>
+
+The `spec.files` configuration field in `kubernetes-pod` action type has no effect. Please remove it and use `spec.manifestFiles` or `spec.manifestTemplates` instead.
+
+See the reference documentation for details.
+
+For the `Run` action kind see [`spec.manifestFiles`](../reference/action-types/Run/kubernetes-pod.md#spec.manifestfiles) and [`spec.manifestTemplates`](../reference/action-types/Run/kubernetes-pod.md#spec.manifesttemplates).
+For the `Test` action kind see [`spec.manifestFiles`](../reference/action-types/Test/kubernetes-pod.md#spec.manifestfiles) and [`spec.manifestTemplates`](../reference/action-types/Test/kubernetes-pod.md#spec.manifesttemplates).
+
+<h2 id="containerdeployactionlimits"><code>spec.limits</code> configuration field in <code>container</code> Deploy action</h2>
+
+Please use the `cpu` and `memory` configuration fields instead.
+
+Note! If the deprecated field [`spec.limits`](../reference/action-types/Deploy/container.md#spec.limits)
+is defined in the `container` Deploy action config,
+Garden 0.14 automatically copies the field's contents to the `spec.cpu` and `spec.memory`,
+even if the latter are defined explicitly.
+
+Please do not use both `spec.limits` and `spec.cpu` and/or `spec.memory` simultaneously,
+and use only the latter pair of fields. Otherwise, the values from the old field `spec.limits` will be used.
+
+See [`spec.cpu`](../reference/action-types/Deploy/container.md#spec.cpu)
+and [`spec.memory`](../reference/action-types/Deploy/container.md#spec.memory) for the new syntax details.
+
+<h2 id="workflowlimits"><code>limits</code> configuration field in workflows</h2>
 
 Please use the `resources.limits` configuration field instead.
 
-Note! If the deprecated field `limits` is defined in the workflow config,
+Note! If the deprecated field [`limits`](../reference/workflow-config.md#limits) is defined in the workflow config,
 Garden 0.14 automatically copies the field's contents to the `resources.limits`,
-even if the `resources.limits` is defined explicitly.
+even if the latter is defined explicitly.
 
 Please do not use both `limits` and `resources.limits` simultaneously,
 and use only `resources.limits`. Otherwise, the values from the old field `limits` will be used.
+
+See [`resources.limits`](../reference/workflow-config.md#resources.limits) for the new syntax details.
 
 # Unsupported commands
 

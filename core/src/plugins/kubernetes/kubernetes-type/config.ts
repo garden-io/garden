@@ -128,7 +128,7 @@ type KubernetesCommonDeployKeyDeprecations = { deprecateFiles: boolean }
 
 export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => {
   const keys = {
-    files: kubernetesManifestTemplatesSchema().meta({ deprecation: deprecations.deprecateFiles }),
+    files: kubernetesManifestTemplatesSchema(),
     kustomize: kustomizeSpecSchema(),
     manifests: kubernetesManifestsSchema(),
     patchResources: kubernetesPatchResourcesSchema(),

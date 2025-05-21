@@ -17,7 +17,7 @@ import {
   DEFAULT_TEST_TIMEOUT_SEC,
   GardenApiVersion,
 } from "../../../../../src/constants.js"
-import type { WorkflowConfig } from "../../../../../src/config/workflow.js"
+import type { WorkflowConfig, WorkflowLimitSpec } from "../../../../../src/config/workflow.js"
 import { defaultWorkflowResources } from "../../../../../src/config/workflow.js"
 import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig.js"
 import type { ModuleConfig } from "../../../../../src/config/module.js"
@@ -94,7 +94,7 @@ describe("GetConfigCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         keepAliveHours: 48,
-        limits: defaultContainerLimits,
+        limits: defaultContainerLimits as WorkflowLimitSpec,
         internal: {
           basePath: garden.projectRoot,
         },

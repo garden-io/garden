@@ -15,10 +15,10 @@ export const kubernetesLocalModeSchema = () =>
     target: joi
       .object()
       .keys({
-        kind: joi.string().optional().meta({ internal: true }),
-        name: joi.string().optional().meta({ internal: true }),
-        podSelector: joi.string().optional().meta({ internal: true }),
-        containerName: joi.string().optional().meta({ internal: true }),
+        kind: joi.string().optional(),
+        name: joi.string().optional(),
+        podSelector: joi.string().optional(),
+        containerName: joi.string().optional(),
       })
       .meta({ internal: true }),
   })
