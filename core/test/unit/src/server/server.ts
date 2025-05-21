@@ -75,7 +75,8 @@ describe("GardenServer", () => {
   })
 
   after(async () => {
-    server.close()
+    await manager.clear()
+    await gardenServer.close()
   })
 
   beforeEach(async () => {
