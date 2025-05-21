@@ -528,7 +528,7 @@ describe("cli", () => {
             defaultProjectRoot: projectRootA,
             manager: GardenInstanceManager.getInstance({
               log,
-              sessionId,
+              sessionUlid: sessionId,
               serveCommand,
               plugins: [],
             }),

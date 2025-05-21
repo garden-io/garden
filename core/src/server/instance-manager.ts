@@ -53,7 +53,7 @@ interface ProjectRootContext {
 
 interface GardenInstanceManagerParams {
   readonly log: Log
-  readonly sessionId: ULID
+  readonly sessionUlid: ULID
   readonly plugins: GardenPluginReference[]
   readonly serveCommand: ServeCommand
   readonly extraCommands?: Command[]
@@ -90,14 +90,14 @@ export class GardenInstanceManager {
 
   private constructor({
     log,
-    sessionId,
+    sessionUlid,
     serveCommand,
     extraCommands,
     defaultOpts,
     plugins,
   }: GardenInstanceManagerParams) {
     this.serveCommand = serveCommand
-    this.sessionUlid = sessionId
+    this.sessionUlid = sessionUlid
     this.instances = new Map()
     this.projectRoots = new Map()
     this.cloudApis = new Map()

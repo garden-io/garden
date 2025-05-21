@@ -55,7 +55,7 @@ describe("GardenServer", () => {
     garden = await makeTestGardenA()
     manager = GardenInstanceManager.getInstance({
       log: garden.log,
-      sessionId: garden.sessionUlid,
+      sessionUlid: garden.sessionUlid,
       serveCommand,
       extraCommands: [new TestCommand()],
       force: true,

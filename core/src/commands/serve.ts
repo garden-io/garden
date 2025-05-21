@@ -231,7 +231,7 @@ export class ServeCommand<
     if (!this._manager) {
       this._manager = GardenInstanceManager.getInstance({
         log,
-        sessionId: this.sessionUlid || initialSessionUlid || ulid(),
+        sessionUlid: this.sessionUlid || initialSessionUlid || ulid(),
         serveCommand: this,
         plugins: this.plugins || [],
       })
