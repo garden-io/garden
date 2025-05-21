@@ -13,37 +13,34 @@ import { flatMap, fromPairs, mapValues, pickBy, size } from "lodash-es"
 import type { PrimitiveMap } from "../config/common.js"
 import { createSchema, joi, joiArray, joiIdentifierMap, joiStringMap, joiVariables } from "../config/common.js"
 import type { GardenError } from "../exceptions.js"
-import { RuntimeError, InternalError, toGardenError } from "../exceptions.js"
+import { InternalError, RuntimeError, toGardenError } from "../exceptions.js"
 import type { Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger.js"
-import { eventLogLevel } from "../logger/logger.js"
 import { printEmoji, printFooter } from "../logger/util.js"
 import { getDurationMsec, getPackageVersion, userPrompt } from "../util/util.js"
-import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers.js"
-import type { GlobalOptions, ParameterValues, ParameterObject } from "../cli/params.js"
+import { cliStyles, optionsWithAliasValues, renderArguments, renderCommands, renderOptions } from "../cli/helpers.js"
+import type { GlobalOptions, ParameterObject, ParameterValues } from "../cli/params.js"
 import { globalOptions } from "../cli/params.js"
 import type { GardenCli } from "../cli/cli.js"
 import type { CommandLine } from "../cli/command-line.js"
 import type { SolveResult } from "../graph/solver.js"
 import { waitForOutputFlush } from "../process.js"
-import { BufferedEventStream } from "../cloud/buffered-event-stream.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { GardenServer } from "../server/server.js"
 import type { CloudSession } from "../cloud/api.js"
 import type { DeployState, ForwardablePort, ServiceIngress } from "../types/service.js"
 import { deployStates, forwardablePortSchema, serviceIngressSchema } from "../types/service.js"
-import type { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from "../graph/results.js"
+import type { GraphResultMapWithoutTask, GraphResults, GraphResultWithoutTask } from "../graph/results.js"
 import { splitFirst } from "../util/string.js"
-import { actionStates, type ActionMode, type ActionState } from "../actions/types.js"
+import { type ActionMode, type ActionState, actionStates } from "../actions/types.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { styles } from "../logger/styles.js"
 import { clearVarfileCache } from "../config/base.js"
-import { getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
-import { ulidToUUID, type ULID } from "ulid"
-import { GrowBufferedEventStream } from "../cloud/grow/buffered-event-stream.js"
+import { createBufferedEventStream, getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
+import { type ULID, ulidToUUID } from "ulid"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -346,25 +343,12 @@ export abstract class Command<
 
         let result: CommandResult<R>
 
-        let cloudEventStream: BufferedEventStream | GrowBufferedEventStream | undefined
-        if (cloudSession) {
-          cloudEventStream = new BufferedEventStream({
-            log,
-            cloudSession,
-            maxLogLevel: eventLogLevel,
-            garden,
-            streamEvents: this.streamEvents,
-            streamLogEntries: this.streamLogEntries,
-          })
-        } else if (garden.isNewBackendAvailable() && this.streamEvents) {
-          cloudEventStream = new GrowBufferedEventStream({
-            log,
-            garden,
-            shouldStreamLogEntries: this.streamLogEntries,
-            eventIngestionService: garden.cloudApiV2.eventIngestionService,
-          })
-        }
-
+        const cloudEventStream = createBufferedEventStream({
+          cloudSession,
+          log,
+          garden,
+          opts: { shouldStreamEvents: this.streamEvents, shouldStreamLogs: this.streamLogEntries },
+        })
         if (cloudEventStream) {
           log.silly(() => `Connecting Garden instance events to Cloud API`)
         }
