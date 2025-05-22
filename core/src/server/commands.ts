@@ -40,7 +40,7 @@ import {
   getTestStatusPayloads,
 } from "../actions/helpers.js"
 import pProps from "p-props"
-import { uuidToULID } from "ulid"
+import { ulid } from "ulid"
 
 const { pathExists } = fsExtra
 
@@ -430,8 +430,9 @@ export async function resolveRequest({
 
   const cmdLog = serverLogger.createLog({})
 
-  const sessionUuid = request.id || uuidv4()
-  const sessionUlid = uuidToULID(sessionUuid)
+  const requestUuid = request.id || uuidv4()
+  const sessionUlid = ulid()
+  log.debug(`Created sessionUlid=${sessionUlid} for requestUuid=${requestUuid}`)
 
   const garden = await manager.getGardenForRequest({
     command,
@@ -445,7 +446,7 @@ export async function resolveRequest({
   })
 
   cmdLog.context.gardenKey = garden.getInstanceKey()
-  cmdLog.context.sessionId = sessionUuid
+  cmdLog.context.sessionId = requestUuid
 
   return {
     garden,
