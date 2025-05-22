@@ -33,7 +33,6 @@ import { templateStringLiteral } from "../../docs/common.js"
 import { syncGuideLink } from "../kubernetes/constants.js"
 import { makeSecret, type Secret } from "../../util/secrets.js"
 import type { ActionKind } from "../../plugin/action-types.js"
-import { makeDeprecationMessage } from "../../util/deprecations.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -469,7 +468,7 @@ const limitsSchema = createSchema({
       .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)"),
   }),
   description: "Specify resource limits for the service.",
-  meta: { deprecated: makeDeprecationMessage({ deprecation: "containerDeployActionLimits" }) },
+  meta: { deprecation: "containerDeployActionLimits" },
 })
 
 export const containerCpuSchema = () =>
@@ -542,7 +541,7 @@ export const portSchema = createSchema({
         The service port maps to the container port:
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
-    hostPort: joi.number().meta({ deprecated: true }),
+    hostPort: joi.number().meta({ deprecated: true }), // TODO(deprecation): deprecate in 0.14
     nodePort: joi.number().allow(true).description(deline`
         Set this to expose the service on the specified port on the host node (may not be supported by all providers).
         Set to \`true\` to have the cluster pick a port automatically, which is most often advisable if the cluster is
