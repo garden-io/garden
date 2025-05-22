@@ -46,7 +46,7 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 
 import { styles } from "../logger/styles.js"
 import type { ULID, UUID } from "ulid"
-import { ulid } from "ulid"
+import { ulid, ulidToUUID, uuidToULID } from "ulid"
 import { createBufferedEventStream } from "../cloud/util.js"
 
 const skipLogsForCommands = ["autocomplete"]
@@ -333,7 +333,7 @@ export class GardenServer extends EventEmitter {
       const sessionId = ctx.query.sessionId
 
       // We allow either sessionId or authKey ro authorize
-      if (authToken !== this.authKey && sessionId !== this.sessionUlid) {
+      if (authToken !== this.authKey && sessionId !== ulidToUUID(this.sessionUlid)) {
         return ctx.throw(401, `Unauthorized request`)
       }
       return next()
@@ -473,7 +473,7 @@ export class GardenServer extends EventEmitter {
         })
       }
 
-      if (ctx.query.key !== this.authKey && ctx.query.sessionId !== this.sessionUlid) {
+      if (ctx.query.key !== this.authKey && ctx.query.sessionId !== ulidToUUID(this.sessionUlid)) {
         send("error", { message: `401 Unauthorized` })
         const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
         websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
@@ -587,15 +587,18 @@ export class GardenServer extends EventEmitter {
       return send("error", { message: "Could not parse message as JSON" })
     }
 
-    const requestId: UUID = request.id
-    const requestType: string = request.type
-
     try {
-      joi.attempt(requestId, joi.string().uuid().required())
+      joi.attempt(request.id, joi.string().uuid().required())
     } catch {
-      return send("error", { message: "Message should contain an `id` field with a UUID value", requestId })
+      return send("error", { message: "Message should contain an `id` field with a UUID value", requestId: request.id })
     }
 
+    // TODO: Right now websocket clients are tightly coupled to the core internals; The websocket client relies on the fact
+    // that core uses the request id as the sessiond ID, so it can use it to match events to the request.
+    // We should introduce another way to identify events that originated from a request, where the ID is opaque and is not used for other purposes as well.
+    const sessionUlid: ULID = request.id ? uuidToULID(request.id) : ulid()
+    const requestType: string = request.type
+    const requestId = ulidToUUID(sessionUlid)
     try {
       joi.attempt(request.type, joi.string().required())
     } catch {
@@ -669,7 +672,6 @@ export class GardenServer extends EventEmitter {
 
             requestLog?.info(`Running command ${cmdNameStr}`)
 
-            const sessionUlid = ulid()
             return command.run({
               ...prepareParams,
               garden,
