@@ -119,25 +119,31 @@ export interface BufferedEventStreamParams {
  * any) e.g. when config changes during a watch-mode command.
  */
 export class BufferedEventStream {
-  protected log: Log
-  protected cloudSession: CloudSession
-  protected maxLogLevel: LogLevel
+  private readonly cloudSession: CloudSession
+  private readonly garden: Garden
 
-  protected _targets: StreamTarget[]
-  protected streamEvents: boolean
-  protected streamLogEntries: boolean
+  private readonly log: Log
+  private readonly maxLogLevel: LogLevel
+
+  public maxBatchBytes: number
+
+  private readonly streamEvents: boolean
+  private readonly streamLogEntries: boolean
+
+  private readonly bufferedEvents: StreamEvent[]
+  private readonly bufferedLogEntries: LogEntryEventPayload[]
+
+  private readonly eventListener: GardenEventAnyListener
+  private readonly logListener: GardenEventAnyListener<"logEntry">
+
+  private readonly _targets: StreamTarget[]
+
+  private readonly intervalMsec = 1000
+  private intervalId: NodeJS.Timeout | null = null
+  private flushFailCount = 0
+  private closed: boolean
 
   private workflowRunUid: string | undefined
-  private garden: Garden
-  private closed: boolean
-  private intervalId: NodeJS.Timeout | null = null
-  private bufferedEvents: StreamEvent[]
-  private bufferedLogEntries: LogEntryEventPayload[]
-  private eventListener: GardenEventAnyListener
-  private logListener: GardenEventAnyListener<"logEntry">
-  protected intervalMsec = 1000
-  private flushFailCount = 0
-  private maxBatchBytes: number
 
   constructor({
     log,
