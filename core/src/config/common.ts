@@ -89,7 +89,7 @@ export interface MetadataKeys {
    */
   deprecated?: boolean | string
   // Flag as deprecated. Set to automatically generate a message for docs.
-  deprecation?: Deprecation | boolean
+  deprecation?: Deprecation
   // Field is specific to Garden Cloud/Enterprise
   enterprise?: boolean
   // Indicate this schema is expected to be extended by e.g. plugins
