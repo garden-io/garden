@@ -46,7 +46,7 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 
 import { styles } from "../logger/styles.js"
 import type { ULID, UUID } from "ulid"
-import { ulid, uuidToULID } from "ulid"
+import { ulid } from "ulid"
 import { createBufferedEventStream } from "../cloud/util.js"
 
 const skipLogsForCommands = ["autocomplete"]
@@ -634,15 +634,14 @@ export class GardenServer extends EventEmitter {
             })
 
         const cmdNameStr = styles.command(request.command + (internal ? ` (internal)` : ""))
-        const commandSessionId = requestId
 
         if (skipAnalyticsForCommands.includes(command.getFullName())) {
           command.enableAnalytics = false
         }
 
-        const commandResponseBase = {
+        const commandResponseBase: CommandResponseBase = {
           requestId,
-          sessionId: commandSessionId,
+          sessionId: requestId,
           command: command.getFullName(),
           persistent,
           commandRequest: request.command,
@@ -670,7 +669,7 @@ export class GardenServer extends EventEmitter {
 
             requestLog?.info(`Running command ${cmdNameStr}`)
 
-            const sessionUlid: ULID = uuidToULID(commandSessionId)
+            const sessionUlid = ulid()
             return command.run({
               ...prepareParams,
               garden,
@@ -842,7 +841,7 @@ export class GardenServer extends EventEmitter {
 }
 
 interface CommandResponseBase {
-  requestId: string
+  requestId: UUID
   sessionId: ULID
   command: string
   /**
