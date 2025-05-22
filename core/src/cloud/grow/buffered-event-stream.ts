@@ -332,8 +332,8 @@ export class GrowBufferedEventStream {
   private async consumeAcks(ackStream: AsyncIterable<EventResponse>) {
     for await (const nextAck of ackStream) {
       if (!nextAck.success) {
-        // NOTE: We expect the server to also close the stream in case of an error, so we can retry emitting events on the next attempt.
         this.log.silly(`Server failed to process event with ulid=${nextAck.eventId}`)
+        continue // NOTE: We expect the server to also close the stream in case of an error, but let's first receive all outstanding acks and errors.
       }
 
       // Remove acknowledged event from the buffer
