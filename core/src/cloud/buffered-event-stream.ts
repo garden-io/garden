@@ -28,7 +28,7 @@ const maxFlushFail = 10 // How many consecutive failures to flush events on a lo
  * was chosen to fit comfortably below e.g. nginx' default max request size, while still being able to carry a decent
  * number of records.
  */
-const maxBatchBytes = 600 * 1024 // 600 kilobytes
+const defaultMaxBatchBytes = 600 * 1024 // 600 kilobytes
 
 export type StreamEvent = {
   name: EventName
@@ -107,6 +107,7 @@ export interface BufferedEventStreamParams {
   streamEvents?: boolean
   streamLogEntries?: boolean
   targets?: StreamTarget[]
+  maxBatchBytes?: number
 }
 
 /**
@@ -125,7 +126,7 @@ export class BufferedEventStream {
   private readonly log: Log
   private readonly maxLogLevel: LogLevel
 
-  public maxBatchBytes: number
+  private readonly maxBatchBytes: number
 
   private readonly streamEvents: boolean
   private readonly streamLogEntries: boolean
@@ -153,6 +154,7 @@ export class BufferedEventStream {
     targets,
     streamEvents = true,
     streamLogEntries = true,
+    maxBatchBytes = defaultMaxBatchBytes,
   }: BufferedEventStreamParams) {
     this.log = log
     this.maxLogLevel = maxLogLevel
