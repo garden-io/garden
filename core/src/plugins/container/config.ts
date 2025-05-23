@@ -540,7 +540,10 @@ export const portSchema = createSchema({
         The service port maps to the container port:
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
-    hostPort: joi.number().meta({ deprecated: true }),
+    hostPort: joi
+      .number()
+      .description("Number of port to expose on the pod's IP address.")
+      .meta({ deprecated: makeDeprecationMessage({ deprecation: "containerDeployActionHostPort" }) }),
     nodePort: joi.number().allow(true).description(deline`
         Set this to expose the service on the specified port on the host node (may not be supported by all providers).
         Set to \`true\` to have the cluster pick a port automatically, which is most often advisable if the cluster is
