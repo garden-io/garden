@@ -19,7 +19,7 @@ function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
     name: portSpec.name,
     protocol: portSpec.protocol,
     port: portSpec.servicePort,
-    targetPort: <any>portSpec.containerPort,
+    targetPort: portSpec.containerPort,
   }
 
   if (portSpec.nodePort && portSpec.nodePort !== true) {

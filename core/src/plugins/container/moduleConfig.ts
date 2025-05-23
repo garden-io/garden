@@ -22,7 +22,7 @@ import type {
   ContainerCommonDeploySpec,
   ContainerRunActionSpec,
   ContainerTestActionSpec,
-  ContainerVolumeSpecBase,
+  ContainerVolumeSpec,
 } from "./config.js"
 import {
   containerBuildOutputSchemaKeys,
@@ -44,16 +44,14 @@ import { kebabCase, mapKeys } from "lodash-es"
 // To reduce the amount of edits to make before removing module configs
 export * from "./config.js"
 
-export interface ContainerModuleVolumeSpec extends ContainerVolumeSpecBase {}
-
 export type ContainerServiceSpec = CommonServiceSpec &
   ContainerCommonDeploySpec & {
-    volumes: ContainerModuleVolumeSpec[]
+    volumes: ContainerVolumeSpec[]
   }
 
 export type ContainerTestSpec = BaseTestSpec &
   ContainerTestActionSpec & {
-    volumes: ContainerModuleVolumeSpec[]
+    volumes: ContainerVolumeSpec[]
   }
 export const containerModuleTestSchema = () =>
   baseTestSpecSchema().keys({
@@ -64,7 +62,7 @@ export const containerModuleTestSchema = () =>
 
 export type ContainerTaskSpec = BaseTaskSpec &
   ContainerRunActionSpec & {
-    volumes: ContainerModuleVolumeSpec[]
+    volumes: ContainerVolumeSpec[]
   }
 export const containerTaskSchema = () =>
   baseTaskSpecSchema()

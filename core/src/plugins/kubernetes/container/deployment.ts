@@ -9,6 +9,7 @@
 import type {
   V1Affinity,
   V1Container,
+  V1ContainerPort,
   V1DaemonSet,
   V1Deployment,
   V1PodSpec,
@@ -293,15 +294,21 @@ export async function createWorkloadManifest({
       type: "RollingUpdate",
     }
 
-    for (const port of ports.filter((p) => p.hostPort)) {
+    for (const port of ports) {
+      if (!port.hostPort) {
+        continue
+      }
+
       // For daemons we can expose host ports directly on the Pod, as opposed to only via the Service resource.
       // This allows us to choose any port.
       // TODO: validate that conflicting ports are not defined.
-      container.ports!.push({
+      const containerPort: V1ContainerPort = {
         protocol: port.protocol,
         containerPort: port.containerPort,
         hostPort: port.hostPort,
-      })
+      }
+
+      container.ports!.push(containerPort)
     }
   } else {
     const deployment = <V1Deployment>workload
@@ -310,7 +317,7 @@ export async function createWorkloadManifest({
     const deploymentStrategy = spec.deploymentStrategy
     if (deploymentStrategy === "RollingUpdate") {
       // Need the <any> cast because the library types are busted
-      deployment.spec!.strategy = <any>{
+      deployment.spec!.strategy = {
         type: deploymentStrategy,
         rollingUpdate: {
           // This is optimized for fast re-deployment.
