@@ -115,10 +115,8 @@ export const providerSchema = createSchema({
 })
 
 export interface ProviderMap {
-  [name: string]: Provider<BaseProviderConfig>
+  [name: string]: Provider
 }
-
-export const defaultProviders = [{ name: "container" }]
 
 // this is used for default handlers in the action handler
 export const defaultProvider: Provider = {

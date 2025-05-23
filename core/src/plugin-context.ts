@@ -41,6 +41,7 @@ export type WrappedFromGarden = Pick<
   | "namespace"
   | "production"
   | "sessionId"
+  | "parentSessionId"
 >
 
 export interface CommandInfo {
@@ -101,6 +102,7 @@ export const pluginContextSchema = createSchema({
       ),
     deepEvaluate: joi.function().description("Helper function to deeply resolve parsed template strings."),
     sessionId: joi.string().description("The unique ID of the currently active session."),
+    parentSessionId: joi.string().optional().description("The unique ID of the currently active parent session."),
     tools: joiStringMap(joi.object()),
     workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     cloudApi: joi.any().optional(),
@@ -252,6 +254,7 @@ export async function createPluginContext({
       })
     },
     sessionId: garden.sessionId,
+    parentSessionId: garden.parentSessionId,
     tools: await garden.getTools(),
     workingCopyId: garden.workingCopyId,
     cloudApi: garden.cloudApi,

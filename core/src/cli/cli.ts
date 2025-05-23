@@ -246,6 +246,8 @@ ${renderCommands(commands)}
       }
 
       const contextOpts: GardenOpts = {
+        sessionId,
+        parentSessionId: undefined,
         commandInfo,
         environmentString: environmentName,
         globalConfigStore,
@@ -525,7 +527,7 @@ ${renderCommands(commands)}
       }
     }
 
-    let commandResult: CommandResult<any> | undefined
+    let commandResult: CommandResult | undefined
     let analytics: AnalyticsHandler | undefined
 
     if (!processRecord) {

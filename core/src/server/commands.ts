@@ -21,7 +21,6 @@ import micromatch from "micromatch"
 import type { GardenInstanceManager } from "./instance-manager.js"
 import { isDirectory } from "../util/fs.js"
 import fsExtra from "fs-extra"
-const { pathExists } = fsExtra
 import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
 import type { GlobalConfigStore } from "../config-store/global.js"
@@ -41,6 +40,8 @@ import {
   getTestStatusPayloads,
 } from "../actions/helpers.js"
 import pProps from "p-props"
+
+const { pathExists } = fsExtra
 
 const autocompleteArguments = {
   input: new StringParameter({

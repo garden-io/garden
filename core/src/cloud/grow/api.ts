@@ -30,6 +30,9 @@ import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
 import { TRPCClientError } from "@trpc/client"
 import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
+import { createGrpcTransport } from "@connectrpc/connect-node"
+import { createClient } from "@connectrpc/connect"
+import { GardenEventIngestionService } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -315,5 +318,24 @@ export class GrowCloudApi {
 
       throw GrowCloudError.wrapTRPCClientError(err)
     }
+  }
+
+  // GRPC clients
+
+  private get grpcTransport() {
+    const url = new URL(this.domain)
+    url.host = `grpc.${url.host}`
+    const grpcUrl = url.toString()
+    this.log.debug({ msg: `Using gRPC transport with URL: ${grpcUrl}` })
+    return createGrpcTransport({
+      baseUrl: grpcUrl,
+
+      // Interceptors apply to all calls running through this transport.
+      interceptors: [],
+    })
+  }
+
+  public get eventIngestionService() {
+    return createClient(GardenEventIngestionService, this.grpcTransport)
   }
 }

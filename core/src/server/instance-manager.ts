@@ -160,16 +160,17 @@ export class GardenInstanceManager {
         log.debug(`Instance key: ${key}`)
 
         garden = await Garden.factory(params.projectRoot, {
-          // The sessionId should be the same as the surrounding process.
-          // For each command run, this will be set as the parentSessionId,
-          // and the command-specific Garden (cloned in `Command.run()`) gets its own sessionId.
-          sessionId: this.sessionId,
           monitors: this.monitors,
           plugins: this.plugins,
           ...this.defaultOpts,
           ...garden?.opts,
           ...opts,
           ...params,
+          // The sessionId should be the same as the surrounding process.
+          // For each command run, this will be set as the parentSessionId,
+          // and the command-specific Garden (cloned in `Command.run()`) gets its own sessionId.
+          sessionId: this.sessionId,
+          parentSessionId: undefined,
         })
         this.set(log, garden)
 
@@ -366,6 +367,7 @@ export class GardenInstanceManager {
       plugins: this.plugins,
       variableOverrides: parseCliVarFlags(opts.var),
       sessionId,
+      parentSessionId: undefined,
     }
 
     const projectRoot = projectConfig.path

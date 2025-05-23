@@ -56,6 +56,7 @@ import { pipeline } from "node:stream/promises"
 import type { GardenCloudApiFactory } from "../cloud/api.js"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
+import { uuidv4 } from "./random.js"
 
 const { mkdirp, remove } = fsExtra
 
@@ -204,7 +205,12 @@ export class TestGarden extends Garden {
     currentDirectory: string,
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
-    const params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
+    const params = await resolveGardenParams(currentDirectory, {
+      commandInfo: defaultCommandInfo,
+      sessionId: uuidv4(),
+      parentSessionId: undefined,
+      ...opts,
+    })
     if (opts?.gitScanMode) {
       params.projectConfig.scan ??= { git: { mode: opts.gitScanMode } }
       params.projectConfig.scan.git ??= { mode: opts.gitScanMode }
