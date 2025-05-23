@@ -185,13 +185,13 @@ export class GrowBufferedEventStream {
     })
 
     if (name === "commandInfo") {
-      this.handleCommandStarted({ event, payload: payload as EventPayload<"commandInfo"> })
+      this.handleCommandStarted({ sessionId, event, payload: payload as EventPayload<"commandInfo"> })
     }
     if (name === "sessionCompleted") {
-      this.handleCommandCompleted({ event, payload: payload as EventPayload<"sessionCompleted"> })
+      this.handleCommandCompleted({ sessionId, event, payload: payload as EventPayload<"sessionCompleted"> })
     }
     if (name === "sessionFailed") {
-      this.handleCommandFailed({ event, payload: payload as EventPayload<"sessionFailed"> })
+      this.handleCommandFailed({ sessionId, event, payload: payload as EventPayload<"sessionFailed"> })
     }
 
     if (event.eventData.value === undefined) {
@@ -215,11 +215,16 @@ export class GrowBufferedEventStream {
     void this.outputStream?.write(event).catch((_) => undefined)
   }
 
-  private handleCommandCompleted({ event, payload }: { event: GrpcEvent; payload: EventPayload<"sessionCompleted"> }) {
-    // the first will be defined if we're in a `garden dev` or `garden serve` session
-    const sessionUid = payload.$context?.sessionId || this.garden.sessionId
+  private handleCommandCompleted({
+    sessionId,
+    event,
+  }: {
+    sessionId: string
+    event: GrpcEvent
+    payload: EventPayload<"sessionCompleted">
+  }) {
     // FIXME: generate new ulid and use translation map
-    const commandId = uuidToULID(sessionUid)
+    const commandId = uuidToULID(sessionId)
 
     event.eventData = {
       case: "commandEvent",
@@ -233,11 +238,16 @@ export class GrowBufferedEventStream {
     }
   }
 
-  private handleCommandFailed({ event, payload }: { event: GrpcEvent; payload: EventPayload<"sessionFailed"> }) {
-    // the first will be defined if we're in a `garden dev` or `garden serve` session
-    const sessionUid = payload.$context?.sessionId || this.garden.sessionId
+  private handleCommandFailed({
+    sessionId,
+    event,
+  }: {
+    sessionId: string
+    event: GrpcEvent
+    payload: EventPayload<"sessionFailed">
+  }) {
     // FIXME: generate new ulid and use translation map
-    const commandId = uuidToULID(sessionUid)
+    const commandId = uuidToULID(sessionId)
 
     event.eventData = {
       case: "commandEvent",
@@ -251,11 +261,17 @@ export class GrowBufferedEventStream {
     }
   }
 
-  private handleCommandStarted({ event, payload }: { event: GrpcEvent; payload: EventPayload<"commandInfo"> }) {
-    // the first will be defined if we're in a `garden dev` or `garden serve` session
-    const sessionUid = payload.$context?.sessionId || this.garden.sessionId
+  private handleCommandStarted({
+    sessionId,
+    event,
+    payload,
+  }: {
+    sessionId: string
+    event: GrpcEvent
+    payload: EventPayload<"commandInfo">
+  }) {
     // FIXME: generate new ulid and use translation map
-    const commandId = uuidToULID(sessionUid)
+    const commandId = uuidToULID(sessionId)
 
     event.eventData = {
       case: "commandEvent",
