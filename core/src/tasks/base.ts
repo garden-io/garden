@@ -488,7 +488,7 @@ export function logAndEmitGetStatusEvents<
         action: this.action,
         force: this.force,
         startedAt,
-        sessionUlid: this.garden.sessionUlid,
+        sessionId: this.garden.sessionId,
         runtime: undefined, // Runtime is unknown at this point
       })
     )
@@ -515,7 +515,7 @@ export function logAndEmitGetStatusEvents<
         action: this.action,
         operation: methodName,
         force: this.force,
-        sessionUlid: this.garden.sessionUlid,
+        sessionId: this.garden.sessionId,
         runtime: (result.detail ?? {}).runtime,
       }) as Events[typeof eventName]
 
@@ -534,7 +534,7 @@ export function logAndEmitGetStatusEvents<
           action: this.action,
           force: this.force,
           operation: methodName,
-          sessionUlid: this.garden.sessionUlid,
+          sessionId: this.garden.sessionId,
           runtime: undefined, // Runtime is unknown as the getStatus handler failed
         })
       )
@@ -600,7 +600,7 @@ export function logAndEmitProcessingEvents<
         startedAt,
         action: this.action,
         force: this.force,
-        sessionUlid: this.garden.sessionUlid,
+        sessionId: this.garden.sessionId,
         runtime: statusRuntime,
       })
     )
@@ -615,7 +615,7 @@ export function logAndEmitProcessingEvents<
         action: this.action,
         force: this.force,
         operation: methodName,
-        sessionUlid: this.garden.sessionUlid,
+        sessionId: this.garden.sessionId,
         // process handler returns actual runtime; might fall back to other runtimes, if needed.
         runtime: result.detail?.runtime,
       }) as Events[typeof eventName]
@@ -636,7 +636,7 @@ export function logAndEmitProcessingEvents<
           action: this.action,
           force: this.force,
           operation: methodName,
-          sessionUlid: this.garden.sessionUlid,
+          sessionId: this.garden.sessionId,
           runtime: statusRuntime,
         })
       )

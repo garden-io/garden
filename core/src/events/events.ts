@@ -18,13 +18,11 @@ import type { GraphResult } from "../graph/results.js"
 import type { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status.js"
 import type { ActionStatusPayload } from "./action-status-events.js"
 import type { AuthToken } from "../cloud/auth.js"
-import type { ULID, UUID } from "ulid"
 
 interface EventContext {
   gardenKey?: string
-  // NOTE: To maintain backwards compatibility with the old backend, we are encoding the ULID in UUID format.
-  sessionId?: UUID
-  _parentSessionUlid?: ULID
+  sessionId?: string
+  _parentSessionId?: string
 }
 
 export type EventPayload<T extends EventName = EventName> = Events[T] & { $context?: EventContext }
@@ -39,7 +37,7 @@ export type GardenEventAnyListener<E extends EventName = any> = (name: E, payloa
  * See below for the event interfaces.
  */
 export class EventBus extends EventEmitter2.EventEmitter2 {
-  private keyIndex: {
+  private readonly keyIndex: {
     [key: string]: { [eventName: string]: ((payload: any) => void)[] }
   }
 
@@ -167,8 +165,7 @@ export interface CommandInfoPayload extends CommandInfo {
   vcsBranch: string
   vcsCommitHash: string
   vcsOriginUrl: string
-  // NOTE: this is represented as a UUID for backwards compatibility with the old backend, instead of using the ULID crockford encoding.
-  sessionId: UUID
+  sessionId: string
 }
 
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {

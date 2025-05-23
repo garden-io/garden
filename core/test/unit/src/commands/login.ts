@@ -23,7 +23,7 @@ import { makeDummyGarden } from "../../../../src/garden.js"
 import type { Garden } from "../../../../src/index.js"
 import { FakeGardenCloudApi } from "../../../helpers/api.js"
 import dedent from "dedent"
-import { ulid } from "ulid"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 function loginCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: {} }) {
   const log = garden.log
@@ -155,9 +155,9 @@ describe("LoginCommand", () => {
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "secret-in-project-variables"), {
       skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
+      sessionId: uuidv4(),
+      parentSessionId: undefined,
       globalConfigStore,
-      sessionUlid: ulid(),
-      parentSessionUlid: null,
     })
 
     // Need to override the default because we're using DummyGarden
@@ -258,8 +258,8 @@ describe("LoginCommand", () => {
       // this is a bit of a workaround to run outside of the garden root dir
       const garden = await makeDummyGarden(tmpDirOutsideProjectRoot.path, {
         commandInfo: { name: "foo", args: {}, opts: {} },
-        sessionUlid: ulid(),
-        parentSessionUlid: null,
+        sessionId: uuidv4(),
+        parentSessionId: undefined,
       })
 
       setTimeout(() => {

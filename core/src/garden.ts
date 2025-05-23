@@ -149,6 +149,7 @@ import {
 import type { ActionTypeDefinition } from "./plugin/action-types.js"
 import type { Task } from "./tasks/base.js"
 import type { GraphResults } from "./graph/results.js"
+import { uuidv4 } from "./util/random.js"
 import type { RenderTemplateConfig } from "./config/render-template.js"
 import { convertTemplatedModuleToRender, renderConfigTemplate } from "./config/render-template.js"
 import { MonitorManager } from "./monitors/manager.js"
@@ -172,7 +173,6 @@ import type { ResolvedTemplate } from "./template/types.js"
 import { serialiseUnresolvedTemplates } from "./template/types.js"
 import type { VariablesContext } from "./config/template-contexts/variables.js"
 import { resolveApiVersion, setGloablProjectApiVersion } from "./project-api-version.js"
-import { ulidToUUID, type ULID } from "ulid"
 
 const defaultLocalAddress = "localhost"
 
@@ -193,8 +193,8 @@ export interface GardenOpts {
   skipCloudConnect?: boolean
   persistent?: boolean
   plugins?: RegisterPluginParam[]
-  sessionUlid: ULID
-  parentSessionUlid: ULID | null
+  sessionId: string
+  parentSessionId: string | undefined
   variableOverrides?: PrimitiveMap
   // used in tests
   overrideCloudApiFactory?: GardenCloudApiFactory
@@ -232,8 +232,8 @@ export interface GardenParams {
   variables: VariablesContext
   variableOverrides: DeepPrimitiveMap
   secrets: StringMap
-  sessionUlid: ULID
-  parentSessionUlid: ULID | null
+  sessionId: string
+  parentSessionId: string | undefined
   username: string | undefined
   workingCopyId: string
   forceRefresh?: boolean
@@ -292,8 +292,8 @@ export class Garden {
   private readonly solver: GraphSolver
   private asyncLock: AsyncLock
   public readonly projectId?: string
-  public sessionUlid: ULID
-  public parentSessionUlid: ULID | null
+  public sessionId: string
+  public parentSessionId: string | undefined
   public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
@@ -356,8 +356,8 @@ export class Garden {
 
   constructor(params: GardenParams) {
     this.projectId = params.projectId
-    this.sessionUlid = params.sessionUlid
-    this.parentSessionUlid = params.parentSessionUlid
+    this.sessionId = params.sessionId
+    this.parentSessionId = params.parentSessionId
     this.environmentName = params.environmentName
     this.resolvedDefaultNamespace = params.resolvedDefaultNamespace
     this.namespace = params.namespace
@@ -459,6 +459,8 @@ export class Garden {
 
     this.events = new EventBus({
       gardenKey: this.getInstanceKey(),
+      sessionId: this.sessionId,
+      _parentSessionId: this.parentSessionId,
     })
     // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
     this.version = getPackageVersion()
@@ -520,35 +522,24 @@ export class Garden {
     return Object.assign(Object.create(Object.getPrototypeOf(this)), this)
   }
 
-  cloneForCommand(sessionUlid: ULID, cloudApi?: GardenCloudApi): Garden {
+  cloneForCommand(sessionId: string, cloudApi?: GardenCloudApi): Garden {
     // Make an instance clone to override anything that needs to be scoped to a specific command run
     // TODO: this could be made more elegant
     const garden = this.clone()
-    const parentSessionUlid = this.sessionUlid
-    this.nestedSessions.set(sessionUlid, garden)
-    garden.sessionUlid = sessionUlid
-    garden.parentSessionUlid = parentSessionUlid
+    const parentSessionId = this.sessionId
+    this.nestedSessions.set(sessionId, garden)
+    garden.sessionId = sessionId
 
     garden.log = garden.log.createLog()
-
-    // FIXME: The log context is tightly coupled to the event format, so we need to keep using UUIDs here for backwards compatibility.
-    // TODO: Decouple the log context from the event format.
-    garden.log.context.sessionId = ulidToUUID(sessionUlid)
-    garden.log.context.parentSessionId = ulidToUUID(parentSessionUlid)
+    garden.log.context.sessionId = sessionId
+    garden.log.context.parentSessionId = parentSessionId
 
     if (cloudApi) {
       garden.cloudApi = cloudApi
     }
 
     const parentEvents = garden.events
-    garden.events = new EventBus({
-      gardenKey: garden.getInstanceKey(),
-      // for backwards compatibility, we use UUID here instead of the crockford encoding
-      // FIXME: Right now Garden is directly emitting events internally in the shape the old backend expected.
-      // TODO: Introduce an internal event shape, and decouple the code base from the shape the old backend expects.
-      sessionId: ulidToUUID(sessionUlid),
-      _parentSessionUlid: parentSessionUlid,
-    })
+    garden.events = new EventBus({ gardenKey: garden.getInstanceKey(), sessionId, _parentSessionId: parentSessionId })
     // We make sure events emitted in the context of the command are forwarded to the parent Garden event bus.
     garden.events.onAny((name, payload) => {
       parentEvents.emit(name, payload)
@@ -2097,6 +2088,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     await ensureDir(gardenDirPath)
     await ensureDir(artifactsPath)
 
+    const sessionId = opts.sessionId || uuidv4()
     const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
 
@@ -2176,8 +2168,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     // Update the log context
     log.context.gardenKey = getGardenInstanceKey({ environmentName, namespace, projectRoot, variableOverrides })
-    log.context.sessionId = ulidToUUID(opts.sessionUlid)
-    log.context.parentSessionId = opts.parentSessionUlid ? ulidToUUID(opts.parentSessionUlid) : undefined
+    log.context.sessionId = sessionId
+    log.context.parentSessionId = opts.parentSessionId
 
     // Setting this after resolving the gardenKey above because we don't want the default namespace resolved there
     namespace = pickedEnv.namespace
@@ -2209,8 +2201,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     return {
       artifactsPath,
       vcsInfo,
-      sessionUlid: opts.sessionUlid,
-      parentSessionUlid: opts.parentSessionUlid,
+      sessionId,
+      parentSessionId: opts.parentSessionId,
       cloudDomain: cloudBackendDomain,
       cloudApi,
       cloudApiV2,

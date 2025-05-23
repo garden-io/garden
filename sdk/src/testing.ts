@@ -8,8 +8,9 @@
 
 import type { TestGardenOpts } from "@garden-io/core/build/src/util/testing.js"
 import { TestGarden } from "@garden-io/core/build/src/util/testing.js"
+import { uuidv4 } from "@garden-io/core/build/src/util/random.js"
 import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger.js"
-import { ulid } from "ulid"
+
 export { TestGarden, getLogMessages, getRootLogMessages } from "@garden-io/core/build/src/util/testing.js"
 export { downloadAndVerifyHash, expectError, isCiEnv } from "@garden-io/core/build/src/util/testing.js"
 export { makeTempDir } from "@garden-io/core/build/src/util/fs.js"
@@ -24,6 +25,6 @@ export const makeTestGarden = async (projectRoot: string, opts: TestGardenOpts =
     })
   } catch (_) {}
 
-  opts = { sessionUlid: ulid(), ...opts }
+  opts = { sessionId: uuidv4(), ...opts }
   return TestGarden.factory(projectRoot, opts)
 }

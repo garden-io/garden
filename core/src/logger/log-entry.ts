@@ -19,7 +19,6 @@ import { omitUndefined } from "../util/objects.js"
 import { renderDuration } from "./util.js"
 import { styles } from "./styles.js"
 import { getStyle } from "./renderers.js"
-import type { UUID } from "ulid"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
@@ -52,16 +51,12 @@ interface BaseContext {
   type: "coreLog" | "actionLog"
   /**
    * A session ID, to identify the log entry as part of a specific command execution.
-   *
-   * NOTE: For backwards compatibility, represented as a UUID instead of ULID crockford encoding.
    */
-  sessionId?: UUID
+  sessionId?: string
   /**
    * If applicable, the session ID of the parent command (e.g. serve or dev)
-   *
-   * NOTE: For backwards compatibility, represented as a UUID instead of ULID crockford encoding.
    */
-  parentSessionId?: UUID
+  parentSessionId?: string
   /**
    * The key of a Garden instance, if applicable.
    */

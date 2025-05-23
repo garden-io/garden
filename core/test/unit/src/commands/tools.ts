@@ -24,7 +24,7 @@ import { dedent } from "../../../../src/util/string.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
 import { getLogMessages } from "../../../../src/util/testing.js"
-import { ulid } from "ulid"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 describe("ToolsCommand", () => {
   let tmpDir: TempDirectory
@@ -226,8 +226,8 @@ describe("ToolsCommand", () => {
     const _garden: any = await makeDummyGarden(tmpDir.path, {
       skipCloudConnect: true,
       commandInfo: { name: "foo", args: {}, opts: {} },
-      sessionUlid: ulid(),
-      parentSessionUlid: null,
+      sessionId: uuidv4(),
+      parentSessionId: undefined,
     })
     _garden.registeredPlugins = [pluginA, pluginB]
 

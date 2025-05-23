@@ -45,8 +45,6 @@ import { defaultServerPort } from "../commands/serve.js"
 import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 
 import { styles } from "../logger/styles.js"
-import type { ULID, UUID } from "ulid"
-import { ulid, ulidToUUID, uuidToULID } from "ulid"
 import { createBufferedEventStream } from "../cloud/util.js"
 
 const skipLogsForCommands = ["autocomplete"]
@@ -144,7 +142,7 @@ export class GardenServer extends EventEmitter {
 
   public port: number | undefined
   public readonly authKey: string
-  public readonly sessionUlid: ULID
+  public readonly sessionId: string
 
   constructor({ log, manager, port, defaultProjectRoot, serveCommand }: GardenServerParams) {
     super()
@@ -155,7 +153,7 @@ export class GardenServer extends EventEmitter {
     this.globalConfigStore = new GlobalConfigStore()
     this.port = port
     this.defaultProjectRoot = defaultProjectRoot
-    this.sessionUlid = manager.sessionUlid
+    this.sessionId = manager.sessionId
     this.authKey = randomString(24)
     this.incomingEvents = new EventBus()
     this.activePersistentRequests = {}
@@ -241,7 +239,7 @@ export class GardenServer extends EventEmitter {
 
     if (processRecord) {
       await this.globalConfigStore.update("activeProcesses", String(process.pid), {
-        sessionId: this.sessionUlid,
+        sessionId: this.sessionId,
         serverHost: this.getBaseUrl(),
         serverAuthKey: this.authKey,
       })
@@ -333,7 +331,7 @@ export class GardenServer extends EventEmitter {
       const sessionId = ctx.query.sessionId
 
       // We allow either sessionId or authKey ro authorize
-      if (authToken !== this.authKey && sessionId !== ulidToUUID(this.sessionUlid)) {
+      if (authToken !== this.authKey && sessionId !== this.sessionId) {
         return ctx.throw(401, `Unauthorized request`)
       }
       return next()
@@ -378,8 +376,8 @@ export class GardenServer extends EventEmitter {
         const result = await command.run({
           ...prepareParams,
           garden,
-          sessionUlid: ulid(),
-          parentSessionUlid: this.sessionUlid,
+          sessionId: uuidv4(),
+          parentSessionId: this.sessionId,
         })
         this.debugLog.debug(`Command '${command.name}' completed successfully`)
         ctx.response.body = sanitizeValue(result)
@@ -473,7 +471,7 @@ export class GardenServer extends EventEmitter {
         })
       }
 
-      if (ctx.query.key !== this.authKey && ctx.query.sessionId !== ulidToUUID(this.sessionUlid)) {
+      if (ctx.query.key !== this.authKey && ctx.query.sessionId !== this.sessionId) {
         send("error", { message: `401 Unauthorized` })
         const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
         websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
@@ -587,18 +585,15 @@ export class GardenServer extends EventEmitter {
       return send("error", { message: "Could not parse message as JSON" })
     }
 
+    const requestId: string = request.id
+    const requestType: string = request.type
+
     try {
-      joi.attempt(request.id, joi.string().uuid().required())
+      joi.attempt(requestId, joi.string().uuid().required())
     } catch {
-      return send("error", { message: "Message should contain an `id` field with a UUID value", requestId: request.id })
+      return send("error", { message: "Message should contain an `id` field with a UUID value", requestId })
     }
 
-    // TODO: Right now websocket clients are tightly coupled to the core internals; The websocket client relies on the fact
-    // that core uses the request id as the sessiond ID, so it can use it to match events to the request.
-    // We should introduce another way to identify events that originated from a request, where the ID is opaque and is not used for other purposes as well.
-    const sessionUlid: ULID = request.id ? uuidToULID(request.id) : ulid()
-    const requestType: string = request.type
-    const requestId = ulidToUUID(sessionUlid)
     try {
       joi.attempt(request.type, joi.string().required())
     } catch {
@@ -637,6 +632,7 @@ export class GardenServer extends EventEmitter {
             })
 
         const cmdNameStr = styles.command(request.command + (internal ? ` (internal)` : ""))
+        const commandSessionId = requestId
 
         if (skipAnalyticsForCommands.includes(command.getFullName())) {
           command.enableAnalytics = false
@@ -644,7 +640,7 @@ export class GardenServer extends EventEmitter {
 
         const commandResponseBase: CommandResponseBase = {
           requestId,
-          sessionId: requestId,
+          sessionId: commandSessionId,
           command: command.getFullName(),
           persistent,
           commandRequest: request.command,
@@ -675,8 +671,8 @@ export class GardenServer extends EventEmitter {
             return command.run({
               ...prepareParams,
               garden,
-              sessionUlid,
-              parentSessionUlid: this.sessionUlid,
+              sessionId: commandSessionId,
+              parentSessionId: this.sessionId,
               overrideLogLevel: internal ? LogLevel.silly : undefined,
             })
           })
@@ -777,11 +773,11 @@ export class GardenServer extends EventEmitter {
       const cloudApi = await this.manager.getCloudApi(garden)
 
       // Use the server session ID. That is, the "main" session ID that belongs to the parent serve command.
-      const sessionIdForConfigLoad = this.sessionUlid
+      const sessionIdForConfigLoad = this.sessionId
       garden = garden.cloneForCommand(sessionIdForConfigLoad, cloudApi)
 
       const cloudEventStream = createBufferedEventStream({
-        sessionUlid: sessionIdForConfigLoad,
+        sessionId: sessionIdForConfigLoad,
         log,
         garden,
         opts: { shouldStreamEvents: true, shouldStreamLogs: false },
@@ -843,8 +839,8 @@ export class GardenServer extends EventEmitter {
 }
 
 interface CommandResponseBase {
-  requestId: UUID
-  sessionId: ULID
+  requestId: string
+  sessionId: string
   command: string
   /**
    * The command string originally requested by the caller if applicable.

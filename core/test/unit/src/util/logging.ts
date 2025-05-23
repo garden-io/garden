@@ -14,7 +14,7 @@ import type { Logger } from "../../../../src/logger/logger.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { sanitizeValue } from "../../../../src/util/logging.js"
 import { projectRootA } from "../../../helpers.js"
-import { ulid } from "ulid"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 describe("sanitizeValue", () => {
   const logger: Logger = getRootLogger()
@@ -49,6 +49,7 @@ describe("sanitizeValue", () => {
         this.b = Buffer.from([0, 1, 2, 3])
       }
     }
+
     const obj = {
       a: new Foo(),
     }
@@ -67,6 +68,7 @@ describe("sanitizeValue", () => {
         this.b = { c: Buffer.from([0, 1, 2, 3]) }
       }
     }
+
     const obj = {
       a: new Foo(),
     }
@@ -134,8 +136,8 @@ describe("sanitizeValue", () => {
     const obj = {
       a: await makeDummyGarden(projectRootA, {
         commandInfo: { name: "foo", args: {}, opts: {} },
-        sessionUlid: ulid(),
-        parentSessionUlid: null,
+        sessionId: uuidv4(),
+        parentSessionId: undefined,
       }),
     }
     const res = sanitizeValue(obj)
@@ -161,6 +163,7 @@ describe("sanitizeValue", () => {
         return "foo"
       }
     }
+
     const obj = {
       a: new Foo(),
     }
@@ -178,6 +181,7 @@ describe("sanitizeValue", () => {
         })
       }
     }
+
     const obj = {
       a: new Foo(),
     }

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { UUID } from "ulid"
 import { actionStates } from "../actions/types.js"
 import type { BuildState } from "../plugin/handlers/Build/get-status.js"
 import type { ActionRuntime, RunState } from "../plugin/plugin.js"
@@ -114,11 +113,9 @@ interface ActionStatusPayloadBase {
   state: ActionStateForEvent
   force: boolean
   /**
-   * The session UUID for the command run the action belongs to.
-   *
-   * NOTE: This field is represented as a UUID for backwards compatibility with the old backend, instead of using the ULID crockford encoding.
+   * The session ID for the command run the action belongs to.
    */
-  sessionId: UUID
+  sessionId: string
   /**
    * Runtime information about the action. It can be undefined in some cases, e.g. if the getting-status handler failed.
    *

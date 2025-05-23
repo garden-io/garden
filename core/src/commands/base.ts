@@ -40,7 +40,6 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { styles } from "../logger/styles.js"
 import { clearVarfileCache } from "../config/base.js"
 import { createBufferedEventStream, getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
-import { type ULID, ulidToUUID } from "ulid"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -92,13 +91,13 @@ export interface RunCommandParams<
   A extends ParameterObject = ParameterObject,
   O extends ParameterObject = ParameterObject,
 > extends CommandParams<A, O> {
-  sessionUlid: ULID
+  sessionId: string
   /**
    * The session ID of the parent serve command (e.g. the 'garden dev' command that started the CLI process and the server)
    * if applicable.
    * Only defined if running in dev command or WS server.
    */
-  parentSessionUlid: ULID | null
+  parentSessionId: string | null
   /**
    * In certain cases we need to override the log level at the "run command" level. This is because
    * we're now re-using Garden instances via the InstanceManager and therefore cannot change the level
@@ -264,22 +263,22 @@ export abstract class Command<
       opts,
       cli,
       commandLine,
-      sessionUlid,
+      sessionId,
       parentCommand,
-      parentSessionUlid,
+      parentSessionId,
       overrideLogLevel,
     } = params
 
-    return withSessionContext({ sessionUlid, parentSessionUlid }, () =>
+    return withSessionContext({ sessionId, parentSessionId }, () =>
       wrapActiveSpan(this.getFullName(), async () => {
         const commandStartTime = new Date()
 
         let garden = parentGarden
 
-        if (parentSessionUlid) {
+        if (parentSessionId) {
           // Make an instance clone to override anything that needs to be scoped to a specific command run
           // TODO: this could be made more elegant
-          garden = parentGarden.cloneForCommand(sessionUlid)
+          garden = parentGarden.cloneForCommand(sessionId)
         }
 
         const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
@@ -299,8 +298,8 @@ export abstract class Command<
 
         if (!skipRegistration && garden.isOldBackendAvailable() && garden.projectId && this.streamEvents) {
           cloudSession = await garden.cloudApi.registerSession({
-            parentSessionUlid: parentSessionUlid || undefined,
-            sessionUlid: garden.sessionUlid,
+            parentSessionId: parentSessionId || undefined,
+            sessionId: garden.sessionId,
             projectId: garden.projectId,
             commandInfo: garden.commandInfo,
             // localServerPort only needs to be set for dev/serve commands
@@ -314,7 +313,7 @@ export abstract class Command<
         if (cloudSession) {
           const distroName = getCloudDistributionName(cloudSession.api.domain)
           commandResultUrl = cloudSession.api.getCommandResultUrl({
-            sessionUlid: garden.sessionUlid,
+            sessionId: garden.sessionId,
             projectId: cloudSession.projectId,
             shortId: cloudSession.shortId,
           }).href
@@ -328,7 +327,7 @@ export abstract class Command<
           analytics = await garden.getAnalyticsHandler()
         }
 
-        analytics?.trackCommand(this.getFullName(), parentSessionUlid || undefined)
+        analytics?.trackCommand(this.getFullName(), parentSessionId || undefined)
 
         const allOpts = <ParameterValues<GlobalOptions & O>>{
           ...mapValues(globalOptions, (opt) => opt.defaultValue),
@@ -344,7 +343,7 @@ export abstract class Command<
         let result: CommandResult<R>
 
         const cloudEventStream = createBufferedEventStream({
-          sessionUlid: garden.sessionUlid,
+          sessionId: garden.sessionId,
           log,
           garden,
           opts: { shouldStreamEvents: this.streamEvents, shouldStreamLogs: this.streamLogEntries },
@@ -366,8 +365,7 @@ export abstract class Command<
             vcsBranch: garden.vcsInfo.branch,
             vcsCommitHash: garden.vcsInfo.commitHash,
             vcsOriginUrl: garden.vcsInfo.originUrl,
-            // NOTE: for backwards compatibility with the old backend, we use the UUID format.
-            sessionId: ulidToUUID(garden.sessionUlid),
+            sessionId: garden.sessionId,
           })
 
           // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
@@ -402,7 +400,7 @@ export abstract class Command<
             allErrors,
             commandStartTime,
             result.exitCode,
-            parentSessionUlid || undefined
+            parentSessionId || undefined
           )
 
           if (allErrors.length > 0) {
@@ -416,14 +414,14 @@ export abstract class Command<
             [toGardenError(err)],
             commandStartTime || new Date(),
             1,
-            parentSessionUlid || undefined
+            parentSessionId || undefined
           )
           garden.events.emit("sessionFailed", {})
           throw err
         } finally {
-          if (parentSessionUlid) {
+          if (parentSessionId) {
             garden.close()
-            parentGarden.nestedSessions.delete(sessionUlid)
+            parentGarden.nestedSessions.delete(sessionId)
           }
           await cloudEventStream?.close()
         }

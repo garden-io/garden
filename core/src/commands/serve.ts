@@ -18,13 +18,12 @@ import { sleep } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
 import { findProjectConfig } from "../config/base.js"
 import { CloudApiTokenRefreshError } from "../cloud/api.js"
+import { uuidv4 } from "../util/random.js"
 import type { Garden } from "../garden.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions.js"
 import { styles } from "../logger/styles.js"
 import { getCloudDistributionName } from "../cloud/util.js"
-import type { ULID } from "ulid"
-import { ulid } from "ulid"
 
 export const defaultServerPort = 9777
 
@@ -55,7 +54,7 @@ export class ServeCommand<
 
   protected _manager?: GardenInstanceManager
   protected commandLine?: CommandLine
-  protected sessionUlid?: ULID
+  protected sessionId?: string
   protected plugins?: GardenPluginReference[]
 
   override description = dedent`
@@ -84,8 +83,8 @@ export class ServeCommand<
     return false
   }
 
-  protected setProps(sessionUlid: ULID, plugins: GardenPluginReference[]) {
-    this.sessionUlid = sessionUlid
+  protected setProps(sessionId: string, plugins: GardenPluginReference[]) {
+    this.sessionId = sessionId
     this.plugins = plugins
   }
 
@@ -95,8 +94,8 @@ export class ServeCommand<
     opts,
     cli,
   }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<R>> {
-    const sessionUlid = garden.sessionUlid
-    this.setProps(sessionUlid, cli?.plugins || [])
+    const sessionId = garden.sessionId
+    this.setProps(sessionId, cli?.plugins || [])
 
     const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
@@ -114,7 +113,7 @@ export class ServeCommand<
           log,
           args: {},
           opts: {},
-          sessionUlid,
+          sessionId,
           environmentString: opts.env,
         })
         if (this.commandLine) {
@@ -164,10 +163,10 @@ export class ServeCommand<
 
         if (projectId) {
           const session = await cloudApi.registerSession({
-            parentSessionUlid: undefined,
+            parentSessionId: undefined,
             projectId,
             // Use the process (i.e. parent command) session ID for the serve/dev command session
-            sessionUlid: manager.sessionUlid,
+            sessionId: manager.sessionId,
             commandInfo: garden.commandInfo,
             localServerPort: this.server.port,
             environment: defaultGarden.environmentName,
@@ -227,11 +226,11 @@ export class ServeCommand<
     })
   }
 
-  getManager(log: Log, initialSessionUlid: ULID | undefined): GardenInstanceManager {
+  getManager(log: Log, initialSessionId: string | undefined): GardenInstanceManager {
     if (!this._manager) {
       this._manager = GardenInstanceManager.getInstance({
         log,
-        sessionUlid: this.sessionUlid || initialSessionUlid || ulid(),
+        sessionId: this.sessionId || initialSessionId || uuidv4(),
         serveCommand: this,
         plugins: this.plugins || [],
       })

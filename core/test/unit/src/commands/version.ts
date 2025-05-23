@@ -13,7 +13,7 @@ import { VersionCommand } from "../../../../src/commands/version.js"
 import type { TempDirectory } from "../../../helpers.js"
 import { makeTempDir } from "../../../helpers.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
-import { ulid } from "ulid"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 describe("VersionCommand", () => {
   let tmpDir: TempDirectory
@@ -59,8 +59,8 @@ describe("VersionCommand", () => {
     const command = new VersionCommand()
     const garden = await makeDummyGarden(tmpDir.path, {
       commandInfo: { name: "version", args: {}, opts: {} },
-      sessionUlid: ulid(),
-      parentSessionUlid: null,
+      sessionId: uuidv4(),
+      parentSessionId: undefined,
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { result } = await command.action({ log: garden.log } as any)

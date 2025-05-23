@@ -31,7 +31,7 @@ import type { Server } from "http"
 import { createServer } from "http"
 import semver from "semver"
 import nock from "nock"
-import { ulid } from "ulid"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 describe("version helpers", () => {
   describe("isEdgeVersion", () => {
@@ -94,8 +94,8 @@ describe("SelfUpdateCommand", () => {
   before(async () => {
     garden = await makeDummyGarden("/tmp", {
       commandInfo: { name: command.name, args: {}, opts: {} },
-      sessionUlid: ulid(),
-      parentSessionUlid: null,
+      sessionId: uuidv4(),
+      parentSessionId: undefined,
     })
 
     // Serve small static files to avoid slow HTTP requests during testing

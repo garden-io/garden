@@ -81,7 +81,6 @@ import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 import { deepResolveContext } from "../../../src/config/template-contexts/base.js"
 import { VariablesContext } from "../../../src/config/template-contexts/variables.js"
-import { ulid } from "ulid"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -441,8 +440,8 @@ describe("Garden", () => {
           async () =>
             Garden.factory(tmpPath, {
               commandInfo: { name: "test", args: {}, opts: {} },
-              sessionUlid: ulid(),
-              parentSessionUlid: null,
+              sessionId: uuidv4(),
+              parentSessionId: undefined,
             }),
           {
             type: "runtime",

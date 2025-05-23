@@ -17,11 +17,12 @@ import { makeDummyGarden } from "../../../../../src/garden.js"
 import type { Garden } from "../../../../../src/garden.js"
 import { basename, join } from "path"
 import fsExtra from "fs-extra"
+
 const { pathExists, readFile, writeFile } = fsExtra
 import { loadAll } from "js-yaml"
 import { safeDumpYaml } from "../../../../../src/util/serialization.js"
 import { GardenApiVersion } from "../../../../../src/constants.js"
-import { ulid } from "ulid"
+import { uuidv4 } from "../../../../../src/util/random.js"
 
 describe("CreateProjectCommand", () => {
   const command = new CreateProjectCommand()
@@ -32,8 +33,8 @@ describe("CreateProjectCommand", () => {
     tmp = await makeTempDir({ git: true, initialCommit: false })
     garden = await makeDummyGarden(tmp.path, {
       commandInfo: { name: "create project", args: {}, opts: {} },
-      sessionUlid: ulid(),
-      parentSessionUlid: null,
+      sessionId: uuidv4(),
+      parentSessionId: undefined,
     })
   })
 

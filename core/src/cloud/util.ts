@@ -12,7 +12,6 @@ import type { Garden } from "../garden.js"
 import { BufferedEventStream } from "./buffered-event-stream.js"
 import { GrowBufferedEventStream } from "./grow/buffered-event-stream.js"
 import { eventLogLevel } from "../logger/logger.js"
-import type { ULID } from "ulid"
 
 export type GardenCloudDistroName = "Garden Enterprise" | "Garden Cloud"
 
@@ -74,23 +73,23 @@ export function getBackendType(projectConfig: ProjectConfig): "v1" | "v2" {
 }
 
 interface CreateBufferedEventStreamParams {
-  sessionUlid: ULID
+  sessionId: string
   log: Log
   garden: Garden
   opts: { shouldStreamEvents: boolean; shouldStreamLogs: boolean }
 }
 
 export function createBufferedEventStream({
-  sessionUlid,
+  sessionId,
   log,
   garden,
   opts,
 }: CreateBufferedEventStreamParams): BufferedEventStream | GrowBufferedEventStream | undefined {
   if (garden.isOldBackendAvailable()) {
     const cloudApi = garden.cloudApi
-    const cloudSession = cloudApi.getRegisteredSession(sessionUlid)
+    const cloudSession = cloudApi.getRegisteredSession(sessionId)
     if (!cloudSession) {
-      log.debug(`Cannot find session ${sessionUlid}. No events will be sent to ${cloudApi.distroName}.`)
+      log.debug(`Cannot find session ${sessionId}. No events will be sent to ${cloudApi.distroName}.`)
       return undefined
     }
 

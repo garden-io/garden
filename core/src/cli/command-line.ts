@@ -23,6 +23,7 @@ import type { Log } from "../logger/log-entry.js"
 import { getTermWidth, renderDivider } from "../logger/util.js"
 import type { GardenInstanceManager } from "../server/instance-manager.js"
 import { TypedEventEmitter } from "../util/events.js"
+import { uuidv4 } from "../util/random.js"
 import { sleep } from "../util/util.js"
 import type { AutocompleteSuggestion } from "./autocomplete.js"
 import {
@@ -40,7 +41,6 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants.js"
 import { styles } from "../logger/styles.js"
 import type { GardenCli } from "./cli.js"
-import { ulid } from "ulid"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = styles.warning("🌼  > ")
@@ -687,6 +687,7 @@ ${styles.accent.underline("Keys:")}
     args: PrepareParams["args"]
     opts: PrepareParams["opts"]
   }) {
+    const id = uuidv4()
     const width = getTermWidth() - 2
 
     const prepareParams: PrepareParams = {
@@ -697,7 +698,6 @@ ${styles.accent.underline("Keys:")}
       parentCommand: this.serveCommand,
     }
 
-    const sessionUlid = ulid()
     const name = command.getFullName()
 
     if (!command.allowInDevCommand(prepareParams)) {
@@ -716,14 +716,16 @@ ${styles.accent.underline("Keys:")}
     if (!command.isDevCommand) {
       this.flashMessage(getCmdsRunningMsg([name]))
       logCommandStart({ commandName: rawArgs.join(" "), width, log: this.log })
-      this.runningCommands[sessionUlid] = { command, params: prepareParams }
+      this.runningCommands[id] = { command, params: prepareParams }
       this.renderStatus()
     }
 
+    const sessionId = uuidv4()
+
     await withSessionContext(
       {
-        sessionUlid,
-        parentSessionUlid: this.manager.sessionUlid,
+        sessionId,
+        parentSessionId: this.manager.sessionId,
       },
       () =>
         wrapActiveSpan("spawnChildGarden", async () => {
@@ -761,12 +763,12 @@ ${styles.accent.underline("Keys:")}
                 log: this.log,
                 args,
                 opts,
-                sessionUlid,
+                sessionId,
               })
             )
           } catch (error) {
             this.flashError(getCmdFailMsg(name))
-            delete this.runningCommands[sessionUlid]
+            delete this.runningCommands[id]
             this.renderStatus()
             this.log.error({ error: toGardenError(error) })
             return
@@ -783,8 +785,8 @@ ${styles.accent.underline("Keys:")}
               ...prepareParams,
               garden,
               cli: this.cli,
-              sessionUlid,
-              parentSessionUlid: this.manager.sessionUlid,
+              sessionId,
+              parentSessionId: this.manager.sessionId,
             })
             .then((output: CommandResult) => {
               if (output.errors?.length) {
@@ -803,9 +805,9 @@ ${styles.accent.underline("Keys:")}
               this.flashError(getCmdFailMsg(name))
             })
             .finally(() => {
-              delete this.runningCommands[sessionUlid]
+              delete this.runningCommands[id]
               this.renderStatus()
-              garden.events.clearKey(sessionUlid)
+              garden.events.clearKey(sessionId)
             })
         })
     )

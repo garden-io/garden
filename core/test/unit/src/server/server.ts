@@ -55,7 +55,7 @@ describe("GardenServer", () => {
     garden = await makeTestGardenA()
     manager = GardenInstanceManager.getInstance({
       log: garden.log,
-      sessionUlid: garden.sessionUlid,
+      sessionId: garden.sessionId,
       serveCommand,
       extraCommands: [new TestCommand()],
       force: true,
@@ -75,8 +75,11 @@ describe("GardenServer", () => {
   })
 
   after(async () => {
-    await manager.clear()
-    await gardenServer.close()
+    server.close()
+  })
+
+  beforeEach(async () => {
+    manager.set(garden.log, garden)
   })
 
   it("should show no URL on startup", async () => {
@@ -451,7 +454,6 @@ describe("GardenServer", () => {
     })
 
     it("should emit log entries under silly log level", (done) => {
-      // Request id
       const id = uuidv4()
       const gardenKey = garden.getInstanceKey()
 
@@ -462,11 +464,7 @@ describe("GardenServer", () => {
             return
           }
           const logEntries = messages.filter((m) => m.type === "logEntry" && m.context.gardenKey === gardenKey)
-          const sessionLogEntries = logEntries.filter((m) => {
-            const sessionUuid = m.context.sessionId as string
-            // both are UUIDs, but the case can be different
-            return sessionUuid.toLowerCase() === id.toLowerCase()
-          })
+          const sessionLogEntries = logEntries.filter((m) => m.context.sessionId === id)
           const logMessages = sessionLogEntries.map((m) => m.message.msg)
 
           try {

@@ -20,7 +20,7 @@ import {
   defaultUtilImageRegistryDomain,
 } from "../../../../../src/plugins/kubernetes/constants.js"
 import { UnresolvedProviderConfig } from "../../../../../src/config/project.js"
-import { ulid } from "ulid"
+import { uuidv4 } from "../../../../../src/util/random.js"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
@@ -54,8 +54,8 @@ describe("kubernetes configureProvider", () => {
     tmpDir = await makeTempDir({ git: true })
     garden = await makeDummyGarden(tmpDir.path, {
       commandInfo: { name: "test", args: {}, opts: {} },
-      sessionUlid: ulid(),
-      parentSessionUlid: null,
+      sessionId: uuidv4(),
+      parentSessionId: undefined,
     })
   })
 

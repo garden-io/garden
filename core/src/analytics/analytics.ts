@@ -29,7 +29,6 @@ import { getResultErrorProperties } from "./helpers.js"
 import { Analytics } from "@segment/analytics-node"
 import type { CloudProject } from "../cloud/api.js"
 import type { UnresolvedProviderConfig } from "../config/project.js"
-import type { ULID } from "ulid"
 
 const CI_USER = "ci-user"
 
@@ -168,9 +167,8 @@ interface PropertiesBase {
   ciName: string | null
   system: SystemInfo
   isCI: boolean
-  // NOTE: these have not been renamed to sessionUlid and parentSessionUlid to maintain backwards compatibility
-  sessionId: ULID
-  parentSessionId: ULID | undefined
+  sessionId: string
+  parentSessionId: string | undefined
   projectMetadata: ProjectMetadata
   firstRunAt?: Date
   latestRunAt?: Date
@@ -605,7 +603,7 @@ export class AnalyticsHandler {
   /**
    * Returns some common metadata to be used on each event.
    */
-  private getBasicAnalyticsProperties(parentSessionUlid: ULID | undefined = undefined): PropertiesBase {
+  private getBasicAnalyticsProperties(parentSessionId: string | undefined = undefined): PropertiesBase {
     return {
       projectId: this.projectId,
       projectIdV2: this.projectIdV2,
@@ -620,9 +618,9 @@ export class AnalyticsHandler {
       customer: this.cloudCustomerName,
       system: this.systemConfig,
       isCI: this.isCI,
-      sessionId: this.garden.sessionUlid,
+      sessionId: this.garden.sessionId,
       // default to the sessionId since if not set we are the parent
-      parentSessionId: parentSessionUlid || this.garden.sessionUlid,
+      parentSessionId: parentSessionId || this.garden.sessionId,
       projectMetadata: this.projectMetadata,
       firstRunAt: this.analyticsConfig.firstRunAt,
       latestRunAt: this.analyticsConfig.latestRunAt,
@@ -643,7 +641,7 @@ export class AnalyticsHandler {
   /**
    * The actual segment track method.
    */
-  private track(event: AnalyticsEvent, parentSessionUlid: ULID | undefined = undefined) {
+  private track(event: AnalyticsEvent, parentSessionId: string | undefined = undefined) {
     if (!this.segment || !this.isEnabled) {
       return false
     }
@@ -653,7 +651,7 @@ export class AnalyticsHandler {
       anonymousId: this.anonymousUserId,
       event: event.type,
       properties: {
-        ...this.getBasicAnalyticsProperties(parentSessionUlid),
+        ...this.getBasicAnalyticsProperties(parentSessionId),
         ...event.properties,
       },
     }
@@ -684,12 +682,12 @@ export class AnalyticsHandler {
   /**
    * Tracks a Command.
    */
-  trackCommand(commandName: string, parentSessionUlid?: ULID) {
+  trackCommand(commandName: string, parentSessionId?: string) {
     return this.track({
       type: "Run Command",
       properties: {
         name: commandName,
-        ...this.getBasicAnalyticsProperties(parentSessionUlid),
+        ...this.getBasicAnalyticsProperties(parentSessionId),
       },
     })
   }
@@ -702,7 +700,7 @@ export class AnalyticsHandler {
     errors: GardenError[],
     startTime: Date,
     exitCode?: number,
-    parentSessionUlid?: ULID
+    parentSessionId?: string
   ) {
     const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
 
@@ -724,7 +722,7 @@ export class AnalyticsHandler {
         name: commandName,
         durationMsec,
         exitCode,
-        ...this.getBasicAnalyticsProperties(parentSessionUlid),
+        ...this.getBasicAnalyticsProperties(parentSessionId),
       },
     })
   }

@@ -34,13 +34,13 @@ import { GardenInstanceManager } from "../../../../src/server/instance-manager.j
 import fsExtra from "fs-extra"
 
 const { mkdirp } = fsExtra
+import { uuidv4 } from "../../../../src/util/random.js"
 import type { Garden } from "../../../../src/garden.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
 import { RuntimeError } from "../../../../src/exceptions.js"
 import dedent from "dedent"
 import { deepResolveContext } from "../../../../src/config/template-contexts/base.js"
-import { ulid } from "ulid"
 
 /**
  * Helper functions for removing/resetting the global logger config which is set when
@@ -80,7 +80,7 @@ describe("cli", () => {
   let cli: GardenCli
   const globalConfigStore = new GlobalConfigStore()
   const log = getRootLogger().createLog()
-  const sessionUlid = ulid()
+  const sessionId = uuidv4()
 
   beforeEach(() => {
     cli = new TestGardenCli()
@@ -527,7 +527,7 @@ describe("cli", () => {
             defaultProjectRoot: projectRootA,
             manager: GardenInstanceManager.getInstance({
               log,
-              sessionUlid,
+              sessionId,
               serveCommand,
               plugins: [],
             }),
@@ -1227,8 +1227,8 @@ describe("cli", () => {
       await mkdirp(path)
       const garden = await makeDummyGarden(path, {
         commandInfo: { name: "foo", args: {}, opts: {} },
-        sessionUlid: ulid(),
-        parentSessionUlid: null,
+        sessionId: uuidv4(),
+        parentSessionId: undefined,
       })
       const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(garden).to.be.ok
@@ -1241,8 +1241,8 @@ describe("cli", () => {
       const garden = await makeDummyGarden(path, {
         environmentString: "test.foo",
         commandInfo: { name: "foo", args: {}, opts: {} },
-        sessionUlid: ulid(),
-        parentSessionUlid: null,
+        sessionId: uuidv4(),
+        parentSessionId: undefined,
       })
       expect(garden).to.be.ok
       expect(garden.environmentName).to.equal("foo")
@@ -1252,8 +1252,8 @@ describe("cli", () => {
       const root = getDataDir("test-project-invalid-config")
       const garden = await makeDummyGarden(root, {
         commandInfo: { name: "foo", args: {}, opts: {} },
-        sessionUlid: ulid(),
-        parentSessionUlid: null,
+        sessionId: uuidv4(),
+        parentSessionId: undefined,
       })
       const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(garden).to.be.ok
@@ -1264,8 +1264,8 @@ describe("cli", () => {
       const root = getDataDir("test-project-templated")
       const garden = await makeDummyGarden(root, {
         commandInfo: { name: "foo", args: {}, opts: {} },
-        sessionUlid: ulid(),
-        parentSessionUlid: null,
+        sessionId: uuidv4(),
+        parentSessionId: undefined,
       })
       const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(garden).to.be.ok

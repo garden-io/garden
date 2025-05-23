@@ -35,7 +35,6 @@ import { stableStringify } from "../../util/string.js"
 import { homedir } from "os"
 import type { DockerBuildReport, RegisterCloudBuildResponse } from "../../cloud/grow/trpc.js"
 import type { GrowCloudApi } from "../../cloud/grow/api.js"
-import { ulidToUUID } from "ulid"
 
 const { mkdirp, rm, writeFile, stat } = fsExtra
 
@@ -159,7 +158,7 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
       organizationId: cloudProject.organization.id,
       actionUid: action.uid,
       actionName: action.name,
-      coreSessionId: ulidToUUID(ctx.sessionUlid),
+      coreSessionId: ctx.sessionId,
       // if platforms are not set, we default to linux/amd64
       platforms: action.getSpec().platforms || ["linux/amd64"],
       mtlsClientPublicKeyPEM: publicKeyPem,

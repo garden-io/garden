@@ -168,15 +168,19 @@ export class GrowBufferedEventStream {
   }
 
   private handleEvent<T extends EventName>(name: T, payload: EventPayload<T>) {
-    // use the parent session ID of the event payload, if not available use the garden parent session ID, if not available use the garden session ID
-    // This means outside of `garden dev`, the session ID will always be the same as the command ID (As we're using the session ID as command ID).
-    const parentSessionUlid =
-      payload.$context?._parentSessionUlid || this.garden.parentSessionUlid || this.garden.sessionUlid
+    // Use the parent session ID of the event payload,
+    // if not available session ID of the event payload ID,
+    // if not available use the garden session ID.
+    // This means outside `garden dev` and `garden serve,
+    // the session ID will always be the same as the command ID (As we're using the session ID as command ID).
+    const sessionId = payload.$context?._parentSessionId || payload.$context?.sessionId || this.garden.sessionId
+    // FIXME: generate new ulid and use translation map
+
     const event: GrpcEvent = create(EventSchema, {
       eventId: nextEventUlid(),
       context: create(EventContextSchema, {
         organizationId: this.garden.cloudApiV2.organizationId,
-        sessionId: parentSessionUlid,
+        sessionId,
       }),
     })
 
@@ -212,8 +216,10 @@ export class GrowBufferedEventStream {
   }
 
   private handleCommandCompleted(event: GrpcEvent, payload: EventPayload<"sessionCompleted">) {
-    const sessionUid = payload.$context?.sessionId // this will be defined if we're in a `garden dev` or `garden serve` session.
-    const commandId = sessionUid ? uuidToULID(sessionUid) : this.garden.sessionUlid
+    // the first will be defined if we're in a `garden dev` or `garden serve` session
+    const sessionUid = payload.$context?.sessionId || this.garden.sessionId
+    // FIXME: generate new ulid and use translation map
+    const commandId = uuidToULID(sessionUid)
 
     event.eventData = {
       case: "commandEvent",
@@ -226,9 +232,12 @@ export class GrowBufferedEventStream {
       }),
     }
   }
+
   private handleCommandFailed(event: GrpcEvent, payload: EventPayload<"sessionFailed">) {
-    const sessionUid = payload.$context?.sessionId // this will be defined if we're in a `garden dev` or `garden serve` session.
-    const commandId = sessionUid ? uuidToULID(sessionUid) : this.garden.sessionUlid
+    // the first will be defined if we're in a `garden dev` or `garden serve` session
+    const sessionUid = payload.$context?.sessionId || this.garden.sessionId
+    // FIXME: generate new ulid and use translation map
+    const commandId = uuidToULID(sessionUid)
 
     event.eventData = {
       case: "commandEvent",
@@ -243,8 +252,10 @@ export class GrowBufferedEventStream {
   }
 
   private handleCommandStarted(event: GrpcEvent, payload: EventPayload<"commandInfo">) {
-    const sessionUid = payload.$context?.sessionId // this will be defined if we're in a `garden dev` or `garden serve` session.
-    const commandId = sessionUid ? uuidToULID(sessionUid) : this.garden.sessionUlid
+    // the first will be defined if we're in a `garden dev` or `garden serve` session
+    const sessionUid = payload.$context?.sessionId || this.garden.sessionId
+    // FIXME: generate new ulid and use translation map
+    const commandId = uuidToULID(sessionUid)
 
     event.eventData = {
       case: "commandEvent",

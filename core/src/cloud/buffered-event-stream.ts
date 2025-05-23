@@ -20,7 +20,6 @@ import { getSection } from "../logger/renderers.js"
 import { registerCleanupFunction } from "../util/util.js"
 import { makeAuthHeader } from "./auth.js"
 import { toGardenError } from "../exceptions.js"
-import { ulidToUUID, type UUID } from "ulid"
 
 const maxFlushFail = 10 // How many consecutive failures to flush events on a loop before stopping entirely
 /**
@@ -80,9 +79,9 @@ interface StreamTarget {
 }
 
 interface ApiBatchBase {
-  workflowRunUid?: UUID
-  sessionId: UUID | null
-  projectUid?: UUID
+  workflowRunUid?: string
+  sessionId: string | null
+  projectUid?: string
 }
 
 export interface ApiEventBatch extends ApiBatchBase {
@@ -276,7 +275,7 @@ export class BufferedEventStream {
     const data: ApiEventBatch = {
       events,
       workflowRunUid: this.workflowRunUid,
-      sessionId: ulidToUUID(this.garden.sessionUlid),
+      sessionId: this.garden.sessionId,
       projectUid: this.garden.projectId || undefined,
       environmentId: this.cloudSession.environmentId,
       namespaceId: this.cloudSession.namespaceId,
@@ -295,7 +294,7 @@ export class BufferedEventStream {
     const data: ApiLogBatch = {
       logEntries,
       workflowRunUid: this.workflowRunUid,
-      sessionId: ulidToUUID(this.garden.sessionUlid),
+      sessionId: this.garden.sessionId,
       projectUid: this.garden.projectId || undefined,
     }
 
