@@ -55,6 +55,8 @@ import type { PluginToolSpec } from "../../plugin/tools.js"
 import type { PluginContext } from "../../plugin-context.js"
 import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 import type { ConfigureActionConfigParams } from "../../plugin/handlers/base/configure.js"
+import { emitNonRepeatableWarning } from "../../warnings.js"
+import { styles } from "../../logger/styles.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
@@ -548,17 +550,31 @@ export const gardenPlugin = () =>
             // Other handlers are implemented by other providers (e.g. kubernetes)
             async configure({ config, log }: ConfigureActionConfigParams<ContainerDeployActionConfig>) {
               const spec = config.spec
+
+              let deprecationFound = false
               if (spec["devMode"]) {
                 reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
+                deprecationFound = true
               }
+
               if (spec["localMode"]) {
                 reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
+                deprecationFound = true
               }
 
               for (const port of spec.ports) {
                 if (port.hostPort !== undefined) {
                   reportDeprecatedFeatureUsage({ log, deprecation: "containerDeployActionHostPort" })
+                  deprecationFound = true
                 }
+              }
+
+              if (deprecationFound) {
+                const configPath = config.internal.configFilePath || config.internal.basePath
+                emitNonRepeatableWarning(
+                  log,
+                  `Please check your action configuration file at ${styles.highlight(configPath)}`
+                )
               }
 
               return { config, supportedModes: { sync: !!spec.sync } satisfies ActionModes }
