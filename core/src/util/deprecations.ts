@@ -113,6 +113,7 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       warnHint: deline`
         The ${style("hostPort")} field of the ${style("V1ContainerPort")} is generally advised against using it, see the K8s best practices at https://kubernetes.io/docs/concepts/configuration/overview/
       `,
+      docs: null,
     },
     containerDeployActionLimits: {
       docsSection: "Old configuration syntax",

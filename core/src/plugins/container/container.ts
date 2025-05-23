@@ -17,6 +17,7 @@ import type {
   ContainerModule,
   ContainerVolumeSpec,
   ContainerRuntimeActionConfig,
+  ContainerDeployActionConfig,
 } from "./moduleConfig.js"
 import { containerModuleOutputsSchema, containerModuleSpecSchema, defaultDockerfileName } from "./moduleConfig.js"
 import {
@@ -53,6 +54,7 @@ import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 import type { PluginContext } from "../../plugin-context.js"
 import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import type { ConfigureActionConfigParams } from "../../plugin/handlers/base/configure.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
@@ -544,15 +546,22 @@ export const gardenPlugin = () =>
           staticOutputsSchema: containerDeployOutputsSchema(),
           handlers: {
             // Other handlers are implemented by other providers (e.g. kubernetes)
-            async configure({ config, log }) {
-              if (config.spec["devMode"]) {
+            async configure({ config, log }: ConfigureActionConfigParams<ContainerDeployActionConfig>) {
+              const spec = config.spec
+              if (spec["devMode"]) {
                 reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
               }
-              if (config.spec["localMode"]) {
+              if (spec["localMode"]) {
                 reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
               }
 
-              return { config, supportedModes: { sync: !!config.spec.sync } satisfies ActionModes }
+              for (const port of spec.ports) {
+                if (port.hostPort !== undefined) {
+                  reportDeprecatedFeatureUsage({ log, deprecation: "containerDeployActionHostPort" })
+                }
+              }
+
+              return { config, supportedModes: { sync: !!spec.sync } satisfies ActionModes }
             },
 
             async validate({ action }) {
