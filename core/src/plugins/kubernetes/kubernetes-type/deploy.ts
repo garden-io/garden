@@ -34,6 +34,8 @@ import type { KubernetesDeployActionSpecFileSources } from "./common.js"
 import { getSpecFiles } from "./common.js"
 import type { ActionModes } from "../../../actions/types.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
+import { styles } from "../../../logger/styles.js"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -115,11 +117,19 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
     configure: async ({ ctx, config, log }) => {
+      let deprecationFound = false
       if (config.spec["devMode"]) {
         reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
+        deprecationFound = true
       }
       if (config.spec["localMode"]) {
         reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
+        deprecationFound = true
+      }
+
+      if (deprecationFound) {
+        const configPath = config.internal.configFilePath || config.internal.basePath
+        emitNonRepeatableWarning(log, `Please check your action configuration file at ${styles.highlight(configPath)}`)
       }
 
       if (!config.spec.kustomize) {
