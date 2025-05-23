@@ -562,6 +562,10 @@ export const gardenPlugin = () =>
                 deprecationFound = true
               }
 
+              if (spec.limits) {
+                reportDeprecatedFeatureUsage({ log, deprecation: "containerDeployActionLimits" })
+              }
+
               for (const port of spec.ports) {
                 if (port.hostPort !== undefined) {
                   reportDeprecatedFeatureUsage({ log, deprecation: "containerDeployActionHostPort" })
