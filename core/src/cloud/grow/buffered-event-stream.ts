@@ -184,6 +184,7 @@ export class GrowBufferedEventStream {
 
     const generatedSessionUlid = ulid()
     this.sessionIdToUlidMap.set(sessionId, generatedSessionUlid)
+    this.log.silly(() => `Mapped sessionId=${sessionId} to ulid=${generatedSessionUlid}`)
     return generatedSessionUlid
   }
 
@@ -191,7 +192,9 @@ export class GrowBufferedEventStream {
    * Deletes a mapping produced by {@link #getSessionUlid}.
    */
   private eraseSessionUlid(sessionId: string): boolean {
-    return this.sessionIdToUlidMap.delete(sessionId)
+    const removed = this.sessionIdToUlidMap.delete(sessionId)
+    this.log.silly(() => `Erased ulid for sessionId=${sessionId}`)
+    return removed
   }
 
   private handleEvent<T extends EventName>(name: T, payload: EventPayload<T>) {
