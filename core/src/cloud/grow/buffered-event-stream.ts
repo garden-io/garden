@@ -20,18 +20,21 @@ import type {
   GardenEventIngestionService,
   EventResponse,
 } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
-import { EventContextSchema, EventSchema } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
+import {
+  Event_ClientMetadataSchema,
+  EventSchema,
+} from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
 import { create } from "@bufbuild/protobuf"
 import { ConnectError, type Client } from "@connectrpc/connect"
 import type { WritableIterable } from "@connectrpc/connect/protocol"
 import { createWritableIterable } from "@connectrpc/connect/protocol"
 import {
-  GardenCommandEvent_GardenProjectMetadataSchema,
-  GardenCommandEvent_GitMetadata_GitRemoteSchema,
-  GardenCommandEvent_GitMetadataSchema,
-  GardenCommandEvent_InvocationMetadataSchema,
-  GardenCommandEvent_Status,
-  GardenCommandEventSchema,
+  GardenCommandStarted_GitMetadata_GitRemoteSchema,
+  GardenCommandStarted_GitMetadataSchema,
+  GardenCommandStarted_InvocationSchema,
+  GardenCommandCompletedSchema,
+  GardenCommandStartedSchema,
+  GardenCommandStarted_ProjectMetadataSchema,
 } from "@buf/garden_grow-platform.bufbuild_es/public/events/garden-command/garden-command_pb.js"
 
 const nextEventUlid = monotonicFactory()
@@ -203,14 +206,18 @@ export class GrowBufferedEventStream {
     // if not available use the garden session ID.
     // This means outside `garden dev` and `garden serve,
     // the session ID will always be the same as the command ID (As we're using the session ID as command ID).
-    const sessionId = payload.$context?._parentSessionId || payload.$context?.sessionId || this.garden.sessionId
+    const sessionId = this.getSessionUlid(
+      payload.$context?._parentSessionId || payload.$context?.sessionId || this.garden.sessionId
+    )
     // FIXME: generate new ulid and use translation map
 
     const event: GrpcEvent = create(EventSchema, {
       eventId: nextEventUlid(),
-      context: create(EventContextSchema, {
-        organizationId: this.garden.cloudApiV2.organizationId,
-        sessionId,
+      organizationId: this.garden.cloudApiV2.organizationId,
+      sessionId,
+      clientMetadata: create(Event_ClientMetadataSchema, {
+        name: "garden-cli",
+        version: this.garden.version,
       }),
     })
 
@@ -256,13 +263,13 @@ export class GrowBufferedEventStream {
     const commandId = this.getSessionUlid(sessionId)
 
     event.eventData = {
-      case: "commandEvent",
-      value: create(GardenCommandEventSchema, {
+      case: "gardenCommandCompleted",
+      value: create(GardenCommandCompletedSchema, {
         commandId,
 
         // completed now
         completedAt: timestampFromDate(new Date()),
-        status: GardenCommandEvent_Status.SUCCEEDED,
+        success: true,
       }),
     }
   }
@@ -278,13 +285,13 @@ export class GrowBufferedEventStream {
     const commandId = this.getSessionUlid(sessionId)
 
     event.eventData = {
-      case: "commandEvent",
-      value: create(GardenCommandEventSchema, {
+      case: "gardenCommandCompleted",
+      value: create(GardenCommandCompletedSchema, {
         commandId,
 
         // completed now
         completedAt: timestampFromDate(new Date()),
-        status: GardenCommandEvent_Status.FAILED,
+        success: false,
       }),
     }
   }
@@ -301,18 +308,17 @@ export class GrowBufferedEventStream {
     const commandId = this.getSessionUlid(sessionId)
 
     event.eventData = {
-      case: "commandEvent",
-      value: create(GardenCommandEventSchema, {
+      case: "gardenCommandStarted",
+      value: create(GardenCommandStartedSchema, {
         commandId,
 
         // started now
         startedAt: timestampFromDate(new Date()),
-        status: GardenCommandEvent_Status.IN_PROGRESS,
 
         // TODO: expose if it is a custom command
         //isCustomCommand: payload.isCustomCommand,
 
-        invocationMetadata: create(GardenCommandEvent_InvocationMetadataSchema, {
+        invocation: create(GardenCommandStarted_InvocationSchema, {
           cwd: process.cwd(),
           command: payload.name,
           // TODO: args
@@ -321,7 +327,7 @@ export class GrowBufferedEventStream {
           //interactiveTty: payload.interactiveTty,
         }),
 
-        gitMetadata: create(GardenCommandEvent_GitMetadataSchema, {
+        gitMetadata: create(GardenCommandStarted_GitMetadataSchema, {
           // TODO: repository root
           //repositoryRoot: payload.repositoryRoot,
           headRefSha: payload.vcsCommitHash,
@@ -330,14 +336,14 @@ export class GrowBufferedEventStream {
           headRefName: `refs/heads/${payload.vcsBranch}`,
           // TODO: expose all remotes with their original names
           gitRemotes: [
-            create(GardenCommandEvent_GitMetadata_GitRemoteSchema, {
+            create(GardenCommandStarted_GitMetadata_GitRemoteSchema, {
               name: "origin",
               url: payload.vcsOriginUrl,
             }),
           ],
         }),
 
-        gardenProjectMetadata: create(GardenCommandEvent_GardenProjectMetadataSchema, {
+        projectMetadata: create(GardenCommandStarted_ProjectMetadataSchema, {
           projectName: payload.projectName,
 
           // TODO: expose all project data
@@ -368,7 +374,7 @@ export class GrowBufferedEventStream {
   private async streamEvents() {
     this.outputStream = createWritableIterable<GrpcEvent>()
 
-    const ackStream = this.eventIngestionService.ingestEventStream(this.outputStream)
+    const ackStream = this.eventIngestionService.ingestEvents(this.outputStream)
 
     this.log.silly(() => "GrowBufferedEventStream: Connected")
 

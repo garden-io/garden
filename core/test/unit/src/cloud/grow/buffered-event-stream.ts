@@ -16,7 +16,7 @@ import {
 } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
 import { create } from "@bufbuild/protobuf"
 import { ulid } from "ulid"
-import { GardenCommandEventSchema } from "@buf/garden_grow-platform.bufbuild_es/public/events/garden-command/garden-command_pb.js"
+import { GardenCommandStartedSchema } from "@buf/garden_grow-platform.bufbuild_es/public/events/garden-command/garden-command_pb.js"
 import type { GardenWithNewBackend } from "../../../../../src/garden.js"
 import { GrowBufferedEventStream } from "../../../../../src/cloud/grow/buffered-event-stream.js"
 import type { Log } from "../../../../../src/logger/log-entry.js"
@@ -27,14 +27,7 @@ import { sleep } from "../../../../../src/util/util.js"
 const receivedEvents = new Array<Event>()
 const mockTransport = createRouterTransport(({ service }) => {
   service(GardenEventIngestionService, {
-    ingestEvent: async (event) => {
-      receivedEvents.push(event)
-      return create(EventResponseSchema, {
-        eventId: event.eventId,
-        success: true,
-      })
-    },
-    ingestEventStream: async function* ingest(eventStream) {
+    ingestEvents: async function* ingest(eventStream) {
       for await (const event of eventStream) {
         receivedEvents.push(event)
         yield create(EventResponseSchema, {
@@ -46,25 +39,6 @@ const mockTransport = createRouterTransport(({ service }) => {
   })
 })
 const mockClient = createClient(GardenEventIngestionService, mockTransport)
-
-describe("GardenEventIngestionService", () => {
-  afterEach(() => {
-    receivedEvents.length = 0
-  })
-  it("test event ingestion endpoint", async () => {
-    const eventId = ulid()
-    const event = create(EventSchema, {
-      eventId,
-      eventData: {
-        case: "commandEvent",
-        value: create(GardenCommandEventSchema, {}),
-      },
-    })
-
-    const eventResult = await mockClient.ingestEvent(event)
-    expect(eventResult).to.include({ eventId, success: true })
-  })
-})
 
 describe("GrowBufferedEventStream", () => {
   let log: Log
@@ -115,7 +89,7 @@ describe("GrowBufferedEventStream", () => {
     const event = receivedEvents[0]
     expect(event.eventId).to.be.a("string")
     expect(event.eventData).to.be.an("object")
-    expect(event.eventData).to.have.property("case", "commandEvent")
+    expect(event.eventData).to.have.property("case", "gardenCommandStarted")
     expect(event.eventData.value).to.be.an("object")
   })
 
@@ -139,7 +113,7 @@ describe("GrowBufferedEventStream", () => {
     const event = receivedEvents[0]
     expect(event.eventId).to.be.a("string")
     expect(event.eventData).to.be.an("object")
-    expect(event.eventData).to.have.property("case", "commandEvent")
+    expect(event.eventData).to.have.property("case", "gardenCommandStarted")
     expect(event.eventData.value).to.be.an("object")
   })
 
@@ -165,7 +139,7 @@ describe("GrowBufferedEventStream", () => {
     const event = receivedEvents[0]
     expect(event.eventId).to.be.a("string")
     expect(event.eventData).to.be.an("object")
-    expect(event.eventData).to.have.property("case", "commandEvent")
+    expect(event.eventData).to.have.property("case", "gardenCommandStarted")
     expect(event.eventData.value).to.be.an("object")
   })
 })
