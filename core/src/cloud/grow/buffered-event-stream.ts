@@ -383,7 +383,7 @@ export class GrowBufferedEventStream {
   private async consumeAcks(ackStream: AsyncIterable<EventResponse>) {
     for await (const nextAck of ackStream) {
       if (!nextAck.success) {
-        this.log.silly(`Server failed to process event with ulid=${nextAck.eventId}`)
+        this.log.silly(`GrowBufferedEventStream: Server failed to process event with ulid=${nextAck.eventId}`)
         continue // NOTE: We expect the server to also close the stream in case of an error, but let's first receive all outstanding acks and errors.
       }
 
@@ -392,7 +392,7 @@ export class GrowBufferedEventStream {
       this.eventBuffer.delete(nextAck.eventId)
 
       if (this.closeCallbacks.length && this.eventBuffer.size === 0) {
-        this.log.silly("All events have been acknowledged. Disconnecting...")
+        this.log.silly("GrowBufferedEventStream: All events have been acknowledged. Disconnecting...")
         for (const callback of this.closeCallbacks) {
           // Call all the callbacks to notify that the stream is closed
           callback()
