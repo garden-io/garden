@@ -7,7 +7,8 @@
  */
 
 import { timestampFromDate } from "@bufbuild/protobuf/wkt"
-import { monotonicFactory, uuidToULID } from "ulid"
+import type { ULID } from "ulid"
+import { monotonicFactory, ulid } from "ulid"
 import type { GardenWithNewBackend } from "../../garden.js"
 import { registerCleanupFunction, sleep } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
@@ -57,6 +58,8 @@ export class GrowBufferedEventStream {
   private outputStream: WritableIterable<GrpcEvent> | undefined
   private isClosed: boolean
   private readonly closeCallbacks: (() => void)[] = []
+
+  private readonly sessionIdToUlidMap = new Map<string, ULID>()
 
   constructor({
     garden,
@@ -167,6 +170,30 @@ export class GrowBufferedEventStream {
     this.outputStream?.close()
   }
 
+  /**
+   * Maps a legacy {@code sessionId} value to a valid ULID.
+   *
+   * The mapping persists in the {@link #sessionIdToUlidMap}
+   * until it's explicitly evicted via {@link #eraseSessionUlid}.
+   */
+  private getSessionUlid(sessionId: string): ULID {
+    const existingSessionUlid = this.sessionIdToUlidMap.get(sessionId)
+    if (!!existingSessionUlid) {
+      return existingSessionUlid
+    }
+
+    const generatedSessionUlid = ulid()
+    this.sessionIdToUlidMap.set(sessionId, generatedSessionUlid)
+    return generatedSessionUlid
+  }
+
+  /**
+   * Deletes a mapping produced by {@link #getSessionUlid}.
+   */
+  private eraseSessionUlid(sessionId: string): boolean {
+    return this.sessionIdToUlidMap.delete(sessionId)
+  }
+
   private handleEvent<T extends EventName>(name: T, payload: EventPayload<T>) {
     // Use the parent session ID of the event payload,
     // if not available session ID of the event payload ID,
@@ -223,8 +250,7 @@ export class GrowBufferedEventStream {
     event: GrpcEvent
     payload: EventPayload<"sessionCompleted">
   }) {
-    // FIXME: generate new ulid and use translation map
-    const commandId = uuidToULID(sessionId)
+    const commandId = this.getSessionUlid(sessionId)
 
     event.eventData = {
       case: "commandEvent",
@@ -246,8 +272,7 @@ export class GrowBufferedEventStream {
     event: GrpcEvent
     payload: EventPayload<"sessionFailed">
   }) {
-    // FIXME: generate new ulid and use translation map
-    const commandId = uuidToULID(sessionId)
+    const commandId = this.getSessionUlid(sessionId)
 
     event.eventData = {
       case: "commandEvent",
@@ -270,8 +295,7 @@ export class GrowBufferedEventStream {
     event: GrpcEvent
     payload: EventPayload<"commandInfo">
   }) {
-    // FIXME: generate new ulid and use translation map
-    const commandId = uuidToULID(sessionId)
+    const commandId = this.getSessionUlid(sessionId)
 
     event.eventData = {
       case: "commandEvent",
