@@ -719,7 +719,10 @@ export const containerDeploySchemaKeys = memoize(() => ({
   hotReload: joi.any().meta({ internal: true }),
   timeout: k8sDeploymentTimeoutSchema(),
   limits: limitsSchema(),
-  ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
+  ports: joiSparseArray(portSchema())
+    .unique("name")
+    .default([])
+    .description("List of ports that the service container exposes."),
   replicas: joi.number().integer().description(deline`
     The number of instances of the service to deploy.
     Defaults to 3 for environments configured with \`production: true\`, otherwise 1.
