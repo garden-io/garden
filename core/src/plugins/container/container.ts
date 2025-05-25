@@ -567,10 +567,14 @@ export const gardenPlugin = () =>
                 deprecationFound = true
               }
 
-              for (const port of spec.ports) {
-                if (port.hostPort !== undefined) {
-                  reportDeprecatedFeatureUsage({ log, deprecation: "containerDeployActionHostPort" })
-                  deprecationFound = true
+              // ports can be undefined here, because the validation handler,
+              // that sets the default values, is called later
+              if (spec.ports) {
+                for (const port of spec.ports) {
+                  if (port.hostPort !== undefined) {
+                    reportDeprecatedFeatureUsage({ log, deprecation: "containerDeployActionHostPort" })
+                    deprecationFound = true
+                  }
                 }
               }
 
