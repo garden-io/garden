@@ -9,6 +9,7 @@
 import type { infer as inferZodType, ZodType } from "zod"
 import z, { Schema } from "zod"
 import { envVarRegex, identifierRegex, joiIdentifierDescription, userIdentifierRegex } from "./constants.js"
+import { styles } from "../logger/styles.js"
 
 // Add metadata support to schemas. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
 declare module "zod" {
@@ -86,11 +87,12 @@ type GardenSchema = typeof z & {
  */
 export function renderZodError(error: z.ZodError): string {
   return error.issues
-    .map((i: Zod.ZodIssue) => {
-      if (i.message === "Required" && i["expected"] && i["received"]) {
-        return `Expected ${i["expected"]} at field '${i["path"]}', but received ${i["received"]}`
+    .map((i: Zod.ZodIssue & { expected?: unknown; received?: unknown }) => {
+      const path = i.path && i.path.length > 0 ? `at path ${styles.highlight(i.path.join("."))}` : ""
+      if (i["expected"] && i["received"]) {
+        return `Expected ${i["expected"]} ${path}, but received ${i["received"]}.`
       } else {
-        return `${i.message} at field '${i["path"]}'`
+        return `Issue ${path}: ${i.message}`
       }
     })
     .join("\n")
