@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,6 +27,7 @@ export class MinikubeGardenIngressController extends GardenIngressComponent {
       // setting the action name to providers is necessary to display the logs in provider-section
       actionName: "providers",
       namespace: "ingress-nginx",
+      waitForJobs: false,
       ctx,
       provider,
       resources: [nginxKindMainResource],
@@ -50,6 +51,7 @@ export class MinikubeGardenIngressController extends GardenIngressComponent {
     //check if ingress controller deployment is ready
     const deploymentStatus = await checkResourceStatus({
       api,
+      waitForJobs: false,
       namespace: "ingress-nginx",
       manifest: nginxKindMainResource,
       log,

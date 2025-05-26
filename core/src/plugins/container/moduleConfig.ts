@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 
 import type { GardenModule } from "../../types/module.js"
 import type { PrimitiveMap } from "../../config/common.js"
-import { joi, joiModuleIncludeDirective, joiSparseArray, joiIdentifier } from "../../config/common.js"
+import { joi, joiModuleIncludeDirective, joiSparseArray } from "../../config/common.js"
 import type { ModuleSpec, ModuleConfig } from "../../config/module.js"
 import { baseBuildSpecSchema } from "../../config/module.js"
 import type { CommonServiceSpec } from "../../config/service.js"
@@ -44,9 +44,7 @@ import { kebabCase, mapKeys } from "lodash-es"
 // To reduce the amount of edits to make before removing module configs
 export * from "./config.js"
 
-export interface ContainerModuleVolumeSpec extends ContainerVolumeSpecBase {
-  module?: string
-}
+export interface ContainerModuleVolumeSpec extends ContainerVolumeSpecBase {}
 
 export type ContainerServiceSpec = CommonServiceSpec &
   ContainerCommonDeploySpec & {
@@ -58,7 +56,11 @@ export type ContainerTestSpec = BaseTestSpec &
     volumes: ContainerModuleVolumeSpec[]
   }
 export const containerModuleTestSchema = () =>
-  baseTestSpecSchema().keys({ ...containerTestSpecKeys(), volumes: moduleVolumesSchema().default([]) })
+  baseTestSpecSchema().keys({
+    ...containerTestSpecKeys(),
+    image: moduleRuntimeContainerImageSchema(),
+    volumes: moduleVolumesSchema().default([]),
+  })
 
 export type ContainerTaskSpec = BaseTaskSpec &
   ContainerRunActionSpec & {
@@ -66,7 +68,7 @@ export type ContainerTaskSpec = BaseTaskSpec &
   }
 export const containerTaskSchema = () =>
   baseTaskSpecSchema()
-    .keys({ ...containerRunSpecKeys(), volumes: moduleVolumesSchema() })
+    .keys({ ...containerRunSpecKeys(), image: moduleRuntimeContainerImageSchema(), volumes: moduleVolumesSchema() })
     .description("A task that can be run in the container.")
 
 export interface ContainerModuleBuildSpec {
@@ -99,34 +101,28 @@ const containerBuildSpecSchema = () =>
   })
 
 const moduleVolumesSchema = () =>
-  getContainerVolumesSchema(
-    volumeSchemaBase()
-      .keys({
-        module: joiIdentifier().description(
-          dedent`
-            The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-            When a \`module\` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-            Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-            `
-        ),
-      })
-      .oxor("hostPath", "module")
-  ).description(dedent`
+  getContainerVolumesSchema(volumeSchemaBase()).description(dedent`
     List of volumes that should be mounted when starting the container.
 
     Note: If neither \`hostPath\` nor \`module\` is specified,
     an empty ephemeral volume is created and mounted when deploying the container.
 `)
 
+// image is required in the action deploy schema, but optional in module schema
+const moduleRuntimeContainerImageSchema = () =>
+  joi.string().allow(false, null).empty([false, null]).description(deline`
+  Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
+`)
+
 const containerServiceSchema = () =>
   baseServiceSpecSchema()
     .keys({
       ...containerDeploySchemaKeys(),
+      image: moduleRuntimeContainerImageSchema(),
       sync: containerSyncPathSchema(),
       volumes: moduleVolumesSchema(),
     })
+    // Module configs are deprecated, so we keep syntax translation in module configs
     .rename("devMode", "sync")
 
 export const containerModuleSpecSchema = () =>
@@ -148,7 +144,7 @@ export const containerModuleSpecSchema = () =>
         If neither \`include\` nor \`exclude\` is set, and the module
         specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
       `),
-      // TODO: remove in 0.14, keeping around to avoid config failures
+      // TODO(0.15): remove this
       hotReload: joi.any().meta({ internal: true }),
       dockerfile: joi
         .posixPath()

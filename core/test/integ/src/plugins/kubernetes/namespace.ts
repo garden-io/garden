@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,11 +10,12 @@ import { randomString, gardenAnnotationKey } from "../../../../../src/util/strin
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
-import { ensureNamespace, getNamespaceStatus } from "../../../../../src/plugins/kubernetes/namespace.js"
+import { ensureNamespace, getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace.js"
 import type { Log } from "../../../../../src/logger/log-entry.js"
 import { expect } from "chai"
 import { getPackageVersion } from "../../../../../src/util/util.js"
-import type { NamespaceStatus } from "../../../../../src/types/namespace.js"
+
+import type { EventNamespaceStatus } from "../../../../../src/plugin-context.js"
 
 describe("Kubernetes Namespace helpers", () => {
   let api: KubeApi
@@ -48,25 +49,19 @@ describe("Kubernetes Namespace helpers", () => {
 
   describe("getNamespaceStatus", () => {
     it("should return the namespace status and emit a namespace status event", async () => {
-      let namespaceStatusFromEvent: NamespaceStatus | null = null
+      let namespaceStatusFromEvent: EventNamespaceStatus | null = null
       const expectedNamespaceName = "container-default"
       ctx.events.once("namespaceStatus", (s) => (namespaceStatusFromEvent = s))
-      const status = await getNamespaceStatus({
-        log,
-        ctx,
-        provider,
-        skipCreate: true,
-      })
+      const namespace = await getAppNamespace(ctx, log, provider)
       expect(namespaceStatusFromEvent).to.exist
       expect(namespaceStatusFromEvent!.namespaceName).to.eql(expectedNamespaceName)
-      expect(status).to.exist
-      expect(status.namespaceName).to.eql(expectedNamespaceName)
+      expect(namespace).to.eql(expectedNamespaceName)
     })
   })
 
   describe("ensureNamespace", () => {
     it("should create the namespace if it doesn't exist, with configured annotations and labels and emit a namespace status event", async () => {
-      let namespaceStatusFromEvent: NamespaceStatus | null = null
+      let namespaceStatusFromEvent: EventNamespaceStatus | null = null
       ctx.events.once("namespaceStatus", (s) => (namespaceStatusFromEvent = s))
       const namespace = {
         name: namespaceName,

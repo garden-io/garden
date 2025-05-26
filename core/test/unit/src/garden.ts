@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -56,7 +56,7 @@ import { cloneDeep, keyBy, mapValues, omit, set } from "lodash-es"
 import { joi } from "../../../src/config/common.js"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs.js"
 import fsExtra from "fs-extra"
-import { dedent, deline, randomString, wordWrap } from "../../../src/util/string.js"
+import { dedent, randomString } from "../../../src/util/string.js"
 import { addLinkedSources, getLinkedSources } from "../../../src/util/ext-source-util.js"
 import { dump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs.js"
@@ -429,7 +429,7 @@ describe("Garden", () => {
         await writeFile(
           join(tmpPath, "garden.yml"),
           dedent`
-          apiVersion: garden.io/v1
+          apiVersion: garden.io/v2
           kind: Project
           name: foo
           environments:
@@ -513,7 +513,7 @@ describe("Garden", () => {
 
     it("should set the default proxy config if non is specified", async () => {
       const config: ProjectConfig = {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name: "test",
         path: pathFoo,
@@ -538,7 +538,7 @@ describe("Garden", () => {
 
     it("should optionally read the proxy config from the project config", async () => {
       const config: ProjectConfig = {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name: "test",
         path: pathFoo,
@@ -569,7 +569,7 @@ describe("Garden", () => {
       try {
         gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = "example.com"
         const configNoProxy: ProjectConfig = {
-          apiVersion: GardenApiVersion.v1,
+          apiVersion: GardenApiVersion.v2,
           kind: "Project",
           name: "test",
           path: pathFoo,
@@ -583,7 +583,7 @@ describe("Garden", () => {
           variables: { foo: "default", bar: "something" },
         }
         const configWithProxy: ProjectConfig = {
-          apiVersion: GardenApiVersion.v1,
+          apiVersion: GardenApiVersion.v2,
           kind: "Project",
           name: "test",
           path: pathFoo,
@@ -669,7 +669,13 @@ describe("Garden", () => {
           refreshToken: "fake-refresh-token",
           validity: add(new Date(), { seconds: validityMs / 1000 }),
         })
-        return GardenCloudApi.factory({ log, cloudDomain: domain, globalConfigStore })
+        return GardenCloudApi.factory({
+          log,
+          cloudDomain: domain,
+          projectId: "foo-",
+          organizationId: undefined,
+          globalConfigStore,
+        })
       }
 
       before(async () => {
@@ -681,8 +687,7 @@ describe("Garden", () => {
         nock.cleanAll()
       })
 
-      // This means the logged in user is on a commerical edition
-      context("domain is set", () => {
+      context("projectId is set (Use Backend V1)", () => {
         const fakeCloudDomain = "https://example.com"
         const scope = nock(fakeCloudDomain)
         const projectId = uuidv4()
@@ -750,35 +755,6 @@ describe("Garden", () => {
           })
 
           expect(garden.secrets).to.eql({ SECRET_KEY: "secret-val" })
-          expect(scope.isDone()).to.be.true
-        })
-        it("should log a warning if logged in but project ID is missing", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          log.root["entries"] = []
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config: {
-              ...config,
-              id: undefined,
-            },
-            log,
-            environmentString: envName,
-            overrideCloudApiFactory,
-          })
-
-          const expectedLog = log.root
-            .getLogEntries()
-            .filter((l) => resolveMsg(l)?.includes(`Logged in to ${fakeCloudDomain}`))
-
-          expect(expectedLog.length).to.eql(1)
-          expect(expectedLog[0].level).to.eql(1)
-          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
-          const expected = `Logged in to ${fakeCloudDomain}, but could not find remote project '${projectName}'. Command results for this command run will not be available in Garden Enterprise.`
-          expect(cleanMsg).to.eql(expected)
-          expect(garden.cloudDomain).to.eql(fakeCloudDomain)
-          expect(garden.projectId).to.eql(undefined)
           expect(scope.isDone()).to.be.true
         })
         it("should throw if unable to fetch project", async () => {
@@ -854,149 +830,12 @@ describe("Garden", () => {
           `)
           expect(error).to.exist
           expect(error!.message).to.eql("Response code 404 (Not Found)")
-          expect(scope.isDone()).to.be.true
+          expect(scope.isDone(), "not all APIs have been called").to.be.true
         })
       })
 
-      // This means the logged in user is on the community edition
-      context("domain is NOT set", () => {
-        const scope = nock(DEFAULT_GARDEN_CLOUD_DOMAIN)
-        const projectId = uuidv4()
-        const projectName = "test"
-        const envName = "default"
-        const cloudProject: ProjectResult = {
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          relativePathInRepo: "",
-          status: ProjectStatus.Connected,
-          id: projectId,
-          name: projectName,
-          repositoryUrl: "",
-          organization: {
-            id: uuidv4(),
-            name: "test",
-          },
-          environments: [
-            {
-              id: uuidv4(),
-              name: envName,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              projectId,
-            },
-          ],
-        }
-        const config: ProjectConfig = createProjectConfig({
-          name: projectName,
-          path: pathFoo,
-        })
-
-        it("should use the community dashboard domain", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects?name=test&exactMatch=true`).reply(200, { data: [cloudProject] })
-          scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config,
-            environmentString: envName,
-            overrideCloudApiFactory,
-          })
-
-          expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
-          expect(garden.projectId).to.eql(projectId)
-          expect(scope.isDone()).to.be.true
-        })
-        it("should throw if project ID is set in config", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
-
-          let error: Error | undefined
-          try {
-            await TestGarden.factory(pathFoo, {
-              config: {
-                ...config,
-                id: uuidv4(), // <--- ID is set when it shouldn't
-              },
-              environmentString: envName,
-              overrideCloudApiFactory,
-            })
-          } catch (err) {
-            if (err instanceof Error) {
-              error = err
-            }
-          }
-
-          expect(error).to.exist
-          const expected = wordWrap(
-            deline`
-              Invalid field 'id' found in project configuration at path tmp. The 'id'
-              field should only be set if using a commercial edition of Garden. Please remove to continue
-              using the Garden community edition.
-            `,
-            120
-          )
-          expect(error!.message).to.eql(expected)
-          expect(scope.isDone()).to.be.true
-        })
-        it("should throw if unable to fetch or create project", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects?name=test&exactMatch=true`).reply(500, {})
-          log.root["entries"] = []
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
-
-          let error: Error | undefined
-          try {
-            await TestGarden.factory(pathFoo, {
-              config,
-              environmentString: envName,
-              overrideCloudApiFactory,
-              log,
-            })
-          } catch (err) {
-            if (err instanceof Error) {
-              error = err
-            }
-          }
-
-          const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`failed with error`))
-
-          expect(expectedLog.length).to.eql(1)
-          expect(expectedLog[0].level).to.eql(0)
-          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
-          expect(cleanMsg).to.eql(
-            `Fetching or creating project ${projectName} from ${DEFAULT_GARDEN_CLOUD_DOMAIN} failed with error: Error: Failed to find Garden Cloud project by name: HTTPError: Response code 500 (Internal Server Error)`
-          )
-          expect(error).to.exist
-          expect(error!.message).to.eql(
-            "Failed to find Garden Cloud project by name: HTTPError: Response code 500 (Internal Server Error)"
-          )
-          expect(scope.isDone()).to.be.true
-        })
-        it("should not fetch secrets", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects?name=test&exactMatch=true`).reply(200, { data: [cloudProject] })
-          scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
-          scope
-            .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
-            .reply(200, { data: { SECRET_KEY: "secret-val" } })
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config,
-            environmentString: envName,
-            overrideCloudApiFactory,
-          })
-
-          expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
-          expect(garden.projectId).to.eql(projectId)
-          expect(garden.secrets).to.eql({})
-          expect(scope.isDone()).to.be.false // <--- False because the secret endpoint isn't called
-        })
+      context("projectId is NOT set (Use backend V2)", () => {
+        // TODO(0.14.1+): Add tests for the Backend V2
       })
     })
   })
@@ -3137,16 +2976,6 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
     })
 
-    // TODO-0.14: remove this and core/test/data/test-projects/project-include-exclude-old-syntax directory
-    it("should respect the modules.include and modules.exclude fields, if specified (old syntax)", async () => {
-      const projectRoot = getDataDir("test-projects", "project-include-exclude-old-syntax")
-      const garden = await makeTestGarden(projectRoot)
-      const modules = await garden.resolveModules({ log: garden.log })
-
-      // Should NOT include "nope" and "module-c"
-      expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
-    })
-
     it("should respect the scan.include and scan.exclude fields, if specified", async () => {
       const projectRoot = getDataDir("test-projects", "project-include-exclude")
       const garden = await makeTestGarden(projectRoot)
@@ -3167,7 +2996,6 @@ describe("Garden", () => {
     it("should respect custom dotignore files", async () => {
       // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
       // Thus, all exclusions from .gardenignore will be skipped.
-      // TODO-0.14: amend the config core/test/data/test-projects/dotignore-custom/garden.yml
       const projectRoot = getDataDir("test-projects", "dotignore-custom")
       const garden = await makeTestGarden(projectRoot)
       const modules = await garden.resolveModules({ log: garden.log })
@@ -3175,31 +3003,6 @@ describe("Garden", () => {
       // Root-level .customignore excludes "module-b",
       // and .customignore from "module-c" retains garden.yml file, so the "module-c" is still active.
       expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
-    })
-
-    // TODO-0.14: Delete this context AND core/test/data/test-projects/dotignore-custom-legacy directory in 0.14
-    context("dotignore files migration to 0.13", async () => {
-      it("should remap singleton array `dotIgnoreFiles` to scalar `dotIgnoreFile`", async () => {
-        // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
-        // Thus, all exclusions from .gardenignore will be skipped.
-        const projectRoot = getDataDir("test-projects", "dotignore-custom-legacy", "with-supported-legacy-config")
-        const garden = await makeTestGarden(projectRoot)
-        const modules = await garden.resolveModules({ log: garden.log })
-
-        // Root-level .customignore excludes "module-b",
-        // and .customignore from "module-c" retains garden.yml file, so the "module-c" is still active.
-        expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
-      })
-
-      it("should throw and error if multi-valued `dotIgnoreFiles` is defined in the config", async () => {
-        // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
-        // Thus, all exclusions from .gardenignore will be skipped.
-        const projectRoot = getDataDir("test-projects", "dotignore-custom-legacy", "with-unsupported-legacy-config")
-        await expectError(() => makeTestGarden(projectRoot), {
-          contains:
-            "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.customignore, .gitignore]",
-        })
-      })
     })
 
     it("should throw a nice error if module paths overlap", async () => {
@@ -3218,23 +3021,6 @@ describe("Garden", () => {
           "you can use the disabled directive to make sure that only one of the modules is enabled",
         ],
       })
-    })
-
-    it("should throw when apiVersion v0 is set in a project with action configs", async () => {
-      const garden = await makeTestGarden(getDataDir("test-projects", "config-action-kind-v0"))
-
-      await expectError(() => garden.scanAndAddConfigs(), {
-        contains: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}" or higher`,
-      })
-    })
-
-    it("should not throw when apiVersion v0 is set in a project without action configs", async () => {
-      const garden = await makeTestGarden(getDataDir("test-projects", "config-valid-v0"))
-      try {
-        await garden.scanAndAddConfigs()
-      } catch (er) {
-        expect.fail("Expected scanAndAddConfigs not to throw")
-      }
     })
 
     describe("missing secrets", () => {
@@ -3653,6 +3439,10 @@ describe("Garden", () => {
             providers: [{ name: "test" }],
           }),
         })
+      })
+
+      afterEach(() => {
+        garden.close()
       })
 
       it("resolves referenced project variables", async () => {
@@ -4485,6 +4275,52 @@ describe("Garden", () => {
       expect(a.isDisabled()).to.be.false
       expect(b.isDisabled()).to.be.true
     })
+
+    describe("disabled actions", () => {
+      context("should not throw if disabled action does not have a configured provider", () => {
+        it("when action is disabled explicitly via `disabled: true` flag", async () => {
+          // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
+          const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
+            environmentString: "no-k8s",
+          })
+
+          // The disabled action with no provider configured should not cause an error
+          const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          // The action 'k8s-deploy-disabled-via-flag' is disabled via disabled:true flag,
+          // and should be unreachable from graph-lookups.
+          const actionName = "k8s-deploy-disabled-via-flag"
+          void expectError(() => graph.getDeploy(actionName), {
+            contains: `Deploy type=kubernetes name=${actionName} is disabled`,
+          })
+
+          // The enabled acton 'say-hi' should be reachable from graph-lookups
+          const sayHiRun = graph.getRun("say-hi")
+          expect(sayHiRun.isDisabled()).to.be.false
+        })
+
+        it("when action is disabled implicitly via environment config", async () => {
+          // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
+          const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
+            environmentString: "no-k8s",
+          })
+
+          // The disabled action with no provider configured should not cause an error
+          const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          // The action 'k8s-deploy-disabled-via-env-config' is disabled via the environment config,
+          // and should be unreachable from graph-lookups.
+          const actionName = "k8s-deploy-disabled-via-env-config"
+          void expectError(() => graph.getDeploy(actionName), {
+            contains: `Deploy type=kubernetes name=${actionName} is disabled`,
+          })
+
+          // The enabled acton 'say-hi' should be reachable from graph-lookups
+          const sayHiRun = graph.getRun("say-hi")
+          expect(sayHiRun.isDisabled()).to.be.false
+        })
+      })
+    })
   })
 
   context("module type has a base", () => {
@@ -5196,6 +5032,10 @@ describe("Garden", () => {
         })
       })
 
+      afterEach(() => {
+        gardenA.close()
+      })
+
       it("should return module version if there are no dependencies", async () => {
         const module = await gardenA.resolveModule("module-a")
         gardenA.vcs = handlerA
@@ -5476,6 +5316,10 @@ describe("Garden", () => {
     beforeEach(async () => {
       garden = await makeTestGardenA()
       key = randomString()
+    })
+
+    afterEach(() => {
+      garden.close()
     })
 
     describe("hideWarning", () => {

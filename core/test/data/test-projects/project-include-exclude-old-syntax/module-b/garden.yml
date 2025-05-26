@@ -1,4 +1,0 @@
-kind: Module
-name: module-b
-type: test
-exclude: ["nope.*"]

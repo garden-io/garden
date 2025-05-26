@@ -15,19 +15,12 @@ redirects:
   examples/using-garden-in-ci: guides/using-garden-in-ci.md
   guides/code-synchronization-dev-mode: guides/code-synchronization.md
   guides/terraform: terraform-plugin/about.md
-  providers/conftest-container: reference/providers/conftest-container.md
-  providers/conftest-kubernetes: reference/providers/conftest-kubernetes.md
-  providers/conftest: reference/providers/conftest.md
-  providers/hadolint: reference/providers/hadolint.md♡
   providers/kubernetes: reference/providers/kubernetes.md
   providers/local-kubernetes: reference/providers/local-kubernetes.md
   providers/maven-container: reference/providers/maven-container.md
   providers/openfaas: reference/providers/openfaas.md
   providers/terraform: reference/providers/terraform.md
-  module-types/conftest: reference/module-types/conftest.md
-  module-types/container: reference/module-types/container.md
   module-types/exec: reference/module-types/exec.md
-  module-types/hadolint: reference/module-types/hadolint.md
   module-types/helm: reference/module-types/helm.md
   module-types/kubernetes: reference/module-types/kubernetes.md
   module-types/maven-container: reference/module-types/maven-container.md
@@ -36,6 +29,14 @@ redirects:
   module-types/terraform: reference/module-types/terraform.md
   reference/module-template-config: reference/config-template-config.md
   using-garden/module-templates: using-garden/config-templates.md
+  # Some redirections for legacy Garden Cloud
+  using-garden/configuration-overview: getting-started/basics.md
+  using-garden/variables-and-templating: features/variables-and-templating
+  using-garden/workflows: features/workflows.md
+  kubernetes-plugins/about: using-garden-with/kubernetes.md
+  v/enterprise/features/cloud-builder#configuration: features/remote-container-builder.md
+  v/enterprise/features/cloud-builder: features/remote-container-builder.md
+  terraform-plugin/about: using-garden-with/terraform.md
 
   # Redirects after docs restructure (https://github.com/garden-io/garden/pull/3467)
   advanced/terraform: terraform-plugin/about.md
@@ -54,6 +55,8 @@ redirects:
 
   # Redirects set after 2023–09–22
   tutorials/migrating-to-bonsai: guides/migrating-to-bonsai.md
+  guides/migrating-to-bonsai: misc/migrating-to-bonsai.md
+  guides/deprecations.md: misc/deprecations.md
   guides/using-garden-in-ci: use-cases/portable-ci-pipelines.md
   overview/use-cases: use-cases/portable-pipelines.md
 

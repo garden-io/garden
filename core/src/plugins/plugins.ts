@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,13 +29,6 @@ export const getSupportedPlugins = () => [
     },
   },
   {
-    name: "hadolint",
-    callback: async () => {
-      const plugin = await import("./hadolint/hadolint.js")
-      return plugin.gardenPlugin.getSpec()
-    },
-  },
-  {
     name: "kubernetes",
     callback: async () => {
       const plugin = await import("./kubernetes/kubernetes.js")
@@ -50,23 +43,9 @@ export const getSupportedPlugins = () => [
     },
   },
   {
-    name: "ephemeral-kubernetes",
-    callback: async () => {
-      const plugin = await import("./kubernetes/ephemeral/ephemeral.js")
-      return plugin.gardenPlugin()
-    },
-  },
-  {
     name: "openshift",
     callback: async () => {
       const plugin = await import("./openshift/openshift.js")
-      return plugin.gardenPlugin()
-    },
-  },
-  {
-    name: "octant",
-    callback: async () => {
-      const plugin = await import("./octant/octant.js")
       return plugin.gardenPlugin()
     },
   },

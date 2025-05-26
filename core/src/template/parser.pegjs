@@ -10,7 +10,6 @@
   const {
     ast,
     escapePrefix,
-    optionalSuffix,
     parseNested,
     TemplateStringError,
   } = options
@@ -202,7 +201,7 @@ TemplateStrings
   }
 
 FormatString
-  = EscapeStart (!FormatEndWithOptional SourceCharacter)* FormatEndWithOptional {
+  = EscapeStart (!FormatEnd SourceCharacter)* FormatEnd {
     const isEscapedValue = true
     return new ast.LiteralExpression(text(), location(), text(), isEscapedValue)
   }
@@ -218,20 +217,15 @@ FormatString
         throw new TemplateStringError({ message: `Unrecognized block operator: ${op}`, loc: location() })
     }
   }
-  / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
+  / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEnd {
       const isEscapedValue = pre[0] === escapePrefix
       if (isEscapedValue) {
         return new ast.LiteralExpression(text(), location(), text(), isEscapedValue)
       }
 
-      const isOptional = end[1] === optionalSuffix
-      const expression = new ast.FormatStringExpression(text(), location(), e, isOptional, text())
+      const expression = new ast.FormatStringExpression(text(), location(), e, text())
 
       if (blockOperator && blockOperator.length > 0) {
-        if (isOptional) {
-          throw new TemplateStringError({ message: "Cannot specify optional suffix in if-block.", loc: location() })
-        }
-
         // consequent, alternate, else and endif expressions will be filled in by `buildConditionalTree`
         return new ast.IfBlockExpression(expression)
       }
@@ -256,13 +250,6 @@ FormatStartWithEscape
 
 FormatEnd
   = __ "}"
-
-OptionalFormatEnd
-  = __ "}?"
-
-FormatEndWithOptional
-  = OptionalFormatEnd
-  / FormatEnd
 
 BlockOperator
   = "else"

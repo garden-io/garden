@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,6 +29,10 @@ describe("exec plugin", () => {
     graph = await garden.getConfigGraph({ emit: false, log })
     actionA = await resolveAction({ action: graph.getRun("task-a"), log, graph, garden })
     actionB = await resolveAction({ action: graph.getRun("task-b"), log, graph, garden })
+  })
+
+  afterEach(() => {
+    garden.close()
   })
 
   it("should run a run", async () => {

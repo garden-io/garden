@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,8 +7,6 @@
  */
 
 import type { ServiceIngress, ServiceProtocol } from "../../../types/service.js"
-import type { KubernetesProvider } from "../config.js"
-import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral.js"
 import type { KubernetesIngress, KubernetesResource } from "../types.js"
 
 /**
@@ -16,7 +14,7 @@ import type { KubernetesIngress, KubernetesResource } from "../types.js"
  *
  * Does a best-effort extraction based on known ingress resource types.
  */
-export function getK8sIngresses(resources: KubernetesResource[], provider?: KubernetesProvider): ServiceIngress[] {
+export function getK8sIngresses(resources: KubernetesResource[]): ServiceIngress[] {
   const output: ServiceIngress[] = []
 
   for (const r of resources.filter(isIngressResource)) {
@@ -42,11 +40,7 @@ export function getK8sIngresses(resources: KubernetesResource[], provider?: Kube
           stringPath = path
         }
 
-        let protocol: ServiceProtocol = tlsHosts.includes(rule.host) ? "https" : "http"
-        // ephemeral-kubernetes ingresses should always be https
-        if (provider && isProviderEphemeralKubernetes(provider)) {
-          protocol = "https"
-        }
+        const protocol: ServiceProtocol = tlsHosts.includes(rule.host) ? "https" : "http"
 
         output.push({
           hostname: rule.host,

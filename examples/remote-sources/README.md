@@ -1,7 +1,7 @@
 # Remote sources example project
 
 This example demonstrates how you can import remote sources into a Garden project.
-Take a look at the [Using Remote Sources](../../docs/advanced/using-remote-sources.md) section of our docs for more details.
+Take a look at the [Using Remote Sources](../../docs/features/remote-sources.md) section of our docs for more details.
 
 ## About
 

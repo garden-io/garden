@@ -1,9 +1,7 @@
 ---
-title: Environments and namespaces
-order: 5
+title: Environments and Namespaces
+order: 30
 ---
-
-# Environments and namespaces
 
 Every Garden project has one or more environments that are defined in the project level Garden configuration. Teams often define environments such as `dev`, `ci`, and `prod`.
 
@@ -38,7 +36,7 @@ Below is an opinionated guide on configuring environments and namespaces and the
 The example configuration for this setup would look as follows:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 defaultEnvironment: dev

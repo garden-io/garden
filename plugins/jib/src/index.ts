@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -74,6 +74,7 @@ const jibBuildSchemaKeys = () => ({
   jdkPath: joi
     .string()
     .optional()
+    .empty(["", null])
     .description(
       dedent`
             The JDK home path. This **always overrides** the JDK defined in \`jdkVersion\`.
@@ -97,7 +98,7 @@ const jibBuildSchemaKeys = () => ({
     .valid("docker", "oci")
     .default("docker")
     .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
-  gradlePath: joi.string().optional().description(dedent`
+  gradlePath: joi.string().optional().empty(["", null]).description(dedent`
         Defines the location of the custom executable Gradle binary.
 
         If not provided, then the Gradle binary available in the working directory will be used.
@@ -106,7 +107,7 @@ const jibBuildSchemaKeys = () => ({
         **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Gradle.
         To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
       `),
-  mavenPath: joi.string().optional().description(dedent`
+  mavenPath: joi.string().optional().empty(["", null]).description(dedent`
         Defines the location of the custom executable Maven binary.
 
         If not provided, then Maven ${mvnVersion} will be downloaded and used.
@@ -119,7 +120,7 @@ const jibBuildSchemaKeys = () => ({
     .items(joi.string())
     .default(["compile"])
     .description("Defines the Maven phases to be executed during the Garden build step."),
-  mavendPath: joi.string().optional().description(dedent`
+  mavendPath: joi.string().optional().empty(["", null]).description(dedent`
         Defines the location of the custom executable Maven Daemon binary.
 
         If not provided, then Maven Daemon ${mvndVersion} will be downloaded and used.

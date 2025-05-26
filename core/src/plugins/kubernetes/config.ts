@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -42,8 +42,6 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultUtilImageRegistryDomain, defaultSystemNamespace } from "./constants.js"
 import type { LocalKubernetesClusterType } from "./local/config.js"
-import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
-import { makeDeprecationMessage } from "../../util/deprecations.js"
 import type { ActionKind } from "../../plugin/action-types.js"
 
 export interface ProviderSecretRef {
@@ -84,7 +82,6 @@ export interface KubernetesResourceSpec {
 
 interface KubernetesResources {
   builder: KubernetesResourceSpec
-  sync: KubernetesResourceSpec
   util: KubernetesResourceSpec
 }
 
@@ -100,19 +97,6 @@ interface KubernetesStorage {
 const containerBuildModes = ["local-docker", "kaniko", "cluster-buildkit"] as const
 export type ContainerBuildMode = (typeof containerBuildModes)[number]
 
-/**
- * TODO(0.14): remove this
- * To be removed in 0.14
- * @deprecated since 0.13
- */
-export type DefaultDeploymentStrategy = "rolling"
-/**
- * TODO(0.14): remove this
- * To be removed in 0.14
- * @deprecated since 0.13
- */
-export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
-
 export interface NamespaceConfig {
   name: string
   annotations?: StringMap
@@ -127,7 +111,7 @@ export interface ClusterBuildkitCacheConfig {
   registry?: ContainerRegistryConfig
 }
 
-export type KubernetesClusterType = LocalKubernetesClusterType | EphemeralKubernetesClusterType
+export type KubernetesClusterType = LocalKubernetesClusterType
 
 export interface KubernetesConfig extends BaseProviderConfig {
   utilImageRegistryDomain: string
@@ -160,12 +144,6 @@ export interface KubernetesConfig extends BaseProviderConfig {
   context: string
   defaultHostname?: string
   deploymentRegistry?: ContainerRegistryConfig
-  /**
-   * TODO(0.14): remove this
-   * Deprecated. Has no effect since 0.13. To be removed in 0.14.
-   * @deprecated since 0.13
-   */
-  deploymentStrategy?: DeploymentStrategy
   sync?: {
     defaults?: SyncDefaults
   }
@@ -202,16 +180,6 @@ export const defaultResources: KubernetesResources = {
       memory: 512,
     },
   },
-  sync: {
-    limits: {
-      cpu: 500,
-      memory: 512,
-    },
-    requests: {
-      cpu: 100,
-      memory: 90,
-    },
-  },
   util: {
     limits: {
       cpu: 256,
@@ -243,25 +211,21 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .integer()
             .default(defaults.limits.cpu)
             .description("CPU limit in millicpu.")
-            .example(defaults.limits.cpu)
-            .meta({ deprecated }),
+            .example(defaults.limits.cpu),
           memory: joi
             .number()
             .integer()
             .default(defaults.limits.memory)
             .description("Memory limit in megabytes.")
-            .example(defaults.limits.memory)
-            .meta({ deprecated }),
+            .example(defaults.limits.memory),
           ephemeralStorage: joi
             .number()
             .integer()
             .optional()
             .description("Ephemeral storage limit in megabytes.")
-            .example(8192)
-            .meta({ deprecated }),
+            .example(8192),
         })
-        .default(defaults.limits)
-        .meta({ deprecated }),
+        .default(defaults.limits),
       requests: joi
         .object()
         .keys({
@@ -270,22 +234,19 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .integer()
             .default(defaults.requests.cpu)
             .description("CPU request in millicpu.")
-            .example(defaults.requests.cpu)
-            .meta({ deprecated }),
+            .example(defaults.requests.cpu),
           memory: joi
             .number()
             .integer()
             .default(defaults.requests.memory)
             .description("Memory request in megabytes.")
-            .example(defaults.requests.memory)
-            .meta({ deprecated }),
+            .example(defaults.requests.memory),
           ephemeralStorage: joi
             .number()
             .integer()
             .optional()
             .description("Ephemeral storage request in megabytes.")
-            .example(8192)
-            .meta({ deprecated }),
+            .example(8192),
         })
         .default(defaults.requests)
         .meta({ deprecated }),
@@ -616,18 +577,6 @@ export const kubernetesConfigBase = () =>
         .string()
         .description("A default hostname to use when no hostname is explicitly configured for a service.")
         .example("api.mydomain.com"),
-      deploymentStrategy: joi
-        .string()
-        .allow("rolling", "blue-green")
-        .description(
-          dedent`
-          Sets the deployment strategy for \`container\` deploy actions.
-        `
-        )
-        .meta({
-          experimental: true,
-          deprecated: makeDeprecationMessage({ deprecation: "containerDeploymentStrategy" }),
-        }),
       sync: joi
         .object()
         .keys({
@@ -1028,17 +977,10 @@ export const resourcesSchema = () =>
 
             This pod is created in each garden namespace.
           `),
-      sync: resourceSchema(defaultResources.sync, true)
-        .description(
-          dedent`
-            Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
-            ahead of building images. This generally is not resource intensive, but you might want to adjust the
-            defaults if you have many concurrent users.
-          `
-        )
-        .meta({
-          deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
-        }),
+      // TODO(0.15): remove this
+      // This config has no effect.
+      // It was used only by `cluster-docker` build mode which was removed in 0.13.
+      sync: joi.any().meta({ internal: true }),
     })
     .default(defaultResources).description(deline`
         Resource requests and limits for the in-cluster builder..

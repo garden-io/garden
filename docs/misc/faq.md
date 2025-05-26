@@ -11,19 +11,26 @@ title: FAQ
 
 You will have to use the top-level [`include`](../reference/action-types/Build/container.md#include) directive to specify which files belong to each Build. You will also have to provide the path to the Dockerfile with the [`spec.dockerfile`](../reference/action-types/Build/container.md#specdockerfile) directive.
 
-See the [configuration overview documentation](../using-garden/configuration-overview.md) for more.
-
 ### Should I `.gitignore` the `.garden` dir?
 
 Yes.
 
 ### How do I disable actions based on environments?
 
-You can use the `disabled` field to disable actions. See [this section of the actions documentation](../using-garden/actions.md#disabling-actions).
+You can explicitly set in which environments the action should be used like so:
+
+```yaml
+kind: Build
+type: container
+name: my-build
+environments: [dev, ci]
+```
+
+You can also use the `disabled` field to disable actions.
 
 ### When should I use the action-level `include`/`exclude` fields? How are they different from the project-level `scan.include`/`scan.exclude` fields? What about ignore files?
 
-Read all about it in [this section](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) of our docs.
+Read all about it in [this section](../guides/include-exclude.md) of our docs.
 
 ### How do I share a single service (like a database) across multiple namespaces?
 
@@ -41,7 +48,7 @@ See this [GitHub issue](https://github.com/garden-io/garden/issues/1954) for mor
 
 ### What do all those `v-<something>` versions mean, and why are they different between building and deploying?
 
-These are the _Garden versions_ that are computed for each action in the Stack Graph at runtime, based on source files and configuration for each action. See [here](../overview/core-concepts.md#versions) for more information about how these work and how they're used.
+These are the _Garden versions_ that are computed for each action in the Stack Graph at runtime, based on source files and configuration for each action. See [here](../reference/glossary.md#versions) for more information about how these work and how they're used.
 
 You may notice that a version of a Build action is different from the version the Deploy for that Build. This is because the Deploy's version also factors in the runtime configuration for that deploy, which often differs between environments, but we don't want those changes to require a rebuild.
 
@@ -101,7 +108,7 @@ kind: Deploy
 name: api
 type: kubernetes
 spec:
-  files: [./manifests/*] # <--- The Deploy action source path is still the ./api directory and specify the manifests with relative to it
+  manifestFiles: [./manifests/*] # <--- The Deploy action source path is still the ./api directory and specify the manifests with relative to it
 ```
 
 Alternatively you can hoist the `garden.yml` for the `api` to the root of the project and e.g. call it `api.garden.yml`. In that case your config will look like this:
@@ -119,7 +126,7 @@ kind: Deploy
 name: api
 type: kubernetes
 spec:
-  files: [./api/manifests/*] # <--- The action config is at the root so we need to include the `./api` dir here
+  manifestFiles: [./api/manifests/*] # <--- The action config is at the root so we need to include the `./api` dir here
 ```
 
 If you need the Dockerfile outside of the Build root because you want to share it with other Build actions, you could also consider having a single base image instead and then let each action have its own Dockerfile that's built on the base image. See the [base image example project](../../examples/base-image/README.md) for an example of this.
@@ -155,14 +162,6 @@ garden plugins kubernetes uninstall-garden-services --env <env-name>
 
 It removes all cluster-wide Garden services.
 
-### How do I pull a base image (using the FROM directive) from a private registry in in-cluster build mode?
-
-See [this section](../k8s-plugins/guides/in-cluster-building.md#pulling-base-images-from-private-registries) of our docs.
-
-### How do I use my own private registry in in-cluster build mode?
-
-See [this section](../k8s-plugins/guides/in-cluster-building.md#configuring-a-deployment-registry) of our docs.
-
 ## Tests and Runs
 
 ### Can I run a Run on only the first time a service starts but not on subsequent restarts/rebuilds?
@@ -187,36 +186,15 @@ garden run <run-name>
 
 This will run the Run even if the result is cached.
 
-### How do I clear cached Run results?
-
-Garden stores the Run results as a ConfigMap in your namespace. You can delete them manually with this command:
-
-```console
-kubectl delete -n <your-namespace> $(kubectl get configmap -n <your-namespace> -o name | grep run-result)
-```
-
-You can also run it manually with:
-
-```console
-garden run <run-name>
-```
-
-This will run the Run even if the result is cached.
-
 ## Secrets
-
-### How do I pass secrets to container actions?
-
-See [this section](../k8s-plugins/actions/deploy/container.md#secrets) of our docs.
 
 ### How do I mount secrets as volumes?
 
-You'll need to use the [`kubernetes`](../k8s-plugins/actions/deploy/kubernetes.md) or [`helm`](../k8s-plugins/actions/deploy/helm.md) action types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
+You'll need to use the [`kubernetes`](../garden-for/kubernetes/deploy-k8s-resource.md) or [`helm`](../garden-for/kubernetes/install-helm-chart.md) action types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
 
 ### Can I use Kubernetes secrets as `buildArgs` for docker Builds?
 
 No, Kubernetes secrets can only be used at runtime, by referencing them in the `spec.env` field of Run, Deploy and Test Actions.
-See [the secrets section](../k8s-plugins/actions/deploy/container.md#secrets) of our docs for more.
 
 Also note that secrets as `buildArgs` are considered a bad practice and a security risk.
 
@@ -226,15 +204,9 @@ No, secrets have to be in the same namespace as the project. This is how Kuberne
 
 ## Volumes and Data
 
-### How do I mount persistent volumes?
-
-See [this section](../k8s-plugins/actions/deploy/container.md#mounting-volumes) of our docs.
-
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
-You can generate the files via a Run, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](../using-garden/tests.md#test-artifacts) of this.
-
-You can also use the [`persistentvolumeclaim`](../reference/action-types/Deploy/persistentvolumeclaim.md) action type to store data and share it across actions. See [this section](../k8s-plugins/actions/deploy/persistentvolumeclaim.md) of our docs for more.
+You can generate the files via a Run, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](../garden-for/kubernetes/run-tests-and-tasks.md#test-artifacts) of this.
 
 ## Kubernetes
 
@@ -246,10 +218,6 @@ You can set annotations on ingresses under the [`spec.ingresses[]` field](../ref
 
 Garden interfaces with your cluster via `kubectl` and by using the Kubernetes APIs directly and should therefore work with all Kubernetes clusters that implement these. Garden is committed to supporting the latest six stable versions of Kubernetes.
 
-### Can I add Kubernetes-specific fields to `container` actions (e.g. annotations and labels)?
-
-No, you have to use the [`kubernetes`](../k8s-plugins/actions/deploy/kubernetes.md) action type for that.
-
 ### How do I avoid being rate limited by Docker Hub?
 
 Garden uses a handful of utility images that are hosted on [Docker Hub](https://hub.docker.com) under the `gardendev` repository and under heavy usage, users can get rate limited when deploying them.
@@ -260,7 +228,7 @@ In the meantime, you have the following options:
 
 **Option 1 — Crate a Docker Hub image pull secret:**
 
-First follow the steps in [this guide](../k8s-plugins/remote-k8s/configure-registry/docker-hub.md) to create an image pull secret for
+First follow the steps in [this guide](../tutorials/remote-k8s/configure-registry/docker-hub.md) to create an image pull secret for
 Docker Hub.
 
 Then add the name and namespace of the secret you created to the `imagePullSecrets` field of the Kubernetes provider:
@@ -276,7 +244,7 @@ providers:
         namespace: <the-secret-namespace>
 ```
 
-This also works for the `local-kubernetes` and `ephemeral-kubernetes` providers.
+This also works for the `local-kubernetes` provider.
 
 **Option 2 — Use a registry mirror:**
 
@@ -291,18 +259,13 @@ providers:
     utilImageRegistryDomain: https://<my-private-registry-domain>
 ```
 
-This also works for the `local-kubernetes` and `ephemeral-kubernetes` providers.
+This also works for the `local-kubernetes` provider.
 
 ## Local scripts
 
 ### How do I execute long running local scripts?
 
-By setting `persistent: true` on `exec` Deploy actions. [See
-here](../other-plugins/exec.md#deploy) for more.
-
-### Can I _receive_ traffic to local service Telepresence style?
-
-Yes, by using the `localMode`  field on the relevant Deploy action. [See here](https://docs.garden.io/v/docs-edge-2/guides/running-service-in-local-mode) for details.
+By setting `persistent: true` on `exec` Deploy actions. [See here](../garden-for/local-scripts.md) for more.
 
 ## Misc
 
@@ -314,7 +277,7 @@ You can install the edge release of Garden 0.14 (Cedar) by using the Garden `sel
 garden self-update edge-cedar
 ```
 
-You can learn more about [updating Garden here](../getting-started/installation.md#updating-garden).
+You can learn more about [updating Garden here](../guides/installation.md#updating-garden).
 
 ### When are you releasing the Plugin SDK?
 
@@ -326,7 +289,7 @@ The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider for 
 
 ### Does garden support bi-directional syncing?
 
-Yes! `two-way` sync mode can be configured with Garden sync mode. See [this guide](../guides/code-synchronization.md)
+Yes! `two-way` sync mode can be configured with Garden sync mode. See [this guide](../features/code-synchronization.md)
 
 ### Is Garden stable or should I wait for 1.0?
 

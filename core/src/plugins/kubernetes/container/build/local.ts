@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -91,7 +91,7 @@ export const localBuild: BuildHandler = async (params) => {
       : // container provider will add --load when using Container Builder automatically, if --push is not present.
         provider.dependencies.container
 
-  // TODO: How can we pass additional information like Garden Container Builder availability to the base handler?
+  // TODO: How can we pass additional information like Remote Container Builder availability to the base handler?
   // In this particular case the problem is neglegible because we are using an LRU cache and the base handler is will
   // call cloudBuilder.getAvailability very soon; But that is not a beautiful solution.
   const buildResult = await base({ ...params, ctx: { ...ctx, provider: containerProvider } })

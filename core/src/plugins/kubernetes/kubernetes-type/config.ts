@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,6 @@ import type {
   KubernetesPodTestAction,
   KubernetesPodTestActionConfig,
 } from "./kubernetes-pod.js"
-import type { KubernetesLocalModeSpec } from "../local-mode.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
 import type { ContainerRunOutputs } from "../../container/config.js"
 import { containerRunOutputSchema } from "../../container/config.js"
@@ -34,14 +33,9 @@ import type {
 } from "./kubernetes-exec.js"
 import { dedent } from "../../../util/string.js"
 import type { ApplyParams } from "../kubectl.js"
-import { getProjectApiVersion } from "../../../project-api-version.js"
-import { GardenApiVersion } from "../../../constants.js"
-import type { Log } from "../../../logger/log-entry.js"
-import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import omit from "lodash-es/omit.js"
 
 export interface KubernetesTypeCommonDeploySpec {
-  // TODO(0.14): remove this field
-  files: string[]
   kustomize?: KubernetesKustomizeSpec
   patchResources?: KubernetesPatchResource[]
   manifests: KubernetesResource[]
@@ -53,32 +47,9 @@ export interface KubernetesTypeCommonDeploySpec {
 export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
-  localMode?: KubernetesLocalModeSpec
-  // TODO(0.14) make this non-optional with schema-level default values
-  waitForJobs?: boolean
+  waitForJobs: boolean
   manifestFiles: string[]
   manifestTemplates: string[]
-  /**
-   * TODO(0.14): remove this field
-   * Overridden to deprecate it only for actions, not for modules.
-   * @deprecated in action configs, use {@link #manifestTemplates} instead.
-   */
-  files: string[]
-}
-
-export function getDefaultWaitForJobs() {
-  const projectApiVersion = getProjectApiVersion()
-  const defaultValue = projectApiVersion === GardenApiVersion.v2
-  return { projectApiVersion, defaultValue }
-}
-
-export function getWaitForJobs({ waitForJobs, log }: { waitForJobs: boolean | undefined; log: Log }): boolean {
-  const { projectApiVersion, defaultValue } = getDefaultWaitForJobs()
-  if (waitForJobs === undefined) {
-    reportDeprecatedFeatureUsage({ apiVersion: projectApiVersion, log, deprecation: "waitForJobs" })
-  }
-
-  return waitForJobs ?? defaultValue
 }
 
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>
@@ -107,7 +78,7 @@ const kubernetesPatchResourceSchema = () =>
     strategy: joi
       .string()
       .allow("json", "merge", "strategic")
-      .required()
+      .optional()
       .description(
         dedent`
         The patch strategy to use. One of 'json', 'merge', or 'strategic'. Defaults to 'strategic'.
@@ -116,8 +87,7 @@ const kubernetesPatchResourceSchema = () =>
         https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
         `
       )
-      .default("strategic")
-      .optional(),
+      .default("strategic"),
     patch: joi.object().required().description("The patch to apply.").unknown(true),
   })
 
@@ -156,22 +126,24 @@ export const kubernetesApplyArgsSchema = () =>
 
 type KubernetesCommonDeployKeyDeprecations = { deprecateFiles: boolean }
 
-export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => ({
-  files: kubernetesManifestTemplatesSchema().meta({ deprecated: deprecations.deprecateFiles }),
-  kustomize: kustomizeSpecSchema(),
-  manifests: kubernetesManifestsSchema(),
-  patchResources: kubernetesPatchResourcesSchema(),
-  namespace: namespaceNameSchema(),
-  portForwards: portForwardsSchema(),
-  timeout: k8sDeploymentTimeoutSchema(),
-  applyArgs: kubernetesApplyArgsSchema(),
-  // TODO-0.14: flip this to true and change default behavior to wait for the jobs
-  waitForJobs: joi
-    .boolean()
-    .optional()
-    // .default(false)
-    .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
-})
+export const kubernetesCommonDeploySpecKeys = (deprecations: KubernetesCommonDeployKeyDeprecations) => {
+  const keys = {
+    files: kubernetesManifestTemplatesSchema(),
+    kustomize: kustomizeSpecSchema(),
+    manifests: kubernetesManifestsSchema(),
+    patchResources: kubernetesPatchResourcesSchema(),
+    namespace: namespaceNameSchema(),
+    portForwards: portForwardsSchema(),
+    timeout: k8sDeploymentTimeoutSchema(),
+    applyArgs: kubernetesApplyArgsSchema(),
+    waitForJobs: joi
+      .boolean()
+      .optional()
+      .default(true)
+      .description("Wait until the jobs have been completed. Garden will wait for as long as `timeout`."),
+  }
+  return deprecations.deprecateFiles ? omit(keys, "files") : keys
+}
 
 export const kubernetesDeploySchema = () =>
   joi

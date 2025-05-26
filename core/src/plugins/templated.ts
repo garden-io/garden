@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@ import { dedent, naturalList } from "../util/string.js"
 import { omit } from "lodash-es"
 import { templatedModuleSpecSchema } from "../config/render-template.js"
 
-// TODO: remove in 0.14, replaced with Render kind
+// TODO: remove in 0.15, replaced with Render kind
 
 export interface TemplatedModuleSpec extends ModuleSpec {
   template: string
@@ -39,7 +39,7 @@ export const gardenPlugin = () => {
         docs: dedent`
           **[DEPRECATED] Please use the new \`${renderTemplateKind}\` config kind instead.**
 
-          A special module type, for rendering [module templates](../../using-garden/config-templates.md). See the [Config Templates guide](../../using-garden/config-templates.md) for more information.
+          A special module type, for rendering [module templates](../../features/config-templates.md). See the [Config Templates guide](../../features/config-templates.md) for more information.
 
           Specify the name of a ${configTemplateKind} with the \`template\` field, and provide any expected inputs using the \`inputs\` field. The generated modules becomes sub-modules of this module.
 

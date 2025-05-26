@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,6 +28,7 @@ import { execRunSpecSchema, execRuntimeOutputsSchema } from "../../src/plugins/e
 import { sdk } from "../../src/plugin/sdk.js"
 import { testNow } from "./constants.js"
 import { execBuildHandler, execBuildSpecSchema } from "../../src/plugins/exec/build.js"
+import type { ActionModes } from "../../src/actions/types.js"
 
 const s = sdk.schema
 
@@ -208,7 +209,7 @@ const testPluginDeploy = testPluginProvider.createActionType({
 })
 
 testPluginDeploy.addHandler("configure", async ({ config }) => {
-  return { config, supportedModes: { sync: !!config.spec.persistent, local: true } }
+  return { config, supportedModes: { sync: !!config.spec["sync"] } satisfies ActionModes }
 })
 testPluginDeploy.addHandler("deploy", async ({}) => {
   return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }

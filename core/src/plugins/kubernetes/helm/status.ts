@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,8 +15,8 @@ import type { KubernetesPluginContext } from "../config.js"
 import { getForwardablePorts } from "../port-forward.js"
 import type { KubernetesResource, KubernetesServerResource } from "../types.js"
 import { getActionNamespace } from "../namespace.js"
-import { getTargetResource, isWorkload } from "../util.js"
-import { getDeployedResource, isConfiguredForLocalMode } from "../status/status.js"
+import { isWorkload } from "../util.js"
+import { getDeployedResource } from "../status/status.js"
 import { KubeApi, KubernetesError } from "../api.js"
 import { getK8sIngresses } from "../status/ingress.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
@@ -46,7 +46,6 @@ interface HelmStatusDetail {
 export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAction> = async (params) => {
   const { ctx, action, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const provider = k8sCtx.provider
 
   const releaseName = getReleaseName(action)
 
@@ -73,30 +72,11 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   if (state !== "missing") {
     const deployedResources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
 
-    forwardablePorts = getForwardablePorts({ resources: deployedResources, parentAction: action, mode: deployedMode })
-    ingresses = getK8sIngresses(deployedResources, provider)
+    forwardablePorts = getForwardablePorts({ resources: deployedResources, parentAction: action })
+    ingresses = getK8sIngresses(deployedResources)
 
     if (state === "ready") {
-      // Local mode always takes precedence over sync mode
-      if (mode === "local" && spec.localMode) {
-        const query = spec.localMode.target || spec.defaultTarget
-
-        // If no target is set, a warning is emitted during deployment
-        if (query) {
-          const target = await getTargetResource({
-            ctx: k8sCtx,
-            log,
-            provider: k8sCtx.provider,
-            action,
-            manifests: deployedResources,
-            query,
-          })
-
-          if (!isConfiguredForLocalMode(target)) {
-            state = "outdated"
-          }
-        }
-      } else if (mode === "sync" && spec.sync?.paths && deployedMode !== mode) {
+      if (mode === "sync" && spec.sync?.paths && deployedMode !== mode) {
         // TODO: might want to check every target resource here
         state = "outdated"
       }
@@ -230,10 +210,7 @@ export async function getReleaseStatus({
     }
   }
 
-  // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
-  // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to check for
-  // the annotations Garden Cloud adds to Helm Deployments and StatefulSets when pausing an environment.
-  if (ctx.cloudApi && (await isPaused({ ctx, namespace, action, releaseName, log }))) {
+  if (await isPausedByAEC({ ctx, namespace, action, releaseName, log })) {
     state = "outdated"
   }
 
@@ -246,7 +223,7 @@ export async function getReleaseStatus({
 /**
  *  Returns Helm workload resources that have been marked as "paused" by Garden Cloud's AEC functionality
  */
-export async function getPausedResources({
+export async function getResourcesPausedByAEC({
   ctx,
   action,
   namespace,
@@ -287,7 +264,7 @@ export async function getPausedResources({
   return pausedWorkloads
 }
 
-async function isPaused({
+async function isPausedByAEC({
   ctx,
   action,
   namespace,
@@ -300,7 +277,7 @@ async function isPaused({
   releaseName: string
   log: Log
 }) {
-  return (await getPausedResources({ ctx, action, namespace, releaseName, log })).length > 0
+  return (await getResourcesPausedByAEC({ ctx, action, namespace, releaseName, log })).length > 0
 }
 
 export async function getHelmGardenMetadataConfigMapData({

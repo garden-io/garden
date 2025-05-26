@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,6 +14,7 @@ import type { GetRunResult } from "../plugin/handlers/Run/get-result.js"
 import { resolvedActionToExecuted } from "../actions/helpers.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { GardenError } from "../exceptions.js"
+import { makeGetStatusLog } from "./helpers.js"
 
 /**
  * Only throw this error when the run itself failed, and not when Garden failed to execute the run.
@@ -50,13 +51,14 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   async getStatus({ dependencyResults }: ActionTaskStatusParams<RunAction>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
+    const log = makeGetStatusLog(this.log, this.force)
 
     // The default handler (for plugins that don't implement getTaskResult) returns undefined.
     try {
       const { result: status } = await router.run.getResult({
         graph: this.graph,
         action,
-        log: this.log,
+        log,
       })
 
       if (status.detail === null) {

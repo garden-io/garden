@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -141,59 +141,46 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
       log.info("")
     }
-    const projectDocUrl = `${DOCS_BASE_URL}/using-garden/projects`
+    const projectDocUrl = `${DOCS_BASE_URL}/getting-started/basics.md`
     const projectReferenceUrl = `${DOCS_BASE_URL}/reference/project-config`
     const providersReferenceUrl = `${DOCS_BASE_URL}/reference/providers`
     const remoteK8sReferenceUrl = `${DOCS_BASE_URL}/kubernetes-plugins/remote-k8s`
-    const actionsGettingStartedUrl = `${DOCS_BASE_URL}/using-garden/actions`
     const localKubernetesInstallationUrl = `${DOCS_BASE_URL}/kubernetes-plugins/local-k8s/install`
-    const ephemeralKubernetesUrl = `${DOCS_BASE_URL}/kubernetes-plugins/ephemeral-k8s`
-    const variablesAndTemplateStringsUrl = `${DOCS_BASE_URL}/using-garden/variables-and-templating`
     const firstProjectTutorialUrl = `${DOCS_BASE_URL}/tutorials/your-first-project`
 
     const yaml = dedent`
-    # Documentation about Garden projects can be found at ${projectDocUrl}
+    # Learn more about projects at ${projectDocUrl}
     # Reference for Garden projects can be found at ${projectReferenceUrl}
 
-    apiVersion: ${GardenApiVersion.v1}
+    apiVersion: ${GardenApiVersion.v2}
     kind: Project
     name: ${name}
 
-    defaultEnvironment: ephemeral
-
-    variables:
-      # use garden template strings to create a unique namespace for each user.
-      # you can learn more about template strings here: ${variablesAndTemplateStringsUrl}
-      userNamespace: ${name}-${"${kebabCase(local.username)}"}
+    defaultEnvironment: local
 
     # Environments typically represent different stages of your development and deployment process.
     environments:
-      # Use this environment to build, develop, and test in a temporary, remote Kubernetes cluster that's managed by Garden.
-      # Learn more about Garden managed ephemeral clusters here: ${ephemeralKubernetesUrl}
-      - name: ephemeral
-        defaultNamespace: ${"${var.userNamespace}"}
-
       # Use this environment to build, develop, and test in your local Kubernetes solution of choice.
       # Installation instructions and list of supported local Kubernetes environments: ${localKubernetesInstallationUrl}
       - name: local
-        defaultNamespace: ${"${var.userNamespace}"}
-        # Set the hostname as a variable so it can be referenced by actions
-        variables:
-          hostname: local.app.garden
+        defaultNamespace: ${name}
 
       # Use this environment to build, develop, and test in remote, production-like environments that scale with your stack.
-      # It enables sharing build and test caches with your entire team, which can significantly speed up pipelines and development.
       - name: remote-dev
-        defaultNamespace: ${"${var.userNamespace}"}
-        # Set the hostname as a variable so it can be referenced by actions
-        variables:
-          hostname: <add-cluster-hostname-here>
+        # Ensure each user has their own isolated namespace
+        defaultNamespace: ${name}-${"${kebabCase(local.username)}"}
 
-      # Similar to the remote-dev environment but meant for staging environments. Use this to e.g. deploy preview
-      # environments during code review.
-      - name: staging
-        # Ask before performing potentially destructive commands like "deploy".
-        production: true
+      # Similar to the remote-dev environment but meant for ephemeral test environments. Use this to run tests
+      # in an isolated environment for every PR and every push to the PR.
+      # The namespace is isolated based on the branch name and commit hash.
+      - name: ci
+        # Isolate namespaces by git branch namespace in the staging environment
+        defaultNamespace: ${name}-${"${git.branch}"}-${"${git.commitHash}"}
+
+      # Similar to the ci environment but meant for preview/QA environments. Use this to create a preview
+      # environment for every PR that is updated on every push to the PR.
+      # The namespace is isolated based on the branch.
+      - name: preview
         # Isolate namespaces by git branch namespace in the staging environment
         defaultNamespace: ${name}-${"${git.branch}"}
 
@@ -201,22 +188,17 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     # For example the kubernetes and local-kubernetes providers allow you to use the container, helm and kubernetes action types.
     # All available providers and their configuration options are listed in the reference docs: ${providersReferenceUrl}
     providers:
-      - name: ephemeral-kubernetes
-        environments: [ephemeral]
       - name: local-kubernetes
         environments: [local]
 
       # To configure the remote kubernetes providers, follow the steps at ${remoteK8sReferenceUrl}
+      # You should have a kubernetes provider for each cluster you use.
       - name: kubernetes
-        environments: [remote-dev]
+        environments: [remote-dev, ci, preview]
         # context: ...
-      - name: kubernetes
-        environments: [staging]
-        # context:
 
     # Next step: Define actions to tell Garden how to build, test and deploy your code.
     # You can learn more by going through our 'First Project' tutorial at: ${firstProjectTutorialUrl}
-    # Or dive right in the action guide: ${actionsGettingStartedUrl}
     `
 
     await addConfig(configPath, yaml)

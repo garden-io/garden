@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,10 +32,10 @@ export const testArgs = {
 }
 
 export const testOpts = {
-  // TODO-0.14: remove in 0.14?
+  // TODO-0.15: remove it?
   "name": new StringsParameter({
     help: deline`
-      DEPRECATED: This option will be removed in 0.14. Please use a positional argument "<module name>-<test name>" or "*-<test name>" instead of of "--name".
+      DEPRECATED: This option will be removed in 0.15. Please use a positional argument "<module name>-<test name>" or "*-<test name>" instead of "--name".
 
       This option can be used to run all tests with the specified name (e.g. unit or integ) in declared in any module.
 

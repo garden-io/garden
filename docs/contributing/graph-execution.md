@@ -1,5 +1,5 @@
 ---
-title: Graph execution
+title: Graph Execution
 order: 7
 ---
 

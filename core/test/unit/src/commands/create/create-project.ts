@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -61,37 +61,23 @@ describe("CreateProjectCommand", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name,
-        defaultEnvironment: "ephemeral",
+        defaultEnvironment: "local",
         environments: [
-          { name: "ephemeral", defaultNamespace: "${var.userNamespace}" },
-          {
-            name: "local",
-            defaultNamespace: "${var.userNamespace}",
-            variables: {
-              hostname: "local.app.garden",
-            },
-          },
+          { name: "local", defaultNamespace: `${name}` },
           {
             name: "remote-dev",
-            defaultNamespace: "${var.userNamespace}",
-            variables: {
-              hostname: "<add-cluster-hostname-here>",
-            },
+            defaultNamespace: `${name}-${"${kebabCase(local.username)}"}`,
           },
-          { name: "staging", production: true, defaultNamespace: `${name}-${"${git.branch}"}` },
+          { name: "ci", defaultNamespace: `${name}-${"${git.branch}"}-${"${git.commitHash}"}` },
+          { name: "preview", defaultNamespace: `${name}-${"${git.branch}"}` },
         ],
         providers: [
-          { name: "ephemeral-kubernetes", environments: ["ephemeral"] },
           { name: "local-kubernetes", environments: ["local"] },
-          { name: "kubernetes", environments: ["remote-dev"] },
-          { name: "kubernetes", environments: ["staging"] },
+          { name: "kubernetes", environments: ["remote-dev", "ci", "preview"] },
         ],
-        variables: {
-          userNamespace: `${name}-${"${kebabCase(local.username)}"}`,
-        },
       },
     ])
   })
@@ -158,37 +144,23 @@ describe("CreateProjectCommand", () => {
     const parsed = loadAll((await readFile(configPath)).toString())
     expect(parsed).to.eql([
       {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
-        name: "foo",
-        defaultEnvironment: "ephemeral",
+        name,
+        defaultEnvironment: "local",
         environments: [
-          { name: "ephemeral", defaultNamespace: "${var.userNamespace}" },
-          {
-            name: "local",
-            defaultNamespace: "${var.userNamespace}",
-            variables: {
-              hostname: "local.app.garden",
-            },
-          },
+          { name: "local", defaultNamespace: `foo` },
           {
             name: "remote-dev",
-            defaultNamespace: "${var.userNamespace}",
-            variables: {
-              hostname: "<add-cluster-hostname-here>",
-            },
+            defaultNamespace: `foo-${"${kebabCase(local.username)}"}`,
           },
-          { name: "staging", production: true, defaultNamespace: `foo-${"${git.branch}"}` },
+          { name: "ci", defaultNamespace: `foo-${"${git.branch}"}-${"${git.commitHash}"}` },
+          { name: "preview", defaultNamespace: `foo-${"${git.branch}"}` },
         ],
         providers: [
-          { name: "ephemeral-kubernetes", environments: ["ephemeral"] },
           { name: "local-kubernetes", environments: ["local"] },
-          { name: "kubernetes", environments: ["remote-dev"] },
-          { name: "kubernetes", environments: ["staging"] },
+          { name: "kubernetes", environments: ["remote-dev", "ci", "preview"] },
         ],
-        variables: {
-          userNamespace: `foo-${"${kebabCase(local.username)}"}`,
-        },
       },
     ])
   })
@@ -218,37 +190,23 @@ describe("CreateProjectCommand", () => {
     expect(parsed).to.eql([
       existing,
       {
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name,
-        defaultEnvironment: "ephemeral",
+        defaultEnvironment: "local",
         environments: [
-          { name: "ephemeral", defaultNamespace: "${var.userNamespace}" },
-          {
-            name: "local",
-            defaultNamespace: "${var.userNamespace}",
-            variables: {
-              hostname: "local.app.garden",
-            },
-          },
+          { name: "local", defaultNamespace: `${name}` },
           {
             name: "remote-dev",
-            defaultNamespace: "${var.userNamespace}",
-            variables: {
-              hostname: "<add-cluster-hostname-here>",
-            },
+            defaultNamespace: `${name}-${"${kebabCase(local.username)}"}`,
           },
-          { name: "staging", production: true, defaultNamespace: `${name}-${"${git.branch}"}` },
+          { name: "ci", defaultNamespace: `${name}-${"${git.branch}"}-${"${git.commitHash}"}` },
+          { name: "preview", defaultNamespace: `${name}-${"${git.branch}"}` },
         ],
         providers: [
-          { name: "ephemeral-kubernetes", environments: ["ephemeral"] },
           { name: "local-kubernetes", environments: ["local"] },
-          { name: "kubernetes", environments: ["remote-dev"] },
-          { name: "kubernetes", environments: ["staging"] },
+          { name: "kubernetes", environments: ["remote-dev", "ci", "preview"] },
         ],
-        variables: {
-          userNamespace: `${name}-${"${kebabCase(local.username)}"}`,
-        },
       },
     ])
   })
@@ -273,7 +231,7 @@ describe("CreateProjectCommand", () => {
 
   it("should throw if a project is already in the directory", async () => {
     const existing = {
-      apiVersion: GardenApiVersion.v1,
+      apiVersion: GardenApiVersion.v2,
       kind: "Project",
       name: "foo",
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -46,7 +46,6 @@ import fsExtra from "fs-extra"
 
 const { pathExists } = fsExtra
 import { helmChartYamlFilename } from "./common.js"
-import type { KubernetesLocalModeSpec } from "../local-mode.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
 
 export const defaultHelmTimeout = 300
@@ -65,7 +64,6 @@ export interface HelmServiceSpec {
   chartPath: string
   dependencies: string[]
   sync?: KubernetesModuleDevModeSpec
-  localMode?: KubernetesLocalModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string
@@ -195,6 +193,7 @@ export const helmModuleSpecSchema = () =>
       tests: joiSparseArray(helmTestSchema()).description("The test suite definitions for this module."),
       version: helmChartVersionSchema(),
     })
+    // Module configs are deprecated, so we keep syntax translation in module configs
     .rename("devMode", "sync")
 
 export async function configureHelmModule({

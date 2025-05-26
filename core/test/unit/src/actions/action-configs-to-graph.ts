@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -354,7 +354,7 @@ describe("actionConfigsToGraph", () => {
     ])
   })
 
-  it("flags implicit dependency as needing execution if a non-static output is referenced", async () => {
+  it("flags implicit dependency as needing execution and explicit if a non-static output is referenced", async () => {
     const graph = await actionConfigsToGraph({
       garden,
       log,
@@ -396,64 +396,12 @@ describe("actionConfigsToGraph", () => {
 
     expect(deps).to.eql([
       {
-        explicit: false,
+        explicit: true,
         kind: "Build",
         type: "test",
         name: "foo",
         needsExecutedOutputs: true,
         needsStaticOutputs: false,
-      },
-    ])
-  })
-
-  it("does not mark an implicit dependency needing execution if a static output of dependency is referenced", async () => {
-    const graph = await actionConfigsToGraph({
-      garden,
-      log,
-      groupConfigs: [],
-      configs: parseTemplateCollection({
-        value: [
-          {
-            kind: "Build",
-            type: "container",
-            name: "foo",
-            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-            internal: {
-              basePath: tmpDir.path,
-            },
-            spec: {},
-          },
-          {
-            kind: "Deploy",
-            type: "test",
-            name: "bar",
-            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-            internal: {
-              basePath: tmpDir.path,
-            },
-            spec: {
-              command: ["echo", "${actions.build.foo.outputs.deploymentImageName}"],
-            },
-          },
-        ] as const,
-        source: { path: [] },
-      }),
-      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
-      actionModes: {},
-      linkedSources: {},
-    })
-
-    const action = graph.getDeploy("bar")
-    const deps = action.getDependencyReferences()
-
-    expect(deps).to.eql([
-      {
-        explicit: false,
-        kind: "Build",
-        type: "container",
-        name: "foo",
-        needsExecutedOutputs: false,
-        needsStaticOutputs: true,
       },
     ])
   })
@@ -761,7 +709,7 @@ describe("actionConfigsToGraph", () => {
           },
           spec: {
             // Set so that sync comes up as a supported mode
-            persistent: true,
+            sync: {},
           },
         },
       ],
@@ -775,72 +723,6 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getDeploy("foo")
 
     expect(action.mode()).to.equal("sync")
-  })
-
-  it("sets local mode correctly if explicitly set in actionModes", async () => {
-    const graph = await actionConfigsToGraph({
-      garden,
-      log,
-      groupConfigs: [],
-      configs: [
-        {
-          kind: "Deploy",
-          type: "test",
-          name: "foo",
-          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
-          variables: {},
-          internal: {
-            basePath: tmpDir.path,
-          },
-          spec: {},
-        },
-      ],
-      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
-      linkedSources: {},
-      actionModes: {
-        local: ["deploy.foo"],
-      },
-    })
-
-    const action = graph.getDeploy("foo")
-
-    expect(action.mode()).to.equal("local")
-  })
-
-  it("prefers local mode over sync mode", async () => {
-    const graph = await actionConfigsToGraph({
-      garden,
-      log,
-      groupConfigs: [],
-      configs: [
-        {
-          kind: "Deploy",
-          type: "test",
-          name: "foo",
-          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
-          variables: {},
-          internal: {
-            basePath: tmpDir.path,
-          },
-          spec: {
-            // Set so that sync comes up as a supported mode
-            syncMode: {
-              deployCommand: ["echo"],
-            },
-          },
-        },
-      ],
-      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
-      linkedSources: {},
-      actionModes: {
-        local: ["deploy.foo"],
-        sync: ["deploy.foo"],
-      },
-    })
-
-    const action = graph.getDeploy("foo")
-
-    expect(action.mode()).to.equal("local")
   })
 
   it("sets mode if matched in full wildcard", async () => {
@@ -858,19 +740,22 @@ describe("actionConfigsToGraph", () => {
           internal: {
             basePath: tmpDir.path,
           },
-          spec: {},
+          spec: {
+            // Set so that sync comes up as a supported mode
+            sync: {},
+          },
         },
       ],
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
-        local: ["*"],
+        sync: ["*"],
       },
     })
 
     const action = graph.getDeploy("foo")
 
-    expect(action.mode()).to.equal("local")
+    expect(action.mode()).to.equal("sync")
   })
 
   it("sets mode if matched in partial wildcard", async () => {
@@ -888,19 +773,22 @@ describe("actionConfigsToGraph", () => {
           internal: {
             basePath: tmpDir.path,
           },
-          spec: {},
+          spec: {
+            // Set so that sync comes up as a supported mode
+            sync: {},
+          },
         },
       ],
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
-        local: ["deploy.f*"],
+        sync: ["deploy.f*"],
       },
     })
 
     const action = graph.getDeploy("foo")
 
-    expect(action.mode()).to.equal("local")
+    expect(action.mode()).to.equal("sync")
   })
 
   it("deploy action mode overrides the mode of a dependency build action", async () => {
@@ -919,7 +807,10 @@ describe("actionConfigsToGraph", () => {
           internal: {
             basePath: tmpDir.path,
           },
-          spec: {},
+          spec: {
+            // Set so that sync comes up as a supported mode
+            sync: {},
+          },
         },
         {
           kind: "Build",
@@ -930,21 +821,24 @@ describe("actionConfigsToGraph", () => {
           internal: {
             basePath: tmpDir.path,
           },
-          spec: {},
+          spec: {
+            // Set so that sync comes up as a supported mode
+            sync: {},
+          },
         },
       ],
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
-        local: ["deploy.*"],
+        sync: ["deploy.*"],
       },
     })
 
     const deploy = graph.getDeploy("foo")
-    expect(deploy.mode()).to.equal("local")
+    expect(deploy.mode()).to.equal("sync")
 
     const build = graph.getBuild("foo")
-    expect(build.mode()).to.equal("local")
+    expect(build.mode()).to.equal("sync")
   })
 
   it("throws if an unknown action kind is given", async () => {

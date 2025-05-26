@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -243,7 +243,6 @@ export const serviceStatusSchema = createSchema({
     updatedAt: joi.string().description("When the service was last updated by the provider."),
     version: joi.string().description("The Garden module version of the deployed service."),
   }),
-  rename: [["devMode", "syncMode"]],
 })
 
 /**

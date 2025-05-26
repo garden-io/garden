@@ -11,8 +11,7 @@ Run a command in a container image, e.g. in a Kubernetes namespace (when used wi
 
 This is a simplified abstraction, which can be convenient for simple tasks, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Run types like [kubernetes-pod](./kubernetes-pod.md).
 
-Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../../using-garden/configuration-overview.md).
+Below is the full schema reference for the action.
 
 `container` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
@@ -48,7 +47,7 @@ By default, the directory where the action is defined is used as the source for 
 
 You can override the directory that is used for the build context by setting `source.path`.
 
-You can use `source.repository` to get the source from an external repository. For more information on remote actions, please refer to the [Remote Sources guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
+You can use `source.repository` to get the source from an external repository. For more information on remote actions, please refer to the [Remote Sources guide](https://docs.garden.io/cedar-0.14/advanced/using-remote-sources).
 
 | Type     | Required |
 | -------- | -------- |
@@ -148,7 +147,7 @@ For actions other than _Build_ actions, this is usually not necessary to specify
 
 _Build_ actions have a different behavior, since they generally are based on some files in the source tree, so please reference the docs for more information on those.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -166,7 +165,7 @@ include:
 
 Specify a list of POSIX-style paths or glob patterns that should be explicitly excluded from the action's version.
 
-For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred. For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set `include` paths, or such paths inferred by providers. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred. For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set `include` paths, or such paths inferred by providers. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes when watching is enabled. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -246,10 +245,6 @@ Whether the varfile is optional.
 | `boolean` | No       |
 
 ### `build`
-
-{% hint style="warning" %}
-**Deprecated**: Use the `dependencies` config to define the build dependencies. Using the `build` config field in runtime actions will not be supported anymore in Garden 0.14.
-{% endhint %}
 
 Specify a _Build_ action, and resolve this action from the context of that Build.
 
@@ -455,18 +450,6 @@ spec:
     - hostPath: "/some/dir"
 ```
 
-### `spec.volumes[].action`
-
-[spec](#spec) > [volumes](#specvolumes) > action
-
-The action reference to a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type              | Required |
-| ----------------- | -------- |
-| `actionReference` | No       |
-
 ### `spec.privileged`
 
 [spec](#spec) > privileged
@@ -582,11 +565,11 @@ spec:
 
 [spec](#spec) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Required.
 
 | Type     | Required |
 | -------- | -------- |
-| `string` | No       |
+| `string` | Yes      |
 
 ### `spec.cacheResult`
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,14 +10,18 @@ import { checkResourceStatuses, waitForResources } from "../status/status.js"
 import { helm } from "./helm-cli.js"
 import type { HelmGardenMetadataConfigMapData } from "./common.js"
 import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common.js"
-import { gardenCloudAECPauseAnnotation, getPausedResources, getReleaseStatus, getRenderedResources } from "./status.js"
+import {
+  gardenCloudAECPauseAnnotation,
+  getResourcesPausedByAEC,
+  getReleaseStatus,
+  getRenderedResources,
+} from "./status.js"
 import { apply, deleteResources } from "../kubectl.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getForwardablePorts, killPortForwards } from "../port-forward.js"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace.js"
 import { configureSyncMode } from "../sync.js"
 import { KubeApi } from "../api.js"
-import { configureLocalMode, startServiceInLocalMode } from "../local-mode.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
 import type { HelmDeployAction } from "./config.js"
 import { isEmpty } from "lodash-es"
@@ -56,9 +60,9 @@ async function getUnhealthyResourceLogs({
   manifests: KubernetesResource[]
   api: KubeApi
 }): Promise<string | null> {
-  const unhealthyResources = (await checkResourceStatuses({ api, namespace, manifests, log })).filter(
-    (r) => r.state === "unhealthy"
-  )
+  const unhealthyResources = (
+    await checkResourceStatuses({ api, namespace, waitForJobs: false, manifests, log })
+  ).filter((r) => r.state === "unhealthy")
   const logsArr = unhealthyResources.map((r) => r.logs).filter(isTruthy)
 
   if (logsArr.length === 0) {
@@ -73,7 +77,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
   const spec = action.getSpec()
-  let attached = false
+  const attached = false
 
   const api = await KubeApi.factory(log, ctx, provider)
 
@@ -149,6 +153,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       namespace,
       ctx: k8sCtx,
       provider: k8sCtx.provider,
+      waitForJobs: false, // should we also add a waitForJobs option to the HelmDeployAction?
       actionName: action.key(),
       resources: manifests,
       log,
@@ -204,27 +209,22 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     throw error
   }
 
-  // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
-  // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to clean up any
-  // dangling annotations created by Garden Cloud.
-  if (ctx.cloudApi) {
-    try {
-      const pausedResources = await getPausedResources({ ctx: k8sCtx, action, namespace, releaseName, log })
-      await Promise.all(
-        pausedResources.map((resource) => {
-          const { annotations } = resource.metadata
-          if (annotations) {
-            delete annotations[gardenCloudAECPauseAnnotation]
-            return api.annotateResource({ log, resource, annotations })
-          }
-          return
-        })
-      )
-    } catch (error) {
-      const errorMsg = `Failed to remove Garden Cloud AEC annotations for deploy: ${action.name}.`
-      log.warn(errorMsg)
-      log.debug({ error: toGardenError(error) })
-    }
+  try {
+    const pausedResources = await getResourcesPausedByAEC({ ctx: k8sCtx, action, namespace, releaseName, log })
+    await Promise.all(
+      pausedResources.map((resource) => {
+        const { annotations } = resource.metadata
+        if (annotations) {
+          delete annotations[gardenCloudAECPauseAnnotation]
+          return api.annotateResource({ log, resource, annotations })
+        }
+        return
+      })
+    )
+  } catch (error) {
+    const errorMsg = `Failed to remove Garden Cloud AEC annotations for deploy: ${action.name}.`
+    log.warn(errorMsg)
+    log.debug({ error: toGardenError(error) })
   }
 
   //create or upsert configmap with garden metadata
@@ -246,24 +246,9 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   const mode = action.mode()
 
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
-  // installing/upgrading via Helm, we need to separately update the target here for sync-mode/local-mode.
-  // Local mode always takes precedence over sync mode.
-  let deployedWithLocalMode = false
+  // installing/upgrading via Helm, we need to separately update the target here for sync-mode.
   let updatedManifests: SyncableResource[] = []
-  if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
-    updatedManifests = (
-      await configureLocalMode({
-        ctx,
-        spec: spec.localMode,
-        defaultTarget: spec.defaultTarget,
-        manifests,
-        action,
-        log,
-      })
-    ).updated
-    await apply({ log, ctx, api, provider, manifests: updatedManifests, namespace })
-    deployedWithLocalMode = true
-  } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
+  if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     updatedManifests = (
       await configureSyncMode({
         ctx,
@@ -285,34 +270,22 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       namespace,
       ctx,
       provider,
+      waitForJobs: false, // should we also add a waitForJobs option to the HelmDeployAction?
       actionName: action.key(),
       resources: updatedManifests, // We only wait for manifests updated for local / sync mode.
       log,
       timeoutSec: timeout,
     })
   }
-  const statuses = await checkResourceStatuses({ api, namespace, manifests, log })
+  const statuses = await checkResourceStatuses({ api, namespace, waitForJobs: false, manifests, log })
 
-  const forwardablePorts = getForwardablePorts({ resources: manifests, parentAction: action, mode })
+  const forwardablePorts = getForwardablePorts({ resources: manifests, parentAction: action })
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, forwardablePorts || [], log)
 
-  // Local mode always takes precedence over sync mode.
-  if (mode === "local" && spec.localMode && deployedWithLocalMode && updatedManifests.length) {
-    await startServiceInLocalMode({
-      ctx,
-      spec: spec.localMode,
-      targetResource: updatedManifests[0],
-      manifests,
-      action,
-      namespace,
-      log,
-    })
-    attached = true
-  }
   // Get ingresses of deployed resources
-  const ingresses = getK8sIngresses(manifests, provider)
+  const ingresses = getK8sIngresses(manifests)
 
   return {
     state: "ready",

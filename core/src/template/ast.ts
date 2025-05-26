@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,15 +14,10 @@ import { getHelperFunctions } from "./functions/index.js"
 import type { EvaluateTemplateArgs } from "./types.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
-import { type ConfigSource, getYamlContext, validateSchema } from "../config/validation.js"
+import { type ConfigSource, validateSchema } from "../config/validation.js"
 import type { Branch } from "./analysis.js"
-import { TemplateStringError, truncateRawTemplateString } from "./errors.js"
+import { TemplateStringError } from "./errors.js"
 import { styles } from "../logger/styles.js"
-import { GardenApiVersion } from "../constants.js"
-import { getProjectApiVersion } from "../project-api-version.js"
-import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
-import { RootLogger } from "../logger/logger.js"
-import { emitNonRepeatableWarning } from "../warnings.js"
 
 type ASTEvaluateArgs = EvaluateTemplateArgs & {
   readonly yamlSource: ConfigSource
@@ -104,7 +99,7 @@ export class IdentifierExpression extends TemplateExpression {
   ) {
     if (!isString(identifier) && !isNumber(identifier)) {
       throw new InternalError({
-        message: `identifier arg for IdentifierExpression must be a string or number. Got: ${typeof identifier}`,
+        message: `identifier arg for IdentifierExpression must be a string or number. Got: ${typeOf(identifier)}`,
       })
     }
     super()
@@ -255,6 +250,14 @@ export function isTruthy(v: TemplatePrimitive | Collection<unknown>): boolean {
   return true
 }
 
+function typeOf(v: TemplatePrimitive | Collection<TemplatePrimitive>): string {
+  // the Javascript expression `typeof null` results in the string "object". That's not helpful in template error messages
+  if (v === null) {
+    return "null"
+  }
+  return typeof v
+}
+
 export class LogicalOrExpression extends LogicalExpression {
   override getActiveBranchChildren(
     context: ConfigContext,
@@ -399,7 +402,7 @@ export class AddExpression extends BinaryExpression {
       return left.concat(right)
     } else {
       throw new TemplateStringError({
-        message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
+        message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeOf(left)} and ${typeOf(right)}).`,
         loc: this.loc,
         yamlSource,
       })
@@ -415,7 +418,7 @@ export class ContainsExpression extends BinaryExpression {
   ): boolean {
     if (!isTemplatePrimitive(element)) {
       throw new TemplateStringError({
-        message: `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof element}).`,
+        message: `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeOf(element)}).`,
         loc: this.loc,
         yamlSource,
       })
@@ -452,7 +455,7 @@ export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
       throw new TemplateStringError({
         message: `Both terms need to be numbers for ${
           this.operator
-        } operator (got ${typeof left} and ${typeof right}).`,
+        } operator (got ${typeOf(left)} and ${typeOf(right)}).`,
         loc: this.loc,
         yamlSource,
       })
@@ -516,61 +519,19 @@ export class FormatStringExpression extends TemplateExpression {
   constructor(
     public readonly rawText: string,
     public readonly loc: Location,
-    private readonly innerExpression: TemplateExpression,
-    private readonly hasOptionalSuffix: boolean
+    private readonly innerExpression: TemplateExpression
   ) {
     super()
   }
 
-  private isOptional(apiVersion: GardenApiVersion) {
-    return apiVersion === GardenApiVersion.v2 ? false : this.hasOptionalSuffix
-  }
-
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
-    const apiVersion = getProjectApiVersion()
-    const isOptional = this.isOptional(apiVersion)
-
-    if (apiVersion === GardenApiVersion.v1 && isOptional) {
-      const log = RootLogger.getInstance().createLog()
-
-      reportDeprecatedFeatureUsage({
-        apiVersion: GardenApiVersion.v1,
-        log,
-        deprecation: "optionalTemplateValueSyntax",
-      })
-
-      const yamlContext = getYamlContext(args.yamlSource)
-      const locationDesc = yamlContext || styles.highlight(truncateRawTemplateString(this.rawText))
-      const delimiter = !!yamlContext ? "\n" : " "
-      emitNonRepeatableWarning(log, `Found deprecated optional template value syntax in${delimiter}${locationDesc}`)
-    }
-
     const result = this.innerExpression.evaluate({
       ...args,
       opts: {
         ...args.opts,
-        // nested expressions should never be partially resolved in legacy mode
-        // Otherwise, weird problems can happen if we e.g. partially resolve a sub-expression and pass it to a parameter of a function call.
-        // TODO(0.14): remove legacyAllowPartial
-        legacyAllowPartial: false,
       },
-      optional: args.optional || isOptional,
+      optional: args.optional,
     })
-
-    // Only if this expression is optional we return undefined instead of symbol.
-    // If merely optional is true in EvaluateArgs, we must return symbol.
-    if (isOptional && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-      return undefined
-    }
-
-    if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-      return result
-    }
-
-    // TODO(0.14): remove the optional support in grammar
-    if (apiVersion === GardenApiVersion.v2 && this.hasOptionalSuffix) {
-      return result + "?"
-    }
 
     return result
   }
@@ -617,24 +578,14 @@ export class BlockExpression extends AbstractBlockExpression {
   }
 
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
-    const legacyAllowPartial = args.opts.legacyAllowPartial
-
     let result: string = ""
     for (const expr of this.expressions) {
       const r = expr.evaluate({
         ...args,
-        // in legacyAllowPartial mode, all template expressions are optional
-        optional: args.optional || legacyAllowPartial,
+        optional: args.optional,
       })
 
-      // For legacy allow partial mode, other format string expressions might be evaluated, and
-      // we produce a string even when a key hasn't been found.
-      // This is extremely evil, but unfortunately needs to be kept for backwards bug-compatibility.
-      // TODO(0.14): please remove legacyAllowPartial
-      if (legacyAllowPartial && typeof r === "symbol") {
-        result += expr.rawText
-        continue
-      } else if (this.expressions.length === 1) {
+      if (this.expressions.length === 1) {
         // if we evaluate a single expression we are allowed to evaluate to something other than a string
         return r
       }
@@ -771,7 +722,7 @@ export class MemberExpression extends TemplateExpression {
 
     if (typeof inner !== "string" && typeof inner !== "number") {
       throw new TemplateStringError({
-        message: `Expression in brackets must resolve to a string or number (got ${typeof inner}).`,
+        message: `Expression in brackets must resolve to a string or number (got ${typeOf(inner)}).`,
         loc: this.loc,
         yamlSource: args.yamlSource,
       })

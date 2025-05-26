@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -95,14 +95,14 @@ const contexts: ContextSpec[] = [
     schema: CustomCommandContext.getSchema(),
     shortDescription: "Keys available in `exec` and `gardenCommand` fields in custom Command configs.",
     longDescription:
-      "The below keys are available in template strings for the `exec` and `gardenCommand` fields in [Custom Commands](../../advanced/custom-commands.md).",
+      "The below keys are available in template strings for the `exec` and `gardenCommand` fields in [Custom Commands](../../features/custom-commands.md).",
   },
   {
     shortName: "Workflow",
     schema: WorkflowStepConfigContext.getSchema(),
     shortDescription: "Keys available in Workflow configurations.",
     longDescription:
-      "The below keys are available in template strings for [Workflow](../../using-garden/workflows.md) configurations, as well as the commands defined in [Custom Commands](../../advanced/custom-commands.md).\n\nNote that the `{steps.*}` key is only available for the `steps[].command` and `steps[].script` fields in Workflow configs, and may only reference previous steps in the same workflow. See below for more details.",
+      "The below keys are available in template strings for [Workflow](../../features/workflows.md) configurations, as well as the commands defined in [Custom Commands](../../features/custom-commands.md).\n\nNote that the `{steps.*}` key is only available for the `steps[].command` and `steps[].script` fields in Workflow configs, and may only reference previous steps in the same workflow. See below for more details.",
   },
 ]
 

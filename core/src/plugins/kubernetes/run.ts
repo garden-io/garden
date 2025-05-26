@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -316,8 +316,7 @@ export async function prepareRunPodSpec({
     imagePullSecrets,
   }
 
-  // This logic is only relevant for `container` Runs and Tests, which need to support mounting `persistentvolumeclaim`
-  // and `configmap` actions (which are only supported for `container` actions, and are currently discouraged).
+  // This logic is only relevant for `container` Runs and Tests
   if (volumes && volumes.length && action.type === "container") {
     configureVolumes(action, preparedPodSpec, volumes)
   } else {
@@ -1125,7 +1124,15 @@ export class PodRunner {
     await this.createPod({ log, tty: false })
 
     // Wait for Pod to be ready
-    const statuses = await waitForResources({ namespace, ctx, provider, resources: [pod], log, timeoutSec })
+    const statuses = await waitForResources({
+      namespace,
+      waitForJobs: false,
+      ctx,
+      provider,
+      resources: [pod],
+      log,
+      timeoutSec,
+    })
 
     return { status: statuses[0] as ResourceStatus<V1Pod> }
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,22 +8,21 @@
 
 import dedent from "dedent"
 import type { Resolved } from "../../../actions/types.js"
-import { ConfigurationError } from "../../../exceptions.js"
+import { ConfigurationError, InternalError } from "../../../exceptions.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
 import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getActionNamespaceStatus } from "../namespace.js"
-import { composeCacheableRunResult, toRunActionStatus } from "../run-results.js"
-import { k8sGetRunResult, storeRunResult } from "../run-results.js"
-import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
+import { k8sGetRunResult } from "../run-results.js"
+import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName, toActionStatus } from "../util.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./config.js"
 import { helmPodRunSchema } from "./config.js"
 import { runAndCopy } from "../run.js"
 import { filterManifests, prepareManifests, prepareTemplates } from "./common.js"
-import { composeCacheableTestResult, toTestActionStatus } from "../test-results.js"
-import { storeTestResult } from "../test-results.js"
 import { kubernetesRunOutputsSchema } from "../kubernetes-type/config.js"
+import { getRunResultCache, getTestResultCache } from "../results-cache.js"
+import type { KubernetesRunResult } from "../../../plugin/base.js"
 
 const helmRunPodOutputsSchema = kubernetesRunOutputsSchema
 const helmTestPodOutputsSchema = helmRunPodOutputsSchema
@@ -47,22 +46,29 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
         action,
         provider: k8sCtx.provider,
       })
-      const namespace = namespaceStatus.namespaceName
 
-      const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
-
-      const detail = composeCacheableRunResult({ result, action, namespaceStatus })
-
-      if (action.getSpec("cacheResult")) {
-        await storeRunResult({
-          ctx,
-          log,
-          action,
-          result: detail,
+      if (namespaceStatus.state !== "ready") {
+        throw new InternalError({
+          message: `Expected namespace state to be "ready", but got "${namespaceStatus.state}" instead.`,
         })
       }
 
-      return toRunActionStatus(detail)
+      const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
+
+      if (action.getSpec("cacheResult")) {
+        const runResultCache = getRunResultCache(ctx)
+        await runResultCache.store({
+          ctx,
+          log,
+          action,
+          keyData: {
+            namespaceUid: namespaceStatus.namespaceUid,
+          },
+          result,
+        })
+      }
+
+      return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
     },
 
     getResult: k8sGetRunResult,
@@ -88,22 +94,21 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
         action,
         provider: k8sCtx.provider,
       })
-      const namespace = namespaceStatus.namespaceName
 
-      const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace })
-
-      const detail = composeCacheableTestResult({ result, action, namespaceStatus })
+      const result = await runOrTestWithChart({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
 
       if (action.getSpec("cacheResult")) {
-        await storeTestResult({
+        const testResultCache = getTestResultCache(ctx)
+        await testResultCache.store({
           ctx,
           log,
           action,
-          result: detail,
+          keyData: undefined,
+          result,
         })
       }
 
-      return toTestActionStatus(detail)
+      return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
     },
 
     getResult: k8sGetRunResult,

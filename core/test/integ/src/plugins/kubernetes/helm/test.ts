@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,6 +26,10 @@ describe("Helm Pod Test", () => {
     garden = await getHelmTestGarden()
   })
 
+  after(() => {
+    garden && garden.close()
+  })
+
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
@@ -48,8 +52,6 @@ describe("Helm Pod Test", () => {
     expect(result).to.exist
     expect(result?.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus).to.exist
-    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.eq("helm-test-default")
   })
 
   it("should run a test in a different namespace, if configured", async () => {
@@ -70,8 +72,6 @@ describe("Helm Pod Test", () => {
     expect(result).to.exist
     expect(result?.outputs).to.exist
     expect(result!.result!.detail?.log.trim()).to.equal(action.getConfig().spec.namespace)
-    expect(result!.result!.detail?.namespaceStatus).to.exist
-    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.eq(action.getConfig().spec.namespace)
   })
 
   it("should fail if an error occurs, but store the result", async () => {

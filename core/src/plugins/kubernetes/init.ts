@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -153,7 +153,7 @@ export async function prepareEnvironment(
   // make sure that the system namespace exists
   await getSystemNamespace(ctx, ctx.provider, log)
 
-  // TODO-0.13/TODO-0.14: remove this option for remote kubernetes clusters?
+  // TODO-0.15: remove this option for remote kubernetes clusters?
   if (config.setupIngressController === "nginx") {
     await ensureIngressController(k8sCtx, log)
   } else {

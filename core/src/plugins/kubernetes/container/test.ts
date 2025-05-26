@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,14 +7,14 @@
  */
 
 import type { ContainerTestAction } from "../../container/moduleConfig.js"
-import { composeCacheableTestResult, toTestActionStatus } from "../test-results.js"
-import { storeTestResult } from "../test-results.js"
 import { runAndCopy } from "../run.js"
-import { makePodName } from "../util.js"
+import { makePodName, toActionStatus } from "../util.js"
 import { getNamespaceStatus } from "../namespace.js"
 import type { KubernetesPluginContext } from "../config.js"
 import type { TestActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
+import { getTestResultCache } from "../results-cache.js"
+import type { KubernetesRunResult } from "../../../plugin/base.js"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
   const { ctx, log, action } = params
@@ -43,16 +43,16 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     dropCapabilities,
   })
 
-  const detail = composeCacheableTestResult({ result, action, namespaceStatus })
-
   if (action.getSpec("cacheResult")) {
-    await storeTestResult({
+    const testResultCache = getTestResultCache(ctx)
+    await testResultCache.store({
       ctx,
       log,
       action,
-      result: detail,
+      keyData: undefined,
+      result,
     })
   }
 
-  return toTestActionStatus(detail)
+  return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
 }

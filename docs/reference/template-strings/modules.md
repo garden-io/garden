@@ -149,7 +149,7 @@ my-variable: ${command.name}
 
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
-Option values can be referenced by the option's default name (e.g. `local-mode`) or its alias (e.g. `local`) if one is defined for that option.
+Option values can be referenced by the option's default name (e.g. `sync-mode`) or its alias (e.g. `sync`) if one is defined for that option.
 
 | Type     |
 | -------- |
@@ -295,6 +295,14 @@ Example:
 my-variable: ${git.originUrl}
 ```
 
+### `${secrets.*}`
+
+A map of all secrets for this project in the current environment.
+
+| Type     |
+| -------- |
+| `object` |
+
 ### `${secrets.<secret-name>}`
 
 The secret's value.
@@ -401,7 +409,7 @@ The resolved configuration for the provider.
 
 ### `${providers.<provider-name>.config.<config-key>}`
 
-The provider config key value. Refer to individual [provider references](https://docs.garden.io/bonsai-0.13/reference/providers) for details.
+The provider config key value. Refer to individual [provider references](https://docs.garden.io/cedar-0.14/reference/providers) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -417,7 +425,7 @@ The outputs defined by the provider (see individual plugin docs for details).
 
 ### `${providers.<provider-name>.outputs.<output-key>}`
 
-The provider output value. Refer to individual [provider references](https://docs.garden.io/bonsai-0.13/reference/providers) for details.
+The provider output value. Refer to individual [provider references](https://docs.garden.io/cedar-0.14/reference/providers) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -469,7 +477,7 @@ my-variable: ${modules.<module-name>.path}
 
 ### `${modules.<module-name>.outputs.*}`
 
-The outputs defined by the module (see individual module type [references](https://docs.garden.io/bonsai-0.13/reference/module-types) for details).
+The outputs defined by the module (see individual module type [references](https://docs.garden.io/cedar-0.14/reference/module-types) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -477,7 +485,7 @@ The outputs defined by the module (see individual module type [references](https
 
 ### `${modules.<module-name>.outputs.<output-name>}`
 
-The module output value. Refer to individual [module type references](https://docs.garden.io/bonsai-0.13/reference/module-types) for details.
+The module output value. Refer to individual [module type references](https://docs.garden.io/cedar-0.14/reference/module-types) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -529,7 +537,7 @@ Runtime information from the services that the service/task being run depends on
 
 ### `${runtime.services.<service-name>.outputs.*}`
 
-The runtime outputs defined by the service (see individual module type [references](https://docs.garden.io/bonsai-0.13/reference/module-types) for details).
+The runtime outputs defined by the service (see individual module type [references](https://docs.garden.io/cedar-0.14/reference/module-types) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -537,7 +545,7 @@ The runtime outputs defined by the service (see individual module type [referenc
 
 ### `${runtime.services.<service-name>.outputs.<output-name>}`
 
-The service output value. Refer to individual [module type references](https://docs.garden.io/bonsai-0.13/reference/module-types) for details.
+The service output value. Refer to individual [module type references](https://docs.garden.io/cedar-0.14/reference/module-types) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -567,7 +575,7 @@ Runtime information from the tasks that the service/task being run depends on.
 
 ### `${runtime.tasks.<task-name>.outputs.*}`
 
-The runtime outputs defined by the task (see individual module type [references](https://docs.garden.io/bonsai-0.13/reference/module-types) for details).
+The runtime outputs defined by the task (see individual module type [references](https://docs.garden.io/cedar-0.14/reference/module-types) for details).
 
 | Type     | Default |
 | -------- | ------- |
@@ -575,7 +583,7 @@ The runtime outputs defined by the task (see individual module type [references]
 
 ### `${runtime.tasks.<task-name>.outputs.<output-name>}`
 
-The task output value. Refer to individual [module type references](https://docs.garden.io/bonsai-0.13/reference/module-types) for details.
+The task output value. Refer to individual [module type references](https://docs.garden.io/cedar-0.14/reference/module-types) for details.
 
 | Type                          |
 | ----------------------------- |

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,6 @@ import { execa, type ExecaError } from "execa"
 import split2 from "split2"
 import { renderDuration } from "../logger/util.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
-import parseGitConfig from "parse-git-config"
 import { AbstractGitHandler, augmentGlobs, GitCli, hashObject } from "./git.js"
 import type {
   BaseIncludeExcludeFiles,
@@ -30,8 +29,9 @@ import { styles } from "../logger/styles.js"
 import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
 import { gardenEnv } from "../constants.js"
+import { parse as parseIni } from "ini"
 
-const { pathExists, readlink, lstat } = fsExtra
+const { pathExists, readFile, readlink, lstat } = fsExtra
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
@@ -421,23 +421,39 @@ export class GitSubTreeHandler extends AbstractGitHandler {
   }
 
   @pMemoizeDecorator()
-  private async getSubmodules(gitModulesConfigPath: string) {
+  private async getSubmodules(gitModulesConfigDir: string) {
     const submodules: Submodule[] = []
-    const gitmodulesPath = join(gitModulesConfigPath, ".gitmodules")
+    const gitModulesFilePath = join(gitModulesConfigDir, ".gitmodules")
 
-    if (await pathExists(gitmodulesPath)) {
-      const parsed = await parseGitConfig({ cwd: gitModulesConfigPath, path: ".gitmodules" })
+    if (await pathExists(gitModulesFilePath)) {
+      const parsedGitConfig = await parseGitConfig(gitModulesFilePath)
 
-      for (const [key, spec] of Object.entries(parsed || {}) as any) {
+      for (const [key, spec] of Object.entries(parsedGitConfig || {}) as any) {
         if (!key.startsWith("submodule")) {
           continue
         }
-        spec.path && submodules.push(spec)
+
+        if (isSubmoduleConfig(spec)) {
+          submodules.push(spec)
+        }
       }
     }
 
     return submodules
   }
+}
+
+function hasStringProperty(obj: object, propertyName: string): boolean {
+  return propertyName in obj && typeof obj[propertyName] === "string"
+}
+
+function isSubmoduleConfig(obj: object): obj is Submodule {
+  return hasStringProperty(obj, "path") && hasStringProperty(obj, "url")
+}
+
+async function parseGitConfig(filePath: string): Promise<object> {
+  const buffer = await readFile(filePath, { encoding: "utf-8" })
+  return parseIni(buffer)
 }
 
 async function isDirectory(path: string, gitLog: Log): Promise<boolean> {

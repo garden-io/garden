@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,11 +14,15 @@ import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { getKubernetesTestGarden } from "./common.js"
 import { RunTask } from "../../../../../../src/tasks/run.js"
 import fsExtra from "fs-extra"
+
 const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
-import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results.js"
 import type { KubernetesPodRunAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
+
+import { getRunResultCache } from "../../../../../../src/plugins/kubernetes/results-cache.js"
+import { getNamespaceStatus } from "../../../../../../src/plugins/kubernetes/namespace.js"
+import type { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config.js"
 
 describe("kubernetes-type pod Run", () => {
   let garden: TestGarden
@@ -28,6 +32,10 @@ describe("kubernetes-type pod Run", () => {
     garden = await getKubernetesTestGarden()
   })
 
+  after(() => {
+    garden && garden.close()
+  })
+
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
@@ -35,7 +43,7 @@ describe("kubernetes-type pod Run", () => {
   it("should run a basic Run and store its result", async () => {
     const action = graph.getRun("echo-task")
 
-    const testTask = new RunTask({
+    const runTask = new RunTask({
       garden,
       graph,
       action,
@@ -47,18 +55,32 @@ describe("kubernetes-type pod Run", () => {
     // Clear any existing Run result
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearRunResult({ ctx, log: garden.log, action })
+    const k8sCtx = ctx as KubernetesPluginContext
+    const namespaceStatus = await getNamespaceStatus({
+      ctx: k8sCtx,
+      log: garden.log,
+      skipCreate: true,
+      provider: k8sCtx.provider,
+    })
+    expect(namespaceStatus.state).to.eql("ready")
+
+    const runResultCache = getRunResultCache(ctx)
+    await runResultCache.clear({
+      ctx,
+      log: garden.log,
+      action,
+      keyData: { namespaceUid: namespaceStatus.namespaceUid! },
+    })
 
     garden.events.eventLog = []
-    const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
-    const result = results.results.getResult(testTask)
+    const results = await garden.processTasks({ tasks: [runTask], throwOnError: true })
+    const result = results.results.getResult(runTask)
     expect(findNamespaceStatusEvent(garden.events.eventLog, "kubernetes-type-test-default")).to.exist
 
     expect(result).to.exist
     expect(result?.result).to.exist
     expect(result?.outputs).to.exist
     expect(result?.result?.outputs.log).to.equal("ok")
-    expect(result!.result!.detail?.namespaceStatus).to.exist
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()
@@ -76,7 +98,7 @@ describe("kubernetes-type pod Run", () => {
     const action = graph.getRun("echo-task")
     action["_config"].spec.cacheResult = false
 
-    const testTask = new RunTask({
+    const runTask = new RunTask({
       garden,
       graph,
       action,
@@ -88,9 +110,24 @@ describe("kubernetes-type pod Run", () => {
     // Clear any existing Run result
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearRunResult({ ctx, log: garden.log, action })
+    const k8sCtx = ctx as KubernetesPluginContext
+    const namespaceStatus = await getNamespaceStatus({
+      ctx: k8sCtx,
+      log: garden.log,
+      skipCreate: true,
+      provider: k8sCtx.provider,
+    })
+    expect(namespaceStatus.state).to.eql("ready")
 
-    await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const runResultCache = getRunResultCache(ctx)
+    await runResultCache.clear({
+      ctx,
+      log: garden.log,
+      action,
+      keyData: { namespaceUid: namespaceStatus.namespaceUid! },
+    })
+
+    await garden.processTasks({ tasks: [runTask], throwOnError: true })
 
     // Verify that the result was saved
     const router = await garden.getActionRouter()

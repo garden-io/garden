@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@ import type { Action } from "../../../../../src/actions/types.js"
 import type { ActionRouter } from "../../../../../src/router/router.js"
 import type { ResolvedConfigGraph } from "../../../../../src/graph/config-graph.js"
 import type { Log } from "../../../../../src/logger/log-entry.js"
-import { sortBy } from "lodash-es"
+import { omit, sortBy } from "lodash-es"
 import { gardenEnv } from "../../../../../src/constants.js"
 
 export const getActionsToSimpleOutput = (d) => {
@@ -53,7 +53,7 @@ export const getActionsToDetailedOutput = (a: Action, garden: TestGarden, graph:
       .map((d) => d.key())
       .sort(),
     disabled: a.isDisabled(),
-    version: a.getFullVersion(),
+    version: omit(a.getFullVersion(), "versionStringFull"),
     allowPublish: a.getConfig().allowPublish ?? undefined,
     publishId: a.getConfig().spec.publishId ?? undefined,
     moduleName: a.moduleName() ?? undefined,
@@ -83,7 +83,7 @@ export const getActionsToDetailedWithStateOutput = async (
         .map((d) => d.key())
         .sort(),
       disabled: a.isDisabled(),
-      version: a.getFullVersion(),
+      version: omit(a.getFullVersion(), "versionStringFull"),
       allowPublish: a.getConfig().allowPublish ?? undefined,
       publishId: a.getConfig().spec.publishId ?? undefined,
       moduleName: a.moduleName() ?? undefined,

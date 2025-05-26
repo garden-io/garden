@@ -1,7 +1,5 @@
 kind: Project
+apiVersion: garden.io/v2
 name: bundled-projects
 providers:
-  - name: conftest
-  - name: conftest-container
-  - name: conftest-kubernetes
   - name: jib

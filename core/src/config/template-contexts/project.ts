@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,8 +18,14 @@ import type { Garden } from "../../garden.js"
 import { type VcsInfo } from "../../vcs/vcs.js"
 import { styles } from "../../logger/styles.js"
 import type { VariablesContext } from "./variables.js"
-import { getCloudDistributionName } from "../../cloud/util.js"
+import { getBackendType, getCloudDistributionName } from "../../cloud/util.js"
 import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/secrets.js"
+
+const secretsSchema = joiStringMap(joi.string().description("The secret's value."))
+  .description("A map of all secrets for this project in the current environment.")
+  .meta({
+    keyPlaceholder: "<secret-name>",
+  })
 
 class LocalContext extends ContextWithSchema {
   @schema(
@@ -219,7 +225,7 @@ class CommandContext extends ContextWithSchema {
         dedent`
         A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
-        Option values can be referenced by the option's default name (e.g. \`local-mode\`) or its alias (e.g. \`local\`) if one is defined for that option.
+        Option values can be referenced by the option's default name (e.g. \`sync-mode\`) or its alias (e.g. \`sync\`) if one is defined for that option.
         `
       )
       .example({ force: true, dev: ["my-service"] })
@@ -286,6 +292,7 @@ export interface ProjectConfigContextParams extends DefaultEnvironmentContextPar
   loggedIn: boolean
   secrets: PrimitiveMap
   cloudBackendDomain: string
+  backendType: "v1" | "v2"
 }
 
 /**
@@ -296,28 +303,27 @@ export interface ProjectConfigContextParams extends DefaultEnvironmentContextPar
  * `secrets`.
  */
 export class ProjectConfigContext extends DefaultEnvironmentContext {
-  @schema(
-    joiStringMap(joi.string().description("The secret's value."))
-      .description("A map of all secrets for this project in the current environment.")
-      .meta({
-        internal: true,
-        keyPlaceholder: "<secret-name>",
-      })
-  )
+  @schema(secretsSchema)
   public readonly secrets: PrimitiveMap
   private readonly _cloudBackendDomain: string
+  private readonly _backendType: "v1" | "v2"
   private readonly _loggedIn: boolean
+
+  constructor(params: ProjectConfigContextParams) {
+    super(params)
+    this._loggedIn = params.loggedIn
+    this.secrets = params.secrets
+    this._cloudBackendDomain = params.cloudBackendDomain
+    this._backendType = params.backendType
+  }
 
   override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
     if (key[0] !== "secrets") {
       return ""
     }
 
-    const unavailableMessage = getSecretsUnavailableInNewBackendMessage({
-      cloudBackendDomain: this._cloudBackendDomain,
-    })
-    if (unavailableMessage) {
-      return unavailableMessage
+    if (this._backendType === "v2") {
+      return getSecretsUnavailableInNewBackendMessage(this._cloudBackendDomain)
     }
 
     const distributionName = getCloudDistributionName(this._cloudBackendDomain)
@@ -344,13 +350,6 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
       `
     }
   }
-
-  constructor(params: ProjectConfigContextParams) {
-    super(params)
-    this._loggedIn = params.loggedIn
-    this.secrets = params.secrets
-    this._cloudBackendDomain = params.cloudBackendDomain
-  }
 }
 
 export interface EnvironmentConfigContextParams extends ProjectConfigContextParams {
@@ -371,14 +370,7 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
   public var: VariablesContext
 
-  @schema(
-    joiStringMap(joi.string().description("The secret's value."))
-      .description("A map of all secrets for this project in the current environment.")
-      .meta({
-        internal: true,
-        keyPlaceholder: "<secret-name>",
-      })
-  )
+  @schema(secretsSchema)
   public override secrets: PrimitiveMap
 
   constructor(params: EnvironmentConfigContextParams) {
@@ -413,6 +405,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       username: garden.username,
       loggedIn: garden.isLoggedIn(),
       cloudBackendDomain: garden.cloudDomain,
+      backendType: getBackendType(garden.getProjectConfig()),
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
       variables,

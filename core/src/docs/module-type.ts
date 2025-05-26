@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,13 +25,9 @@ const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema(
 export const moduleTypes = [
   { name: "exec" },
   { name: "container" },
-  { name: "configmap", pluginName: "local-kubernetes" },
-  { name: "conftest", pluginName: "conftest" },
-  { name: "hadolint" },
   { name: "helm", pluginName: "local-kubernetes" },
   { name: "jib-container" },
   { name: "kubernetes", pluginName: "local-kubernetes" },
-  { name: "persistentvolumeclaim", pluginName: "local-kubernetes" },
   { name: "templated" },
   { name: "terraform" },
   { name: "pulumi" },

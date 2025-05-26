@@ -117,7 +117,8 @@ build:
     outputs:
       <name>:
 
-# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+# [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -249,7 +250,8 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -358,7 +360,8 @@ test:
     # The output log from the run.
     log:
 
-# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -394,7 +397,8 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -1021,12 +1025,6 @@ You may specify multiple names by setting this flag multiple times.
 Use * to deploy all supported deployments with sync enabled.
 
 Important: The syncs stay active after the command exits. To stop the syncs, use the &#x60;sync stop&#x60; command.
-  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of Deploy(s) to be started locally with local mode enabled.
-
-You may specify multiple Deploys by setting this flag multiple times. Use * to deploy all Deploys with local mode enabled. When this option is used,
-the command stays running until explicitly aborted.
-
-This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of Deploys you&#x27;d like to skip.
   | `--skip-dependencies` |  | boolean | Skip deploy, test and run dependencies. Build dependencies and runtime output reference dependencies are not skipped. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without deploying or running dependencies that may have changed since you last deployed.
   | `--with-dependants` |  | boolean | Additionally deploy all deploy actions that are downstream dependants of the action(s) being deployed. This can be useful when you know you need to redeploy dependants.
@@ -1086,7 +1084,8 @@ build:
     outputs:
       <name>:
 
-# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+# [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -1218,7 +1217,8 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -1327,7 +1327,8 @@ test:
     # The output log from the run.
     log:
 
-# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -1363,7 +1364,8 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -1565,7 +1567,7 @@ providers:
         #
         # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
         # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-        # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Also note that specifying an empty list here means _no sources_ should be included.
@@ -1578,7 +1580,7 @@ providers:
         # Note that you can also explicitly _include_ files using the `include` field. If you also specify the
         # `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
         # [Configuration Files
-        # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -1730,24 +1732,6 @@ providers:
         # The module spec, as defined by the provider plugin.
         spec:
 
-            # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
-            # directory (for remote modules this means the root of the module repository, otherwise the directory of
-            # the module configuration).
-            #
-            # Note that any existing file with the same name will be overwritten. If the path contains one or more
-            # directories, they will be automatically created if missing.
-            targetPath:
-
-            # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to
-            # false to skip resolving template strings. Note that this does not apply when setting the `value` field,
-            # since that's resolved earlier when parsing the configuration.
-            resolveTemplates:
-
-            # The desired file contents as a string.
-            value:
-
-            sourcePath:
-
         # The name of the parent module (e.g. a templated module that generated this module), if applicable.
         parentName:
 
@@ -1820,7 +1804,7 @@ actionConfigs:
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
       # actions, please refer to the [Remote Sources
-      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
+      # guide](https://docs.garden.io/cedar-0.14/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -1967,7 +1951,7 @@ actionConfigs:
       #
       # You can _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree,
       # which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2006,7 +1990,7 @@ actionConfigs:
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
       # actions, please refer to the [Remote Sources
-      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
+      # guide](https://docs.garden.io/cedar-0.14/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -2067,7 +2051,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2077,7 +2061,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2162,7 +2146,7 @@ actionConfigs:
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
       # actions, please refer to the [Remote Sources
-      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
+      # guide](https://docs.garden.io/cedar-0.14/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -2223,7 +2207,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2233,7 +2217,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2318,7 +2302,7 @@ actionConfigs:
       #
       # You can use `source.repository` to get the source from an external repository. For more information on remote
       # actions, please refer to the [Remote Sources
-      # guide](https://docs.garden.io/bonsai-0.13/advanced/using-remote-sources).
+      # guide](https://docs.garden.io/cedar-0.14/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action.
         #
@@ -2379,7 +2363,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2389,7 +2373,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2519,7 +2503,7 @@ moduleConfigs:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
     # for details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
@@ -2532,7 +2516,7 @@ moduleConfigs:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
     # for details.
     #
     # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2682,24 +2666,6 @@ moduleConfigs:
     # The module spec, as defined by the provider plugin.
     spec:
 
-        # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
-        # directory (for remote modules this means the root of the module repository, otherwise the directory of the
-        # module configuration).
-        #
-        # Note that any existing file with the same name will be overwritten. If the path contains one or more
-        # directories, they will be automatically created if missing.
-        targetPath:
-
-        # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
-        # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
-        # resolved earlier when parsing the configuration.
-        resolveTemplates:
-
-        # The desired file contents as a string.
-        value:
-
-        sourcePath:
-
     # The name of the parent module (e.g. a templated module that generated this module), if applicable.
     parentName:
 
@@ -2827,8 +2793,8 @@ workflowConfigs:
         #
         # `never`: This step will always be ignored.
         #
-        # See the [workflows
-        # guide](https://docs.garden.io/bonsai-0.13/using-garden/workflows#the-skip-and-when-options) for details
+        # See the [workflows guide](https://docs.garden.io/cedar-0.14/features/workflows#the-skip-and-when-options)
+        # for details
         # and examples.
         when:
 
@@ -3092,7 +3058,7 @@ modules:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
     # for details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
@@ -3105,7 +3071,7 @@ modules:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
     # for details.
     #
     # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -3251,24 +3217,6 @@ modules:
 
     # The module spec, as defined by the provider plugin.
     spec:
-
-        # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
-        # directory (for remote modules this means the root of the module repository, otherwise the directory of the
-        # module configuration).
-        #
-        # Note that any existing file with the same name will be overwritten. If the path contains one or more
-        # directories, they will be automatically created if missing.
-        targetPath:
-
-        # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
-        # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
-        # resolved earlier when parsing the configuration.
-        resolveTemplates:
-
-        # The desired file contents as a string.
-        value:
-
-        sourcePath:
 
     # The name of the parent module (e.g. a templated module that generated this module), if applicable.
     parentName:
@@ -4241,13 +4189,8 @@ Logs you in to Garden Cloud. Subsequent commands will have access to cloud featu
 
 #### Usage
 
-    garden login [options]
+    garden login 
 
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--disable-project-check` |  | boolean | Disables the check that this is run from within a Garden Project. Logs you in to the default Garden Cloud domain
 
 
 ### garden logout
@@ -4258,13 +4201,8 @@ Logs you out of Garden Cloud.
 
 #### Usage
 
-    garden logout [options]
+    garden logout 
 
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--disable-project-check` |  | boolean | Disables the check that this is run from within a Garden Project. Logs you out from the default Garden Cloud domain
 
 
 ### garden logs
@@ -4442,7 +4380,8 @@ build:
     outputs:
       <name>:
 
-# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+# [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -4574,7 +4513,8 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -4683,7 +4623,8 @@ test:
     # The output log from the run.
     log:
 
-# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -4719,7 +4660,8 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -4870,7 +4812,8 @@ build:
     outputs:
       <name>:
 
-# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+# [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -5002,7 +4945,8 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -5111,7 +5055,8 @@ test:
     # The output log from the run.
     log:
 
-# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -5147,7 +5092,8 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -5394,7 +5340,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` |  | array:string | DEPRECATED: This option will be removed in 0.14. Please use a positional argument &quot;&lt;module name&gt;-&lt;test name&gt;&quot; or &quot;*-&lt;test name&gt;&quot; instead of of &quot;--name&quot;.
+  | `--name` |  | array:string | DEPRECATED: This option will be removed in 0.15. Please use a positional argument &quot;&lt;module name&gt;-&lt;test name&gt;&quot; or &quot;*-&lt;test name&gt;&quot; instead of &quot;--name&quot;.
 This option can be used to run all tests with the specified name (e.g. unit or integ) in declared in any module.
 Note: Since 0.13, using the --name option is equivalent to using the positional argument &quot;*-&lt;test name&gt;&quot;. This means that new tests declared using the new Action kinds will also be executed if their name matches this pattern.
 Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
@@ -5455,7 +5401,8 @@ build:
     outputs:
       <name>:
 
-# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+# [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -5587,7 +5534,8 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -5696,7 +5644,8 @@ test:
     # The output log from the run.
     log:
 
-# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -5732,7 +5681,8 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.

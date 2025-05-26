@@ -7,5 +7,5 @@ modules:
     varfile: dependencies.yaml
     include: [./**]
     build:
-      dependencies: ${var.dependencies}?
+      dependencies: ${var.dependencies || null}
       command: [echo, "build ${parent.name} module"]

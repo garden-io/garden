@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,8 +30,6 @@ import isGlob from "is-glob"
 import pFilter from "p-filter"
 import { kubectl } from "../kubectl.js"
 import { loadAndValidateYaml } from "../../../config/base.js"
-import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
-import { getProjectApiVersion } from "../../../project-api-version.js"
 import type { ActionReference } from "../../../config/common.js"
 
 const { pathExists, readFile } = fsExtra
@@ -397,22 +395,16 @@ async function readKustomizeManifests(
 
 export type KubernetesDeployActionSpecFileSources = Pick<
   KubernetesDeployActionSpec,
-  "files" | "manifestFiles" | "manifestTemplates"
+  "manifestFiles" | "manifestTemplates"
 >
 
 export function getSpecFiles({
-  log,
-  fileSources: { files, manifestFiles, manifestTemplates },
+  fileSources: { manifestFiles, manifestTemplates },
 }: {
   actionRef: ActionReference
-  log: Log
   fileSources: KubernetesDeployActionSpecFileSources
-}): { files: string[]; manifestFiles: string[]; manifestTemplates: string[] } {
-  if (files.length > 0) {
-    reportDeprecatedFeatureUsage({ apiVersion: getProjectApiVersion(), log, deprecation: "kubernetesActionSpecFiles" })
-  }
-
-  return { files, manifestTemplates, manifestFiles }
+}): { manifestFiles: string[]; manifestTemplates: string[] } {
+  return { manifestTemplates, manifestFiles }
 }
 
 export async function validateFilePaths({
@@ -508,23 +500,17 @@ export async function readManifestsFromPaths({
   )
 }
 
-const resolveTemplateStrings =
-  (ctx: PluginContext, legacyAllowPartial?: boolean) => (rawManifestContent: string, filePath: string) => {
-    // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
-    //   First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
-    //   template expressions will be interpreted by the YAML parser later.
-    //   Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
-    //   if they reference variables that do not exist.
-    const resolved = ctx.legacyResolveTemplateString(rawManifestContent, { legacyAllowPartial })
+const resolveTemplateStrings = (ctx: PluginContext) => (rawManifestContent: string, filePath: string) => {
+  const resolved = ctx.legacyResolveTemplateString(rawManifestContent, {})
 
-    if (typeof resolved !== "string") {
-      throw new ConfigurationError({
-        message: `Expected manifest template expression in file at path ${filePath} to resolve to string; Actually got ${typeof resolved}`,
-      })
-    }
-
-    return resolved
+  if (typeof resolved !== "string") {
+    throw new ConfigurationError({
+      message: `Expected manifest template expression in file at path ${filePath} to resolve to string; Actually got ${typeof resolved}`,
+    })
   }
+
+  return resolved
+}
 
 async function readFileManifests(
   ctx: PluginContext,
@@ -532,19 +518,11 @@ async function readFileManifests(
   log: Log,
   manifestDirPath: string
 ): Promise<DeclaredManifest[]> {
-  const { files, manifestFiles, manifestTemplates } = getSpecFiles({
+  const { manifestFiles, manifestTemplates } = getSpecFiles({
     actionRef: action,
-    log,
     fileSources: action.getSpec(),
   })
 
-  const manifestsFromDeprecatedFiles = await readManifestsFromPaths({
-    action,
-    manifestDirPath,
-    manifestPaths: files,
-    transformFn: resolveTemplateStrings(ctx, true),
-    log,
-  })
   const manifestsFromFiles = await readManifestsFromPaths({
     action,
     manifestDirPath,
@@ -559,7 +537,7 @@ async function readFileManifests(
     log,
   })
 
-  return [...manifestsFromDeprecatedFiles, ...manifestsFromFiles, ...manifestsFromTemplates]
+  return [...manifestsFromFiles, ...manifestsFromTemplates]
 }
 
 /**

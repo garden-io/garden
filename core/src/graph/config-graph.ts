@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -428,11 +428,14 @@ export abstract class BaseConfigGraph<
   render(): RenderedActionGraph {
     const nodes = Object.values(this.dependencyGraph)
     let edges: ConfigGraphEdge[] = []
-    const simpleEdges: string[][] = []
+    const simpleEdges: [string, string | undefined][] = []
     for (const dependant of nodes) {
       for (const dependency of dependant.dependencies) {
         edges.push({ dependant, dependency })
-        simpleEdges.push([nodeKey(dependant.kind, dependant.name), nodeKey(dependency.kind, dependency.name)])
+        simpleEdges.push([
+          nodeKey(dependant.kind, dependant.name),
+          nodeKey(dependency.kind, dependency.name) as string | undefined,
+        ])
       }
     }
 

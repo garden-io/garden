@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -34,6 +34,7 @@ export class GardenDefaultBackend extends GardenIngressComponent {
       // because the function waitForResources uses actionName as a new Log name
       actionName: "providers",
       namespace,
+      waitForJobs: false,
       ctx,
       provider,
       resources: [deployment],
@@ -49,7 +50,13 @@ export class GardenDefaultBackend extends GardenIngressComponent {
     const api = await KubeApi.factory(log, ctx, provider)
     const { deployment } = defaultBackendGetManifests(ctx)
 
-    const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: deployment, log })
+    const deploymentStatus = await checkResourceStatus({
+      api,
+      namespace,
+      waitForJobs: false,
+      manifest: deployment,
+      log,
+    })
     log.debug(`Status of ingress controller default-backend: ${deploymentStatus}`)
     return deploymentStatus.state
   }

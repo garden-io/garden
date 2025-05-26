@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,18 +32,28 @@ import type { ResolvedTemplate } from "../../../template/types.js"
 import type { ArraySchema } from "@hapi/joi"
 import type { KubernetesDeployActionSpecFileSources } from "./common.js"
 import { getSpecFiles } from "./common.js"
+import type { ActionModes } from "../../../actions/types.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
 
   You can either (or both) specify the manifests as part of the \`garden.yml\` configuration, or you can refer to one or more files with existing manifests.
 
-  Note that if you include the manifests in the \`garden.yml\` file, you can use [template strings](${DOCS_BASE_URL}/using-garden/variables-and-templating) to interpolate values into the manifests.
+  Note that if you include the manifests in the \`garden.yml\` file, you can use [template strings](${DOCS_BASE_URL}/features/variables-and-templating) to interpolate values into the manifests.
 
   If you need more advanced templating features you can use the [helm](./helm.md) Deploy type.
 `
 
-export function evaluateKubernetesDeploySpecFiles({
+/**
+ * Evaluates the value of a given spec field if it is a template string.
+ *
+ * @param ctx the plugin context
+ * @param config the kubernetes Deploy action configuration
+ * @param filesFieldName the name of the Deploy action spec's field
+ * @param filesFieldSchema the schema to validate the resolved value of the action spec's field
+ */
+export function evaluateKubernetesDeploySpecField({
   ctx,
   config,
   filesFieldName,
@@ -82,26 +92,20 @@ export function getFileSources({
   ctx: PluginContext
   config: KubernetesDeployActionConfig
 }): KubernetesDeployActionSpecFileSources {
-  const files = evaluateKubernetesDeploySpecFiles({
-    ctx,
-    config,
-    filesFieldName: "files",
-    filesFieldSchema: kubernetesManifestTemplatesSchema,
-  })
-  const manifestFiles = evaluateKubernetesDeploySpecFiles({
+  const manifestFiles = evaluateKubernetesDeploySpecField({
     ctx,
     config,
     filesFieldName: "manifestFiles",
     filesFieldSchema: kubernetesManifestFilesSchema,
   })
-  const manifestTemplates = evaluateKubernetesDeploySpecFiles({
+  const manifestTemplates = evaluateKubernetesDeploySpecField({
     ctx,
     config,
     filesFieldName: "manifestTemplates",
     filesFieldSchema: kubernetesManifestTemplatesSchema,
   })
 
-  return { files, manifestFiles, manifestTemplates }
+  return { manifestFiles, manifestTemplates }
 }
 
 export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesDeployAction> => ({
@@ -110,22 +114,28 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
   schema: kubernetesDeploySchema(),
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
-    configure: async ({ ctx, log, config }) => {
+    configure: async ({ ctx, config, log }) => {
+      if (config.spec["devMode"]) {
+        reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
+      }
+      if (config.spec["localMode"]) {
+        reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
+      }
+
       if (!config.spec.kustomize) {
         if (!config.include) {
           config.include = []
         }
 
-        const { files, manifestFiles, manifestTemplates } = getSpecFiles({
+        const { manifestFiles, manifestTemplates } = getSpecFiles({
           actionRef: config,
-          log,
           fileSources: getFileSources({ ctx, config }),
         })
 
-        config.include = uniq([...config.include, ...files, ...manifestTemplates, ...manifestFiles])
+        config.include = uniq([...config.include, ...manifestTemplates, ...manifestFiles])
       }
 
-      return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
+      return { config, supportedModes: { sync: !!config.spec.sync } satisfies ActionModes }
     },
 
     deploy: kubernetesDeploy,

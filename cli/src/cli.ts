@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,28 +22,6 @@ import { waitForOutputFlush } from "@garden-io/core/build/src/process.js"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [
-  // TODO(0.14): remove confest plugins from the list of the bundled plugins
-  {
-    name: "conftest",
-    callback: async () => {
-      const plugin = await import("@garden-io/garden-conftest")
-      return plugin.gardenPlugin()
-    },
-  },
-  {
-    name: "conftest-container",
-    callback: async () => {
-      const plugin = await import("@garden-io/garden-conftest-container")
-      return plugin.gardenPlugin()
-    },
-  },
-  {
-    name: "conftest-kubernetes",
-    callback: async () => {
-      const plugin = await import("@garden-io/garden-conftest-kubernetes")
-      return plugin.gardenPlugin()
-    },
-  },
   {
     name: "jib",
     callback: async () => {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -31,7 +31,7 @@ describe("GardenCloudApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await saveAuthToken(log, globalConfigStore, testToken, domain)
+      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain })
       const savedToken = await getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.eql(testToken.token)
     })
@@ -56,7 +56,7 @@ describe("GardenCloudApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await saveAuthToken(log, globalConfigStore, testToken, domain)
+      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain })
       await clearAuthToken(log, globalConfigStore, domain)
       const savedToken = await getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.be.undefined

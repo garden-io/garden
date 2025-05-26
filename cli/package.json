@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/cli",
-  "version": "0.13.54",
+  "version": "0.14.3",
   "description": "Cloud native testing platform for testing and developing container applications on Kubernetes",
   "type": "module",
   "repository": {
@@ -24,29 +24,26 @@
   },
   "dependencies": {
     "@garden-io/core": "*",
-    "@garden-io/garden-conftest": "*",
-    "@garden-io/garden-conftest-container": "*",
-    "@garden-io/garden-conftest-kubernetes": "*",
     "@garden-io/garden-jib": "*",
     "@garden-io/garden-pulumi": "*",
     "@garden-io/garden-terraform": "*",
     "@scg82/exit-hook": "^3.4.1",
-    "chalk": "^5.3.0",
+    "chalk": "^5.4.1",
     "tar": "^6.2.1",
-    "undici": "^6.21.1",
+    "undici": "^7.8.0",
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
-    "@types/chai": "^5.0.1",
+    "@types/chai": "^5.2.1",
     "@types/fs-extra": "^11.0.4",
     "@types/mocha": "^10.0.10",
     "@types/tar": "^6.1.11",
     "@types/unzipper": "^0.10.10",
-    "chai": "^5.1.2",
-    "fs-extra": "^11.2.0",
+    "chai": "^5.2.0",
+    "fs-extra": "^11.3.0",
     "lodash-es": "^4.17.21",
     "minimist": "^1.2.8",
-    "mocha": "^11.0.1",
+    "mocha": "^11.1.0",
     "typescript": "^5.5.3"
   },
   "scripts": {

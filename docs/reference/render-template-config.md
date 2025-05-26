@@ -5,7 +5,7 @@ title: RenderTemplate Reference
 
 # RenderTemplate Reference
 
-Below is the schema reference for `RenderTemplate` configuration files. To learn more about config templates, see the [Config Templates guide](../using-garden/config-templates.md).
+Below is the schema reference for `RenderTemplate` configuration files. To learn more about config templates, see the [Config Templates guide](../features/config-templates.md).
 
 The reference is divided into two sections:
 * [YAML Schema](#yaml-schema) contains the config YAML schema

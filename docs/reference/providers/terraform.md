@@ -7,9 +7,9 @@ tocTitle: "`terraform`"
 
 ## Description
 
-This provider allows you to integrate Terraform stacks into your Garden project. See the [Terraform guide](https://docs.garden.io/bonsai-0.13/advanced/terraform) for details and usage information.
+This provider allows you to integrate Terraform stacks into your Garden project. See the [Terraform guide](https://docs.garden.io/cedar-0.14/advanced/terraform) for details and usage information.
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference for the provider configuration..
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -41,7 +41,7 @@ providers:
     # Specify the path to a Terraform config directory, that should be resolved when initializing the provider. This
     # is useful when other providers need to be able to reference the outputs from the stack.
     #
-    # See the [Terraform guide](https://docs.garden.io/bonsai-0.13/advanced/terraform) for more information.
+    # See the [Terraform guide](https://docs.garden.io/cedar-0.14/advanced/terraform) for more information.
     initRoot:
 
     # A map of variables to use when applying Terraform stacks. You can define these here, in individual
@@ -157,7 +157,7 @@ If set to true, Garden will automatically run `terraform apply -auto-approve` wh
 
 Specify the path to a Terraform config directory, that should be resolved when initializing the provider. This is useful when other providers need to be able to reference the outputs from the stack.
 
-See the [Terraform guide](https://docs.garden.io/bonsai-0.13/advanced/terraform) for more information.
+See the [Terraform guide](https://docs.garden.io/cedar-0.14/advanced/terraform) for more information.
 
 | Type        | Required |
 | ----------- | -------- |
@@ -226,6 +226,8 @@ Example:
 ```yaml
 providers:
   - backendConfig:
-        "bucket: ${environment.name\\}-bucket\nkey: tf-state/${local.username\\}/terraform.tfstate"
+        bucket: ${environment.name}-bucket
+        key: tf-state/${local.username}/terraform.tfstate
 ```
+
 

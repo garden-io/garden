@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -39,12 +39,6 @@ const { readdir, readFile } = fsExtra
 
 export async function getHelmTestGarden() {
   const projectRoot = getDataDir("test-projects", "helm")
-  const garden = await makeTestGarden(projectRoot)
-  return garden
-}
-
-export async function getHelmLocalModeTestGarden() {
-  const projectRoot = getDataDir("test-projects", "helm-local-mode")
   const garden = await makeTestGarden(projectRoot)
   return garden
 }
@@ -89,6 +83,10 @@ describe("Helm common functions", () => {
     log = garden.log
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     await buildHelmModules(garden, graph)
+  })
+
+  after(() => {
+    garden && garden.close()
   })
 
   beforeEach(async () => {
@@ -584,14 +582,6 @@ ${expectedIngressOutput}
 
     it("should add a --set flag if in sync mode", async () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.api"] } })
-      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-      action["_config"].spec.valueFiles = []
-      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql(["--values", gardenValuesPath])
-    })
-
-    it("should add a default --set flag if the aciton doesn't support it's mode", async () => {
-      // local mode is not configured for the api deploy
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { local: ["deploy.api"] } })
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action["_config"].spec.valueFiles = []
       expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql(["--values", gardenValuesPath])

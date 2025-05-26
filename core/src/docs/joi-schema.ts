@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,13 +10,13 @@ import { uniq, isFunction, extend, isArray, isPlainObject } from "lodash-es"
 import { BaseKeyDescription, isArrayType } from "./common.js"
 import { findByName } from "../util/util.js"
 import { JsonKeyDescription } from "./json-schema.js"
-import type { JoiDescription } from "../config/common.js"
+import type { JoiDescription, MetadataKeys } from "../config/common.js"
 import { metadataFromDescription } from "../config/common.js"
 import { safeDumpYaml } from "../util/serialization.js"
 import { zodToJsonSchema } from "zod-to-json-schema"
 
 export class JoiKeyDescription extends BaseKeyDescription {
-  private joiDescription: JoiDescription
+  private readonly joiDescription: JoiDescription
 
   override deprecated: boolean
   override deprecationMessage: string | undefined
@@ -51,15 +51,15 @@ export class JoiKeyDescription extends BaseKeyDescription {
     const presenceRequired = joiDescription.flags?.presence === "required"
     this.required = presenceRequired || this.allowedValuesOnly
 
-    const metas: any = extend({}, ...(joiDescription.metas || []))
+    const metas: MetadataKeys = extend({}, ...(joiDescription.metas || []))
 
-    this.deprecated = joiDescription.parent?.deprecated || !!metas.deprecated
+    this.deprecated = parent?.deprecated || !!metas.deprecated
     if (typeof metas.deprecated === "string") {
       this.deprecationMessage = metas.deprecated
     }
     this.description = joiDescription.flags?.description
     this.experimental = joiDescription.parent?.experimental || !!metas.experimental
-    this.internal = joiDescription.parent?.internal || !!metas.internal
+    this.internal = parent?.internal || !!metas.internal
   }
 
   override formatType() {
@@ -123,7 +123,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
       )
 
       if (renderPatternKeys && objSchema.patterns && objSchema.patterns.length > 0) {
-        const metas: any = extend({}, ...(objSchema.metas || []))
+        const metas: MetadataKeys = extend({}, ...(objSchema.metas || []))
         childDescriptions.push(
           new JoiKeyDescription({
             joiDescription: objSchema.patterns[0].rule as JoiDescription as JoiDescription,
@@ -194,7 +194,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
  * Returns an object schema description if applicable for the field, that is if the provided schema is an
  * object schema _or_ if it's an "alternatives" schema where one alternative is an object schema.
  */
-function getObjectSchema(d: JoiDescription) {
+function getObjectSchema(d: JoiDescription): JoiDescription | undefined {
   const { type } = d
 
   if (type === "alternatives") {
@@ -204,8 +204,11 @@ function getObjectSchema(d: JoiDescription) {
         return nestedObjSchema
       }
     }
+    return undefined
   } else if (type === "object" || type === "customObject") {
     return d
+  } else {
+    return undefined
   }
 }
 

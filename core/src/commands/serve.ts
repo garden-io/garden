@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,6 @@ import type { GardenPluginReference } from "../plugin/plugin.js"
 import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions.js"
 import { styles } from "../logger/styles.js"
 import { getCloudDistributionName } from "../cloud/util.js"
-import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 
 export const defaultServerPort = 9777
 
@@ -98,14 +97,6 @@ export class ServeCommand<
     const sessionId = garden.sessionId
     this.setProps(sessionId, cli?.plugins || [])
 
-    if (opts["local-mode"] !== undefined) {
-      reportDeprecatedFeatureUsage({
-        apiVersion: garden.projectApiVersion,
-        log,
-        deprecation: "localMode",
-      })
-    }
-
     const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
     const manager = this.getManager(log, undefined)
@@ -163,8 +154,8 @@ export class ServeCommand<
       const cloudApi = defaultGarden.cloudApi
       const effectiveGardenProjectConfig = defaultGarden.getProjectConfig()
 
+      let projectId = effectiveGardenProjectConfig.id
       try {
-        let projectId = effectiveGardenProjectConfig.id
         if (!projectId) {
           const cloudProject = await cloudApi.getProjectByName(effectiveGardenProjectConfig.name)
           projectId = cloudProject?.id

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,35 +20,26 @@ import { createIngressResources } from "./ingress.js"
 import { createServiceResources } from "./service.js"
 import { waitForResources } from "../status/status.js"
 import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl.js"
-import { getAppNamespace, getNamespaceStatus } from "../namespace.js"
+import { getAppNamespace } from "../namespace.js"
 import type { PluginContext } from "../../../plugin-context.js"
 import { KubeApi } from "../api.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import type { ActionLog, Log } from "../../../logger/log-entry.js"
 import { prepareEnvVars } from "../util.js"
-import { deline, gardenAnnotationKey } from "../../../util/string.js"
+import { gardenAnnotationKey } from "../../../util/string.js"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward.js"
 import { prepareSecrets } from "../secrets.js"
 import { configureSyncMode, convertContainerSyncSpec } from "../sync.js"
-import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util.js"
-import { configureLocalMode, convertContainerLocalModeSpec, startServiceInLocalMode } from "../local-mode.js"
+import { getDeployedImageId, getResourceRequirements, getSecurityContext, resolveResourceLimits } from "./util.js"
 import type { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types.js"
 import type { ActionMode, Resolved } from "../../../actions/types.js"
 import { ConfigurationError, DeploymentError } from "../../../exceptions.js"
-import type {
-  SyncableKind,
-  SyncableResource,
-  KubernetesWorkload,
-  KubernetesResource,
-  SupportedRuntimeAction,
-} from "../types.js"
-import { syncableKinds } from "../types.js"
-import type { ContainerServiceStatus } from "./status.js"
+import type { SyncableKind, KubernetesWorkload, KubernetesResource, SupportedRuntimeAction } from "../types.js"
 import { k8sGetContainerDeployStatus } from "./status.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run.js"
 import { styles } from "../../../logger/styles.js"
-import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
 
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
@@ -58,8 +49,6 @@ export const PRODUCTION_MINIMUM_REPLICAS = 3
 export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
   const { ctx, action, log, force } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const mode = action.mode()
-  const { deploymentStrategy } = k8sCtx.provider.config
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   const imageId = getDeployedImageId(action)
@@ -67,25 +56,18 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const status = await k8sGetContainerDeployStatus(params)
   const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
   if (specChangedResourceKeys.length > 0) {
-    const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
+    const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
     await handleChangedSelector({
       action,
       specChangedResourceKeys,
       ctx: k8sCtx,
-      namespace: namespaceStatus.namespaceName,
+      namespace,
       log,
       production: ctx.production,
       force,
     })
   }
 
-  if (deploymentStrategy) {
-    reportDeprecatedFeatureUsage({
-      apiVersion: ctx.projectApiVersion,
-      log,
-      deprecation: "containerDeploymentStrategy",
-    })
-  }
   await deployContainerServiceRolling({ ...params, api, imageId })
 
   const postDeployStatus = await k8sGetContainerDeployStatus(params)
@@ -93,48 +75,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   // Make sure port forwards work after redeployment
   killPortForwards(action, postDeployStatus.detail?.forwardablePorts || [], log)
 
-  if (mode === "local") {
-    await startLocalMode({
-      ctx: k8sCtx,
-      log,
-      status: postDeployStatus.detail!,
-      action,
-    })
-    postDeployStatus.attached = true
-  }
-
   return postDeployStatus
-}
-
-export async function startLocalMode({
-  ctx,
-  log,
-  status,
-  action,
-}: {
-  ctx: KubernetesPluginContext
-  status: ContainerServiceStatus
-  log: ActionLog
-  action: Resolved<ContainerDeployAction>
-}) {
-  const localModeSpec = action.getSpec("localMode")
-
-  if (!localModeSpec) {
-    return
-  }
-
-  const namespace = await getAppNamespace(ctx, log, ctx.provider)
-  const targetResource = status.detail.remoteResources.find((r) => syncableKinds.includes(r.kind))! as SyncableResource
-
-  await startServiceInLocalMode({
-    ctx,
-    spec: localModeSpec,
-    targetResource,
-    manifests: status.detail.remoteResources,
-    action,
-    namespace,
-    log,
-  })
 }
 
 export const deployContainerServiceRolling = async (
@@ -143,8 +84,7 @@ export const deployContainerServiceRolling = async (
   const { ctx, api, action, log, imageId } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
-  const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
-  const namespace = namespaceStatus.namespaceName
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const { manifests } = await createContainerManifests({
     ctx: k8sCtx,
@@ -163,6 +103,7 @@ export const deployContainerServiceRolling = async (
     namespace,
     ctx,
     provider,
+    waitForJobs: false,
     actionName: action.key(),
     resources: manifests,
     log,
@@ -253,14 +194,6 @@ export async function createWorkloadManifest({
     configuredReplicas = 1
   }
 
-  if (mode === "local" && configuredReplicas > 1) {
-    log.verbose({
-      msg: styles.warning(`Ignoring replicas config on container Deploy ${action.name} while in local mode`),
-      symbol: "warning",
-    })
-    configuredReplicas = 1
-  }
-
   const env = prepareEnvVars({ ...action.getEnvVars(), ...spec.env })
 
   // expose some metadata to the container
@@ -300,13 +233,19 @@ export async function createWorkloadManifest({
   })
 
   const { cpu, memory, limits } = spec
+  const { resolvedResources, warning } = resolveResourceLimits({ cpu, memory }, limits)
+  if (warning) {
+    const config = action.getConfig()
+    const warnSuffix = `Check your ${styles.highlight(action.key())} action configuration at ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}`
+    emitNonRepeatableWarning(log, `${warning}\n${warnSuffix}`)
+  }
 
   const container: V1Container = {
     name: action.name,
     image: imageId,
     env,
     ports: [],
-    resources: getResourceRequirements({ cpu, memory }, limits),
+    resources: getResourceRequirements(resolvedResources),
     imagePullPolicy: "IfNotPresent",
     securityContext: {
       allowPrivilegeEscalation: spec.privileged || false,
@@ -436,21 +375,9 @@ export async function createWorkloadManifest({
   }
 
   const syncSpec = convertContainerSyncSpec(ctx, action)
-  const localModeSpec = convertContainerLocalModeSpec(ctx, action)
 
   // Local mode always takes precedence over sync mode
-  if (mode === "local" && localModeSpec) {
-    const configured = await configureLocalMode({
-      ctx,
-      spec: localModeSpec,
-      defaultTarget: getDefaultWorkloadTarget(workload),
-      manifests: [workload],
-      action,
-      log,
-    })
-
-    workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated[0]
-  } else if (mode === "sync" && syncSpec) {
+  if (mode === "sync" && syncSpec) {
     log.debug(styles.primary(`-> Configuring in sync mode`))
     const configured = await configureSyncMode({
       ctx,
@@ -542,11 +469,6 @@ function workloadConfig({
 }
 
 function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec, mode: ActionMode): void {
-  if (mode === "local") {
-    // no need to configure liveness and readiness probes for a service running in local mode
-    return
-  }
-
   const readinessPeriodSeconds = 1
   const readinessFailureThreshold = 90
 
@@ -622,42 +544,6 @@ export function configureVolumes(
           path: resolve(action.sourcePath(), volume.hostPath),
         },
       })
-    } else if (volume.action) {
-      // Make sure the action is a supported type
-      const volumeAction = action.getDependency(volume.action)
-
-      if (!volumeAction) {
-        throw new ConfigurationError({
-          message: `${action.longDescription()} specifies action '${
-            volume.action.name
-          }' on volume '${volumeName}' but the Deploy action could not be found. Please make sure it is specified as a dependency on the action.`,
-        })
-      }
-
-      if (volumeAction.isCompatible("persistentvolumeclaim")) {
-        volumes.push({
-          name: volumeName,
-          persistentVolumeClaim: {
-            claimName: volume.action.name,
-          },
-        })
-      } else if (volumeAction.isCompatible("configmap")) {
-        volumes.push({
-          name: volumeName,
-          configMap: {
-            name: volume.action.name,
-          },
-        })
-      } else {
-        throw new ConfigurationError({
-          message: deline`${action.longDescription()} specifies a unsupported config
-          ${styles.highlight(volumeAction.name)} for volume mount ${styles.highlight(
-            volumeName
-          )}. Only \`persistentvolumeclaim\`
-          and \`configmap\` action are supported at this time.
-          `,
-        })
-      }
     } else {
       volumes.push({
         name: volumeName,

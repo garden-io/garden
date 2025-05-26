@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,11 +13,13 @@ import { styles } from "../logger/styles.js"
 
 // Add metadata support to schemas. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
 declare module "zod" {
-  // eslint-disable-next-line @typescript-eslint/no-shadow
   interface ZodType {
     getMetadata(): Record<string, any>
+
     setMetadata(meta: Record<string, any>): this
+
     getExample(): any
+
     example(value: any): this
   }
 }

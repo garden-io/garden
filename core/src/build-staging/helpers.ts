@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -83,10 +83,10 @@ export function cloneFile(
             In case this is not acceptable, you can disable build staging by setting ${styles.highlight("buildAtSource: true")} in the action configuration to disable build staging for this action.`
           if (fromStats.target?.isFile()) {
             // For compatibility with older versions of garden that would allow symlink targets outside the root, if the target file existed, we only emit a warning here.
-            // TODO(0.14): Throw an error here
+            // TODO(0.15): Throw an error here
             emitNonRepeatableWarning(log, outOfBoundsMessage + `\n\nWARNING: This will become an error in Garden 0.14.`)
             // For compatibility with older versions of Garden, copy the target file instead of reproducing the symlink
-            // TODO(0.14): Only reproduce the symlink. The target file will be copied in another call to `cloneFile`.
+            // TODO(0.15): Only reproduce the symlink. The target file will be copied in another call to `cloneFile`.
             fromStats = fromStats.target
           } else {
             // Note: If a symlink pointed to a directory, we threw another error "source is neither a symbolic link, nor a file" in previous versions of garden,
@@ -516,7 +516,7 @@ export class FileStatsHelper {
                   cb({ err: innerResolveErr, target: null, targetPath: null })
                 } else {
                   // make sure the original symlink target is not overridden by the recursive search here
-                  // TODO(0.14): In a future version of garden it would be better to simply reproduce relative symlinks, instead of resolving them and copying the target directories.
+                  // TODO(0.15): In a future version of garden it would be better to simply reproduce relative symlinks, instead of resolving them and copying the target directories.
                   cb({ err: null, target: innerStats, targetPath: target })
                 }
               }

@@ -1,17 +1,17 @@
 ---
 title: Using Garden in CircleCI
-order: 7
+order: 90
 ---
 
 ## Prerequisites
 
-In addition to the prerequisites in the [Portable CI Pipelines that Run Anywhere](../use-cases/portable-ci-pipelines.md) doc.
+In addition to the prerequisites in the [Portable CI Pipelines that Run Anywhere](../overview/use-cases/portable-ci-pipelines.md) doc.
 
 For the purposes of this example we'll be using [CircleCI](https://circleci.com) and deploying to a Google Kubernetes Engine (GKE) cluster.
 
 ## Project overview
 
-The project is based on our basic [demo-project](https://github.com/garden-io/garden/tree/0.13.54/examples/demo-project) example, but configured for multiple environments. Additionally it contains a CircleCI config file. You'll find the entire source code [here](https://github.com/garden-io/ci-demo-project).
+The project is based on our basic [demo-project](https://github.com/garden-io/garden/tree/0.14.3/examples/demo-project) example, but configured for multiple environments. Additionally it contains a CircleCI config file. You'll find the entire source code [here](https://github.com/garden-io/ci-demo-project).
 
 The CI pipeline is configured so that Garden tests the project and deploys it to a **preview** environment on every pull request. Additionally, it tests the project and deploys it to a separate **staging** environment on every merge to the `main` branch.
 
@@ -19,7 +19,7 @@ To see it in action, you can fork the repository and follow the set-up steps bel
 
 ## Configure remote environments
 
-Configuring Garden to work against a remote Kubernetes cluster is explained step by step in our [Remote Kubernetes guide](../k8s-plugins/remote-k8s/README.md). For this example, we also use [in-cluster building](../k8s-plugins/guides/in-cluster-building.md).
+Configuring Garden to work against a remote Kubernetes cluster is explained step by step in our [Remote Kubernetes guide](../garden-for/kubernetes/README.md).
 
 For this project we're using three environments: `local`, `preview` and `staging`. The `local` environment is the default and is configured for a local Kubernetes cluster that runs on the user's machine. The other two run on remote clusters.
 
@@ -27,7 +27,7 @@ We deploy to the `preview` environment every time someone makes a pull request o
 
 ```yaml
 # garden.yml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: ci-demo-project
 environments:
@@ -39,7 +39,7 @@ providers:
     environments: [preview]
     context: my-preview-cluster
     defaultHostname: ${environment.namespace}.preview.my-domain
-    buildMode: kaniko
+    buildMode: cluster-buildkit
 ```
 
 Notice that we're using the `CIRCLE_BRANCH` environment variable to label the project namespace. This ensures that each pull request gets deployed into its own namespace.

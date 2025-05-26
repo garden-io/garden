@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -360,20 +360,6 @@ function getActionMode(config: ActionConfig, actionModes: ActionModeMap, log: Lo
     }
   }
 
-  // Local mode takes precedence over sync
-  // TODO: deduplicate
-  for (const pattern of actionModes.local || []) {
-    if (key === pattern) {
-      explicitMode = true
-      mode = "local"
-      log.silly(() => `Action ${key} set to ${mode} mode, matched on exact key`)
-      break
-    } else if (minimatch(key, pattern)) {
-      mode = "local"
-      log.silly(() => `Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
-      break
-    }
-  }
   return { mode, explicitMode }
 }
 
@@ -457,7 +443,7 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
 
-  if (!actionTypes[kind][type]) {
+  if (!actionTypes[kind][type] && !actionIsDisabled(config, garden.environmentName)) {
     const availableKinds: ActionKind[] = []
     actionKinds.forEach((actionKind) => {
       if (actionTypes[actionKind][type]) {
@@ -953,11 +939,14 @@ function dependenciesFromActionConfig({
   }
 
   // Action template references in spec/variables
-  // -> We avoid depending on action execution when referencing static output keys
+  // - We avoid depending on action execution when referencing static output keys from runtime actions
+  //   (Deploys, Tests and Runs).
+  // - We _do_ depend on action execution when referencing static output keys from Build actions.
   const staticOutputKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
 
   for (const ref of getActionTemplateReferences(config, templateContext)) {
     let needsExecuted = false
+    let isExplicit = false
 
     const outputType = ref.keyPath[0]
 
@@ -971,7 +960,7 @@ function dependenciesFromActionConfig({
     const outputKey = ref.keyPath[1]
 
     const refActionKey = actionReferenceToString(ref)
-    const refActionType = configsByKey[refActionKey]?.type
+    const { type: refActionType, kind: refActionKind } = configsByKey[refActionKey] || {}
 
     if (outputType === "outputs") {
       let refStaticOutputKeys: string[] = []
@@ -982,12 +971,28 @@ function dependenciesFromActionConfig({
           : []
       }
 
-      // Avoid execution when referencing the static output keys of the ref action type.
-      // e.g. a helm deploy referencing container build static output deploymentImageName
-      // ${actions.build.my-container.outputs.deploymentImageName}
+      /*
+        If a referenced dependency is a Build, then we re-mark it as explicit dependency.
+        It will have the same effect as if it was explicitly referenced in the configuration.
+
+        This is safe, because Builds generally don't have side-effects other than producing artifacts,
+        whereas Deploys and Runs often do.
+
+        This improves the user experience for the common use-case of referencing a container image in a runtime
+        resource (like a `helm` Deploy), where the user intent is almost always that the referenced build should exist
+        (i.e. the dependency should be processed) before the runtime resource is processed (i.e. deployed or run).
+
+        Note: We could also always execute Test actions that are referenced, but we'll stick with only Builds for now.
+       */
+      if (refActionKind === "Build") {
+        isExplicit = true
+      }
+
       if (!isString(outputKey)) {
+        // If the output key is not resolved yet, we just mark at as needing execution.
         needsExecuted = true
       } else {
+        // Otherwise, we avoid execution when referencing the static output keys of the ref's action type.
         needsExecuted = !staticOutputKeys.includes(outputKey) && !refStaticOutputKeys.includes(outputKey)
       }
     }
@@ -998,7 +1003,7 @@ function dependenciesFromActionConfig({
     }
 
     addDep(omit(refWithType, ["keyPath"]), {
-      explicit: false,
+      explicit: isExplicit,
       needsExecutedOutputs: needsExecuted,
       needsStaticOutputs: !needsExecuted,
     })

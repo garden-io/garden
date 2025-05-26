@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,7 +14,8 @@ import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { createActionLog } from "../../logger/log-entry.js"
 import { startSyncWithoutDeploy } from "./sync-start.js"
-import { reportDeprecatedSyncCommandUsage } from "../../util/deprecations.js"
+import { DOCS_MIGRATION_GUIDE_CEDAR, FeatureNotAvailable } from "../../util/deprecations.js"
+import { styles } from "../../logger/styles.js"
 
 const syncRestartArgs = {
   names: new StringsParameter({
@@ -59,11 +60,9 @@ export class SyncRestartCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, parentCommand }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     if (!parentCommand) {
-      reportDeprecatedSyncCommandUsage({
-        apiVersion: garden.projectApiVersion,
-        log,
-        deprecation: "syncRestartCommand",
-        syncCommandName: this.name,
+      throw new FeatureNotAvailable({
+        link: `${DOCS_MIGRATION_GUIDE_CEDAR}#syncrestartcommand`,
+        hint: `This command is only available when using the dev console or in sync mode. Run ${styles.highlight("garden dev")} or ${styles.highlight("garden deploy --sync")} first.`,
       })
     }
 

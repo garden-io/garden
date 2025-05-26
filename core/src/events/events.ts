@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,9 +13,8 @@ import type { DeployStatusForEventPayload } from "../types/service.js"
 import type { RunStatusForEventPayload } from "../plugin/base.js"
 import type { Omit, PickFromUnion } from "../util/util.js"
 import type { ConfigGraph, RenderedActionGraph } from "../graph/config-graph.js"
-import type { CommandInfo } from "../plugin-context.js"
+import type { CommandInfo, EventNamespaceStatus } from "../plugin-context.js"
 import type { GraphResult } from "../graph/results.js"
-import type { NamespaceStatus } from "../types/namespace.js"
 import type { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status.js"
 import type { ActionStatusPayload } from "./action-status-events.js"
 import type { AuthToken } from "../cloud/auth.js"
@@ -265,7 +264,7 @@ export interface Events {
   runStatus: ActionStatusPayload<RunStatusForEventPayload>
   testStatus: ActionStatusPayload<RunStatusForEventPayload>
   deployStatus: ActionStatusPayload<DeployStatusForEventPayload>
-  namespaceStatus: NamespaceStatus
+  namespaceStatus: EventNamespaceStatus
 
   // Workflow events
   workflowRunning: {}

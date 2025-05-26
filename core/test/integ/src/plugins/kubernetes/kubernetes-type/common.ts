@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -38,74 +38,6 @@ describe("getManifests", () => {
   let api: KubeApi
   const defaultNamespace = "foobar"
 
-  context("legacyAllowPartial", () => {
-    let action: Resolved<KubernetesDeployAction>
-
-    before(async () => {
-      garden = await getKubernetesTestGarden()
-      const provider = (await garden.resolveProvider({
-        log: garden.log,
-        name: "local-kubernetes",
-      })) as KubernetesProvider
-      ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-      api = await KubeApi.factory(garden.log, ctx, provider)
-    })
-
-    beforeEach(async () => {
-      graph = await garden.getConfigGraph({
-        log: garden.log,
-        emit: false,
-      })
-    })
-
-    it("crashes with yaml syntax error if an if block references variable that does not exist", async () => {
-      action = await garden.resolveAction<KubernetesDeployAction>({
-        action: graph.getDeploy("legacypartial-ifblock-doesnotexist"),
-        log: garden.log,
-        graph,
-      })
-
-      await expectError(() => getManifests({ ctx, api, action, log: garden.log, defaultNamespace }), {
-        contains: ["could not parse ifblock-doesnotexist.yaml in directory ", "as valid yaml"],
-      })
-    })
-
-    it("should not crash due to indentation with if block statement", async () => {
-      action = await garden.resolveAction<KubernetesDeployAction>({
-        action: graph.getDeploy("legacypartial-ifblock-indentation"),
-        log: garden.log,
-        graph,
-      })
-
-      const result = await getManifests({ ctx, api, action, log: garden.log, defaultNamespace })
-      expect(result.length).to.eq(2) // due to metadata configmap
-    })
-
-    it("partially resolves the consequent branch of ${if true} block", async () => {
-      action = await garden.resolveAction<KubernetesDeployAction>({
-        action: graph.getDeploy("legacypartial-ifblock-true"),
-        log: garden.log,
-        graph,
-      })
-
-      const result = await getManifests({ ctx, api, action, log: garden.log, defaultNamespace })
-      expect(result.length).to.eq(2) // due to metadata configmap
-      expect(result[0].metadata.name).to.eq("it-partially-resolves-${var.doesNotExist}-and-${unescapes}")
-    })
-
-    it("partially resolves the alternate branch of ${if false} block", async () => {
-      action = await garden.resolveAction<KubernetesDeployAction>({
-        action: graph.getDeploy("legacypartial-ifblock-false"),
-        log: garden.log,
-        graph,
-      })
-
-      const result = await getManifests({ ctx, api, action, log: garden.log, defaultNamespace })
-      expect(result.length).to.eq(2) // due to metadata configmap
-      expect(result[0].metadata.name).to.eq("it-partially-resolves-${var.doesNotExist}-and-${unescapes}")
-    })
-  })
-
   context("duplicates", () => {
     let action: Resolved<KubernetesDeployAction>
 
@@ -117,6 +49,10 @@ describe("getManifests", () => {
       })) as KubernetesProvider
       ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       api = await KubeApi.factory(garden.log, ctx, provider)
+    })
+
+    after(() => {
+      garden && garden.close()
     })
 
     beforeEach(async () => {
@@ -231,6 +167,10 @@ describe("getManifests", () => {
       api = await KubeApi.factory(garden.log, ctx, provider)
     })
 
+    after(() => {
+      garden && garden.close()
+    })
+
     beforeEach(async () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       action = await garden.resolveAction<KubernetesDeployAction>({
@@ -307,6 +247,10 @@ describe("getManifests", () => {
       api = await KubeApi.factory(garden.log, ctx, provider)
     })
 
+    after(() => {
+      garden && garden.close()
+    })
+
     beforeEach(async () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     })
@@ -316,10 +260,6 @@ describe("getManifests", () => {
       {
         actionName: "with-build-action",
         manifestSourceFieldName: "manifestTemplates",
-      },
-      {
-        actionName: "with-build-action-manifests-in-deprecated-files",
-        manifestSourceFieldName: "files",
       },
       {
         actionName: "with-build-action-manifests-in-manifest-files",
@@ -841,6 +781,10 @@ describe("readManifests", () => {
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
   })
 
+  after(() => {
+    garden && garden.close()
+  })
+
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
@@ -886,117 +830,7 @@ describe("readManifests", () => {
       ])
     })
 
-    it("should read manifests from both spec.files and spec.manifestFiles", async () => {
-      const actionName = "with-legacy-files-and-manifest-files"
-      const deployAction = graph.getDeploy(actionName)
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-        action: deployAction,
-        log: garden.log,
-        graph,
-      })
-
-      const declaredManifests = await readManifests(ctx, resolvedAction, garden.log)
-      expect(declaredManifests).to.exist
-
-      const manifests = declaredManifests.map((dm) => dm.manifest)
-      expect(manifests).to.exist
-
-      manifests.sort((left, right) => left.metadata.name.localeCompare(right.metadata.name))
-      expect(manifests).to.eql([
-        {
-          apiVersion: "v1",
-          data: {
-            hello: "world", // <-- resolve template strings for manifests defined in deprecated spec.files
-          },
-          kind: "ConfigMap",
-          metadata: {
-            name: "test-configmap-1",
-          },
-        },
-        {
-          apiVersion: "v1",
-          data: {
-            hello: "${var.greeting}", // <-- do NOT resolve template strings for manifests defined in spec.manifestFiles
-          },
-          kind: "ConfigMap",
-          metadata: {
-            name: "test-configmap-2",
-          },
-        },
-      ])
-    })
-
-    it("should read manifests from both spec.files and spec.manifestTemplates", async () => {
-      const actionName = "with-manifest-templates-and-legacy-files"
-      const deployAction = graph.getDeploy(actionName)
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-        action: deployAction,
-        log: garden.log,
-        graph,
-      })
-
-      const declaredManifests = await readManifests(ctx, resolvedAction, garden.log)
-      expect(declaredManifests).to.exist
-
-      const manifests = declaredManifests.map((dm) => dm.manifest)
-      expect(manifests).to.exist
-
-      manifests.sort((left, right) => left.metadata.name.localeCompare(right.metadata.name))
-      expect(manifests).to.eql([
-        {
-          apiVersion: "v1",
-          data: {
-            hello: "world", // <-- resolve template strings for manifests defined in spec.manifestTemplates
-          },
-          kind: "ConfigMap",
-          metadata: {
-            name: "test-configmap-1",
-          },
-        },
-        {
-          apiVersion: "v1",
-          data: {
-            hello: "world", // <-- resolve template strings for manifests defined in spec.files
-          },
-          kind: "ConfigMap",
-          metadata: {
-            name: "test-configmap-2",
-          },
-        },
-      ])
-    })
-
     context("with missing references to missing variables in manifest files", () => {
-      it("should read manifests from deprecated spec.files and retain original template expression if a referenced variable is not defined (backed by legacyAllowPartial=true)", async () => {
-        const actionName = "legacy-files-with-missing-variables"
-        const deployAction = graph.getDeploy(actionName)
-        const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
-          action: deployAction,
-          log: garden.log,
-          graph,
-        })
-
-        const declaredManifests = await readManifests(ctx, resolvedAction, garden.log)
-        expect(declaredManifests).to.exist
-
-        const manifests = declaredManifests.map((dm) => dm.manifest)
-        expect(manifests).to.exist
-
-        manifests.sort((left, right) => left.metadata.name.localeCompare(right.metadata.name))
-        expect(manifests).to.eql([
-          {
-            apiVersion: "v1",
-            data: {
-              hello: "${var.missing}", // <-- do NOT resolve template strings for manifests defined in spec.manifestFiles
-            },
-            kind: "ConfigMap",
-            metadata: {
-              name: "test-configmap-missing",
-            },
-          },
-        ])
-      })
-
       it("should read manifests from spec.manifestTemplates and retain original template expression if a referenced variable is not defined", async () => {
         const actionName = "manifest-templates-with-missing-variables"
         const deployAction = graph.getDeploy(actionName)

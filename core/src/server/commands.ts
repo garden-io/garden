@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -316,7 +316,7 @@ export const serverRequestSchema = createSchema({
       .description(
         "Array of args to append to the given command. Kept for backwards compatibility (it's now enough to just use the command string."
       )
-      .meta({ deprecated: true }),
+      .meta({ deprecated: true }), // TODO(deprecation): deprecate in 0.14
     internal: joi
       .boolean()
       .description(

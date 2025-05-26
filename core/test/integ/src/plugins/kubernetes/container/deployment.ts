@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,14 +10,13 @@ import { expect } from "chai"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { KubeApi, KubernetesError } from "../../../../../../src/plugins/kubernetes/api.js"
 import {
-  createContainerManifests,
   createWorkloadManifest,
   getDeploymentLabels,
   handleChangedSelector,
 } from "../../../../../../src/plugins/kubernetes/container/deployment.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
 import type { V1ConfigMap, V1Secret } from "@kubernetes/client-node"
-import type { KubernetesResource, KubernetesWorkload } from "../../../../../../src/plugins/kubernetes/types.js"
+import type { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types.js"
 import cloneDeep from "fast-copy"
 import { keyBy } from "lodash-es"
 import { getContainerTestGarden } from "./container.js"
@@ -28,6 +27,7 @@ import { kilobytesToString, millicpuToString } from "../../../../../../src/plugi
 import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util.js"
 import { isConfiguredForSyncMode } from "../../../../../../src/plugins/kubernetes/status/status.js"
 import type {
+  ContainerBuildAction,
   ContainerDeployAction,
   ContainerDeployActionConfig,
   ContainerDeployOutputs,
@@ -36,19 +36,10 @@ import { apply } from "../../../../../../src/plugins/kubernetes/kubectl.js"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 import { gardenAnnotationKey } from "../../../../../../src/util/string.js"
 import {
-  defaultUtilImageRegistryDomain,
-  getK8sReverseProxyImagePath,
   getK8sSyncUtilImagePath,
   k8sSyncUtilContainerName,
-  PROXY_CONTAINER_SSH_TUNNEL_PORT,
-  PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
-  PROXY_CONTAINER_USER_NAME,
 } from "../../../../../../src/plugins/kubernetes/constants.js"
-import {
-  LocalModeEnv,
-  LocalModeProcessRegistry,
-  ProxySshKeystore,
-} from "../../../../../../src/plugins/kubernetes/local-mode.js"
+
 import stripAnsi from "strip-ansi"
 import { getDeployStatuses } from "../../../../../../src/tasks/helpers.js"
 import type { ResolvedDeployAction } from "../../../../../../src/actions/deploy.js"
@@ -73,6 +64,10 @@ describe("kubernetes container deployment handlers", () => {
     }
     return garden.resolveAction<ContainerDeployAction>({ action: graph.getDeploy(name), log: garden.log, graph })
   }
+  async function resolveBuildAction(name: string) {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    return garden.resolveAction<ContainerBuildAction>({ action: graph.getBuild(name), log: garden.log, graph })
+  }
 
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -93,224 +88,6 @@ describe("kubernetes container deployment handlers", () => {
     )
     api = await KubeApi.factory(garden.log, ctx, provider)
   }
-
-  describe("createContainerManifests", () => {
-    before(async () => {
-      await init("local")
-    })
-
-    after(async () => {
-      if (cleanup) {
-        cleanup()
-      }
-    })
-
-    afterEach(async () => {
-      LocalModeProcessRegistry.getInstance().shutdown()
-      ProxySshKeystore.getInstance(garden.log).shutdown(garden.log)
-    })
-
-    function expectSshContainerPort(workload: KubernetesWorkload) {
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      const workloadSshPort = appContainerSpec!.ports!.find((p) => p.name === PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME)
-      expect(workloadSshPort!.containerPort).to.eql(PROXY_CONTAINER_SSH_TUNNEL_PORT)
-    }
-
-    function expectEmptyContainerArgs(workload: KubernetesWorkload) {
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      expect(appContainerSpec!.args).to.eql([])
-    }
-
-    function expectProxyContainerImage(workload: KubernetesWorkload) {
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      expect(appContainerSpec!.image).to.eql(getK8sReverseProxyImagePath(defaultUtilImageRegistryDomain))
-    }
-
-    function expectContainerEnvVars(workload: KubernetesWorkload) {
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      const env = appContainerSpec!.env!
-
-      const httpPort = appContainerSpec!.ports!.find((p) => p.name === "http")!.containerPort.toString()
-      const appPortEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORTS)!.value
-      expect(appPortEnvVar).to.eql(httpPort)
-
-      const proxyUserEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_PROXY_CONTAINER_USER_NAME)!.value
-      expect(proxyUserEnvVar).to.eql(PROXY_CONTAINER_USER_NAME)
-
-      const publicKeyEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_PROXY_CONTAINER_PUBLIC_KEY)!.value
-      expect(!!publicKeyEnvVar).to.be.true
-    }
-
-    function expectNoProbes(workload: KubernetesWorkload) {
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      expect(appContainerSpec!.livenessProbe).to.be.undefined
-      expect(appContainerSpec!.readinessProbe).to.be.undefined
-    }
-
-    context("with localMode only", () => {
-      it("Workflow should have ssh container port when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectSshContainerPort(workload)
-      })
-
-      it("Workflow should have empty container args when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectEmptyContainerArgs(workload)
-      })
-
-      it("Workflow should have extra env vars for proxy container when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectContainerEnvVars(workload)
-      })
-
-      it("Workflow should not have liveness and readiness probes when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectNoProbes(workload)
-      })
-    })
-
-    context("localMode with utilImageRegistryDomain set to a custom registry", () => {
-      const environmentName = "local"
-      let gardenCustomDomain: TestGarden
-      let cleanupCustomDomain: (() => void) | undefined
-      let ctxCustomDomain: KubernetesPluginContext
-      let providerCustomDomain: KubernetesProvider
-      let apiCustomDomain: KubeApi
-
-      before(async () => {
-        const res = await getContainerTestGarden(environmentName)
-        gardenCustomDomain = res.garden
-        cleanup = res.cleanup
-        providerCustomDomain = <KubernetesProvider>(
-          await gardenCustomDomain.resolveProvider({ log: garden.log, name: "local-kubernetes" })
-        )
-        providerCustomDomain.config["utilImageRegistryDomain"] = "https://my-custom-registry-mirror.io"
-
-        ctxCustomDomain = <KubernetesPluginContext>await garden.getPluginContext({
-          provider: {
-            ...providerCustomDomain,
-          },
-          templateContext: undefined,
-          events: undefined,
-        })
-        apiCustomDomain = await KubeApi.factory(garden.log, ctx, provider)
-      })
-
-      it("should have proxy container image using custom container registry", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx: ctxCustomDomain,
-          api: apiCustomDomain,
-          action,
-          log: createActionLog({ log: gardenCustomDomain.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-        expect(appContainerSpec!.image).to.eql(getK8sReverseProxyImagePath("https://my-custom-registry-mirror.io"))
-      })
-
-      after(() => {
-        cleanupCustomDomain && cleanupCustomDomain()
-      })
-    })
-
-    context("localMode always takes precedence over syncMode", () => {
-      it("Workflow should have ssh container port when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectSshContainerPort(workload)
-      })
-
-      it("Workflow should have proxy container image and empty container args when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectProxyContainerImage(workload)
-        expectEmptyContainerArgs(workload)
-      })
-
-      it("Workflow should have extra env vars for proxy container when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectContainerEnvVars(workload)
-      })
-
-      it("Workflow should not have liveness and readiness probes when in local mode", async () => {
-        const action = await resolveDeployAction("local-mode", "local") // <----
-
-        const { workload } = await createContainerManifests({
-          ctx,
-          api,
-          action,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action),
-        })
-
-        expectNoProbes(workload)
-      })
-    })
-  })
 
   describe("createWorkloadManifest", () => {
     before(async () => {
@@ -621,8 +398,8 @@ describe("kubernetes container deployment handlers", () => {
       expect(resource.spec.template?.spec?.imagePullSecrets).to.eql([{ name: secretName }])
     })
 
-    it("should correctly mount a referenced PVC module", async () => {
-      const action = await resolveDeployAction("volume-reference")
+    it("should correctly mount volume", async () => {
+      const action = await resolveDeployAction("volume-module")
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
@@ -636,63 +413,8 @@ describe("kubernetes container deployment handlers", () => {
         production: false,
       })
 
-      expect(resource.spec.template?.spec?.volumes).to.eql([
-        { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
-      ])
+      expect(resource.spec.template?.spec?.volumes).to.eql([{ name: "test", emptyDir: {} }])
       expect(resource.spec.template?.spec?.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/volume" }])
-    })
-
-    it("should correctly mount a referenced ConfigMap module", async () => {
-      const action = await resolveDeployAction("configmap-reference")
-      const namespace = provider.config.namespace!.name!
-
-      const resource = await createWorkloadManifest({
-        ctx,
-        api,
-        provider,
-        action,
-        imageId: getDeployedImageId(action),
-        namespace,
-        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-        production: false,
-      })
-
-      expect(resource.spec.template?.spec?.volumes).to.eql([
-        {
-          name: "test",
-          configMap: {
-            name: "configmap-module",
-          },
-        },
-      ])
-      expect(resource.spec.template?.spec?.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/config" }])
-    })
-
-    it("should throw if incompatible module is specified as a volume module", async () => {
-      const action = await resolveDeployAction("volume-reference")
-      const namespace = provider.config.namespace!.name!
-
-      action["_config"].spec.volumes = [
-        { name: "test", containerPath: "TODO-G2", action: { name: "simple-service", kind: "Deploy" } },
-      ]
-
-      await expectError(
-        () =>
-          createWorkloadManifest({
-            ctx,
-            api,
-            provider,
-            action,
-            imageId: getDeployedImageId(action),
-            namespace,
-            log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-            production: false,
-          }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.include(
-            "Deploy type=container name=volume-reference (from module volume-reference) specifies a unsupported config simple-service for volume mount test. Only `persistentvolumeclaim` and `configmap` action are supported at this time."
-          )
-      )
     })
   })
 
@@ -709,13 +431,14 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a simple Deploy", async () => {
-        const action = await resolveDeployAction("simple-service")
+        const buildAction = await resolveBuildAction("simple-service")
+        const serviceAction = await resolveDeployAction("simple-service")
 
         const deployTask = new DeployTask({
           garden,
           graph,
           log: garden.log,
-          action,
+          action: serviceAction,
           force: true,
           forceBuild: false,
         })
@@ -723,13 +446,15 @@ describe("kubernetes container deployment handlers", () => {
         garden.events.eventLog = []
         const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getDeployStatuses(results.results)
-        const status = statuses[action.name]
+        const status = statuses[serviceAction.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
 
         expect(findNamespaceStatusEvent(garden.events.eventLog, "container-default")).to.exist
-        expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(`${action.versionString()}`)
+        expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(
+          `${serviceAction.versionString()}`
+        )
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `${action.name}:${action.getBuildAction()?.versionString()}`
+          `${serviceAction.name}:${buildAction.versionString()}`
         )
       })
 
@@ -832,8 +557,8 @@ describe("kubernetes container deployment handlers", () => {
         expect(status.state).to.eql("ready")
       })
 
-      it("should deploy a service referencing a volume module", async () => {
-        const action = await resolveDeployAction("volume-reference")
+      it("should deploy a service with volume mount", async () => {
+        const action = await resolveDeployAction("volume-module")
 
         const deployTask = new DeployTask({
           garden,
@@ -850,9 +575,7 @@ describe("kubernetes container deployment handlers", () => {
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
 
         expect(status.state).eql("ready")
-        expect(resources.Deployment.spec.template.spec.volumes).to.eql([
-          { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
-        ])
+        expect(resources.Deployment.spec.template.spec.volumes).to.eql([{ name: "test", emptyDir: {} }])
         expect(resources.Deployment.spec.template.spec.containers[0].volumeMounts).to.eql([
           { name: "test", mountPath: "/volume" },
         ])

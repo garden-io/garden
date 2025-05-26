@@ -6,7 +6,7 @@ tocTitle: "`terraform`"
 # `terraform` Module Type
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 ## Description
@@ -19,10 +19,9 @@ Stack outputs are made available as service outputs, that can be referenced by o
 
 Note that you can also declare a Terraform root in the `terraform` provider configuration by setting the `initRoot` parameter. This may be preferable if you need the outputs of the Terraform stack to be available to other provider configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from that to configure another provider or other modules via `${providers.terraform.outputs.<key>}` template strings.
 
-See the [Terraform guide](https://docs.garden.io/bonsai-0.13/advanced/terraform) for a high-level introduction to the `terraform` provider.
+See the [Terraform guide](https://docs.garden.io/cedar-0.14/advanced/terraform) for a high-level introduction to the `terraform` provider.
 
-Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference.
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -94,7 +93,7 @@ disabled: false
 #
 # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source
 # tree, which use the same format as `.gitignore` files. See the [Configuration Files
-# guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+# guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
@@ -107,7 +106,7 @@ include:
 # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
 # field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration
 # Files
-# guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories)
+# guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
 # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -368,7 +367,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
@@ -388,7 +387,7 @@ include:
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/bonsai-0.13/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -592,7 +591,8 @@ Example:
 
 ```yaml
 backendConfig:
-    "bucket: ${environment.name\\}-bucket\nkey: tf-state/${local.username\\}/terraform.tfstate"
+    bucket: ${environment.name}-bucket
+    key: tf-state/${local.username}/terraform.tfstate
 ```
 
 

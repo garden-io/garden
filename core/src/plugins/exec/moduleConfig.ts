@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -176,6 +176,7 @@ export const execServiceSchema = () =>
         `),
       }),
     })
+    // Module configs are deprecated, so we keep syntax translation in module configs
     .rename("devMode", "syncMode")
     .description("A service to deploy using shell commands.")
 

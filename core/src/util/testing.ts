@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -182,14 +182,14 @@ export type TestGardenOpts = Partial<GardenOpts> & {
 export class TestGarden extends Garden {
   override events: TestEventBus
   // Overriding the type declarations of a few instance variables to allow reassignment in test code.
-  public declare projectId?: string
-  public declare actionConfigs: ActionConfigMap
-  public declare moduleConfigs: ModuleConfigMap
-  public declare workflowConfigs: WorkflowConfigMap
-  public declare configTemplates: { [name: string]: ConfigTemplateConfig }
-  public declare vcs: VcsHandler
-  public declare secrets: StringMap
-  public declare variables: VariablesContext
+  declare public projectId?: string
+  declare public actionConfigs: ActionConfigMap
+  declare public moduleConfigs: ModuleConfigMap
+  declare public workflowConfigs: WorkflowConfigMap
+  declare public configTemplates: { [name: string]: ConfigTemplateConfig }
+  declare public vcs: VcsHandler
+  declare public secrets: StringMap
+  declare public variables: VariablesContext
   private repoRoot!: string
   public cacheKey!: string
   public clearConfigsOnScan = false

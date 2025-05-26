@@ -12,18 +12,12 @@ In the tutorial we'll:
 3. [Add actions to the project](./3-add-actions.md)
 4. [Add tests to the project](./4-testing.md)
 5. [Enable code syncing](./5-code-syncing.md)
-6. [..and discuss next steps](./6-configure-your-project.md)
+6. [...and discuss next steps](./6-configure-your-project.md)
 
 ## Requirements
 
 - You'll need to have Garden installed to follow along with this guide. You'll find the instructions in our [Quickstart guide](../../getting-started/quickstart.md).
-- We also recommend quickly reading the [How Garden Works](../../overview/how-garden-works.md) page before carrying on.
+- We also recommend quickly reading the [Garden Basics](../../getting-started/basics.md) page before carrying on.
 
 Once you've done that, head on over to the [next page](./1-initialize-a-project.md)!
-
-## Video Tutorial
-
-For those that prefer something more visual, we also have a video tutorial which (mostly) follows the same steps.
-
-{% embed url="https://youtu.be/0y5E8K-8kr4" %}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -38,6 +38,7 @@ import { deepEvaluate, evaluate } from "../template/evaluate.js"
 import { serialiseUnresolvedTemplates, UnresolvedTemplateValue } from "../template/types.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { InputContext } from "./template-contexts/input.js"
+import { getBackendType } from "../cloud/util.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -67,7 +68,7 @@ export interface RenderTemplateConfig extends BaseGardenResource {
   inputs?: DeepPrimitiveMap
 }
 
-// TODO: remove in 0.14
+// TODO(deprecation): deprecate in 0.14 and remove in 0.15
 export const templatedModuleSpecSchema = createSchema({
   name: "templated-module",
   keys: () => ({
@@ -123,7 +124,12 @@ export async function renderConfigTemplate({
   // when resolving the resulting modules. Inputs that are used in module names must however be resolvable
   // immediately.
   const loggedIn = garden.isLoggedIn()
-  const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, cloudBackendDomain: garden.cloudDomain })
+  const templateContext = new EnvironmentConfigContext({
+    ...garden,
+    loggedIn,
+    cloudBackendDomain: garden.cloudDomain,
+    backendType: getBackendType(garden.getProjectConfig()),
+  })
 
   // @ts-expect-error todo: correct types for unresolved configs
   const resolvedWithoutInputs: RenderTemplateConfig = deepEvaluate(omit(config, "inputs"), {
@@ -169,12 +175,13 @@ export async function renderConfigTemplate({
     ...garden,
     loggedIn: garden.isLoggedIn(),
     cloudBackendDomain: garden.cloudDomain,
+    backendType: getBackendType(garden.getProjectConfig()),
     parentName: resolved.name,
     templateName: template.name,
     inputs: InputContext.forRenderTemplate(config, template),
   })
 
-  // TODO: remove in 0.14
+  // TODO(deprecation): deprecate in 0.14 and remove in 0.15
   const modules = await renderModules({ garden, template, context, renderConfig: resolved })
 
   const configs = await renderConfigs({ garden, log, template, context, renderConfig: resolved })

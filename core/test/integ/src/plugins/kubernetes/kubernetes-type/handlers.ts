@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -41,7 +41,6 @@ import {
 } from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers.js"
 import { buildHelmModules } from "../helm/common.js"
 import { gardenAnnotationKey, randomString } from "../../../../../../src/util/string.js"
-import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
 import type { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
@@ -49,9 +48,9 @@ import {
   GardenApiVersion,
 } from "../../../../../../src/constants.js"
 import type { ActionModeMap } from "../../../../../../src/actions/types.js"
-import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
 import stripAnsi from "strip-ansi"
 import type { DeployActionConfig } from "../../../../../../src/actions/deploy.js"
+import type { EventNamespaceStatus } from "../../../../../../src/plugin-context.js"
 
 describe("kubernetes-type handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -387,7 +386,7 @@ describe("kubernetes-type handlers", () => {
       const { deployParams } = await prepareActionDeployParams("module-simple", {})
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
-      let namespaceStatus: NamespaceStatus | null = null
+      let namespaceStatus: EventNamespaceStatus | null = null
       ctx.events.once("namespaceStatus", (s) => (namespaceStatus = s))
       const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
@@ -452,34 +451,6 @@ describe("kubernetes-type handlers", () => {
 
       expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
       expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("sync")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
-    })
-
-    it("should handle local mode", async () => {
-      const localData = await prepareActionDeployParamsWithManifests("with-source-module", {
-        local: ["deploy.with-source-module"],
-      })
-      const defaultData = await prepareActionDeployParamsWithManifests("with-source-module", {
-        default: ["deploy.with-source-module"],
-      })
-
-      // Deploy without local mode
-      await kubernetesDeploy(defaultData.deployParams)
-      const res1 = await findDeployedResources(defaultData.manifests, log)
-
-      // Deploy with local mode
-      await kubernetesDeploy(localData.deployParams)
-      const res2 = await findDeployedResources(localData.manifests, log)
-      // shut down local app and tunnels to avoid retrying after redeploy
-      LocalModeProcessRegistry.getInstance().shutdown()
-      ProxySshKeystore.getInstance(log).shutdown(log)
-
-      // Deploy without local mode again
-      await kubernetesDeploy(defaultData.deployParams)
-      const res3 = await findDeployedResources(defaultData.manifests, log)
-
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("local")
       expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
     })
 

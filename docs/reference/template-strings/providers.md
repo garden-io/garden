@@ -145,7 +145,7 @@ my-variable: ${command.name}
 
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
-Option values can be referenced by the option's default name (e.g. `local-mode`) or its alias (e.g. `local`) if one is defined for that option.
+Option values can be referenced by the option's default name (e.g. `sync-mode`) or its alias (e.g. `sync`) if one is defined for that option.
 
 | Type     |
 | -------- |
@@ -291,6 +291,14 @@ Example:
 my-variable: ${git.originUrl}
 ```
 
+### `${secrets.*}`
+
+A map of all secrets for this project in the current environment.
+
+| Type     |
+| -------- |
+| `object` |
+
 ### `${secrets.<secret-name>}`
 
 The secret's value.
@@ -397,7 +405,7 @@ The resolved configuration for the provider.
 
 ### `${providers.<provider-name>.config.<config-key>}`
 
-The provider config key value. Refer to individual [provider references](https://docs.garden.io/bonsai-0.13/reference/providers) for details.
+The provider config key value. Refer to individual [provider references](https://docs.garden.io/cedar-0.14/reference/providers) for details.
 
 | Type                          |
 | ----------------------------- |
@@ -413,7 +421,7 @@ The outputs defined by the provider (see individual plugin docs for details).
 
 ### `${providers.<provider-name>.outputs.<output-key>}`
 
-The provider output value. Refer to individual [provider references](https://docs.garden.io/bonsai-0.13/reference/providers) for details.
+The provider output value. Refer to individual [provider references](https://docs.garden.io/cedar-0.14/reference/providers) for details.
 
 | Type                          |
 | ----------------------------- |

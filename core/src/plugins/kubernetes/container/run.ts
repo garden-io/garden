@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,12 +9,13 @@
 import type { ContainerRunAction } from "../../container/moduleConfig.js"
 import { runAndCopy } from "../run.js"
 import type { KubernetesPluginContext } from "../config.js"
-import { composeCacheableRunResult, toRunActionStatus } from "../run-results.js"
-import { storeRunResult } from "../run-results.js"
-import { makePodName } from "../util.js"
+import { makePodName, toActionStatus } from "../util.js"
 import { getNamespaceStatus } from "../namespace.js"
 import type { RunActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
+import { getRunResultCache } from "../results-cache.js"
+import { InternalError } from "../../../exceptions.js"
+import type { KubernetesRunResult } from "../../../plugin/base.js"
 
 export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params
@@ -25,6 +26,12 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
   const k8sCtx = ctx as KubernetesPluginContext
   const image = getDeployedImageId(action)
   const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
+
+  if (namespaceStatus.state !== "ready") {
+    throw new InternalError({
+      message: `Expected namespace state to be "ready", but got "${namespaceStatus.state}" instead.`,
+    })
+  }
 
   const result = await runAndCopy({
     ...params,
@@ -43,16 +50,16 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     dropCapabilities,
   })
 
-  const detail = composeCacheableRunResult({ result, action, namespaceStatus })
-
   if (action.getSpec("cacheResult")) {
-    await storeRunResult({
+    const runResultCache = getRunResultCache(ctx)
+    await runResultCache.store({
       ctx,
       log,
       action,
-      result: detail,
+      keyData: { namespaceUid: namespaceStatus.namespaceUid },
+      result,
     })
   }
 
-  return toRunActionStatus(detail)
+  return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
 }

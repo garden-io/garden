@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,10 +35,14 @@ describe("runCli", () => {
       initLogger: false,
     })
 
+    if (result?.errors?.length) {
+      throw result.errors[0]
+    }
+
     expect(cli!["plugins"].map((p) => p.name)).to.eql(getBundledPlugins().map((p) => p.name))
 
-    const conftestTool = result?.result?.tools?.find((t) => t.pluginName === "conftest")
-    expect(conftestTool).to.exist
+    const jibTool = result?.result?.tools?.find((t) => t.pluginName === "jib")
+    expect(jibTool).to.exist
   })
 
   it("should register a GardenProcess entry and pass to cli.run()", async () => {

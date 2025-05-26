@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,6 +21,7 @@ import { RuntimeError } from "../exceptions.js"
 import { makeTempDir } from "../util/fs.js"
 import { createReadStream, createWriteStream } from "fs"
 import fsExtra from "fs-extra"
+
 const { copy, mkdirp, move, readdir, remove } = fsExtra
 import { GotHttpError, got } from "../util/http.js"
 import { gardenEnv } from "../constants.js"
@@ -69,8 +70,8 @@ const selfUpdateOpts = {
 export type SelfUpdateArgs = typeof selfUpdateArgs
 export type SelfUpdateOpts = typeof selfUpdateOpts
 
-const versionScopes = ["major", "minor", "patch"] as const
-export type VersionScope = (typeof versionScopes)[number]
+const _versionScopes = ["major", "minor", "patch"] as const
+export type VersionScope = (typeof _versionScopes)[number]
 
 function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>): VersionScope {
   if (opts["major"]) {
@@ -260,7 +261,13 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   }: CommandParams<SelfUpdateArgs, SelfUpdateOpts>): Promise<CommandResult<SelfUpdateResult>> {
     const currentVersion = getPackageVersion()
 
-    let desiredVersion = args.version
+    // FIXME: StringParameter is in fact a number
+    //  The method Parameter.validate ignores the actual validation result,
+    //  and does not ensure the correct type of the output object.
+    //  This is a quick hack to unlock the release,
+    //  let's revisit the parameter validation.
+    // The version can still be `undefined`, so we prevent from converting it to string "undefined"
+    let desiredVersion = args.version === undefined ? undefined : `${args.version}`
 
     if (desiredVersion && desiredVersion[0] === "v") {
       desiredVersion = desiredVersion.slice(1)
