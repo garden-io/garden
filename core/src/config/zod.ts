@@ -88,14 +88,14 @@ type GardenSchema = typeof z & {
 export function renderZodError(error: z.ZodError): string {
   return error.issues
     .map((i: Zod.ZodIssue & { expected?: unknown; received?: unknown }) => {
-      const path = i.path && i.path.length > 0 ? ` at path ${styles.highlight(i.path.join("."))}` : ""
+      const path = i.path && i.path.length > 0 ? `at path ${styles.highlight(i.path.join("."))}` : ""
       if (i["expected"] && i["received"]) {
-        return `Expected ${i["expected"]}${path}, but received ${i["received"]}.`
+        return `Expected ${i["expected"]} ${path}, but received ${i["received"]}.`
       } else {
         return `Issue ${path}: ${i.message}`
       }
     })
-    .join("\n\n")
+    .join("\n")
 }
 
 // This should be imported instead of z because we augment zod with custom methods
