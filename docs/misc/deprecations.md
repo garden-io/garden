@@ -87,4 +87,4 @@ The `cleanup-cluster-registry` command in the `kubernetes` and `local-kubernetes
 
 <h2 id="containerdeployactionhostport"><code>spec.ports[].hostPort</code> configuration field in <code>container</code> Deploy action</h2>
 
-The `hostPort` field of the `V1ContainerPort` is generally advised against using it, see the K8s best practices at https://kubernetes.io/docs/concepts/configuration/overview/
+It's generally not recommended to use the `hostPort` field of the `V1ContainerPort` spec. You can learn more about Kubernetes best practices at: https://kubernetes.io/docs/concepts/configuration/overview/
