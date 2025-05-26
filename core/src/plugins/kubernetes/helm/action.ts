@@ -24,6 +24,8 @@ import { makeDocsLinkPlain } from "../../../docs/common.js"
 import { helmVersion } from "./helm-cli.js"
 import type { ActionModes } from "../../../actions/types.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
+import { styles } from "../../../logger/styles.js"
 
 export const getHelmDeployDocs = () => dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
@@ -63,11 +65,19 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
     },
 
     configure: async ({ config, log }) => {
+      let deprecationFound = false
       if (config.spec["devMode"]) {
         reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
+        deprecationFound = true
       }
       if (config.spec["localMode"]) {
         reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
+        deprecationFound = true
+      }
+
+      if (deprecationFound) {
+        const configPath = config.internal.configFilePath || config.internal.basePath
+        emitNonRepeatableWarning(log, `Please check your action configuration file at ${styles.highlight(configPath)}`)
       }
 
       const chartPath = config.spec.chart?.path

@@ -117,7 +117,12 @@ export default defineConfig([
         },
       ],
 
-      "mocha/no-skipped-tests": "warn",
+      /**
+       * In 11.0.0 the rule `no-skipped-tests` has been removed,
+       * its functionality has been merged into the existing `no-pending-tests` rule,
+       * see https://github.com/lo1tuma/eslint-plugin-mocha/pull/365
+       */
+      "mocha/no-pending-tests": "warn",
       "mocha/no-exclusive-tests": "error",
       "unused-imports/no-unused-imports": "error",
 

@@ -368,7 +368,7 @@ describe("AnalyticsHandler", () => {
       ])
     })
     // TODO(0.14): I have no idea why we send an event here. I've debugged it and analytics is disabled!
-    // eslint-disable-next-line mocha/no-skipped-tests
+    // eslint-disable-next-line mocha/no-pending-tests
     it.skip("should not identify the user if analytics is disabled via env var", async () => {
       const mockedEndpoint = await mockServer.forPost("/v1/batch").thenReply(200)
 
