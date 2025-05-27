@@ -8,9 +8,9 @@
 
 import stringify from "json-stringify-safe"
 
-import type { Events, EventName, GardenEventAnyListener } from "../events/events.js"
+import type { EventName, Events, GardenEventAnyListener } from "../events/events.js"
 import { shouldStreamEvent } from "../events/events.js"
-import type { LogMetadata, Log, LogEntry, LogContext } from "../logger/log-entry.js"
+import type { Log, LogContext, LogEntry, LogMetadata } from "../logger/log-entry.js"
 import { got } from "../util/http.js"
 
 import type { LogLevel } from "../logger/logger.js"
@@ -27,7 +27,7 @@ const maxFlushFail = 10 // How many consecutive failures to flush events on a lo
  * was chosen to fit comfortably below e.g. nginx' default max request size, while still being able to carry a decent
  * number of records.
  */
-const maxBatchBytes = 600 * 1024 // 600 kilobytes
+const defaultMaxBatchBytes = 600 * 1024 // 600 kilobytes
 
 export type StreamEvent = {
   name: EventName
@@ -86,10 +86,10 @@ interface ApiBatchBase {
 
 export interface ApiEventBatch extends ApiBatchBase {
   events: StreamEvent[]
-  environmentId?: string
-  namespaceId?: string
+  environmentId: string
+  namespaceId: string
   // TODO: Remove the `environment` and `namespace` params once we no longer need to support Cloud/Enterprise
-  // versions that expect them.
+  //   versions that expect them.
   environment: string
   namespace: string
 }
@@ -101,11 +101,12 @@ export interface ApiLogBatch extends ApiBatchBase {
 export interface BufferedEventStreamParams {
   log: Log
   maxLogLevel: LogLevel
-  cloudSession: CloudSession | undefined
+  cloudSession: CloudSession
   garden: Garden
   streamEvents?: boolean
   streamLogEntries?: boolean
   targets?: StreamTarget[]
+  maxBatchBytes?: number
 }
 
 /**
@@ -118,25 +119,31 @@ export interface BufferedEventStreamParams {
  * any) e.g. when config changes during a watch-mode command.
  */
 export class BufferedEventStream {
-  protected log: Log
-  protected cloudSession?: CloudSession
-  protected maxLogLevel: LogLevel
+  private readonly cloudSession: CloudSession
+  private readonly garden: Garden
 
-  protected _targets: StreamTarget[]
-  protected streamEvents: boolean
-  protected streamLogEntries: boolean
+  private readonly log: Log
+  private readonly maxLogLevel: LogLevel
+
+  private readonly maxBatchBytes: number
+
+  private readonly streamEvents: boolean
+  private readonly streamLogEntries: boolean
+
+  private readonly bufferedEvents: StreamEvent[]
+  private readonly bufferedLogEntries: LogEntryEventPayload[]
+
+  private readonly eventListener: GardenEventAnyListener
+  private readonly logListener: GardenEventAnyListener<"logEntry">
+
+  private readonly _targets: StreamTarget[]
+
+  private readonly intervalMsec = 1000
+  private intervalId: NodeJS.Timeout | null = null
+  private flushFailCount = 0
+  private closed: boolean
 
   private workflowRunUid: string | undefined
-  private garden: Garden
-  private closed: boolean
-  private intervalId: NodeJS.Timeout | null = null
-  private bufferedEvents: StreamEvent[]
-  private bufferedLogEntries: LogEntryEventPayload[]
-  private eventListener: GardenEventAnyListener
-  private logListener: GardenEventAnyListener<"logEntry">
-  protected intervalMsec = 1000
-  private flushFailCount = 0
-  private maxBatchBytes: number
 
   constructor({
     log,
@@ -146,6 +153,7 @@ export class BufferedEventStream {
     targets,
     streamEvents = true,
     streamLogEntries = true,
+    maxBatchBytes = defaultMaxBatchBytes,
   }: BufferedEventStreamParams) {
     this.log = log
     this.maxLogLevel = maxLogLevel
@@ -183,10 +191,6 @@ export class BufferedEventStream {
 
     this.log.silly(() => "BufferedEventStream: Connected")
     this.startInterval()
-  }
-
-  isClosed() {
-    return this.closed
   }
 
   startInterval() {
@@ -260,11 +264,7 @@ export class BufferedEventStream {
   }
 
   private getTargets() {
-    if (this.cloudSession) {
-      return [{ enterprise: true }, ...this._targets]
-    } else {
-      return this._targets
-    }
+    return [{ enterprise: true }, ...this._targets]
   }
 
   private async flushEvents(events: StreamEvent[]) {
@@ -277,8 +277,8 @@ export class BufferedEventStream {
       workflowRunUid: this.workflowRunUid,
       sessionId: this.garden.sessionId,
       projectUid: this.garden.projectId || undefined,
-      environmentId: this.cloudSession?.environmentId,
-      namespaceId: this.cloudSession?.namespaceId,
+      environmentId: this.cloudSession.environmentId,
+      namespaceId: this.cloudSession.namespaceId,
       environment: this.garden.environmentName,
       namespace: this.garden.namespace,
     }
@@ -309,11 +309,10 @@ export class BufferedEventStream {
     try {
       await Promise.all(
         this.getTargets().map((target) => {
-          const api = this.cloudSession?.api
-          if (target.enterprise && api?.domain) {
+          if (target.enterprise) {
             // Need to cast so the compiler doesn't complain that the two returns from the map
             // aren't equivalent. Shouldn't matter in this case since we're not collecting the return value.
-            return api.post<any>(path, {
+            return this.cloudSession.api.post<any>(path, {
               body: data,
               retry: true,
               retryDescription: `Flushing ${description}`,

@@ -193,7 +193,8 @@ export interface GardenOpts {
   skipCloudConnect?: boolean
   persistent?: boolean
   plugins?: RegisterPluginParam[]
-  sessionId?: string
+  sessionId: string
+  parentSessionId: string | undefined
   variableOverrides?: PrimitiveMap
   // used in tests
   overrideCloudApiFactory?: GardenCloudApiFactory
@@ -232,6 +233,7 @@ export interface GardenParams {
   variableOverrides: DeepPrimitiveMap
   secrets: StringMap
   sessionId: string
+  parentSessionId: string | undefined
   username: string | undefined
   workingCopyId: string
   forceRefresh?: boolean
@@ -257,6 +259,7 @@ interface ResolveProviderParams {
 
 type GardenType = typeof Garden.prototype
 export type GardenWithOldBackend = GardenType & Required<Pick<GardenType, "cloudApi">>
+export type GardenWithNewBackend = GardenType & Required<Pick<GardenType, "cloudApiV2">>
 
 function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
   const projectApiVersion = params.projectConfig.apiVersion
@@ -290,6 +293,7 @@ export class Garden {
   private asyncLock: AsyncLock
   public readonly projectId?: string
   public sessionId: string
+  public parentSessionId: string | undefined
   public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
@@ -353,6 +357,7 @@ export class Garden {
   constructor(params: GardenParams) {
     this.projectId = params.projectId
     this.sessionId = params.sessionId
+    this.parentSessionId = params.parentSessionId
     this.environmentName = params.environmentName
     this.resolvedDefaultNamespace = params.resolvedDefaultNamespace
     this.namespace = params.namespace
@@ -452,7 +457,11 @@ export class Garden {
     this.registeredPlugins = getRegisteredPlugins(params)
     this.resolvedProviders = {}
 
-    this.events = new EventBus({ gardenKey: this.getInstanceKey() })
+    this.events = new EventBus({
+      gardenKey: this.getInstanceKey(),
+      sessionId: this.sessionId,
+      _parentSessionId: this.parentSessionId,
+    })
     // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
     this.version = getPackageVersion()
     this.monitors = params.monitors || new MonitorManager(this.log, this.events)
@@ -530,7 +539,7 @@ export class Garden {
     }
 
     const parentEvents = garden.events
-    garden.events = new EventBus({ gardenKey: garden.getInstanceKey(), sessionId })
+    garden.events = new EventBus({ gardenKey: garden.getInstanceKey(), sessionId, _parentSessionId: parentSessionId })
     // We make sure events emitted in the context of the command are forwarded to the parent Garden event bus.
     garden.events.onAny((name, payload) => {
       parentEvents.emit(name, payload)
@@ -1854,7 +1863,7 @@ export class Garden {
     return suggestions
   }
 
-  /** Returns whether the user is logged in to the Garden Cloud */
+  /** Returns whether the user is logged in to the "old" Garden Cloud */
   public isOldBackendAvailable(): this is GardenWithOldBackend {
     const oldBackendAvailable = !!this.cloudApi
     if (getBackendType(this.projectConfig) === "v2" && oldBackendAvailable) {
@@ -1863,6 +1872,17 @@ export class Garden {
       })
     }
     return oldBackendAvailable
+  }
+
+  /** Returns whether the user is logged in to the "new" Garden Cloud */
+  public isNewBackendAvailable(): this is GardenWithNewBackend {
+    const newBackendAvailable = !!this.cloudApiV2
+    if (getBackendType(this.projectConfig) === "v1" && newBackendAvailable) {
+      throw new InternalError({
+        message: "Invalid state: should use backend v1, but logged in to backend v2",
+      })
+    }
+    return newBackendAvailable
   }
 
   public isLoggedIn(): boolean {
@@ -2149,6 +2169,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     // Update the log context
     log.context.gardenKey = getGardenInstanceKey({ environmentName, namespace, projectRoot, variableOverrides })
     log.context.sessionId = sessionId
+    log.context.parentSessionId = opts.parentSessionId
 
     // Setting this after resolving the gardenKey above because we don't want the default namespace resolved there
     namespace = pickedEnv.namespace
@@ -2181,6 +2202,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       artifactsPath,
       vcsInfo,
       sessionId,
+      parentSessionId: opts.parentSessionId,
       cloudDomain: cloudBackendDomain,
       cloudApi,
       cloudApiV2,

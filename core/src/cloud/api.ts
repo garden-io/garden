@@ -49,8 +49,16 @@ export class CloudApiDuplicateProjectsError extends CloudApiError {}
 
 export class CloudApiTokenRefreshError extends CloudApiError {}
 
-function extractErrorMessageBodyFromGotError(error: any): error is GotHttpError {
-  return error?.response?.body?.message
+function extractErrorMessageBodyFromGotError(error: RequestError): string {
+  const body = error?.response?.body
+  const message = typeof body === "object" && body !== null ? `${body["message"]}` : "<No message in response>"
+  const requestId = error?.response?.headers["x-request-id"]
+
+  if (requestId) {
+    return `${message} (requestId: ${requestId})`
+  }
+
+  return message
 }
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
@@ -770,16 +778,20 @@ export class GardenCloudApi {
           body,
         }
       )
-      // TODO: error handling
     } catch (err) {
-      return {
-        data: {
-          version: "v2",
-          availability: {
-            available: false,
-            reason: `Failed to determine Remote Container Builder availability: ${extractErrorMessageBodyFromGotError(err) ?? err}`,
+      if (err instanceof RequestError || err instanceof GardenError) {
+        const message = err instanceof RequestError ? extractErrorMessageBodyFromGotError(err) : err.message
+        return {
+          data: {
+            version: "v2",
+            availability: {
+              available: false,
+              reason: `Failed to determine Remote Container Builder availability: ${message}`,
+            },
           },
-        },
+        }
+      } else {
+        throw err
       }
     }
   }

@@ -8,7 +8,7 @@
 
 import { getLogLevelChoices, LogLevel } from "../logger/logger.js"
 import stringArgv from "string-argv"
-import type { Command, CommandParams, CommandResult } from "../commands/base.js"
+import type { BuiltinArgs, Command, CommandParams, CommandResult } from "../commands/base.js"
 import { ConsoleCommand } from "../commands/base.js"
 import { createSchema, joi } from "../config/common.js"
 import { type Log } from "../logger/log-entry.js"
@@ -21,7 +21,6 @@ import micromatch from "micromatch"
 import type { GardenInstanceManager } from "./instance-manager.js"
 import { isDirectory } from "../util/fs.js"
 import fsExtra from "fs-extra"
-const { pathExists } = fsExtra
 import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
 import type { GlobalConfigStore } from "../config-store/global.js"
@@ -41,6 +40,8 @@ import {
   getTestStatusPayloads,
 } from "../actions/helpers.js"
 import pProps from "p-props"
+
+const { pathExists } = fsExtra
 
 const autocompleteArguments = {
   input: new StringParameter({
@@ -383,7 +384,7 @@ export async function resolveRequest({
   let command: Command | undefined
   let rest: string[] = []
   let argv: ParsedArgs | undefined
-  let cmdArgs: ParameterValues<ParameterObject> = {}
+  let cmdArgs: BuiltinArgs & ParameterValues<ParameterObject> = {}
   let cmdOpts: ParameterValues<ParameterObject> = {}
 
   if (request.command) {

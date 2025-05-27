@@ -24,6 +24,7 @@ import { dedent } from "../../../../src/util/string.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
 import { getLogMessages } from "../../../../src/util/testing.js"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 describe("ToolsCommand", () => {
   let tmpDir: TempDirectory
@@ -224,7 +225,9 @@ describe("ToolsCommand", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const _garden: any = await makeDummyGarden(tmpDir.path, {
       skipCloudConnect: true,
-      commandInfo: { name: "foo", args: {}, opts: {} },
+      commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
+      sessionId: uuidv4(),
+      parentSessionId: undefined,
     })
     _garden.registeredPlugins = [pluginA, pluginB]
 

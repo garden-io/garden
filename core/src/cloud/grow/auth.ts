@@ -18,7 +18,7 @@ import { clearAuthToken, saveAuthToken } from "../auth.js"
 import { getCloudDistributionName } from "../util.js"
 import dedent from "dedent"
 import { handleServerNotices } from "./notices.js"
-import { GrowCloudError } from "./api.js"
+import { GrowCloudTRPCError } from "./api.js"
 
 export function isTokenExpired(token: ClientAuthToken) {
   const now = new Date()
@@ -65,7 +65,7 @@ export async function isTokenValid({
     if (err instanceof TRPCClientError) {
       const errorDesc = describeTRPCClientError(err)
       log.debug(errorDesc.detailed)
-      throw new GrowCloudError({
+      throw new GrowCloudTRPCError({
         message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${errorDesc.short}`,
         cause: err,
       })

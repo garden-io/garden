@@ -22,9 +22,10 @@ import type { AuthToken } from "../cloud/auth.js"
 interface EventContext {
   gardenKey?: string
   sessionId?: string
+  _parentSessionId?: string
 }
 
-type EventPayload<T extends EventName> = Events[T] & { $context?: EventContext }
+export type EventPayload<T extends EventName = EventName> = Events[T] & { $context?: EventContext }
 
 export type GardenEventListener<T extends EventName> = (payload: EventPayload<T>) => void
 export type GardenEventAnyListener<E extends EventName = any> = (name: E, payload: EventPayload<E>) => void
@@ -36,7 +37,7 @@ export type GardenEventAnyListener<E extends EventName = any> = (name: E, payloa
  * See below for the event interfaces.
  */
 export class EventBus extends EventEmitter2.EventEmitter2 {
-  private keyIndex: {
+  private readonly keyIndex: {
     [key: string]: { [eventName: string]: ((payload: any) => void)[] }
   }
 
@@ -157,11 +158,14 @@ export interface CommandInfoPayload extends CommandInfo {
   environmentName: string
   environmentId?: string
   projectName: string
-  projectId: string
+  projectId?: string
+  _projectApiVersion: string
+  _projectRootDirAbs: string
   namespaceName: string
   namespaceId?: string
   coreVersion: string
   vcsBranch: string
+  _vcsRepositoryRootDirAbs: string
   vcsCommitHash: string
   vcsOriginUrl: string
   sessionId: string

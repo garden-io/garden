@@ -7,6 +7,7 @@
  */
 
 import type { Server } from "http"
+import { createServer } from "http"
 
 import Koa from "koa"
 import Router from "koa-router"
@@ -21,7 +22,7 @@ import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Command, CommandResult, PrepareParams } from "../commands/base.js"
 import type { GardenError } from "../exceptions.js"
-import { toGardenError, isEAddrInUseException, ParameterError, isErrnoException, CommandError } from "../exceptions.js"
+import { CommandError, isEAddrInUseException, isErrnoException, ParameterError, toGardenError } from "../exceptions.js"
 import type { EventName, Events } from "../events/events.js"
 import { EventBus, shouldStreamWsEvent } from "../events/events.js"
 import type { ValueOf } from "../util/util.js"
@@ -29,8 +30,7 @@ import { joi } from "../config/common.js"
 import { dedent, randomString } from "../util/string.js"
 import { authTokenHeader } from "../cloud/auth.js"
 import type { ApiEventBatch, LogEntryEventPayload } from "../cloud/buffered-event-stream.js"
-import { BufferedEventStream } from "../cloud/buffered-event-stream.js"
-import { eventLogLevel, LogLevel } from "../logger/logger.js"
+import { LogLevel } from "../logger/logger.js"
 import { EventEmitter } from "eventemitter3"
 import { sanitizeValue } from "../util/logging.js"
 import { uuidv4 } from "../util/random.js"
@@ -41,11 +41,11 @@ import { GlobalConfigStore } from "../config-store/global.js"
 import { validateSchema } from "../config/validation.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
 import type { ServeCommand } from "../commands/serve.js"
-import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
-import { createServer } from "http"
 import { defaultServerPort } from "../commands/serve.js"
+import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 
 import { styles } from "../logger/styles.js"
+import { createBufferedEventStream } from "../cloud/util.js"
 
 const skipLogsForCommands = ["autocomplete"]
 const serverLogName = "garden-server"
@@ -638,7 +638,7 @@ export class GardenServer extends EventEmitter {
           command.enableAnalytics = false
         }
 
-        const commandResponseBase = {
+        const commandResponseBase: CommandResponseBase = {
           requestId,
           sessionId: commandSessionId,
           command: command.getFullName(),
@@ -776,15 +776,11 @@ export class GardenServer extends EventEmitter {
       const sessionIdForConfigLoad = this.sessionId
       garden = garden.cloneForCommand(sessionIdForConfigLoad, cloudApi)
 
-      const cloudSession = garden.cloudApi?.getRegisteredSession(sessionIdForConfigLoad)
-
-      const cloudEventStream = new BufferedEventStream({
+      const cloudEventStream = createBufferedEventStream({
+        sessionId: sessionIdForConfigLoad,
         log,
-        cloudSession,
-        maxLogLevel: eventLogLevel,
         garden,
-        streamEvents: true,
-        streamLogEntries: false,
+        opts: { shouldStreamEvents: true, shouldStreamLogs: false },
       })
 
       let graph: ConfigGraph | undefined
@@ -800,7 +796,7 @@ export class GardenServer extends EventEmitter {
         } else {
           loadConfigLog.success("Config loaded")
         }
-        await cloudEventStream.close() // Note: This also flushes events
+        await cloudEventStream?.close() // Note: This also flushes events
         send(
           "commandResult",
           sanitizeValue({
