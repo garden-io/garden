@@ -50,28 +50,27 @@ export class GrpcEventConverter {
   convert<T extends CoreEventName>(name: T, payload: CoreEventPayload<T>): GrpcEventEnvelope[] {
     const context = this.getGardenEventContext(payload)
 
-    const events: GrpcEventEnvelope[] = []
+    let events: GrpcEventEnvelope[] | undefined
 
     switch (name) {
       case "commandInfo":
-        events.push(...this.handleCommandStarted({ context, payload: payload as CoreEventPayload<"commandInfo"> }))
+        events = this.handleCommandStarted({ context, payload: payload as CoreEventPayload<"commandInfo"> })
         break
       case "sessionCompleted":
-        events.push(
-          ...this.handleCommandCompleted({
-            context,
-            payload: payload as CoreEventPayload<"sessionCompleted">,
-          })
-        )
+        events = this.handleCommandCompleted({
+          context,
+          payload: payload as CoreEventPayload<"sessionCompleted">,
+        })
         break
 
       case "sessionFailed":
-        events.push(...this.handleCommandFailed({ context, payload: payload as CoreEventPayload<"sessionFailed"> }))
+        events = this.handleCommandFailed({ context, payload: payload as CoreEventPayload<"sessionFailed"> })
         break
       default:
         // TODO: handle all event cases
         // name satisfies never // ensure all cases are handled
         this.log.silly(`GrpcEventStream: Unhandled core event ${name}`)
+        return []
     }
 
     if (events.length === 0) {
