@@ -39,7 +39,7 @@ import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { styles } from "../logger/styles.js"
 import { clearVarfileCache } from "../config/base.js"
-import { createBufferedEventStream, getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
+import { createCloudEventStream, getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -344,7 +344,7 @@ export abstract class Command<
 
         let result: CommandResult<R>
 
-        const cloudEventStream = createBufferedEventStream({
+        const cloudEventStream = createCloudEventStream({
           sessionId: garden.sessionId,
           log,
           garden,

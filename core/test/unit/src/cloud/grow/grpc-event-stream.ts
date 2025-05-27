@@ -15,7 +15,7 @@ import {
 } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
 import { create } from "@bufbuild/protobuf"
 import type { GardenWithNewBackend } from "../../../../../src/garden.js"
-import { GrowBufferedEventStream } from "../../../../../src/cloud/grow/buffered-event-stream.js"
+import { GrpcEventStream } from "../../../../../src/cloud/grow/grpc-event-stream.js"
 import type { Log } from "../../../../../src/logger/log-entry.js"
 import { getRootLogger } from "../../../../../src/logger/logger.js"
 import { makeTestGardenA } from "../../../../helpers.js"
@@ -38,10 +38,10 @@ const mockTransport = createRouterTransport(({ service }) => {
 })
 const mockClient = createClient(GardenEventIngestionService, mockTransport)
 
-describe("GrowBufferedEventStream", () => {
+describe("GrpcEventStream", () => {
   let log: Log
   let garden: GardenWithNewBackend
-  let bufferedEventStream: GrowBufferedEventStream
+  let bufferedEventStream: GrpcEventStream
 
   afterEach(async () => {
     receivedEvents.length = 0
@@ -57,7 +57,7 @@ describe("GrowBufferedEventStream", () => {
     log = getRootLogger().createLog()
     garden = (await makeTestGardenA()) as any
     garden.cloudApiV2 = { organizationId: "fake-organization-id" } as any
-    bufferedEventStream = new GrowBufferedEventStream({
+    bufferedEventStream = new GrpcEventStream({
       log,
       garden,
       eventIngestionService: mockClient,

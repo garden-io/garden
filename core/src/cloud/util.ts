@@ -9,8 +9,8 @@ import type { ProjectConfig } from "../config/project.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Garden } from "../garden.js"
-import { BufferedEventStream } from "./buffered-event-stream.js"
-import { GrowBufferedEventStream } from "./grow/buffered-event-stream.js"
+import { RestfulEventStream } from "./restful-event-stream.js"
+import { GrpcEventStream } from "./grow/grpc-event-stream.js"
 import { eventLogLevel } from "../logger/logger.js"
 
 export type GardenCloudDistroName = "Garden Enterprise" | "Garden Cloud"
@@ -72,19 +72,19 @@ export function getBackendType(projectConfig: ProjectConfig): "v1" | "v2" {
   return projectConfig.id ? "v1" : "v2"
 }
 
-interface CreateBufferedEventStreamParams {
+interface CreateCloudEventStreamParams {
   sessionId: string
   log: Log
   garden: Garden
   opts: { shouldStreamEvents: boolean; shouldStreamLogs: boolean }
 }
 
-export function createBufferedEventStream({
+export function createCloudEventStream({
   sessionId,
   log,
   garden,
   opts,
-}: CreateBufferedEventStreamParams): BufferedEventStream | GrowBufferedEventStream | undefined {
+}: CreateCloudEventStreamParams): RestfulEventStream | GrpcEventStream | undefined {
   if (garden.isOldBackendAvailable()) {
     const cloudApi = garden.cloudApi
     const cloudSession = cloudApi.getRegisteredSession(sessionId)
@@ -93,7 +93,7 @@ export function createBufferedEventStream({
       return undefined
     }
 
-    return new BufferedEventStream({
+    return new RestfulEventStream({
       log,
       cloudSession,
       maxLogLevel: eventLogLevel,
@@ -104,7 +104,7 @@ export function createBufferedEventStream({
   }
 
   if (garden.isNewBackendAvailable() && opts.shouldStreamEvents) {
-    return new GrowBufferedEventStream({
+    return new GrpcEventStream({
       log,
       garden,
       shouldStreamLogEntries: opts.shouldStreamLogs,

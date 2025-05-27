@@ -29,7 +29,7 @@ import type { ValueOf } from "../util/util.js"
 import { joi } from "../config/common.js"
 import { dedent, randomString } from "../util/string.js"
 import { authTokenHeader } from "../cloud/auth.js"
-import type { ApiEventBatch, LogEntryEventPayload } from "../cloud/buffered-event-stream.js"
+import type { ApiEventBatch, LogEntryEventPayload } from "../cloud/restful-event-stream.js"
 import { LogLevel } from "../logger/logger.js"
 import { EventEmitter } from "eventemitter3"
 import { sanitizeValue } from "../util/logging.js"
@@ -45,7 +45,7 @@ import { defaultServerPort } from "../commands/serve.js"
 import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 
 import { styles } from "../logger/styles.js"
-import { createBufferedEventStream } from "../cloud/util.js"
+import { createCloudEventStream } from "../cloud/util.js"
 
 const skipLogsForCommands = ["autocomplete"]
 const serverLogName = "garden-server"
@@ -776,7 +776,7 @@ export class GardenServer extends EventEmitter {
       const sessionIdForConfigLoad = this.sessionId
       garden = garden.cloneForCommand(sessionIdForConfigLoad, cloudApi)
 
-      const cloudEventStream = createBufferedEventStream({
+      const cloudEventStream = createCloudEventStream({
         sessionId: sessionIdForConfigLoad,
         log,
         garden,

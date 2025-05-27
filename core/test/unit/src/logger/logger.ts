@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import type { Logger, LoggerInitParams } from "../../../../src/logger/logger.js"
 import { getRootLogger, LogLevel, RootLogger } from "../../../../src/logger/logger.js"
-import type { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream.js"
+import type { LogEntryEventPayload } from "../../../../src/cloud/restful-event-stream.js"
 import { freezeTime } from "../../../helpers.js"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer.js"
 import { ConfigurationError } from "../../../../src/exceptions.js"

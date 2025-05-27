@@ -98,7 +98,7 @@ export interface ApiLogBatch extends ApiBatchBase {
   logEntries: LogEntryEventPayload[]
 }
 
-export interface BufferedEventStreamParams {
+export interface RestfulEventStreamParams {
   log: Log
   maxLogLevel: LogLevel
   cloudSession: CloudSession
@@ -118,7 +118,7 @@ export interface BufferedEventStreamParams {
  * new Garden instances (and unsubscribe from events from the previously connected Garden instance, if
  * any) e.g. when config changes during a watch-mode command.
  */
-export class BufferedEventStream {
+export class RestfulEventStream {
   private readonly cloudSession: CloudSession
   private readonly garden: Garden
 
@@ -154,7 +154,7 @@ export class BufferedEventStream {
     streamEvents = true,
     streamLogEntries = true,
     maxBatchBytes = defaultMaxBatchBytes,
-  }: BufferedEventStreamParams) {
+  }: RestfulEventStreamParams) {
     this.log = log
     this.maxLogLevel = maxLogLevel
     this.cloudSession = cloudSession
@@ -189,7 +189,7 @@ export class BufferedEventStream {
     }
     this.garden.events.onAny(this.eventListener)
 
-    this.log.silly(() => "BufferedEventStream: Connected")
+    this.log.silly(() => "RestfulEventStream: Connected")
     this.startInterval()
   }
 

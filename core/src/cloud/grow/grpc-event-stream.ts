@@ -14,7 +14,7 @@ import { registerCleanupFunction, sleep } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { EventName, EventPayload, GardenEventAnyListener } from "../../events/events.js"
 import { LogLevel } from "../../logger/logger.js"
-import type { LogEntryEventPayload } from "../buffered-event-stream.js"
+import type { LogEntryEventPayload } from "../restful-event-stream.js"
 import type {
   Event as GrpcEventEnvelope,
   Event_GardenEvent as GrpcGardenEvent,
@@ -43,7 +43,7 @@ import { GrowCloudError } from "./api.js"
 
 const nextEventUlid = monotonicFactory()
 
-export class GrowBufferedEventStream {
+export class GrpcEventStream {
   private readonly garden: GardenWithNewBackend
   private readonly log: Log
 
@@ -105,23 +105,23 @@ export class GrowBufferedEventStream {
     this.garden.events.onAny(this.eventListener)
 
     setTimeout(async () => {
-      this.log.silly("GrowBufferedEventStream: Starting loop")
+      this.log.silly("GrpcEventStream: Starting loop")
 
       while (!this.isClosed) {
-        this.log.silly("GrowBufferedEventStream: Connecting ...")
+        this.log.silly("GrpcEventStream: Connecting ...")
 
         try {
           await this.streamEvents()
         } catch (err) {
           if (err instanceof ConnectError) {
-            this.log.silly(`GrowBufferedEventStream: Error while streaming events: ${err}`)
-            this.log.silly("GrowBufferedEventStream: Retrying in 1 second...")
+            this.log.silly(`GrpcEventStream: Error while streaming events: ${err}`)
+            this.log.silly("GrpcEventStream: Retrying in 1 second...")
             await sleep(1000)
           } else {
             // This is a temporary workaround to avoid crashing the process when the new event system is not in production.
             // In production, we want to crash the process to surface the issue.
-            this.log.debug(`GrowBufferedEventStream: Unexpected error while streaming events: ${err}`)
-            this.log.debug("GrowBufferedEventStream: Bailing out.")
+            this.log.debug(`GrpcEventStream: Unexpected error while streaming events: ${err}`)
+            this.log.debug("GrpcEventStream: Bailing out.")
             break
             // TODO(production): remove the code above and uncomment the following.
             // This will become an unhandled error and will cause the process to crash.
@@ -142,7 +142,7 @@ export class GrowBufferedEventStream {
 
     if (this.eventBuffer.size === 0) {
       this.log.silly(
-        "GrowBufferedEventStream: Close called and no events waiting for acknowledgement. Disconnecting..."
+        "GrpcEventStream: Close called and no events waiting for acknowledgement. Disconnecting..."
       )
       this.isClosed = true
       // close the connection as well
@@ -236,16 +236,16 @@ export class GrowBufferedEventStream {
     }
 
     if (event.eventData.value === undefined) {
-      this.log.silly(`GrowBufferedEventStream: Ignoring event ${name} (ulid=${envelope.eventUlid})`)
+      this.log.silly(`GrpcEventStream: Ignoring event ${name} (ulid=${envelope.eventUlid})`)
       return
     }
 
     this.log.silly(
       () =>
-        `GrowBufferedEventStream: ${this.outputStream ? "Sending" : "Buffering"} event ${event.eventData.case} (ulid=${envelope.eventUlid})`
+        `GrpcEventStream: ${this.outputStream ? "Sending" : "Buffering"} event ${event.eventData.case} (ulid=${envelope.eventUlid})`
     )
     this.log.silly(
-      () => `GrowBufferedEventStream: ${JSON.stringify(envelope, (_, v) => (typeof v === "bigint" ? v.toString() : v))}`
+      () => `GrpcEventStream: ${JSON.stringify(envelope, (_, v) => (typeof v === "bigint" ? v.toString() : v))}`
     )
 
     this.eventBuffer.set(envelope.eventUlid, envelope)
@@ -377,7 +377,7 @@ export class GrowBufferedEventStream {
 
     const ackStream = this.eventIngestionService.ingestEvents(this.outputStream)
 
-    this.log.silly(() => "GrowBufferedEventStream: Connected")
+    this.log.silly(() => "GrpcEventStream: Connected")
 
     // we synchronously flush all events into the output stream, to ensure that we don't send events out-of-order
     this.flushEventBuffer()
@@ -394,12 +394,12 @@ export class GrowBufferedEventStream {
     for await (const nextAck of ackStream) {
       if (!nextAck.success) {
         this.log.silly(
-          `GrowBufferedEventStream: Server failed to process event with ulid=${nextAck.eventUlid}, final=${nextAck.final}`
+          `GrpcEventStream: Server failed to process event with ulid=${nextAck.eventUlid}, final=${nextAck.final}`
         )
       } else {
         // Remove acknowledged event from the buffer
         this.log.silly(
-          () => `GrowBufferedEventStream: Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`
+          () => `GrpcEventStream: Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`
         )
       }
 
@@ -422,7 +422,7 @@ export class GrowBufferedEventStream {
               message: logMessage,
             })
           default:
-            this.log.silly(`GrowBufferedEventStream: Unknown message severity ${msg.severity}: ${msg.text}`)
+            this.log.silly(`GrpcEventStream: Unknown message severity ${msg.severity}: ${msg.text}`)
         }
       }
 
@@ -431,7 +431,7 @@ export class GrowBufferedEventStream {
       }
 
       if (this.closeCallbacks.length && this.eventBuffer.size === 0) {
-        this.log.silly("GrowBufferedEventStream: All events have been acknowledged. Disconnecting...")
+        this.log.silly("GrpcEventStream: All events have been acknowledged. Disconnecting...")
         for (const callback of this.closeCallbacks) {
           // Call all the callbacks to notify that the stream is closed
           callback()
@@ -452,11 +452,11 @@ export class GrowBufferedEventStream {
       return
     }
 
-    this.log.silly(() => `GrowBufferedEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
+    this.log.silly(() => `GrpcEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
     // NOTE: The Map implementation in the javascript runtime guarantees that values will be iterated in the order they were added (FIFO).
     for (const event of this.eventBuffer.values()) {
       if (!this.outputStream) {
-        this.log.silly(() => `GrowBufferedEventStream: Stream closed during flush`)
+        this.log.silly(() => `GrpcEventStream: Stream closed during flush`)
         break
       }
       // NOTE: we're not waiting for the promise to resolve on purpose, as we want to synchronously flush all events

@@ -7,8 +7,8 @@
  */
 
 import { expect } from "chai"
-import type { LogEntryEventPayload, StreamEvent } from "../../../../src/cloud/buffered-event-stream.js"
-import { BufferedEventStream } from "../../../../src/cloud/buffered-event-stream.js"
+import type { LogEntryEventPayload, StreamEvent } from "../../../../src/cloud/restful-event-stream.js"
+import { RestfulEventStream } from "../../../../src/cloud/restful-event-stream.js"
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
 import { makeTestGardenA } from "../../../helpers.js"
 import { find, isMatch, range, repeat } from "lodash-es"
@@ -29,7 +29,7 @@ const mockCloudSession: CloudSession = {
   namespaceId: "fake-namespace-id",
 }
 
-describe("BufferedEventStream", () => {
+describe("RestfulEventStream", () => {
   const maxLogLevel = LogLevel.debug
 
   it("should flush events and log entries emitted by a connected event emitter", async () => {
@@ -40,7 +40,7 @@ describe("BufferedEventStream", () => {
 
     const garden = await makeTestGardenA()
 
-    const bufferedEventStream = new BufferedEventStream({ log, garden, maxLogLevel, cloudSession: mockCloudSession })
+    const bufferedEventStream = new RestfulEventStream({ log, garden, maxLogLevel, cloudSession: mockCloudSession })
 
     bufferedEventStream["getTargets"] = () => {
       return [{ enterprise: true }]
@@ -80,7 +80,7 @@ describe("BufferedEventStream", () => {
     it("should pick records until the batch size reaches MAX_BATCH_BYTES", async () => {
       const log = getRootLogger().createLog()
       const garden = await makeTestGardenA()
-      const bufferedEventStream = new BufferedEventStream({
+      const bufferedEventStream = new RestfulEventStream({
         log,
         garden,
         targets,
@@ -102,7 +102,7 @@ describe("BufferedEventStream", () => {
     it("should drop individual records whose payload size exceeds MAX_BATCH_BYTES", async () => {
       const log = getRootLogger().createLog()
       const garden = await makeTestGardenA()
-      const bufferedEventStream = new BufferedEventStream({
+      const bufferedEventStream = new RestfulEventStream({
         log,
         garden,
         targets,

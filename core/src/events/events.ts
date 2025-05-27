@@ -8,7 +8,7 @@
 
 import { omit } from "lodash-es"
 import EventEmitter2 from "eventemitter2"
-import type { LogEntryEventPayload } from "../cloud/buffered-event-stream.js"
+import type { LogEntryEventPayload } from "../cloud/restful-event-stream.js"
 import type { DeployStatusForEventPayload } from "../types/service.js"
 import type { RunStatusForEventPayload } from "../plugin/base.js"
 import type { Omit, PickFromUnion } from "../util/util.js"
@@ -307,7 +307,7 @@ type PipedWsEventName = Extract<
   | "sessionFailed"
 >
 
-// These are the events we POST over https via the BufferedEventStream
+// These are the events we POST over https via the CloudEventStream
 const pipedEventNamesSet = new Set<EventName>([
   "_test",
   "_workflowRunRegistered",
