@@ -26,6 +26,16 @@ import {
   GardenCommandExecutionStartedSchema,
 } from "@buf/garden_grow-platform.bufbuild_es/public/events/garden-command/garden-command_pb.js"
 import { timestampFromDate } from "@bufbuild/protobuf/wkt"
+import {
+  GardenActionGetStatusCompletedSchema,
+  GardenActionGetStatusStartedSchema,
+  GardenActionRefSchema,
+  GardenActionResolvedGraph_DependencySchema,
+  GardenActionResolvedGraphSchema,
+  GardenActionRunCompletedSchema,
+  GardenActionRunStartedSchema,
+  GardenActionScannedSchema,
+} from "@buf/garden_grow-platform.bufbuild_es/public/events/garden-action/garden-action_pb.js"
 
 const nextEventUlid = monotonicFactory()
 
@@ -62,9 +72,17 @@ export class GrpcEventConverter {
           payload: payload as CoreEventPayload<"sessionCompleted">,
         })
         break
-
       case "sessionFailed":
         events = this.handleCommandFailed({ context, payload: payload as CoreEventPayload<"sessionFailed"> })
+        break
+      case "configGraph":
+        events = this.handleConfigGraph({ context, payload: payload as CoreEventPayload<"configGraph"> })
+        break
+      case "buildStatus":
+        events = this.handleBuildStatus({
+          context,
+          payload: payload as CoreEventPayload<"buildStatus">,
+        })
         break
       default:
         // TODO: handle all event cases
@@ -75,6 +93,142 @@ export class GrpcEventConverter {
 
     if (events.length === 0) {
       this.log.silly(`GrpcEventStream: Ignoring core event ${name}`)
+    }
+
+    return events
+  }
+
+  private handleBuildStatus({
+    context,
+    payload,
+  }: {
+    context: GardenEventContext
+    payload: CoreEventPayload<"buildStatus">
+  }): GrpcEventEnvelope[] {
+    switch (payload.state) {
+      case "getting-status":
+        return [
+          createGardenEvent(context, {
+            case: "actionStatusStarted",
+            value: create(GardenActionGetStatusStartedSchema, {
+              commandUlid: context.commandUlid,
+              actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
+              startedAt: timestampFromDate(new Date()),
+            }),
+          }),
+        ]
+      case "processing":
+        return [
+          createGardenEvent(context, {
+            case: "actionRunStarted",
+            value: create(GardenActionRunStartedSchema, {
+              commandUlid: context.commandUlid,
+              actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
+              startedAt: timestampFromDate(new Date()),
+            }),
+          }),
+        ]
+      case "cached":
+      case "ready":
+      case "not-ready":
+      case "unknown":
+      case "failed":
+        if (payload.operation === "getStatus") {
+          return [
+            createGardenEvent(context, {
+              case: "actionStatusCompleted",
+              value: create(GardenActionGetStatusCompletedSchema, {
+                commandUlid: context.commandUlid,
+                actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
+                completedAt: timestampFromDate(new Date()),
+                success: payload.state !== "failed",
+                needsRun: ["not-ready", "failed", "unknown"].includes(payload.state),
+              }),
+            }),
+          ]
+        } else if (payload.operation === "process") {
+          return [
+            createGardenEvent(context, {
+              case: "actionRunCompleted",
+              value: create(GardenActionRunCompletedSchema, {
+                commandUlid: context.commandUlid,
+                actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
+                completedAt: timestampFromDate(new Date()),
+                success: !["not-ready", "failed", "unknown"].includes(payload.state),
+              }),
+            }),
+          ]
+        } else {
+          payload.operation satisfies never // ensure all cases are handled
+          this.log.silly(`GrpcEventStream: Unhandled action operation ${payload.operation}`)
+          return []
+        }
+      default:
+        payload satisfies never // ensure all cases are handled
+        this.log.silly(`GrpcEventStream: Unhandled action state ${payload}`)
+        return []
+    }
+  }
+
+  private handleConfigGraph({
+    context,
+    payload,
+  }: {
+    context: GardenEventContext
+    payload: CoreEventPayload<"configGraph">
+  }): GrpcEventEnvelope[] {
+    const events: GrpcEventEnvelope[] = []
+
+    const actions = payload.graph.getActions().map((action) => {
+      return {
+        actionUlid: this.mapToUlid(action.uid, "actionUid", "actionUlid"),
+        kind: action.kind,
+        name: action.name,
+        type: action.type,
+        disabled: action.isDisabled(),
+        dependencies: action.getDependencyReferences(),
+      }
+    })
+
+    for (const a of actions) {
+      events.push(
+        createGardenEvent(context, {
+          case: "actionScanned",
+          value: create(GardenActionScannedSchema, {
+            commandUlid: context.commandUlid,
+            actionUlid: a.actionUlid,
+            scannedAt: timestampFromDate(new Date()),
+            name: a.name,
+            kind: a.kind,
+            type: a.type,
+          }),
+        })
+      )
+
+      events.push(
+        createGardenEvent(context, {
+          case: "actionResolvedGraph",
+          value: create(GardenActionResolvedGraphSchema, {
+            commandUlid: context.commandUlid,
+            actionUlid: a.actionUlid,
+            graphResolvedAt: timestampFromDate(new Date()),
+            dependencies: a.dependencies.map((dep) =>
+              create(GardenActionResolvedGraph_DependencySchema, {
+                ref: create(GardenActionRefSchema, {
+                  // TODO: should we also send the action ULID here for convenience?
+                  // actionUlid: this.mapToUlid(payload.graph.getActionByRef(dep).uid, "actionUid", "actionUlid"),
+                  name: dep.name,
+                  kind: dep.kind,
+                }),
+                isExplicit: dep.explicit,
+                // TODO: do we also need this information in the backend?
+                // needsStaticOutputs: dep.needsExecutedOutputs,
+                // needsExecutedOutputs: dep.needsExecutedOutputs,
+              })
+            ),
+          }),
+        })
+      )
     }
 
     return events
