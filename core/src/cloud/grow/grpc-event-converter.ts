@@ -54,11 +54,11 @@ export class GrpcEventConverter {
 
     switch (name) {
       case "commandInfo":
-        events.concat(this.handleCommandStarted({ context, payload: payload as CoreEventPayload<"commandInfo"> }))
+        events.push(...this.handleCommandStarted({ context, payload: payload as CoreEventPayload<"commandInfo"> }))
         break
       case "sessionCompleted":
-        events.concat(
-          this.handleCommandCompleted({
+        events.push(
+          ...this.handleCommandCompleted({
             context,
             payload: payload as CoreEventPayload<"sessionCompleted">,
           })
@@ -66,7 +66,7 @@ export class GrpcEventConverter {
         break
 
       case "sessionFailed":
-        events.concat(this.handleCommandFailed({ context, payload: payload as CoreEventPayload<"sessionFailed"> }))
+        events.push(...this.handleCommandFailed({ context, payload: payload as CoreEventPayload<"sessionFailed"> }))
         break
       default:
         // TODO: handle all event cases
