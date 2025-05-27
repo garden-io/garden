@@ -45,7 +45,7 @@
     "eslint-plugin-chai-expect": "^3.1.0",
     "eslint-plugin-chai-friendly": "^0.7.4",
     "eslint-plugin-header": "^3.1.1",
-    "eslint-plugin-jsdoc": "^50.2.2",
+    "eslint-plugin-jsdoc": "^50.6.17",
     "eslint-plugin-mocha": "^10.5.0",
     "eslint-plugin-no-null": "^1.0.2",
     "eslint-plugin-prettier": "^5.2.6",
