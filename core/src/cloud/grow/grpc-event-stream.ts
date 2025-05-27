@@ -141,9 +141,7 @@ export class GrpcEventStream {
     this.log.root.events.offAny(this.logListener)
 
     if (this.eventBuffer.size === 0) {
-      this.log.silly(
-        "GrpcEventStream: Close called and no events waiting for acknowledgement. Disconnecting..."
-      )
+      this.log.silly("GrpcEventStream: Close called and no events waiting for acknowledgement. Disconnecting...")
       this.isClosed = true
       // close the connection as well
       this.outputStream?.close()
@@ -398,9 +396,7 @@ export class GrpcEventStream {
         )
       } else {
         // Remove acknowledged event from the buffer
-        this.log.silly(
-          () => `GrpcEventStream: Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`
-        )
+        this.log.silly(() => `GrpcEventStream: Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`)
       }
 
       const messages = nextAck.messages || []
