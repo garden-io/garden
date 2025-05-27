@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { timestampFromDate } from "@bufbuild/protobuf/wkt"
 import type { ULID } from "ulid"
-import { monotonicFactory, ulid } from "ulid"
 import type { GardenWithNewBackend } from "../../garden.js"
 import { registerCleanupFunction, sleep } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
@@ -17,31 +15,16 @@ import { LogLevel } from "../../logger/logger.js"
 import type { LogEntryEventPayload } from "../restful-event-stream.js"
 import type {
   Event as GrpcEventEnvelope,
-  Event_GardenEvent as GrpcGardenEvent,
   GardenEventIngestionService,
   EventResponse,
 } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
-import {
-  Event_GardenEventSchema,
-  EventResponse_Message_Severity,
-  EventSchema,
-} from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
-import { create } from "@bufbuild/protobuf"
+import { EventResponse_Message_Severity } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
 import { ConnectError, type Client } from "@connectrpc/connect"
 import type { WritableIterable } from "@connectrpc/connect/protocol"
 import { createWritableIterable } from "@connectrpc/connect/protocol"
-import {
-  GardenCommandExecutionStarted_InvocationSchema,
-  GardenCommandExecutionStartedSchema,
-  GardenCommandExecutionStarted_Invocation_InstructionSchema,
-  GardenCommandExecutionStarted_GitMetadataSchema,
-  GardenCommandExecutionStarted_ProjectMetadataSchema,
-  GardenCommandExecutionStarted_GitMetadata_GitRemoteSchema,
-  GardenCommandExecutionCompletedSchema,
-} from "@buf/garden_grow-platform.bufbuild_es/public/events/garden-command/garden-command_pb.js"
-import { GrowCloudError } from "./api.js"
 
-const nextEventUlid = monotonicFactory()
+import { GrowCloudError } from "./api.js"
+import { describeGrpcEvent, GrpcEventConverter } from "./grpc-event-converter.js"
 
 export class GrpcEventStream {
   private readonly garden: GardenWithNewBackend
@@ -63,7 +46,7 @@ export class GrpcEventStream {
   private isClosed: boolean
   private readonly closeCallbacks: (() => void)[] = []
 
-  private readonly sessionIdToUlidMap = new Map<string, ULID>()
+  private readonly converter: GrpcEventConverter
 
   constructor({
     garden,
@@ -81,6 +64,8 @@ export class GrpcEventStream {
     this.eventIngestionService = eventIngestionService
     this.isClosed = false
     this.shouldStreamLogEntries = shouldStreamLogEntries
+
+    this.converter = new GrpcEventConverter(this.garden, this.log)
 
     // TODO: make sure it waits for the callback function completion
     registerCleanupFunction("grow-stream-session-cancelled-event", () => {
@@ -173,192 +158,19 @@ export class GrpcEventStream {
     this.outputStream?.close()
   }
 
-  /**
-   * Maps a legacy {@code sessionId} value to a valid ULID.
-   *
-   * The mapping persists in the {@link #sessionIdToUlidMap}
-   * until it's explicitly evicted via {@link #eraseSessionUlid}.
-   */
-  private getSessionUlid(sessionId: string): ULID {
-    const existingSessionUlid = this.sessionIdToUlidMap.get(sessionId)
-    if (!!existingSessionUlid) {
-      return existingSessionUlid
-    }
-
-    const generatedSessionUlid = ulid()
-    this.sessionIdToUlidMap.set(sessionId, generatedSessionUlid)
-    this.log.silly(() => `Mapped sessionId=${sessionId} to ulid=${generatedSessionUlid}`)
-    return generatedSessionUlid
-  }
-
   private handleEvent<T extends EventName>(name: T, payload: EventPayload<T>) {
-    // Use the parent session ID of the event payload,
-    // if not available session ID of the event payload ID,
-    // if not available use the garden session ID.
-    // This means outside `garden dev` and `garden serve,
-    // the session ID will always be the same as the command ID (As we're using the session ID as command ID).
-    const coreParentSessionId =
-      payload.$context?._parentSessionId || payload.$context?.sessionId || this.garden.sessionId
+    const events = this.converter.convert(name, payload)
+    for (const envelope of events) {
+      this.log.silly(
+        () => `GrpcEventStream: ${this.outputStream ? "Sending" : "Buffering"} event ${describeGrpcEvent(envelope)}`
+      )
 
-    // Translate sessionId from UUID to ULID, because event payloads require it to be ULID
-    const sessionUlid = this.getSessionUlid(coreParentSessionId)
+      this.eventBuffer.set(envelope.eventUlid, envelope)
 
-    const event = create(Event_GardenEventSchema, {
-      organizationId: this.garden.cloudApiV2.organizationId,
-      sessionUlid,
-      clientVersion: this.garden.version,
-      // actor id will be filled in by the backend
-      // actual event payload will be filled in later
-    })
-
-    const envelope: GrpcEventEnvelope = create(EventSchema, {
-      eventUlid: nextEventUlid(),
-      eventData: {
-        case: "garden",
-        value: event,
-      },
-    })
-
-    if (name === "commandInfo") {
-      this.handleCommandStarted({ sessionId: sessionUlid, event, payload: payload as EventPayload<"commandInfo"> })
-    }
-    if (name === "sessionCompleted") {
-      this.handleCommandCompleted({
-        sessionId: sessionUlid,
-        event,
-        payload: payload as EventPayload<"sessionCompleted">,
-      })
-    }
-    if (name === "sessionFailed") {
-      this.handleCommandFailed({ sessionId: sessionUlid, event, payload: payload as EventPayload<"sessionFailed"> })
-    }
-
-    if (event.eventData.value === undefined) {
-      this.log.silly(`GrpcEventStream: Ignoring event ${name} (ulid=${envelope.eventUlid})`)
-      return
-    }
-
-    this.log.silly(
-      () =>
-        `GrpcEventStream: ${this.outputStream ? "Sending" : "Buffering"} event ${event.eventData.case} (ulid=${envelope.eventUlid})`
-    )
-    this.log.silly(
-      () => `GrpcEventStream: ${JSON.stringify(envelope, (_, v) => (typeof v === "bigint" ? v.toString() : v))}`
-    )
-
-    this.eventBuffer.set(envelope.eventUlid, envelope)
-
-    // NOTE: we don't need to wait for the promise to resolve.
-    // If sending the event fails, it will be retried as it lives in the event buffer.
-    // See the caller of `streamEvents`.
-    void this.outputStream?.write(envelope).catch((_) => undefined)
-  }
-
-  private handleCommandCompleted({
-    sessionId,
-    event,
-  }: {
-    sessionId: string
-    event: GrpcGardenEvent
-    payload: EventPayload<"sessionCompleted">
-  }) {
-    const commandId = this.getSessionUlid(sessionId)
-
-    event.eventData = {
-      case: "commandExecutionCompleted",
-      value: create(GardenCommandExecutionCompletedSchema, {
-        commandId,
-
-        // completed now
-        completedAt: timestampFromDate(new Date()),
-        success: true,
-      }),
-    }
-  }
-
-  private handleCommandFailed({
-    sessionId,
-    event,
-  }: {
-    sessionId: string
-    event: GrpcGardenEvent
-    payload: EventPayload<"sessionFailed">
-  }) {
-    const commandId = this.getSessionUlid(sessionId)
-
-    event.eventData = {
-      case: "commandExecutionCompleted",
-      value: create(GardenCommandExecutionCompletedSchema, {
-        commandId,
-
-        // completed now
-        completedAt: timestampFromDate(new Date()),
-        success: false,
-      }),
-    }
-  }
-
-  private handleCommandStarted({
-    sessionId,
-    event,
-    payload,
-  }: {
-    sessionId: string
-    event: GrpcGardenEvent
-    payload: EventPayload<"commandInfo">
-  }) {
-    const commandUlid = this.getSessionUlid(sessionId)
-
-    event.eventData = {
-      case: "commandExecutionStarted",
-      value: create(GardenCommandExecutionStartedSchema, {
-        commandUlid,
-
-        // started now
-        startedAt: timestampFromDate(new Date()),
-
-        isCustomCommand: payload.isCustomCommand,
-
-        invocation: create(GardenCommandExecutionStarted_InvocationSchema, {
-          cwd: process.cwd(),
-          instruction: create(GardenCommandExecutionStarted_Invocation_InstructionSchema, {
-            name: payload.name,
-            args: payload.rawArgs,
-          }),
-        }),
-
-        gitMetadata: create(GardenCommandExecutionStarted_GitMetadataSchema, {
-          repositoryRootDir: payload._vcsRepositoryRootDirAbs,
-          headRefSha: payload.vcsCommitHash,
-
-          // NOTE: this will be the word HEAD when HEAD is detached, otherwise the branch name.
-          headRefName: payload.vcsBranch,
-
-          // TODO: expose all remotes with their original names
-          gitRemotes: payload.vcsOriginUrl
-            ? [
-                create(GardenCommandExecutionStarted_GitMetadata_GitRemoteSchema, {
-                  name: "origin",
-                  url: payload.vcsOriginUrl,
-                }),
-              ]
-            : [],
-        }),
-
-        projectMetadata: create(GardenCommandExecutionStarted_ProjectMetadataSchema, {
-          projectName: payload.projectName,
-          projectApiVersion: payload._projectApiVersion,
-          projectRootDir: payload._projectRootDirAbs,
-
-          // @ts-expect-error FIXME: add namespaceName to grpc schema
-          namespaceName: payload.namespaceName,
-          environmentName: payload.environmentName,
-
-          // NOTE: these only exist with the old backend at the moment
-          // namespaceId: payload.namespaceId,
-          // environmentId: payload.environmentId,
-        }),
-      }),
+      // NOTE: we don't need to wait for the promise to resolve.
+      // If sending the event fails, it will be retried as it lives in the event buffer.
+      // See the caller of `streamEvents`.
+      void this.outputStream?.write(envelope).catch((_) => undefined)
     }
   }
 
@@ -392,11 +204,15 @@ export class GrpcEventStream {
     for await (const nextAck of ackStream) {
       if (!nextAck.success) {
         this.log.silly(
-          `GrpcEventStream: Server failed to process event with ulid=${nextAck.eventUlid}, final=${nextAck.final}`
+          `GrpcEventStream: Server failed to process event with ulid=${nextAck.eventUlid}, final=${nextAck.final}: ${JSON.stringify(this.eventBuffer.get(nextAck.eventUlid), (_, v) => (typeof v === "bigint" ? v.toString() : v))}`
         )
       } else {
-        // Remove acknowledged event from the buffer
         this.log.silly(() => `GrpcEventStream: Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`)
+      }
+
+      // Remove acknowledged event from the buffer
+      if (nextAck.success || nextAck.final) {
+        this.eventBuffer.delete(nextAck.eventUlid)
       }
 
       const messages = nextAck.messages || []
@@ -418,12 +234,9 @@ export class GrpcEventStream {
               message: logMessage,
             })
           default:
+            msg.severity satisfies never
             this.log.silly(`GrpcEventStream: Unknown message severity ${msg.severity}: ${msg.text}`)
         }
-      }
-
-      if (nextAck.success || nextAck.final) {
-        this.eventBuffer.delete(nextAck.eventUlid)
       }
 
       if (this.closeCallbacks.length && this.eventBuffer.size === 0) {
