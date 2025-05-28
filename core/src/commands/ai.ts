@@ -296,7 +296,8 @@ export class AiCommand extends Command<Args, Opts> {
 }
 
 const toolMap = {
-  get_repo_file_tree: getRepoFiles read_file: readFile,
+  get_repo_file_tree: getRepoFiles,
+  read_file: readFile,
   write_file: writeFile,
   garden_validate: gardenValidate,
 }
