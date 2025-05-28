@@ -37,7 +37,7 @@
     "@opentelemetry/otlp-exporter-base": "^0.200.0",
     "@opentelemetry/resources": "^2.0.0",
     "@opentelemetry/sdk-node": "^0.200.0",
-    "@opentelemetry/sdk-trace-base": "^2.0.0",
+    "@opentelemetry/sdk-trace-base": "^2.0.1",
     "@opentelemetry/semantic-conventions": "^1.30.0",
     "@scg82/exit-hook": "^3.4.1",
     "@segment/analytics-node": "^2.2.0",
