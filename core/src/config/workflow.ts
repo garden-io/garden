@@ -30,7 +30,7 @@ import type { BaseGardenResource, GardenResource } from "./base.js"
 import type { GardenApiVersion } from "../constants.js"
 import { DOCS_BASE_URL } from "../constants.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import { makeDeprecationMessage, reportDeprecatedFeatureUsage } from "../util/deprecations.js"
+import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import { styles } from "../logger/styles.js"
 
@@ -153,7 +153,7 @@ export const workflowConfigSchema = createSchema({
       .meta({ enterprise: true }),
     limits: workflowResourceLimitsSchema().meta({
       enterprise: true,
-      deprecated: makeDeprecationMessage({ deprecation: "workflowLimits" }),
+      deprecation: "workflowLimits",
     }),
     steps: joiSparseArray(workflowStepSchema()).required().min(1).description(deline`
         The steps the workflow should run. At least one step is required. Steps are run sequentially.

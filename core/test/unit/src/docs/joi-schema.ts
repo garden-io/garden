@@ -19,7 +19,8 @@ describe("JoiKeyDescription", () => {
       .required()
       .allow("a", "b")
       .only()
-      .meta({ internal: true, deprecated: true, experimental: true })
+      // here we pick an arbitrary available deprecation to ensure the deprecated flag value on the JoiKeyDescription
+      .meta({ internal: true, deprecation: "containerDeployActionHostPort", experimental: true })
       .description("some description")
 
     const desc = new JoiKeyDescription({
