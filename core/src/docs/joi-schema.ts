@@ -54,11 +54,9 @@ export class JoiKeyDescription extends BaseKeyDescription {
 
     const metas: MetadataKeys = extend({}, ...(joiDescription.metas || []))
 
-    this.deprecated = parent?.deprecated || !!metas.deprecated || !!metas.deprecation
+    this.deprecated = parent?.deprecated || !!metas.deprecation
     if (!!metas.deprecation) {
       this.deprecationMessage = makeDeprecationMessage({ deprecation: metas.deprecation })
-    } else if (typeof metas.deprecated === "string") {
-      this.deprecationMessage = metas.deprecated
     }
 
     this.description = joiDescription.flags?.description

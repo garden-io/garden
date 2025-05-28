@@ -82,12 +82,6 @@ export interface MetadataKeys {
   name?: string
   // Flag as an advanced feature, to be advised in generated docs
   advanced?: boolean
-  // Flag as deprecated. Set to a string to provide a deprecation message for docs.
-  /**
-   * deprecated is deprecated :P
-   * @deprecated use {@link #deprecation} flag instead
-   */
-  deprecated?: boolean | string
   // Flag as deprecated. Set to automatically generate a message for docs.
   deprecation?: Deprecation
   // Field is specific to Garden Cloud/Enterprise
