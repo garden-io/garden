@@ -79,9 +79,16 @@ export class GrpcEventConverter {
         events = this.handleConfigGraph({ context, payload: payload as CoreEventPayload<"configGraph"> })
         break
       case "buildStatus":
-        events = this.handleBuildStatus({
+      case "testStatus":
+      case "deployStatus":
+      case "runStatus":
+        events = this.handleActionStatus({
           context,
-          payload: payload as CoreEventPayload<"buildStatus">,
+          payload: payload as
+            | CoreEventPayload<"buildStatus">
+            | CoreEventPayload<"testStatus">
+            | CoreEventPayload<"deployStatus">
+            | CoreEventPayload<"runStatus">,
         })
         break
       default:
@@ -98,12 +105,16 @@ export class GrpcEventConverter {
     return events
   }
 
-  private handleBuildStatus({
+  private handleActionStatus({
     context,
     payload,
   }: {
     context: GardenEventContext
-    payload: CoreEventPayload<"buildStatus">
+    payload:
+      | CoreEventPayload<"buildStatus">
+      | CoreEventPayload<"testStatus">
+      | CoreEventPayload<"deployStatus">
+      | CoreEventPayload<"runStatus">
   }): GrpcEventEnvelope[] {
     switch (payload.state) {
       case "getting-status":
