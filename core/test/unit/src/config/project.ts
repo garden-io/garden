@@ -36,9 +36,10 @@ import { defaultDotIgnoreFile } from "../../../../src/util/fs.js"
 const { realpath, writeFile } = fsExtra
 
 const cloudBackendDomain = "https://garden.mydomain.com"
-const commandInfo = { name: "test", args: {}, opts: {} }
+const commandInfo = { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false }
 
 const vcsInfo = {
+  repositoryRootDirAbs: "/fake/root/",
   branch: "main",
   commitHash: "abcdefgh",
   originUrl: "https://example.com/foo",

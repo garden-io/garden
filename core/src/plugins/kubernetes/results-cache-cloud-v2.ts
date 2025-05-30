@@ -16,12 +16,12 @@ import { actionReferenceToString } from "../../actions/base.js"
 import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { GrowCloudApi } from "../../cloud/grow/api.js"
-import { GrowCloudError } from "../../cloud/grow/api.js"
+import { GrowCloudTRPCError } from "../../cloud/grow/api.js"
 import type { GetActionResultResponse } from "../../cloud/grow/trpc.js"
 
 type GrowCloudCacheErrorParams = {
   message: string
-  cause: GrowCloudError | undefined
+  cause: GrowCloudTRPCError | undefined
 }
 
 class GrowCloudCacheError extends CacheStorageError {
@@ -75,7 +75,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
 
       return { found: true, result: data.result as JsonObject }
     } catch (e) {
-      if (!(e instanceof GrowCloudError)) {
+      if (!(e instanceof GrowCloudTRPCError)) {
         throw e
       }
 
@@ -108,7 +108,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
       })
       return value
     } catch (e) {
-      if (!(e instanceof GrowCloudError)) {
+      if (!(e instanceof GrowCloudTRPCError)) {
         throw e
       }
 

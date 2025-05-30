@@ -14,6 +14,7 @@ import type { TestGarden } from "../../../../helpers.js"
 import { expectFuzzyMatch, freezeTime, makeTestGardenA } from "../../../../helpers.js"
 
 const vcsInfo = {
+  repositoryRootDirAbs: "/fake/root/",
   branch: "main",
   commitHash: "abcdefgh",
   originUrl: "https://example.com/foo",
@@ -92,7 +93,7 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: {},
-      commandInfo: { name: "test", args: {}, opts: {} },
+      commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
     })
     expect(c.resolve({ nodePath: [], key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
       found: true,
@@ -112,7 +113,7 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: {},
-      commandInfo: { name: "test", args: {}, opts: {} },
+      commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
     })
     expect(c.resolve({ nodePath: [], key: ["git", "branch"], opts: {} })).to.eql({
       found: true,
@@ -131,7 +132,7 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: { foo: "banana" },
-      commandInfo: { name: "test", args: {}, opts: {} },
+      commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
     })
     expect(c.resolve({ nodePath: [], key: ["secrets", "foo"], opts: {} })).to.eql({
       found: true,
@@ -151,7 +152,7 @@ describe("ProjectConfigContext", () => {
         cloudBackendDomain: enterpriseDomain,
         backendType: "v1",
         secrets: { foo: "banana" },
-        commandInfo: { name: "test", args: {}, opts: {} },
+        commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
       })
 
       const result = c.resolve({ nodePath: [], key: ["secrets", "bar"], opts: {} })
@@ -173,7 +174,7 @@ describe("ProjectConfigContext", () => {
           cloudBackendDomain: enterpriseDomain,
           backendType: "v1",
           secrets: {}, // <-----
-          commandInfo: { name: "test", args: {}, opts: {} },
+          commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
         })
 
         const result = c.resolve({ nodePath: [], key: ["secrets", "bar"], opts: {} })
@@ -195,7 +196,7 @@ describe("ProjectConfigContext", () => {
           cloudBackendDomain: enterpriseDomain,
           backendType: "v1",
           secrets: { foo: "banana " }, // <-----
-          commandInfo: { name: "test", args: {}, opts: {} },
+          commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
         })
 
         const result = c.resolve({ nodePath: [], key: ["secrets", "bar"], opts: {} })
@@ -218,7 +219,7 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: {},
-      commandInfo: { name: "test", args: {}, opts: {} },
+      commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
     })
     const key = "fiaogsyecgbsjyawecygaewbxrbxajyrgew"
 
@@ -239,7 +240,7 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: {},
-      commandInfo: { name: "test", args: {}, opts: {} },
+      commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
     })
 
     const result = c.resolve({ nodePath: [], key: ["var", "foo"], opts: {} })
@@ -259,7 +260,7 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: {},
-      commandInfo: { name: "test", args: {}, opts: {} },
+      commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
     })
     expect(c.resolve({ nodePath: [], key: ["local", "arch"], opts: {} })).to.eql({
       found: true,
@@ -278,7 +279,7 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: {},
-      commandInfo: { name: "test", args: {}, opts: {} },
+      commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
     })
     expect(c.resolve({ nodePath: [], key: ["local", "platform"], opts: {} })).to.eql({
       found: true,
@@ -297,7 +298,7 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: {},
-      commandInfo: { name: "test", args: {}, opts: {} },
+      commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
     })
     expect(c.resolve({ nodePath: [], key: ["local", "username"], opts: {} })).to.eql({
       found: true,
@@ -320,7 +321,7 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: {},
-      commandInfo: { name: "test", args: {}, opts: {} },
+      commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
     })
     expect(c.resolve({ nodePath: [], key: ["command", "name"], opts: {} })).to.eql({
       found: true,
@@ -339,7 +340,13 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: {},
-      commandInfo: { name: "deploy", args: {}, opts: { sync: ["my-service"] } },
+      commandInfo: {
+        name: "deploy",
+        args: {},
+        opts: { sync: ["my-service"] },
+        rawArgs: ["--sync", "my-service"],
+        isCustomCommand: false,
+      },
     })
 
     const result = legacyResolveTemplateString({
@@ -360,7 +367,7 @@ describe("ProjectConfigContext", () => {
       cloudBackendDomain: enterpriseDomain,
       backendType: "v1",
       secrets: {},
-      commandInfo: { name: "test", args: {}, opts: {} },
+      commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
     })
 
     const result = legacyResolveTemplateString({

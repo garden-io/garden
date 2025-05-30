@@ -102,6 +102,7 @@ export interface NamedTreeVersion extends TreeVersion {
 }
 
 export interface VcsInfo {
+  repositoryRootDirAbs: string
   branch: string
   commitHash: string
   originUrl: string

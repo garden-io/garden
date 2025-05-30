@@ -12,7 +12,7 @@ import { Autocompleter } from "../cli/autocomplete.js"
 import { parseCliVarFlags } from "../cli/helpers.js"
 import type { ParameterObject, ParameterValues } from "../cli/params.js"
 import type { GardenCloudApi } from "../cloud/api.js"
-import type { Command } from "../commands/base.js"
+import type { BuiltinArgs, Command } from "../commands/base.js"
 import { getBuiltinCommands, flattenCommands } from "../commands/commands.js"
 import { getCustomCommands } from "../commands/custom.js"
 import type { ServeCommand } from "../commands/serve.js"
@@ -160,16 +160,17 @@ export class GardenInstanceManager {
         log.debug(`Instance key: ${key}`)
 
         garden = await Garden.factory(params.projectRoot, {
-          // The sessionId should be the same as the surrounding process.
-          // For each command run, this will be set as the parentSessionId,
-          // and the command-specific Garden (cloned in `Command.run()`) gets its own sessionId.
-          sessionId: this.sessionId,
           monitors: this.monitors,
           plugins: this.plugins,
           ...this.defaultOpts,
           ...garden?.opts,
           ...opts,
           ...params,
+          // The sessionId should be the same as the surrounding process.
+          // For each command run, this will be set as the parentSessionId,
+          // and the command-specific Garden (cloned in `Command.run()`) gets its own sessionId.
+          sessionId: this.sessionId,
+          parentSessionId: undefined,
         })
         this.set(log, garden)
 
@@ -352,13 +353,19 @@ export class GardenInstanceManager {
     projectConfig: ProjectConfig
     globalConfigStore: GlobalConfigStore
     log: Log
-    args: ParameterValues<ParameterObject>
+    args: BuiltinArgs & ParameterValues<ParameterObject>
     opts: ParameterValues<ParameterObject>
     environmentString?: string
     sessionId: string
   }) {
     const gardenOpts: GardenOpts = {
-      commandInfo: { name: command ? command.getFullName() : "serve", args, opts: omitUndefined(opts) },
+      commandInfo: {
+        name: command ? command.getFullName() : "serve",
+        args,
+        opts: omitUndefined(opts),
+        rawArgs: args.$all || [],
+        isCustomCommand: command?.isCustom || false,
+      },
       config: projectConfig,
       environmentString: opts.env || environmentString || this.defaultEnv,
       globalConfigStore,
@@ -366,6 +373,7 @@ export class GardenInstanceManager {
       plugins: this.plugins,
       variableOverrides: parseCliVarFlags(opts.var),
       sessionId,
+      parentSessionId: undefined,
     }
 
     const projectRoot = projectConfig.path
