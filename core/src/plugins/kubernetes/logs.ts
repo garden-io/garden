@@ -13,7 +13,6 @@ import type { DeployLogEntry } from "../../types/service.js"
 import type { KubernetesResource, KubernetesPod, BaseResource } from "./types.js"
 import { getAllPods, summarize } from "./util.js"
 import { KubeApi, KubernetesError } from "./api.js"
-import type { Stream } from "ts-stream"
 import type { Log } from "../../logger/log-entry.js"
 import type { KubernetesProvider } from "./config.js"
 import type { PluginContext } from "../../plugin-context.js"
@@ -34,7 +33,7 @@ interface GetAllLogsParams {
   log: Log
   provider: KubernetesProvider
   actionName: string
-  stream: Stream<DeployLogEntry>
+  onLogEntry: (entry: DeployLogEntry) => void
   follow: boolean
   tail?: number
   since?: string
@@ -74,12 +73,12 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
 
       params.log.debug(`Tail parameter not set explicitly. Setting to ${tail} to prevent log overflow.`)
     }
-    const { stream } = params
+    const { onLogEntry } = params
     await Promise.all(
       pods.map(async (pod) => {
         const serviceLogEntries = await readLogs({ ...omit(params, "pods", "stream"), entryConverter, pod, tail, api })
         for (const entry of sortBy(serviceLogEntries, "timestamp")) {
-          void stream.write(entry)
+          onLogEntry(entry)
         }
       })
     )
@@ -130,6 +129,7 @@ interface LastLogEntries {
   messages: string[]
   timestamp: Date
 }
+
 interface LogConnection {
   pod: KubernetesPod
   containerName: string
@@ -169,7 +169,7 @@ const defaultRetryIntervalMs = 10000
  */
 export class K8sLogFollower<T extends LogEntryBase> {
   private connections: { [key: string]: LogConnection }
-  private stream: Stream<T>
+  private onLogEntry: (entry: T) => void
   private entryConverter: PodLogEntryConverter<T>
   private k8sApi: KubeApi
   private log: Log
@@ -180,7 +180,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
   private retryIntervalMs: number
 
   constructor({
-    stream,
+    onLogEntry,
     entryConverter,
     defaultNamespace,
     k8sApi,
@@ -188,15 +188,15 @@ export class K8sLogFollower<T extends LogEntryBase> {
     resources,
     retryIntervalMs = defaultRetryIntervalMs,
   }: {
-    stream: Stream<T>
+    onLogEntry: (entry: T) => void
     entryConverter: PodLogEntryConverter<T>
     k8sApi: KubeApi
     log: Log
     defaultNamespace: string
-    resources: KubernetesResource<BaseResource>[]
+    resources: KubernetesResource[]
     retryIntervalMs?: number
   }) {
-    this.stream = stream
+    this.onLogEntry = onLogEntry
     this.entryConverter = entryConverter
     this.connections = {}
     this.k8sApi = k8sApi
@@ -430,7 +430,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
               this.log.silly(() => `Dropping duplicate log message: ${line}`)
             } else {
               this.updateLastLogEntries({ connection, timestamp, msg })
-              this.write({
+              this.handleLogEntry({
                 msg,
                 containerName,
                 timestamp,
@@ -600,7 +600,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     }
   }
 
-  private write({
+  private handleLogEntry({
     msg,
     containerName,
     level = LogLevel.info,
@@ -611,14 +611,13 @@ export class K8sLogFollower<T extends LogEntryBase> {
     level?: LogLevel
     timestamp?: Date
   }) {
-    void this.stream.write(
-      this.entryConverter({
-        timestamp,
-        msg,
-        level,
-        containerName,
-      })
-    )
+    const logEntry = this.entryConverter({
+      timestamp,
+      msg,
+      level,
+      containerName,
+    })
+    this.onLogEntry(logEntry)
   }
 }
 

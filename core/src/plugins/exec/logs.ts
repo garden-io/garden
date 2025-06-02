@@ -6,13 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Stream } from "ts-stream"
 import split2 from "split2"
 
 import type { Log } from "../../logger/log-entry.js"
 import type { DeployLogEntry } from "../../types/service.js"
 import fsExtra from "fs-extra"
-const { pathExists, stat, watch } = fsExtra
 import parseDuration from "parse-duration"
 import { validateSchema } from "../../config/validation.js"
 import type { FSWatcher, ReadStream } from "fs"
@@ -23,6 +21,8 @@ import { dedent } from "../../util/string.js"
 import type { LogLevel } from "../../logger/logger.js"
 import { deployLogEntrySchema } from "../../types/service.js"
 import { getGitHubIssueLink } from "../../exceptions.js"
+
+const { pathExists, stat, watch } = fsExtra
 
 const defaultRetryIntervalMs = 5000
 const watcherShelfLifeSec = 15
@@ -91,7 +91,7 @@ class StreamEventBus extends EventEmitter2.EventEmitter2 {
 
 export class ExecLogsFollower {
   private deployName: string
-  private stream: Stream<DeployLogEntry>
+  private onLogEntry: (entry: DeployLogEntry) => void
   private log: Log
   private intervalId: NodeJS.Timeout | null
   private resolve: ((val: unknown) => void) | null
@@ -105,19 +105,19 @@ export class ExecLogsFollower {
   private events: StreamEventBus
 
   constructor({
-    stream,
+    onLogEntry,
     deployName,
     log,
     logFilePath,
     retryIntervalMs,
   }: {
-    stream: Stream<DeployLogEntry>
+    onLogEntry: (entry: DeployLogEntry) => void
     deployName: string
     log: Log
     logFilePath: string
     retryIntervalMs?: number
   }) {
-    this.stream = stream
+    this.onLogEntry = onLogEntry
     this.deployName = deployName
     this.log = log
     this.intervalId = null
@@ -374,7 +374,7 @@ export class ExecLogsFollower {
         }
 
         lastStreamedEntry = entry
-        void this.stream.write(entry)
+        this.onLogEntry(entry)
       })
 
       readStream.pipe(splitStream)

@@ -7,12 +7,10 @@
  */
 
 import { expect } from "chai"
-import { Stream } from "ts-stream"
 import type { ResolvedDeployAction } from "../../../../src/actions/deploy.js"
 import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
 import type { ActionLog } from "../../../../src/logger/log-entry.js"
 import type { ActionRouter } from "../../../../src/router/router.js"
-import type { DeployLogEntry } from "../../../../src/types/service.js"
 import type { TestGarden } from "../../../helpers.js"
 import { expectError } from "../../../helpers.js"
 import { getRouterTestData } from "./_helpers.js"
@@ -140,12 +138,14 @@ describe("deploy actions", () => {
 
   describe("deploy.getLogs", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const stream = new Stream<DeployLogEntry>()
       const { result } = await actionRouter.deploy.getLogs({
         log,
         action: resolvedDeployAction,
         graph,
-        stream,
+        onLogEntry: (_entry) => {
+          // no op
+          return
+        },
         follow: false,
         tail: -1,
       })

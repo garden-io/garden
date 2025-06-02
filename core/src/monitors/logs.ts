@@ -9,7 +9,6 @@
 import chalk from "chalk"
 import hasAnsi from "has-ansi"
 import { every, repeat, some } from "lodash-es"
-import { Stream } from "ts-stream"
 import type { DeployAction } from "../actions/deploy.js"
 import type { Resolved } from "../actions/types.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
@@ -123,7 +122,6 @@ export class LogMonitor extends Monitor {
   }
 
   async start() {
-    const stream = new Stream<DeployLogEntry>()
     const { default: micromatch } = await import("micromatch")
     const { isMatch } = micromatch
 
@@ -140,7 +138,13 @@ export class LogMonitor extends Monitor {
       })
     }
 
-    void stream.forEach((entry) => {
+    const router = await this.garden.getActionRouter()
+    const actionLog = createActionLog({
+      log: this.garden.log,
+      actionName: this.action.name,
+      actionKind: this.action.kind,
+    })
+    const onLogEntry = (entry: DeployLogEntry) => {
       // Skip empty entries
       if (skipEntry(entry)) {
         return
@@ -156,20 +160,14 @@ export class LogMonitor extends Monitor {
       } else {
         this.logEntry(entry)
       }
-    })
+    }
 
-    const router = await this.garden.getActionRouter()
-    const actionLog = createActionLog({
-      log: this.garden.log,
-      actionName: this.action.name,
-      actionKind: this.action.kind,
-    })
     await router.deploy.getLogs({
       log: actionLog,
       action: this.action,
       follow: !this.collect,
       graph: this.graph,
-      stream,
+      onLogEntry,
       events: this.events,
       tail: this.tail,
       since: this.since,
