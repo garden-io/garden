@@ -61,25 +61,24 @@ export type LogsTagOrFilter = LogsTagAndFilter[]
 
 export class LogMonitor extends Monitor {
   type = "log"
-
   public action: Resolved<DeployAction>
 
-  private graph: ConfigGraph
-  private log: Log
+  private readonly graph: ConfigGraph
+  private readonly log: Log
 
-  private entries: DeployLogEntry[]
-  private events: PluginEventBroker
+  private readonly entries: DeployLogEntry[]
+  private readonly events: PluginEventBroker
 
-  private collect: boolean
-  private hideService: boolean
-  private showTags: boolean
-  private showTimestamps: boolean
-  private logLevel: LogLevel
-  private tagFilters?: LogsTagOrFilter
+  private readonly collect: boolean
+  private readonly hideService: boolean
+  private readonly showTags: boolean
+  private readonly showTimestamps: boolean
+  private readonly logLevel: LogLevel
+  private readonly tagFilters?: LogsTagOrFilter
   // This could be replaced with e.g. a custom render function if more flexibility becomes needed.
-  private msgPrefix?: string
-  private tail?: number
-  private since?: string
+  private readonly msgPrefix?: string
+  private readonly tail?: number
+  private readonly since?: string
 
   constructor(params: LogMonitorParams) {
     super(params)

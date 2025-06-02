@@ -15,9 +15,9 @@ export interface MonitorBaseParams {
 
 export abstract class Monitor {
   public subscribers: Command[]
-  protected garden: Garden
+  protected readonly garden: Garden
 
-  constructor(params: MonitorBaseParams) {
+  protected constructor(params: MonitorBaseParams) {
     this.subscribers = []
     this.garden = params.garden
   }

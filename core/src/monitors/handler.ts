@@ -26,11 +26,11 @@ interface HandlerMonitorParams extends MonitorBaseParams {
  */
 export class HandlerMonitor extends Monitor {
   public type: string
-
-  private events: PluginEventBroker
   public action?: Action
-  private _key: string
-  private _description: string
+
+  private readonly events: PluginEventBroker
+  private readonly _key: string
+  private readonly _description: string
   // private log: Log
 
   isActive: boolean
