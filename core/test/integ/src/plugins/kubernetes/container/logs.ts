@@ -210,8 +210,7 @@ describe("kubernetes", () => {
 
         // Start following logs even when no Deploys are live
         // (we don't wait for the Promise since it won't resolve unless we close the connection)
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        logsFollower.followLogs({})
+        void logsFollower.followLogs({})
         await sleep(1500)
 
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })
