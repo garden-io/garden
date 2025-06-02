@@ -40,7 +40,7 @@
     "csv-stringify": "^6.5.2",
     "deline": "^1.0.4",
     "dependency-graph": "^0.11.0",
-    "eslint": "^8.57.1",
+    "eslint": "^9.28.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-chai-expect": "^3.1.0",
     "eslint-plugin-chai-friendly": "^0.7.4",
