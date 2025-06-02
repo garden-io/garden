@@ -15,8 +15,10 @@ import type { DeployLogEntry } from "../../../types/service.js"
 import { ActionTypeHandlerSpec } from "../base/base.js"
 import type { Resolved } from "../../../actions/types.js"
 
+export type DeployLogEntryHandler = (entry: DeployLogEntry) => void
+
 interface GetDeployLogsParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
-  onLogEntry: (entry: DeployLogEntry) => void
+  onLogEntry: DeployLogEntryHandler
   follow: boolean
   tail?: number
   since?: string

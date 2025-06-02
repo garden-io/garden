@@ -22,6 +22,7 @@ import { Writable } from "stream"
 import { LogLevel } from "../../logger/logger.js"
 import { splitFirst } from "../../util/string.js"
 import { toKubernetesError } from "./retry.js"
+import type { DeployLogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
 
 // When not following logs, the entire log is read into memory and sorted.
 // We therefore set a maximum on the number of lines we fetch.
@@ -33,7 +34,7 @@ interface GetAllLogsParams {
   log: Log
   provider: KubernetesProvider
   actionName: string
-  onLogEntry: (entry: DeployLogEntry) => void
+  onLogEntry: DeployLogEntryHandler
   follow: boolean
   tail?: number
   since?: string
@@ -465,6 +466,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
           async (error) => await this.handleConnectionClose(connection, "error", toKubernetesError(error, context))
         )
         writableStream.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
+        writableStream.on("error", async () => await this.handleConnectionClose(connection, "error", "Request closed"))
       })
     )
   }

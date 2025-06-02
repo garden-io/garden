@@ -21,6 +21,7 @@ import { dedent } from "../../util/string.js"
 import type { LogLevel } from "../../logger/logger.js"
 import { deployLogEntrySchema } from "../../types/service.js"
 import { getGitHubIssueLink } from "../../exceptions.js"
+import type { DeployLogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
 
 const { pathExists, stat, watch } = fsExtra
 
@@ -91,7 +92,7 @@ class StreamEventBus extends EventEmitter2.EventEmitter2 {
 
 export class ExecLogsFollower {
   private deployName: string
-  private onLogEntry: (entry: DeployLogEntry) => void
+  private onLogEntry: DeployLogEntryHandler
   private log: Log
   private intervalId: NodeJS.Timeout | null
   private resolve: ((val: unknown) => void) | null
@@ -111,7 +112,7 @@ export class ExecLogsFollower {
     logFilePath,
     retryIntervalMs,
   }: {
-    onLogEntry: (entry: DeployLogEntry) => void
+    onLogEntry: DeployLogEntryHandler
     deployName: string
     log: Log
     logFilePath: string

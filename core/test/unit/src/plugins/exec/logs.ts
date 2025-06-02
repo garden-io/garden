@@ -20,6 +20,7 @@ import type { LocalServiceLogEntry } from "../../../../../src/plugins/exec/logs.
 import { ExecLogsFollower } from "../../../../../src/plugins/exec/logs.js"
 import { sleep } from "../../../../../src/util/util.js"
 import type { DeployLogEntry } from "../../../../../src/types/service.js"
+import type { DeployLogEntryHandler } from "../../../../../src/plugin/handlers/Deploy/get-logs.js"
 
 const { appendFile, ensureFile, remove, writeFile } = fsExtra
 
@@ -27,7 +28,7 @@ const range = (length: number) => [...Array(length).keys()]
 const defaultSleep = 1000
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getStream(): [(entry: DeployLogEntry) => void, any[]] {
+function getStream(): [DeployLogEntryHandler, any[]] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const logBuffer: any[] = []
   const onLogEntry = (entry: DeployLogEntry) => {
