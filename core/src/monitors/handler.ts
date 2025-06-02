@@ -61,7 +61,6 @@ export class HandlerMonitor extends Monitor {
 
   async start() {
     // This is done in the constructor, nothing to do here
-    return {}
   }
 
   private done() {
@@ -71,8 +70,6 @@ export class HandlerMonitor extends Monitor {
 
   async stop() {
     this.events.emit("abort")
-
     // TODO: wait until handler signals exit
-    return {}
   }
 }

@@ -178,13 +178,10 @@ export class LogMonitor extends Monitor {
     if (this.collect) {
       await waitForOutputFlush()
     }
-
-    return {}
   }
 
   async stop() {
     this.events.emit("abort")
-    return {}
   }
 
   getEntries() {

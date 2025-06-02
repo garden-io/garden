@@ -65,8 +65,6 @@ export class SyncMonitor extends Monitor {
       graph: this.graph,
       events: this.events,
     })
-
-    return {}
   }
 
   async stop() {
@@ -76,6 +74,5 @@ export class SyncMonitor extends Monitor {
     } else {
       this.events.emit("abort")
     }
-    return {}
   }
 }

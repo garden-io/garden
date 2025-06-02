@@ -92,12 +92,9 @@ export class PortForwardMonitor extends Monitor {
         )
       )
     }
-
-    return {}
   }
 
   async stop() {
     await this.stopProxies()
-    return {}
   }
 }
