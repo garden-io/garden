@@ -14,8 +14,30 @@ import type { DeployAction } from "../../../actions/deploy.js"
 import type { DeployLogEntry } from "../../../types/service.js"
 import { ActionTypeHandlerSpec } from "../base/base.js"
 import type { Resolved } from "../../../actions/types.js"
+import type { Log } from "../../../logger/log-entry.js"
+import type { LogEntryBase } from "../../../plugins/kubernetes/logs.js"
 
-export type DeployLogEntryHandler = (entry: DeployLogEntry) => void
+export type LogEntryHandler<T extends LogEntryBase> = (entry: T) => void
+export type DeployLogEntryHandler = LogEntryHandler<DeployLogEntry>
+
+/**
+ * Helper function to handle non-critical errors in a given log entry handler.
+ * The actual handler can be called inside stream listeners,
+ * so we need to be sure there are no unhandled errors that can terminate the streams.
+ */
+export function gardenErrorSafeLogEntryHandler<T extends LogEntryBase>(
+  handler: LogEntryHandler<T>,
+  log: Log
+): LogEntryHandler<T> {
+  return (entry: T) => {
+    try {
+      return handler(entry)
+    } catch (err) {
+      // TODO: log this on debug level?
+      log.warn(`Error processing log entry: ${err}`)
+    }
+  }
+}
 
 interface GetDeployLogsParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   onLogEntry: DeployLogEntryHandler

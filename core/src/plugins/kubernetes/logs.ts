@@ -22,7 +22,7 @@ import { Writable } from "stream"
 import { LogLevel } from "../../logger/logger.js"
 import { splitFirst } from "../../util/string.js"
 import { toKubernetesError } from "./retry.js"
-import type { DeployLogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
+import { gardenErrorSafeLogEntryHandler, type DeployLogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
 
 // When not following logs, the entire log is read into memory and sorted.
 // We therefore set a maximum on the number of lines we fetch.
@@ -197,7 +197,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     resources: KubernetesResource[]
     retryIntervalMs?: number
   }) {
-    this.onLogEntry = onLogEntry
+    this.onLogEntry = gardenErrorSafeLogEntryHandler(onLogEntry, log)
     this.entryConverter = entryConverter
     this.connections = {}
     this.k8sApi = k8sApi
@@ -461,10 +461,11 @@ export class K8sLogFollower<T extends LogEntryBase> {
         connection.status = "connected"
         connection.timeout = makeTimeout()
 
-        writableStream.on(
-          "error",
-          async (error) => await this.handleConnectionClose(connection, "error", toKubernetesError(error, context))
-        )
+        writableStream.on("error", async (error) => {
+          // FIXME: it looks like this handler is never called, even if writableStream.write() throws an error
+          this.log.debug(`Unhandled error while processing log entry: ${error}`)
+          await this.handleConnectionClose(connection, "error", toKubernetesError(error, context))
+        })
         writableStream.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
         writableStream.on("error", async () => await this.handleConnectionClose(connection, "error", "Request closed"))
       })

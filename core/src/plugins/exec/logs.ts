@@ -22,6 +22,7 @@ import type { LogLevel } from "../../logger/logger.js"
 import { deployLogEntrySchema } from "../../types/service.js"
 import { getGitHubIssueLink } from "../../exceptions.js"
 import type { DeployLogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
+import { gardenErrorSafeLogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
 
 const { pathExists, stat, watch } = fsExtra
 
@@ -118,7 +119,7 @@ export class ExecLogsFollower {
     logFilePath: string
     retryIntervalMs?: number
   }) {
-    this.onLogEntry = onLogEntry
+    this.onLogEntry = gardenErrorSafeLogEntryHandler(onLogEntry, log)
     this.deployName = deployName
     this.log = log
     this.intervalId = null
