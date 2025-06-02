@@ -322,7 +322,7 @@ describe("LogsCommand", () => {
       expect(tailOpts.every((o) => o === 0)).to.be.true
       expect(sinceOpts.every((o) => o === undefined)).to.be.true
     })
-    context("mutliple services", () => {
+    context("multiple services", () => {
       it("should align content for visible entries", async () => {
         const getServiceLogsHandler = async ({ action, onLogEntry }: GetDeployLogsParams) => {
           if (action.name === "a-short") {
