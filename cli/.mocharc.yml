@@ -3,6 +3,7 @@ require:
   - build/test/setup.js
 spec:
   - build/test/**/*.js
-timeout: 20000
+# Binary hash verification tests can be slow because of some downloads
+timeout: 60000
 watch-files:
   - build/**/*.js
