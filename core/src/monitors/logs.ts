@@ -247,10 +247,6 @@ export class LogMonitor extends Monitor {
   }
 }
 
-export function isLogsMonitor(monitor: Monitor): monitor is LogMonitor {
-  return monitor.type === "log"
-}
-
 /**
  * Skip empty entries.
  */
