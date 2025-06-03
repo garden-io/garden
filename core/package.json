@@ -172,7 +172,7 @@
     "@types/archiver": "^6.0.3",
     "@types/async": "^3.2.24",
     "@types/async-lock": "^1.4.2",
-    "@types/chai": "^5.2.1",
+    "@types/chai": "^5.2.2",
     "@types/cross-spawn": "^6.0.6",
     "@types/dedent": "^0.7.2",
     "@types/fs-extra": "^11.0.4",
