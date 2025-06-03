@@ -7,20 +7,21 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk"
-import type { CommandParams, CommandResult } from "./base.js"
-import { Command } from "./base.js"
-import { printHeader } from "../logger/util.js"
+import type { CommandParams, CommandResult } from "../base.js"
+import { Command } from "../base.js"
+import { printHeader } from "../../logger/util.js"
 import dedent from "dedent"
 import fsExtra from "fs-extra"
 import { join } from "node:path"
-import { type ToolUnion } from "@anthropic-ai/sdk/resources/index.js"
-import { StringsParameter } from "../cli/params.js"
+import { Message, Tool, ToolUseBlock, type ToolUnion } from "@anthropic-ai/sdk/resources/index.js"
+import { StringsParameter } from "../../cli/params.js"
 import chalk from "chalk"
 
 export const aiOpts = {}
 
 type Opts = typeof aiOpts
 
+// TODO: allow logging in at runtime
 const anthropic = new Anthropic({})
 
 const gardenDocs = `
@@ -261,25 +262,27 @@ const tools = [
   },
 ] as Array<ToolUnion>
 
-const aiArgs = {
+const aiConfigGenArgs = {
   names: new StringsParameter({
     help: "FOOBAR",
   }),
 }
 
-type Args = typeof aiArgs
+type Args = typeof aiConfigGenArgs
 
-export class AiCommand extends Command<Args, Opts> {
-  name = "ai"
-  help = "Do AI stuff."
+export class AiConfigGenCommand extends Command<Args, Opts> {
+  name = "ai-config"
+  help = "[EXPERIMENTAL] Generate Garden config files using Anthropic's Claude AI"
 
   override noProject = true
 
   override description = dedent`
-    Does AI magic for fun and profit
+    Generate Garden config files using Anthropic's Claude AI.
+
+    NOTE: THIS IS AN EXPERIMENTAL FEATURE.
   `
 
-  override arguments = aiArgs
+  override arguments = aiConfigGenArgs
   override options = aiOpts
 
   override printHeader({ log }) {
@@ -289,20 +292,86 @@ export class AiCommand extends Command<Args, Opts> {
   async action({ garden, log }: CommandParams<{}, Opts>): Promise<CommandResult> {
     log.info({ msg: `Hello from AI` })
 
-    await gardenBot()
+    await gardenBot(garden.projectRoot)
 
     return {}
   }
 }
 
-const toolMap = {
-  get_repo_file_tree: getRepoFiles,
-  read_file: readFile,
-  write_file: writeFile,
-  garden_validate: gardenValidate,
+interface ToolParams {
+  rootDir: string
+  input: any // TODO: typesafety
 }
 
-async function gardenBot() {
+type ToolHandler = (params: ToolParams) => Promise<Message | string>
+
+const toolMap: Record<string, ToolHandler> = {
+  get_repo_file_tree: async ({ rootDir }) => {
+    const files: string[] = []
+    const ignoreList = [
+      "node_modules",
+      ".git",
+      "policy",
+      "garden.yml",
+      "garden.yaml",
+      "project.garden.yml",
+      ".garden",
+      ".DS_Store",
+      ".grow",
+    ]
+
+    async function traverse(currentDir: string, relativePath: string = "") {
+      const entries = await fsExtra.readdir(currentDir, { withFileTypes: true })
+
+      for (const entry of entries) {
+        const entryName = entry.name
+
+        if (ignoreList.includes(entryName)) {
+          continue
+        }
+
+        const entryPath = join(currentDir, entryName)
+        const entryRelativePath = join(relativePath, entryName)
+
+        if (entry.isDirectory()) {
+          await traverse(entryPath, entryRelativePath)
+        } else {
+          files.push(entryRelativePath)
+        }
+      }
+    }
+
+    // Start traversal from root directory
+    await traverse(rootDir)
+
+    return files.join("\n")
+  },
+
+  read_file: async (input: any) => {
+    const path = input.file_path
+    log(`Reading file at path: ${path}`)
+    const content = (await fsExtra.readFile(path)).toString()
+
+    return content
+  },
+
+  write_file: async (input: any) => {
+    const path = `${input.file_path}`
+    const content = input.content
+    log(`Writing to file at path: ${path}`)
+    // console.log(content)
+    // console.log("")
+
+    await fsExtra.writeFile(path, content)
+
+    return "Successfully created file"
+  },
+
+  // TODO
+  garden_validate: async () => "OK",
+}
+
+async function gardenBot(rootDir: string) {
   let prompt = initPrompt
 
   let useTool = true
@@ -315,7 +384,7 @@ async function gardenBot() {
     prompt += `\nReply from Claude: ${JSON.stringify(message.content, null, 4)}`
 
     if (message.stop_reason === "tool_use") {
-      const toolUses = message.content.filter((c) => c.type === "tool_use")
+      const toolUses = message.content.filter((c) => c.type === "tool_use") as ToolUseBlock[]
       const tool = toolUses[toolUses.length - 1]
       const toolHandler = toolMap[tool.name]
       if (!toolHandler) {
@@ -325,7 +394,7 @@ async function gardenBot() {
       log(`Executing tool: ${tool.name}`)
       // log(`Executing tool: ${tool.name}, ${JSON.stringify(tool.input, null, 4)}`)
 
-      const toolResult = (await toolHandler(tool.input)) as string
+      const toolResult = (await toolHandler({ rootDir, input: tool.input as string })) as string
       console.log("")
 
       // log(`Got tool result:, ${toolResult}`)
@@ -360,76 +429,6 @@ async function promptClaude(prompt: string) {
   return message
 }
 
-async function getRepoFiles() {
-  const files: string[] = []
-  const ignoreList = [
-    "node_modules",
-    ".git",
-    "policy",
-    "garden.yml",
-    "garden.yaml",
-    "project.garden.yml",
-    ".garden",
-    ".DS_Store",
-    ".grow",
-  ]
-  const rootDir = "."
-
-  async function traverse(currentDir: string, relativePath: string = "") {
-    const entries = await fsExtra.readdir(currentDir, { withFileTypes: true })
-
-    for (const entry of entries) {
-      const entryName = entry.name
-
-      if (ignoreList.includes(entryName)) {
-        continue
-      }
-
-      const entryPath = join(currentDir, entryName)
-      const entryRelativePath = join(relativePath, entryName)
-
-      if (entry.isDirectory()) {
-        await traverse(entryPath, entryRelativePath)
-      } else {
-        files.push(entryRelativePath)
-      }
-    }
-  }
-
-  // Start traversal from root directory
-  await traverse(rootDir)
-
-  return files.join("\n")
-}
-
-async function readFile(input: any) {
-  const path = input.file_path
-  log(`Reading file at path: ${path}`)
-  const content = (await fsExtra.readFile(path)).toString()
-
-  return content
-}
-
-async function writeFile(input: any) {
-  const path = `${input.file_path}`
-  const content = input.content
-  log(`Writing to file at path: ${path}`)
-  // console.log(content)
-  // console.log("")
-
-  await fsExtra.writeFile(path, content)
-
-  return "Successfully created file"
-}
-
-async function gardenValidate() {
-  return "OK"
-}
-
 function log(msg: string) {
   console.log(chalk.cyan("[INTERNAL]:", msg))
-}
-
-function getWeather(input: any) {
-  console.log(`Weather in ${input.location} is nice!`)
 }
