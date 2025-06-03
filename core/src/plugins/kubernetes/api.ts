@@ -74,7 +74,6 @@ import http from "node:http"
 import { ProxyAgent } from "proxy-agent"
 import { type MaybeSecret, toClearText } from "../../util/secrets.js"
 import type { ConfigurationOptions } from "@kubernetes/client-node/dist/gen/configuration.js"
-import { isNullish, isPrimitive } from "utility-types"
 import { isPlainObject } from "../../util/objects.js"
 
 interface ApiGroupMap {
@@ -273,21 +272,14 @@ function getConfigOptionsForPatchRequest(): ConfigurationOptions {
 const configurableOptionsFields = ["baseServer", "httpApi", "middleware", "authMethods", "middlewareMergeStrategy"]
 
 function isConfigurationOptions(obj: unknown): obj is ConfigurationOptions {
-  if (isNullish(obj)) {
+  if (!isPlainObject(obj)) {
     return false
   }
 
-  if (isPrimitive(obj)) {
-    return false
-  }
-
-  if (isPlainObject(obj)) {
-    for (const configurableOptionsField of configurableOptionsFields) {
-      if (configurableOptionsField in obj) {
-        return true
-      }
+  for (const configurableOptionsField of configurableOptionsFields) {
+    if (configurableOptionsField in obj) {
+      return true
     }
-    return false
   }
 
   return false
