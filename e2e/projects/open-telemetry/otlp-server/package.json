@@ -15,6 +15,6 @@
     "p-defer": "^3.0.0"
   },
   "devDependencies": {
-    "mocha": "^10.8.2"
+    "mocha": "^11.5.0"
   }
 }
