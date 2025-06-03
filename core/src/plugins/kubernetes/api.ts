@@ -906,8 +906,8 @@ export class KubeApi {
         return (...args: any[]) => {
           return requestWithRetry(log, `Kubernetes API: ${name}`, () => {
             // TODO: remove this when https://github.com/kubernetes-client/javascript/issues/2264 is fixed
-            ensureMiddlewareForPatchRequests(name, args)
-            const output = target[name](...args)
+            const patchedArgs = ensureMiddlewareForPatchRequests(name, args)
+            const output = target[name](...patchedArgs)
 
             if (typeof output.then === "function") {
               return (
