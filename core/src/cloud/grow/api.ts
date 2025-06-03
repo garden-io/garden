@@ -327,7 +327,11 @@ export class GrowCloudApi {
 
   private get grpcTransport() {
     const url = new URL(this.domain)
-    url.host = `grpc.${url.host}`
+    const domainParts = url.host.split(".")
+    if (domainParts.length > 1) {
+      domainParts[0] = `${domainParts[0]}-grpc`
+    }
+    url.host = domainParts.join(".")
     const grpcUrl = url.toString()
     this.log.debug({ msg: `Using gRPC transport with URL: ${grpcUrl}` })
     return createGrpcTransport({
