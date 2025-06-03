@@ -441,11 +441,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
                 this.log.silly(() => `Dropping duplicate log message: ${line}`)
               } else {
                 this.updateLastLogEntries({ connection, timestamp, msg })
-                this.handleLogEntry({
-                  msg,
-                  containerName,
-                  timestamp,
-                })
+                this.handleLogEntry({ msg, containerName, timestamp })
               }
             } catch (err) {
               callback(toGardenError(err))
