@@ -284,7 +284,6 @@ function makeApiClient<T extends ApiType>(kubeConfig: KubeConfig, apiClientType:
       {
         pre: async (context) => {
           // patch the patch bug... (https://github.com/kubernetes-client/javascript/issues/19)
-          // See also https://github.com/kubernetes-client/javascript/pull/1341 (That's why we have to use the fork)
           if (context.getHttpMethod() === "PATCH") {
             context.setHeaderParam("Content-Type", "application/merge-patch+json")
           }
