@@ -199,7 +199,7 @@ export const defaultStorage: KubernetesStorage = {
   },
 }
 
-const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =>
+const resourceSchema = (defaults: KubernetesResourceSpec) =>
   joi
     .object()
     .keys({
@@ -248,8 +248,7 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .description("Ephemeral storage request in megabytes.")
             .example(8192),
         })
-        .default(defaults.requests)
-        .meta({ deprecated }),
+        .default(defaults.requests),
     })
     .default(defaults)
 
@@ -964,14 +963,14 @@ export const resourcesSchema = () =>
   joi
     .object()
     .keys({
-      builder: resourceSchema(defaultResources.builder, false).description(dedent`
+      builder: resourceSchema(defaultResources.builder).description(dedent`
             Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're using when configuring this.
 
             When \`buildMode\` is \`kaniko\`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
 
             When \`buildMode\` is \`cluster-buildkit\`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
           `),
-      util: resourceSchema(defaultResources.util, false).description(dedent`
+      util: resourceSchema(defaultResources.util).description(dedent`
             Resource requests and limits for the util pod for in-cluster builders.
             This pod is used to get, start, stop and inquire the status of the builds.
 
