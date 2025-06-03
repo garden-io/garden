@@ -476,7 +476,6 @@ export class K8sLogFollower<T extends LogEntryBase> {
           await this.handleConnectionClose(connection, "error", toGardenError(error))
         })
         writableStream.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
-        writableStream.on("error", async () => await this.handleConnectionClose(connection, "error", "Request closed"))
       })
     )
   }
