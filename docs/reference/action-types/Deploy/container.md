@@ -1033,8 +1033,10 @@ spec:
 [spec](#spec) > [ports](#specports) > hostPort
 
 {% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
+**Deprecated**: It's generally not recommended to use the `hostPort` field of the `V1ContainerPort` spec. You can learn more about Kubernetes best practices at: https://kubernetes.io/docs/concepts/configuration/overview/
 {% endhint %}
+
+Number of port to expose on the pod's IP address.
 
 | Type     | Required |
 | -------- | -------- |

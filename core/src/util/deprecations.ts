@@ -107,6 +107,14 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: null,
     },
+    containerDeployActionHostPort: {
+      docsSection: "Deprecated configuration",
+      docsHeadline: `${style("spec.ports[].hostPort")} configuration field in ${style("container")} Deploy action`,
+      warnHint: deline`
+        It's generally not recommended to use the ${style("hostPort")} field of the ${style("V1ContainerPort")} spec. You can learn more about Kubernetes best practices at: https://kubernetes.io/docs/concepts/configuration/overview/
+      `,
+      docs: null,
+    },
     containerDeployActionLimits: {
       docsSection: "Old configuration syntax",
       docsHeadline: `${style("spec.limits")} configuration field in ${style("container")} Deploy action`,
