@@ -8,7 +8,7 @@
 
 import { intersection, cloneDeep } from "lodash-es"
 
-import { KubeApi, KubernetesError } from "./api.js"
+import { getConfigOptionsForPatchRequest, KubeApi, KubernetesError } from "./api.js"
 import type { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config.js"
 import { DeploymentError, TimeoutError } from "../../exceptions.js"
 import { getPackageVersion, sleep } from "../../util/util.js"
@@ -139,18 +139,7 @@ export async function ensureNamespace(
                 },
               },
             },
-            /*
-            We need this hack to enable the middleware that is already configure in api.core.
-
-            Otherwise, the middleware will be completely ignore because of the bug in the @kubernetes/client-node,
-            see the function patchNamespaceWithHttpInfo in ObservableAPI.js
-            and the following issues:
-             - https://github.com/kubernetes-client/javascript/issues/2160#issuecomment-2620169494
-             - https://github.com/kubernetes-client/javascript/issues/2264#issuecomment-2826382923
-
-             Waiting for https://github.com/kubernetes-client/javascript/issues/2264 to be fixed properly.
-             */
-            { middleware: [], middlewareMergeStrategy: "append" }
+            getConfigOptionsForPatchRequest()
           )
           result.patched = true
         } catch (err) {

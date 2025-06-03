@@ -37,6 +37,7 @@ import {
 } from "@kubernetes/client-node"
 import { load } from "js-yaml"
 import fsExtra from "fs-extra"
+
 const { readFile } = fsExtra
 import type WebSocket from "isomorphic-ws"
 import pRetry from "p-retry"
@@ -72,6 +73,7 @@ import https from "node:https"
 import http from "node:http"
 import { ProxyAgent } from "proxy-agent"
 import { type MaybeSecret, toClearText } from "../../util/secrets.js"
+import type { ConfigurationOptions } from "@kubernetes/client-node/dist/gen/configuration.js"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -250,6 +252,21 @@ async function createProxyAgent(agent: RequestInit["agent"]): Promise<ProxyAgent
 }
 
 type ApiConstructor<T extends ApiType> = new (config: Configuration) => T
+
+/**
+ * We need this hack to enable the middleware that is already configure in api.core.
+ *
+ * Otherwise, the middleware will be completely ignore because of the bug in the @kubernetes/client-node,
+ * see the function patchNamespaceWithHttpInfo in ObservableAPI.js
+ * and the following issues:
+ *  - https://github.com/kubernetes-client/javascript/issues/2160#issuecomment-2620169494
+ *  - https://github.com/kubernetes-client/javascript/issues/2264#issuecomment-2826382923
+ *
+ *  Waiting for https://github.com/kubernetes-client/javascript/issues/2264 to be fixed properly.
+ */
+export function getConfigOptionsForPatchRequest(): ConfigurationOptions {
+  return { middleware: [], middlewareMergeStrategy: "append" }
+}
 
 function makeApiClient<T extends ApiType>(kubeConfig: KubeConfig, apiClientType: ApiConstructor<T>): T {
   const cluster = kubeConfig.getCurrentCluster()
