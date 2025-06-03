@@ -159,10 +159,10 @@ execDeploy.addHandler("getStatus", async (params) => {
 })
 
 execDeploy.addHandler("getLogs", async (params) => {
-  const { action, stream, follow, ctx, log } = params
+  const { action, onLogEntry, follow, ctx, log } = params
 
   const logFilePath = getLogFilePath({ ctx, deployName: action.name })
-  const logsFollower = new ExecLogsFollower({ stream, log, logFilePath, deployName: action.name })
+  const logsFollower = new ExecLogsFollower({ onLogEntry, log, logFilePath, deployName: action.name })
 
   if (follow) {
     ctx.events.on("abort", () => {
