@@ -10,7 +10,7 @@ import { omit, sortBy } from "lodash-es"
 import parseDuration from "parse-duration"
 
 import type { DeployLogEntry } from "../../types/service.js"
-import type { KubernetesResource, KubernetesPod, BaseResource } from "./types.js"
+import type { KubernetesResource, KubernetesPod } from "./types.js"
 import { getAllPods, summarize } from "./util.js"
 import { KubeApi, KubernetesError } from "./api.js"
 import type { Log } from "../../logger/log-entry.js"
@@ -171,16 +171,19 @@ const defaultRetryIntervalMs = 10000
  * an interval, comparing the result against current active connections and attempting re-connects as needed.
  */
 export class K8sLogFollower<T extends LogEntryBase> {
-  private connections: { [key: string]: LogConnection }
-  private onLogEntry: LogEntryHandler<T>
-  private entryConverter: PodLogEntryConverter<T>
-  private k8sApi: KubeApi
-  private log: Log
-  private defaultNamespace: string
-  private resources: KubernetesResource<BaseResource>[]
+  private readonly k8sApi: KubeApi
+  private readonly log: Log
+  private readonly defaultNamespace: string
+
+  private readonly connections: { [key: string]: LogConnection }
+  private readonly resources: KubernetesResource[]
+
+  private readonly onLogEntry: LogEntryHandler<T>
+  private readonly entryConverter: PodLogEntryConverter<T>
+
+  private readonly retryIntervalMs: number
   private timeoutId?: NodeJS.Timeout | null
   private resolve: ((val: unknown) => void) | null
-  private retryIntervalMs: number
 
   constructor({
     onLogEntry,
