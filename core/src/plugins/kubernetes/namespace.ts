@@ -129,15 +129,29 @@ export async function ensureNamespace(
         // Make sure annotations and labels are set correctly if the namespace already exists
         log.verbose("Updating annotations and labels on namespace " + namespace.name)
         try {
-          result.remoteResource = await api.core.patchNamespace({
-            name: namespace.name,
-            body: {
-              metadata: {
-                annotations: namespace.annotations,
-                labels: namespace.labels,
+          result.remoteResource = await api.core.patchNamespace(
+            {
+              name: namespace.name,
+              body: {
+                metadata: {
+                  annotations: namespace.annotations,
+                  labels: namespace.labels,
+                },
               },
             },
-          })
+            /*
+            We need this hack to enable the middleware that is already configure in api.core.
+
+            Otherwise, the middleware will be completely ignore because of the bug in the @kubernetes/client-node,
+            see the function patchNamespaceWithHttpInfo in ObservableAPI.js
+            and the following issues:
+             - https://github.com/kubernetes-client/javascript/issues/2160#issuecomment-2620169494
+             - https://github.com/kubernetes-client/javascript/issues/2264#issuecomment-2826382923
+
+             Waiting for https://github.com/kubernetes-client/javascript/issues/2264 to be fixed properly.
+             */
+            { middleware: [], middlewareMergeStrategy: "append" }
+          )
           result.patched = true
         } catch (err) {
           log.warn(`Unable to apply the configured annotations and labels on namespace ${namespace.name}: ${err}`)
