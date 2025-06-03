@@ -293,21 +293,48 @@ function isConfigurationOptions(obj: unknown): obj is ConfigurationOptions {
 }
 
 /**
- * Checks if a k8s api call is a patch request that needs extra middleware config options.
- * The match criteria are:
+ * Checks if a k8s api call is a patch request that needs extra middleware config options,
+ * and adds those options if necessary.
+ *
+ * This function is side effect free and does not modify the original array of arguments.
+ *
+ * The checking criteria are:
  *  - method's name starts with "patch"
- *  - the last argument is not a ConfigurationOptions object
+ *  - the last argument is not a ConfigurationOptions object, or it is missing the middleware configuration
  *
  * @param fnName the name of the K8sApi function
  * @param fnArgs the list of the runtime arguments
+ * @return a new array of arguments with the config options changes applied, or the original array otherwise
  */
-function needsMiddlewareOpts(fnName: string, fnArgs: any[]) {
+function ensureMiddlewareForPatchRequests(fnName: string, fnArgs: any[]): any[] {
   if (!fnName.startsWith("patch")) {
-    return false
+    return fnArgs
   }
 
+  // The ConfigurationOptions is always the last argument of the function.
   const lastArg = fnArgs.slice(-1).pop()
-  return !isConfigurationOptions(lastArg)
+
+  // if options are not defined, add middleware config
+  if (!isConfigurationOptions(lastArg)) {
+    return fnArgs.concat(getConfigOptionsForPatchRequest())
+  }
+
+  // if the middleware config is already defined, respect it
+  if (!!lastArg.middleware) {
+    return fnArgs
+  }
+
+  // preserve provided config options if any, and add missing middleware config if necessary
+  const overrides = getConfigOptionsForPatchRequest()
+  const patchedLastArg: ConfigurationOptions = {
+    baseServer: lastArg.baseServer,
+    authMethods: lastArg.authMethods,
+    httpApi: lastArg.httpApi,
+    middleware: overrides.middleware,
+    middlewareMergeStrategy: overrides.middlewareMergeStrategy,
+  }
+
+  return [...fnArgs.slice(0, -1), patchedLastArg]
 }
 
 function makeApiClient<T extends ApiType>(kubeConfig: KubeConfig, apiClientType: ApiConstructor<T>): T {
@@ -879,9 +906,7 @@ export class KubeApi {
         return (...args: any[]) => {
           return requestWithRetry(log, `Kubernetes API: ${name}`, () => {
             // TODO: remove this when https://github.com/kubernetes-client/javascript/issues/2264 is fixed
-            if (needsMiddlewareOpts(name, args)) {
-              args.push(getConfigOptionsForPatchRequest())
-            }
+            ensureMiddlewareForPatchRequests(name, args)
             const output = target[name](...args)
 
             if (typeof output.then === "function") {
