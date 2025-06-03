@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Stream } from "ts-stream"
 import type { PluginDeployActionParamsBase } from "../../base.js"
 import { actionParamsSchema } from "../../base.js"
 import { dedent } from "../../../util/string.js"
@@ -15,9 +14,13 @@ import type { DeployAction } from "../../../actions/deploy.js"
 import type { DeployLogEntry } from "../../../types/service.js"
 import { ActionTypeHandlerSpec } from "../base/base.js"
 import type { Resolved } from "../../../actions/types.js"
+import type { LogEntryBase } from "../../../plugins/kubernetes/logs.js"
+
+export type LogEntryHandler<T extends LogEntryBase> = (entry: T) => void
+export type DeployLogEntryHandler = LogEntryHandler<DeployLogEntry>
 
 interface GetDeployLogsParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
-  stream: Stream<DeployLogEntry>
+  onLogEntry: DeployLogEntryHandler
   follow: boolean
   tail?: number
   since?: string

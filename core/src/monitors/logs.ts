@@ -9,7 +9,6 @@
 import chalk from "chalk"
 import hasAnsi from "has-ansi"
 import { every, repeat, some } from "lodash-es"
-import { Stream } from "ts-stream"
 import type { DeployAction } from "../actions/deploy.js"
 import type { Resolved } from "../actions/types.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
@@ -61,25 +60,24 @@ export type LogsTagOrFilter = LogsTagAndFilter[]
 
 export class LogMonitor extends Monitor {
   type = "log"
-
   public action: Resolved<DeployAction>
 
-  private graph: ConfigGraph
-  private log: Log
+  private readonly graph: ConfigGraph
+  private readonly log: Log
 
-  private entries: DeployLogEntry[]
-  private events: PluginEventBroker
+  private readonly entries: DeployLogEntry[]
+  private readonly events: PluginEventBroker
 
-  private collect: boolean
-  private hideService: boolean
-  private showTags: boolean
-  private showTimestamps: boolean
-  private logLevel: LogLevel
-  private tagFilters?: LogsTagOrFilter
+  private readonly collect: boolean
+  private readonly hideService: boolean
+  private readonly showTags: boolean
+  private readonly showTimestamps: boolean
+  private readonly logLevel: LogLevel
+  private readonly tagFilters?: LogsTagOrFilter
   // This could be replaced with e.g. a custom render function if more flexibility becomes needed.
-  private msgPrefix?: string
-  private tail?: number
-  private since?: string
+  private readonly msgPrefix?: string
+  private readonly tail?: number
+  private readonly since?: string
 
   constructor(params: LogMonitorParams) {
     super(params)
@@ -124,7 +122,6 @@ export class LogMonitor extends Monitor {
   }
 
   async start() {
-    const stream = new Stream<DeployLogEntry>()
     const { default: micromatch } = await import("micromatch")
     const { isMatch } = micromatch
 
@@ -141,7 +138,13 @@ export class LogMonitor extends Monitor {
       })
     }
 
-    void stream.forEach((entry) => {
+    const router = await this.garden.getActionRouter()
+    const actionLog = createActionLog({
+      log: this.garden.log,
+      actionName: this.action.name,
+      actionKind: this.action.kind,
+    })
+    const onLogEntry = (entry: DeployLogEntry) => {
       // Skip empty entries
       if (skipEntry(entry)) {
         return
@@ -157,20 +160,14 @@ export class LogMonitor extends Monitor {
       } else {
         this.logEntry(entry)
       }
-    })
+    }
 
-    const router = await this.garden.getActionRouter()
-    const actionLog = createActionLog({
-      log: this.garden.log,
-      actionName: this.action.name,
-      actionKind: this.action.kind,
-    })
     await router.deploy.getLogs({
       log: actionLog,
       action: this.action,
       follow: !this.collect,
       graph: this.graph,
-      stream,
+      onLogEntry,
       events: this.events,
       tail: this.tail,
       since: this.since,
@@ -179,13 +176,10 @@ export class LogMonitor extends Monitor {
     if (this.collect) {
       await waitForOutputFlush()
     }
-
-    return {}
   }
 
   async stop() {
     this.events.emit("abort")
-    return {}
   }
 
   getEntries() {
@@ -249,10 +243,6 @@ export class LogMonitor extends Monitor {
 
     return out
   }
-}
-
-export function isLogsMonitor(monitor: Monitor): monitor is LogMonitor {
-  return monitor.type === "log"
 }
 
 /**
