@@ -74,6 +74,8 @@ import http from "node:http"
 import { ProxyAgent } from "proxy-agent"
 import { type MaybeSecret, toClearText } from "../../util/secrets.js"
 import type { ConfigurationOptions } from "@kubernetes/client-node/dist/gen/configuration.js"
+import { isNullish, isPrimitive } from "utility-types"
+import { isPlainObject } from "../../util/objects.js"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -264,8 +266,49 @@ type ApiConstructor<T extends ApiType> = new (config: Configuration) => T
  *
  *  Waiting for https://github.com/kubernetes-client/javascript/issues/2264 to be fixed properly.
  */
-export function getConfigOptionsForPatchRequest(): ConfigurationOptions {
+function getConfigOptionsForPatchRequest(): ConfigurationOptions {
   return { middleware: [], middlewareMergeStrategy: "append" }
+}
+
+const configurableOptionsFields = ["baseServer", "httpApi", "middleware", "authMethods", "middlewareMergeStrategy"]
+
+function isConfigurationOptions(obj: unknown): obj is ConfigurationOptions {
+  if (isNullish(obj)) {
+    return false
+  }
+
+  if (isPrimitive(obj)) {
+    return false
+  }
+
+  if (isPlainObject(obj)) {
+    for (const configurableOptionsField of configurableOptionsFields) {
+      if (configurableOptionsField in obj) {
+        return true
+      }
+    }
+    return false
+  }
+
+  return false
+}
+
+/**
+ * Checks if a k8s api call is a patch request that needs extra middleware config options.
+ * The match criteria are:
+ *  - method's name starts with "patch"
+ *  - the last argument is not a ConfigurationOptions object
+ *
+ * @param fnName the name of the K8sApi function
+ * @param fnArgs the list of the runtime arguments
+ */
+function needsMiddlewareOpts(fnName: string, fnArgs: any[]) {
+  if (!fnName.startsWith("patch")) {
+    return false
+  }
+
+  const lastArg = fnArgs.slice(-1).pop()
+  return !isConfigurationOptions(lastArg)
 }
 
 function makeApiClient<T extends ApiType>(kubeConfig: KubeConfig, apiClientType: ApiConstructor<T>): T {
@@ -836,6 +879,10 @@ export class KubeApi {
 
         return (...args: any[]) => {
           return requestWithRetry(log, `Kubernetes API: ${name}`, () => {
+            // TODO: remove this when https://github.com/kubernetes-client/javascript/issues/2264 is fixed
+            if (needsMiddlewareOpts(name, args)) {
+              args.push(getConfigOptionsForPatchRequest())
+            }
             const output = target[name](...args)
 
             if (typeof output.then === "function") {

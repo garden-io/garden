@@ -21,7 +21,7 @@ import type {
 } from "./types.js"
 import { isPodResource } from "./types.js"
 import { findByName } from "../../util/util.js"
-import { getConfigOptionsForPatchRequest, KubeApi, KubernetesError } from "./api.js"
+import { KubeApi, KubernetesError } from "./api.js"
 import {
   base64,
   dedent,
@@ -443,7 +443,7 @@ export async function upsertConfigMap({
       throw err
     }
     if (err.responseStatusCode === 409) {
-      await api.core.patchNamespacedConfigMap({ name: key, namespace, body }, getConfigOptionsForPatchRequest())
+      await api.core.patchNamespacedConfigMap({ name: key, namespace, body })
     } else {
       throw err
     }

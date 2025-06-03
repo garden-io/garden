@@ -8,7 +8,7 @@
 
 import { intersection, cloneDeep } from "lodash-es"
 
-import { getConfigOptionsForPatchRequest, KubeApi, KubernetesError } from "./api.js"
+import { KubeApi, KubernetesError } from "./api.js"
 import type { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config.js"
 import { DeploymentError, TimeoutError } from "../../exceptions.js"
 import { getPackageVersion, sleep } from "../../util/util.js"
@@ -129,18 +129,15 @@ export async function ensureNamespace(
         // Make sure annotations and labels are set correctly if the namespace already exists
         log.verbose("Updating annotations and labels on namespace " + namespace.name)
         try {
-          result.remoteResource = await api.core.patchNamespace(
-            {
-              name: namespace.name,
-              body: {
-                metadata: {
-                  annotations: namespace.annotations,
-                  labels: namespace.labels,
-                },
+          result.remoteResource = await api.core.patchNamespace({
+            name: namespace.name,
+            body: {
+              metadata: {
+                annotations: namespace.annotations,
+                labels: namespace.labels,
               },
             },
-            getConfigOptionsForPatchRequest()
-          )
+          })
           result.patched = true
         } catch (err) {
           log.warn(`Unable to apply the configured annotations and labels on namespace ${namespace.name}: ${err}`)
