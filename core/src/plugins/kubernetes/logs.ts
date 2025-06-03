@@ -22,7 +22,8 @@ import { Writable } from "stream"
 import { LogLevel } from "../../logger/logger.js"
 import { splitFirst } from "../../util/string.js"
 import { toKubernetesError } from "./retry.js"
-import { gardenErrorSafeLogEntryHandler, type DeployLogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
+import { type DeployLogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
+import { InternalError, toGardenError } from "../../exceptions.js"
 
 // When not following logs, the entire log is read into memory and sorted.
 // We therefore set a maximum on the number of lines we fetch.
@@ -197,7 +198,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     resources: KubernetesResource[]
     retryIntervalMs?: number
   }) {
-    this.onLogEntry = gardenErrorSafeLogEntryHandler(onLogEntry, log)
+    this.onLogEntry = onLogEntry
     this.entryConverter = entryConverter
     this.connections = {}
     this.k8sApi = k8sApi
@@ -289,6 +290,10 @@ export class K8sLogFollower<T extends LogEntryBase> {
   }
 
   private async handleConnectionClose(connection: LogConnection, status: ConnectionStatus, error: unknown) {
+    if (error instanceof InternalError) {
+      throw error
+    }
+
     clearTimeout(connection.timeout)
 
     const prevStatus = connection.status
@@ -406,7 +411,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
         // The ts-stream library that we use for service logs entries doesn't properly implement
         // a writeable stream which the K8s API expects so we wrap it here.
         const writableStream = new Writable({
-          write: (chunk: Buffer | undefined, _encoding: BufferEncoding, next) => {
+          write: (chunk: Buffer | undefined, _encoding: BufferEncoding, callback) => {
             // clear the timeout, as we have activity on the socket
             clearTimeout(connection.timeout)
             connection.timeout = makeTimeout()
@@ -416,29 +421,34 @@ export class K8sLogFollower<T extends LogEntryBase> {
             const line = chunk?.toString()?.trimEnd()
 
             if (!line) {
-              next()
+              callback()
               return
             }
 
-            const { timestamp, msg } = parseTimestampAndMessage(line)
+            try {
+              const { timestamp, msg } = parseTimestampAndMessage(line)
 
-            // If we can't parse the timestamp, we encountered a kubernetes error
-            if (!timestamp) {
-              this.log.debug(
-                `Encountered a log message without timestamp. This is probably an error message from the Kubernetes API: ${line}`
-              )
-            } else if (this.isDuplicate({ connection, timestamp, msg })) {
-              this.log.silly(() => `Dropping duplicate log message: ${line}`)
-            } else {
-              this.updateLastLogEntries({ connection, timestamp, msg })
-              this.handleLogEntry({
-                msg,
-                containerName,
-                timestamp,
-              })
+              // If we can't parse the timestamp, we encountered a kubernetes error
+              if (!timestamp) {
+                this.log.debug(
+                  `Encountered a log message without timestamp. This is probably an error message from the Kubernetes API: ${line}`
+                )
+              } else if (this.isDuplicate({ connection, timestamp, msg })) {
+                this.log.silly(() => `Dropping duplicate log message: ${line}`)
+              } else {
+                this.updateLastLogEntries({ connection, timestamp, msg })
+                this.handleLogEntry({
+                  msg,
+                  containerName,
+                  timestamp,
+                })
+              }
+            } catch (err) {
+              callback(toGardenError(err))
+              return
             }
 
-            next()
+            callback()
           },
         })
 
@@ -462,9 +472,8 @@ export class K8sLogFollower<T extends LogEntryBase> {
         connection.timeout = makeTimeout()
 
         writableStream.on("error", async (error) => {
-          // FIXME: it looks like this handler is never called, even if writableStream.write() throws an error
           this.log.debug(`Unhandled error while processing log entry: ${error}`)
-          await this.handleConnectionClose(connection, "error", toKubernetesError(error, context))
+          await this.handleConnectionClose(connection, "error", toGardenError(error))
         })
         writableStream.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
         writableStream.on("error", async () => await this.handleConnectionClose(connection, "error", "Request closed"))
