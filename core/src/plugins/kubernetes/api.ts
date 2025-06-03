@@ -270,8 +270,8 @@ function makeApiClient<T extends ApiType>(kubeConfig: KubeConfig, apiClientType:
           // See also https://github.com/kubernetes-client/javascript/pull/1341 (That's why we have to use the fork)
           if (context.getHttpMethod() === "PATCH") {
             // this does not work because it lowercases the header param:
-            // context.setHeaderParam("Content-Type", "application/merge-patch+json")
-            context["headers"]["Content-Type"] = "application/merge-patch+json"
+            context.setHeaderParam("Content-Type", "application/merge-patch+json")
+            // context["headers"]["Content-Type"] = "application/merge-patch+json"
           }
 
           const agent = await createProxyAgent(context.getAgent())
