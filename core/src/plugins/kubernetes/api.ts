@@ -258,7 +258,7 @@ type ApiConstructor<T extends ApiType> = new (config: Configuration) => T
 /**
  * We need this hack to enable the middleware that is already configure in api.core.
  *
- * Otherwise, the middleware will be completely ignore because of the bug in the @kubernetes/client-node,
+ * Otherwise, the middleware will be completely ignored because of the bug in the @kubernetes/client-node,
  * see the function patchNamespaceWithHttpInfo in ObservableAPI.js
  * and the following issues:
  *  - https://github.com/kubernetes-client/javascript/issues/2160#issuecomment-2620169494
