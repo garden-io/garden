@@ -28,11 +28,11 @@ interface PortForwardMonitorParams extends MonitorBaseParams {
  */
 export class PortForwardMonitor extends Monitor {
   type = "port-forward"
-
   public action: Executed<DeployAction>
-  private graph: ConfigGraph
-  private log: Log
-  protected events: PluginEventBroker
+
+  private readonly graph: ConfigGraph
+  private readonly log: Log
+  private readonly events: PluginEventBroker
   private proxies: PortProxy[]
 
   constructor(params: PortForwardMonitorParams) {
@@ -92,12 +92,9 @@ export class PortForwardMonitor extends Monitor {
         )
       )
     }
-
-    return {}
   }
 
   async stop() {
     await this.stopProxies()
-    return {}
   }
 }

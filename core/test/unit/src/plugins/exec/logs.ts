@@ -15,27 +15,26 @@ import { gardenPlugin } from "../../../../../src/plugins/exec/exec.js"
 import type { Log } from "../../../../../src/logger/log-entry.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import fsExtra from "fs-extra"
-const { appendFile, ensureFile, remove, writeFile } = fsExtra
 import { randomString } from "../../../../../src/util/string.js"
 import type { LocalServiceLogEntry } from "../../../../../src/plugins/exec/logs.js"
 import { ExecLogsFollower } from "../../../../../src/plugins/exec/logs.js"
-import { Stream } from "ts-stream"
 import { sleep } from "../../../../../src/util/util.js"
+import type { DeployLogEntry } from "../../../../../src/types/service.js"
+import type { DeployLogEntryHandler } from "../../../../../src/plugin/handlers/Deploy/get-logs.js"
+
+const { appendFile, ensureFile, remove, writeFile } = fsExtra
 
 const range = (length: number) => [...Array(length).keys()]
 const defaultSleep = 1000
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getStream(): [Stream<LocalServiceLogEntry>, any[]] {
+function getStream(): [DeployLogEntryHandler, any[]] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const logBuffer: any[] = []
-  const stream = new Stream<LocalServiceLogEntry>()
-
-  void stream.forEach((entry) => {
+  const onLogEntry = (entry: DeployLogEntry) => {
     logBuffer.push(entry)
-  })
-
-  return [stream, logBuffer]
+  }
+  return [onLogEntry, logBuffer]
 }
 
 async function writeLogFile(path: string, entries: LocalServiceLogEntry[], append = false) {
@@ -67,10 +66,10 @@ describe("ExecLogsFollower", () => {
   describe("streamLogs", () => {
     it("should stream logs from file", async () => {
       const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
-      const [stream, logs] = getStream()
+      const [onLogEntry, logs] = getStream()
 
       const execLogsFollower = new ExecLogsFollower({
-        stream,
+        onLogEntry,
         deployName: "foo",
         log,
         logFilePath,
@@ -92,10 +91,10 @@ describe("ExecLogsFollower", () => {
 
     it("should include error entries", async () => {
       const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
-      const [stream, logs] = getStream()
+      const [onLogEntry, logs] = getStream()
 
       const execLogsFollower = new ExecLogsFollower({
-        stream,
+        onLogEntry,
         deployName: "foo",
         log,
         logFilePath,
@@ -117,10 +116,10 @@ describe("ExecLogsFollower", () => {
 
     it("should optionally stream last N entries", async () => {
       const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
-      const [stream, logs] = getStream()
+      const [onLogEntry, logs] = getStream()
 
       const execLogsFollower = new ExecLogsFollower({
-        stream,
+        onLogEntry,
         deployName: "foo",
         log,
         logFilePath,
@@ -141,10 +140,10 @@ describe("ExecLogsFollower", () => {
     })
     it("should optionally stream entries from a given duration", async () => {
       const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
-      const [stream, logs] = getStream()
+      const [onLogEntry, logs] = getStream()
 
       const execLogsFollower = new ExecLogsFollower({
-        stream,
+        onLogEntry,
         deployName: "foo",
         log,
         logFilePath,
@@ -187,10 +186,10 @@ describe("ExecLogsFollower", () => {
     })
     it("should skip invalid entries", async () => {
       const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
-      const [stream, logs] = getStream()
+      const [onLogEntry, logs] = getStream()
 
       const execLogsFollower = new ExecLogsFollower({
-        stream,
+        onLogEntry,
         deployName: "foo",
         log,
         logFilePath,
@@ -230,10 +229,10 @@ describe("ExecLogsFollower", () => {
     })
     it("should abort without error if log file doesn't exist", async () => {
       const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
-      const [stream, logs] = getStream()
+      const [onLogEntry, logs] = getStream()
 
       const execLogsFollower = new ExecLogsFollower({
-        stream,
+        onLogEntry,
         deployName: "foo",
         log,
         logFilePath,
@@ -255,10 +254,10 @@ describe("ExecLogsFollower", () => {
 
       it("should stream initial batch", async () => {
         const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
-        const [stream, logs] = getStream()
+        const [onLogEntry, logs] = getStream()
 
         execLogsFollower = new ExecLogsFollower({
-          stream,
+          onLogEntry,
           deployName: "foo",
           log,
           logFilePath,
@@ -281,10 +280,10 @@ describe("ExecLogsFollower", () => {
       })
       it("should follow logs and stream new entries", async () => {
         const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
-        const [stream, logs] = getStream()
+        const [onLogEntry, logs] = getStream()
 
         execLogsFollower = new ExecLogsFollower({
-          stream,
+          onLogEntry,
           deployName: "foo",
           log,
           logFilePath,
@@ -321,10 +320,10 @@ describe("ExecLogsFollower", () => {
       })
       it("should handle log file being reset while watching", async () => {
         const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
-        const [stream, logs] = getStream()
+        const [onLogEntry, logs] = getStream()
 
         execLogsFollower = new ExecLogsFollower({
-          stream,
+          onLogEntry,
           deployName: "foo",
           log,
           logFilePath,
@@ -366,10 +365,10 @@ describe("ExecLogsFollower", () => {
       })
       it("should abide its time and not crash if no log file is found", async () => {
         const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
-        const [stream, logs] = getStream()
+        const [onLogEntry, logs] = getStream()
 
         execLogsFollower = new ExecLogsFollower({
-          stream,
+          onLogEntry,
           deployName: "foo",
           log,
           logFilePath,

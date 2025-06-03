@@ -12,7 +12,6 @@ import { getDataDir, makeTestGarden } from "../../../../../helpers.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { DeployTask } from "../../../../../../src/tasks/deploy.js"
 import { k8sGetContainerDeployLogs } from "../../../../../../src/plugins/kubernetes/container/logs.js"
-import { Stream } from "ts-stream"
 import type { DeployLogEntry } from "../../../../../../src/types/service.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
 import { K8sLogFollower, makeDeployLogEntry } from "../../../../../../src/plugins/kubernetes/logs.js"
@@ -64,19 +63,14 @@ describe("kubernetes", () => {
       })
 
       await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-      const stream = new Stream<DeployLogEntry>()
-
-      void stream.forEach((entry) => {
-        entries.push(entry)
-      })
-
       const resolvedDeployAction = await garden.resolveAction<ContainerDeployAction>({ action, log: garden.log, graph })
 
+      const onLogEntry = (entry: DeployLogEntry) => entries.push(entry)
       await k8sGetContainerDeployLogs({
         ctx,
         action: resolvedDeployAction,
         log: actionLog,
-        stream,
+        onLogEntry,
         follow: false,
       })
 
@@ -109,12 +103,6 @@ describe("kubernetes", () => {
         })
 
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-        const stream = new Stream<DeployLogEntry>()
-
-        void stream.forEach((entry) => {
-          entries.push(entry)
-        })
-
         const resolvedDeployAction = await garden.resolveAction<ContainerDeployAction>({
           action,
           log: garden.log,
@@ -135,10 +123,12 @@ describe("kubernetes", () => {
             log: actionLog,
           }),
         ]
+
+        const onLogEntry = (entry: DeployLogEntry) => entries.push(entry)
         logsFollower = new K8sLogFollower({
           defaultNamespace: provider.config.namespace!.name!,
           log,
-          stream,
+          onLogEntry,
           entryConverter: makeDeployLogEntry(action.name),
           resources,
           k8sApi: api,
@@ -183,13 +173,6 @@ describe("kubernetes", () => {
 
           force: false,
         })
-
-        const stream = new Stream<DeployLogEntry>()
-
-        void stream.forEach((entry) => {
-          entries.push(entry)
-        })
-
         const resolvedDeployAction = await garden.resolveAction<ContainerDeployAction>({
           action,
           log: garden.log,
@@ -209,10 +192,12 @@ describe("kubernetes", () => {
             log: actionLog,
           }),
         ]
+
         const retryIntervalMs = 1000
+        const onLogEntry = (entry: DeployLogEntry) => entries.push(entry)
         logsFollower = new K8sLogFollower({
           defaultNamespace: provider.config.namespace!.name!,
-          stream,
+          onLogEntry,
           log: actionLog,
           entryConverter: makeDeployLogEntry(action.name),
           resources,
@@ -225,8 +210,7 @@ describe("kubernetes", () => {
 
         // Start following logs even when no Deploys are live
         // (we don't wait for the Promise since it won't resolve unless we close the connection)
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        logsFollower.followLogs({})
+        void logsFollower.followLogs({})
         await sleep(1500)
 
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })

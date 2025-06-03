@@ -28,14 +28,15 @@ interface SyncMonitorParams extends MonitorBaseParams {
  */
 export class SyncMonitor extends Monitor {
   type = "sync"
-
   public action: Executed<DeployAction>
-  private graph: ConfigGraph
-  private log: Log
-  private events: PluginEventBroker
+
+  private readonly graph: ConfigGraph
+  private readonly log: Log
+  private readonly events: PluginEventBroker
+  private readonly stopOnExit: boolean
+
   private actionLog?: ActionLog
   private router?: ActionRouter
-  private stopOnExit: boolean
 
   constructor(params: SyncMonitorParams) {
     super(params)
@@ -64,8 +65,6 @@ export class SyncMonitor extends Monitor {
       graph: this.graph,
       events: this.events,
     })
-
-    return {}
   }
 
   async stop() {
@@ -75,6 +74,5 @@ export class SyncMonitor extends Monitor {
     } else {
       this.events.emit("abort")
     }
-    return {}
   }
 }
