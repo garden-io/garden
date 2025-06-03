@@ -20,7 +20,7 @@
     "@commitlint/config-conventional": "^19.8.1",
     "@inquirer/prompts": "^7.1.0",
     "@rollup/plugin-commonjs": "^28.0.3",
-    "@rollup/plugin-esm-shim": "^0.1.7",
+    "@rollup/plugin-esm-shim": "^0.1.8",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^5.0.7",
