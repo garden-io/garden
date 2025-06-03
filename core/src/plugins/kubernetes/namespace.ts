@@ -139,8 +139,8 @@ export async function ensureNamespace(
             },
           })
           result.patched = true
-        } catch {
-          log.warn(`Unable to apply the configured annotations and labels on namespace ${namespace.name}`)
+        } catch (err) {
+          log.warn(`Unable to apply the configured annotations and labels on namespace ${namespace.name}: ${err}`)
         }
       }
 
