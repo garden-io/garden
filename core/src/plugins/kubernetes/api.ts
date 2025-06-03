@@ -269,7 +269,8 @@ function getConfigOptionsForPatchRequest(): ConfigurationOptions {
   return { middleware: [], middlewareMergeStrategy: "append" }
 }
 
-const configurableOptionsFields = [
+type ConfigOptionsField = keyof ConfigurationOptions
+const configurableOptionsFields: ConfigOptionsField[] = [
   "baseServer",
   "httpApi",
   "middleware",
