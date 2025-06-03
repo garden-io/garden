@@ -19,7 +19,7 @@ import {
   getRenderedResources,
 } from "../../../../../../src/plugins/kubernetes/helm/status.js"
 import { getReleaseName } from "../../../../../../src/plugins/kubernetes/helm/common.js"
-import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
+import { getConfigOptionsForPatchRequest, KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
 import { buildHelmModules, getHelmTestGarden } from "./common.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util.js"
@@ -385,11 +385,14 @@ describe("helmDeploy", () => {
         [gardenCloudAECPauseAnnotation]: "paused",
       }
 
-      await api.apps.patchNamespacedDeployment({
-        name: apiDeployment.metadata?.name,
-        namespace: "helm-test-default",
-        body: apiDeployment,
-      })
+      await api.apps.patchNamespacedDeployment(
+        {
+          name: apiDeployment.metadata?.name,
+          namespace: "helm-test-default",
+          body: apiDeployment,
+        },
+        getConfigOptionsForPatchRequest()
+      )
 
       const releaseStatusAfterScaleDown = await getReleaseStatus({
         ctx: ctxWithCloudApi,
