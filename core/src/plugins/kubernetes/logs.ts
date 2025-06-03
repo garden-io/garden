@@ -10,10 +10,9 @@ import { omit, sortBy } from "lodash-es"
 import parseDuration from "parse-duration"
 
 import type { DeployLogEntry } from "../../types/service.js"
-import type { KubernetesResource, KubernetesPod, BaseResource } from "./types.js"
+import type { KubernetesResource, KubernetesPod } from "./types.js"
 import { getAllPods, summarize } from "./util.js"
 import { KubeApi, KubernetesError } from "./api.js"
-import type { Stream } from "ts-stream"
 import type { Log } from "../../logger/log-entry.js"
 import type { KubernetesProvider } from "./config.js"
 import type { PluginContext } from "../../plugin-context.js"
@@ -23,6 +22,9 @@ import { Writable } from "stream"
 import { LogLevel } from "../../logger/logger.js"
 import { splitFirst } from "../../util/string.js"
 import { toKubernetesError } from "./retry.js"
+import type { LogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
+import { type DeployLogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
+import { InternalError, toGardenError } from "../../exceptions.js"
 
 // When not following logs, the entire log is read into memory and sorted.
 // We therefore set a maximum on the number of lines we fetch.
@@ -34,7 +36,7 @@ interface GetAllLogsParams {
   log: Log
   provider: KubernetesProvider
   actionName: string
-  stream: Stream<DeployLogEntry>
+  onLogEntry: DeployLogEntryHandler
   follow: boolean
   tail?: number
   since?: string
@@ -74,12 +76,12 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
 
       params.log.debug(`Tail parameter not set explicitly. Setting to ${tail} to prevent log overflow.`)
     }
-    const { stream } = params
+    const { onLogEntry } = params
     await Promise.all(
       pods.map(async (pod) => {
         const serviceLogEntries = await readLogs({ ...omit(params, "pods", "stream"), entryConverter, pod, tail, api })
         for (const entry of sortBy(serviceLogEntries, "timestamp")) {
-          void stream.write(entry)
+          onLogEntry(entry)
         }
       })
     )
@@ -130,6 +132,7 @@ interface LastLogEntries {
   messages: string[]
   timestamp: Date
 }
+
 interface LogConnection {
   pod: KubernetesPod
   containerName: string
@@ -168,19 +171,22 @@ const defaultRetryIntervalMs = 10000
  * an interval, comparing the result against current active connections and attempting re-connects as needed.
  */
 export class K8sLogFollower<T extends LogEntryBase> {
-  private connections: { [key: string]: LogConnection }
-  private stream: Stream<T>
-  private entryConverter: PodLogEntryConverter<T>
-  private k8sApi: KubeApi
-  private log: Log
-  private defaultNamespace: string
-  private resources: KubernetesResource<BaseResource>[]
+  private readonly k8sApi: KubeApi
+  private readonly log: Log
+  private readonly defaultNamespace: string
+
+  private readonly connections: { [key: string]: LogConnection }
+  private readonly resources: KubernetesResource[]
+
+  private readonly onLogEntry: LogEntryHandler<T>
+  private readonly entryConverter: PodLogEntryConverter<T>
+
+  private readonly retryIntervalMs: number
   private timeoutId?: NodeJS.Timeout | null
   private resolve: ((val: unknown) => void) | null
-  private retryIntervalMs: number
 
   constructor({
-    stream,
+    onLogEntry,
     entryConverter,
     defaultNamespace,
     k8sApi,
@@ -188,15 +194,15 @@ export class K8sLogFollower<T extends LogEntryBase> {
     resources,
     retryIntervalMs = defaultRetryIntervalMs,
   }: {
-    stream: Stream<T>
+    onLogEntry: LogEntryHandler<T>
     entryConverter: PodLogEntryConverter<T>
     k8sApi: KubeApi
     log: Log
     defaultNamespace: string
-    resources: KubernetesResource<BaseResource>[]
+    resources: KubernetesResource[]
     retryIntervalMs?: number
   }) {
-    this.stream = stream
+    this.onLogEntry = onLogEntry
     this.entryConverter = entryConverter
     this.connections = {}
     this.k8sApi = k8sApi
@@ -288,6 +294,10 @@ export class K8sLogFollower<T extends LogEntryBase> {
   }
 
   private async handleConnectionClose(connection: LogConnection, status: ConnectionStatus, error: unknown) {
+    if (error instanceof InternalError) {
+      throw error
+    }
+
     clearTimeout(connection.timeout)
 
     const prevStatus = connection.status
@@ -405,7 +415,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
         // The ts-stream library that we use for service logs entries doesn't properly implement
         // a writeable stream which the K8s API expects so we wrap it here.
         const writableStream = new Writable({
-          write: (chunk: Buffer | undefined, _encoding: BufferEncoding, next) => {
+          write: (chunk: Buffer | undefined, _encoding: BufferEncoding, callback) => {
             // clear the timeout, as we have activity on the socket
             clearTimeout(connection.timeout)
             connection.timeout = makeTimeout()
@@ -415,29 +425,30 @@ export class K8sLogFollower<T extends LogEntryBase> {
             const line = chunk?.toString()?.trimEnd()
 
             if (!line) {
-              next()
+              callback()
               return
             }
 
-            const { timestamp, msg } = parseTimestampAndMessage(line)
+            try {
+              const { timestamp, msg } = parseTimestampAndMessage(line)
 
-            // If we can't parse the timestamp, we encountered a kubernetes error
-            if (!timestamp) {
-              this.log.debug(
-                `Encountered a log message without timestamp. This is probably an error message from the Kubernetes API: ${line}`
-              )
-            } else if (this.isDuplicate({ connection, timestamp, msg })) {
-              this.log.silly(() => `Dropping duplicate log message: ${line}`)
-            } else {
-              this.updateLastLogEntries({ connection, timestamp, msg })
-              this.write({
-                msg,
-                containerName,
-                timestamp,
-              })
+              // If we can't parse the timestamp, we encountered a kubernetes error
+              if (!timestamp) {
+                this.log.debug(
+                  `Encountered a log message without timestamp. This is probably an error message from the Kubernetes API: ${line}`
+                )
+              } else if (this.isDuplicate({ connection, timestamp, msg })) {
+                this.log.silly(() => `Dropping duplicate log message: ${line}`)
+              } else {
+                this.updateLastLogEntries({ connection, timestamp, msg })
+                this.handleLogEntry({ msg, containerName, timestamp })
+              }
+            } catch (err) {
+              callback(toGardenError(err))
+              return
             }
 
-            next()
+            callback()
           },
         })
 
@@ -460,10 +471,10 @@ export class K8sLogFollower<T extends LogEntryBase> {
         connection.status = "connected"
         connection.timeout = makeTimeout()
 
-        writableStream.on(
-          "error",
-          async (error) => await this.handleConnectionClose(connection, "error", toKubernetesError(error, context))
-        )
+        writableStream.on("error", async (error) => {
+          this.log.debug(`Unhandled error while processing log entry: ${error}`)
+          await this.handleConnectionClose(connection, "error", toGardenError(error))
+        })
         writableStream.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
       })
     )
@@ -600,7 +611,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     }
   }
 
-  private write({
+  private handleLogEntry({
     msg,
     containerName,
     level = LogLevel.info,
@@ -611,14 +622,13 @@ export class K8sLogFollower<T extends LogEntryBase> {
     level?: LogLevel
     timestamp?: Date
   }) {
-    void this.stream.write(
-      this.entryConverter({
-        timestamp,
-        msg,
-        level,
-        containerName,
-      })
-    )
+    const logEntry = this.entryConverter({
+      timestamp,
+      msg,
+      level,
+      containerName,
+    })
+    this.onLogEntry(logEntry)
   }
 }
 
