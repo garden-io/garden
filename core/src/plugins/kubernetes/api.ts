@@ -269,7 +269,13 @@ function getConfigOptionsForPatchRequest(): ConfigurationOptions {
   return { middleware: [], middlewareMergeStrategy: "append" }
 }
 
-const configurableOptionsFields = ["baseServer", "httpApi", "middleware", "authMethods", "middlewareMergeStrategy"]
+const configurableOptionsFields = [
+  "baseServer",
+  "httpApi",
+  "middleware",
+  "authMethods",
+  "middlewareMergeStrategy",
+] as const
 
 function isConfigurationOptions(obj: unknown): obj is ConfigurationOptions {
   if (!isPlainObject(obj)) {
