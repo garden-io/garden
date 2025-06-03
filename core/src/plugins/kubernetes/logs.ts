@@ -22,6 +22,7 @@ import { Writable } from "stream"
 import { LogLevel } from "../../logger/logger.js"
 import { splitFirst } from "../../util/string.js"
 import { toKubernetesError } from "./retry.js"
+import type { LogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
 import { type DeployLogEntryHandler } from "../../plugin/handlers/Deploy/get-logs.js"
 import { InternalError, toGardenError } from "../../exceptions.js"
 
@@ -171,7 +172,7 @@ const defaultRetryIntervalMs = 10000
  */
 export class K8sLogFollower<T extends LogEntryBase> {
   private connections: { [key: string]: LogConnection }
-  private onLogEntry: (entry: T) => void
+  private onLogEntry: LogEntryHandler<T>
   private entryConverter: PodLogEntryConverter<T>
   private k8sApi: KubeApi
   private log: Log
@@ -190,7 +191,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     resources,
     retryIntervalMs = defaultRetryIntervalMs,
   }: {
-    onLogEntry: (entry: T) => void
+    onLogEntry: LogEntryHandler<T>
     entryConverter: PodLogEntryConverter<T>
     k8sApi: KubeApi
     log: Log
