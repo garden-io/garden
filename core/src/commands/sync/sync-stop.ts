@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,6 +13,8 @@ import { dedent, naturalList } from "../../util/string.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { createActionLog } from "../../logger/log-entry.js"
+import { DOCS_MIGRATION_GUIDE_CEDAR, FeatureNotAvailable } from "../../util/deprecations.js"
+import { styles } from "../../logger/styles.js"
 
 const syncStopArgs = {
   names: new StringsParameter({
@@ -32,7 +34,7 @@ const syncStopOpts = {
 type Opts = typeof syncStopOpts
 
 export class SyncStopCommand extends Command<Args, Opts> {
-  name = "stop"
+  name = "stop" as const
   help = "Stop any active syncs to the given Deploy action(s)."
 
   override protected = true
@@ -57,8 +59,13 @@ export class SyncStopCommand extends Command<Args, Opts> {
     printHeader(log, "Stopping sync(s)", "🔁")
   }
 
-  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
-    const { garden, log, args } = params
+  async action({ garden, log, args, parentCommand }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
+    if (!parentCommand) {
+      throw new FeatureNotAvailable({
+        link: `${DOCS_MIGRATION_GUIDE_CEDAR}#syncstopcommand`,
+        hint: `This command is only available when using the dev console or in sync mode. Run ${styles.highlight("garden dev")} or ${styles.highlight("garden deploy --sync")} first.`,
+      })
+    }
 
     // We default to stopping all syncs.
     const names = args.names || ["*"]
@@ -107,7 +114,7 @@ export class SyncStopCommand extends Command<Args, Opts> {
         await router.deploy.stopSync({ log: actionLog, action, graph })
 
         // Halt any active monitors for the sync
-        garden.monitors.find({ type: "sync", key: action.name }).map((m) => m.stop())
+        await Promise.all(garden.monitors.find({ type: "sync", key: action.name }).map((m) => m.stop()))
 
         actionLog.info("Syncing successfully stopped.")
       })

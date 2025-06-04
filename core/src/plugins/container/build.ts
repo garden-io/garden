@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import { containerHelpers } from "./helpers.js"
-import { ConfigurationError, InternalError, toGardenError } from "../../exceptions.js"
+import { BuildError, ConfigurationError, GardenError, InternalError, toGardenError } from "../../exceptions.js"
 import type { PrimitiveMap } from "../../config/common.js"
 import split2 from "split2"
 import type { BuildActionHandler } from "../../plugin/action-types.js"
@@ -28,8 +28,13 @@ import type { PluginContext } from "../../plugin-context.js"
 import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
 import type { CloudBuilderAvailableV2 } from "../../cloud/api.js"
-import type { SpawnOutput } from "../../util/util.js"
+import { renderTimeDurationMs, spawn, type SpawnOutput } from "../../util/util.js"
 import { isSecret, type Secret } from "../../util/secrets.js"
+import { tmpdir } from "os"
+import { join } from "path"
+import { mkdtemp, readFile } from "fs/promises"
+import type { DockerBuildReport } from "../../cloud/grow/trpc.js"
+import type { ActionRuntime } from "../../plugin/base.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -92,25 +97,56 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     level: "verbose" as const,
   }
 
+  const progressui = ctx.tools["container.standalone-progressui"]
+  const progressuiProcess = await progressui.spawn({ log })
+  progressuiProcess.stdout?.on("data", (data: Buffer) => {
+    data
+      .toString()
+      .trim()
+      .split("\n")
+      .forEach((line) => {
+        ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line, ...logEventContext })
+      })
+  })
+  const dockerLogs: DockerBuildReport[] = []
+  const dockerErrorLogs: string[] = []
   const outputStream = split2()
-  outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
+    if (progressuiProcess.stdin) {
+      progressuiProcess.stdin.write(line + "\n")
+    }
+    try {
+      dockerLogs.push(JSON.parse(line.toString()))
+    } catch (_error) {
+      dockerErrorLogs.push(line.toString())
+    }
   })
   const timeout = action.getConfig("timeout")
 
-  let res: SpawnOutput
-
+  let res: { buildResult: SpawnOutput; timeSaved: number }
   const availability = await cloudBuilder.getAvailability(ctx, action)
+  const runtime = cloudBuilder.getActionRuntime(ctx, availability)
   if (availability.available) {
-    res = await buildContainerInCloudBuilder({ action, availability, outputStream, timeout, log, ctx })
+    res = await buildContainerInCloudBuilder({
+      action,
+      availability,
+      outputStream,
+      timeout,
+      log,
+      ctx,
+      dockerLogs,
+      dockerErrorLogs,
+    })
   } else {
-    res = await buildContainerLocally({
+    res = await buildxBuildContainer({
       action,
       outputStream,
       timeout,
       log,
       ctx,
+      runtime,
+      dockerLogs,
+      dockerErrorLogs,
     })
   }
 
@@ -119,9 +155,9 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     outputs,
     detail: {
       fresh: true,
-      buildLog: res.all || "",
+      buildLog: res.buildResult.all || "",
       outputs,
-      runtime: cloudBuilder.getActionRuntime(ctx, availability),
+      runtime,
       details: {
         identifier,
       },
@@ -129,13 +165,56 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   }
 }
 
-async function buildContainerLocally({
+function detectConfigurationError(dockerErrorLogs: string[]): ConfigurationError | undefined {
+  for (const dockerErrorLogLine of dockerErrorLogs) {
+    const errorMessageLowercase = dockerErrorLogLine.toLowerCase()
+
+    if (errorMessageLowercase.includes("docker exporter does not currently support exporting manifest lists")) {
+      return new ConfigurationError({
+        message: dedent`
+          Your local docker image store does not support loading multi-platform images.
+          If you are using Docker Desktop, you can turn on the experimental containerd image store.
+          Learn more at https://docs.docker.com/go/build-multi-platform/
+        `,
+      })
+    }
+
+    if (errorMessageLowercase.includes("multi-platform build is not supported for the docker driver")) {
+      return new ConfigurationError({
+        message: dedent`
+          Your local docker daemon does not support building multi-platform images.
+          If you are using Docker Desktop, you can turn on the experimental containerd image store.
+          To build multi-platform images locally with other local docker platforms,
+          you can add a custom buildx builder of type docker-container.
+          Learn more at https://docs.docker.com/go/build-multi-platform/
+        `,
+      })
+    }
+
+    if (errorMessageLowercase.includes("failed to push")) {
+      return new ConfigurationError({
+        message: dedent`
+          The Docker daemon failed to push the image to the registry.
+          Please make sure that you are logged in and that you
+          have sufficient permissions on this machine to push to the registry.
+        `,
+      })
+    }
+  }
+
+  return undefined
+}
+
+async function buildxBuildContainer({
   action,
   outputStream,
   timeout,
   log,
   ctx,
   extraDockerOpts = [],
+  runtime,
+  dockerLogs,
+  dockerErrorLogs,
 }: {
   action: Resolved<ContainerBuildAction>
   outputStream: Writable
@@ -143,7 +222,10 @@ async function buildContainerLocally({
   log: ActionLog
   ctx: PluginContext<ContainerProviderConfig>
   extraDockerOpts?: string[]
-}) {
+  runtime: ActionRuntime
+  dockerLogs: DockerBuildReport["dockerLogs"]
+  dockerErrorLogs: string[]
+}): Promise<{ buildResult: SpawnOutput; timeSaved: number }> {
   const spec = action.getSpec()
   const outputs = action.getOutputs()
   const buildPath = action.getBuildPath()
@@ -152,10 +234,17 @@ async function buildContainerLocally({
 
   const dockerfilePath = joinWithPosix(buildPath, spec.dockerfile)
 
-  const dockerFlags = [...getDockerBuildFlags(action, ctx.provider.config), ...extraDockerOpts]
+  const tmpDir = await mkdtemp(join(tmpdir(), `garden-build-${action.uid.slice(0, 5)}`))
+  const metadataFile = join(tmpDir, "metadata-file.json")
+
+  const internalDockerFlags = ["--progress", "rawjson", "--metadata-file", metadataFile]
+
+  const dockerFlags = [...getDockerBuildFlags(action, ctx.provider.config), ...extraDockerOpts, ...internalDockerFlags]
 
   const { secretArgs, secretEnvVars } = getDockerSecrets(action.getSpec())
   dockerFlags.push(...secretArgs)
+  const buildxEnvVars = { BUILDX_METADATA_PROVENANCE: "max", BUILDX_METADATA_WARNINGS: "1" }
+  const dockerEnvVars = { ...secretEnvVars, ...buildxEnvVars }
 
   // If there already is a --tag flag, another plugin like the Kubernetes plugin already decided how to tag the image.
   // In this case, we don't want to add another local tag.
@@ -168,10 +257,13 @@ async function buildContainerLocally({
       dockerFlags.push(...["--tag", outputs.deploymentImageId])
     }
   }
-
+  const startedAt = new Date()
   const cmdOpts = ["buildx", "build", ...dockerFlags, "--file", dockerfilePath]
+  let res: SpawnOutput = { all: "", stdout: "", stderr: "", code: 1, proc: null }
+  let dockerBuildError: unknown | undefined
+  let dockerBuildConfigError: ConfigurationError | undefined
   try {
-    return await containerHelpers.dockerCli({
+    res = await containerHelpers.dockerCli({
       cwd: buildPath,
       args: [...cmdOpts, buildPath],
       log,
@@ -179,43 +271,62 @@ async function buildContainerLocally({
       stderr: outputStream,
       timeout,
       ctx,
-      env: secretEnvVars,
+      env: dockerEnvVars,
     })
   } catch (e) {
-    const error = toGardenError(e)
-    if (error.message.includes("docker exporter does not currently support exporting manifest lists")) {
-      throw new ConfigurationError({
-        message: dedent`
-          Your local docker image store does not support loading multi-platform images.
-          If you are using Docker Desktop, you can turn on the experimental containerd image store.
-          Learn more at https://docs.docker.com/go/build-multi-platform/
-        `,
-      })
-    } else if (error.message.includes("Multi-platform build is not supported for the docker driver")) {
-      throw new ConfigurationError({
-        message: dedent`
-          Your local docker daemon does not support building multi-platform images.
-          If you are using Docker Desktop, you can turn on the experimental containerd image store.
-          To build multi-platform images locally with other local docker platforms,
-          you can add a custom buildx builder of type docker-container.
-          Learn more at https://docs.docker.com/go/build-multi-platform/
-        `,
-      })
-    } else if (error.message.includes("failed to push")) {
-      throw new ConfigurationError({
-        message: dedent`
-          The Docker daemon failed to push the image to the registry.
-          Please make sure that you are logged in and that you
-          have sufficient permissions on this machine to push to the registry.
-        `,
+    // Intercept any unknown error to ensure the build report sending,
+    // the error will be processed later and re-thrown if necessary.
+    dockerBuildError = e
+
+    // Check if there are any actual configuration errors,
+    // and craft user-friendly error messages with hints.
+    dockerBuildConfigError = detectConfigurationError(dockerErrorLogs)
+  }
+
+  // Send build report in any case (success/failure),
+  // before returning successful result or throeing an error.
+  // This function is fail-safe,
+  // and prints a user-friendly warning if a user is not logged in.
+  const output = await sendBuildReport({
+    metadataFile,
+    cmdOpts,
+    startedAt,
+    dockerLogs,
+    dockerCommandResult: res,
+    runtime,
+    ctx,
+    log,
+  })
+  const timeSaved = output?.timeSaved || 0
+
+  // Throw user-friendly configuration error with hint is it was detected
+  if (!!dockerBuildConfigError) {
+    throw dockerBuildConfigError
+  }
+
+  if (!!dockerBuildError) {
+    // If any Docker error logs were intercepted,
+    // throw an error with the intercepted error output,
+    // and without verbose Docker JSON logs.
+    if (dockerErrorLogs.length > 0) {
+      throw new BuildError({
+        message: `docker build failed: ${dockerErrorLogs.join("\n")}`,
       })
     }
-    throw error
-  }
-}
 
-const BUILDKIT_LAYER_REGEX = /^#[0-9]+ \[[^ ]+ +[0-9]+\/[0-9]+\] [^F][^R][^O][^M]/
-const BUILDKIT_LAYER_CACHED_REGEX = /^#[0-9]+ CACHED/
+    // Otherwise, process the original error.
+    // The Docker error logs can be empty in case if docker command failed to start (e.g. it got unrecognized opts/flags or wrong args).
+    if (dockerBuildError instanceof GardenError) {
+      throw new BuildError({
+        message: `docker build failed: ${dockerBuildError.message}`,
+      })
+    }
+
+    throw dockerBuildError
+  }
+
+  return { buildResult: res, timeSaved }
+}
 
 async function buildContainerInCloudBuilder(params: {
   action: Resolved<ContainerBuildAction>
@@ -224,21 +335,10 @@ async function buildContainerInCloudBuilder(params: {
   timeout: number
   log: ActionLog
   ctx: PluginContext<ContainerProviderConfig>
+  dockerLogs: DockerBuildReport["dockerLogs"]
+  dockerErrorLogs: string[]
 }) {
-  const cloudBuilderStats = {
-    totalLayers: 0,
-    layersCached: 0,
-  }
-
-  // get basic buildkit stats
-  params.outputStream.on("data", (line: Buffer) => {
-    const logLine = line.toString()
-    if (BUILDKIT_LAYER_REGEX.test(logLine)) {
-      cloudBuilderStats.totalLayers++
-    } else if (BUILDKIT_LAYER_CACHED_REGEX.test(logLine)) {
-      cloudBuilderStats.layersCached++
-    }
-  })
+  const runtime = cloudBuilder.getActionRuntime(params.ctx, params.availability)
 
   const res = await cloudBuilder.withBuilder(params.ctx, params.availability, async (builderName) => {
     const extraDockerOpts = ["--builder", builderName]
@@ -246,25 +346,106 @@ async function buildContainerInCloudBuilder(params: {
     // we add --push in the Kubernetes local-docker handler when using the Kubernetes plugin with a deploymentRegistry setting.
     // If we have --push, no need to --load.
     if (!getDockerBuildFlags(params.action, params.ctx.provider.config).includes("--push")) {
-      // This action makes sure to download the image from the cloud builder, and make it available locally.
+      // This action makes sure to download the image from the Container Builder, and make it available locally.
       extraDockerOpts.push("--load")
     }
 
-    return await buildContainerLocally({ ...params, extraDockerOpts })
+    return await buildxBuildContainer({ ...params, extraDockerOpts, runtime, dockerLogs: params.dockerLogs })
   })
 
   const log = params.ctx.log.createLog({
     name: `build.${params.action.name}`,
   })
-  log.success(
-    `${styles.bold("Accelerated by Garden Cloud Builder")} (${cloudBuilderStats.layersCached}/${cloudBuilderStats.totalLayers} layers cached)`
-  )
+
+  log.success(styles.bold(`Accelerated by Remote Container Builder ${renderSavedTime(res.timeSaved)}`))
 
   return res
 }
 
+function renderSavedTime(timeMs: number): string {
+  const renderedDuration = timeMs === 0 ? "" : renderTimeDurationMs(timeMs)
+  return renderedDuration.length === 0 ? "" : `(saved ${renderedDuration})`
+}
+
+async function getDockerMetadata(filePath: string, log: ActionLog) {
+  try {
+    return JSON.parse(await readFile(filePath, { encoding: "utf-8" }))
+  } catch (e: unknown) {
+    log.debug(`Failed to read docker metadata file: ${e}`)
+    return undefined
+  }
+}
+
+function getBuilderName(dockerMetadata: DockerBuildReport["dockerMetadata"]) {
+  if (dockerMetadata && typeof dockerMetadata["buildx.build.ref"] === "string") {
+    return dockerMetadata["buildx.build.ref"].split("/")[0]
+  }
+  return "unknown"
+}
+
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
   return containerHelpers.getBuildActionOutputs(action, undefined)
+}
+
+export async function sendBuildReport({
+  metadataFile,
+  cmdOpts,
+  startedAt,
+  dockerLogs,
+  dockerCommandResult,
+  runtime,
+  ctx,
+  log,
+}: {
+  metadataFile: string
+  cmdOpts: string[]
+  startedAt: Date
+  dockerLogs: DockerBuildReport["dockerLogs"]
+  dockerCommandResult: SpawnOutput
+  runtime: ActionRuntime
+  log: ActionLog
+  ctx: PluginContext
+}) {
+  try {
+    const dockerMetadata = await getDockerMetadata(metadataFile, log)
+    const { client, server } = await containerHelpers.getDockerVersion()
+
+    const builderName = getBuilderName(dockerMetadata)
+    const driver = await getBuildxDriver(builderName, log, ctx)
+    const imageTags = getImageTags(dockerMetadata, cmdOpts)
+    const dockerBuildReport: DockerBuildReport = {
+      runtime: cloudBuilder.transformRuntime(runtime),
+      status: dockerCommandResult.code === 0 ? "success" : "failure",
+      startedAt,
+      completedAt: new Date(),
+      runtimeMetadata: {
+        docker: {
+          clientVersion: client || "unknown",
+          serverVersion: server || "unknown",
+        },
+        builder: {
+          implicitName: builderName,
+          isDefault: false, //TODO
+          driver,
+        },
+      },
+      imageTags,
+      platforms: await getPlatforms(cmdOpts),
+      dockerLogs,
+      dockerMetadata,
+    }
+
+    const growCloudApi = ctx.cloudApiV2
+    if (!growCloudApi) {
+      log.warn("Garden Cloud v2 not available. Are you logged in?")
+      return { timeSaved: 0 }
+    }
+
+    return await growCloudApi.uploadDockerBuildReport(dockerBuildReport)
+  } catch (err) {
+    log.debug(`Failed to send build report to Garden Cloud: ${err}`)
+    return { timeSaved: 0 }
+  }
 }
 
 export function getDockerSecrets(actionSpec: ContainerBuildActionSpec): {
@@ -302,6 +483,52 @@ export function getDockerSecrets(actionSpec: ContainerBuildActionSpec): {
     secretArgs: args,
     secretEnvVars: env,
   }
+}
+
+async function getBuildxDriver(builderName: string, log: ActionLog, ctx: PluginContext): Promise<string> {
+  if (builderName === "unknown") {
+    return "unknown"
+  }
+  if (builderName.startsWith("garden-cloud-builder")) {
+    return "remote"
+  }
+
+  try {
+    const parsedBuilderInfo: { Name: string; Driver: string }[] = []
+    const outputStream = split2()
+    outputStream.on("data", (line: Buffer) => {
+      parsedBuilderInfo.push(JSON.parse(line.toString()))
+    })
+    await containerHelpers.dockerCli({
+      cwd: ".",
+      stdout: outputStream,
+      log,
+      ctx,
+      args: ["buildx", "ls", "--format", "json"],
+    })
+    return parsedBuilderInfo.find((builder) => builder.Name === builderName)?.Driver || "unknown"
+  } catch (e) {
+    throw toGardenError({
+      message: `Failed to get buildx driver info: ${e}`,
+    })
+  }
+}
+
+export function getImageTags(dockerMetadata: DockerBuildReport["dockerMetadata"], cmdOpts: string[]) {
+  const tags: string[] = []
+  if (dockerMetadata && dockerMetadata["image.name"]) {
+    // To be consistent we remove the prefix for the local docker image store from the image name
+    const localDockerStorePrefix = /^docker.io\/library\//
+    const parsedTags = dockerMetadata["image.name"].split(",").map((tag) => tag.replace(localDockerStorePrefix, ""))
+    tags.push(...parsedTags)
+  } else {
+    for (let i = 0; i < cmdOpts.length; i++) {
+      if (cmdOpts[i] === "--tag") {
+        tags.push(cmdOpts[i + 1])
+      }
+    }
+  }
+  return tags
 }
 
 export function getDockerBuildFlags(
@@ -353,4 +580,50 @@ export function getDockerBuildArgs(version: string, specBuildArgs: PrimitiveMap)
       }
     })
     .filter((x): x is string => !!x)
+}
+
+// Map of architecture names to Docker platform names
+// see https://github.com/BretFisher/multi-platform-docker-build
+const architectureMap: Record<string, string> = {
+  "x86_64": "amd64",
+  "x86-64": "amd64",
+  "aarch64": "arm64",
+  "armhf": "arm",
+  "armel": "arm/v6",
+  "i386": "386",
+}
+
+async function getPlatforms(cmdOpts: string[]): Promise<string[]> {
+  const platforms: string[] = []
+  for (let i = 0; i < cmdOpts.length; i++) {
+    if (cmdOpts[i] === "--platform") {
+      const platform = cmdOpts[i + 1]
+      if (platform === undefined) {
+        throw new ConfigurationError({
+          message: "Missing platform after --platform flag",
+        })
+      }
+      platforms.push(platform)
+    }
+  }
+  // no platforms specified, defaults to docker server's platform
+  if (platforms.length === 0) {
+    const osTypeResult = await spawn("docker", ["system", "info", "--format", "{{.OSType}}"])
+    const osType = osTypeResult.stdout.trim()
+    const archResult = await spawn("docker", ["system", "info", "--format", "{{.Architecture}}"])
+    let arch = archResult.stdout.trim()
+
+    // docker system info does not always return the same architecure name as used for the platform flag
+    // see https://github.com/BretFisher/multi-platform-docker-build
+    if (!Object.values(architectureMap).includes(arch)) {
+      arch = architectureMap[arch] || ""
+    }
+    if (arch === "") {
+      throw new ConfigurationError({
+        message: `Unsupported architecture ${arch}`,
+      })
+    }
+    platforms.push(`${osType}/${arch}`)
+  }
+  return platforms
 }

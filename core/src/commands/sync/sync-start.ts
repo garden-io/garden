@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,7 +20,8 @@ import { createActionLog } from "../../logger/log-entry.js"
 import type { DeployAction } from "../../actions/deploy.js"
 import type { ConfigGraph } from "../../graph/config-graph.js"
 import type { Garden } from "../../index.js"
-import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { DOCS_MIGRATION_GUIDE_CEDAR, FeatureNotAvailable } from "../../util/deprecations.js"
+import { styles } from "../../logger/styles.js"
 
 const syncStartArgs = {
   names: new StringsParameter({
@@ -49,7 +50,7 @@ const syncStartOpts = {
 type Opts = typeof syncStartOpts
 
 export class SyncStartCommand extends Command<Args, Opts> {
-  name = "start"
+  name = "start" as const
   help = "Start any configured syncs to the given Deploy action(s)."
 
   override protected = true
@@ -93,14 +94,18 @@ export class SyncStartCommand extends Command<Args, Opts> {
     return !!opts.monitor
   }
 
-  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
-    const { garden, log, args, opts } = params
-
-    if (!params.parentCommand) {
-      reportDeprecatedFeatureUsage({
-        apiVersion: garden.projectApiVersion,
-        log,
-        deprecation: "syncStartCommand",
+  async action({
+    garden,
+    log,
+    args,
+    opts,
+    commandLine,
+    parentCommand,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
+    if (!parentCommand) {
+      throw new FeatureNotAvailable({
+        link: `${DOCS_MIGRATION_GUIDE_CEDAR}#syncstartcommand`,
+        hint: `This command is only available when using the dev console or in sync mode. Run ${styles.highlight("garden dev")} or ${styles.highlight("garden deploy --sync")} first.`,
       })
     }
 
@@ -108,7 +113,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
     const names = args.names || ["*"]
 
     // We want to stop any started syncs on exit if we're calling `sync start` from inside the `dev` command.
-    const stopOnExit = !!params.commandLine
+    const stopOnExit = !!commandLine
 
     const graph = await garden.getConfigGraph({
       log,

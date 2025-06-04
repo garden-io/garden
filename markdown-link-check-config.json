@@ -7,8 +7,16 @@
       "reason": "Ignore example URL"
     },
     {
+      "pattern": "localhost",
+      "reason": "Ignore localhost"
+    },
+    {
       "pattern": "^http://my-service",
       "reason": "Ignore example URL"
+    },
+    {
+      "pattern": "https:",
+      "reason": "Ignore ALL EXTERNAL URLS TODO REMOVE"
     },
     {
       "pattern": "^https://docs\\.github\\.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads$",

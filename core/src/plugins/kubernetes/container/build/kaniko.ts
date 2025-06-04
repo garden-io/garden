@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,7 +18,7 @@ import type { Log } from "../../../../logger/log-entry.js"
 import type { KubernetesProvider, KubernetesPluginContext } from "../../config.js"
 import { BuildError, ConfigurationError } from "../../../../exceptions.js"
 import { PodRunner } from "../../run.js"
-import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace.js"
+import { ensureNamespace, getAppNamespace, getSystemNamespace } from "../../namespace.js"
 import { prepareSecrets } from "../../secrets.js"
 import { dedent } from "../../../../util/string.js"
 import type { RunResult } from "../../../../plugin/base.js"
@@ -60,7 +60,7 @@ export const getKanikoBuildStatus: BuildStatusHandler = async (params) => {
   const provider = k8sCtx.provider
 
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
 
   await ensureUtilDeployment({
     ctx,
@@ -88,7 +88,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
   const api = await KubeApi.factory(log, ctx, provider)
   const k8sCtx = ctx as KubernetesPluginContext
 
-  const projectNamespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
+  const projectNamespace = await getAppNamespace(k8sCtx, log, provider)
 
   const spec = action.getSpec()
 
@@ -96,7 +96,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     throw new ConfigurationError({
       message: dedent`
         Unfortunately Kaniko does not support secret build arguments.
-        Garden Cloud Builder and the Kubernetes BuildKit in-cluster builder both support secrets.
+        Remote Container Builder and the Kubernetes BuildKit in-cluster builder both support secrets.
 
         See also https://github.com/GoogleContainerTools/kaniko/issues/3028
       `,

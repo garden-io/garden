@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,6 +21,7 @@ import { RuntimeError } from "../exceptions.js"
 import { makeTempDir } from "../util/fs.js"
 import { createReadStream, createWriteStream } from "fs"
 import fsExtra from "fs-extra"
+
 const { copy, mkdirp, move, readdir, remove } = fsExtra
 import { GotHttpError, got } from "../util/http.js"
 import { gardenEnv } from "../constants.js"
@@ -69,8 +70,8 @@ const selfUpdateOpts = {
 export type SelfUpdateArgs = typeof selfUpdateArgs
 export type SelfUpdateOpts = typeof selfUpdateOpts
 
-const versionScopes = ["major", "minor", "patch"] as const
-export type VersionScope = (typeof versionScopes)[number]
+const _versionScopes = ["major", "minor", "patch"] as const
+export type VersionScope = (typeof _versionScopes)[number]
 
 function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>): VersionScope {
   if (opts["major"]) {
@@ -208,6 +209,7 @@ export async function getLatestVersions(numOfStableVersions: number, log: Log) {
   return [
     styles.highlight("edge-acorn"),
     styles.highlight("edge-bonsai"),
+    styles.highlight("edge-cedar"),
     ...releasesResponse
       .filter((r: any) => !r.prerelease && !r.draft)
       .map((r: any) => styles.highlight(r.name))
@@ -232,9 +234,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     Examples:
 
        garden self-update               # update to the latest minor Garden CLI version
-       garden self-update edge-acorn    # switch to the latest edge build of garden 0.12 (which is created anytime a PR is merged to the 0.12 branch)
-       garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13) (which is created anytime a PR is merged to main)
-       garden self-update 0.12.24       # switch to the exact version 0.12.24 of the CLI
+       garden self-update edge-acorn    # switch to the latest edge build of garden Acorn (0.12)
+       garden self-update edge-bonsai   # switch to the latest edge build of garden Bonsai (0.13)
+       garden self-update edge-cedar    # switch to the latest edge build of garden Cedar (0.14)
+       garden self-update 0.13.55       # switch to the exact version 0.13.55 of the CLI
        garden self-update --major       # install the latest version, even if it's a major bump
        garden self-update --force       # re-install even if the same version is detected
        garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
@@ -258,7 +261,13 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   }: CommandParams<SelfUpdateArgs, SelfUpdateOpts>): Promise<CommandResult<SelfUpdateResult>> {
     const currentVersion = getPackageVersion()
 
-    let desiredVersion = args.version
+    // FIXME: StringParameter is in fact a number
+    //  The method Parameter.validate ignores the actual validation result,
+    //  and does not ensure the correct type of the output object.
+    //  This is a quick hack to unlock the release,
+    //  let's revisit the parameter validation.
+    // The version can still be `undefined`, so we prevent from converting it to string "undefined"
+    let desiredVersion = args.version === undefined ? undefined : `${args.version}`
 
     if (desiredVersion && desiredVersion[0] === "v") {
       desiredVersion = desiredVersion.slice(1)
@@ -355,9 +364,12 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       if (
         !opts.architecture &&
         architecture === "arm64" &&
-        desiredVersion !== "edge-bonsai" &&
-        semver.valid(desiredVersion) !== null &&
-        semver.lt(desiredVersion, ARM64_INTRODUCTION_VERSION)
+        // acorn didn't support native arm64 builds yet
+        (desiredVersion === "edge-acorn" ||
+          // all future edge releases support native arm64 builds, as well as versions starting at ARM64_INTRODUCTION_VERSION.
+          (!desiredVersion.startsWith("edge-") &&
+            semver.valid(desiredVersion) !== null &&
+            semver.lt(desiredVersion, ARM64_INTRODUCTION_VERSION)))
       ) {
         if (platform === "macos") {
           architecture = "amd64"

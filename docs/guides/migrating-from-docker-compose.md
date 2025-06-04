@@ -1,6 +1,6 @@
 ---
 title: Migrating from Docker Compose to Garden
-order: 6
+order: 70
 ---
 
 # Migrating from Docker Compose to Garden
@@ -10,12 +10,11 @@ adding the necessary Garden config files. In this guide, we'll walk through an e
 Compose project to Garden. You can follow along with the example, or substitute with your own Docker Compose project
 where relevant.
 
-## Pre-requisites
+## Prerequisites
 
 To follow along, you should have:
 
-* Basic familiarity with
-  Garden ([Projects](../using-garden/projects.md), [Actions](../using-garden/actions.md), [Sync mode](./code-synchronization.md)).
+* Basic familiarity with [Garden](../getting-started/basics.md) and [Sync mode](../features/code-synchronization.md)).
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) running locally.
 * A local Kubernetes cluster running inside Docker Desktop.
 * A project that currently uses Docker Compose (or follow along using the provided example).
@@ -36,7 +35,7 @@ We've added four `*.garden.yml` files, which we'll walk through in detail.
 In the root of the directory, we've added `project.garden.yml` with the following contents:
 
 ```yaml
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: compose2garden
 
@@ -59,14 +58,14 @@ For our `backend` application, we've added another Garden configuration file:
 
 ```yaml
 kind: Build
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 name: backend
 description: The backend server image
 type: container
 
 ---
 kind: Deploy
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 name: backend
 description: The backend server container
 type: container
@@ -112,7 +111,7 @@ For the `frontend` application we create separate Garden configuration file:
 
 ```yaml
 kind: Build
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 name: frontend
 description: The frontend server and UI components image
 type: container
@@ -121,7 +120,7 @@ exclude:
 
 ---
 kind: Deploy
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 name: frontend
 description: The frontend server and UI components container
 type: container
@@ -159,7 +158,7 @@ The folder contains only the Garden configuration file:
 
 ```yaml
 kind: Deploy
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 description: MongoDB for storing todo items
 type: container
 name: mongo
@@ -187,7 +186,7 @@ Use `frontend` application's ingress URL from the console output to open the app
 
 ## Running the Garden project in code synchronization mode
 
-You can also try out [live code synchronization](./code-synchronization.md) with Garden.
+You can also try out [live code synchronization](../features/code-synchronization.md) with Garden.
 
 Just run:
 

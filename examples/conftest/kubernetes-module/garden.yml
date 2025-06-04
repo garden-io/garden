@@ -1,7 +1,0 @@
-kind: Deploy
-type: kubernetes
-name: kubernetes-module
-spec:
-  files:
-    - deployment.yaml
-    - service.yaml

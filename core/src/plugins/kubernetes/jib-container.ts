@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,6 +7,7 @@
  */
 
 import fsExtra from "fs-extra"
+
 const { mkdirp } = fsExtra
 import { resolve } from "path"
 import tar from "tar"
@@ -24,7 +25,7 @@ import {
 } from "./container/build/common.js"
 import { kubernetesContainerHelpers } from "./container/build/local.js"
 import { containerHandlers } from "./container/handlers.js"
-import { getNamespaceStatus } from "./namespace.js"
+import { getAppNamespace } from "./namespace.js"
 import { PodRunner } from "./run.js"
 import { getRunningDeploymentPod } from "./util.js"
 import type { BuildActionExtension, BuildActionParams } from "../../plugin/action-types.js"
@@ -92,7 +93,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
   // Push to util or buildkit deployment on remote, and push to registry from there to make sure auth/access is
   // consistent with normal image pushes.
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
 
   const tempDir = await makeTempDir()
 

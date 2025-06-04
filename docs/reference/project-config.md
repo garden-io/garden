@@ -5,7 +5,7 @@ title: Project Configuration
 
 # Project Configuration Reference
 
-Below is the schema reference for [Project](../using-garden/projects.md) configuration files. For an introduction to configuring a Garden project, please look at our [configuration guide](../using-garden/configuration-overview.md).
+Below is the schema reference for Project configuration files.
 
 The reference is divided into two sections:
 * [YAML Schema](#yaml-schema) contains the Project config YAML schema
@@ -35,7 +35,8 @@ The values in the schema below are the default values.
 # activates the breaking changes introduced in Garden 0.14.
 # The list of breaking changes is not final yet, so use this setting at your own risk.
 #
-# Please refer to [the deprecations guide](https://docs.garden.io/guides/deprecations) for more information.
+# Please refer to [the deprecations guide](https://docs.garden.io/cedar-0.14/guides/deprecations) for more
+# information.
 apiVersion:
 
 # Indicate what kind of config this is.
@@ -43,6 +44,9 @@ kind: Project
 
 # The name of the project.
 name:
+
+# The ID of the organization that this project belongs to in Garden Cloud.
+organizationId:
 
 # A list of environments to configure for the project.
 environments:
@@ -110,13 +114,11 @@ defaultEnvironment: ''
 # Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as
 # `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are
 # ignored when scanning for actions and action sources.
-# Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the `dotIgnoreFiles` field
-# in the project configuration.
 # Note that this take precedence over the project `scan.include` field, and action `include` fields, so any paths
 # matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 # See the [Configuration Files
-# guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-# details.
+# guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+# for details.
 dotIgnoreFile: .gardenignore
 
 proxy:
@@ -131,8 +133,8 @@ scan:
   #
   # Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source
   # tree, which use the same format as `.gitignore` files. See the [Configuration Files
-  # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-  # details.
+  # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+  # for details.
   #
   # Unlike the `exclude` field, the paths/globs specified here have _no effect_ on which files and directories Garden
   # watches for changes. Use the `exclude` field to affect those, if you have large directories that should not be
@@ -156,8 +158,8 @@ scan:
   # The `include` field does _not_ affect which files are watched.
   #
   # See the [Configuration Files
-  # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-  # details.
+  # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+  # for details.
   exclude:
 
   git:
@@ -238,7 +240,7 @@ EXPERIMENTAL: Configuring garden.io/v2 explicitly in your project configuration
 activates the breaking changes introduced in Garden 0.14.
 The list of breaking changes is not final yet, so use this setting at your own risk.
 
-Please refer to [the deprecations guide](https://docs.garden.io/guides/deprecations) for more information.
+Please refer to [the deprecations guide](https://docs.garden.io/cedar-0.14/guides/deprecations) for more information.
 
 | Type     | Allowed Values                                 | Required |
 | -------- | ---------------------------------------------- | -------- |
@@ -265,6 +267,14 @@ Example:
 ```yaml
 name: "my-sweet-project"
 ```
+
+### `organizationId`
+
+The ID of the organization that this project belongs to in Garden Cloud.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `environments[]`
 
@@ -450,32 +460,11 @@ Example:
 defaultEnvironment: "dev"
 ```
 
-### `dotIgnoreFiles[]`
-
-{% hint style="warning" %}
-**Deprecated**: The `dotIgnoreFiles` config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-Use the `dotIgnoreFile` field instead. It only allows specifying one filename.
-{% endhint %}
-
-Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-
-| Type               | Default | Required |
-| ------------------ | ------- | -------- |
-| `array[posixPath]` | `[]`    | No       |
-
-Example:
-
-```yaml
-dotIgnoreFiles:
-  - .gitignore
-```
-
 ### `dotIgnoreFile`
 
 Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the `dotIgnoreFiles` field in the project configuration.
 Note that this take precedence over the project `scan.include` field, and action `include` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
-See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 | Type        | Default           | Required |
 | ----------- | ----------------- | -------- |
@@ -527,7 +516,7 @@ Control where and how to scan for configuration files in the project.
 
 Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
 
-Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `exclude` field, the paths/globs specified here have _no effect_ on which files and directories Garden watches for changes. Use the `exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -560,7 +549,7 @@ Note that you can also explicitly _include_ files using the `include` field. If 
 
 The `include` field does _not_ affect which files are watched.
 
-See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 | Type               | Required |
 | ------------------ | -------- |

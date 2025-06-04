@@ -11,16 +11,6 @@ spec:
           kind: Deployment
           name: api-deployment
           containerName: api
-
-  localMode:
-    target:
-      kind: Deployment
-      name: api-deployment
-      containerName: api
-    ports:
-      - local: 8090
-        remote: 80
-
   manifests:
     - apiVersion: apps/v1
       kind: Deployment

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,7 +25,7 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
   const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
   const dockerBuildExtraFlags = action.getSpec("extraFlags")
 
-  // For in-cluster building or cloud builder, use regctl to copy the image.
+  // For in-cluster building or Container Builder, use regctl to copy the image.
   // This does not require to pull the image locally.
   if (
     provider.config.buildMode !== "local-docker" ||

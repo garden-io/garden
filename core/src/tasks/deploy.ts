@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +17,7 @@ import type { PluginEventBroker } from "../plugin-context.js"
 import type { ActionLog } from "../logger/log-entry.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { styles } from "../logger/styles.js"
+import { makeGetStatusLog } from "./helpers.js"
 
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
   events?: PluginEventBroker
@@ -68,7 +69,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   })
   @(logAndEmitGetStatusEvents<DeployAction>)
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
-    const log = this.log.createLog()
+    const log = makeGetStatusLog(this.log, this.force)
     const action = this.getResolvedAction(this.action, dependencyResults)
 
     const router = await this.garden.getActionRouter()

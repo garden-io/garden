@@ -1,19 +1,19 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
+import { DOCS_BASE_URL } from "../constants.js"
 import { styles } from "../logger/styles.js"
 import { GardenError } from "../exceptions.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { Log } from "../logger/log-entry.js"
-import dedent from "dedent"
+import { dedent, deline } from "./string.js"
 
-const deprecatedPluginNames = ["conftest", "conftest-container", "conftest-kubernetes", "hadolint", "octant"] as const
+const deprecatedPluginNames = [] as const
 export type DeprecatedPluginName = (typeof deprecatedPluginNames)[number]
 
 export function isDeprecatedPlugin(pluginName: string): pluginName is DeprecatedPluginName {
@@ -25,111 +25,143 @@ export function isDeprecatedPlugin(pluginName: string): pluginName is Deprecated
   return false
 }
 
-function makePluginDeprecation(pluginName: DeprecatedPluginName, style: (s: string) => string) {
-  return {
-    contextDesc: "Garden Plugins",
-    featureDesc: `The plugin ${style(pluginName)}`,
-    hint: "This plugin is still enabled by default in Garden 0.13, but will be removed in Garden 0.14. Do not use this plugin explicitly in Garden 0.14.",
-    hintReferenceLink: null,
-  }
-}
-
-export type DeprecatedDeployActionType = "configmap" | "persistentvolumeclaim"
-
-function makeDeployActionTypeDeprecation(actionType: DeprecatedDeployActionType, style: (s: string) => string) {
-  return {
-    contextDesc: "Garden action types",
-    featureDesc: `The ${style(`${actionType} Deploy`)} action type`,
-    hint: "Do not use this action in Garden 0.14.",
-    hintReferenceLink: null,
-  }
-}
-
+// This is called by `updateDeprecationGuide` to update deprecations.md in the docs automatically.
 export function getDeprecations(style: (s: string) => string = styles.highlight) {
   return {
-    containerDeploymentStrategy: {
-      contextDesc: "Kubernetes provider configuration",
-      featureDesc: `The ${style("deploymentStrategy")} config field`,
-      hint: `Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the ${style(`blue-green`)} strategy) has been removed.`,
-      hintReferenceLink: null,
-    },
-    dotIgnoreFiles: {
-      contextDesc: "Project configuration",
-      featureDesc: `The ${style("dotIgnoreFiles")} config field`,
-      hint: `Use the ${style("dotIgnoreFile")} field instead. It only allows specifying one filename.`,
-      hintReferenceLink: {
-        name: `${style("dotIgnoreFile")} reference documentation`,
-        link: `reference/project-config.md#dotignorefile`,
-      },
-    },
-    apiVersionV0: {
-      contextDesc: "Project configuration",
-      featureDesc: `Using ${style(`apiVersion: ${GardenApiVersion.v0}`)} in the project config`,
-      hint: dedent`
-      Use ${style(`apiVersion: ${GardenApiVersion.v1}`)} or higher instead.
+    hotReload: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("hotReload")} configuration field in modules`,
+      warnHint: deline`
+        The module-level ${style("hotReload")} configuration field was removed in Garden 0.13 and has no effect.
+        Please use actions with the ${style("sync")} mode instead.
       `,
-      hintReferenceLink: {
-        name: `${style("apiVersion")} reference documentation`,
-        link: `reference/project-config.md#apiVersion`,
-      },
+      docs: deline`
+        See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
+      `,
     },
-    projectConfigModules: {
-      contextDesc: "Project configuration",
-      featureDesc: `The ${style("modules")} config field`,
-      hint: `Please use the ${style("scan")} field instead.`,
-      hintReferenceLink: {
-        name: `${style("scan")} reference documentation`,
-        link: `reference/project-config.md#scan`,
-      },
+    hotReloadArgs: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("serviceResource.hotReloadArgs")} configuration field in ${style("kubernetes")} modules`,
+      warnHint: deline`
+        The ${style("serviceResource.hotReload")} configuration field in ${style("kubernetes")} modules was removed in Garden 0.13 and has no effect.
+        Please use actions with the ${style("sync")} mode instead.
+      `,
+      // TODO: add "See also the [deprecation notice for ${style("hotReload")} configuration field in modules](#hotreload)."
+      //  Now check-docs does not recognize the anchor links.
+      docs: deline`
+        See the [Code Synchronization Guide](../features/code-synchronization.md) for details.
+      `,
     },
-    kubernetesClusterInitCommand: {
-      contextDesc: "Garden commands",
-      featureDesc: `The Kubernetes plugin command ${style("cluster-init")}`,
-      hint: "Do not use this command. It has no effect.",
-      hintReferenceLink: null,
+    devMode: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("spec.devMode")} configuration field in actions`,
+      warnHint: deline`
+        The ${style("spec.devMode")} configuration field in actions is deprecated in Garden 0.14.
+        Please use ${style("spec.sync")} configuration field instead.
+      `,
+      docs: deline`
+        The old fields ${style("spec.devMode")} are automatically converted to ${style("spec.sync")} in Garden 0.14 when using ${style("apiVersion: garden.io/v2")} in the project-level configuration.
+      `,
     },
-    syncStartCommand: {
-      contextDesc: "Sync mode",
-      featureDesc: `The ${style("sync-start")} command.`,
-      hint: dedent`Behaviour of ${style(
-        "sync start"
-      )} is now deprecated and will be changed in a future breaking change release.
-        Instead, we recommend running ${style("garden deploy --sync")} or starting syncs inside the dev console
-        with either ${style("deploy --sync")} or ${style("sync start")}.`,
-      hintReferenceLink: null,
-    },
-    hadolintPlugin: makePluginDeprecation("hadolint", style),
-    octantPlugin: makePluginDeprecation("octant", style),
-    conftestPlugin: makePluginDeprecation("conftest", style),
     localMode: {
-      contextDesc: "Local mode",
-      featureDesc: `The ${style("local mode")} feature for container, kubernetes and helm deploys`,
-      hint: "Please do not use this in Garden 0.14",
-      hintReferenceLink: null,
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("spec.localMode")} configuration field in ${style("helm")}, ${style("kubernetes")} and ${style("container")} Deploy actions`,
+      warnHint: deline`
+        The local-mode feature was completely removed in 0.14, and the ${style("spec.localMode")} configuration syntax has no effect.
+        Please remove all ${style("spec.localMode")} entries from your configuration files.
+      `,
+      docs: null,
     },
-    buildConfigFieldOnRuntimeActions: {
-      contextDesc: "Acton configs",
-      featureDesc: `The ${style("build")} config field in runtime action configs`,
-      hint: `Use ${style("dependencies")} config build to define the build dependencies.`,
-      hintReferenceLink: {
-        name: "Migration guide for action configs",
-        link: "#updating-action-configs",
-      },
+    kubernetesProviderSyncResourceLimit: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("resources.sync")} config field in the ${style("kubernetes")} provider`,
+      warnHint: deline`
+        The ${style("resources.sync")} config field in the ${style("kubernetes")} provider has no effect in Garden 0.13 and 0.14.,
+        Please remove it from your ${style("kubernetes")} provider configuration.
+      `,
+      docs: deline`
+        The ${style("resources.sync")} config field in the ${style("kubernetes")} provider was only used for the ${style("cluster-docker")} build mode, which was removed in Garden 0.13.",
+      `,
     },
-    rsyncBuildStaging: {
-      contextDesc: "Build Staging",
-      featureDesc: `The ${style("legacy rsync-based file syncing")} for build staging`,
-      hint: `Do not use ${style("`GARDEN_LEGACY_BUILD_STAGE`")} environment variable in 0.14.`,
-      hintReferenceLink: null,
+    kubernetesPodSpecFiles: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("spec.files")} configuration field in ${style("kubernetes-pod")} action type`,
+      warnHint: deline`
+        The ${style("spec.files")} configuration field in ${style("kubernetes-pod")} action type has no effect.
+        Please remove it and use ${style("spec.manifestFiles")} or ${style("spec.manifestTemplates")} instead.
+      `,
+      docs: dedent`
+        See the reference documentation for details.
+
+        For the ${style("Run")} action kind see [${style("spec.manifestFiles")}](../reference/action-types/Run/kubernetes-pod.md#spec.manifestfiles) and [${style("spec.manifestTemplates")}](../reference/action-types/Run/kubernetes-pod.md#spec.manifesttemplates).
+        For the ${style("Test")} action kind see [${style("spec.manifestFiles")}](../reference/action-types/Test/kubernetes-pod.md#spec.manifestfiles) and [${style("spec.manifestTemplates")}](../reference/action-types/Test/kubernetes-pod.md#spec.manifesttemplates).
+      `,
     },
-    configmapDeployAction: makeDeployActionTypeDeprecation("configmap", style),
-    persistentvolumeclaimDeployAction: makeDeployActionTypeDeprecation("persistentvolumeclaim", style),
+    kubernetesPluginCleanupClusterRegistryCommand: {
+      docsSection: "Unsupported commands",
+      docsHeadline: `${style("cleanup-cluster-registry")}`,
+      warnHint: deline`
+        The ${style("cleanup-cluster-registry")} command in the ${style("kubernetes")} and ${style("local-kubernetes")} plugins is not supported in Garden 0.14.
+        This command no longer has any effect as of version 0.13!
+        Please remove this from any pipelines running it.
+      `,
+      docs: null,
+    },
+    containerDeployActionHostPort: {
+      docsSection: "Deprecated configuration",
+      docsHeadline: `${style("spec.ports[].hostPort")} configuration field in ${style("container")} Deploy action`,
+      warnHint: deline`
+        It's generally not recommended to use the ${style("hostPort")} field of the ${style("V1ContainerPort")} spec. You can learn more about Kubernetes best practices at: https://kubernetes.io/docs/concepts/configuration/overview/
+      `,
+      docs: null,
+    },
+    containerDeployActionLimits: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("spec.limits")} configuration field in ${style("container")} Deploy action`,
+      warnHint: deline`
+        Please use the ${style("cpu")} and ${style("memory")} configuration fields instead.
+      `,
+      docs: dedent`
+        Note! If the deprecated field [${style("spec.limits")}](../reference/action-types/Deploy/container.md#spec.limits)
+        is defined in the ${style("container")} Deploy action config,
+        Garden 0.14 automatically copies the field's contents to the ${style("spec.cpu")} and ${style("spec.memory")},
+        even if the latter are defined explicitly.
+
+        Please do not use both ${style("spec.limits")} and ${style("spec.cpu")} and/or ${style("spec.memory")} simultaneously,
+        and use only the latter pair of fields. Otherwise, the values from the old field ${style("spec.limits")} will be used.
+
+        See [${style("spec.cpu")}](../reference/action-types/Deploy/container.md#spec.cpu)
+        and [${style("spec.memory")}](../reference/action-types/Deploy/container.md#spec.memory) for the new syntax details.
+      `,
+    },
+    workflowLimits: {
+      docsSection: "Old configuration syntax",
+      docsHeadline: `${style("limits")} configuration field in workflows`,
+      warnHint: deline`
+        Please use the ${style("resources.limits")} configuration field instead.
+      `,
+      docs: dedent`
+        Note! If the deprecated field [${style("limits")}](../reference/workflow-config.md#limits) is defined in the workflow config,
+        Garden 0.14 automatically copies the field's contents to the ${style("resources.limits")},
+        even if the latter is defined explicitly.
+
+        Please do not use both ${style("limits")} and ${style("resources.limits")} simultaneously,
+        and use only ${style("resources.limits")}. Otherwise, the values from the old field ${style("limits")} will be used.
+
+        See [${style("resources.limits")}](../reference/workflow-config.md#resources.limits) for the new syntax details.
+      `,
+    },
   } as const
 }
 
 export type Deprecation = keyof ReturnType<typeof getDeprecations>
 
-export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/guides/deprecations`
+export const DOCS_DEPRECATION_GUIDE = `${DOCS_BASE_URL}/misc/deprecations`
+export const DOCS_MIGRATION_GUIDE_CEDAR = `${DOCS_BASE_URL}/misc/migrating-to-cedar`
+export const DOCS_MIGRATION_GUIDE_BONSAI = `${DOCS_BASE_URL}/misc/migrating-to-bonsai`
+
+export const CURRENT_MAJOR_VERSION = `0.14`
+export const NEXT_MAJOR_VERSION = `the next major release`
 
 export function makeDeprecationMessage({
   deprecation,
@@ -140,60 +172,62 @@ export function makeDeprecationMessage({
   includeLink?: boolean
   style?: boolean
 }) {
-  const { featureDesc, hint } = getDeprecations(style ? styles.highlight : (s) => `\`${s}\``)[deprecation]
+  const { docsHeadline, warnHint } = getDeprecations(style ? styles.highlight : (s) => `\`${s}\``)[deprecation]
 
-  const lines = [`${featureDesc} is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.`]
-
-  if (hint) {
-    lines.push(hint)
+  const lines: string[] = []
+  if (warnHint) {
+    lines.push(warnHint)
+  } else {
+    lines.push(
+      `${docsHeadline} is deprecated in ${CURRENT_MAJOR_VERSION} and will be removed in ${NEXT_MAJOR_VERSION}.`
+    )
   }
 
   if (includeLink) {
-    let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation}`
+    let link = `${DOCS_DEPRECATION_GUIDE}#${deprecation.toLowerCase()}`
     if (style) {
       link = styles.link(link)
     }
     lines.push(
-      `To make sure your configuration does not break when we release Garden 0.14, please follow the steps at ${link}`
+      `To make sure your configuration does not break when we release ${NEXT_MAJOR_VERSION}, please follow the steps at ${link}`
     )
   }
 
   return lines.join("\n")
 }
 
-class FeatureNotAvailable extends GardenError {
+export class FeatureNotAvailable extends GardenError {
   override type = "deprecated-feature-unavailable" as const
 
-  constructor({ deprecation, apiVersion }: { deprecation: Deprecation; apiVersion: GardenApiVersion }) {
-    const { featureDesc, hint } = getDeprecations()[deprecation]
-    const lines = [
-      `${featureDesc} has been deprecated and is not available when using ${styles.highlight(`apiVersion: ${apiVersion}`)} in your project configuration file.`,
+  constructor({ link, hint }: { link: string; hint: string }) {
+    const lines: string[] = [
+      `Configuration error: Rejecting use of deprecated functionality due to the \`apiVersion\` setting in your project-level configuration.`,
     ]
 
-    if (hint) {
-      lines.push(hint)
-    }
+    lines.push(hint)
 
-    const link = styles.link(DOCS_DEPRECATION_GUIDE)
-    lines.push(
-      `Avoiding to use this feature will ensure that your configuration does not break when we release Garden 0.14. For more information, see ${link}`
-    )
+    lines.push(`Please follow the steps at ${link} to solve this problem.`)
 
     super({ message: lines.join("\n") })
   }
 }
 
 type DeprecationWarningParams = {
-  apiVersion: GardenApiVersion
   log: Log
   deprecation: Deprecation
 }
 
-export function reportDeprecatedFeatureUsage({ apiVersion, log, deprecation }: DeprecationWarningParams) {
-  if (apiVersion === GardenApiVersion.v2) {
-    throw new FeatureNotAvailable({ apiVersion, deprecation })
-  }
+export function reportDeprecatedFeatureUsage({ log, deprecation }: DeprecationWarningParams) {
+  // TODO: throw it for GardenApiVersion.v3
+  // const apiVersion = getGlobalProjectApiVersion()
+  // const docs = getDeprecations(styles.highlight)[deprecation]
+  // if (apiVersion === GardenApiVersion.v2) {
+  //   throw new FeatureNotAvailable({
+  //     hint: docs.warnHint,
+  //     link: `${DOCS_DEPRECATION_GUIDE}#${deprecation.toLowerCase()}`,
+  //   })
+  // }
 
   const warnMessage = makeDeprecationMessage({ deprecation, includeLink: true, style: true })
-  emitNonRepeatableWarning(log, `\nDEPRECATION WARNING: ${warnMessage}\n`)
+  emitNonRepeatableWarning(log, `\nWARNING: ${warnMessage}\n`)
 }

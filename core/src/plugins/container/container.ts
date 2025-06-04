@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,8 +15,9 @@ import type {
   ContainerActionConfig,
   ContainerBuildActionConfig,
   ContainerModule,
-  ContainerModuleVolumeSpec,
+  ContainerVolumeSpec,
   ContainerRuntimeActionConfig,
+  ContainerDeployActionConfig,
 } from "./moduleConfig.js"
 import { containerModuleOutputsSchema, containerModuleSpecSchema, defaultDockerfileName } from "./moduleConfig.js"
 import {
@@ -44,7 +45,7 @@ import {
   containerRunOutputSchema,
 } from "./config.js"
 import { publishContainerBuild } from "./publish.js"
-import type { Resolved } from "../../actions/types.js"
+import type { ActionModes, Resolved } from "../../actions/types.js"
 import { getDeployedImageId } from "../kubernetes/container/util.js"
 import type { DeepPrimitiveMap } from "../../config/common.js"
 import { joi } from "../../config/common.js"
@@ -52,49 +53,50 @@ import { DEFAULT_DEPLOY_TIMEOUT_SEC, gardenEnv } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 import type { PluginContext } from "../../plugin-context.js"
-import { actionReferenceToString } from "../../actions/base.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import type { ConfigureActionConfigParams } from "../../plugin/handlers/base/configure.js"
+import { emitNonRepeatableWarning } from "../../warnings.js"
+import { styles } from "../../logger/styles.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER = 20
 
+export type GardenContainerBuilderConfig = {
+  enabled: boolean
+}
+
 export interface ContainerProviderConfig extends BaseProviderConfig {
   dockerBuildExtraFlags?: string[]
-  gardenCloudBuilder?: {
-    enabled: boolean
-  }
+  gardenContainerBuilder?: GardenContainerBuilderConfig
 }
+
+export const gardenContainerBuilderSchema = () =>
+  joi
+    .object()
+    .optional()
+    .keys({
+      enabled: joi.boolean().default(false).description(dedent`
+            Enable Remote Container Builder, which can speed up builds significantly using fast machines and extremely fast caching. When the project is connected and you're logged in to https://app.garden.io the container builder will be enabled by default.
+
+            Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
+
+            In addition to this setting, the environment variable \`GARDEN_CONTAINER_BUILDER\` can be used to override this setting, if enabled in the configuration. Set it to \`false\` or \`0\` to temporarily disable Remote Container Builder.
+
+            If service limits are reached, or Remote Container Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
+
+            Please note that when enabling Container Builder together with in-cluster building, you need to authenticate to your \`deploymentRegistry\` from the local machine (e.g. by running \`docker login\`).
+            `),
+    })
 
 export const configSchema = () =>
   providerConfigBaseSchema()
     .keys({
       dockerBuildExtraFlags: joi.sparseArray().items(joi.string()).description(dedent`
-          **Stability: Experimental**. Subject to breaking changes within minor releases.
-
-          Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
-          `),
-      // Cloud builder
-      gardenCloudBuilder: joi
-        .object()
-        .optional()
-        .keys({
-          enabled: joi.boolean().default(false).description(dedent`
-            **Stability: Experimental**. Subject to breaking changes within minor releases.
-
-            Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast caching.
-
-            by running \`GARDEN_CLOUD_BUILDER=1 garden build\` you can try Garden Cloud Builder temporarily without any changes to your Garden configuration.
-            The environment variable \`GARDEN_CLOUD_BUILDER\` can also be used to override this setting, if enabled in the configuration. Set it to \`false\` or \`0\` to temporarily disable Garden Cloud Builder.
-
-            Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
-
-            If service limits are reached, or Garden Cloud Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
-
-            Please note that when enabling Cloud Builder together with in-cluster building, you need to authenticate to your \`deploymentRegistry\` from the local machine (e.g. by running \`docker login\`).
-            `),
-        }).description(dedent`
-        **Stability: Experimental**. Subject to breaking changes within minor releases.
+        Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
         `),
+      // Remote Container Builder
+      gardenContainerBuilder: gardenContainerBuilderSchema(),
     })
     .unknown(false)
 
@@ -203,7 +205,47 @@ export const regctlCliSpec: PluginToolSpec = {
   ],
 }
 
-// TODO: remove in 0.14. validation should be in the action validation handler.
+const progressToolVersion = "0.0.1"
+const progressToolSpec: PluginToolSpec = {
+  name: "standalone-progressui",
+  version: progressToolVersion,
+  description: "Helper that utilizes the buildkit library to parse docker logs from progress json output.",
+  type: "binary",
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-darwin-arm64`,
+      sha256: "633b74d5c37b53757322184e8e453e9982e0615356047e14637d437fa85f0653",
+    },
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-darwin-amd64`,
+      sha256: "f3d156ecd0ad307e54caa0abe2fe2b42b2b69eb78ff546ff949921b6e232b92c",
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-linux-arm64`,
+      sha256: "20a4991f1efc2aae0cca359308feba7e6361a2f92941fdad1f7f14137d94eb6c",
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-linux-amd64`,
+      sha256: "f3b8534b57939688d5f1ab11d8999d6854b08eef43af1619b641a51bd5f7c8bd",
+    },
+    {
+      platform: "windows",
+      architecture: "amd64",
+      url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-windows-amd64`,
+      sha256: "c83935be933413ecedb92fb6a70c235670598059dab0d12cc9b4bb0b0f652d25",
+    },
+  ],
+}
+
+// TODO: remove in 0.15. validation should be in the action validation handler.
 export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate services
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map((spec) => {
@@ -245,12 +287,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
       }
     }
 
-    for (const volume of spec.volumes) {
-      if (volume.module) {
-        spec.dependencies.push(volume.module)
-      }
-    }
-
     return {
       name,
       dependencies: spec.dependencies,
@@ -260,12 +296,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
   })
 
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => {
-    for (const volume of t.volumes) {
-      if (volume.module) {
-        t.dependencies.push(volume.module)
-      }
-    }
-
     return {
       name: t.name,
       dependencies: t.dependencies,
@@ -276,12 +306,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
   })
 
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => {
-    for (const volume of t.volumes) {
-      if (volume.module) {
-        t.dependencies.push(volume.module)
-      }
-    }
-
     return {
       name: t.name,
       cacheResult: t.cacheResult,
@@ -343,26 +367,21 @@ function convertContainerModuleRuntimeActions(
   const actions: ContainerActionConfig[] = []
 
   let deploymentImageId = module.spec.image
-  if (deploymentImageId) {
-    // If `module.spec.image` is set, but the image id is missing a tag, we need to add the module version as the tag.
-    deploymentImageId = containerHelpers.getModuleDeploymentImageId(module, module.version, undefined)
+
+  // If the module needs container build, we need to add the module version as the tag.
+  // If it doesn't need a container build, the module doesn't have a build action and just downloads a prebuilt image
+  if (needsContainerBuild && buildAction) {
+    // Hack: we are in the container provider, and do not yet have access to kubernetes provider config.
+    //  So, we cannot get the info on the deployment container registry.
+    //  Thus, we use template string here to reference tje deploymentImageId.
+    //  This is safe because module name is validated here,
+    //  and the valid module name always results in a valid template expression.
+    deploymentImageId = `\${actions.build.${buildAction.name}.outputs.deploymentImageId}`
   }
 
-  const volumeModulesReferenced: string[] = []
-
-  function configureActionVolumes(action: ContainerRuntimeActionConfig, volumeSpec: ContainerModuleVolumeSpec[]) {
+  function configureActionVolumes(action: ContainerRuntimeActionConfig, volumeSpec: ContainerVolumeSpec[]) {
     volumeSpec.forEach((v) => {
-      const referencedPvcAction = v.module ? { kind: <const>"Deploy", name: v.module } : undefined
-      action.spec.volumes.push({
-        ...omit(v, "module"),
-        action: referencedPvcAction,
-      })
-      if (referencedPvcAction) {
-        action.dependencies?.push(referencedPvcAction)
-      }
-      if (v.module) {
-        volumeModulesReferenced.push(v.module)
-      }
+      action.spec.volumes.push(v)
     })
     return action
   }
@@ -375,7 +394,6 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: service.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(service.spec.dependencies, buildAction),
 
       timeout: service.spec.timeout || DEFAULT_DEPLOY_TIMEOUT_SEC,
@@ -397,13 +415,12 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: task.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(task.spec.dependencies, buildAction),
       timeout: task.spec.timeout,
 
       spec: {
         ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
-        image: needsContainerBuild ? undefined : module.spec.image,
+        image: deploymentImageId,
         volumes: [],
       },
     }
@@ -418,20 +435,19 @@ function convertContainerModuleRuntimeActions(
       ...convertParams.baseFields,
 
       disabled: test.disabled,
-      build: buildAction?.name,
       dependencies: prepareRuntimeDependencies(test.spec.dependencies, buildAction),
       timeout: test.spec.timeout,
 
       spec: {
         ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
-        image: needsContainerBuild ? undefined : module.spec.image,
+        image: deploymentImageId,
         volumes: [],
       },
     }
     actions.push(configureActionVolumes(action, test.config.spec.volumes))
   }
 
-  return { actions, volumeModulesReferenced }
+  return { actions }
 }
 
 export async function convertContainerModule(params: ConvertModuleParams<ContainerModule>) {
@@ -473,15 +489,8 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
     actions.push(buildAction!)
   }
 
-  const { actions: runtimeActions, volumeModulesReferenced } = convertContainerModuleRuntimeActions(
-    params,
-    buildAction,
-    needsContainerBuild
-  )
+  const { actions: runtimeActions } = convertContainerModuleRuntimeActions(params, buildAction, needsContainerBuild)
   actions.push(...runtimeActions)
-  if (buildAction) {
-    buildAction.dependencies = buildAction.dependencies?.filter((d) => !volumeModulesReferenced.includes(d.name))
-  }
 
   return {
     group: {
@@ -539,8 +548,45 @@ export const gardenPlugin = () =>
           staticOutputsSchema: containerDeployOutputsSchema(),
           handlers: {
             // Other handlers are implemented by other providers (e.g. kubernetes)
-            async configure({ config }) {
-              return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
+            async configure({ config, log }: ConfigureActionConfigParams<ContainerDeployActionConfig>) {
+              const spec = config.spec
+
+              let deprecationFound = false
+              if (spec["devMode"]) {
+                reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
+                deprecationFound = true
+              }
+
+              if (spec["localMode"]) {
+                reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
+                deprecationFound = true
+              }
+
+              if (spec.limits) {
+                reportDeprecatedFeatureUsage({ log, deprecation: "containerDeployActionLimits" })
+                deprecationFound = true
+              }
+
+              // ports can be undefined here, because the validation handler,
+              // that sets the default values, is called later
+              if (spec.ports) {
+                for (const port of spec.ports) {
+                  if (port.hostPort !== undefined) {
+                    reportDeprecatedFeatureUsage({ log, deprecation: "containerDeployActionHostPort" })
+                    deprecationFound = true
+                  }
+                }
+              }
+
+              if (deprecationFound) {
+                const configPath = config.internal.configFilePath || config.internal.basePath
+                emitNonRepeatableWarning(
+                  log,
+                  `Please check your action configuration file at ${styles.highlight(configPath)}`
+                )
+              }
+
+              return { config, supportedModes: { sync: !!spec.sync } satisfies ActionModes }
             },
 
             async validate({ action }) {
@@ -661,39 +707,15 @@ export const gardenPlugin = () =>
       },
     ],
 
-    tools: [dockerSpec, regctlCliSpec],
+    tools: [dockerSpec, regctlCliSpec, progressToolSpec],
   })
 
 function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
   const { build } = action.getConfig()
-  const { image, volumes } = action.getSpec()
 
-  if (!build && !image) {
+  if (build) {
     throw new ConfigurationError({
-      message: `${action.longDescription()} must specify one of \`build\` or \`spec.image\``,
+      message: `${action.longDescription()} specified the \`build\` field, which is unsupported for container action types. Use \`spec.image\` instead.`,
     })
-  } else if (build && image) {
-    throw new ConfigurationError({
-      message: `${action.longDescription()} specifies both \`build\` and \`spec.image\`. Only one may be specified.`,
-    })
-  } else if (build) {
-    const buildAction = action.getDependency({ kind: "Build", name: build }, { includeDisabled: true })
-    if (buildAction && !buildAction?.isCompatible("container")) {
-      throw new ConfigurationError({
-        message: `${action.longDescription()} build field must specify a container Build, or a compatible type. Got Build action type: ${
-          buildAction.getConfig().type
-        }`,
-      })
-    }
-  }
-
-  for (const volume of volumes) {
-    if (volume.action && !action.hasDependency(volume.action)) {
-      throw new ConfigurationError({
-        message: `${action.longDescription()} references action ${actionReferenceToString(
-          volume.action
-        )} under \`spec.volumes\` but does not declare a dependency on it. Please add an explicit dependency on the volume action.`,
-      })
-    }
   }
 }

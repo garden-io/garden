@@ -6,19 +6,18 @@ tocTitle: "`helm`"
 # `helm` Module Type
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 ## Description
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-Refer to the [Helm guide](../../k8s-plugins/actions/deploy/helm.md) for usage instructions.
+Refer to the [Helm guide](../../garden-for/kubernetes/install-helm-chart.md) for usage instructions.
 
-Garden uses Helm 3.16.2.
+Garden uses Helm 3.17.2.
 
-Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference.
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -90,8 +89,8 @@ disabled: false
 #
 # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source
 # tree, which use the same format as `.gitignore` files. See the [Configuration Files
-# guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-# details.
+# guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+# for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
 #
@@ -108,7 +107,8 @@ include:
 #
 # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
 # field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration
-# Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+# Files
+# guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
 # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -249,7 +249,8 @@ dependencies: []
 #
 # Sync is enabled by setting the `--sync` flag on the `garden deploy` command.
 #
-# See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
+# See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more
+# information.
 sync:
   # Override the default container arguments when in sync mode.
   args:
@@ -277,7 +278,7 @@ sync:
       exclude:
 
       # The sync mode to use for the given paths. See the [Code Synchronization
-      # guide](https://docs.garden.io/guides/code-synchronization) for details.
+      # guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details.
       mode: one-way-safe
 
       # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644
@@ -303,60 +304,6 @@ sync:
   # Optionally specify the name of a specific container to sync to. If not specified, the first container in the
   # workload is used.
   containerName:
-
-# [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target
-# resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local
-# mode for the action.
-#
-# The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
-# server to proxy requests.
-# Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
-#
-# Local mode is enabled by setting the `--local` option on the `garden deploy` command.
-# Local mode always takes the precedence over sync mode if there are any conflicting service names.
-#
-# Health checks are disabled for services running in local mode.
-#
-# See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
-#
-# Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
-# release.
-localMode:
-  # The reverse port-forwards configuration for the local application.
-  ports:
-    - # The local port to be used for reverse port-forward.
-      local:
-
-      # The remote port to be used for reverse port-forward.
-      remote:
-
-  # The command to run the local application. If not present, then the local application should be started manually.
-  command:
-
-  # Specifies restarting policy for the local application. By default, the local application will be restarting
-  # infinitely with 1000ms between attempts.
-  restart:
-    # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-    delayMsec: 1000
-
-    # Max number of the local application restarts. Unlimited by default.
-    max: .inf
-
-  # The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
-  target:
-    # The kind of Kubernetes resource to find.
-    kind:
-
-    # The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
-    name:
-
-    # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with
-    # matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
-    podSelector:
-
-    # The name of a container in the target. Specify this if the target contains more than one container and the main
-    # container is not the first container in the spec.
-    containerName:
 
 # The repository URL to fetch the chart from. Defaults to the "stable" helm repo (https://charts.helm.sh/stable).
 repo:
@@ -428,9 +375,9 @@ tasks:
     # Maximum duration (in seconds) of the task's execution.
     timeout: 600
 
-    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
-    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
-    # changes, or when you run `garden run`.
+    # Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run
+    # any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is
+    # only re-run when its version changes, or when you run `garden run`.
     cacheResult: true
 
     # The command/entrypoint used to run inside the container.
@@ -794,7 +741,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
@@ -820,7 +767,7 @@ include:
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -1108,7 +1055,7 @@ Note that `serviceResource` must also be specified to enable sync.
 
 Sync is enabled by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1212,7 +1159,7 @@ sync:
 
 [sync](#sync) > [paths](#syncpaths) > mode
 
-The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for details.
+The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details.
 
 | Type     | Allowed Values                                                                                                                            | Default          | Required |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
@@ -1263,146 +1210,6 @@ Set the default group on files and directories at the target. Specify either an 
 [sync](#sync) > containerName
 
 Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `localMode`
-
-[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
-
-The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
-Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
-
-Local mode is enabled by setting the `--local` option on the `garden deploy` command.
-Local mode always takes the precedence over sync mode if there are any conflicting service names.
-
-Health checks are disabled for services running in local mode.
-
-See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
-
-Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `localMode.ports[]`
-
-[localMode](#localmode) > ports
-
-The reverse port-forwards configuration for the local application.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-### `localMode.ports[].local`
-
-[localMode](#localmode) > [ports](#localmodeports) > local
-
-The local port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `localMode.ports[].remote`
-
-[localMode](#localmode) > [ports](#localmodeports) > remote
-
-The remote port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `localMode.command[]`
-
-[localMode](#localmode) > command
-
-The command to run the local application. If not present, then the local application should be started manually.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `localMode.restart`
-
-[localMode](#localmode) > restart
-
-Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
-
-| Type     | Default                         | Required |
-| -------- | ------------------------------- | -------- |
-| `object` | `{"delayMsec":1000,"max":null}` | No       |
-
-### `localMode.restart.delayMsec`
-
-[localMode](#localmode) > [restart](#localmoderestart) > delayMsec
-
-Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `localMode.restart.max`
-
-[localMode](#localmode) > [restart](#localmoderestart) > max
-
-Max number of the local application restarts. Unlimited by default.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `null`  | No       |
-
-### `localMode.target`
-
-[localMode](#localmode) > target
-
-The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `localMode.target.kind`
-
-[localMode](#localmode) > [target](#localmodetarget) > kind
-
-The kind of Kubernetes resource to find.
-
-| Type     | Allowed Values                           | Required |
-| -------- | ---------------------------------------- | -------- |
-| `string` | "Deployment", "DaemonSet", "StatefulSet" | Yes      |
-
-### `localMode.target.name`
-
-[localMode](#localmode) > [target](#localmodetarget) > name
-
-The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `localMode.target.podSelector`
-
-[localMode](#localmode) > [target](#localmodetarget) > podSelector
-
-A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `localMode.target.containerName`
-
-[localMode](#localmode) > [target](#localmodetarget) > containerName
-
-The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1568,7 +1375,7 @@ Maximum duration (in seconds) of the task's execution.
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
+Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

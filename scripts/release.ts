@@ -1,6 +1,6 @@
 #!/usr/bin/env -S node --import ./scripts/register-hook.js
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -323,8 +323,8 @@ async function stripPrereleaseTags(tags: string[], version: string) {
     }
   }
 
-  // We also need to remove the "edge-bonsai" tag
-  await execa("git", ["tag", "-d", "edge-bonsai"])
+  // We also need to remove the "edge-cedar" tag
+  await execa("git", ["tag", "-d", "edge-cedar"])
 }
 
 ;(async () => {

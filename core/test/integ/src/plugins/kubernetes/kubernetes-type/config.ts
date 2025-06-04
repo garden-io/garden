@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -80,9 +80,11 @@ describe("configureKubernetesModule", () => {
             dependencies: [],
             timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
-          waitForJobs: false,
+          // this field is not defined in KubernetesServiceSpec and seems to be unused
+          // the default value was coming from kubernetesCommonDeploySpecKeys
+          // waitForJobs: false,
           dependencies: [],
-          files: [],
+          files: [], // module configa only have old `files` field
           manifests: [
             {
               apiVersion: "apps/v1",
@@ -137,6 +139,7 @@ describe("configureKubernetesModule", () => {
           tests: [testSpec],
           tasks: [taskSpec],
           timeout: 300,
+          waitForJobs: true,
         },
         timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
       },
@@ -164,7 +167,8 @@ describe("configureKubernetesModule", () => {
     ])
   })
 
-  it("should set include to equal files if neither include nor exclude has been set", async () => {
+  it("should set include to equal manifestTemplates if neither include nor exclude has been set", async () => {
+    // module config only have old `files` field
     patchModuleConfig("module-simple", { spec: { files: ["manifest.yaml"] } })
     const configInclude = await garden.resolveModule("module-simple")
     expect(configInclude.include).to.eql(["manifest.yaml"])
@@ -191,20 +195,20 @@ describe("configureKubernetesType", () => {
     garden = await makeTestGarden(projectRoot)
   })
 
-  it("should resolve fine with null values for manifests in spec.files", async () => {
+  it("should resolve fine with null values for manifests in spec.manifestTemplates", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const action = graph.getDeploy("config-map-list")
     const config = serialiseUnresolvedTemplates(action["_config"]) as ActionConfig
 
     // spec won't be resolved until resolveAction
-    expect(config.spec.files).to.eql(["${var.foo ? 'manifests.yaml' : null}"])
+    expect(config.spec.manifestTemplates).to.eql(["${var.foo ? 'manifests.yaml' : null}"])
 
     // include will be fully resolved in preprocessActionConfig, and null values will be filtered by sparseArray
     expect(config.include).to.eql([])
 
     // validation will remove null values from sparse arrays
     const resolved = await garden.resolveAction({ action, graph, log: garden.log })
-    expect(resolved.getConfig().spec.files).to.eql([])
+    expect(resolved.getConfig().spec.manifestTemplates).to.eql([])
     expect(resolved.getConfig().include).to.eql([])
   })
 })

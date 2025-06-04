@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,38 +17,95 @@ import cloneDeep from "fast-copy"
 import type { Log } from "../logger/log-entry.js"
 import { gardenEnv } from "../constants.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
-import { dedent, deline } from "../util/string.js"
-import { CloudApiError, InternalError } from "../exceptions.js"
+import { dedent } from "../util/string.js"
+import { GardenError, InternalError } from "../exceptions.js"
 import { add } from "date-fns"
-import { getCloudDistributionName } from "./util.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
 import type { ParsedUrlQuery } from "node:querystring"
+import type { Garden } from "../index.js"
+import { styles } from "../logger/styles.js"
 
-export interface AuthToken {
+class LoginRequiredWhenConnected extends GardenError {
+  override type = "login-required"
+
+  constructor() {
+    super({
+      message: dedent`
+        ${styles.primary(
+          // TODO(0.14): advertise team cache and container builder here as benefit for logging in
+          `Login required: This project is connected to Garden Cloud. Please run ${styles.command("garden login")} to authenticate or set the ${styles.highlight("GARDEN_AUTH_TOKEN")} environment variable.`
+        )}
+
+        ${styles.secondary(
+          `NOTE: If you cannot log in right now, use the option ${styles.command("--offline")} or the environment variable ${styles.command("GARDEN_OFFLINE=true")} to enable offline mode. Team Cache and Container Builder won't be available in the offline mode.`
+        )}
+      `,
+    })
+  }
+}
+
+export function enforceLogin({
+  garden,
+  log,
+  isOfflineModeEnabled,
+}: {
+  garden: Garden
+  log: Log
+  isOfflineModeEnabled: boolean
+}) {
+  const { id: projectId, organizationId } = garden.getProjectConfig()
+  const isConnectedToCloud = !!projectId || !!organizationId
+
+  const isLoggedIn = garden.isLoggedIn()
+
+  const distroName = getCloudDistributionName(garden.cloudDomain)
+
+  if (isConnectedToCloud && !isLoggedIn && !isOfflineModeEnabled) {
+    throw new LoginRequiredWhenConnected()
+  }
+
+  if (!isConnectedToCloud && !isOfflineModeEnabled) {
+    // TODO(0.14): Also print this at the end of the command output to increase visibility.
+    const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
+    cloudLog.info({
+      msg: `Did you know that ${styles.highlight("Team Cache")} and ${styles.highlight("Container Builder")} can accelerate your container builds and skip repeated execution of tests?`,
+    })
+    cloudLog.warn({
+      msg: `Run ${styles.command("garden login")} to connect your project to ${distroName}.`,
+    })
+  }
+}
+
+export type AuthToken = {
   token: string
   refreshToken: string
   tokenValidity: number
+  // TODO: Would be neater to do this with a union type, but this feels simpler for now.
+  organizationId?: string
 }
 
-export async function saveAuthToken(
-  log: Log,
-  globalConfigStore: GlobalConfigStore,
-  tokenResponse: AuthToken,
+export async function saveAuthToken({
+  log,
+  globalConfigStore,
+  tokenResponse,
+  domain,
+}: {
+  log: Log
+  globalConfigStore: GlobalConfigStore
+  tokenResponse: AuthToken
   domain: string
-) {
-  const distroName = getCloudDistributionName(domain)
+}) {
+  const token = tokenResponse.token
 
-  if (!tokenResponse.token) {
-    const errMsg = deline`
-        Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
-        yet been created in ${distroName}, or that there's a problem with your account's VCS username / login
-        credentials.
-      `
-    throw new CloudApiError({ message: errMsg })
+  if (!token) {
+    throw new InternalError({
+      message: "Nullish token in auth token response",
+    })
   }
   try {
     const validityMs = tokenResponse.tokenValidity || 604800000
     const clientAuthToken: ClientAuthToken = {
-      token: tokenResponse.token,
+      token,
       refreshToken: tokenResponse.refreshToken,
       validity: add(new Date(), { seconds: validityMs / 1000 }),
     }
@@ -178,7 +235,8 @@ export class AuthRedirectServer {
     app.use(http.allowedMethods())
     app.use(http.routes())
     app.on("error", (err) => {
-      this.log.error(`Auth redirect request failed with status ${err.status}: ${err.message}`)
+      this.log.error(`Auth redirect request failed with the error: ${err.message}`)
+      throw err
     })
     this.server = app.listen(port)
     this.app = app

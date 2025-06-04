@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,6 +26,7 @@ import type { WorkflowConfig } from "./workflow.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import type { JSONSchemaType } from "ajv"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
+import { getBackendType } from "../cloud/util.js"
 
 const inputTemplatePattern = "${inputs.*}"
 const parentNameTemplate = "${parent.name}"
@@ -68,8 +69,12 @@ export async function resolveConfigTemplate(
     configs: [],
   }
   const loggedIn = garden.isLoggedIn()
-  const enterpriseDomain = garden.cloudApi?.domain
-  const context = new ProjectConfigContext({ ...garden, loggedIn, enterpriseDomain })
+  const context = new ProjectConfigContext({
+    ...garden,
+    loggedIn,
+    cloudBackendDomain: garden.cloudDomain,
+    backendType: getBackendType(garden.getProjectConfig()),
+  })
 
   // @ts-expect-error todo: correct types for unresolved configs
   const resolved: BaseGardenResource = deepEvaluate(partial, {
@@ -153,7 +158,7 @@ export const configTemplateSchema = createSchema({
       .description(
         "Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided all inputs will be accepted."
       ),
-    // TODO: remove in 0.14
+    // TODO(deprecation): deprecate in 0.14 and remove in 0.15
     modules: joi
       .array()
       .items(moduleSchema())

@@ -11,11 +11,7 @@ Now is the time to set up Garden for your own project to get these benefits and 
 
 This guide describes the main steps involved. It's meant as a roadmap for the configuration process with links to more in-depth resources. The configuration snippets are mostly for demonstration purposes to help you understand how your config evolves.
 
-For a more high level guide of adopting Garden in your organization, check out our [Adopting Garden guide](../overview/adopting-garden.md).
-
-For those that prefer something more visual, we recommend checking out this video which goes step-by-step through the process of adding Garden to a project. Otherwise, continue reading below.
-
-{% embed url="https://youtu.be/0y5E8K-8kr4" %}
+For a more high level guide of adopting Garden in your organization, check out our [Adopting Garden guide](../misc/adopting-garden.md).
 
 ## Step 1 — Create a project
 
@@ -25,122 +21,69 @@ Here's a simple example:
 
 ```yaml
 # At the root of your project
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 
 environments: # <--- Every Garden project has one more environments
-  - name: dev
+  - name: local
+  - name: ci
 ```
 
-See our [in-depth Projects configuration guide](../using-garden/projects.md) for more details, for example on how to include and exclude certain files from your project.
+## Step 2 — Configure Kubernetes provider
 
-## Step 2 — Pick your plugins
+{% hint style="info" %}
+Here we're assuming you're using Garden for Kubernetes workflows which is the most common use case. But you can also start with the [Terraform](../garden-for/terraform/configure-provider.md) or [Pulumi](../garden-for/pulumi/configure-provider.md) providers.
+{% endhint %}
 
-Next, you pick your plugins.
+Next you need to tell Garden how to connect to your Kubernetes cluster by adding the relevant `provider` configuration to your project-level config file.
 
-Each plugin has a dedicated section in our documentation that explains how it works and how you can get started using it.
-
-We recommend starting simple with a single plugin and adding more as needed. In most cases you'll want to start with [one of the Kubernetes plugins](../k8s-plugins/about.md) and build from there.
+You can use [the local Kubernetes provider](../garden-for/kubernetes/local-kubernetes.md) if you have Kubernetes installed locally and [the Kubernetes provider](../garden-for/kubernetes/remote-kubernetes.md) for remote clusters (see config details in links).
 
 At that point, your configuration will look something like this:
 
 ```yaml
 # At the root of your project
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 
 environments:
-  - name: dev
+  - name: local
+  - name: ci
 
 providers:
+ - name: local-kubernetes
+   environments: [local]
  - name: kubernetes
-   context: <my-cluster-context>
-   environments: [dev]
+   environments: [ci]
+   context: my-k8s-ctx
    # ...
 ```
 
-{% hint style="info" %}
-Plugins have a **provider** part that's configured at the project level and defines how the plugin works. For the Kubernetes plugins you'd
-e.g. set the cluster context here. For the Terraform plugin you'd set the path to your Terraform stack. Plugins also define **actions** that we get to below.
-{% endhint %}
-
-Below you'll find a brief overview of our main plugins. Once you know what you need, we suggest heading to the "Configure Plugin" guide for your plugin of choice.
-
-### Ephemeral Kubernetes
-
-The [ephemeral Kubernetes plugin](../k8s-plugins/ephemeral-k8s/README.md) is the easiest way to get started. Garden will
-spin-up a zero-config, managed Kubernetes cluster in a matter of seconds. Each cluster is available for 4 hours.
-
-Our [Quickstart Guide](../getting-started/quickstart.md) uses this plugin.
-
-This plugin is great for testing things out without needing to actually setup a Kubernetes cluster.
-
-### Local Kubernetes
-
-The [local Kubernetes plugin](../k8s-plugins/local-k8s/README.md) is a good choice if you already have Kubernetes installed locally on your machine (e.g. K3s, Minikube or Docker for Desktop).
-
-This plugin is great for developing smaller projects that you can comfortably run on your laptop but we definitely recommend using the remote Kubernetes plugin for team work so that you can share preview environments and benefit from caching.
-
-### (Remote) Kubernetes
-
-To use the [Kubernetes plugin](../k8s-plugins/remote-k8s/README.md) you'll need access to a Kubernetes cluster so it may require a bit of up-front work.
-
-This is a great pick for _teams_ building apps that run on Kubernetes because:
-
-- It allows you develop in remote, production-like environments that scale with your stack.
-- You don't need any dependencies on your laptop, even the builds can be performed remotely.
-- It allows you to share build and test caches with your entire team and across environments. This can dramatically speed up pipelines and development.
-- It allows you to easily create preview environments that you can share with others, e.g. for pull requests.
-
-### Terraform
-
-The [Terraform plugin](../terraform-plugin/README.md) is usually used in conjunction with the Kubernetes plugin to provision infrastructure and/or cloud managed services such as databases.
-
-It allows you to:
-
-- Reference outputs from your Terraform stack in your other services. You can e.g. pass a database hostname to a given service without "hard coding" any values.
-- Provision infrastructure ahead of deploying your project in a single command.
-
-Pick this plugin if you're already using Terraform and want to codify the relationship between your runtime services and Terraform stack.
-
-### Pulumi
-
-The [Pulumi plugin](../pulumi-plugin/README.md) is very similar to the Terraform plugin (see above) except for use with Pulumi.
-
-### Local scripts (`exec`)
-
-The [Exec plugin](../other-plugins/exec.md) allows you to execute arbitrary scripts on the host (e.g. your laptop or CI runner).
-
-It's great for executing auth scripts, running services locally, and as a general purpose escape hatch.
-
-It's built in, which means you don't need to specify it in the project level configuration, and you can simply add `exec` actions right away.
-
 ## Step 3 — Add actions
 
-Once you've configured your plugin(s), it's time to add actions.
+Once you've configured your provider, it's time to add actions.
 
-Actions are the basic building blocks that make up your Garden project. The four actions kinds are `Build`, `Deploy`, `Test`, and `Run` and how they're configured depends on the action _kind_ and _type_.
+Actions are the basic building blocks that make up your Garden project. The different action types determine how they're executed.
 
-For example, if you're using one of the Kubernetes plugins you can use a Build action of type `container` and a Deploy action of type `kubernetes` to deploy a give service. You could e.g. also use the `helm` action type to deploy your own Helm charts.
+For example, you can use the `container` Build action and the `kubernetes` or `helm` Deploy actions to build and the deploy a given service.
 
-Importantly, actions can define dependencies between one another. This is what makes up the nodes and edges of the [Stack Graph](../overview/how-garden-works.md#the-stack-graph).
 
 We recommend putting each action in its own `garden.yml` file and locating it next to any source files.
 
 {% hint style="info" %}
-Garden actions and their configuration can be spread across different files and even [across multiple git repos](../advanced/using-remote-sources.md).
+Garden actions and their configuration can be spread across different files and even [across multiple git repos](../features/remote-sources.md).
 {% endhint %}
 
-Here's a simple example with actions for deploying an ephemeral database and an API server alongside a Test action for running integration tests:
+Here's a simple example with actions for deploying an ephemeral database and an API server, and a Test action for running integration tests:
 
 ```yaml
 # In db/garden.yml
 kind: Deploy
 name: db
 type: helm
-description: A Deploy action for deploying a Postgres container via Helm
+description: Install Postgres via Helm
 spec:
   chart:
     name: postgresql
@@ -150,7 +93,7 @@ spec:
 kind: Run
 name: db-init
 type: container
-description: A Run action for seeding the DB after it's been deployed
+description: Seed the DB after it's been deployed
 dependencies: [deploy.db]
 spec:
   image: postgres:11.6-alpine
@@ -160,20 +103,20 @@ spec:
 kind: Build
 name: api
 type: container
-description: A Build action for building the api image
+description: Build the api image
 ---
 kind: Deploy
 name: api
 type: kubernetes
-description: A Deploy action for deploying the api after its been built and the DB seeded
+description: Deploy the api after its been built and the DB seeded
 dependencies: [build.api, run.db-init]
 spec:
-  files: [ api-manifests.yml ]
+  manifestFiles: [ api-manifests.yml ]
 ---
 kind: Test
 name: api-integ
 type: container
-description: A Test action for integration testing the api after its been deployed
+description: Integration testing the api after its been deployed
 dependencies: [build.api, deploy.api]
 spec:
   image: ${actions.build.api.outputs.deploymentImageId}
@@ -182,7 +125,7 @@ spec:
 
 Depending on the size of your project, you may want to add a handful of actions to get started and then gradually add more as needed.
 
-At the end of this step you'll be able to deploy your project to a production-like environment with:
+Once that's done, you can deploy your project to a production-like environment with:
 
 ```console
 garden deploy
@@ -194,9 +137,7 @@ Similarly, you can run your integration or end-to-end tests in a production-like
 garden test
 ```
 
-For detailed guides on configuring actions for different plugins, checkout the Actions pages under each plugins section.
-
-## Step 4 — Add more environments and plugins
+## Step 4 — Add more environments and providers
 
 At this point, you should be able to deploy and test your project from your laptop in a single command with the Garden CLI.
 
@@ -204,52 +145,54 @@ Next step is to add more environments so you can e.g. create preview environment
 
 You may also want to add our Terraform or Pulumi plugins if you're using those tools, following the same process as in step 2 and step 3 above.
 
-Garden also lets you define variables and use templating to ensure the environments are configured correctly. Below is a simple example:
+Garden also lets you define variables and use templating to ensure the environments are configured correctly. Below is how you commonly configure environments with dynamic templating:
 
 ```yaml
 # At the root of your project
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: my-project
 
 environments:
+  - name: local
   - name: dev
-    variables:
-      hostname: ${local.username}.my-company.com # <--- Ensure dev environments are isolated by templating in the user name
+    defaultNamespace: my-project-dev-${kebabCase(local.username)} # <--- Ensure each developer has a unique namespace
   - name: ci
+    defaultNamespace: my-project-ci-${git.commitHash} # <--- Ensure each CI run is in a unique namespace
     variables:
-      hostname: ${local.BRANCH_NAME}.my-company.com # <--- Ensure CI preview environments are isolated by templating in the branch name
+      hostname: ${git.commitHash}.my-company.com # <--- Ensure CI test environments are isolated by templating in the commit hash
+  - name: staging
+    variables:
+      hostname: staging.my-company.com
 
 providers:
- - name: kubernetes
-   environments: [dev, staging]
-   hostname: ${var.hostname}
- - name: terraform # <--- Use the Terraform plugin for the staging environment to provision a DB
-   environments: [staging]
-
-# In db/garden.yml
-kind: Deploy
-name: db
-type: helm
-disabled: "${environment.name != 'dev'}" # <--- Toggle based on env
----
-kind: Deploy
-name: db
-type: terraform
-disabled: "${environment.name != 'ci'}" # <--- Toggle based on env
----
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [dev, ci]
+    namespace: ${enironment.namespace} # <--- This is the defaultNamespace we configured above
+    context: my-ci-cluster
+    # ...
+  - name: kubernetes
+    environments: [staging]
+    namespace: staging
+    context: my-staging-cluster
+    # ...
+  - name: terraform # <--- Use the Terraform plugin for the staging environment to provision cloud managed services
+    environments: [staging]
 
 # In api/garden.yml
 kind: Deploy
 name: api
 type: kubernetes
-files: "[path/to/your/${environment.name}/k8s/manifests]" # <--- Pick manifests based on env
+spec:
+  manifestFiles: "[path/to/your/${environment.name}/k8s/manifests]" # <--- Pick manifests based on env
 ```
 
 Now, you can create preview environments on demand from your laptop with:
 
 ```console
-garden deploy
+garden deploy --env dev
 ```
 
 ...or from your CI pipelines with:

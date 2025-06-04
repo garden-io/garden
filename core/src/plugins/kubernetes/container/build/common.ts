@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -461,6 +461,7 @@ export async function ensureUtilDeployment({
       namespace,
       ctx,
       provider,
+      waitForJobs: false,
       actionName: utilDeploymentName,
       resources: [deployment, service],
       log: buildUtilLog,
@@ -496,6 +497,7 @@ export async function cycleDeployment({
     namespace,
     ctx,
     provider,
+    waitForJobs: false,
     resources: [deployment],
     log: deployLog,
     timeoutSec: 600,
@@ -507,6 +509,7 @@ export async function cycleDeployment({
     namespace,
     ctx,
     provider,
+    waitForJobs: false,
     resources: [deployment],
     log: deployLog,
     timeoutSec: 600,

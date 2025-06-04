@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,11 +22,15 @@ import { k8sContainerStopSync } from "../container/sync.js"
 import { helmGetSyncStatus, helmStartSync } from "./sync.js"
 import { makeDocsLinkPlain } from "../../../docs/common.js"
 import { helmVersion } from "./helm-cli.js"
+import type { ActionModes } from "../../../actions/types.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
+import { styles } from "../../../logger/styles.js"
 
 export const getHelmDeployDocs = () => dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-  Refer to the [Helm guide](${makeDocsLinkPlain`k8s-plugins/actions/deploy/helm`}) for usage instructions.
+  Refer to the [Helm guide](${makeDocsLinkPlain`garden-for/kubernetes/install-helm-chart`}) for usage instructions.
 
   Garden uses Helm ${helmVersion}.
 `
@@ -60,7 +64,22 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
       return getPortForwardHandler({ ...params, namespace })
     },
 
-    configure: async ({ config }) => {
+    configure: async ({ config, log }) => {
+      let deprecationFound = false
+      if (config.spec["devMode"]) {
+        reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
+        deprecationFound = true
+      }
+      if (config.spec["localMode"]) {
+        reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
+        deprecationFound = true
+      }
+
+      if (deprecationFound) {
+        const configPath = config.internal.configFilePath || config.internal.basePath
+        emitNonRepeatableWarning(log, `Please check your action configuration file at ${styles.highlight(configPath)}`)
+      }
+
       const chartPath = config.spec.chart?.path
       const containsSources = !!chartPath
 
@@ -74,7 +93,7 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
         config.include = config.include.map((path) => posix.join(chartPath, path))
       }
 
-      return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
+      return { config, supportedModes: { sync: !!config.spec.sync } satisfies ActionModes }
     },
   },
 })

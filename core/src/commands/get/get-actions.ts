@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import { getActionState, getRelativeActionConfigPath } from "../../actions/helpers.js"
-import type { ActionKind, ActionState, ResolvedAction } from "../../actions/types.js"
+import type { ActionKind, ActionState, ActionVersion, ResolvedAction } from "../../actions/types.js"
 import { actionKinds, actionStates } from "../../actions/types.js"
 import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params.js"
 import { createSchema, joi, joiArray } from "../../config/common.js"
@@ -16,7 +16,7 @@ import { styles } from "../../logger/styles.js"
 import { dedent, deline, renderTable } from "../../util/string.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
-import { sortBy } from "lodash-es"
+import { omit, sortBy } from "lodash-es"
 
 interface GetActionsCommandResultItem {
   name: string
@@ -25,6 +25,9 @@ interface GetActionsCommandResultItem {
   state?: ActionState
   path?: string
   disabled?: boolean
+  version?: Omit<ActionVersion, "versionStringFull">
+  allowPublish?: boolean
+  publishId?: string
   moduleName?: string
   dependencies?: string[]
   dependents?: string[]
@@ -55,6 +58,26 @@ export const getActionsCmdOutputSchema = createSchema({
       .description("The state of the action."),
     path: joi.string().description("The relative path of the action config file."),
     disabled: joi.boolean().description("Flag to identify if action is disabled."),
+    version: joi
+      .object()
+      .keys({
+        configVersion: joi.string().required().description("The version string of the action's config."),
+        sourceVersion: joi.string().required().description("The version string of the action's source."),
+        versionString: joi.string().required().description("The version string of the action."),
+        dependencyVersions: joi
+          .object()
+          .pattern(joi.string(), joi.string())
+          .required()
+          .description("Map with the version strings of the action's dependencies."),
+        files: joiArray(joi.string()).required().description("List of the files included in the action."),
+      })
+      .description("Object with the full version information of the action."),
+    allowPublish: joi
+      .boolean()
+      .description("Flag to identify whether publishing the build is enabled. Only available for build actions."),
+    publishId: joi
+      .string()
+      .description("The image ID used to publish the image of the action. Only available for build actions."),
     moduleName: joi
       .string()
       .description("The name of the module the action is derived from. Only available for converted actions."),
@@ -216,6 +239,9 @@ export class GetActionsCommand extends Command {
             .map((d) => d.key())
             .sort(),
           disabled: a.isDisabled(),
+          version: omit(a.getFullVersion(), "versionStringFull"),
+          allowPublish: a.getConfig().allowPublish ?? undefined,
+          publishId: a.getSpec("publishId") ?? undefined,
           moduleName: a.moduleName() ?? undefined,
         }
       }

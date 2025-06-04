@@ -2,4 +2,4 @@ kind: Deploy
 type: kubernetes
 name: deploy-action
 spec:
-  files: [ "*.yaml" ]
+  manifestTemplates: [ "*.yaml" ]

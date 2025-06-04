@@ -15,7 +15,7 @@ It does that by running an [OpenTelemetry Collector](https://github.com/open-tel
 
 Currently supported exporters are [Datadog](https://www.datadoghq.com/), [Newrelic](https://newrelic.com/), [Honeycomb](https://www.honeycomb.io/) and 'OTLP HTTP'.
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference for the provider configuration..
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -119,4 +119,5 @@ Example: `["dev","stage"]`
 | Type     | Allowed Values                | Default    | Required |
 | -------- | ----------------------------- | ---------- | -------- |
 | `string` | "detailed", "normal", "basic" | `"normal"` | No       |
+
 

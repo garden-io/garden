@@ -2,28 +2,24 @@
 
 * [Welcome to Garden!](welcome.md)
 
-## 🌸 Overview
+## Overview
 
-* [How Garden Works](./overview/how-garden-works.md)
-* [Core Concepts](./overview/core-concepts.md)
-* [Adopting Garden](./overview/adopting-garden.md)
+* [What is Garden](./overview/what-is-garden.md)
+* [Use Cases](./overview/use-cases/README.md)
+  * [Isolated On-Demand Preview Environments](./overview/use-cases/on-demand-preview-envs.md)
+  * [Fast, Portable CI Pipelines that Run Anywhere](./overview/use-cases/portable-ci-pipelines.md)
+  * [Shift Testing Left](./overview/use-cases/shift-testing-left.md)
+  * [Local Development With Remote Clusters](./overview/use-cases/local-development-remote-clusters.md)
+  * [Jumpstart your Internal Developer Platform](./overview/use-cases/jumpstart-idp.md)
 * [Garden vs Other Tools](./overview/garden-vs-other-tools.md)
 
-## 🌳 Use Cases
+## Getting Started
 
-* [Isolated On-Demand Preview Environments](./use-cases/on-demand-preview-envs.md)
-* [Fast, Portable CI Pipelines that Run Anywhere](./use-cases/portable-ci-pipelines.md)
-* [Shift Testing Left](./use-cases/shift-testing-left.md)
-* [Local Development With Remote Clusters](./use-cases/local-development-remote-clusters.md)
-* [Jumpstart your Internal Developer Platform](./use-cases/jumpstart-idp.md)
-
-## 🌻 Getting Started
-
-* [Quickstart Guide](./getting-started/quickstart.md)
-* [Installing Garden](./getting-started/installation.md)
+* [Quickstart](./getting-started/quickstart.md)
+* [Garden Basics](./getting-started/basics.md)
 * [Next Steps](./getting-started/next-steps.md)
 
-## 💐 Tutorials
+## Tutorials
 
 * [Your First Project](./tutorials/your-first-project/README.md)
   * [1. Create a Garden Project](./tutorials/your-first-project/1-initialize-a-project.md)
@@ -32,111 +28,71 @@
   * [4. Add Tests](./tutorials/your-first-project/4-testing.md)
   * [5. Code Syncing (Hot Reload)](./tutorials/your-first-project/5-code-syncing.md)
   * [6. Next Steps](./tutorials/your-first-project/6-configure-your-project.md)
+* [Setting up a Kubernetes cluster](./tutorials/remote-k8s/README.md)
+  * [1. Create a Cluster](./tutorials/remote-k8s/create-cluster/README.md)
+    * [AWS](./tutorials/remote-k8s/create-cluster/aws.md)
+    * [GCP](./tutorials/remote-k8s/create-cluster/gcp.md)
+    * [Azure](./tutorials/remote-k8s/create-cluster/azure.md)
+  * [2. Configure Container Registry](./tutorials/remote-k8s/configure-registry/README.md)
+    * [AWS](./tutorials/remote-k8s/configure-registry/aws.md)
+    * [GCP](./tutorials/remote-k8s/configure-registry/gcp.md)
+    * [Azure](./tutorials/remote-k8s/configure-registry/azure.md)
+    * [Docker Hub](./tutorials/remote-k8s/configure-registry/docker-hub.md)
+  * [3. Set Up Ingress, TLS and DNS](./tutorials/remote-k8s/ingress-and-dns.md)
+  * [4. Configure the Provider](./tutorials/remote-k8s/configure-provider.md)
 
-## 🌿 Using Garden
+## Using Garden With
 
-* [About](./using-garden/about.md)
-* [Configuration Overview](./using-garden/configuration-overview.md)
-* [Projects](./using-garden/projects.md)
-* [Dashboard](./using-garden/dashboard.md)
-* [Actions](./using-garden/actions.md)
-* [Tests](./using-garden/tests.md)
-* [Runs](./using-garden/runs.md)
-* [Workflows](./using-garden/workflows.md)
-* [Variables and templating](./using-garden/variables-and-templating.md)
-* [Config Templates](./using-garden/config-templates.md)
-* [Using the CLI](./using-garden/using-the-cli.md)
-* [Modules](./using-garden/modules.md)
+* [Containers](./garden-for/containers/README.md)
+  * [Using Remote Container Builder](./garden-for/containers/using-remote-container-builder.md)
+  * [Building Containers](./garden-for/containers/building-containers.md)
+* [Kubernetes](./garden-for/kubernetes/README.md)
+  * [Using Remote Kubernetes](./garden-for/kubernetes/remote-kubernetes.md)
+  * [Using Local Kubernetes](./garden-for/kubernetes/local-kubernetes.md)
+  * [Deploying K8s Resources](./garden-for/kubernetes/deploy-k8s-resource.md)
+  * [Installing Helm charts](./garden-for/kubernetes/install-helm-chart.md)
+  * [Running Tests and Tasks](./garden-for/kubernetes/run-tests-and-tasks.md)
+* [Terraform](./garden-for/terraform/README.md)
+  * [Using Terraform](./garden-for/terraform/configure-provider.md)
+  * [Applying Terrform Stacks](./garden-for/terraform/actions.md)
+* [Pulumi](./garden-for/pulumi/README.md)
+  * [Using Pulumi](./garden-for/pulumi/configure-provider.md)
+  * [Applying Pulumi Stacks](./garden-for/pulumi/actions.md)
+* [Local Scripts](./garden-for/local-scripts.md)
 
-## 🌺 Kubernetes Plugins
+## Features
 
-* [About](./k8s-plugins/about.md)
-* [Remote K8s Plugin Configuration](./k8s-plugins/remote-k8s/README.md)
-  * [1. Create a Cluster](./k8s-plugins/remote-k8s/create-cluster/README.md)
-    * [AWS](./k8s-plugins/remote-k8s/create-cluster/aws.md)
-    * [GCP](./k8s-plugins/remote-k8s/create-cluster/gcp.md)
-    * [Azure](./k8s-plugins/remote-k8s/create-cluster/azure.md)
-  * [2. Configure Container Registry](./k8s-plugins/remote-k8s/configure-registry/README.md)
-    * [AWS](./k8s-plugins/remote-k8s/configure-registry/aws.md)
-    * [GCP](./k8s-plugins/remote-k8s/configure-registry/gcp.md)
-    * [Azure](./k8s-plugins/remote-k8s/configure-registry/azure.md)
-    * [Docker Hub](./k8s-plugins/remote-k8s/configure-registry/docker-hub.md)
-  * [3. Set Up Ingress, TLS and DNS](./k8s-plugins/remote-k8s/ingress-and-dns.md)
-  * [4. Configure the Provider](./k8s-plugins/remote-k8s/configure-provider.md)
-* [Local K8s Plugin Configuration](./k8s-plugins/local-k8s/README.md)
-  * [1. Install Local Kubernetes](./k8s-plugins/local-k8s/install.md)
-  * [2. Configure the Provider](./k8s-plugins/local-k8s/configure-provider.md)
-* [Ephemeral K8s Plugin Configuration](./k8s-plugins/ephemeral-k8s/README.md)
-  * [1. Configure the Provider](./k8s-plugins/ephemeral-k8s/configure-provider.md)
-  * [2. Login to the Garden dashboard](./k8s-plugins/ephemeral-k8s/login-web-dashboard.md)
-  * [3. Configure Ingress (optional)](./k8s-plugins/ephemeral-k8s/ingress.md)
-  * [4. Retrieve Kubeconfig (optional)](./k8s-plugins/ephemeral-k8s/retrieve-kubeconfig.md)
-* [Actions](./k8s-plugins/actions/README.md)
-  * [Build](./k8s-plugins/actions/build/README.md)
-    * [Container](./k8s-plugins/actions/build/container.md)
-  * [Deploy](./k8s-plugins/actions/deploy/README.md)
-    * [Kubernetes](./k8s-plugins/actions/deploy/kubernetes.md)
-    * [Helm](./k8s-plugins/actions/deploy/helm.md)
-    * [Container](./k8s-plugins/actions/deploy/container.md)
-    * [PersistentVolumeClaim](./k8s-plugins/actions/deploy/persistentvolumeclaim.md)
-    * [ConfigMap](./k8s-plugins/actions/deploy/configmap.md)
-  * [Run and Test](./k8s-plugins/actions/run-test/README.md)
-    * [Kubernetes Pod](./k8s-plugins/actions/run-test/kubernetes-pod.md)
-    * [Helm Pod](./k8s-plugins/actions/run-test/helm-pod.md)
-    * [Kubernetes Exec](./k8s-plugins/actions/run-test/kubernetes-exec.md)
-    * [Container](./k8s-plugins/actions/run-test/container.md)
-* [Guides](./k8s-plugins/guides/README.md)
-  * [In-Cluster Building](./k8s-plugins/guides/in-cluster-building.md)
-  * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/guides/rbac-config.md)
-  * [Deploying to Production](./k8s-plugins/guides/deploying-to-production.md)
-  * [Using a Registry Mirror](./k8s-plugins/guides/registry-mirror.md)
+* [Remote Container Builder](./features/remote-container-builder.md)
+* [Team Caching](./features/team-caching.md)
+* [Variables and Templating](./features/variables-and-templating.md)
+* [Config Templates](./features/config-templates.md)
+* [Workflows](./features/workflows.md)
+* [Code Synchronization](./features/code-synchronization.md)
+* [Custom Commands](./features/custom-commands.md)
+* [Remote Sources](./features/remote-sources.md)
 
-## ☘️ Terraform Plugin
+## Guides
 
-* [About](./terraform-plugin/about.md)
-* [Plugin Configuration](./terraform-plugin/configure-provider.md)
-* [Actions](./terraform-plugin/actions.md)
-
-## 🌹 Pulumi Plugin
-
-* [About](./pulumi-plugin/about.md)
-* [Plugin Configuration](./pulumi-plugin/configure-provider.md)
-* [Actions](./pulumi-plugin/actions.md)
-
-## 🌼 Other Plugins
-
-* [Container](./other-plugins/container.md)
-* [Exec (local scripts)](./other-plugins/exec.md)
-
-## 🌷 Guides
-
-* [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
+* [Connecting a Project](./guides/connecting-project.md)
+* [Environments and Namespaces](./guides/namespaces.md)
+* [Installing Garden](./guides/installation.md)
+* [Including/Excluding files](./guides/include-exclude.md)
+* [Installing Local Kubernetes](./guides/install-local-kubernetes.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
-* [Deprecations and major-version updates](./guides/deprecations.md)
-* [Code Synchronization](./guides/code-synchronization.md)
-* [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
-* [Environments and namespaces](./guides/namespaces.md)
+* [Using the CLI](./guides/using-the-cli.md)
 * [Using Garden in CircleCI](./guides/using-garden-in-circleci.md)
+* [Minimal RBAC Configuration for Development Clusters](./guides/rbac-config.md)
+* [Deploying to Production](./guides/deploying-to-production.md)
+* [Using a Registry Mirror](./guides/registry-mirror.md)
 
-## 🪷 Advanced
-
-* [Using Remote Sources](./advanced/using-remote-sources.md)
-* [Custom Commands](./advanced/custom-commands.md)
-
-## 🎋 Reference
+## Reference
 
 * [Providers](./reference/providers/README.md)
-  * [`conftest-container`](./reference/providers/conftest-container.md)
-  * [`conftest-kubernetes`](./reference/providers/conftest-kubernetes.md)
-  * [`conftest`](./reference/providers/conftest.md)
   * [`container`](./reference/providers/container.md)
-  * [`ephemeral-kubernetes`](./reference/providers/ephemeral-kubernetes.md)
   * [`exec`](./reference/providers/exec.md)
-  * [`hadolint`](./reference/providers/hadolint.md)
   * [`jib`](./reference/providers/jib.md)
   * [`kubernetes`](./reference/providers/kubernetes.md)
   * [`local-kubernetes`](./reference/providers/local-kubernetes.md)
-  * [`octant`](./reference/providers/octant.md)
   * [`otel-collector`](./reference/providers/otel-collector.md)
   * [`pulumi`](./reference/providers/pulumi.md)
   * [`terraform`](./reference/providers/terraform.md)
@@ -146,12 +102,10 @@
     * [`exec` Build](./reference/action-types/Build/exec.md)
     * [`jib-container` Build](./reference/action-types/Build/jib-container.md)
   * [Deploy](./reference/action-types/Deploy/README.md)
-    * [`configmap` Deploy](./reference/action-types/Deploy/configmap.md)
     * [`container` Deploy](./reference/action-types/Deploy/container.md)
     * [`exec` Deploy](./reference/action-types/Deploy/exec.md)
     * [`helm` Deploy](./reference/action-types/Deploy/helm.md)
     * [`kubernetes` Deploy](./reference/action-types/Deploy/kubernetes.md)
-    * [`persistentvolumeclaim` Deploy](./reference/action-types/Deploy/persistentvolumeclaim.md)
     * [`pulumi` Deploy](./reference/action-types/Deploy/pulumi.md)
     * [`terraform` Deploy](./reference/action-types/Deploy/terraform.md)
   * [Run](./reference/action-types/Run/README.md)
@@ -161,11 +115,8 @@
     * [`kubernetes-exec` Run](./reference/action-types/Run/kubernetes-exec.md)
     * [`kubernetes-pod` Run](./reference/action-types/Run/kubernetes-pod.md)
   * [Test](./reference/action-types/Test/README.md)
-    * [`conftest-helm` Test](./reference/action-types/Test/conftest-helm.md)
-    * [`conftest` Test](./reference/action-types/Test/conftest.md)
     * [`container` Test](./reference/action-types/Test/container.md)
     * [`exec` Test](./reference/action-types/Test/exec.md)
-    * [`hadolint` Test](./reference/action-types/Test/hadolint.md)
     * [`helm-pod` Test](./reference/action-types/Test/helm-pod.md)
     * [`kubernetes-exec` Test](./reference/action-types/Test/kubernetes-exec.md)
     * [`kubernetes-pod` Test](./reference/action-types/Test/kubernetes-pod.md)
@@ -187,32 +138,35 @@
 * [RenderTemplate Reference](./reference/render-template-config.md)
 * [Workflow Configuration](./reference/workflow-config.md)
 * [Garden Containers on Docker Hub](./reference/dockerhub-containers.md)
+* [Glossary](./reference/glossary.md)
 * [Module Template Configuration](./reference/module-template-config.md)
 * [Module Types](./reference/module-types/README.md)
-  * [`configmap`](./reference/module-types/configmap.md)
-  * [`conftest`](./reference/module-types/conftest.md)
   * [`container`](./reference/module-types/container.md)
   * [`exec`](./reference/module-types/exec.md)
-  * [`hadolint`](./reference/module-types/hadolint.md)
   * [`helm`](./reference/module-types/helm.md)
   * [`jib-container`](./reference/module-types/jib-container.md)
   * [`kubernetes`](./reference/module-types/kubernetes.md)
-  * [`persistentvolumeclaim`](./reference/module-types/persistentvolumeclaim.md)
   * [`pulumi`](./reference/module-types/pulumi.md)
   * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
 
-## 🌸 Misc
+## Misc
 
 * [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)
 * [Telemetry](./misc/telemetry.md)
+* [How Organizations Adopt Garden](./misc/adopting-garden.md)
+* [New Garden Cloud Version](./misc/cloud-announcement.md)
+* [Migrating to Cedar](./misc/migrating-to-cedar.md)
+* [Migrating to Bonsai](./misc/migrating-to-bonsai.md)
+* [Ingress NGINX Vulnerability](./misc/nginx-vulnerability.md)
+* [Deprecations](./misc/deprecations.md)
 
-## 🌳 Contributing to Garden
+## Contributing to Garden
 
 * [Contributor Covenant Code of Conduct](./contributing/CODE_OF_CONDUCT.md)
 * [Contributing to the Docs](./contributing/contributing-docs.md)
-* [Setting up your developer environment](./contributing/garden-dev-env-setup.md)
+* [Setting up Your Developer Environment](./contributing/garden-dev-env-setup.md)
 * [Developing Garden](./contributing/developing-garden.md)
-* [Config resolution](./contributing/config-resolution.md)
-* [Graph execution](./contributing/graph-execution.md)
+* [Config Resolution](./contributing/config-resolution.md)
+* [Graph Execution](./contributing/graph-execution.md)

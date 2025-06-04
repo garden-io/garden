@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,6 +16,7 @@ import { resolvedActionToExecuted } from "../actions/helpers.js"
 import { renderDuration } from "../logger/util.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
+import { makeGetStatusLog } from "./helpers.js"
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
@@ -44,7 +45,8 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const output = await router.build.getStatus({ log: this.log, graph: this.graph, action })
+    const log = makeGetStatusLog(this.log, this.force)
+    const output = await router.build.getStatus({ log, graph: this.graph, action })
     const status = output.result
 
     if (status.state === "ready" && !statusOnly && !this.force) {

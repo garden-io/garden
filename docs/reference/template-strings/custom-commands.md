@@ -5,7 +5,7 @@ title: Custom Command template context
 
 # Custom Command template context
 
-The below keys are available in template strings for the `exec` and `gardenCommand` fields in [Custom Commands](../../advanced/custom-commands.md).
+The below keys are available in template strings for the `exec` and `gardenCommand` fields in [Custom Commands](../../features/custom-commands.md).
 
 ### `${local.*}`
 
@@ -143,7 +143,7 @@ my-variable: ${command.name}
 
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
-Option values can be referenced by the option's default name (e.g. `local-mode`) or its alias (e.g. `local`) if one is defined for that option.
+Option values can be referenced by the option's default name (e.g. `sync-mode`) or its alias (e.g. `sync`) if one is defined for that option.
 
 | Type     |
 | -------- |

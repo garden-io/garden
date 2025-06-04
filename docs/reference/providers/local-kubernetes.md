@@ -9,11 +9,11 @@ tocTitle: "`local-kubernetes`"
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that automates and simplifies working with local Kubernetes clusters.
 
-For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/kubernetes-plugins/local-k8s) guide.
+For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/cedar-0.14/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/cedar-0.14/kubernetes-plugins/local-k8s) guide.
 
-If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/kubernetes-plugins/remote-k8s) guide.
+If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/cedar-0.14/kubernetes-plugins/remote-k8s) guide.
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference for the provider configuration..
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -45,7 +45,7 @@ providers:
     # between multiple developers, as well as between your development and CI workflows.
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
-    # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/guides/in-cluster-building).
+    # [in-cluster building guide](https://docs.garden.io/cedar-0.14/kubernetes-plugins/guides/in-cluster-building).
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
@@ -324,7 +324,8 @@ providers:
       #
       # Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
       #
-      # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
+      # See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more
+      # information.
       defaults:
         # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
         #
@@ -549,7 +550,7 @@ Otherwise the utility images are pulled directly from Docker Hub by default.
 
 Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/guides/in-cluster-building).
+For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/cedar-0.14/kubernetes-plugins/guides/in-cluster-building).
 
 | Type     | Allowed Values                               | Default          | Required |
 | -------- | -------------------------------------------- | ---------------- | -------- |
@@ -1216,25 +1217,6 @@ providers:
   - defaultHostname: "api.mydomain.com"
 ```
 
-### `providers[].deploymentStrategy`
-
-[providers](#providers) > deploymentStrategy
-
-{% hint style="warning" %}
-**Experimental**: this is an experimental feature and the API might change in the future.
-{% endhint %}
-
-{% hint style="warning" %}
-**Deprecated**: The `deploymentStrategy` config field is deprecated in 0.13 and will be removed in the next major release, Garden 0.14.
-Do not use this config field. It has no effect as the experimental support for blue/green deployments (via the `blue-green` strategy) has been removed.
-{% endhint %}
-
-Sets the deployment strategy for `container` deploy actions.
-
-| Type     | Default     | Required |
-| -------- | ----------- | -------- |
-| `string` | `"rolling"` | No       |
-
 ### `providers[].sync`
 
 [providers](#providers) > sync
@@ -1255,7 +1237,7 @@ These are overridden/extended by the settings of any individual sync specs.
 
 Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1423,9 +1405,9 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 Resource requests and limits for the in-cluster builder..
 
-| Type     | Default                                                                                                                                                                                                                                              | Required |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}},"util":{"limits":{"cpu":256,"memory":512},"requests":{"cpu":256,"memory":512}}}` | No       |
+| Type     | Default                                                                                                                                                                | Required |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}},"util":{"limits":{"cpu":256,"memory":512},"requests":{"cpu":256,"memory":512}}}` | No       |
 
 ### `providers[].resources.builder`
 
@@ -1762,208 +1744,6 @@ providers:
           ephemeralStorage: 8192
 ```
 
-### `providers[].resources.sync`
-
-[providers](#providers) > [resources](#providersresources) > sync
-
-{% hint style="warning" %}
-**Deprecated**: The sync service is only used for the cluster-docker build mode, which is being deprecated.
-{% endhint %}
-
-Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
-ahead of building images. This generally is not resource intensive, but you might want to adjust the
-defaults if you have many concurrent users.
-
-| Type     | Default                                                                  | Required |
-| -------- | ------------------------------------------------------------------------ | -------- |
-| `object` | `{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}}` | No       |
-
-### `providers[].resources.sync.limits`
-
-[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > limits
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-| Type     | Default                    | Required |
-| -------- | -------------------------- | -------- |
-| `object` | `{"cpu":500,"memory":512}` | No       |
-
-### `providers[].resources.sync.limits.cpu`
-
-[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > cpu
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-CPU limit in millicpu.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `500`   | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      sync:
-        ...
-        limits:
-          ...
-          cpu: 500
-```
-
-### `providers[].resources.sync.limits.memory`
-
-[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > memory
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Memory limit in megabytes.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `512`   | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      sync:
-        ...
-        limits:
-          ...
-          memory: 512
-```
-
-### `providers[].resources.sync.limits.ephemeralStorage`
-
-[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > ephemeralStorage
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Ephemeral storage limit in megabytes.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      sync:
-        ...
-        limits:
-          ...
-          ephemeralStorage: 8192
-```
-
-### `providers[].resources.sync.requests`
-
-[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > requests
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-| Type     | Default                   | Required |
-| -------- | ------------------------- | -------- |
-| `object` | `{"cpu":100,"memory":90}` | No       |
-
-### `providers[].resources.sync.requests.cpu`
-
-[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > cpu
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-CPU request in millicpu.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `100`   | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      sync:
-        ...
-        requests:
-          ...
-          cpu: 100
-```
-
-### `providers[].resources.sync.requests.memory`
-
-[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > memory
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Memory request in megabytes.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      sync:
-        ...
-        requests:
-          ...
-          memory: 90
-```
-
-### `providers[].resources.sync.requests.ephemeralStorage`
-
-[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > ephemeralStorage
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Ephemeral storage request in megabytes.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-Example:
-
-```yaml
-providers:
-  - resources:
-      ...
-      sync:
-        ...
-        requests:
-          ...
-          ephemeralStorage: 8192
-```
-
 ### `providers[].tlsCertificates[]`
 
 [providers](#providers) > tlsCertificates
@@ -2197,3 +1977,4 @@ The default hostname configured on the provider.
 | Type     |
 | -------- |
 | `string` |
+

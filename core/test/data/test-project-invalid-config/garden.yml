@@ -1,3 +1,4 @@
+apiVersion: garden.io/v2
 kind: Project
 name: test-project-invalid-config
 environments:

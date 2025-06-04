@@ -6,12 +6,12 @@ tocTitle: "`jib-container`"
 # `jib-container` Module Type
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.13.54/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.14.3/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -25,8 +25,7 @@ To provide additional arguments to Gradle/Maven when building, you can set the `
 
 **Important note:** Unlike many other types, `jib-container` builds are done from the _source_ directory instead of the build staging directory, because of how Java projects are often laid out across a repository. This means build dependency copy directives are effectively ignored, and any include/exclude statements and .gardenignore files will not impact the build result. _Note that you should still configure includes, excludes and/or a .gardenignore to tell Garden which files to consider as part of the Build version hash, to correctly detect whether a new build is required.**
 
-Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+Below is the full schema reference.
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -164,8 +163,8 @@ disabled: false
 #
 # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source
 # tree, which use the same format as `.gitignore` files. See the [Configuration Files
-# guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
-# details.
+# guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+# for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
 #
@@ -183,7 +182,8 @@ include:
 #
 # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
 # field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration
-# Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+# Files
+# guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
 # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -351,18 +351,6 @@ services:
         # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
-        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](./persistentvolumeclaim.md), for example.
-        #
-        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
-        # dependency of this service, as well as a build dependency of this module.
-        #
-        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
-        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
-        # services at the same time. Refer to the documentation of the module type in question to learn more.
-        module:
-
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
     privileged:
@@ -396,7 +384,8 @@ services:
     #
     # Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
     #
-    # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
+    # See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more
+    # information.
     sync:
       # Override the default container arguments when in sync mode.
       args:
@@ -424,7 +413,7 @@ services:
           exclude:
 
           # The sync mode to use for the given paths. See the [Code Synchronization
-          # guide](https://docs.garden.io/guides/code-synchronization) for details.
+          # guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details.
           mode: one-way-safe
 
           # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644
@@ -449,44 +438,8 @@ services:
           # information.
           defaultGroup:
 
-    # [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the
-    # target resource.
-    #
-    # The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
-    # Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
-    #
-    # Local mode is enabled by setting the `--local` option on the `garden deploy` command.
-    # Local mode always takes the precedence over sync mode if there are any conflicting service names.
-    #
-    # Health checks are disabled for services running in local mode.
-    #
-    # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
-    #
-    # Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
-    # release.
-    localMode:
-      # The reverse port-forwards configuration for the local application.
-      ports:
-        - # The local port to be used for reverse port-forward.
-          local:
-
-          # The remote port to be used for reverse port-forward.
-          remote:
-
-      # The command to run the local application. If not present, then the local application should be started
-      # manually.
-      command:
-
-      # Specifies restarting policy for the local application. By default, the local application will be restarting
-      # infinitely with 1000ms between attempts.
-      restart:
-        # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-        delayMsec: 1000
-
-        # Max number of the local application restarts. Unlimited by default.
-        max: .inf
-
-    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+    # Dockerfile.
     image:
 
     # List of ingress endpoints that the service exposes.
@@ -542,6 +495,14 @@ services:
     # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
     timeout: 300
 
+    # Specify resource limits for the service.
+    limits:
+      # The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
+      cpu:
+
+      # The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
+      memory:
+
     # List of ports that the service container exposes.
     ports:
       - # The name of the port (used when referencing the port elsewhere in the service configuration).
@@ -572,6 +533,9 @@ services:
         # The service port maps to the container port:
         # `servicePort:80 -> containerPort:8080 -> process:8080`
         servicePort:
+
+        # Number of port to expose on the pod's IP address.
+        hostPort:
 
         # Set this to expose the service on the specified port on the host node (may not be supported by all
         # providers). Set to `true` to have the cluster pick a port automatically, which is most often advisable if
@@ -650,18 +614,6 @@ tests:
         # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
-        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](./persistentvolumeclaim.md), for example.
-        #
-        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
-        # dependency of this service, as well as a build dependency of this module.
-        #
-        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
-        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
-        # services at the same time. Refer to the documentation of the module type in question to learn more.
-        module:
-
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
     privileged:
@@ -691,8 +643,14 @@ tests:
         # `.garden/artifacts`.
         target: .
 
-    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+    # Dockerfile.
     image:
+
+    # Set to false if you don't want the Test action result to be cached. Use this if the Test action needs to be run
+    # any time your project (or one or more of the Test action's dependants) is deployed. Otherwise the Test action is
+    # only re-run when its version changes, or when you run `garden run`.
+    cacheResult: true
 
 # A list of tasks that can be run from this container module. These can be used as dependencies for services (executed
 # before the service is deployed) or for other tasks.
@@ -769,18 +727,6 @@ tasks:
         # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
-        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](./persistentvolumeclaim.md), for example.
-        #
-        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
-        # dependency of this service, as well as a build dependency of this module.
-        #
-        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
-        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
-        # services at the same time. Refer to the documentation of the module type in question to learn more.
-        module:
-
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
     privileged:
@@ -810,12 +756,13 @@ tasks:
         # `.garden/artifacts`.
         target: .
 
-    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a
+    # Dockerfile.
     image:
 
-    # Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your
-    # project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version
-    # changes, or when you run `garden run`.
+    # Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run
+    # any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is
+    # only re-run when its version changes, or when you run `garden run`.
     cacheResult: true
 ```
 
@@ -1132,7 +1079,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
@@ -1159,7 +1106,7 @@ include:
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
@@ -1564,20 +1511,6 @@ services:
       - hostPath: "/some/dir"
 ```
 
-### `services[].volumes[].module`
-
-[services](#services) > [volumes](#servicesvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
 ### `services[].privileged`
 
 [services](#services) > privileged
@@ -1666,7 +1599,7 @@ Specifies which files or directories to sync to which paths inside the running c
 
 Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
 
-See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for more information.
+See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1773,7 +1706,7 @@ services:
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > mode
 
-The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization) for details.
+The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details.
 
 | Type     | Allowed Values                                                                                                                            | Default          | Required |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
@@ -1819,103 +1752,11 @@ Set the default group on files and directories at the target. Specify either an 
 | ------------------ | -------- |
 | `number \| string` | No       |
 
-### `services[].localMode`
-
-[services](#services) > localMode
-
-[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
-
-The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
-Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
-
-Local mode is enabled by setting the `--local` option on the `garden deploy` command.
-Local mode always takes the precedence over sync mode if there are any conflicting service names.
-
-Health checks are disabled for services running in local mode.
-
-See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
-
-Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `services[].localMode.ports[]`
-
-[services](#services) > [localMode](#serviceslocalmode) > ports
-
-The reverse port-forwards configuration for the local application.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-### `services[].localMode.ports[].local`
-
-[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > local
-
-The local port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `services[].localMode.ports[].remote`
-
-[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > remote
-
-The remote port to be used for reverse port-forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `services[].localMode.command[]`
-
-[services](#services) > [localMode](#serviceslocalmode) > command
-
-The command to run the local application. If not present, then the local application should be started manually.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `services[].localMode.restart`
-
-[services](#services) > [localMode](#serviceslocalmode) > restart
-
-Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
-
-| Type     | Default                         | Required |
-| -------- | ------------------------------- | -------- |
-| `object` | `{"delayMsec":1000,"max":null}` | No       |
-
-### `services[].localMode.restart.delayMsec`
-
-[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > delayMsec
-
-Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `services[].localMode.restart.max`
-
-[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > max
-
-Max number of the local application restarts. Unlimited by default.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `null`  | No       |
-
 ### `services[].image`
 
 [services](#services) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2110,7 +1951,7 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 [services](#services) > limits
 
 {% hint style="warning" %}
-**Deprecated**: Please use the `cpu` and `memory` fields instead.
+**Deprecated**: Please use the `cpu` and `memory` configuration fields instead.
 {% endhint %}
 
 Specify resource limits for the service.
@@ -2244,8 +2085,10 @@ services:
 [services](#services) > [ports](#servicesports) > hostPort
 
 {% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
+**Deprecated**: It's generally not recommended to use the `hostPort` field of the `V1ContainerPort` spec. You can learn more about Kubernetes best practices at: https://kubernetes.io/docs/concepts/configuration/overview/
 {% endhint %}
+
+Number of port to expose on the pod's IP address.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2494,20 +2337,6 @@ tests:
       - hostPath: "/some/dir"
 ```
 
-### `tests[].volumes[].module`
-
-[tests](#tests) > [volumes](#testsvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
 ### `tests[].privileged`
 
 [tests](#tests) > privileged
@@ -2620,11 +2449,21 @@ tests:
 
 [tests](#tests) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `tests[].cacheResult`
+
+[tests](#tests) > cacheResult
+
+Set to false if you don't want the Test action result to be cached. Use this if the Test action needs to be run any time your project (or one or more of the Test action's dependants) is deployed. Otherwise the Test action is only re-run when its version changes, or when you run `garden run`.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `tasks[]`
 
@@ -2858,20 +2697,6 @@ tasks:
       - hostPath: "/some/dir"
 ```
 
-### `tasks[].volumes[].module`
-
-[tasks](#tasks) > [volumes](#tasksvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
 ### `tasks[].privileged`
 
 [tasks](#tasks) > privileged
@@ -2984,7 +2809,7 @@ tasks:
 
 [tasks](#tasks) > image
 
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+Specify an image ID to deploy. Should be a valid Docker image identifier. Not required if the module has a Dockerfile.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2994,7 +2819,7 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 
 [tasks](#tasks) > cacheResult
 
-Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run `garden run`.
+Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is only re-run when its version changes, or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

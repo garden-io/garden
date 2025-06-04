@@ -1,7 +1,0 @@
-apiVersion: garden.io/v1
-kind: Project
-name: local-mode-helm
-environments:
-  - name: local
-providers:
-  - name: local-kubernetes

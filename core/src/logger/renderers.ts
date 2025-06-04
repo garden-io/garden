@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -121,7 +121,9 @@ export function renderMsg(entry: LogEntry): string {
 
   const origin = context.origin ? `[${styles.italic(context.origin)}] ` : ""
 
-  return style(`${logLevelName}${origin}${msg}`)
+  const fullMsg = `${logLevelName}${origin}${msg}`
+
+  return fullMsg ? style(fullMsg) : ""
 }
 
 export function renderData(entry: LogEntry): string {
@@ -137,7 +139,7 @@ export function renderData(entry: LogEntry): string {
 }
 
 export function renderSection(entry: LogEntry): string {
-  const { msg } = entry
+  const msg = renderMsg(entry)
   const section = getSection(entry)
 
   if (section && msg) {

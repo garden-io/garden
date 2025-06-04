@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +17,7 @@ import { StringsParameter } from "../../../cli/params.js"
 import { styles } from "../../../logger/styles.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/secrets.js"
 
 export const secretsListOpts = {
   "filter-envs": new StringsParameter({
@@ -52,6 +53,8 @@ export class SecretsListCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<SecretResult[]>> {
+    handleSecretsUnavailableInNewBackend(garden)
+
     const envFilter = opts["filter-envs"] || []
     const nameFilter = opts["filter-names"] || []
     const userFilter = opts["filter-user-ids"] || []

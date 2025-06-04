@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,8 @@ describe("JoiKeyDescription", () => {
       .required()
       .allow("a", "b")
       .only()
-      .meta({ internal: true, deprecated: true, experimental: true })
+      // here we pick an arbitrary available deprecation to ensure the deprecated flag value on the JoiKeyDescription
+      .meta({ internal: true, deprecation: "containerDeployActionHostPort", experimental: true })
       .description("some description")
 
     const desc = new JoiKeyDescription({

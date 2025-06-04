@@ -5,7 +5,7 @@ title: Workflow template context
 
 # Workflow template context
 
-The below keys are available in template strings for [Workflow](../../using-garden/workflows.md) configurations, as well as the commands defined in [Custom Commands](../../advanced/custom-commands.md).
+The below keys are available in template strings for [Workflow](../../features/workflows.md) configurations, as well as the commands defined in [Custom Commands](../../features/custom-commands.md).
 
 Note that the `{steps.*}` key is only available for the `steps[].command` and `steps[].script` fields in Workflow configs, and may only reference previous steps in the same workflow. See below for more details.
 
@@ -145,7 +145,7 @@ my-variable: ${command.name}
 
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
-Option values can be referenced by the option's default name (e.g. `local-mode`) or its alias (e.g. `local`) if one is defined for that option.
+Option values can be referenced by the option's default name (e.g. `sync-mode`) or its alias (e.g. `sync`) if one is defined for that option.
 
 | Type     |
 | -------- |
@@ -290,6 +290,14 @@ Example:
 ```yaml
 my-variable: ${git.originUrl}
 ```
+
+### `${secrets.*}`
+
+A map of all secrets for this project in the current environment.
+
+| Type     |
+| -------- |
+| `object` |
 
 ### `${secrets.<secret-name>}`
 

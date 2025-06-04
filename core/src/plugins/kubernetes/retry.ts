@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,6 @@ import { ApiException as KubernetesApiException } from "@kubernetes/client-node"
 import { sleep } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
 import { deline } from "../../util/string.js"
-import { LogLevel } from "../../logger/logger.js"
 import { KubernetesError } from "./api.js"
 import type { NodeJSErrnoException } from "../../exceptions.js"
 import { InternalError, isErrnoException } from "../../exceptions.js"
@@ -51,10 +50,10 @@ export async function requestWithRetry<R>(
       return await req()
     } catch (err) {
       if (forceRetry || shouldRetry(err, context)) {
-        retryLog = retryLog || log.createLog({ fixLevel: LogLevel.debug })
+        retryLog = retryLog || log.createLog()
         if (usedRetries <= maxRetries) {
           const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
-          retryLog.info(deline`
+          retryLog.debug(deline`
             ${context} failed with error '${err}', retrying in ${sleepMsec}ms
             (${usedRetries}/${maxRetries})
           `)
@@ -62,7 +61,7 @@ export async function requestWithRetry<R>(
           return await retry(usedRetries + 1)
         } else {
           if (usedRetries === maxRetries) {
-            retryLog.error(`Kubernetes API: Maximum retry count exceeded`)
+            retryLog.error(`Kubernetes API: Maximum retry count of ${maxRetries} exceeded for operation ${context}`)
           }
           throw err
         }

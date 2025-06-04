@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -104,8 +104,8 @@ describe("LogsCommand", () => {
 
   type GetDeployLogsParams = ActionTypeHandlerParamsType<GetDeployLogs>
 
-  const defaultLogsHandler = async ({ stream }: GetDeployLogsParams) => {
-    void stream.write({
+  const defaultLogsHandler = async ({ onLogEntry }: GetDeployLogsParams) => {
+    onLogEntry({
       tags: { container: "my-container" },
       name: "test-service-a",
       msg: logMsgWithColor,
@@ -161,26 +161,26 @@ describe("LogsCommand", () => {
       })
     })
     it("should sort entries by timestamp", async () => {
-      const getServiceLogsHandler = async (params: GetDeployLogsParams) => {
-        void params.stream.write({
+      const getServiceLogsHandler = async ({ onLogEntry }: GetDeployLogsParams) => {
+        onLogEntry({
           tags: { container: "my-container" },
           name: "test-service-a",
           msg: "3",
           timestamp: new Date("2021-05-13T20:03:00.000Z"),
         })
-        void params.stream.write({
+        onLogEntry({
           tags: { container: "my-container" },
           name: "test-service-a",
           msg: "4",
           timestamp: new Date("2021-05-13T20:04:00.000Z"),
         })
-        void params.stream.write({
+        onLogEntry({
           tags: { container: "my-container" },
           name: "test-service-a",
           msg: "2",
           timestamp: new Date("2021-05-13T20:02:00.000Z"),
         })
-        void params.stream.write({
+        onLogEntry({
           tags: { container: "my-container" },
           name: "test-service-a",
           msg: "1",
@@ -223,16 +223,16 @@ describe("LogsCommand", () => {
       })
     })
     it("should skip empty entries", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
+      const getServiceLogsHandler = async ({ onLogEntry }: GetDeployLogsParams) => {
         // Empty message and invalid date
-        void stream.write({
+        onLogEntry({
           tags: { container: "my-container" },
           name: "test-service-a",
           msg: "",
           timestamp: new Date(""),
         })
         // Empty message and empty date
-        void stream.write({
+        onLogEntry({
           tags: { container: "my-container" },
           name: "test-service-a",
           msg: "",
@@ -322,37 +322,37 @@ describe("LogsCommand", () => {
       expect(tailOpts.every((o) => o === 0)).to.be.true
       expect(sinceOpts.every((o) => o === undefined)).to.be.true
     })
-    context("mutliple services", () => {
+    context("multiple services", () => {
       it("should align content for visible entries", async () => {
-        const getServiceLogsHandler = async ({ action, stream }: GetDeployLogsParams) => {
+        const getServiceLogsHandler = async ({ action, onLogEntry }: GetDeployLogsParams) => {
           if (action.name === "a-short") {
-            void stream.write({
+            onLogEntry({
               tags: { container: "short" },
               name: "a-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:01:00.000Z"), // <--- 1
             })
-            void stream.write({
+            onLogEntry({
               tags: { container: "short" },
               name: "a-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:03:00.000Z"), // <--- 3
             })
-            void stream.write({
+            onLogEntry({
               tags: { container: "short" },
               name: "a-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:06:00.000Z"), // <--- 6
             })
           } else if (action.name === "b-not-short") {
-            void stream.write({
+            onLogEntry({
               tags: { container: "not-short" },
               name: "b-not-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:02:00.000Z"), // <--- 2
             })
           } else if (action.name === "c-by-far-the-longest-of-the-bunch") {
-            void stream.write({
+            onLogEntry({
               tags: { container: "by-far-the-longest-of-the-bunch" },
               name: "c-by-far-the-longest-of-the-bunch",
               msg: logMsgWithColor,
@@ -360,7 +360,7 @@ describe("LogsCommand", () => {
               level: LogLevel.verbose,
             })
           } else if (action.name === "d-very-very-long") {
-            void stream.write({
+            onLogEntry({
               tags: { container: "very-very-long" },
               name: "d-very-very-long",
               msg: logMsgWithColor,
@@ -419,8 +419,8 @@ describe("LogsCommand", () => {
     ]
 
     it("should optionally print tags with --show-tags", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
-        void stream.write({
+      const getServiceLogsHandler = async ({ onLogEntry }: GetDeployLogsParams) => {
+        onLogEntry({
           tags: { container: "api" },
           name: "api",
           msg: logMsgWithColor,
@@ -446,14 +446,14 @@ describe("LogsCommand", () => {
     }
 
     it("should apply a basic --tag filter", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
-        void stream.write({
+      const getServiceLogsHandler = async ({ onLogEntry }: GetDeployLogsParams) => {
+        onLogEntry({
           tags: { container: "api" },
           name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
-        void stream.write({
+        onLogEntry({
           tags: { container: "frontend" },
           name: "frontend",
           msg: logMsg,
@@ -472,8 +472,8 @@ describe("LogsCommand", () => {
     })
 
     it("should throw when passed an invalid --tag filter", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
-        void stream.write({
+      const getServiceLogsHandler = async ({ onLogEntry }: GetDeployLogsParams) => {
+        onLogEntry({
           tags: { container: "api-main" },
           name: "api",
           msg: logMsg,
@@ -491,20 +491,20 @@ describe("LogsCommand", () => {
     })
 
     it("should AND together tag filters in a given --tag option instance", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
-        void stream.write({
+      const getServiceLogsHandler = async ({ onLogEntry }: GetDeployLogsParams) => {
+        onLogEntry({
           tags: { container: "api", myTag: "1" },
           name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
-        void stream.write({
+        onLogEntry({
           tags: { container: "api", myTag: "2" },
           name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
-        void stream.write({
+        onLogEntry({
           tags: { container: "frontend", myTag: "1" },
           name: "frontend",
           msg: logMsg,
@@ -525,26 +525,26 @@ describe("LogsCommand", () => {
     })
 
     it("should OR together tag filters from all provided --tag option instances", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
-        void stream.write({
+      const getServiceLogsHandler = async ({ onLogEntry }: GetDeployLogsParams) => {
+        onLogEntry({
           tags: { container: "api", myTag: "1" },
           name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
-        void stream.write({
+        onLogEntry({
           tags: { container: "api", myTag: "2" },
           name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
-        void stream.write({
+        onLogEntry({
           tags: { container: "frontend", myTag: "1" },
           name: "frontend",
           msg: logMsg,
           timestamp: new Date(),
         })
-        void stream.write({
+        onLogEntry({
           tags: { container: "frontend", myTag: "2" },
           name: "frontend",
           msg: logMsg,
@@ -571,26 +571,26 @@ describe("LogsCommand", () => {
     })
 
     it("should apply a wildcard --tag filter", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
-        void stream.write({
+      const getServiceLogsHandler = async ({ onLogEntry }: GetDeployLogsParams) => {
+        onLogEntry({
           tags: { container: "api-main" },
           name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
-        void stream.write({
+        onLogEntry({
           tags: { container: "api-sidecar" },
           name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
-        void stream.write({
+        onLogEntry({
           tags: { container: "frontend-main" },
           name: "frontend",
           msg: logMsg,
           timestamp: new Date(),
         })
-        void stream.write({
+        onLogEntry({
           tags: { container: "frontend-sidecar" },
           name: "frontend",
           msg: logMsg,

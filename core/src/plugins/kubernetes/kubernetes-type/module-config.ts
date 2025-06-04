@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,6 @@ import type { KubernetesModuleDevModeSpec } from "../sync.js"
 import { kubernetesModuleSyncSchema } from "../sync.js"
 import type { KubernetesTypeCommonDeploySpec } from "./config.js"
 import { kubernetesCommonDeploySpecKeys } from "./config.js"
-import type { KubernetesLocalModeSpec } from "../local-mode.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
 
 // A Kubernetes Module always maps to a single Service
@@ -42,10 +41,10 @@ export type KubernetesModule = GardenModule<
 export type KubernetesModuleConfig = KubernetesModule["_config"]
 
 export interface KubernetesServiceSpec extends KubernetesTypeCommonDeploySpec {
+  files: string[]
   dependencies: string[]
   timeout: number
   sync?: KubernetesModuleDevModeSpec
-  localMode?: KubernetesLocalModeSpec
   serviceResource?: ServiceResourceSpec
   tasks: KubernetesTaskSpec[]
   tests: KubernetesTestSpec[]
@@ -57,7 +56,7 @@ export const kubernetesModuleSpecSchema = () =>
   joi
     .object()
     .keys({
-      ...kubernetesCommonDeploySpecKeys(),
+      ...kubernetesCommonDeploySpecKeys({ deprecateFiles: false }),
       build: baseBuildSpecSchema(),
       dependencies: dependenciesSchema(),
       sync: kubernetesModuleSyncSchema(),
@@ -78,12 +77,13 @@ export const kubernetesModuleSpecSchema = () =>
         )
         .keys({
           containerModule: containerModuleSchema(),
-          // TODO: remove in 0.14 (not used, kept for compatibility)
+          // TODO(0.15): remove this
           hotReloadArgs: joi.any().meta({ internal: true }),
         }),
       tasks: joiSparseArray(kubernetesTaskSchema()),
       tests: joiSparseArray(kubernetesTestSchema()),
     })
+    // Module configs are deprecated, so we keep syntax translation in module configs
     .rename("devMode", "sync")
 
 export async function configureKubernetesModule({

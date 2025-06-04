@@ -1,0 +1,13 @@
+kind: Deploy
+type: kubernetes
+name: with-manifest-templates-and-manifest-files
+spec:
+  manifestTemplates: ["configmap-1.yaml"]
+  manifestFiles: ["configmap-2.yaml"]
+
+---
+kind: Deploy
+type: kubernetes
+name: manifest-templates-with-missing-variables
+spec:
+  manifestTemplates: ["configmap-missing.yaml"]

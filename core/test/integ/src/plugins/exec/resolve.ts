@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,6 +8,7 @@
 
 import { expect } from "chai"
 import fsExtra, { pathExists, remove } from "fs-extra"
+
 const { readFile } = fsExtra
 import { join } from "node:path"
 import type { TestGarden } from "../../../../helpers.js"
@@ -18,7 +19,7 @@ describe("exec provider initialization statusOnly", () => {
   let tmpDir: string
   let fileLocation: string
 
-  beforeEach(async () => {
+  before(async () => {
     gardenOne = await makeTestGarden(getDataDir("exec-provider-cache"), { environmentString: "one" })
 
     tmpDir = join(await gardenOne.getRepoRoot(), "project")
@@ -27,6 +28,11 @@ describe("exec provider initialization statusOnly", () => {
       await remove(fileLocation)
     }
   })
+
+  after(() => {
+    gardenOne && gardenOne.close()
+  })
+
   it("should not execute the initScript when the provider is initialized with statusOnly", async () => {
     await gardenOne.resolveProvider({ log: gardenOne.log, name: "exec", statusOnly: true })
     const fileExists = await pathExists(fileLocation)
@@ -49,6 +55,10 @@ describe("exec provider initialization cache behaviour", () => {
     await gardenOne.resolveProvider({ log: gardenOne.log, name: "exec" })
   })
 
+  afterEach(() => {
+    gardenOne.close()
+  })
+
   it("writes the environment name to theFile as configured in the initScript", async () => {
     const contents = await readFile(fileLocation, { encoding: "utf-8" })
 
@@ -64,6 +74,8 @@ describe("exec provider initialization cache behaviour", () => {
 
     contents = await readFile(fileLocation, { encoding: "utf-8" })
     expect(contents).equal("two\n")
+
+    gardenTwo.close()
   })
 
   it("still overwrites theFile when changing environments back", async () => {
@@ -81,5 +93,7 @@ describe("exec provider initialization cache behaviour", () => {
 
     contents = await readFile(fileLocation, { encoding: "utf-8" })
     expect(contents).equal("one\n")
+
+    gardenTwo.close()
   })
 })

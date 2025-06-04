@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -46,7 +46,7 @@ import { deepResolveContext } from "./template-contexts/base.js"
 import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
-import { makeDeprecationMessage } from "../util/deprecations.js"
+import { getBackendType } from "../cloud/util.js"
 
 export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -212,13 +212,13 @@ export interface ProjectConfig extends BaseGardenResource {
   kind: "Project"
   name: string
   path: string
-  id?: string
+  id?: string // TODO: Remove this field once backend v1 has been phased out.
   domain?: string
+  organizationId?: string
   configPath?: string
   proxy?: ProxyConfig
   defaultEnvironment: string
   dotIgnoreFile: string
-  dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
   scan?: ProjectScan
   outputs?: OutputSpec[]
@@ -331,9 +331,11 @@ export const projectSchema = createSchema({
     configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
     internal: baseInternalFieldsSchema(),
     name: projectNameSchema(),
-    // TODO: Refer to enterprise documentation for more details.
-    id: joi.string().meta({ internal: true }).description("The project's ID in Garden Cloud."),
-    // TODO: Refer to enterprise documentation for more details.
+    // TODO: Remove id field once backend v1 has been phased out
+    id: joi
+      .string()
+      .meta({ internal: true })
+      .description("The project's ID in Garden Cloud (for older versions of the backend)."),
     domain: joi
       .string()
       .uri()
@@ -341,6 +343,9 @@ export const projectSchema = createSchema({
       .description("The domain to use for cloud features. Should be the full API/backend URL."),
     // Note: We provide a different schema below for actual validation, but need to define it this way for docs
     // because joi.alternatives() isn't handled well in the doc generation.
+    organizationId: joi
+      .string()
+      .description("The ID of the organization that this project belongs to in Garden Cloud."),
     environments: joi
       .array()
       .min(1)
@@ -363,17 +368,6 @@ export const projectSchema = createSchema({
         `
       )
       .example("dev"),
-    dotIgnoreFiles: joiSparseArray(joi.posixPath().filenameOnly())
-      .default([])
-      .description(
-        deline`
-      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-    `
-      )
-      .meta({
-        deprecated: makeDeprecationMessage({ deprecation: "dotIgnoreFiles" }),
-      })
-      .example([".gitignore"]),
     dotIgnoreFile: joi
       .posixPath()
       .filenameOnly()
@@ -381,8 +375,6 @@ export const projectSchema = createSchema({
       .description(
         deline`
       Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for actions and action sources.
-
-      Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the \`dotIgnoreFiles\` field in the project configuration.
 
       Note that this take precedence over the project \`scan.include\` field, and action \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 
@@ -439,6 +431,7 @@ export const projectSchema = createSchema({
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
   }),
+  oxor: [["id", "organizationId"]],
 })
 
 export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {
@@ -580,7 +573,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   vcsInfo,
   username,
   loggedIn,
-  enterpriseDomain,
+  cloudBackendDomain,
   secrets,
   commandInfo,
   projectContext,
@@ -593,7 +586,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   vcsInfo: VcsInfo
   username: string
   loggedIn: boolean
-  enterpriseDomain: string | undefined
+  cloudBackendDomain: string
   secrets: PrimitiveMap
   commandInfo: CommandInfo
 }) {
@@ -634,7 +627,8 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     username,
     variables: await VariablesContext.forProject(projectConfig, variableOverrides, projectContext),
     loggedIn,
-    enterpriseDomain,
+    cloudBackendDomain,
+    backendType: getBackendType(projectConfig),
     secrets,
     commandInfo,
   })

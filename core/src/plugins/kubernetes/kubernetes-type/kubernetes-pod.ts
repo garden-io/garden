@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,19 +8,19 @@
 
 import type { KubernetesCommonRunSpec, KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
 import { kubernetesCommonRunSchemaKeys, runPodResourceSchema, runPodSpecSchema } from "../config.js"
-import { k8sGetRunResult, storeRunResult } from "../run-results.js"
+import { k8sGetRunResult } from "../run-results.js"
 import { getActionNamespaceStatus } from "../namespace.js"
-import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
+import type { ActionKind, RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
 import { dedent } from "../../../util/string.js"
 import type { RunAction, RunActionConfig } from "../../../actions/run.js"
-import { createSchema } from "../../../config/common.js"
+import { createSchema, joi } from "../../../config/common.js"
 import type { V1PodSpec } from "@kubernetes/client-node"
 import { runOrTestWithPod } from "./common.js"
-import { runResultToActionState } from "../../../actions/base.js"
 import type { KubernetesRunOutputs, KubernetesTestOutputs } from "./config.js"
 import {
-  kubernetesFilesSchema,
+  kubernetesManifestFilesSchema,
   kubernetesManifestsSchema,
+  kubernetesManifestTemplatesSchema,
   kubernetesPatchResourcesSchema,
   kubernetesRunOutputsSchema,
   kubernetesTestOutputsSchema,
@@ -29,26 +29,59 @@ import type { KubernetesPatchResource, KubernetesResource } from "../types.js"
 import type { KubernetesKustomizeSpec } from "./kustomize.js"
 import { kustomizeSpecSchema } from "./kustomize.js"
 import type { ObjectSchema } from "@hapi/joi"
-import type { TestActionConfig, TestAction } from "../../../actions/test.js"
-import { storeTestResult, k8sGetTestResult } from "../test-results.js"
+import type { TestAction, TestActionConfig } from "../../../actions/test.js"
+import { k8sGetTestResult } from "../test-results.js"
+import { getRunResultCache, getTestResultCache } from "../results-cache.js"
+import { toActionStatus } from "../util.js"
+import { InternalError } from "../../../exceptions.js"
+import type { KubernetesRunResult } from "../../../plugin/base.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
+import { styles } from "../../../logger/styles.js"
+import { actionReferenceToString } from "../../../actions/base.js"
+import type { Log } from "../../../logger/log-entry.js"
+
+function examineForDeprecations(config: KubernetesPodRunActionConfig | KubernetesPodTestActionConfig, log: Log) {
+  const spec = config.spec
+  if ("files" in spec) {
+    emitNonRepeatableWarning(
+      log,
+      `Obsolete configuration field ${styles.highlight("spec.files")} found in the action ${styles.highlight(actionReferenceToString(config))} at ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}`
+    )
+    reportDeprecatedFeatureUsage({ log, deprecation: "kubernetesPodSpecFiles" })
+  }
+}
 
 // RUN //
 
 export interface KubernetesPodRunActionSpec extends KubernetesCommonRunSpec {
-  files: string[]
+  manifestFiles: string[]
+  manifestTemplates: string[]
   kustomize?: KubernetesKustomizeSpec
   manifests: KubernetesResource[]
   patchResources?: KubernetesPatchResource[]
   resource?: KubernetesTargetResourceSpec
   podSpec?: V1PodSpec
 }
+
 export type KubernetesPodRunActionConfig = RunActionConfig<"kubernetes-pod", KubernetesPodRunActionSpec>
 export type KubernetesPodRunAction = RunAction<KubernetesPodRunActionConfig, KubernetesRunOutputs>
 
 // Maintaining this cache to avoid errors when `kubernetesRunPodSchema` is called more than once with the same `kind`.
 const runSchemas: { [name: string]: ObjectSchema } = {}
 
-export const kubernetesRunPodSchema = (kind: string) => {
+const kubernetesPodManifestTemplatesSchema = (kind: ActionKind) =>
+  kubernetesManifestTemplatesSchema().description(
+    dedent`
+    POSIX-style paths to YAML files to load manifests from. Each file may contain multiple manifests.
+
+    Garden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.
+
+    Then it will find the resource matching the Pod spec for the ${kind} ([See also \`spec.resource\`](#specresource)).
+    `
+  )
+
+export const kubernetesRunPodSchema = (kind: ActionKind) => {
   const name = `${kind}:kubernetes-pod`
   if (runSchemas[name]) {
     return runSchemas[name]
@@ -56,15 +89,15 @@ export const kubernetesRunPodSchema = (kind: string) => {
   const schema = createSchema({
     name,
     keys: () => ({
-      ...kubernetesCommonRunSchemaKeys(),
+      ...kubernetesCommonRunSchemaKeys(kind),
       kustomize: kustomizeSpecSchema(),
       patchResources: kubernetesPatchResourcesSchema(),
       manifests: kubernetesManifestsSchema().description(
         `List of Kubernetes resource manifests to be searched (using \`resource\`e for the pod spec for the ${kind}. If \`files\` is also specified, this is combined with the manifests read from the files.`
       ),
-      files: kubernetesFilesSchema().description(
-        `POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the ${kind}.`
-      ),
+      files: joi.any().meta({ internal: true }),
+      manifestFiles: kubernetesManifestFilesSchema(),
+      manifestTemplates: kubernetesPodManifestTemplatesSchema(kind),
       resource: runPodResourceSchema(kind),
       podSpec: runPodSpecSchema(kind),
     }),
@@ -84,6 +117,10 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
   schema: kubernetesRunPodSchema("Run"),
   runtimeOutputsSchema: kubernetesRunOutputsSchema(),
   handlers: {
+    configure: async ({ log, config }) => {
+      examineForDeprecations(config, log)
+      return { config, supportedModes: {} }
+    },
     run: async (params) => {
       const { ctx, log, action } = params
       const k8sCtx = <KubernetesPluginContext>ctx
@@ -93,29 +130,29 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
         action,
         provider: k8sCtx.provider,
       })
-      const namespace = namespaceStatus.namespaceName
 
-      const res = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
-
-      const detail = {
-        ...res,
-        namespaceStatus,
-        taskName: action.name,
-        outputs: {
-          log: res.log || "",
-        },
-      }
-
-      if (action.getSpec("cacheResult")) {
-        await storeRunResult({
-          ctx,
-          log,
-          action,
-          result: detail,
+      if (namespaceStatus.state !== "ready") {
+        throw new InternalError({
+          message: `Expected namespace state to be "ready", but got "${namespaceStatus.state}" instead.`,
         })
       }
 
-      return { state: runResultToActionState(detail), detail, outputs: detail.outputs }
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
+
+      if (action.getSpec("cacheResult")) {
+        const runResultCache = getRunResultCache(ctx)
+        await runResultCache.store({
+          ctx,
+          log,
+          action,
+          keyData: {
+            namespaceUid: namespaceStatus.namespaceUid,
+          },
+          result,
+        })
+      }
+
+      return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
     },
 
     getResult: k8sGetRunResult,
@@ -138,6 +175,10 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
   schema: kubernetesRunPodSchema("Test"),
   runtimeOutputsSchema: kubernetesTestOutputsSchema(),
   handlers: {
+    configure: async ({ log, config }) => {
+      examineForDeprecations(config, log)
+      return { config, supportedModes: {} }
+    },
     run: async (params) => {
       const { ctx, log, action } = params
       const k8sCtx = <KubernetesPluginContext>ctx
@@ -147,24 +188,21 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
         action,
         provider: k8sCtx.provider,
       })
-      const namespace = namespaceStatus.namespaceName
 
-      const res = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
+      const result = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace: namespaceStatus.namespaceName })
 
-      const detail = {
-        testName: action.name,
-        namespaceStatus,
-        ...res,
+      if (action.getSpec("cacheResult")) {
+        const testResultCache = getTestResultCache(ctx)
+        await testResultCache.store({
+          ctx,
+          log,
+          action,
+          keyData: undefined,
+          result,
+        })
       }
 
-      await storeTestResult({
-        ctx: k8sCtx,
-        log,
-        action,
-        result: detail,
-      })
-
-      return { state: runResultToActionState(detail), detail, outputs: { log: res.log } }
+      return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
     },
 
     getResult: k8sGetTestResult,

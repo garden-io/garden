@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,6 +26,7 @@ import { joinWithPosix } from "../../../../../src/util/fs.js"
 import type { TestGarden } from "../../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import fsExtra from "fs-extra"
+
 const { createFile } = fsExtra
 import { type ContainerBuildActionSpec } from "../../../../../src/plugins/container/config.js"
 import { makeSecret, toClearText } from "../../../../../src/util/secrets.js"
@@ -39,13 +40,17 @@ context("build.ts", () => {
   let containerProvider: ContainerProvider
   let graph: ConfigGraph
 
-  beforeEach(async () => {
+  before(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
     actionLog = createActionLog({ log, actionName: "", actionKind: "" })
     containerProvider = await garden.resolveProvider({ log: garden.log, name: "container" })
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
     graph = await garden.getConfigGraph({ log, emit: false })
+  })
+
+  after(() => {
+    garden.close()
   })
 
   const getAction = async () => await garden.resolveAction({ action: graph.getBuild("module-a"), log, graph })
@@ -148,6 +153,10 @@ context("build.ts", () => {
         `GARDEN_MODULE_VERSION=${action.versionString()}`,
         "--build-arg",
         `GARDEN_ACTION_VERSION=${action.versionString()}`,
+        "--progress",
+        "rawjson",
+        "--metadata-file",
+        "/tmp/a-unique-path/metadata.json",
         "--tag",
         "some/image",
         "--file",
@@ -167,6 +176,9 @@ context("build.ts", () => {
       const cmdArgs = getCmdArgs(action, buildPath)
       sinon.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(buildPath)
+        // metadata.json is always at a unique path - we need to replace the filename for the assertion
+        const idx = args.indexOf("--metadata-file") + 1
+        args[idx] = "/tmp/a-unique-path/metadata.json"
         expect(args).to.eql(cmdArgs)
         expect(_ctx).to.exist
         return { all: "log", stdout: "", stderr: "", code: 0, proc: null }
@@ -192,6 +204,9 @@ context("build.ts", () => {
       const cmdArgs = getCmdArgs(action, buildPath)
       sinon.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(buildPath)
+        // metadata.json is always at a unique path - we need to replace the filename for the assertion
+        const idx = args.indexOf("--metadata-file") + 1
+        args[idx] = "/tmp/a-unique-path/metadata.json"
         expect(args).to.eql(cmdArgs)
         expect(_ctx).to.exist
         return { all: "log", stdout: "", stderr: "", code: 0, proc: null }

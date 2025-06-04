@@ -1,7 +1,9 @@
-apiVersion: garden.io/v1
+apiVersion: garden.io/v2
 kind: Project
 name: kubernetes-type-test
 environments:
   - name: local
 providers:
   - name: local-kubernetes
+variables:
+  greeting: "world"

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -217,15 +217,10 @@ function improveZodValidationErrorMessage(item: Joi.ValidationErrorItem, yamlBas
   }
 }
 
-export function addYamlContext({
-  source: { yamlDoc, path },
-  message,
-}: {
-  source: ConfigSource
-  message: string
-}): string {
+export function getYamlContext(source: ConfigSource): string | undefined {
+  const { yamlDoc, path } = source
   if (!yamlDoc) {
-    return message
+    return undefined
   }
 
   const node = yamlDoc.getIn(path, true) as ParsedNode | undefined
@@ -233,45 +228,60 @@ export function addYamlContext({
   const rawYaml = yamlDoc.source
 
   if (!node || !range || !rawYaml) {
+    return undefined
+  }
+
+  try {
+    // Get one line before the error location start, and the line including the error location end
+    const toStart = rawYaml.slice(0, range[0])
+    const lineNumber = toStart.split("\n").length + 1
+    let snippetLines = 1
+
+    const errorLineStart = toStart.lastIndexOf("\n") + 1
+
+    let snippetStart = errorLineStart
+    if (snippetStart > 0) {
+      snippetStart = rawYaml.slice(0, snippetStart - 1).lastIndexOf("\n") + 1
+    }
+    if (snippetStart === 0) {
+      snippetStart = errorLineStart
+    } else {
+      snippetLines++
+    }
+
+    const snippetEnd = rawYaml.indexOf("\n", range[1] - 1) || rawYaml.length
+
+    const linePrefixLength = lineNumber.toString().length + 2
+    let snippet = rawYaml
+      .slice(snippetStart, snippetEnd)
+      .trimEnd()
+      .split("\n")
+      .map(
+        (l, i) =>
+          styles.primary(padEnd("" + (lineNumber - snippetLines + i), linePrefixLength) + "| ") + styles.highlight(l)
+      )
+      .join("\n")
+
+    if (snippetStart > 0) {
+      snippet = styles.primary("...\n") + snippet
+    }
+
+    const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
+    const marker = styles.error("-".repeat(errorLineOffset)) + styles.error.bold("^")
+
+    return `${yamlDoc.filename ? `${styles.secondary(`${yamlDoc.filename}:${lineNumber - (snippetLines - 1)}`)}\n` : ""}${snippet}\n${marker}`
+  } catch {
+    // ignore
+  }
+
+  return undefined
+}
+
+export function addYamlContext({ source, message }: { source: ConfigSource; message: string }): string {
+  const yamlContext = getYamlContext(source)
+  if (!yamlContext) {
     return message
   }
 
-  // Get one line before the error location start, and the line including the error location end
-  const toStart = rawYaml.slice(0, range[0])
-  const lineNumber = toStart.split("\n").length + 1
-  let snippetLines = 1
-
-  const errorLineStart = toStart.lastIndexOf("\n") + 1
-
-  let snippetStart = errorLineStart
-  if (snippetStart > 0) {
-    snippetStart = rawYaml.slice(0, snippetStart - 1).lastIndexOf("\n") + 1
-  }
-  if (snippetStart === 0) {
-    snippetStart = errorLineStart
-  } else {
-    snippetLines++
-  }
-
-  const snippetEnd = rawYaml.indexOf("\n", range[1] - 1) || rawYaml.length
-
-  const linePrefixLength = lineNumber.toString().length + 2
-  let snippet = rawYaml
-    .slice(snippetStart, snippetEnd)
-    .trimEnd()
-    .split("\n")
-    .map(
-      (l, i) =>
-        styles.primary(padEnd("" + (lineNumber - snippetLines + i), linePrefixLength) + "| ") + styles.highlight(l)
-    )
-    .join("\n")
-
-  if (snippetStart > 0) {
-    snippet = styles.primary("...\n") + snippet
-  }
-
-  const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
-  const marker = styles.error("-".repeat(errorLineOffset)) + styles.error.bold("^")
-
-  return `${yamlDoc.filename ? `${styles.secondary(`${yamlDoc.filename}:${lineNumber - (snippetLines - 1)}`)}\n` : ""}${snippet}\n${marker}\n${styles.error.bold(message)}`
+  return `${yamlContext}\n${styles.error.bold(message)}`
 }

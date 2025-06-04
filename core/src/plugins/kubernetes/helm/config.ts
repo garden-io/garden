@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,12 +20,12 @@ import type { KubernetesDeploySyncSpec } from "../sync.js"
 import { kubernetesDeploySyncSchema } from "../sync.js"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy.js"
 import { dedent, deline } from "../../../util/string.js"
-import type { KubernetesLocalModeSpec } from "../local-mode.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
 import type { RunAction, RunActionConfig } from "../../../actions/run.js"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
 import type { ObjectSchema } from "@hapi/joi"
 import type { KubernetesRunOutputs } from "../kubernetes-type/config.js"
+import type { ActionKind } from "../../../plugin/action-types.js"
 
 // DEPLOY //
 
@@ -46,7 +46,6 @@ interface HelmDeployActionSpec {
   chart?: HelmChartSpec
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
-  localMode?: KubernetesLocalModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string
@@ -216,7 +215,7 @@ export interface HelmPodRunActionSpec extends KubernetesCommonRunSpec {
 // Maintaining this cache to avoid errors when `kubernetesRunPodSchema` is called more than once with the same `kind`.
 const runSchemas: { [name: string]: ObjectSchema } = {}
 
-export const helmPodRunSchema = (kind: string) => {
+export const helmPodRunSchema = (kind: ActionKind) => {
   const name = `${kind}:helm-pod`
   if (runSchemas[name]) {
     return runSchemas[name]
@@ -224,14 +223,14 @@ export const helmPodRunSchema = (kind: string) => {
   const schema = createSchema({
     name: `${kind}:helm-pod`,
     keys: () => ({
-      ...kubernetesCommonRunSchemaKeys(),
+      ...kubernetesCommonRunSchemaKeys(kind),
       releaseName: helmReleaseNameSchema().description(
         `Optionally override the release name used when rendering the templates (defaults to the ${kind} name).`
       ),
       chart: helmChartSpecSchema(),
       values: helmValuesSchema(),
       valueFiles: helmValueFilesSchema(),
-      resource: runPodResourceSchema("Run"),
+      resource: runPodResourceSchema(kind),
       timeout: joi
         .number()
         .integer()

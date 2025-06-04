@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,7 +18,6 @@ import { kubectl, kubectlSpec } from "./kubectl.js"
 import type { KubernetesConfig, KubernetesPluginContext } from "./config.js"
 import { configSchema } from "./config.js"
 import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry.js"
-import { clusterInit } from "./commands/cluster-init.js"
 import { pullImage } from "./commands/pull-image.js"
 import { uninstallGardenServices } from "./commands/uninstall-garden-services.js"
 import { joi, joiIdentifier } from "../../config/common.js"
@@ -27,11 +26,9 @@ import { dedent } from "../../util/string.js"
 import { kubernetesModuleSpecSchema } from "./kubernetes-type/module-config.js"
 import { helmModuleOutputsSchema, helmModuleSpecSchema } from "./helm/module-config.js"
 import { defaultIngressClass } from "./constants.js"
-import { persistentvolumeclaimDeployDefinition, pvcModuleDefinition } from "./volumes/persistentvolumeclaim.js"
 import { helmSpec } from "./helm/helm-cli.js"
 import { isString } from "lodash-es"
 import { mutagenCliSpec } from "../../mutagen.js"
-import { configmapDeployDefinition, configMapModuleDefinition } from "./volumes/configmap.js"
 import {
   k8sContainerBuildExtension,
   k8sContainerDeployExtension,
@@ -48,6 +45,7 @@ import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kuber
 import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec.js"
 import { makeDocsLinkPlain, makeDocsLinkStyled } from "../../docs/common.js"
 import { cleanupUtilDeployment } from "./commands/cleanup-garden-util.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 5
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 20
@@ -59,6 +57,10 @@ export async function configureProvider({
   config,
   log,
 }: ConfigureProviderParams<KubernetesConfig>) {
+  if ("sync" in config.resources) {
+    reportDeprecatedFeatureUsage({ deprecation: "kubernetesProviderSyncResourceLimit", log })
+  }
+
   // Convert string shorthand to canonical format
   if (isString(config.namespace)) {
     config.namespace = { name: config.namespace }
@@ -136,14 +138,11 @@ export const gardenPlugin = () => {
     name: "kubernetes",
     dependencies: [{ name: "container" }, { name: "jib", optional: true }],
     docs: dedent`
-    The \`kubernetes\` provider allows you to deploy [\`container\` actions](${makeDocsLinkPlain(
-      "k8s-plugins/actions/deploy/container"
-    )}) to
-    Kubernetes clusters, and adds the [\`helm\`](${makeDocsLinkPlain`k8s-plugins/actions/deploy/helm`}) and
-    [\`kubernetes\`](${makeDocsLinkPlain("k8s-plugins/actions/deploy/kubernetes")}) action types.
+    The \`kubernetes\` provider adds the [\`helm\`](${makeDocsLinkPlain`garden-for/kubernetes/install-helm-chart`}) and
+    [\`kubernetes\`](${makeDocsLinkPlain("garden-for/kubernetes/deploy-k8s-resource")}) action types.
 
     For usage information, please refer to the [guides section](../../guides). A good place to start is
-    the [Remote Kubernetes guide](${makeDocsLinkPlain`k8s-plugins/remote-k8s/README`}) guide if you're connecting to remote clusters.
+    the [Remote Kubernetes guide](${makeDocsLinkPlain`garden-for/kubernetes/remote-kubernetes`}) guide if you're connecting to remote clusters.
     The [Quickstart guide](${makeDocsLinkPlain`getting-started/quickstart`}) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
@@ -156,7 +155,6 @@ export const gardenPlugin = () => {
     commands: [
       cleanupClusterRegistry,
       cleanupUtilDeployment,
-      clusterInit,
       uninstallGardenServices,
       pullImage,
       syncStatus,
@@ -172,12 +170,7 @@ export const gardenPlugin = () => {
     },
 
     createActionTypes: {
-      Deploy: [
-        kubernetesDeployDefinition(),
-        helmDeployDefinition(),
-        configmapDeployDefinition(),
-        persistentvolumeclaimDeployDefinition(),
-      ],
+      Deploy: [kubernetesDeployDefinition(), helmDeployDefinition()],
       Run: [kubernetesExecRunDefinition(), kubernetesPodRunDefinition(), helmPodRunDefinition()],
       Test: [kubernetesExecTestDefinition(), kubernetesPodTestDefinition(), helmPodTestDefinition()],
     },
@@ -206,8 +199,6 @@ export const gardenPlugin = () => {
         handlers: kubernetesHandlers,
         needsBuild: false,
       },
-      pvcModuleDefinition(),
-      configMapModuleDefinition(),
     ],
 
     extendModuleTypes: [

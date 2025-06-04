@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -33,6 +33,8 @@ export const OUTPUT_RENDERERS = {
     return safeDumpYaml(JSON.parse(stringify(data)), { noRefs: true })
   },
 }
+
+export type OutputRenderer = keyof typeof OUTPUT_RENDERERS
 
 export const validDurationUnits = ["d", "h", "m", "s"]
 
@@ -111,9 +113,10 @@ export abstract class Parameter<T> {
     this._getSuggestions = getSuggestions
   }
 
-  // TODO: merge this and the parseString method?
   validate(input: T): T | undefined {
-    // TODO: make sure the error message thrown is nice and readable
+    // TODO: make sure the error is thrown,
+    //  its thrown is nice and readable,
+    //  and the output type is correct
     this.schema.validate(input)
     return input
   }
@@ -373,6 +376,11 @@ export const globalDisplayOptions = {
     defaultValue: false,
     cliOnly: true,
   }),
+  "offline": new BooleanParameter({
+    help: "Use the --offline option when you can't log in right now. Some features won't be available in offline mode.",
+    defaultValue: false,
+    cliOnly: true,
+  }),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
     help: deline`
@@ -399,7 +407,7 @@ export const globalDisplayOptions = {
   "output": new ChoicesParameter({
     aliases: ["o"],
     choices: Object.keys(OUTPUT_RENDERERS),
-    help: "Output command result in specified format (note: disables progress logging and interactive functionality).",
+    help: "Output command result in the specified format. When used, this option disables line-by-line logging, even if the GARDEN_LOGGER_TYPE environment variable is used.",
   }),
   "emoji": new BooleanParameter({
     help: "Enable emoji in output (defaults to true if the environment supports it).",

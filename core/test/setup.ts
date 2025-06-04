@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,12 +10,13 @@ import sinon from "sinon"
 import * as td from "testdouble"
 import timekeeper from "timekeeper"
 import { getDefaultProfiler } from "../src/util/profiling.js"
-import { gardenEnv } from "../src/constants.js"
+import { GardenApiVersion, gardenEnv } from "../src/constants.js"
 import { testFlags } from "../src/util/util.js"
 import { initTestLogger, testProjectTempDirs } from "./helpers.js"
 import mocha from "mocha"
 import sourceMapSupport from "source-map-support"
 import { UnresolvedTemplateValue } from "../src/template/types.js"
+import { setGloablProjectApiVersion } from "../src/project-api-version.js"
 
 sourceMapSupport.install()
 
@@ -62,7 +63,10 @@ export const mochaHooks = {
     clearInterval(mainBlockCheckup)
   },
 
-  beforeEach() {},
+  beforeEach() {
+    // Init globally stored project-level apiVersion, assuming garden.io/v2 for 0.14.
+    setGloablProjectApiVersion(GardenApiVersion.v2)
+  },
 
   afterEach() {
     sinon.restore()

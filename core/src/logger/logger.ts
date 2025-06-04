@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,6 +22,7 @@ import { QuietWriter } from "./writers/quiet-writer.js"
 import type { PluginEventBroker } from "../plugin-context.js"
 import { EventLogWriter } from "./writers/event-writer.js"
 import { naturalList } from "../util/string.js"
+import type { OutputRenderer } from "../cli/params.js"
 
 export type LoggerType = "quiet" | "default" | "basic" | "json" | "ink"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "default", "basic", "json", "ink"])
@@ -145,7 +146,7 @@ export interface Logger extends Required<LoggerConfigBase> {
   getWriters(): LoggerWriters
 }
 
-interface LoggerInitParams extends LoggerConfigBase {
+export interface LoggerInitParams extends LoggerConfigBase {
   /**
    * The type of display writer to use. This is configurable by the user
    * and exposed as a "logger type" which is a bit more user friendly.
@@ -153,6 +154,15 @@ interface LoggerInitParams extends LoggerConfigBase {
    * The logger also has a set of file writers that are set internally.
    */
   displayWriterType: LoggerType
+  /**
+   * The output renderer to use. This is intended to produce machine-readable/parse-able output (e.g. JSON or YAML) for
+   * the Garden command. When a this option is used, this essentially suppresses all line-by-line log output, except
+   * for the serialized command result at the end of the command.
+   *
+   * This is because non JSON/YAML log lines would make the command's output not a valid JSON/YAML string, and thus
+   * break any parsing logic that expects the output of the Garden to be aalid JSON/YAML.
+   */
+  outputRenderer?: OutputRenderer
   force?: boolean
 }
 
@@ -355,41 +365,15 @@ export class RootLogger extends LoggerBase {
       return RootLogger.instance
     }
 
-    // The GARDEN_LOG_LEVEL env variable takes precedence over the config param
-    if (gardenEnv.GARDEN_LOG_LEVEL) {
-      try {
-        config.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
-      } catch (err) {
-        if (!(err instanceof ParameterError)) {
-          throw err
-        }
-        throw new CommandError({ message: `Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}` })
-      }
-    }
+    const updatedConfig = RootLogger.applyEnvToLoggerConfig(config)
 
-    // GARDEN_LOGGER_TYPE env variable takes precedence over the config param
-    if (gardenEnv.GARDEN_LOGGER_TYPE) {
-      const loggerTypeFromEnv = <LoggerType>gardenEnv.GARDEN_LOGGER_TYPE
-
-      if (!LOGGER_TYPES.has(loggerTypeFromEnv)) {
-        throw new ParameterError({
-          message: `Invalid logger type specified: ${loggerTypeFromEnv}. Available types: ${naturalList(
-            Array.from(LOGGER_TYPES)
-          )}`,
-        })
-      }
-
-      config.displayWriterType = loggerTypeFromEnv
-    }
-
-    const terminalWriter = getTerminalWriterInstance(config.displayWriterType, config.level)
+    const terminalWriter = getTerminalWriterInstance(updatedConfig.displayWriterType, updatedConfig.level)
     const writers = {
       display: terminalWriter,
       file: [],
     }
 
-    const instance = new RootLogger({ ...config, storeEntries: config.storeEntries, writers })
-
+    const instance = new RootLogger({ ...updatedConfig, storeEntries: updatedConfig.storeEntries, writers })
     const initLog = instance.createLog()
 
     if (gardenEnv.GARDEN_LOG_LEVEL) {
@@ -401,6 +385,38 @@ export class RootLogger extends LoggerBase {
 
     RootLogger.instance = instance
     return instance
+  }
+
+  static applyEnvToLoggerConfig(config: LoggerInitParams) {
+    // Make a shallow copy instead of mutating the param.
+    const updated = { ...config }
+    // The GARDEN_LOG_LEVEL env variable takes precedence over the config param
+    if (gardenEnv.GARDEN_LOG_LEVEL) {
+      try {
+        updated.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
+      } catch (err) {
+        if (!(err instanceof ParameterError)) {
+          throw err
+        }
+        throw new CommandError({ message: `Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}` })
+      }
+    }
+
+    // GARDEN_LOGGER_TYPE env variable takes precedence over the updated param, unless the `--output` option is used.
+    if (gardenEnv.GARDEN_LOGGER_TYPE && !updated.outputRenderer) {
+      const loggerTypeFromEnv = <LoggerType>gardenEnv.GARDEN_LOGGER_TYPE
+
+      if (!LOGGER_TYPES.has(loggerTypeFromEnv)) {
+        throw new ParameterError({
+          message: `Invalid logger type specified: ${loggerTypeFromEnv}. Available types: ${naturalList(
+            Array.from(LOGGER_TYPES)
+          )}`,
+        })
+      }
+
+      updated.displayWriterType = loggerTypeFromEnv
+    }
+    return updated
   }
 
   /**

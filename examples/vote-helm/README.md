@@ -13,7 +13,7 @@ Furthermore, to showcase the chart re-use feature, the `api` and `result` module
 as a base.
 
 For more details on how to use Helm charts, please refer to our
-[Helm user guide](../../docs/k8s-plugins/actions/deploy/helm.md).
+[Helm user guide](../../docs/garden-for/kubernetes/install-helm-chart.md).
 
 The usage and workflow is the same as in the [vote project](../vote/README.md), please refer to that for usage
 instructions. Only difference being the base hostname (defined in project's [garden.yml file](garden.yml)).

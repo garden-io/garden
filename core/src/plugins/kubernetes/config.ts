@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -42,8 +42,7 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultUtilImageRegistryDomain, defaultSystemNamespace } from "./constants.js"
 import type { LocalKubernetesClusterType } from "./local/config.js"
-import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
-import { makeDeprecationMessage } from "../../util/deprecations.js"
+import type { ActionKind } from "../../plugin/action-types.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -83,7 +82,6 @@ export interface KubernetesResourceSpec {
 
 interface KubernetesResources {
   builder: KubernetesResourceSpec
-  sync: KubernetesResourceSpec
   util: KubernetesResourceSpec
 }
 
@@ -99,19 +97,6 @@ interface KubernetesStorage {
 const containerBuildModes = ["local-docker", "kaniko", "cluster-buildkit"] as const
 export type ContainerBuildMode = (typeof containerBuildModes)[number]
 
-/**
- * TODO(0.14): remove this
- * To be removed in 0.14
- * @deprecated since 0.13
- */
-export type DefaultDeploymentStrategy = "rolling"
-/**
- * TODO(0.14): remove this
- * To be removed in 0.14
- * @deprecated since 0.13
- */
-export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
-
 export interface NamespaceConfig {
   name: string
   annotations?: StringMap
@@ -126,7 +111,7 @@ export interface ClusterBuildkitCacheConfig {
   registry?: ContainerRegistryConfig
 }
 
-export type KubernetesClusterType = LocalKubernetesClusterType | EphemeralKubernetesClusterType
+export type KubernetesClusterType = LocalKubernetesClusterType
 
 export interface KubernetesConfig extends BaseProviderConfig {
   utilImageRegistryDomain: string
@@ -159,12 +144,6 @@ export interface KubernetesConfig extends BaseProviderConfig {
   context: string
   defaultHostname?: string
   deploymentRegistry?: ContainerRegistryConfig
-  /**
-   * TODO(0.14): remove this
-   * Deprecated. Has no effect since 0.13. To be removed in 0.14.
-   * @deprecated since 0.13
-   */
-  deploymentStrategy?: DeploymentStrategy
   sync?: {
     defaults?: SyncDefaults
   }
@@ -201,16 +180,6 @@ export const defaultResources: KubernetesResources = {
       memory: 512,
     },
   },
-  sync: {
-    limits: {
-      cpu: 500,
-      memory: 512,
-    },
-    requests: {
-      cpu: 100,
-      memory: 90,
-    },
-  },
   util: {
     limits: {
       cpu: 256,
@@ -230,7 +199,7 @@ export const defaultStorage: KubernetesStorage = {
   },
 }
 
-const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =>
+const resourceSchema = (defaults: KubernetesResourceSpec) =>
   joi
     .object()
     .keys({
@@ -242,25 +211,21 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .integer()
             .default(defaults.limits.cpu)
             .description("CPU limit in millicpu.")
-            .example(defaults.limits.cpu)
-            .meta({ deprecated }),
+            .example(defaults.limits.cpu),
           memory: joi
             .number()
             .integer()
             .default(defaults.limits.memory)
             .description("Memory limit in megabytes.")
-            .example(defaults.limits.memory)
-            .meta({ deprecated }),
+            .example(defaults.limits.memory),
           ephemeralStorage: joi
             .number()
             .integer()
             .optional()
             .description("Ephemeral storage limit in megabytes.")
-            .example(8192)
-            .meta({ deprecated }),
+            .example(8192),
         })
-        .default(defaults.limits)
-        .meta({ deprecated }),
+        .default(defaults.limits),
       requests: joi
         .object()
         .keys({
@@ -269,25 +234,21 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .integer()
             .default(defaults.requests.cpu)
             .description("CPU request in millicpu.")
-            .example(defaults.requests.cpu)
-            .meta({ deprecated }),
+            .example(defaults.requests.cpu),
           memory: joi
             .number()
             .integer()
             .default(defaults.requests.memory)
             .description("Memory request in megabytes.")
-            .example(defaults.requests.memory)
-            .meta({ deprecated }),
+            .example(defaults.requests.memory),
           ephemeralStorage: joi
             .number()
             .integer()
             .optional()
             .description("Ephemeral storage request in megabytes.")
-            .example(8192)
-            .meta({ deprecated }),
+            .example(8192),
         })
-        .default(defaults.requests)
-        .meta({ deprecated }),
+        .default(defaults.requests),
     })
     .default(defaults)
 
@@ -615,19 +576,6 @@ export const kubernetesConfigBase = () =>
         .string()
         .description("A default hostname to use when no hostname is explicitly configured for a service.")
         .example("api.mydomain.com"),
-      deploymentStrategy: joi
-        .string()
-        .default("rolling")
-        .allow("rolling", "blue-green")
-        .description(
-          dedent`
-          Sets the deployment strategy for \`container\` deploy actions.
-        `
-        )
-        .meta({
-          experimental: true,
-          deprecated: makeDeprecationMessage({ deprecation: "containerDeploymentStrategy" }),
-        }),
       sync: joi
         .object()
         .keys({
@@ -903,15 +851,15 @@ export const portForwardsSchema = () =>
 
 export const runPodSpecWhitelistDescription = () => runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
-export const runCacheResultSchema = () =>
+export const runCacheResultSchema = (kind: ActionKind) =>
   cacheResultSchema().description(
     dedent`
-Set to false if you don't want the Runs's result to be cached. Use this if the Run needs to be run any time your project (or one or more of the Run's dependants) is deployed. Otherwise the Run is only re-run when its version changes, or when you run \`garden run\`.
+Set to false if you don't want the ${kind} action result to be cached. Use this if the ${kind} action needs to be run any time your project (or one or more of the ${kind} action's dependants) is deployed. Otherwise the ${kind} action is only re-run when its version changes, or when you run \`garden run\`.
 `
   )
 
-export const kubernetesCommonRunSchemaKeys = () => ({
-  cacheResult: runCacheResultSchema(),
+export const kubernetesCommonRunSchemaKeys = (kind: ActionKind) => ({
+  cacheResult: runCacheResultSchema(kind),
   command: joi
     .sparseArray()
     .items(joi.string().allow(""))
@@ -972,7 +920,7 @@ export const kubernetesTaskSchema = () =>
         **Warning**: Garden will retain \`configMaps\` and \`secrets\` as volumes, but remove \`persistentVolumeClaim\` volumes from the Pod spec, as they might already be mounted.
         ${runPodSpecWhitelistDescription()}`
       ),
-      ...kubernetesCommonRunSchemaKeys(),
+      ...kubernetesCommonRunSchemaKeys("Run"),
     })
     .description("The task definitions for this module.")
 
@@ -1015,30 +963,23 @@ export const resourcesSchema = () =>
   joi
     .object()
     .keys({
-      builder: resourceSchema(defaultResources.builder, false).description(dedent`
+      builder: resourceSchema(defaultResources.builder).description(dedent`
             Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're using when configuring this.
 
             When \`buildMode\` is \`kaniko\`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
 
             When \`buildMode\` is \`cluster-buildkit\`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
           `),
-      util: resourceSchema(defaultResources.util, false).description(dedent`
+      util: resourceSchema(defaultResources.util).description(dedent`
             Resource requests and limits for the util pod for in-cluster builders.
             This pod is used to get, start, stop and inquire the status of the builds.
 
             This pod is created in each garden namespace.
           `),
-      sync: resourceSchema(defaultResources.sync, true)
-        .description(
-          dedent`
-            Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
-            ahead of building images. This generally is not resource intensive, but you might want to adjust the
-            defaults if you have many concurrent users.
-          `
-        )
-        .meta({
-          deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
-        }),
+      // TODO(0.15): remove this
+      // This config has no effect.
+      // It was used only by `cluster-docker` build mode which was removed in 0.13.
+      sync: joi.any().meta({ internal: true }),
     })
     .default(defaultResources).description(deline`
         Resource requests and limits for the in-cluster builder..

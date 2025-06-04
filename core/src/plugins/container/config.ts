@@ -1,28 +1,27 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Primitive, PrimitiveMap, ActionReference } from "../../config/common.js"
+import type { Primitive, PrimitiveMap } from "../../config/common.js"
 import {
   artifactsTargetDescription,
+  createSchema,
   envVarRegex,
   joi,
   joiPrimitive,
   joiSparseArray,
   joiStringMap,
   joiUserIdentifier,
-  createSchema,
 } from "../../config/common.js"
 import type { ArtifactSpec } from "../../config/validation.js"
 import { ingressHostnameSchema, linkUrlSchema } from "../../types/service.js"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants.js"
 import { dedent, deline } from "../../util/string.js"
 import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config.js"
-import { localModeGuideLink } from "../kubernetes/local-mode.js"
 import type { BuildAction, BuildActionConfig } from "../../actions/build.js"
 import type { DeployAction, DeployActionConfig } from "../../actions/deploy.js"
 import type { TestAction, TestActionConfig } from "../../actions/test.js"
@@ -33,10 +32,11 @@ import type { OctalPermissionMask } from "../kubernetes/types.js"
 import { templateStringLiteral } from "../../docs/common.js"
 import { syncGuideLink } from "../kubernetes/constants.js"
 import { makeSecret, type Secret } from "../../util/secrets.js"
+import type { ActionKind } from "../../plugin/action-types.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
-export const defaultContainerLimits: ServiceLimitSpec = {
+export const defaultContainerLimits: LegacyServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
   memory: 1024, // = 1024MB = 1GB
 }
@@ -73,14 +73,10 @@ export interface ServicePortSpec {
   nodePort?: number | true
 }
 
-export interface ContainerVolumeSpecBase {
+export interface ContainerVolumeSpec {
   name: string
   containerPath: string
   hostPath?: string
-}
-
-export interface ContainerVolumeSpec extends ContainerVolumeSpecBase {
-  action?: ActionReference<"Deploy">
 }
 
 export interface ServiceHealthCheckSpec {
@@ -96,11 +92,12 @@ export interface ServiceHealthCheckSpec {
 }
 
 /**
- * DEPRECATED: Use {@link ContainerResourcesSpec} instead.
+ * TODO(0.15): remove this
+ * @deprecated use {@link ContainerResourcesSpec} instead.
  */
-export interface ServiceLimitSpec {
-  cpu: number
-  memory: number
+export interface LegacyServiceLimitSpec {
+  cpu: number | undefined
+  memory: number | undefined
 }
 
 export interface ContainerResourcesSpec {
@@ -320,103 +317,34 @@ export const containerSyncPathSchema = createSchema({
   rename: [["sync", "paths"]],
 })
 
-const defaultLocalModeRestartDelayMsec = 1000
-const defaultLocalModeMaxRestarts = Number.POSITIVE_INFINITY
-
-export interface LocalModeRestartSpec {
-  delayMsec: number
-  max: number
-}
-
 export const localModeRestartSchema = createSchema({
   name: "local-mode-restart",
-  description: `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`,
   keys: () => ({
-    delayMsec: joi
-      .number()
-      .integer()
-      .greater(-1)
-      .optional()
-      .default(defaultLocalModeRestartDelayMsec)
-      .description(
-        `Delay in milliseconds between the local application restart attempts. The default value is ${defaultLocalModeRestartDelayMsec}ms.`
-      ),
-    max: joi
-      .number()
-      .integer()
-      .greater(-1)
-      .optional()
-      .default(defaultLocalModeMaxRestarts)
-      .allow(defaultLocalModeMaxRestarts)
-      .description("Max number of the local application restarts. Unlimited by default."),
+    delayMsec: joi.number().integer().optional(),
+    max: joi.number().integer().optional(),
   }),
   options: { presence: "optional" },
-  default: {
-    delayMsec: defaultLocalModeRestartDelayMsec,
-    max: defaultLocalModeMaxRestarts,
-  },
+  meta: { internal: true },
 })
-
-export interface LocalModePortsSpec {
-  local: number
-  remote: number
-}
 
 export const localModePortsSchema = createSchema({
   name: "local-mode-port",
   keys: () => ({
-    local: joi
-      .number()
-      .integer()
-      .greater(0)
-      .optional()
-      .description("The local port to be used for reverse port-forward."),
-    remote: joi
-      .number()
-      .integer()
-      .greater(0)
-      .optional()
-      .description("The remote port to be used for reverse port-forward."),
+    local: joi.number().integer().optional(),
+    remote: joi.number().integer().optional(),
   }),
+  meta: { internal: true },
 })
-
-export interface ContainerLocalModeSpec {
-  ports: LocalModePortsSpec[]
-  command?: string[]
-  restart: LocalModeRestartSpec
-}
 
 export const containerLocalModeSchema = createSchema({
   name: "container-local-mode",
-  description: dedent`
-    [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
-
-    The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
-    Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
-
-    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` command.
-    Local mode always takes the precedence over sync mode if there are any conflicting service names.
-
-    Health checks are disabled for services running in local mode.
-
-    See the [Local Mode guide](${localModeGuideLink}) for more information.
-
-    Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
-  `,
+  description: `This feature has been deleted.`,
   keys: () => ({
-    ports: joi
-      .array()
-      .items(localModePortsSchema())
-      .description("The reverse port-forwards configuration for the local application."),
-    command: joi
-      .sparseArray()
-      .optional()
-      .items(joi.string())
-      .description(
-        "The command to run the local application. If not present, then the local application should be started manually."
-      ),
+    ports: joi.array().optional().items(localModePortsSchema()),
+    command: joi.sparseArray().optional().items(joi.string()),
     restart: localModeRestartSchema(),
   }),
+  meta: { internal: true },
 })
 
 const annotationsSchema = memoize(() =>
@@ -531,14 +459,14 @@ const limitsSchema = createSchema({
     cpu: joi
       .number()
       .min(10)
-      .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)")
-      .meta({ deprecated: true }),
+      .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)"),
     memory: joi
       .number()
       .min(64)
-      .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)")
-      .meta({ deprecated: true }),
+      .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)"),
   }),
+  description: "Specify resource limits for the service.",
+  meta: { deprecation: "containerDeployActionLimits" },
 })
 
 export const containerCpuSchema = () =>
@@ -611,7 +539,10 @@ export const portSchema = createSchema({
         The service port maps to the container port:
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
-    hostPort: joi.number().meta({ deprecated: true }),
+    hostPort: joi
+      .number()
+      .description("Number of port to expose on the pod's IP address.")
+      .meta({ deprecation: "containerDeployActionHostPort" }),
     nodePort: joi.number().allow(true).description(deline`
         Set this to expose the service on the specified port on the host node (may not be supported by all providers).
         Set to \`true\` to have the cluster pick a port automatically, which is most often advisable if the cluster is
@@ -642,26 +573,6 @@ export const volumeSchemaBase = createSchema({
       )
       .example("/some/dir"),
   }),
-})
-
-const volumeSchema = createSchema({
-  name: "container-volume",
-  extend: volumeSchemaBase,
-  keys: () => ({
-    // TODO-0.13.0: remove when kubernetes-container type is ready, better to swap out with raw k8s references
-    action: joi
-      .actionReference()
-      .kind("Deploy")
-      .name("base-volume")
-      .description(
-        dedent`
-        The action reference to a _volume Deploy action_ that should be mounted at \`containerPath\`. The supported action types are \`persistentvolumeclaim\` and \`configmap\`.
-
-        Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-        `
-      ),
-  }),
-  oxor: [["hostPath", "action"]],
 })
 
 export function getContainerVolumesSchema(schema: Joi.ObjectSchema) {
@@ -699,7 +610,11 @@ interface ContainerCommonRuntimeSpec {
   command?: string[]
   env: PrimitiveMap
 
-  limits?: ServiceLimitSpec
+  /**
+   * TODO(0.15) remove this
+   * @deprecated use {@link #cpu} and {@link #memory} instead
+   */
+  limits?: LegacyServiceLimitSpec
   cpu: ContainerResourcesSpec["cpu"]
   memory: ContainerResourcesSpec["memory"]
 
@@ -713,7 +628,6 @@ export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
   annotations: Annotations
   daemon: boolean
   sync?: ContainerSyncSpec
-  localMode?: ContainerLocalModeSpec
   ingresses: ContainerIngressSpec[]
   healthCheck?: ServiceHealthCheckSpec
   timeout?: number
@@ -757,7 +671,7 @@ const containerCommonRuntimeSchemaKeys = memoize(() => ({
   env: containerEnvVarsSchema(),
   cpu: containerCpuSchema().default(defaultContainerResources.cpu),
   memory: containerMemorySchema().default(defaultContainerResources.memory),
-  volumes: getContainerVolumesSchema(volumeSchema()),
+  volumes: getContainerVolumesSchema(volumeSchemaBase()),
   privileged: containerPrivilegedSchema(),
   addCapabilities: containerAddCapabilitiesSchema(),
   dropCapabilities: containerDropCapabilitiesSchema(),
@@ -775,8 +689,8 @@ const containerCommonRuntimeSchemaKeys = memoize(() => ({
 }))
 
 const containerImageSchema = memoize(() =>
-  joi.string().allow(false, null).empty([false, null]).description(deline`
-    Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no \`build\` is specified.
+  joi.string().required().description(deline`
+    Specify an image ID to deploy. Should be a valid Docker image identifier. Required.
   `)
 )
 
@@ -800,13 +714,14 @@ export const containerDeploySchemaKeys = memoize(() => ({
     .description("List of ingress endpoints that the service exposes.")
     .example([{ path: "/api", port: "http" }]),
   healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
-  // TODO: remove in 0.14, keeping around to avoid config failures
+  // TODO(0.15): remove this
   hotReload: joi.any().meta({ internal: true }),
   timeout: k8sDeploymentTimeoutSchema(),
-  limits: limitsSchema()
-    .description("Specify resource limits for the service.")
-    .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }),
-  ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
+  limits: limitsSchema(),
+  ports: joiSparseArray(portSchema())
+    .unique("name")
+    .default([])
+    .description("List of ports that the service container exposes."),
   replicas: joi.number().integer().description(deline`
     The number of instances of the service to deploy.
     Defaults to 3 for environments configured with \`production: true\`, otherwise 1.
@@ -841,6 +756,7 @@ export const containerRegistryConfigSchema = createSchema({
     namespace: joi
       .string()
       .optional()
+      .empty(["", null])
       .description(
         "The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>"
       )
@@ -915,15 +831,21 @@ export interface ContainerTestActionSpec extends ContainerCommonRuntimeSpec {
   artifacts: ArtifactSpec[]
   image?: string
   volumes: ContainerVolumeSpec[]
+  cacheResult: boolean
 }
 
 export type ContainerTestActionConfig = TestActionConfig<"container", ContainerTestActionSpec>
 export type ContainerTestAction = TestAction<ContainerTestActionConfig, ContainerTestOutputs>
 
-export const containerTestSpecKeys = memoize(() => ({
+export const containerRunAndTestSpecKeys = memoize((kind: ActionKind) => ({
   ...containerCommonRuntimeSchemaKeys(),
   artifacts: artifactsSchema(),
   image: containerImageSchema(),
+  cacheResult: runCacheResultSchema(kind),
+}))
+
+export const containerTestSpecKeys = memoize(() => ({
+  ...containerRunAndTestSpecKeys("Test"),
 }))
 
 export const containerTestActionSchema = createSchema({
@@ -937,16 +859,13 @@ export type ContainerRunOutputs = ContainerTestOutputs
 
 export const containerRunOutputSchema = () => containerTestOutputSchema()
 
-export interface ContainerRunActionSpec extends ContainerTestActionSpec {
-  cacheResult: boolean
-}
+export type ContainerRunActionSpec = ContainerTestActionSpec
 
 export type ContainerRunActionConfig = RunActionConfig<"container", ContainerRunActionSpec>
 export type ContainerRunAction = RunAction<ContainerRunActionConfig, ContainerRunOutputs>
 
 export const containerRunSpecKeys = memoize(() => ({
-  ...containerTestSpecKeys(),
-  cacheResult: runCacheResultSchema(),
+  ...containerRunAndTestSpecKeys("Run"),
 }))
 
 export const containerRunActionSchema = createSchema({

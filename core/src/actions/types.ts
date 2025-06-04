@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,6 +27,8 @@ import type { VariablesContext } from "../config/template-contexts/variables.js"
 // TODO: split this file
 
 export type { ActionKind } from "../plugin/action-types.js"
+
+export type { ActionVersion } from "../vcs/vcs.js"
 
 export const actionKinds: ActionKind[] = ["Build", "Deploy", "Run", "Test"]
 export const actionKindsLower = actionKinds.map((k) => k.toLowerCase())
@@ -139,12 +141,10 @@ export type ActionDependency = ActionReference & ActionDependencyAttributes & { 
 
 export interface ActionModes {
   sync?: boolean
-  local?: boolean
 }
 
 export const ALL_ACTION_MODES_SUPPORTED: ActionModes = {
   sync: true,
-  local: true,
 }
 
 export type ActionMode = keyof ActionModes | "default"

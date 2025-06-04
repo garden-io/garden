@@ -5,7 +5,7 @@ title: Workflow Configuration
 
 # Workflow Configuration Reference
 
-Below is the schema reference for [Workflow](../using-garden/workflows.md) configuration files. For an introduction to configuring a Garden project, please look at our [configuration guide](../using-garden/configuration-overview.md).
+Below is the schema reference for [Workflow](../features/workflows.md) configuration files.
 
 The reference is divided into two sections:
 * [YAML Schema](#yaml-schema) contains the config YAML schema
@@ -68,6 +68,7 @@ resources:
     # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
     memory:
 
+limits:
   # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
   cpu:
 
@@ -125,7 +126,8 @@ steps:
     #
     # `never`: This step will always be ignored.
     #
-    # See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+    # See the [workflows guide](https://docs.garden.io/cedar-0.14/features/workflows#the-skip-and-when-options) for
+    # details
     # and examples.
     when: onSuccess
 
@@ -338,7 +340,7 @@ The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 
 ### `limits`
 
 {% hint style="warning" %}
-**Deprecated**: Please use the `resources.limits` field instead.
+**Deprecated**: Please use the `resources.limits` configuration field instead.
 {% endhint %}
 
 | Type     | Required |
@@ -349,6 +351,10 @@ The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 
 
 [limits](#limits) > cpu
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
 
 | Type     | Required |
@@ -358,6 +364,10 @@ The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 
 ### `limits.memory`
 
 [limits](#limits) > memory
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
 
@@ -480,7 +490,7 @@ If the next step has `when: onError`, it will also be run. Otherwise, all subseq
 
 `never`: This step will always be ignored.
 
-See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+See the [workflows guide](https://docs.garden.io/cedar-0.14/features/workflows#the-skip-and-when-options) for details
 and examples.
 
 | Type     | Default       | Required |

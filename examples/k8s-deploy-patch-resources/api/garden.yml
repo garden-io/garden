@@ -17,7 +17,7 @@ dependencies:
   - run.db-init
 
 spec:
-  files:
+  manifestTemplates:
     - manifests/api.yaml
 
   # Default target for syncs and exec commands

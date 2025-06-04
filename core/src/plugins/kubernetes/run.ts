@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -38,7 +38,6 @@ import fsExtra from "fs-extra"
 const { copy } = fsExtra
 import type { PodLogEntryConverter, PodLogEntryConverterParams } from "./logs.js"
 import { K8sLogFollower } from "./logs.js"
-import { Stream } from "ts-stream"
 import type { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@kubernetes/client-node"
 import type { RunResult } from "../../plugin/base.js"
 import { LogLevel } from "../../logger/logger.js"
@@ -316,8 +315,7 @@ export async function prepareRunPodSpec({
     imagePullSecrets,
   }
 
-  // This logic is only relevant for `container` Runs and Tests, which need to support mounting `persistentvolumeclaim`
-  // and `configmap` actions (which are only supported for `container` actions, and are currently discouraged).
+  // This logic is only relevant for `container` Runs and Tests
   if (volumes && volumes.length && action.type === "container") {
     configureVolumes(action, preparedPodSpec, volumes)
   } else {
@@ -896,43 +894,35 @@ export class PodRunner {
           origin: this.getFullCommand()[0]!,
           log: log.createLog({ fixLevel: LogLevel.verbose }),
         }
-
-    const stream = new Stream<RunLogEntry>()
-    void stream.forEach(
-      (entry) => {
-        const { msg, timestamp } = entry
-        let isoTimestamp: string
-        try {
-          if (timestamp) {
-            isoTimestamp = timestamp.toISOString()
-          } else {
-            isoTimestamp = new Date().toISOString()
-          }
-        } catch {
+    const onLogEntry = (entry: RunLogEntry) => {
+      const { msg, timestamp } = entry
+      let isoTimestamp: string
+      try {
+        if (timestamp) {
+          isoTimestamp = timestamp.toISOString()
+        } else {
           isoTimestamp = new Date().toISOString()
         }
-        events.emit("log", {
-          level: "verbose",
-          timestamp: isoTimestamp,
-          msg,
-          ...logEventContext,
-        })
-        if (tty) {
-          process.stdout.write(`${entry.msg}\n`)
-        }
-      },
-      (err) => {
-        if (err) {
-          log.error(`Error while following logs: ${err}`)
-        }
+      } catch {
+        isoTimestamp = new Date().toISOString()
       }
-    )
+      events.emit("log", {
+        level: "verbose",
+        timestamp: isoTimestamp,
+        msg,
+        ...logEventContext,
+      })
+      if (tty) {
+        process.stdout.write(`${entry.msg}\n`)
+      }
+    }
+
     return new K8sLogFollower({
       defaultNamespace: this.namespace,
       // We use 1 second in the PodRunner, because the task / test will only finish once the LogFollower finished.
       // If this is too low, we waste resources (network/cpu) – if it's too high we add extra time to the run execution.
       retryIntervalMs: 1000,
-      stream,
+      onLogEntry,
       log,
       entryConverter: makeRunLogEntry,
       resources: [this.pod],
@@ -1125,7 +1115,15 @@ export class PodRunner {
     await this.createPod({ log, tty: false })
 
     // Wait for Pod to be ready
-    const statuses = await waitForResources({ namespace, ctx, provider, resources: [pod], log, timeoutSec })
+    const statuses = await waitForResources({
+      namespace,
+      waitForJobs: false,
+      ctx,
+      provider,
+      resources: [pod],
+      log,
+      timeoutSec,
+    })
 
     return { status: statuses[0] as ResourceStatus<V1Pod> }
   }

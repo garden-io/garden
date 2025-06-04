@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Service
-metadata:
-${if false}
-  name: evaluated wrong branch
-${else}
-  name: it-${"partially"}-resolves-${var.doesNotExist}-and-$${unescapes}
-${endif}

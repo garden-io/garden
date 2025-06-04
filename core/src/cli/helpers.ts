@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -36,8 +36,6 @@ import type { BuiltinArgs, Command, CommandGroup } from "../commands/base.js"
 import type { DeepPrimitiveMap } from "../config/common.js"
 import { validateGitInstall } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
-import { makeDocsLinkStyled } from "../docs/common.js"
-import type { Garden } from "../garden.js"
 
 export const cliStyles = {
   heading: (str: string) => styles.accent.bold(str),
@@ -565,39 +563,4 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
   if (logger.getWriters().file.length > 0) {
     errorLog.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
   }
-}
-
-export async function emitLoginWarning({
-  garden,
-  log,
-  isLoggedIn,
-  isCommunityEdition,
-}: {
-  garden: Garden
-  log: Log
-  isLoggedIn: boolean
-  isCommunityEdition: boolean
-}) {
-  if (gardenEnv.GARDEN_DISABLE_WEB_APP_WARN) {
-    return
-  }
-  if (isLoggedIn || !isCommunityEdition) {
-    return
-  }
-
-  await garden.emitWarning({
-    key: "web-app",
-    log,
-    message: getDashboardInfoMsg(),
-  })
-}
-
-export function getDashboardInfoMsg() {
-  return styles.success(deline`
-    🌿 Log in with ${styles.command(
-      "garden login"
-    )} to explore logs, past commands, and your dependency graph in the Garden dashboard.
-
-    Learn more at: ${makeDocsLinkStyled("using-garden/dashboard")}\n
-  `)
 }

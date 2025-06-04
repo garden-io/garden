@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,13 +7,11 @@
  */
 
 import { expect } from "chai"
-import stripAnsi from "strip-ansi"
 import { getUnavailableReason } from "../../../../../src/config/template-contexts/base.js"
 import { DefaultEnvironmentContext, ProjectConfigContext } from "../../../../../src/config/template-contexts/project.js"
 import { legacyResolveTemplateString } from "../../../../../src/template/templated-strings.js"
-import { deline } from "../../../../../src/util/string.js"
 import type { TestGarden } from "../../../../helpers.js"
-import { freezeTime, makeTestGardenA } from "../../../../helpers.js"
+import { expectFuzzyMatch, freezeTime, makeTestGardenA } from "../../../../helpers.js"
 
 const vcsInfo = {
   branch: "main",
@@ -91,7 +89,8 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -110,7 +109,8 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -128,7 +128,8 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: { foo: "banana" },
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -147,15 +148,17 @@ describe("ProjectConfigContext", () => {
         vcsInfo,
         username: "some-user",
         loggedIn: false, // <-----
-        enterpriseDomain,
+        cloudBackendDomain: enterpriseDomain,
+        backendType: "v1",
         secrets: { foo: "banana" },
         commandInfo: { name: "test", args: {}, opts: {} },
       })
 
       const result = c.resolve({ nodePath: [], key: ["secrets", "bar"], opts: {} })
 
-      const msg = getUnavailableReason(result)
-      expect(stripAnsi(msg)).to.match(/Please log in via the garden login command to use Garden with secrets/)
+      expectFuzzyMatch(getUnavailableReason(result), [
+        "Please log in via the garden login command to use Garden with secrets",
+      ])
     })
 
     context("when logged in", () => {
@@ -167,18 +170,18 @@ describe("ProjectConfigContext", () => {
           vcsInfo,
           username: "some-user",
           loggedIn: true,
-          enterpriseDomain,
+          cloudBackendDomain: enterpriseDomain,
+          backendType: "v1",
           secrets: {}, // <-----
           commandInfo: { name: "test", args: {}, opts: {} },
         })
 
         const result = c.resolve({ nodePath: [], key: ["secrets", "bar"], opts: {} })
 
-        const errMsg = deline`
-          Looks like no secrets have been created for this project and/or environment in Garden Cloud.
-          To create secrets, please visit ${enterpriseDomain} and navigate to the secrets section for this project.
-        `
-        expect(stripAnsi(getUnavailableReason(result))).to.match(new RegExp(errMsg))
+        expectFuzzyMatch(getUnavailableReason(result), [
+          "Looks like no secrets have been created for this project and/or environment in Garden Enterprise.",
+          "To create secrets, please visit https://garden.mydomain.com and navigate to the secrets section for this project.",
+        ])
       })
 
       it("if a non-empty set of secrets was returned by the backend, provide a helpful suggestion", () => {
@@ -189,18 +192,17 @@ describe("ProjectConfigContext", () => {
           vcsInfo,
           username: "some-user",
           loggedIn: true,
-          enterpriseDomain,
+          cloudBackendDomain: enterpriseDomain,
+          backendType: "v1",
           secrets: { foo: "banana " }, // <-----
           commandInfo: { name: "test", args: {}, opts: {} },
         })
 
         const result = c.resolve({ nodePath: [], key: ["secrets", "bar"], opts: {} })
 
-        const errMsg = deline`
-          Please make sure that all required secrets for this project exist in Garden Cloud, and are accessible in this
-          environment.
-        `
-        expect(stripAnsi(getUnavailableReason(result))).to.match(new RegExp(errMsg))
+        expectFuzzyMatch(getUnavailableReason(result), [
+          "Please make sure that all required secrets for this project exist in Garden Enterprise, and are accessible in this environment.",
+        ])
       })
     })
   })
@@ -213,16 +215,17 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
     const key = "fiaogsyecgbsjyawecygaewbxrbxajyrgew"
 
     const result = c.resolve({ nodePath: [], key: ["local", "env", key], opts: {} })
-    expect(stripAnsi(getUnavailableReason(result))).to.match(
-      /Could not find key fiaogsyecgbsjyawecygaewbxrbxajyrgew under local.env. Available keys: /
-    )
+    expectFuzzyMatch(getUnavailableReason(result), [
+      "Could not find key fiaogsyecgbsjyawecygaewbxrbxajyrgew under local.env. Available keys:",
+    ])
   })
 
   it("should throw if 'var' key is referenced", () => {
@@ -233,16 +236,16 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
 
     const result = c.resolve({ nodePath: [], key: ["var", "foo"], opts: {} })
-    const unavailableReason = getUnavailableReason(result)
-    expect(stripAnsi(unavailableReason)).to.eql(
-      "Could not find key var. Available keys: local, command, datetime, project, git, secrets."
-    )
+    expectFuzzyMatch(getUnavailableReason(result), [
+      "Could not find key var. Available keys: local, command, datetime, project, git, secrets.",
+    ])
   })
 
   it("should resolve the local arch", () => {
@@ -253,7 +256,8 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -271,7 +275,8 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "some-user",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -289,7 +294,8 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "SomeUser",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -311,7 +317,8 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "SomeUser",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })
@@ -329,7 +336,8 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "SomeUser",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: {},
       commandInfo: { name: "deploy", args: {}, opts: { sync: ["my-service"] } },
     })
@@ -349,7 +357,8 @@ describe("ProjectConfigContext", () => {
       vcsInfo,
       username: "SomeUser",
       loggedIn: true,
-      enterpriseDomain,
+      cloudBackendDomain: enterpriseDomain,
+      backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {} },
     })

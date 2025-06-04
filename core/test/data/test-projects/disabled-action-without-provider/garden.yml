@@ -1,0 +1,46 @@
+apiVersion: garden.io/v2
+kind: Project
+name: my-project
+environments:
+  - name: no-k8s
+  - name: k8s
+
+providers:
+  - name: local-kubernetes
+    namespace: env-repro
+    environments: [k8s]
+
+---
+kind: Deploy
+name: k8s-deploy-disabled-via-flag
+type: kubernetes
+disabled: true # the action is disabled explicitly in all envs
+spec:
+  manifests:
+    - apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: my-configmap
+      data:
+        foo: bar
+
+---
+kind: Deploy
+name: k8s-deploy-disabled-via-env-config
+type: kubernetes
+environments: ["k8s"] # the action is only enabled in k8s environment
+spec:
+  manifests:
+    - apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: my-configmap
+      data:
+        foo: bar
+
+---
+kind: Run
+name: say-hi
+type: exec
+spec:
+  command: ["echo", "Hi ${local.username}"]

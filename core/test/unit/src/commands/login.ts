@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,7 +12,7 @@ import type { TempDirectory } from "../../../helpers.js"
 import { expectError, getDataDir, makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
 import { AuthRedirectServer, getStoredAuthToken, saveAuthToken } from "../../../../src/cloud/auth.js"
 
-import { LoginCommand } from "../../../../src/commands/login.js"
+import { LoginCommand, rewriteProjectConfigYaml } from "../../../../src/commands/login.js"
 import { randomString } from "../../../../src/util/string.js"
 import { GardenCloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
@@ -21,10 +21,10 @@ import { getLogMessages } from "../../../../src/util/testing.js"
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
 import type { Garden } from "../../../../src/index.js"
-import { FakeCloudApi } from "../../../helpers/api.js"
+import { FakeGardenCloudApi } from "../../../helpers/api.js"
+import dedent from "dedent"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function loginCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
+function loginCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: {} }) {
   const log = garden.log
   return {
     garden,
@@ -121,7 +121,12 @@ describe("LoginCommand", () => {
       globalConfigStore,
     })
 
-    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
 
@@ -207,7 +212,12 @@ describe("LoginCommand", () => {
       globalConfigStore,
     })
 
-    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await saveAuthToken({
+      log: garden.log,
+      globalConfigStore: garden.globalConfigStore,
+      tokenResponse: testToken,
+      domain: garden.cloudDomain!,
+    })
     td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => false)
     td.replace(GardenCloudApi.prototype, "refreshToken", async () => {
       throw new Error("bummer")
@@ -223,69 +233,38 @@ describe("LoginCommand", () => {
     })
   })
 
-  it("should not login if outside project root and disable-project-check flag is false", async () => {
-    const postfix = randomString()
-    const testToken = {
-      token: `dummy-token-${postfix}`,
-      refreshToken: `dummy-refresh-token-${postfix}`,
-      tokenValidity: 60,
-    }
-    const command = new LoginCommand()
+  context("outside project root", () => {
+    let tmpDirOutsideProjectRoot: TempDirectory
 
-    // this is a bit of a workaround to run outside of the garden root dir
-    const garden = await makeDummyGarden(getDataDir("..", "..", "..", ".."), {
-      commandInfo: { name: "foo", args: {}, opts: {} },
+    before(async () => {
+      tmpDirOutsideProjectRoot = await makeTempDir({ git: false })
+    })
+    after(async () => {
+      await tmpDirOutsideProjectRoot.cleanup()
     })
 
-    setTimeout(() => {
-      garden.events.emit("receivedToken", testToken)
-    }, 500)
-
-    await expectError(
-      async () => await command.action(loginCommandParams({ garden, opts: { "disable-project-check": false } })),
-      {
-        contains: "Not a project directory",
+    it("should not login if outside project root", async () => {
+      const postfix = randomString()
+      const testToken = {
+        token: `dummy-token-${postfix}`,
+        refreshToken: `dummy-refresh-token-${postfix}`,
+        tokenValidity: 60,
       }
-    )
-  })
+      const command = new LoginCommand()
 
-  it("should login if outside project root and disable-project-check flag is true", async () => {
-    const postfix = randomString()
-    const testToken = {
-      token: `dummy-token-${postfix}`,
-      refreshToken: `dummy-refresh-token-${postfix}`,
-      tokenValidity: 60,
-    }
-    const command = new LoginCommand()
+      // this is a bit of a workaround to run outside of the garden root dir
+      const garden = await makeDummyGarden(tmpDirOutsideProjectRoot.path, {
+        commandInfo: { name: "foo", args: {}, opts: {} },
+      })
 
-    // this is a bit of a workaround to run outside of the garden root dir
-    const garden = await makeDummyGarden(getDataDir("..", "..", "..", ".."), {
-      skipCloudConnect: false,
-      commandInfo: { name: "foo", args: {}, opts: {} },
-      globalConfigStore,
+      setTimeout(() => {
+        garden.events.emit("receivedToken", testToken)
+      }, 500)
+
+      await expectError(async () => await command.action(loginCommandParams({ garden, opts: {} })), {
+        contains: "Project config not found",
+      })
     })
-
-    // Override the cloud domain so we don't use the default domain
-    const savedDomain = gardenEnv.GARDEN_CLOUD_DOMAIN
-    const cloudDomain = "https://example.invalid"
-    gardenEnv.GARDEN_CLOUD_DOMAIN = cloudDomain
-
-    // Need to override the default because we're using DummyGarden
-    Object.assign(garden, { cloudDomain })
-
-    setTimeout(() => {
-      garden.events.emit("receivedToken", testToken)
-    }, 500)
-
-    await command.action(loginCommandParams({ garden, opts: { "disable-project-check": true } }))
-
-    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, cloudDomain)
-    // reset the cloud domain
-    gardenEnv.GARDEN_CLOUD_DOMAIN = savedDomain
-
-    expect(savedToken).to.exist
-    expect(savedToken!.token).to.eql(testToken.token)
-    expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
   })
 
   context("GARDEN_AUTH_TOKEN set in env", () => {
@@ -299,6 +278,19 @@ describe("LoginCommand", () => {
       gardenEnv.GARDEN_AUTH_TOKEN = saveEnv
     })
 
+    // const combinations = [
+    //   {
+    //     description: "an old-style project ID is set in the project config",
+    //     expectedBackend: "old",
+    //     projectName: "has-domain-and-id",
+    //   },
+    //   {
+    //     description: "no project ID is set in the project config (implying new backend)",
+    //     expectedBackend: "new",
+    //     projectName: "has-organization-id",
+    //   },
+    // ]
+
     it("should be a no-op if the user has a valid auth token in the environment", async () => {
       const command = new LoginCommand()
       const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
@@ -306,7 +298,7 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {} },
         globalConfigStore,
         // FakeCloudApi bypasses the login and returns mock project data
-        overrideCloudApiFactory: FakeCloudApi.factory,
+        overrideCloudApiFactory: FakeGardenCloudApi.factory,
       })
 
       // Mock this because login command calls it
@@ -326,7 +318,7 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {} },
         globalConfigStore,
         // FakeCloudApi bypasses the login and returns mock project data
-        overrideCloudApiFactory: FakeCloudApi.factory,
+        overrideCloudApiFactory: FakeGardenCloudApi.factory,
       })
 
       // Mock this because login command calls it
@@ -403,6 +395,50 @@ describe("LoginCommand", () => {
       const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
       expect(logOutput).to.include(`Logging in to ${gardenEnv.GARDEN_CLOUD_DOMAIN}`)
+    })
+  })
+
+  describe("setOrganizationIdAndWrite", () => {
+    it("should set the organizationId in a project config on disk, inserting it after the name field", async () => {
+      const beforeYaml = dedent`
+        kind: Project
+        # This comment should be preserved
+        name: test-project
+        variables:
+          foo: bar
+        environments:
+          - name: local
+        providers:
+          - name: local-kubernetes
+            environments:
+              - local
+        ---
+        # We don't validate this doc, so we don't need all the fields, but we want to make sure
+        # That this doc is included unchanged in the output.
+        kind: Build
+      `
+      const organizationId = "gandalf-1445"
+      const afterYaml = rewriteProjectConfigYaml(beforeYaml, "/some/dir/project.garden.yml", organizationId)
+      expect(afterYaml.trim()).to.equal(
+        dedent`
+        kind: Project
+        # This comment should be preserved
+        name: test-project
+        organizationId: ${organizationId}
+        variables:
+          foo: bar
+        environments:
+          - name: local
+        providers:
+          - name: local-kubernetes
+            environments:
+              - local
+        ---
+        # We don't validate this doc, so we don't need all the fields, but we want to make sure
+        # That this doc is included unchanged in the output.
+        kind: Build
+      `.trim()
+      )
     })
   })
 })

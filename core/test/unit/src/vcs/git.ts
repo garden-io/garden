@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -117,6 +117,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
   })
 
   afterEach(async () => {
+    garden.close()
     await tmpDir.cleanup()
   })
 
@@ -1558,6 +1559,10 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
     })
   })
 
+  afterEach(() => {
+    garden.close()
+  })
+
   describe("getTreeVersion", () => {
     context("include and exclude filters", () => {
       it("should respect the include field, if specified", async () => {
@@ -1612,6 +1617,15 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
     // instead of re-creating the whole Garden instance.
     // We just need to reset the caches between the repo scan executions.
     context("modifications to already scanned directories", () => {
+      const filesToRemove: string[] = []
+
+      afterEach(async () => {
+        for (const f of filesToRemove) {
+          await remove(f)
+        }
+        filesToRemove.length = 0
+      })
+
       it("should update content hash when include is set and there's a change in the included files of an action", async () => {
         // This test project should not have multiple actions.
         // It tests the case when some new files are added to an included directory.
@@ -1622,27 +1636,24 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
         const buildConfig = _graph.getBuild("a").getConfig()
         const newFilePathBuildA = join(_garden.projectRoot, "build-a", "somedir", "foo")
 
-        try {
-          const version1 = await _garden.vcs.getTreeVersion({
-            log: _garden.log,
-            projectName: _garden.projectName,
-            config: buildConfig,
-          })
+        const version1 = await _garden.vcs.getTreeVersion({
+          log: _garden.log,
+          projectName: _garden.projectName,
+          config: buildConfig,
+        })
 
-          // write new file to the included dir and clear the cache
-          await writeFile(newFilePathBuildA, "abcd")
-          _garden.vcs.clearTreeCache()
+        // write new file to the included dir and clear the cache
+        await writeFile(newFilePathBuildA, "abcd")
+        filesToRemove.push(newFilePathBuildA)
+        _garden.vcs.clearTreeCache()
 
-          const version2 = await _garden.vcs.getTreeVersion({
-            log: _garden.log,
-            projectName: _garden.projectName,
-            config: buildConfig,
-            force: true,
-          })
-          expect(version1.contentHash).to.not.eql(version2.contentHash)
-        } finally {
-          await remove(newFilePathBuildA)
-        }
+        const version2 = await _garden.vcs.getTreeVersion({
+          log: _garden.log,
+          projectName: _garden.projectName,
+          config: buildConfig,
+          force: true,
+        })
+        expect(version1.contentHash).to.not.eql(version2.contentHash)
       })
 
       describe("should not update content hash for Deploy, when there's no change in included files of Build", async () => {
@@ -1654,41 +1665,38 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
           const deployConfig = _graph.getDeploy("test-deploy").getConfig()
           const newFilePath = join(_garden.projectRoot, "foo")
 
-          try {
-            const buildVersion1 = await _garden.vcs.getTreeVersion({
-              log: _garden.log,
-              projectName: _garden.projectName,
-              config: buildConfig,
-            })
+          const buildVersion1 = await _garden.vcs.getTreeVersion({
+            log: _garden.log,
+            projectName: _garden.projectName,
+            config: buildConfig,
+          })
 
-            const deployVersion1 = await _garden.vcs.getTreeVersion({
-              log: _garden.log,
-              projectName: _garden.projectName,
-              config: deployConfig,
-            })
+          const deployVersion1 = await _garden.vcs.getTreeVersion({
+            log: _garden.log,
+            projectName: _garden.projectName,
+            config: deployConfig,
+          })
 
-            // write new file that should not be included and clear the cache
-            await writeFile(newFilePath, "abcd")
-            _garden.vcs.clearTreeCache()
+          // write new file that should not be included and clear the cache
+          await writeFile(newFilePath, "abcd")
+          filesToRemove.push(newFilePath)
+          _garden.vcs.clearTreeCache()
 
-            const buildVersion2 = await _garden.vcs.getTreeVersion({
-              log: _garden.log,
-              projectName: _garden.projectName,
-              config: buildConfig,
-              force: true,
-            })
-            const deployVersion2 = await _garden.vcs.getTreeVersion({
-              log: _garden.log,
-              projectName: _garden.projectName,
-              config: deployConfig,
-              force: true,
-            })
+          const buildVersion2 = await _garden.vcs.getTreeVersion({
+            log: _garden.log,
+            projectName: _garden.projectName,
+            config: buildConfig,
+            force: true,
+          })
+          const deployVersion2 = await _garden.vcs.getTreeVersion({
+            log: _garden.log,
+            projectName: _garden.projectName,
+            config: deployConfig,
+            force: true,
+          })
 
-            expect(buildVersion1).to.eql(buildVersion2)
-            expect(deployVersion1.contentHash).to.eql(deployVersion2.contentHash)
-          } finally {
-            await remove(newFilePath)
-          }
+          expect(buildVersion1).to.eql(buildVersion2)
+          expect(deployVersion1.contentHash).to.eql(deployVersion2.contentHash)
         }
 
         // The different project structure causes different Git repo roots in scanning mode and different caching behavior.

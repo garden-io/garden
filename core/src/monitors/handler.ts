@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,11 +26,11 @@ interface HandlerMonitorParams extends MonitorBaseParams {
  */
 export class HandlerMonitor extends Monitor {
   public type: string
-
-  private events: PluginEventBroker
   public action?: Action
-  private _key: string
-  private _description: string
+
+  private readonly events: PluginEventBroker
+  private readonly _key: string
+  private readonly _description: string
   // private log: Log
 
   isActive: boolean
@@ -61,7 +61,6 @@ export class HandlerMonitor extends Monitor {
 
   async start() {
     // This is done in the constructor, nothing to do here
-    return {}
   }
 
   private done() {
@@ -71,8 +70,6 @@ export class HandlerMonitor extends Monitor {
 
   async stop() {
     this.events.emit("abort")
-
     // TODO: wait until handler signals exit
-    return {}
   }
 }

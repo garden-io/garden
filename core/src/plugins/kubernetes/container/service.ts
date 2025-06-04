@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,7 @@ function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
     name: portSpec.name,
     protocol: portSpec.protocol,
     port: portSpec.servicePort,
-    targetPort: <any>portSpec.containerPort,
+    targetPort: portSpec.containerPort,
   }
 
   if (portSpec.nodePort && portSpec.nodePort !== true) {

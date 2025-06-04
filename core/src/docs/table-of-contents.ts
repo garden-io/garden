@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -127,8 +127,6 @@ function sortTree(tree: FileTree) {
   }
 }
 
-const emojiList = ["🌸", "🌳", "🌻", "💐", "🌿", "🌺", "☘️", "🌹", "🌼", "🌷", "🪷", "🎋"]
-
 function generateMarkdown({
   tree,
   docsRoot,
@@ -151,8 +149,7 @@ function generateMarkdown({
   let output: string
 
   if (depth === 0) {
-    const emoji = emojiList[topLevelPageIdx % emojiList.length]
-    output = `\n## ${emoji} ${tree.title}\n\n`
+    output = `\n## ${tree.title}\n\n`
   } else {
     output = repeat(indent, depth - 1) + `* [${tree.title}](${path})\n`
   }

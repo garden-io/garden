@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,6 +32,7 @@ import { actionKinds } from "../actions/types.js"
 import { fileURLToPath } from "node:url"
 import dedent from "dedent"
 import { getDeprecations } from "../util/deprecations.js"
+import { isErrnoException } from "../exceptions.js"
 
 const { writeFileSync, readFile, writeFile, mkdirp } = fsExtra
 
@@ -44,14 +45,18 @@ export async function generateDocs(targetDir: string, getPlugins: () => (GardenP
 
   console.log("Updating command references...")
   writeCommandReferenceDocs(docsRoot)
+
   console.log("Updating config references...")
   await writeConfigReferenceDocs(docsRoot, getPlugins)
+
   console.log("Updating template string reference...")
   writeTemplateStringReferenceDocs(docsRoot)
+
   console.log("Generating table of contents...")
   await writeTableOfContents(docsRoot, "README.md")
+
   console.log("Updating the deprecation guide...")
-  await updateDeprecationGuide(docsRoot, "guides/deprecations.md")
+  await updateDeprecationGuide(docsRoot, "misc/deprecations.md")
 }
 
 export async function writeConfigReferenceDocs(
@@ -61,16 +66,11 @@ export async function writeConfigReferenceDocs(
   const referenceDir = resolve(docsRoot, "reference")
 
   const providers = [
-    { name: "conftest" },
-    { name: "conftest-container" },
-    { name: "conftest-kubernetes" },
     { name: "container" },
     { name: "exec" },
-    { name: "hadolint" },
     { name: "jib" },
     { name: "kubernetes" },
     { name: "local-kubernetes" },
-    { name: "octant" },
     { name: "terraform" },
     { name: "pulumi" },
   ]
@@ -78,8 +78,9 @@ export async function writeConfigReferenceDocs(
     return await Garden.factory(moduleDirName, {
       commandInfo: { name: "generate-docs", args: {}, opts: {} },
       config: {
+        configPath: import.meta.filename,
         path: moduleDirName,
-        apiVersion: GardenApiVersion.v1,
+        apiVersion: GardenApiVersion.v2,
         kind: "Project",
         name: "generate-docs",
         internal: {
@@ -171,7 +172,7 @@ export async function writeConfigReferenceDocs(
 
   const deprecationWarning = `
   {% hint style="warning" %}
-  Modules are deprecated and will be removed in version \`0.14\`. Please use [action](../../using-garden/actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../../guides/migrating-to-bonsai.md) for details.
+  Modules are deprecated and planned to be removed. We do not recommend using modules. Please use [action](../../getting-started/basics.md#anatomy-of-a-garden-action)-based configuration instead. See the [0.12 to Bonsai migration guide](../../misc/migrating-to-bonsai.md) for details.
   {% endhint %}
   `
   moduleReadme.push(deprecationWarning)
@@ -205,9 +206,22 @@ export async function writeConfigReferenceDocs(
   await renderConfigTemplate("render-template", renderConfigReference(renderTemplateConfigSchema()))
 }
 
-async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename: string) {
+export async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename: string) {
   const guide = resolve(docsRoot, deprecationGuideFilename)
-  const contents = (await readFile(guide)).toString()
+  let contents: string
+  try {
+    contents = (await readFile(guide)).toString()
+  } catch (err) {
+    if (!isErrnoException(err)) {
+      throw err
+    }
+
+    if (err.code !== "ENOENT") {
+      throw err
+    }
+
+    contents = ""
+  }
 
   const marker = "<!-- DO NOT CHANGE BELOW - AUTO-GENERATED -->"
 
@@ -217,24 +231,23 @@ async function updateDeprecationGuide(docsRoot: string, deprecationGuideFilename
   const deprecations = getDeprecations((s) => `\`${s}\``)
 
   const contexts = new Set<string>()
-  for (const [_, { contextDesc }] of Object.entries(deprecations)) {
-    contexts.add(contextDesc)
+  for (const [_, { docsSection }] of Object.entries(deprecations)) {
+    contexts.add(docsSection)
   }
 
   const breakingChanges: string[] = []
 
   for (const context of contexts) {
-    breakingChanges.push(`## ${context}`)
+    breakingChanges.push(`# ${context}`)
 
-    const matchingDeprecations = Object.entries(deprecations).filter(([_, { contextDesc }]) => contextDesc === context)
-    for (const [id, { hint, featureDesc, hintReferenceLink }] of matchingDeprecations) {
-      breakingChanges.push(`<h3 id="${id}">${featureDesc}</h3>`)
-      breakingChanges.push(hint)
-      if (hintReferenceLink) {
-        const linkPrefix = hintReferenceLink.link.startsWith("#") ? "" : "../"
-        breakingChanges.push(
-          `For more information, please refer to the [${hintReferenceLink.name}](${linkPrefix}${hintReferenceLink.link}).`
-        )
+    const matchingDeprecations = Object.entries(deprecations).filter(([_, { docsSection }]) => docsSection === context)
+    for (const [id, { warnHint, docs }] of matchingDeprecations) {
+      // NOTE: We are using HTML tags rather than using markdown syntax here, so we can control the `id` of the link (As we are deeplinking from the deprecation warnings in core)
+      const htmlHeadline = getDeprecations((s) => `<code>${s}</code>`)[id].docsHeadline
+      breakingChanges.push(`<h2 id="${id.toLowerCase()}">${htmlHeadline}</h2>`)
+      breakingChanges.push(warnHint)
+      if (docs) {
+        breakingChanges.push(docs)
       }
     }
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,15 +19,14 @@ export class TemplateError extends GardenError {
   type = "template"
 
   constructor(params: GardenErrorParams & { source: ConfigSource }) {
-    let enriched: string = params.message
-    try {
-      enriched = addYamlContext({ source: params.source, message: params.message })
-    } catch {
-      // ignore
-    }
+    const enriched = addYamlContext({ source: params.source, message: params.message })
 
     super({ ...params, message: enriched })
   }
+}
+
+export function truncateRawTemplateString(rawTemplateString: string) {
+  return truncate(rawTemplateString, { length: 200 }).replace(/\n/g, "\\n")
 }
 
 export class TemplateStringError extends GardenError {
@@ -40,20 +39,17 @@ export class TemplateStringError extends GardenError {
   constructor(
     params: GardenErrorParams & { loc: Location; yamlSource: ConfigSource; lookupResult?: ContextResolveOutputNotFound }
   ) {
-    let enriched: string = params.message
-    try {
-      // TODO: Use Location information from parser to point to the specific part
-      enriched = addYamlContext({ source: params.yamlSource, message: params.message })
-    } catch {
-      // ignore
-    }
+    // TODO: Use Location information from parser to point to the specific part
+    let enriched = addYamlContext({ source: params.yamlSource, message: params.message })
 
+    // This means that no yaml context has been added,
+    // so we compose a simpler context manually.
     if (enriched === params.message) {
       const { path } = params.yamlSource
 
       const pathDescription = path.length > 0 ? ` at path ${styles.accent(path.join("."))}` : ""
       const prefix = `Invalid template string (${styles.accent(
-        truncate(params.loc.source.rawTemplateString, { length: 200 }).replace(/\n/g, "\\n")
+        truncateRawTemplateString(params.loc.source.rawTemplateString)
       )})${pathDescription}: `
       enriched = params.message.startsWith(prefix) ? params.message : prefix + params.message
     }

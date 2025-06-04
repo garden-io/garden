@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 import type { PluginContext } from "../../plugin-context.js"
 import type { Resolved } from "../../actions/types.js"
 import type { ContainerBuildAction } from "./config.js"
-import { ConfigurationError, InternalError, isErrnoException } from "../../exceptions.js"
+import { InternalError, isErrnoException } from "../../exceptions.js"
 import type { ContainerProvider, ContainerProviderConfig } from "./container.js"
 import dedent from "dedent"
 import { styles } from "../../logger/styles.js"
@@ -33,9 +33,7 @@ import { containerHelpers } from "./helpers.js"
 import { hashString } from "../../util/util.js"
 import { stableStringify } from "../../util/string.js"
 import { homedir } from "os"
-import { getCloudDistributionName, isGardenCommunityEdition } from "../../cloud/util.js"
-import { TRPCClientError } from "@trpc/client"
-import type { GrowCloudBuilderRegisterBuildResponse } from "../../cloud/grow/trpc.js"
+import type { DockerBuildReport, RegisterCloudBuildResponse } from "../../cloud/grow/trpc.js"
 import type { GrowCloudApi } from "../../cloud/grow/api.js"
 
 const { mkdirp, rm, writeFile, stat } = fsExtra
@@ -56,7 +54,7 @@ type CloudBuilderConfiguration = {
 }
 
 // This means that Core will ask Cloud for availability every 5 minutes.
-// It might well be that we plan to use Cloud Builder for an action, and then we fall back to building locally.
+// It might well be that we plan to use Container Builder for an action, and then we fall back to building locally.
 const cloudBuilderAvailability = new LRUCache<string, CloudBuilderAvailabilityV2>({
   max: 1000,
   // 5 minutes
@@ -69,41 +67,23 @@ type RetrieveAvailabilityParams = {
   config: CloudBuilderConfiguration
 }
 
-async function getCloudBuilderAvailabilityRetriever(): Promise<AbstractCloudBuilderAvailabilityRetriever<CloudApi>> {
-  if (gardenEnv.USE_GARDEN_CLOUD_V2) {
-    return new GrowCloudBuilderAvailabilityRetriever()
-  } else {
-    return new GardenCloudBuilderAvailabilityRetriever()
-  }
-}
-
 async function retrieveAvailabilityFromCloud(params: {
   ctx: PluginContext
   action: Resolved<ContainerBuildAction>
   config: CloudBuilderConfiguration
 }): Promise<CloudBuilderAvailabilityV2> {
-  const retriever = await getCloudBuilderAvailabilityRetriever()
-  return retriever.get(params)
-}
-
-function makeNotLoggedInError({ isInClusterBuildingConfigured }: CloudBuilderConfiguration) {
-  const fallbackDescription = isInClusterBuildingConfigured
-    ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
-    : `This forces Garden to use the fall-back option to build images locally.`
-
-  return new ConfigurationError({
-    message: dedent`
-        You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
-
-        If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUD_BUILDER=0")}. ${fallbackDescription}`,
-  })
+  if (params.ctx.cloudApiV2) {
+    return new GrowCloudBuilderAvailabilityRetriever().get(params)
+  } else {
+    return new GardenCloudBuilderAvailabilityRetriever().get(params)
+  }
 }
 
 function makeVersionMismatchWarning({ isInClusterBuildingConfigured }: CloudBuilderConfiguration) {
   return dedent`
-    ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
+    ${styles.bold("Update Garden to continue to benefit from Remote Container Builder.")}
 
-    Your current Garden version is not supported anymore by Garden Cloud Builder. Please update Garden to the latest version.
+    Your current Garden version is not supported anymore by Remote Container Builder. Please update Garden to the latest version.
 
     Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
 
@@ -134,8 +114,11 @@ abstract class AbstractCloudBuilderAvailabilityRetriever<T extends CloudApi> {
 
   public async get({ ctx, action, config }: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
     const cloudApi = this.getCloudApi(ctx)
+
     if (!cloudApi) {
-      throw makeNotLoggedInError(config)
+      throw new InternalError({
+        message: "Cloud API is not available, cloud builder should be disabled",
+      })
     }
 
     const { publicKeyPem } = await getMtlsKeyPair()
@@ -163,12 +146,9 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
     ctx,
     publicKeyPem,
   }: RegisterCloudBuildParams<GardenCloudApi>): Promise<RegisterCloudBuilderBuildResponseData> {
-    // Validate Cloud Project and domain
-    if (isGardenCommunityEdition(cloudApi.domain) && ctx.projectId === undefined) {
-      throw new InternalError({ message: "Authenticated with community tier, but projectId is undefined" })
-    } else if (ctx.projectId === undefined) {
-      throw new ConfigurationError({
-        message: dedent`Please connect your Garden Project with ${getCloudDistributionName(cloudApi.domain)}. See also ${styles.link("https://cloud.docs.garden.io/getting-started/first-project")}`,
+    if (ctx.projectId === undefined) {
+      throw new InternalError({
+        message: dedent`Invalid state: Project ID can't be undefined when using the backend v1`,
       })
     }
 
@@ -178,7 +158,6 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
       organizationId: cloudProject.organization.id,
       actionUid: action.uid,
       actionName: action.name,
-      actionVersion: action.getFullVersion().toString(),
       coreSessionId: ctx.sessionId,
       // if platforms are not set, we default to linux/amd64
       platforms: action.getSpec().platforms || ["linux/amd64"],
@@ -198,25 +177,12 @@ class GrowCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabi
     action,
     cloudApi,
     publicKeyPem,
-  }: RegisterCloudBuildParams<GrowCloudApi>): Promise<GrowCloudBuilderRegisterBuildResponse> {
-    try {
-      return await cloudApi.api.cloudBuilder.registerBuild.mutate({
-        // if platforms are not set, we default to linux/amd64
-        platforms: action.getSpec().platforms || ["linux/amd64"],
-        mtlsClientPublicKeyPEM: publicKeyPem,
-      })
-    } catch (err) {
-      if (!(err instanceof TRPCClientError)) {
-        throw err
-      }
-      return {
-        version: "v2",
-        availability: {
-          available: false,
-          reason: err.message,
-        },
-      }
-    }
+  }: RegisterCloudBuildParams<GrowCloudApi>): Promise<RegisterCloudBuildResponse> {
+    return await cloudApi.registerCloudBuild({
+      // if platforms are not set, we default to linux/amd64
+      platforms: action.getSpec().platforms || ["linux/amd64"],
+      mtlsClientPublicKeyPEM: publicKeyPem,
+    })
   }
 }
 
@@ -228,7 +194,7 @@ class CloudBuilder {
   }
 
   /**
-   * @returns false if Cloud Builder is not configured or not available, otherwise it returns the availability (a required parameter for withBuilder)
+   * @returns false if Container Builder is not configured or not available, otherwise it returns the availability (a required parameter for withBuilder)
    */
   async getAvailability(
     ctx: PluginContext,
@@ -240,11 +206,11 @@ class CloudBuilder {
     if (!isCloudBuilderEnabled) {
       return {
         available: false,
-        reason: "Cloud Builder is not enabled",
+        reason: "Container Builder is not enabled",
       }
     }
 
-    // Cache the Cloud Builder availability response from Backend for 5 minutes in LRU cache
+    // Cache the Container Builder availability response from Backend for 5 minutes in LRU cache
     const fromCache = cloudBuilderAvailability.get(action.uid)
     if (fromCache) {
       return fromCache
@@ -257,7 +223,7 @@ class CloudBuilder {
       emitNonRepeatableWarning(
         ctx.log,
         dedent`
-          ${styles.bold("Garden Cloud Builder is not available.")}
+          ${styles.bold("Remote Container Builder is not available.")}
 
           Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
 
@@ -266,6 +232,21 @@ class CloudBuilder {
     }
 
     return availability
+  }
+
+  transformRuntime(runtime: ActionRuntime): DockerBuildReport["runtime"] {
+    const { actual, preferred, fallbackReason } = runtime
+    let actualNewFormat: DockerBuildReport["runtime"]["actual"] = "buildx"
+    if (actual.kind === "remote") {
+      actualNewFormat = actual.type === "garden-cloud" ? "cloud-builder" : "buildx"
+    }
+    if (preferred && preferred.kind === "remote" && preferred.type) {
+      return {
+        actual: actualNewFormat,
+        preferred: { runtime: preferred.type === "garden-cloud" ? "cloud-builder" : "buildx", fallbackReason },
+      }
+    }
+    return { actual: actualNewFormat }
   }
 
   getActionRuntime(ctx: PluginContext, availability: CloudBuilderAvailabilityV2): ActionRuntime {
@@ -282,7 +263,7 @@ class CloudBuilder {
         { kind: "local" }
 
     const preferred: ActionRuntimeKind = isCloudBuilderEnabled
-      ? // If cloud builder is configured, we prefer using cloud builder
+      ? // If Container Builder is configured, we prefer using Container Builder
         {
           kind: "remote",
           type: "garden-cloud",
@@ -290,7 +271,7 @@ class CloudBuilder {
       : // Otherwise we fall back to in-cluster building or building locally, whatever is configured.
         fallback
 
-    // if cloud builder is configured AND available, that's our actual runtime. Otherwise we fall back to whatever is configured in the plugin.
+    // if Container Builder is configured AND available, that's our actual runtime. Otherwise we fall back to whatever is configured in the plugin.
     const actual = availability.available ? preferred : fallback
 
     if (actual === preferred) {
@@ -300,7 +281,7 @@ class CloudBuilder {
     } else {
       if (availability.available) {
         throw new InternalError({
-          message: `Inconsistent state: Should only fall back if Cloud Builder is not available`,
+          message: `Inconsistent state: Should only fall back if Container Builder is not available`,
         })
       }
       return {
@@ -344,6 +325,38 @@ class CloudBuilder {
 
 export const cloudBuilder = new CloudBuilder()
 
+function isContainerBuilderEnabled({
+  containerProviderConfig,
+  ctx,
+}: {
+  ctx: PluginContext
+  containerProviderConfig: ContainerProviderConfig
+}) {
+  // TODO: we don't know here if the project is connected to cloud
+  // if (!isLoggedIn && ctx.isProjectConnectedToCloud) {
+  //  log.warn(`Container Builder is not available in offline mode.`)
+  // }
+
+  // container builder is enabled by default if you're logged in to the new backend
+  // this already takes into account offline mode etc
+  const isEnabledByDefault = !!ctx.cloudApiV2
+
+  // container builder can be disabled explicitly in the config
+  const explicitConfig = containerProviderConfig.gardenContainerBuilder?.enabled
+  let isCloudBuilderEnabled = explicitConfig === undefined ? isEnabledByDefault : explicitConfig
+
+  // The env variable GARDEN_CONTAINER_BUILDER can be used to override the gardenContainerBuilder.enabled config setting.
+  // It will be undefined, if the variable is not set and true/false if GARDEN_CONTAINER_BUILDER=1 or GARDEN_CONTAINER_BUILDER=0.
+  const overrideFromEnv = gardenEnv.GARDEN_CONTAINER_BUILDER
+  if (overrideFromEnv !== undefined) {
+    isCloudBuilderEnabled = overrideFromEnv
+  }
+
+  // if not logged in, let's not attempt retrieving the availability
+  const isLoggedIn = !!ctx.cloudApi || !!ctx.cloudApiV2
+  return isLoggedIn && isCloudBuilderEnabled
+}
+
 function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
   let containerProvider: ContainerProvider
   let isInClusterBuildingConfigured: boolean
@@ -360,14 +373,7 @@ function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
     })
   }
 
-  let isCloudBuilderEnabled = containerProvider.config.gardenCloudBuilder?.enabled || false
-
-  // The env variable GARDEN_CLOUD_BUILDER can be used to override the cloudbuilder.enabled config setting.
-  // It will be undefined, if the variable is not set and true/false if GARDEN_CLOUD_BUILDER=1 or GARDEN_CLOUD_BUILDER=0.
-  const overrideFromEnv = gardenEnv.GARDEN_CLOUD_BUILDER
-  if (overrideFromEnv !== undefined) {
-    isCloudBuilderEnabled = overrideFromEnv
-  }
+  const isCloudBuilderEnabled = isContainerBuilderEnabled({ ctx, containerProviderConfig: containerProvider.config })
 
   return {
     isInClusterBuildingConfigured,

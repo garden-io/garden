@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,6 +18,14 @@ import type { Garden } from "../../garden.js"
 import { type VcsInfo } from "../../vcs/vcs.js"
 import { styles } from "../../logger/styles.js"
 import type { VariablesContext } from "./variables.js"
+import { getBackendType, getCloudDistributionName } from "../../cloud/util.js"
+import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/secrets.js"
+
+const secretsSchema = joiStringMap(joi.string().description("The secret's value."))
+  .description("A map of all secrets for this project in the current environment.")
+  .meta({
+    keyPlaceholder: "<secret-name>",
+  })
 
 class LocalContext extends ContextWithSchema {
   @schema(
@@ -217,7 +225,7 @@ class CommandContext extends ContextWithSchema {
         dedent`
         A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
-        Option values can be referenced by the option's default name (e.g. \`local-mode\`) or its alias (e.g. \`local\`) if one is defined for that option.
+        Option values can be referenced by the option's default name (e.g. \`sync-mode\`) or its alias (e.g. \`sync\`) if one is defined for that option.
         `
       )
       .example({ force: true, dev: ["my-service"] })
@@ -283,7 +291,8 @@ export class DefaultEnvironmentContext extends ContextWithSchema {
 export interface ProjectConfigContextParams extends DefaultEnvironmentContextParams {
   loggedIn: boolean
   secrets: PrimitiveMap
-  enterpriseDomain: string | undefined
+  cloudBackendDomain: string
+  backendType: "v1" | "v2"
 }
 
 /**
@@ -294,53 +303,52 @@ export interface ProjectConfigContextParams extends DefaultEnvironmentContextPar
  * `secrets`.
  */
 export class ProjectConfigContext extends DefaultEnvironmentContext {
-  @schema(
-    joiStringMap(joi.string().description("The secret's value."))
-      .description("A map of all secrets for this project in the current environment.")
-      .meta({
-        internal: true,
-        keyPlaceholder: "<secret-name>",
-      })
-  )
+  @schema(secretsSchema)
   public readonly secrets: PrimitiveMap
-  private readonly _enterpriseDomain: string | undefined
+  private readonly _cloudBackendDomain: string
+  private readonly _backendType: "v1" | "v2"
   private readonly _loggedIn: boolean
+
+  constructor(params: ProjectConfigContextParams) {
+    super(params)
+    this._loggedIn = params.loggedIn
+    this.secrets = params.secrets
+    this._cloudBackendDomain = params.cloudBackendDomain
+    this._backendType = params.backendType
+  }
 
   override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
     if (key[0] !== "secrets") {
       return ""
     }
 
+    if (this._backendType === "v2") {
+      return getSecretsUnavailableInNewBackendMessage(this._cloudBackendDomain)
+    }
+
+    const distributionName = getCloudDistributionName(this._cloudBackendDomain)
+
     if (!this._loggedIn) {
       return dedent`
-        You are not logged in to Garden Cloud, but one or more secrets are referenced in template strings in your Garden configuration files.
+        You are not logged in to ${distributionName}, but one or more secrets are referenced in template strings in your Garden configuration files.
 
         Please log in via the ${styles.command("garden login")} command to use Garden with secrets.
       `
     }
 
     if (isEmpty(this.secrets)) {
-      // TODO: Provide project ID (not UID) to this class so we can render a full link to the secrets section of the
-      // project. To do this, we'll also need to handle the case where the project doesn't already exist in GE/CLoud.
-      const suffix = this._enterpriseDomain
-        ? ` To create secrets, please visit ${this._enterpriseDomain} and navigate to the secrets section for this project.`
-        : ""
+      // TODO: provide link to the secrets page
       return deline`
-        Looks like no secrets have been created for this project and/or environment in Garden Cloud.${suffix}
+        Looks like no secrets have been created for this project and/or environment in ${distributionName}.
+
+        To create secrets, please visit ${this._cloudBackendDomain} and navigate to the secrets section for this project.
       `
     } else {
       return deline`
-        Please make sure that all required secrets for this project exist in Garden Cloud, and are accessible in this
+        Please make sure that all required secrets for this project exist in ${distributionName}, and are accessible in this
         environment.
       `
     }
-  }
-
-  constructor(params: ProjectConfigContextParams) {
-    super(params)
-    this._loggedIn = params.loggedIn
-    this.secrets = params.secrets
-    this._enterpriseDomain = params.enterpriseDomain
   }
 }
 
@@ -362,14 +370,7 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
   public var: VariablesContext
 
-  @schema(
-    joiStringMap(joi.string().description("The secret's value."))
-      .description("A map of all secrets for this project in the current environment.")
-      .meta({
-        internal: true,
-        keyPlaceholder: "<secret-name>",
-      })
-  )
+  @schema(secretsSchema)
   public override secrets: PrimitiveMap
 
   constructor(params: EnvironmentConfigContextParams) {
@@ -403,7 +404,8 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       vcsInfo: garden.vcsInfo,
       username: garden.username,
       loggedIn: garden.isLoggedIn(),
-      enterpriseDomain: garden.cloudApi?.domain,
+      cloudBackendDomain: garden.cloudDomain,
+      backendType: getBackendType(garden.getProjectConfig()),
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
       variables,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,7 +21,7 @@ import { GardenIngressComponent } from "./ingress-controller-base.js"
 import { styles } from "../../../logger/styles.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
-const HELM_INGRESS_NGINX_VERSION = "4.12.0"
+const HELM_INGRESS_NGINX_VERSION = "4.12.1"
 const HELM_INGRESS_NGINX_CHART = "ingress-nginx"
 const HELM_INGRESS_NGINX_RELEASE_NAME = "garden-nginx"
 const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
@@ -74,6 +74,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       // setting the action name to providers is necessary to display the logs in provider-section
       actionName: "providers",
       namespace,
+      waitForJobs: false,
       ctx,
       provider,
       resources: [nginxHelmMainResource],
@@ -113,7 +114,13 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       // we check that the deployment or daemonset is ready because the status of the helm release
       // can be "deployed" even if the deployed resource is not ready.
       const nginxHelmMainResource = getNginxHelmMainResource(values)
-      const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: nginxHelmMainResource, log })
+      const deploymentStatus = await checkResourceStatus({
+        api,
+        namespace,
+        waitForJobs: false,
+        manifest: nginxHelmMainResource,
+        log,
+      })
       return deploymentStatus.state
     } catch (error) {
       log.debug(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} missing.`)

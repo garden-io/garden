@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -96,7 +96,7 @@ function makeMarkdownDescription(description: BaseKeyDescription, { showRequired
     ...description,
     breadCrumbs,
     experimentalFeature: description.experimental,
-    deprecated: !!description.deprecated,
+    deprecated: description.deprecated,
     deprecatedDescription,
     formattedExample,
     title: description.fullKey(),
@@ -237,6 +237,7 @@ export function renderSchemaDescriptionYaml(
 
     // Render key name and value
     const children = desc.getChildren()
+
     const formattedName = name
     const stringifiedValue = JSON.stringify(value)
     const exceptionallyTreatAsPrimitive =
@@ -349,11 +350,7 @@ export function renderConfigReference(
   const normalizedDescriptions = flattenSchema(desc, normalizeOpts)
   normalizedDescriptions.forEach((d) => (d.description = normalizeTemplateStrings(d.description)))
 
-  const yaml = renderSchemaDescriptionYaml(
-    // Skip deprecated fields in the YAML description
-    normalizedDescriptions.filter((d) => !d.deprecated),
-    { renderBasicDescription: true, ...yamlOpts }
-  )
+  const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { renderBasicDescription: true, ...yamlOpts })
   const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@ import { makeRunConfig } from "../config/workflow.js"
 import type { Log } from "../logger/log-entry.js"
 import { CloudApiError } from "../exceptions.js"
 import { gardenEnv } from "../constants.js"
-import type { Garden } from "../garden.js"
+import type { GardenWithOldBackend } from "../garden.js"
 import type { ApiFetchResponse } from "./http-client.js"
 import type { CreateWorkflowRunResponse } from "@garden-io/platform-api-types"
 import { dedent } from "../util/string.js"
@@ -19,7 +19,7 @@ import { GotHttpError } from "../util/http.js"
 
 export interface RegisterWorkflowRunParams {
   workflowConfig: WorkflowConfig
-  garden: Garden
+  garden: GardenWithOldBackend
   environment: string
   namespace: string
   log: Log
@@ -36,11 +36,6 @@ export async function registerWorkflowRun({
   log,
 }: RegisterWorkflowRunParams): Promise<string> {
   log.debug(`Registering workflow run for ${workflowConfig.name}...`)
-  if (!garden.isLoggedIn()) {
-    throw new CloudApiError({
-      message: "Error while registering workflow run: Couldn't initialize API. You need to login.",
-    })
-  }
 
   const workflowRunConfig = makeRunConfig(workflowConfig, environment, namespace)
   const requestData = {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,14 +20,11 @@ import {
 } from "../../../../../../src/plugins/kubernetes/helm/status.js"
 import { getReleaseName } from "../../../../../../src/plugins/kubernetes/helm/common.js"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
-import { buildHelmModules, getHelmLocalModeTestGarden, getHelmTestGarden } from "./common.js"
+import { buildHelmModules, getHelmTestGarden } from "./common.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util.js"
-import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
 import type { HelmDeployAction, HelmDeployConfig } from "../../../../../../src/plugins/kubernetes/helm/config.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
-import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
-import { FakeCloudApi } from "../../../../../helpers/api.js"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 import stripAnsi from "strip-ansi"
 import { randomString } from "../../../../../../src/util/string.js"
@@ -35,77 +32,7 @@ import { ChildProcessError, DeploymentError } from "../../../../../../src/except
 import { parseTemplateCollection } from "../../../../../../src/template/templated-collections.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants.js"
 import { join } from "node:path"
-
-describe("helmDeploy in local-mode", () => {
-  let garden: TestGarden
-  let provider: KubernetesProvider
-  let ctx: KubernetesPluginContext
-  let graph: ConfigGraph
-
-  before(async () => {
-    garden = await getHelmLocalModeTestGarden()
-    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
-    ctx = <KubernetesPluginContext>(
-      await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    )
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    await buildHelmModules(garden, graph)
-  })
-
-  after(async () => {
-    LocalModeProcessRegistry.getInstance().shutdown()
-    ProxySshKeystore.getInstance(garden.log).shutdown(garden.log)
-    const actions = await garden.getActionRouter()
-    await actions.deleteDeploys({ graph, log: garden.log })
-    if (garden) {
-      garden.close()
-    }
-  })
-
-  afterEach(async () => {
-    // shut down local app and tunnels to avoid retrying after redeploy
-    LocalModeProcessRegistry.getInstance().shutdown()
-  })
-
-  // TODO-G2
-  it("should deploy a chart with local mode enabled", async () => {
-    graph = await garden.getConfigGraph({
-      log: garden.log,
-      emit: false,
-      actionModes: { local: ["deploy.backend"] }, // <-----
-    })
-    const action = await garden.resolveAction<HelmDeployAction>({
-      action: graph.getDeploy("backend"),
-      log: garden.log,
-      graph,
-    })
-    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
-
-    const releaseName = getReleaseName(action)
-    await helmDeploy({
-      ctx,
-      log: actionLog,
-      action,
-      force: false,
-    })
-
-    const status = await getReleaseStatus({
-      ctx,
-      action,
-      releaseName,
-      log: garden.log,
-    })
-
-    expect(status.state).to.equal("ready")
-    expect(status.detail.mode).to.equal("local")
-    expect(status.detail.gardenMetadata).to.eql({
-      actionName: "backend",
-      projectName: garden.projectName,
-      version: action.versionString(),
-      mode: "local",
-    })
-  })
-})
+import type { EventNamespaceStatus } from "../../../../../../src/plugin-context.js"
 
 describe("helmDeploy", () => {
   let garden: TestGarden
@@ -147,7 +74,7 @@ describe("helmDeploy", () => {
         const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
         // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
-        let namespaceStatus: NamespaceStatus | null = null
+        let namespaceStatus: EventNamespaceStatus | null = null
         ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
         await helmDeploy({
           ctx,
@@ -189,7 +116,7 @@ describe("helmDeploy", () => {
       const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
-      let namespaceStatus: NamespaceStatus | null = null
+      let namespaceStatus: EventNamespaceStatus | null = null
       ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
       await helmDeploy({
         ctx,
@@ -388,7 +315,6 @@ describe("helmDeploy", () => {
     it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
       const projectRoot = getDataDir("test-projects", "helm")
       const gardenWithCloudApi = await makeTestGarden(projectRoot, {
-        overrideCloudApiFactory: FakeCloudApi.factory,
         noCache: true,
       })
 

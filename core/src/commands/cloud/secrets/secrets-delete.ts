@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,6 +16,7 @@ import { Command } from "../../base.js"
 import type { ApiCommandError, DeleteResult } from "../helpers.js"
 import { confirmDelete, handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import { enumerate } from "../../../util/enumerate.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/secrets.js"
 
 export const secretsDeleteArgs = {
   ids: new StringsParameter({
@@ -44,6 +45,8 @@ export class SecretsDeleteCommand extends Command<Args> {
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
+    handleSecretsUnavailableInNewBackend(garden)
+
     const secretsToDelete = args.ids || []
     if (secretsToDelete.length === 0) {
       throw new CommandError({

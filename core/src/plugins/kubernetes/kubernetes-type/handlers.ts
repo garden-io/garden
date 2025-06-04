@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,12 +26,11 @@ import {
   resolveResourceStatuses,
   waitForResources,
 } from "../status/status.js"
-import type { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types.js"
-import type { ManifestMetadata, ParsedMetadataManifestData } from "./common.js"
+import type { BaseResource, KubernetesResource, KubernetesServerResource } from "../types.js"
+import type { KubernetesDeployActionSpecFileSources, ManifestMetadata, ParsedMetadataManifestData } from "./common.js"
 import { convertServiceResource, getManifests, getMetadataManifest, parseMetadataResource } from "./common.js"
 import type { KubernetesModule } from "./module-config.js"
 import { configureKubernetesModule } from "./module-config.js"
-import { configureLocalMode, startServiceInLocalMode } from "../local-mode.js"
 import type { ExecBuildConfig } from "../../exec/build.js"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
@@ -41,6 +40,7 @@ import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-st
 import type { ResolvedDeployAction } from "../../../actions/deploy.js"
 import { isSha256 } from "../../../util/hashing.js"
 import { prepareSecrets } from "../secrets.js"
+import type { KubernetesPodRunActionConfig } from "./kubernetes-pod.js"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -56,8 +56,13 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const service = services[0] // There is always exactly one service in kubernetes modules
     const serviceResource = module.spec.serviceResource
 
-    const files = module.spec.files || []
-    const manifests = module.spec.manifests || []
+    const manifests: KubernetesResource[] = module.spec.manifests || []
+
+    const fileSources: KubernetesDeployActionSpecFileSources = {
+      manifestTemplates: module.spec.files || [],
+      manifestFiles: [],
+    }
+    const include = [...fileSources.manifestFiles, ...fileSources.manifestTemplates]
 
     const deployAction: KubernetesDeployActionConfig = {
       kind: "Deploy",
@@ -67,12 +72,23 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       build: dummyBuild?.name,
       dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
-      include: module.spec.files,
+      include,
       timeout: service.spec.timeout,
 
       spec: {
-        ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
-        files,
+        ...omit(module.spec, [
+          "name",
+          "build",
+          "files",
+          "dependencies",
+          "serviceResource",
+          "tasks",
+          "tests",
+          "sync",
+          "devMode",
+        ]),
+        ...fileSources,
+        waitForJobs: true,
         manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
       },
@@ -97,7 +113,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         continue
       }
 
-      actions.push({
+      const runAction: KubernetesPodRunActionConfig = {
         kind: "Run",
         type: "kubernetes-pod",
         name: task.name,
@@ -109,14 +125,16 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
         timeout: task.spec.timeout,
 
+        // @ts-expect-error this error seems like a compiler bug
         spec: {
-          ...omit(task.spec, ["name", "description", "dependencies", "disabled", "timeout"]),
+          ...omit(task.spec, ["name", "files", "description", "dependencies", "disabled", "timeout"] as const),
           resource,
-          files,
+          ...fileSources,
           manifests,
           namespace: module.spec.namespace,
         },
-      })
+      }
+      actions.push(runAction)
     }
 
     for (const test of tests) {
@@ -140,7 +158,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
-          files,
+          ...fileSources,
           manifests,
           namespace: module.spec.namespace,
         },
@@ -172,7 +190,6 @@ function composeKubernetesDeployStatus({
   state,
   remoteResources,
   forwardablePorts,
-  provider,
 }: {
   action: KubernetesDeployAction
   deployedMode: ActionMode
@@ -189,7 +206,7 @@ function composeKubernetesDeployStatus({
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
       mode: deployedMode,
-      ingresses: getK8sIngresses(remoteResources, provider),
+      ingresses: getK8sIngresses(remoteResources),
     },
     // TODO-0.13.1
     outputs: {},
@@ -208,8 +225,6 @@ function isOutdated({
   const deployedMode = deployedMetadata.mode
 
   if (deployedMetadata.resolvedVersion !== action.versionString()) {
-    return true
-  } else if (actionMode === "local" && spec.localMode && deployedMode !== "local") {
     return true
   } else if (actionMode === "sync" && spec.sync?.paths && deployedMode !== "sync") {
     return true
@@ -261,7 +276,7 @@ async function getResourceStatuses({
         return { resource, state: "outdated" } as ResourceStatus
       }
 
-      return await resolveResourceStatus({ api, namespace, resource, log })
+      return await resolveResourceStatus({ api, namespace, waitForJobs: false, resource, log })
     })
   )
 }
@@ -314,7 +329,6 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     const forwardablePorts = getForwardablePorts({
       resources: remoteResources,
       parentAction: action,
-      mode: deployedMode,
     })
 
     const state: DeployState = isOutdated({
@@ -354,7 +368,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
-  let attached = false
+  const attached = false
 
   const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
@@ -389,14 +403,13 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
     })
   }
 
-  let modifiedResources: SyncableResource[] = []
   let preparedManifests = manifests
 
   const mode = action.mode()
   const pruneLabels = { [gardenAnnotationKey("service")]: action.name }
 
   if (otherManifests.length > 0) {
-    if ((mode === "sync" && spec.sync) || (mode === "local" && spec.localMode)) {
+    if (mode === "sync" && spec.sync) {
       const configured = await configureSpecialModesForManifests({
         ctx: k8sCtx,
         log,
@@ -404,7 +417,6 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         manifests,
       })
       preparedManifests = configured.manifests
-      modifiedResources = configured.updated
     }
 
     // TODO: Similarly to `container` deployments, check if immutable fields have changed (and delete before
@@ -433,22 +445,6 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, status.detail?.forwardablePorts || [], log)
-
-  if (modifiedResources.length > 0) {
-    // Local mode always takes precedence over sync mode
-    if (mode === "local" && spec.localMode) {
-      await startServiceInLocalMode({
-        ctx,
-        spec: spec.localMode,
-        targetResource: modifiedResources[0],
-        manifests: preparedManifests,
-        action,
-        namespace,
-        log,
-      })
-      attached = true
-    }
-  }
 
   ctx.events.emit("namespaceStatus", namespaceStatus)
 
@@ -548,13 +544,13 @@ export const getKubernetesDeployLogs: DeployActionHandler<"getLogs", KubernetesD
 }
 
 /**
- * Looks for a sync-mode or local-mode target in a list of manifests.
- * If found, the target is either configured for sync-mode/local-mode
- * or annotated with `sync-mode: false`, or `local-mode: false`.
+ * Looks for a sync-mode target in a list of manifests.
+ * If found, the target is either configured for sync-mode
+ * or annotated with `sync-mode: false`.
  *
  * Returns the manifests with the original resource replaced by the modified spec.
  *
- * No-op if no target is found and neither sync-mode nor local-mode is enabled.
+ * No-op if no target is found and sync-mode is not enabled.
  */
 async function configureSpecialModesForManifests({
   ctx,
@@ -570,19 +566,7 @@ async function configureSpecialModesForManifests({
   const spec = action.getSpec()
   const mode = action.mode()
 
-  // Local mode always takes precedence over sync mode
-  if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
-    // TODO-0.13.0: Support multiple local processes+targets
-    // The "local-mode" annotation is set in `configureLocalMode`.
-    return await configureLocalMode({
-      ctx,
-      spec: spec.localMode,
-      defaultTarget: spec.defaultTarget,
-      manifests,
-      action,
-      log,
-    })
-  } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
+  if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     // The "sync-mode" annotation is already set.
     return configureSyncMode({
       ctx,

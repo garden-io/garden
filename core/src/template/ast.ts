@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,11 +20,11 @@ import { TemplateStringError } from "./errors.js"
 import { styles } from "../logger/styles.js"
 
 type ASTEvaluateArgs = EvaluateTemplateArgs & {
-  yamlSource: ConfigSource
+  readonly yamlSource: ConfigSource
 
   /**
-   * Whether or not to throw an error if ContextLookupExpression fails to resolve variable.
-   * The FormatStringExpression will set this parameter based on wether the OptionalSuffix (?) is present or not.
+   * Whether to throw an error if {@link ContextLookupExpression} fails to resolve variable.
+   * The FormatStringExpression will set this parameter based on whether the OptionalSuffix (?) is present or not.
    */
   readonly optional?: boolean
 }
@@ -99,7 +99,7 @@ export class IdentifierExpression extends TemplateExpression {
   ) {
     if (!isString(identifier) && !isNumber(identifier)) {
       throw new InternalError({
-        message: `identifier arg for IdentifierExpression must be a string or number. Got: ${typeof identifier}`,
+        message: `identifier arg for IdentifierExpression must be a string or number. Got: ${typeOf(identifier)}`,
       })
     }
     super()
@@ -222,6 +222,7 @@ export abstract class LogicalExpression extends TemplateExpression implements Br
   ) {
     super()
   }
+
   override isBranch(): this is Branch<TemplateExpression> {
     return true
   }
@@ -247,6 +248,14 @@ export function isTruthy(v: TemplatePrimitive | Collection<unknown>): boolean {
   // collections are truthy, regardless wether they are empty or not.
   v satisfies Collection<unknown>
   return true
+}
+
+function typeOf(v: TemplatePrimitive | Collection<TemplatePrimitive>): string {
+  // the Javascript expression `typeof null` results in the string "object". That's not helpful in template error messages
+  if (v === null) {
+    return "null"
+  }
+  return typeof v
 }
 
 export class LogicalOrExpression extends LogicalExpression {
@@ -393,7 +402,7 @@ export class AddExpression extends BinaryExpression {
       return left.concat(right)
     } else {
       throw new TemplateStringError({
-        message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
+        message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeOf(left)} and ${typeOf(right)}).`,
         loc: this.loc,
         yamlSource,
       })
@@ -409,7 +418,7 @@ export class ContainsExpression extends BinaryExpression {
   ): boolean {
     if (!isTemplatePrimitive(element)) {
       throw new TemplateStringError({
-        message: `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof element}).`,
+        message: `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeOf(element)}).`,
         loc: this.loc,
         yamlSource,
       })
@@ -446,7 +455,7 @@ export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
       throw new TemplateStringError({
         message: `Both terms need to be numbers for ${
           this.operator
-        } operator (got ${typeof left} and ${typeof right}).`,
+        } operator (got ${typeOf(left)} and ${typeOf(right)}).`,
         loc: this.loc,
         yamlSource,
       })
@@ -510,8 +519,7 @@ export class FormatStringExpression extends TemplateExpression {
   constructor(
     public readonly rawText: string,
     public readonly loc: Location,
-    public readonly innerExpression: TemplateExpression,
-    public readonly isOptional: boolean
+    private readonly innerExpression: TemplateExpression
   ) {
     super()
   }
@@ -521,19 +529,9 @@ export class FormatStringExpression extends TemplateExpression {
       ...args,
       opts: {
         ...args.opts,
-        // nested expressions should never be partially resolved in legacy mode
-        // Otherwise, weird problems can happen if we e.g. partially resolve a sub-expression and pass it to a parameter of a function call.
-        // TODO(0.14): remove legacyAllowPartial
-        legacyAllowPartial: false,
       },
-      optional: args.optional || this.isOptional,
+      optional: args.optional,
     })
-
-    // Only if this expression is optional we return undefined instead of symbol.
-    // If merely optional is true in EvaluateArgs, we must return symbol.
-    if (this.isOptional && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-      return undefined
-    }
 
     return result
   }
@@ -580,24 +578,14 @@ export class BlockExpression extends AbstractBlockExpression {
   }
 
   override evaluate(args: ASTEvaluateArgs): ASTEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
-    const legacyAllowPartial = args.opts.legacyAllowPartial
-
     let result: string = ""
     for (const expr of this.expressions) {
       const r = expr.evaluate({
         ...args,
-        // in legacyAllowPartial mode, all template expressions are optional
-        optional: args.optional || legacyAllowPartial,
+        optional: args.optional,
       })
 
-      // For legacy allow partial mode, other format string expressions might be evaluated, and
-      // we produce a string even when a key hasn't been found.
-      // This is extremely evil, but unfortunately needs to be kept for backwards bug-compatibility.
-      // TODO(0.14): please remove legacyAllowPartial
-      if (legacyAllowPartial && typeof r === "symbol") {
-        result += expr.rawText
-        continue
-      } else if (this.expressions.length === 1) {
+      if (this.expressions.length === 1) {
         // if we evaluate a single expression we are allowed to evaluate to something other than a string
         return r
       }
@@ -734,7 +722,7 @@ export class MemberExpression extends TemplateExpression {
 
     if (typeof inner !== "string" && typeof inner !== "number") {
       throw new TemplateStringError({
-        message: `Expression in brackets must resolve to a string or number (got ${typeof inner}).`,
+        message: `Expression in brackets must resolve to a string or number (got ${typeOf(inner)}).`,
         loc: this.loc,
         yamlSource: args.yamlSource,
       })

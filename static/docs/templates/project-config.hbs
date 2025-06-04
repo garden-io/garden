@@ -5,7 +5,7 @@ title: Project Configuration
 
 # Project Configuration Reference
 
-Below is the schema reference for [Project](../using-garden/projects.md) configuration files. For an introduction to configuring a Garden project, please look at our [configuration guide](../using-garden/configuration-overview.md).
+Below is the schema reference for Project configuration files.
 
 The reference is divided into two sections:
 * [YAML Schema](#yaml-schema) contains the Project config YAML schema

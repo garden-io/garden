@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,11 +23,9 @@ import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli.js"
 import type { HelmModule } from "./module-config.js"
 import { ConfigurationError, PluginError } from "../../../exceptions.js"
-import { deline, tailString } from "../../../util/string.js"
+import { deline } from "../../../util/string.js"
 import { flattenResources, getAnnotation } from "../util.js"
 import type { KubernetesPluginContext } from "../config.js"
-import type { RunResult } from "../../../plugin/base.js"
-import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants.js"
 import { safeDumpYaml } from "../../../util/serialization.js"
 import type { HelmDeployAction } from "./config.js"
 import type { ActionMode, Resolved } from "../../../actions/types.js"
@@ -408,13 +406,4 @@ export function loadTemplate(template: string): KubernetesResource[] {
       }
       return obj
     })
-}
-
-export function trimRunOutput<T extends RunResult>(result: T): T {
-  const log = tailString(result.log, MAX_RUN_RESULT_LOG_LENGTH, true)
-
-  return {
-    ...result,
-    log,
-  }
 }

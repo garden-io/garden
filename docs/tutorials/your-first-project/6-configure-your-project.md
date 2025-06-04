@@ -13,13 +13,9 @@ Garden is a powerful and flexible tool, and there are several things to learn al
 
 1. Place the project configuration you created for the example, which will already be configured to connect to your cluster, in
    your own project root.
-2. Go through the [Using Garden](../../using-garden/README.md) documentation section. This will cover all the key
-   concepts, and introduce all the moving parts, including the different action kinds and types that Garden supports.
-3. Check out the [Adopting Garden](../../overview/adopting-garden.md) to learn how teams typically adopt Garden.
-4. Have a look at the [examples](../../../examples) folder in the Garden repository, which offers several usage examples
-   that you can refer to while building out your project.
-5. Configure _your_ actions, get them building and deploying.
-6. Add more environments. Garden works great in CI and in fact that's often the starting point for many teams. Take a look at our [guide on environments and namespaces](../../guides/namespaces.md) to learn more.
+2. Start adding your own actions, and get them building and deploying. Consider using
+   [ConfigTemplates](../../features/config-templates.md) if you have a lot of similar actions configs.
+3. Add more environments. Garden works great in CI and in fact that's often the starting point for many teams. Take a look at our [guide on environments and namespaces](../../guides/namespaces.md) to learn more.
 
 In summary, **gradually put all the pieces together**, learn the details as you go, and use more and more features as you get comfortable.
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,6 @@ import { deline } from "../../../../../../src/util/string.js"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
 import type { KubernetesConfig } from "../../../../../../src/plugins/kubernetes/config.js"
 import type { V1Secret } from "@kubernetes/client-node"
-import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init.js"
 import type { ContainerTestAction } from "../../../../../../src/plugins/container/config.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 import type { TestGardenOpts } from "../../../../../../src/util/testing.js"
@@ -26,6 +25,8 @@ import { getGoogleADCImagePullSecret } from "../../../../helpers.js"
 import type { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types.js"
 import { mkdir, writeFile } from "fs/promises"
 import { isErrnoException } from "../../../../../../src/exceptions.js"
+import { prepareEnvironment } from "../../../../../../src/plugins/kubernetes/init.js"
+import type { PluginContext } from "../../../../../../src/plugin-context.js"
 
 const { emptyDir, pathExists } = fsExtra
 
@@ -130,13 +131,10 @@ export async function getContainerTestGarden(
     }
     await api.upsert({ kind: "Secret", namespace: "default", obj: credentialHelperAuth, log: garden.log })
 
-    // Run cluster-init
-    await clusterInit.handler({
-      garden,
-      ctx,
+    await prepareEnvironment({
+      ctx: ctx as PluginContext<KubernetesConfig>,
       log: garden.log,
-      args: [],
-      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+      force: true,
     })
   }
 
@@ -146,11 +144,9 @@ export async function getContainerTestGarden(
 describe("kubernetes container module handlers", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  // let provider: KubernetesProvider
 
   before(async () => {
     garden = await makeTestGarden(root)
-    // provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
   })
 
   beforeEach(async () => {

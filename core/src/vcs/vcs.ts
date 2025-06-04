@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -82,6 +82,7 @@ export interface ModuleVersion extends TreeVersion {
 
 export interface ActionVersion {
   versionString: string
+  versionStringFull: string
   dependencyVersions: DependencyVersions
   configVersion: string
   sourceVersion: string
@@ -433,10 +434,16 @@ export function getEntityVersion(module: GardenModule, entityConfig: ServiceConf
   return `${versionStringPrefix}${hashStrings([module.version.versionString, configString])}`
 }
 
-export function hashStrings(hashes: string[]) {
+export const SHORT_VERSION_HASH_LENGTH = 10
+
+export function hashStrings(strings: string[]) {
+  return fullHashStrings(strings).slice(0, SHORT_VERSION_HASH_LENGTH)
+}
+
+export function fullHashStrings(strings: string[]) {
   const versionHash = createHash("sha256")
-  versionHash.update(hashes.join("."))
-  return versionHash.digest("hex").slice(0, 10)
+  versionHash.update(strings.join("."))
+  return versionHash.digest("hex")
 }
 
 export function getResourceTreeCacheKey(config: ModuleConfig | BaseActionConfig) {

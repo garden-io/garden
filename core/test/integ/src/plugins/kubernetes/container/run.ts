@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,14 +13,17 @@ import { expectError } from "../../../../../helpers.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { RunTask } from "../../../../../../src/tasks/run.js"
 import fsExtra from "fs-extra"
+
 const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
 import { getContainerTestGarden } from "./container.js"
-import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results.js"
-import type { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
 import type { ContainerRunAction } from "../../../../../../src/plugins/container/config.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 import { waitForOutputFlush } from "../../../../../../src/process.js"
+
+import { getRunResultCache } from "../../../../../../src/plugins/kubernetes/results-cache.js"
+import { getNamespaceStatus } from "../../../../../../src/plugins/kubernetes/namespace.js"
 
 describe("runContainerTask", () => {
   let garden: TestGarden
@@ -35,6 +38,7 @@ describe("runContainerTask", () => {
 
   after(async () => {
     if (cleanup) {
+      garden && garden.close()
       cleanup()
     }
   })
@@ -58,7 +62,22 @@ describe("runContainerTask", () => {
     garden.events.eventLog = []
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearRunResult({ ctx, log: garden.log, action })
+    const k8sCtx = ctx as KubernetesPluginContext
+    const namespaceStatus = await getNamespaceStatus({
+      ctx: k8sCtx,
+      log: garden.log,
+      skipCreate: true,
+      provider: k8sCtx.provider,
+    })
+    expect(namespaceStatus.state).to.eql("ready")
+
+    const runResultCache = getRunResultCache(ctx)
+    await runResultCache.clear({
+      ctx,
+      log: garden.log,
+      action,
+      keyData: { namespaceUid: namespaceStatus.namespaceUid! },
+    })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const result = results.results.getResult(testTask)
@@ -71,7 +90,6 @@ describe("runContainerTask", () => {
     expect(result!.result!.detail?.log.trim()).to.equal("ok\nbear")
     expect(result!.result).to.have.property("outputs")
     expect(result!.result!.outputs.log.trim()).to.equal("ok\nbear")
-    expect(result!.result!.detail?.namespaceStatus).to.exist
     expect(logEvent).to.exist
 
     // Verify that the result was saved
@@ -106,7 +124,22 @@ describe("runContainerTask", () => {
     })
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearRunResult({ ctx, log: garden.log, action })
+    const k8sCtx = ctx as KubernetesPluginContext
+    const namespaceStatus = await getNamespaceStatus({
+      ctx: k8sCtx,
+      log: garden.log,
+      skipCreate: true,
+      provider: k8sCtx.provider,
+    })
+    expect(namespaceStatus.state).to.eql("ready")
+
+    const runResultCache = getRunResultCache(ctx)
+    await runResultCache.clear({
+      ctx,
+      log: garden.log,
+      action,
+      keyData: { namespaceUid: namespaceStatus.namespaceUid! },
+    })
 
     await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
@@ -142,7 +175,22 @@ describe("runContainerTask", () => {
     })
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearRunResult({ ctx, log: garden.log, action })
+    const k8sCtx = ctx as KubernetesPluginContext
+    const namespaceStatus = await getNamespaceStatus({
+      ctx: k8sCtx,
+      log: garden.log,
+      skipCreate: true,
+      provider: k8sCtx.provider,
+    })
+    expect(namespaceStatus.state).to.eql("ready")
+
+    const runResultCache = getRunResultCache(ctx)
+    await runResultCache.clear({
+      ctx,
+      log: garden.log,
+      action,
+      keyData: { namespaceUid: namespaceStatus.namespaceUid! },
+    })
 
     await expectError(
       async () => await garden.processTasks({ tasks: [testTask], throwOnError: true }),

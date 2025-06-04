@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -87,6 +87,7 @@ export class WorkflowCommand extends Command<Args, {}> {
       secrets: garden.secrets,
       prefix: workflow.kind,
       isLoggedIn: garden.isLoggedIn(),
+      cloudBackendDomain: garden.cloudDomain,
       log,
     })
 
@@ -536,7 +537,7 @@ export function logErrors(
 }
 
 async function registerAndSetUid(garden: Garden, log: Log, config: WorkflowConfig) {
-  if (!garden.isLoggedIn()) {
+  if (!garden.isOldBackendAvailable()) {
     return
   }
 

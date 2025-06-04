@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isEqual, isString, mapValues, memoize, omit, pick, uniq } from "lodash-es"
+import { isEqual, isString, mapValues, omit } from "lodash-es"
 import type {
   Action,
   ActionConfig,
@@ -26,8 +26,6 @@ import {
   actionIsDisabled,
   actionReferenceToString,
   addActionDependency,
-  baseActionConfigSchema,
-  baseRuntimeActionConfigSchema,
   describeActionConfig,
   describeActionConfigWithPath,
 } from "../actions/base.js"
@@ -36,11 +34,11 @@ import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "..
 import { isRunActionConfig, RunAction, runActionConfigSchema } from "../actions/run.js"
 import { isTestActionConfig, TestAction, testActionConfigSchema } from "../actions/test.js"
 import { noTemplateFields } from "../config/base.js"
-import type { ActionReference, JoiDescription } from "../config/common.js"
+import type { ActionReference } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
-import { ConfigurationError, GardenError, PluginError } from "../exceptions.js"
+import { ConfigurationError, GardenError, InternalError, PluginError } from "../exceptions.js"
 import { type Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ActionTypeDefinition } from "../plugin/action-types.js"
@@ -65,9 +63,9 @@ import { styles } from "../logger/styles.js"
 import { isUnresolvableValue } from "../template/analysis.js"
 import { getActionTemplateReferences } from "../config/references.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import { type ParsedTemplate } from "../template/types.js"
 import { validateWithPath } from "../config/validation.js"
 import { VariablesContext } from "../config/template-contexts/variables.js"
+import { isPlainObject } from "../util/objects.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -362,20 +360,6 @@ function getActionMode(config: ActionConfig, actionModes: ActionModeMap, log: Lo
     }
   }
 
-  // Local mode takes precedence over sync
-  // TODO: deduplicate
-  for (const pattern of actionModes.local || []) {
-    if (key === pattern) {
-      explicitMode = true
-      mode = "local"
-      log.silly(() => `Action ${key} set to ${mode} mode, matched on exact key`)
-      break
-    } else if (minimatch(key, pattern)) {
-      mode = "local"
-      log.silly(() => `Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
-      break
-    }
-  }
   return { mode, explicitMode }
 }
 
@@ -459,7 +443,7 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
 
-  if (!actionTypes[kind][type]) {
+  if (!actionTypes[kind][type] && !actionIsDisabled(config, garden.environmentName)) {
     const availableKinds: ActionKind[] = []
     actionKinds.forEach((actionKind) => {
       if (actionTypes[actionKind][type]) {
@@ -656,25 +640,6 @@ export async function executeAction<T extends Action>({
   return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }
 
-// Returns non-templatable keys, and keys that can be resolved using ActionConfigContext.
-const getBuiltinConfigContextKeys = memoize(() => {
-  const keys: string[] = []
-
-  for (const schema of [buildActionConfigSchema(), baseRuntimeActionConfigSchema(), baseActionConfigSchema()]) {
-    const configKeys = schema.describe().keys
-
-    for (const [k, v] of Object.entries(configKeys)) {
-      if (
-        (<JoiDescription>v).metas?.find((m) => m.templateContext === ActionConfigContext || m.templateContext === null)
-      ) {
-        keys.push(k)
-      }
-    }
-  }
-
-  return uniq(keys)
-})
-
 function getActionSchema(kind: ActionKind) {
   switch (kind) {
     case "Build":
@@ -737,8 +702,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     variables: garden.variables,
   })
 
-  const builtinConfigKeys = getBuiltinConfigContextKeys()
-
   // action context (may be missing some varfiles at this point)
   const builtinFieldContext = new ActionConfigContext({
     garden,
@@ -751,32 +714,41 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   })
 
   function resolveTemplates() {
-    // Fully resolve built-in fields that only support `ActionConfigContext`.
-    // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
-    const resolvedBuiltin = deepEvaluate(pick(config, builtinConfigKeys) as Record<string, ParsedTemplate>, {
+    // Step 1: Resolve everything except for spec, variables. They'll be fully resolved later. Also omit internal.
+    // @ts-expect-error todo: correct types for unresolved configs
+    const resolvedBuiltin = deepEvaluate(omit(config, ["variables", "spec", "internal"]), {
       context: builtinFieldContext,
       opts: {},
     })
-    const { spec = {} } = config
 
+    if (!isPlainObject(resolvedBuiltin)) {
+      throw new InternalError({
+        message: "Expected action config to evaluate to a plain object.",
+      })
+    }
+
+    // Step 2: Validate everything except variables and spec
+    const validatedBuiltin = validateWithPath<ActionConfig>({
+      config: {
+        ...resolvedBuiltin,
+        variables: {},
+        spec: {},
+      },
+      schema: getActionSchema(config.kind),
+      configType: describeActionConfig(config),
+      name: config.name,
+      path: config.internal.basePath,
+      projectRoot: garden.projectRoot,
+      source: { yamlDoc: config.internal.yamlDoc, path: [] },
+    })
+
+    // Step 3: make sure we don't lose the unresolved spec and variables. They'll be fully resolved later.
+    const { spec = {}, variables = {}, internal } = config
     config = {
-      ...config,
-      // Validate fully resolved keys (the above + those that don't allow any templating)
-      ...validateWithPath({
-        config: {
-          ...resolvedBuiltin,
-          variables: {},
-          spec: {},
-        },
-        schema: getActionSchema(config.kind),
-        configType: describeActionConfig(config),
-        name: config.name,
-        path: config.internal.basePath,
-        projectRoot: garden.projectRoot,
-        source: { yamlDoc: config.internal.yamlDoc, path: [] },
-      }),
+      ...validatedBuiltin,
       spec,
-      variables: config.variables,
+      variables,
+      internal,
     }
   }
 
@@ -967,11 +939,14 @@ function dependenciesFromActionConfig({
   }
 
   // Action template references in spec/variables
-  // -> We avoid depending on action execution when referencing static output keys
+  // - We avoid depending on action execution when referencing static output keys from runtime actions
+  //   (Deploys, Tests and Runs).
+  // - We _do_ depend on action execution when referencing static output keys from Build actions.
   const staticOutputKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
 
   for (const ref of getActionTemplateReferences(config, templateContext)) {
     let needsExecuted = false
+    let isExplicit = false
 
     const outputType = ref.keyPath[0]
 
@@ -985,7 +960,7 @@ function dependenciesFromActionConfig({
     const outputKey = ref.keyPath[1]
 
     const refActionKey = actionReferenceToString(ref)
-    const refActionType = configsByKey[refActionKey]?.type
+    const { type: refActionType, kind: refActionKind } = configsByKey[refActionKey] || {}
 
     if (outputType === "outputs") {
       let refStaticOutputKeys: string[] = []
@@ -996,12 +971,28 @@ function dependenciesFromActionConfig({
           : []
       }
 
-      // Avoid execution when referencing the static output keys of the ref action type.
-      // e.g. a helm deploy referencing container build static output deploymentImageName
-      // ${actions.build.my-container.outputs.deploymentImageName}
+      /*
+        If a referenced dependency is a Build, then we re-mark it as explicit dependency.
+        It will have the same effect as if it was explicitly referenced in the configuration.
+
+        This is safe, because Builds generally don't have side-effects other than producing artifacts,
+        whereas Deploys and Runs often do.
+
+        This improves the user experience for the common use-case of referencing a container image in a runtime
+        resource (like a `helm` Deploy), where the user intent is almost always that the referenced build should exist
+        (i.e. the dependency should be processed) before the runtime resource is processed (i.e. deployed or run).
+
+        Note: We could also always execute Test actions that are referenced, but we'll stick with only Builds for now.
+       */
+      if (refActionKind === "Build") {
+        isExplicit = true
+      }
+
       if (!isString(outputKey)) {
+        // If the output key is not resolved yet, we just mark at as needing execution.
         needsExecuted = true
       } else {
+        // Otherwise, we avoid execution when referencing the static output keys of the ref's action type.
         needsExecuted = !staticOutputKeys.includes(outputKey) && !refStaticOutputKeys.includes(outputKey)
       }
     }
@@ -1012,7 +1003,7 @@ function dependenciesFromActionConfig({
     }
 
     addDep(omit(refWithType, ["keyPath"]), {
-      explicit: false,
+      explicit: isExplicit,
       needsExecutedOutputs: needsExecuted,
       needsStaticOutputs: !needsExecuted,
     })

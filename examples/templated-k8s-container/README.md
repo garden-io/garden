@@ -10,4 +10,4 @@ To see the generated action in detail, you can run `garden get actions --output=
 
 To test the example with a local Kubernetes cluster, simply run `garden deploy`.
 
-For more complex use-cases and additional configuration options please refer to the [docs](../../docs/using-garden/config-templates.md).
+For more complex use-cases and additional configuration options please refer to the [docs](../../docs/features/config-templates.md).
