@@ -13,7 +13,8 @@ You can define `terraform` actions as part of your project, much like any other 
 kind: Deploy
 type: terraform
 name: tf
-autoApply: true
+spec:
+  autoApply: true
 
 ---
 kind: Deploy
