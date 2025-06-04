@@ -39,6 +39,7 @@ import { VariablesContext } from "../config/template-contexts/variables.js"
 import type { GroupConfig } from "../config/group.js"
 import { throwOnMissingSecretKeys } from "../config/secrets.js"
 import { RemoteSourceConfigContext } from "../config/template-contexts/project.js"
+import { makeDocsLinkPlain } from "../docs/common.js"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -305,12 +306,15 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     const path = this.action.sourcePath()
     const internal = this.action.getInternal()
 
+    const docsUrl = makeDocsLinkPlain(`reference/action-types/${kind}/${type}`)
+
     spec = validateWithPath({
       config: spec,
       schema: actionType.schema,
       path,
       projectRoot: this.garden.projectRoot,
       configType: `spec for ${description}`,
+      docsUrl,
       source: { yamlDoc: internal.yamlDoc, path: ["spec"] },
     })
 
@@ -324,6 +328,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         path,
         projectRoot: this.garden.projectRoot,
         configType: `spec for ${description} (base schema from '${base.name}' plugin)`,
+        docsUrl,
         source: { yamlDoc: internal.yamlDoc, path: ["spec"] },
       })
     }
