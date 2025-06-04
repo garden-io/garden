@@ -437,6 +437,8 @@ const toolMap: Record<string, ToolHandler> = {
         log.info(chalk.cyan(`Overwriting "${absoluteFilePath}".`))
         operationType = "overwrote"
       }
+    } else {
+      log.info(chalk.cyan(`Creating file "${absoluteFilePath}".`))
     }
 
     await fsExtra.outputFile(absoluteFilePath, content)
@@ -572,7 +574,7 @@ async function promptClaude(log: Log, messages: MessageParam[]) {
 
   const stream = anthropic.messages
     .stream({
-      model: "claude-3-7-sonnet-20250219",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 64000,
       system: "You are a Garden support engineer, Garden is a dev tool for Kubernetes",
       tools,
