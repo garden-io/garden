@@ -245,7 +245,7 @@ ${gardenDocs}
 Follow the instructions below to configure a Garden project:
 
 - Use the get_repo_file_tree tool to get repo file structure
-- Then use the read_file tool to read relevant files such as Kubernetes manifests
+- Then use the read_files tool to read relevant files such as Kubernetes manifests
 - Then use the write_file tool to create a Project configuration. This should be named project.garden.yml.
 - Then use the write_file tool to create the relevant config files for each action based on the repo contents, one file at a time. Use comments and placeholder values as needed. Only create Build, Deploy, and Test actions. The file MUST be named garden.yml.
 - After each config file you create, including the project.garden.yml, use the garden_validate tool to validate the file
@@ -280,17 +280,19 @@ const tools = [
     },
   },
   {
-    name: "read_file",
-    description: "Lists the relevant files in the repo. Skips non-relevant files such as node_modules and more",
+    name: "read_files",
+    description:
+      "Reads the content of one or more specified files and returns the contents as a JSON object keyed by file path. Input is an array of relative file paths.",
     input_schema: {
       type: "object" as const,
       properties: {
-        file_path: {
-          type: "string",
-          description: "The relative path to the file that should be read",
+        file_paths: {
+          type: "array",
+          items: { type: "string" },
+          description: "An array of relative paths to the files that should be read",
         },
       },
-      required: ["file_path"],
+      required: ["file_paths"],
     },
   },
   {
@@ -327,8 +329,8 @@ Use force=true to skip overwrite confirmation.`,
   },
 ] as Array<ToolUnion>
 
-interface ReadFileToolInput {
-  file_path: string
+interface ReadFilesToolInput {
+  file_paths: string[]
 }
 
 interface WriteFileToolInput {
@@ -401,17 +403,42 @@ const toolMap: Record<string, ToolHandler> = {
     return { content: files.join("\n"), result: "success" }
   },
 
-  read_file: async ({ input, log }: ToolParams) => {
-    const { file_path: filePath } = input as ReadFileToolInput
-    log.info(chalk.cyan(`Reading file at path: ${filePath}`))
-
-    try {
-      const content = (await fsExtra.readFile(filePath)).toString()
-      return { content, result: "success" }
-    } catch (error) {
-      log.error(`Failed to read file at path: ${filePath}`)
-      return { content: String(error), result: "error_continue" }
+  read_files: async ({ rootDir, input, log }: ToolParams) => {
+    const { file_paths: relativeFilePaths } = input as ReadFilesToolInput
+    if (!Array.isArray(relativeFilePaths) || relativeFilePaths.some((p) => typeof p !== "string")) {
+      const err = "Input 'file_paths' must be an array of strings."
+      log.error(err)
+      return { content: err, result: "error_stop" }
     }
+    log.info(chalk.cyan(`Reading files at paths: ${relativeFilePaths.join(", ")}`))
+
+    const results = await Promise.allSettled(
+      relativeFilePaths.map(async (relativeFilePath) => {
+        const absoluteFilePath = join(rootDir, relativeFilePath)
+        try {
+          const content = (await fsExtra.readFile(absoluteFilePath)).toString()
+          log.info(chalk.green(`Successfully read file: ${absoluteFilePath}`))
+          return { filePath: relativeFilePath, content }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          log.error(`Failed to read file at path: ${absoluteFilePath}: ${errorMessage}`)
+          return { filePath: relativeFilePath, error: errorMessage }
+        }
+      })
+    )
+
+    const output = results.map((result) => {
+      if (result.status === "fulfilled") {
+        return result.value
+      } else {
+        const reason = result.reason
+        const errorMessage = reason instanceof Error ? reason.message : String(reason)
+        log.error(`Unexpected error during file processing: ${errorMessage}`)
+        return { filePath: "unknown_path_due_to_processing_error", error: errorMessage }
+      }
+    })
+
+    return { content: JSON.stringify(output, null, 2), result: "success" }
   },
 
   write_file: async ({ rootDir, input, log }: ToolParams) => {
