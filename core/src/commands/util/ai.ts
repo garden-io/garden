@@ -22,10 +22,50 @@ import { stdin as inputRL, stdout as outputRL } from "node:process"
 import { Garden } from "../../garden.js"
 import { ValidateCommand } from "../validate.js"
 import type { Log } from "../../logger/log-entry.js"
+import stripAnsi from "strip-ansi"
+import { LogLevel, VoidLogger } from "../../logger/logger.js"
+import type { MessageParam, ToolResultBlockParam } from "@anthropic-ai/sdk/resources/messages.mjs"
 
 export const aiOpts: Record<string, never> = {}
 
 type Opts = typeof aiOpts
+
+const aiConfigGenArgs = {
+  names: new StringsParameter({
+    help: "Names of items to generate config for (e.g. service names, directories)",
+  }),
+}
+type Args = typeof aiConfigGenArgs
+
+export class AiConfigGenCommand extends Command<Args, Opts> {
+  name = "ai-config-gen"
+  help = "[EXPERIMENTAL] Generate Garden config files using Anthropic's Claude AI"
+
+  override noProject = true
+
+  override description = dedent`
+    Generate Garden config files using Anthropic's Claude AI.
+
+    Currently this requires you to have an Anthropic API key set in the environment variable ANTHROPIC_API_KEY. You can get an API key from https://console.anthropic.com/api-keys. You will also need some credits in your Anthropic account.
+
+    The command also currently assumes that you have some flavor of Kubernetes running locally, such as Minikube, Docker Desktop, Orbstack etc.
+
+    NOTE: THIS IS AN EXPERIMENTAL FEATURE.
+  `
+
+  override arguments = aiConfigGenArgs
+  override options = aiOpts
+
+  override printHeader({ log }) {
+    printHeader(log, "AI Config Generator", "🤖")
+  }
+
+  async action({ garden, log }: CommandParams<Args, Opts>): Promise<CommandResult> {
+    await gardenBot(garden.projectRoot, log)
+
+    return {}
+  }
+}
 
 // TODO: allow logging in at runtime
 const anthropic = new Anthropic({})
@@ -54,7 +94,7 @@ name: say-hi # Required field
 type: exec # Required field, depends on the kind. The most used types are exec, container, kubernetes, helm
 description: An exec action that prints the shell username # Optional
 spec: # All actions have a spec field and it's shape depends on the action kind and type
-  command: [/bin/sh, -c, "echo 'hi \${local.user}'"] # Here we're using Garden template strings to print the username
+  command: [/bin/sh, -c, "echo 'hi \${local.username}'"] # Here we're using Garden template strings to print the username
 ---
 kind: Run
 name: echo-say-hi
@@ -72,23 +112,27 @@ Following is a real world example (but a relatively simple one). This is the mai
 
 \`\`\`yaml
 # project.garden.yml
+apiVersion: garden.io/v2
 kind: Project
 name: real-world-example
 environments: # Environments are required
+  - name: local
   - name: dev
   - name: ci
 
-defaultEnvironment: dev
+defaultEnvironment: local
 
 providers:
-  - name: kubernetes # This tells Garden to use this cluster in the dev environment
+  - name: local-kubernetes # This tells Garden to use a local Kubernetes installation for dev
+    environments: [local]
+    namespace: \${project.name}
+  - name: kubernetes # This tells Garden to use this Kubernetes cluster for remote dev
     environments: [dev]
-    context: my-dev-cluster-contetx
-    namespace: real-world-example-\${local.user} # Deploy to a namespace based on the user's name in the dev cluster
+    namespace: \${project.name}-\${local.username} # Deploy to a namespace based on the user's name in the dev cluster
   - name: kubernetes # This tells Garden to use another cluster for CI
     environments: [ci]
-    namespace: real-world-example-\${git.branch} # Deploy to a namespace based on the user's name in the CI cluster
-    context: my-ci-cluster-contetx
+    namespace: \${project.name}-\${git.branch} # Deploy to a namespace based on the git branch in the CI cluster
+    context: my-ci-cluster-context
 
 # In db/garden.yml
 kind: Deploy
@@ -192,7 +236,7 @@ You are a Garden support engineer. Garden is a dev tools for Kubernetes.
 
 Your task is to familiarise yourself with Garden via the docs below and then configure a Garden project in a git repository. You have several tools at your disposal.
 
-Below are the Garden docs, you MUST only use these docs.
+Below are the Garden docs, you MUST only use these docs, except when given a URL in the output from garden_validate.
 
 # Garden docs
 ${gardenDocs}
@@ -202,12 +246,21 @@ Follow the instructions below to configure a Garden project:
 
 - Use the get_repo_file_tree tool to get repo file structure
 - Then use the read_file tool to read relevant files such as Kubernetes manifests
-- Then use the write_file tool to create the relevant garden.yml config files based on the repo contents, one file at a time. Use comments and placeholder values as needed. Only create Build, Deploy, and Test actions.
-- After each garden.yml config file you create, use the garden_validate tool to validate the file
-- If there's an error (the tool return an error message instead of just "OK"), fix the file and write it again with the write_file tool, this time with force=true as an input). If not, proceed to create the next garden.yml config file.
+- Then use the write_file tool to create a Project configuration. This should be named project.garden.yml.
+- Then use the write_file tool to create the relevant config files for each action based on the repo contents, one file at a time. Use comments and placeholder values as needed. Only create Build, Deploy, and Test actions. The file MUST be named garden.yml.
+- After each config file you create, including the project.garden.yml, use the garden_validate tool to validate the file
+  - If there's an error (i.e. the tool returns an error message instead of just "OK"):
+    - Read the tool output to understand the error. If the output contains a URL, open it in your browser to read the suggested docs. You MUST tell the user that you did this and which URL you opened.
+    - Fix the file and summarize the changes in a short description.
+    - Write it again with the write_file tool, this time with force=true as an input.
+    - Run the garden_validate tool again to validate the file
+    - Repeat the above until there is no error
+  - If there is no error, proceed to create the next config file.
 - Once if you added all necessary Garden config, you should stop.
 
 You are operating from the repo root and all file paths are relative to that root. There will be back and forth and the prompt/context will grow as you use tools and they're output gets added.
+
+In your responses, DO NOT repeat the prompt that you received or the results from tools used.
 ***END INIT PROMPT***
 `
 
@@ -274,43 +327,6 @@ Use force=true to skip overwrite confirmation.`,
   },
 ] as Array<ToolUnion>
 
-const aiConfigGenArgs = {
-  names: new StringsParameter({
-    help: "Names of items to generate config for (e.g. service names, directories)",
-  }),
-}
-type Args = typeof aiConfigGenArgs
-
-export class AiConfigGenCommand extends Command<Args, Opts> {
-  name = "ai-config-gen"
-  help = "[EXPERIMENTAL] Generate Garden config files using Anthropic's Claude AI"
-
-  override noProject = true
-
-  override description = dedent`
-    Generate Garden config files using Anthropic's Claude AI.
-
-    Currently this requires you to have an Anthropic API key set in the environment variable ANTHROPIC_API_KEY. You can get an API key from https://console.anthropic.com/api-keys. You will also need some credits in your Anthropic account.
-
-    NOTE: THIS IS AN EXPERIMENTAL FEATURE.
-  `
-
-  override arguments = aiConfigGenArgs
-  override options = aiOpts
-
-  override printHeader({ log }) {
-    printHeader(log, "AI", "🤖")
-  }
-
-  async action({ garden, log }: CommandParams<Args, Opts>): Promise<CommandResult> {
-    log.info({ msg: `Hello from AI` })
-
-    await gardenBot(garden.projectRoot, log)
-
-    return {}
-  }
-}
-
 interface ReadFileToolInput {
   file_path: string
 }
@@ -327,7 +343,12 @@ interface ToolParams {
   input: unknown // Changed from object to unknown to match tool.input type
 }
 
-type ToolHandler = (params: ToolParams) => Promise<string>
+interface ToolResponse {
+  content: string
+  result: "success" | "error_continue" | "error_stop"
+}
+
+type ToolHandler = (params: ToolParams) => Promise<ToolResponse>
 
 async function confirmOverwrite(filePath: string): Promise<boolean> {
   const rl = readline.createInterface({ input: inputRL, output: outputRL })
@@ -337,7 +358,7 @@ async function confirmOverwrite(filePath: string): Promise<boolean> {
 }
 
 const toolMap: Record<string, ToolHandler> = {
-  get_repo_file_tree: async ({ rootDir }) => {
+  get_repo_file_tree: async ({ rootDir, log }) => {
     const files: string[] = []
     const ignoreList = [
       "node_modules",
@@ -350,6 +371,8 @@ const toolMap: Record<string, ToolHandler> = {
       ".DS_Store",
       ".grow",
     ]
+
+    log.info(chalk.cyan(`Scanning directory at ${rootDir}`))
 
     async function traverse(currentDir: string, relativePath: string = "") {
       const entries = await fsExtra.readdir(currentDir, { withFileTypes: true })
@@ -375,51 +398,54 @@ const toolMap: Record<string, ToolHandler> = {
     // Start traversal from root directory
     await traverse(rootDir)
 
-    return files.join("\n")
+    return { content: files.join("\n"), result: "success" }
   },
 
-  read_file: async ({ input }: ToolParams) => {
+  read_file: async ({ input, log }: ToolParams) => {
     const { file_path: filePath } = input as ReadFileToolInput
-    _log(`Reading file at path: ${filePath}`)
-    const content = (await fsExtra.readFile(filePath)).toString()
+    log.info(chalk.cyan(`Reading file at path: ${filePath}`))
 
-    return content
+    try {
+      const content = (await fsExtra.readFile(filePath)).toString()
+      return { content, result: "success" }
+    } catch (error) {
+      log.error(`Failed to read file at path: ${filePath}`)
+      return { content: String(error), result: "error_continue" }
+    }
   },
 
-  write_file: async ({ rootDir, input }: ToolParams) => {
+  write_file: async ({ rootDir, input, log }: ToolParams) => {
     const { file_path: relativeFilePath, content, force } = input as WriteFileToolInput
     const absoluteFilePath = join(rootDir, relativeFilePath)
 
-    _log(`Attempting to write file to: ${absoluteFilePath}`)
+    log.debug(`Writing file ${absoluteFilePath}`)
 
     let operationType = "created"
 
-    if (force) {
-      _log(`Force writing to file: ${absoluteFilePath}`)
-      operationType = "force-wrote"
-    } else {
-      const fileExists = await fsExtra.pathExists(absoluteFilePath)
-      if (fileExists) {
-        _log(`File "${absoluteFilePath}" already exists.`)
+    const fileExists = await fsExtra.pathExists(absoluteFilePath)
+    if (fileExists) {
+      if (force) {
+        log.info(chalk.cyan(`Overwriting file: ${absoluteFilePath}`))
+        operationType = "overwrote"
+      } else {
+        log.info(chalk.yellow(`File "${absoluteFilePath}" already exists.`))
         const shouldOverwrite = await confirmOverwrite(absoluteFilePath)
         if (!shouldOverwrite) {
           const message = `Write operation cancelled: File "${absoluteFilePath}" exists and overwrite was declined.`
-          _log(message)
-          return message
+          return { content: message, result: "error_stop" }
         }
-        _log(`Overwrite confirmed for "${absoluteFilePath}".`)
+        log.info(chalk.cyan(`Overwriting "${absoluteFilePath}".`))
         operationType = "overwrote"
       }
     }
 
-    await fsExtra.writeFile(absoluteFilePath, content)
+    await fsExtra.outputFile(absoluteFilePath, content)
     const successMessage = `Successfully ${operationType} file "${absoluteFilePath}"`
-    _log(successMessage)
-    return successMessage
+    return { content: successMessage, result: "success" }
   },
 
   garden_validate: async ({ rootDir, log }: ToolParams) => {
-    _log(`Running 'garden validate' in directory: ${rootDir}`)
+    log.info(chalk.cyan("Running 'garden validate'"))
 
     const validateCommand = new ValidateCommand()
 
@@ -432,18 +458,20 @@ const toolMap: Record<string, ToolHandler> = {
         },
       })
 
+      const logger = new VoidLogger({ level: LogLevel.info })
+
       await validateCommand.action({
         garden,
-        log,
+        log: logger.createLog(),
         args: {},
         opts: {
           "resolve": [],
-          "silent": false,
+          "silent": true,
           "offline": false,
           "logger-type": "console",
           "yes": false,
           "log-level": "info",
-          "emoji": true,
+          "emoji": false,
           "show-timestamps": false,
           "output": "",
           "version": false,
@@ -454,80 +482,115 @@ const toolMap: Record<string, ToolHandler> = {
           "var": [],
         },
       })
-      return "OK"
+      log.success("Successfully validated config")
+      return { content: "OK", result: "success" }
     } catch (error) {
       let errorMessage = "'garden validate' failed with error"
 
+      // TODO: detect non-recoverable errors
       if (error instanceof Error) {
-        errorMessage += `:\n${error.message}`
+        errorMessage += `:\n${error.toString()}`
+      } else {
+        errorMessage += `:\n${error}`
       }
 
-      _log(errorMessage)
+      log.warn(chalk.yellow(errorMessage))
 
-      return errorMessage
+      return { content: stripAnsi(errorMessage), result: "error_continue" }
     }
   },
 }
 
 async function gardenBot(rootDir: string, log: Log) {
-  let prompt = initPrompt
+  const messages: MessageParam[] = [{ role: "user", content: initPrompt }]
 
-  let useTool = true
+  let loop = true
 
-  while (useTool) {
-    const message = await promptClaude(prompt)
+  while (loop) {
+    const response = await promptClaude(log, messages)
 
-    // log(JSON.stringify(message, null, 4))
+    log.debug(`Got response from Claude: ${JSON.stringify(response)}`)
 
-    prompt += `\nReply from Claude: ${JSON.stringify(message.content, null, 4)}`
+    messages.push({ role: "assistant", content: response.content })
 
-    if (message.stop_reason === "tool_use") {
-      const toolUses = message.content.filter((c) => c.type === "tool_use") as ToolUseBlock[]
+    // TODO: support parallel tool use
+    if (response.stop_reason === "tool_use") {
+      const toolUses = response.content.filter((c) => c.type === "tool_use") as ToolUseBlock[]
       const tool = toolUses[toolUses.length - 1]
       const toolHandler = toolMap[tool.name]
       if (!toolHandler) {
         throw new Error(`Tool ${tool.name} not found in tool map`)
       }
 
-      _log(`Executing tool: ${tool.name}`)
-      // log(`Executing tool: ${tool.name}, ${JSON.stringify(tool.input, null, 4)}`)
+      log.debug(`Executing tool ${tool.name} with params ${JSON.stringify(tool.input)}`)
 
-      const toolResult = await toolHandler({ rootDir, log, input: tool.input })
-      _log("")
+      try {
+        const toolResult = await toolHandler({
+          rootDir,
+          log: log.createLog({ origin: chalk.cyan(tool.name) }),
+          input: tool.input,
+        })
 
-      // log(`Got tool result:, ${toolResult}`)
-      // log(`Got tool result:, ${toolResult.substring(0, 100)}...`)
+        log.debug(`Tool ${tool.name} executed with result ${JSON.stringify(toolResult)}`)
 
-      prompt += `\nResult from ${tool.name}:\n${toolResult}`
+        if (toolResult.result === "error_stop") {
+          log.error(toolResult.content)
+          return
+        }
+
+        const toolUseMessage: ToolResultBlockParam = {
+          tool_use_id: tool.id,
+          content: toolResult.content,
+          type: "tool_result",
+        }
+
+        messages.push({ role: "user", content: [toolUseMessage] })
+      } catch (error) {
+        log.error(`Unexpected error executing tool ${tool.name}: ${error}`)
+        return
+      }
+    } else if (response.stop_reason === "pause_turn") {
+      log.info(chalk.yellow("Waiting..."))
     } else {
-      useTool = false
+      if (response.stop_reason === "max_tokens") {
+        log.error(chalk.red("Max generated tokens reached, unable to continue :("))
+      }
+      loop = false
     }
   }
 
-  _log(`Done prompting, will exit`)
+  log.success(
+    `All done. Please review the created files carefully. Note that the results may not be perfect, but hopefully this helps you get started.\n\nDon't hesitate to ask for help in our Discord community if you get stuck!`
+  )
 }
 
-async function promptClaude(prompt: string) {
+async function promptClaude(log: Log, messages: MessageParam[]) {
+  log.debug(chalk.cyan("[PROMPT]"))
+  log.debug(chalk.cyan(JSON.stringify(messages[messages.length - 1], null, 4)) + "\n")
+
+  let gotText = false
+
   const stream = anthropic.messages
     .stream({
       model: "claude-3-7-sonnet-20250219",
-      max_tokens: 1024,
+      max_tokens: 64000,
       system: "You are a Garden support engineer, Garden is a dev tool for Kubernetes",
       tools,
-      messages: [{ role: "user", content: prompt }],
+      messages,
     })
     .on("text", (text) => {
+      if (!gotText) {
+        process.stdout.write("\n")
+      }
+      gotText = true
       process.stdout.write(text)
     })
 
   const message = await stream.finalMessage()
 
-  process.stdout.write("\n\n")
+  if (gotText) {
+    process.stdout.write("\n\n")
+  }
 
   return message
-}
-
-function _log(msg: string) {
-  // eslint-disable-next-line no-console
-  console.log(chalk.cyan("[INTERNAL]:", msg))
 }
