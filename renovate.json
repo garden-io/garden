@@ -3,5 +3,5 @@
   "extends": [
     "config:recommended"
   ],
-  "ignorePaths": ["e2e/projects/**"]
+  "ignorePaths": ["core/test/data/**", "e2e/projects/**", "examples/**"]
 }
