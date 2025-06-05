@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -137,7 +137,7 @@ import {
   type OmitInternalConfig,
 } from "./actions/types.js"
 import { actionIsDisabled, actionReferenceToString, isActionConfig } from "./actions/base.js"
-import type { SolveOpts, SolveParams, SolveResult } from "./graph/solver.js"
+import type { SingleTaskSolveResult, SolveOpts, SolveParams, SolveResult } from "./graph/solver.js"
 import { GraphSolver } from "./graph/solver.js"
 import {
   actionConfigsToGraph,
@@ -148,7 +148,7 @@ import {
 } from "./graph/actions.js"
 import type { ActionTypeDefinition } from "./plugin/action-types.js"
 import type { Task } from "./tasks/base.js"
-import type { GraphResultFromTask, GraphResults } from "./graph/results.js"
+import type { GraphResults } from "./graph/results.js"
 import { uuidv4 } from "./util/random.js"
 import type { RenderTemplateConfig } from "./config/render-template.js"
 import { convertTemplatedModuleToRender, renderConfigTemplate } from "./config/render-template.js"
@@ -628,9 +628,9 @@ export class Garden {
     return this.solver.solve(params)
   }
 
-  async processTask<T extends Task>(task: T, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
-    const { results } = await this.solver.solve({ tasks: [task], ...opts })
-    return results.getResult(task)
+  async processTask<T extends Task>(task: T, opts: SolveOpts): Promise<SingleTaskSolveResult> {
+    const { error, results } = await this.solver.solve({ tasks: [task], ...opts })
+    return { error, result: results.getResult(task) }
   }
 
   /**
@@ -1474,7 +1474,7 @@ export class Garden {
       }
 
       // Convert type:templated modules to Render configs
-      // TODO: remove in 0.14
+      // TODO(0.15): remove modules
       const rawTemplatedModules = rawModuleConfigs.filter((m) => m.type === "templated") as TemplatedModuleConfig[]
       // -> removed templated modules from the module config list
       rawModuleConfigs = rawModuleConfigs.filter((m) => m.type !== "templated")

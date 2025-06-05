@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,7 @@ import type {
   RegisterCloudBuildRequest,
   RegisterCloudBuildResponse,
 } from "./trpc.js"
-import { getAuthenticatedApiClient, getNonAuthenticatedApiClient } from "./trpc.js"
+import { describeTRPCClientError, getAuthenticatedApiClient } from "./trpc.js"
 import type { GardenErrorParams } from "../../exceptions.js"
 import { CloudApiError, GardenError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
@@ -30,7 +30,6 @@ import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
 import { TRPCClientError } from "@trpc/client"
 import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
-import { handleServerNotices } from "./notices.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -46,7 +45,11 @@ export class GrowCloudError extends GardenError {
   }
 
   public static wrapTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
-    return new GrowCloudError({ message: err.message, cause: err })
+    const errorDesc = describeTRPCClientError(err)
+    return new GrowCloudError({
+      message: `An error occurred while calling Garden Backend: ${errorDesc.short}`,
+      cause: err,
+    })
   }
 }
 
@@ -157,13 +160,9 @@ export class GrowCloudApi {
       ).accessToken
     }
 
-    const verificationResult = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.verifyToken.query({
-      token: authToken,
-    })
+    const tokenValid = await isTokenValid({ cloudDomain, authToken, log })
 
-    handleServerNotices(verificationResult.notices, cloudLog)
-
-    if (!verificationResult.valid) {
+    if (!tokenValid) {
       log.debug({ msg: `The stored token was not valid.` })
       return undefined
     }

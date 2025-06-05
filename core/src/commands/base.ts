@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -850,33 +850,33 @@ export const processCommandResultSchema = createSchema({
       .meta({ keyPlaceholder: "<Build name>" }),
     builds: joiIdentifierMap(buildResultForExportSchema().keys(resultMetadataKeys()))
       .description(
-        "Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them."
+        "[DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them. Please do not use this alias, it will be removed in a future release."
       )
-      .meta({ keyPlaceholder: "<Build name>", deprecated: true }), // TODO(deprecation): deprecate in 0.14
+      .meta({ keyPlaceholder: "<Build name>" }),
     deploy: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
       .description("A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.")
       .meta({ keyPlaceholder: "<Deploy name>" }),
     deployments: joiIdentifierMap(deployResultForExportSchema().keys(resultMetadataKeys()))
       .description(
-        "Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status."
+        "[DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status. Please do not use this alias, it will be removed in a future release."
       )
-      .meta({ keyPlaceholder: "<Deploy name>", deprecated: true }), // TODO(deprecation): deprecate in 0.14
+      .meta({ keyPlaceholder: "<Deploy name>" }),
     test: joiStringMap(testResultForExportSchema())
       .description("A map of all Tests that were executed (or scheduled/attempted) and the Test results.")
       .meta({ keyPlaceholder: "<Test name>" }),
     tests: joiStringMap(testResultForExportSchema())
       .description(
-        "Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results."
+        "[DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results. Please do not use this alias, it will be removed in a future release."
       )
-      .meta({ keyPlaceholder: "<Test name>", deprecated: true }), // TODO(deprecation): deprecate in 0.14
+      .meta({ keyPlaceholder: "<Test name>" }),
     run: joiStringMap(runResultForExportSchema())
       .description("A map of all Runs that were executed (or scheduled/attempted) and the Run results.")
       .meta({ keyPlaceholder: "<Run name>" }),
     tasks: joiStringMap(runResultForExportSchema())
       .description(
-        "Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results."
+        "[DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results. Please do not use this alias, it will be removed in a future release."
       )
-      .meta({ keyPlaceholder: "<Run name>", deprecated: true }), // TODO(deprecation): deprecate in 0.14
+      .meta({ keyPlaceholder: "<Run name>" }),
   }),
 })
 

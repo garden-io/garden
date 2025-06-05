@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -61,6 +61,7 @@ import { parseTemplateCollection } from "./template/templated-collections.js"
 import { deepMap, isPlainObject } from "./util/objects.js"
 import { InputContext } from "./config/template-contexts/input.js"
 import { VariablesContext } from "./config/template-contexts/variables.js"
+import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
 
 const { mkdirp, readFile } = fsExtra
 
@@ -581,6 +582,13 @@ export class ModuleResolver {
     dependencies: GardenModule[]
   ): Promise<{ config: ModuleConfig; context: ModuleConfigContext }> {
     const garden = this.garden
+
+    if (unresolvedConfig.spec["hotReload"]) {
+      reportDeprecatedFeatureUsage({ deprecation: "hotReload", log: garden.log })
+    }
+    if (unresolvedConfig.spec["serviceResource"]?.["hotReloadArgs"]) {
+      reportDeprecatedFeatureUsage({ deprecation: "hotReloadArgs", log: garden.log })
+    }
 
     const buildPath = this.garden.buildStaging.getBuildPath(unresolvedConfig)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,14 +9,17 @@
 import type { infer as inferZodType, ZodType } from "zod"
 import z, { Schema } from "zod"
 import { envVarRegex, identifierRegex, joiIdentifierDescription, userIdentifierRegex } from "./constants.js"
+import { styles } from "../logger/styles.js"
 
 // Add metadata support to schemas. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
 declare module "zod" {
-  // eslint-disable-next-line @typescript-eslint/no-shadow
   interface ZodType {
     getMetadata(): Record<string, any>
+
     setMetadata(meta: Record<string, any>): this
+
     getExample(): any
+
     example(value: any): this
   }
 }
@@ -84,11 +87,12 @@ type GardenSchema = typeof z & {
  */
 export function renderZodError(error: z.ZodError): string {
   return error.issues
-    .map((i: Zod.ZodIssue) => {
-      if (i.message === "Required" && i["expected"] && i["received"]) {
-        return `Expected ${i["expected"]}, but received ${i["received"]}`
+    .map((i: z.ZodIssue & { expected?: unknown; received?: unknown }) => {
+      const path = i.path && i.path.length > 0 ? `at path ${styles.highlight(i.path.join("."))}` : ""
+      if (i["expected"] && i["received"]) {
+        return `Expected ${i["expected"]} ${path}, but received ${i["received"]}.`
       } else {
-        return i.message
+        return `Issue ${path}: ${i.message}`
       }
     })
     .join("\n")

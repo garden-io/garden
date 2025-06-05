@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,6 +20,12 @@ import { styles } from "../../logger/styles.js"
 import type { VariablesContext } from "./variables.js"
 import { getBackendType, getCloudDistributionName } from "../../cloud/util.js"
 import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/secrets.js"
+
+const secretsSchema = joiStringMap(joi.string().description("The secret's value."))
+  .description("A map of all secrets for this project in the current environment.")
+  .meta({
+    keyPlaceholder: "<secret-name>",
+  })
 
 class LocalContext extends ContextWithSchema {
   @schema(
@@ -297,14 +303,7 @@ export interface ProjectConfigContextParams extends DefaultEnvironmentContextPar
  * `secrets`.
  */
 export class ProjectConfigContext extends DefaultEnvironmentContext {
-  @schema(
-    joiStringMap(joi.string().description("The secret's value."))
-      .description("A map of all secrets for this project in the current environment.")
-      .meta({
-        internal: true,
-        keyPlaceholder: "<secret-name>",
-      })
-  )
+  @schema(secretsSchema)
   public readonly secrets: PrimitiveMap
   private readonly _cloudBackendDomain: string
   private readonly _backendType: "v1" | "v2"
@@ -371,14 +370,7 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
   public var: VariablesContext
 
-  @schema(
-    joiStringMap(joi.string().description("The secret's value."))
-      .description("A map of all secrets for this project in the current environment.")
-      .meta({
-        internal: true,
-        keyPlaceholder: "<secret-name>",
-      })
-  )
+  @schema(secretsSchema)
   public override secrets: PrimitiveMap
 
   constructor(params: EnvironmentConfigContextParams) {

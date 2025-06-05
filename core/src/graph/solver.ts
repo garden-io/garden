@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,7 +14,7 @@ import { uuidv4 } from "../util/random.js"
 import { Profile } from "../util/profiling.js"
 import { TypedEventEmitter } from "../util/events.js"
 import { keyBy } from "lodash-es"
-import type { GraphResult, TaskEventBase } from "./results.js"
+import type { GraphResult, GraphResultFromTask, TaskEventBase } from "./results.js"
 import { GraphResults, resultToString } from "./results.js"
 import { gardenEnv } from "../constants.js"
 import type { Garden } from "../garden.js"
@@ -39,6 +39,11 @@ export interface SolveParams<T extends BaseTask = BaseTask> extends SolveOpts {
 export interface SolveResult<T extends Task = Task> {
   error: GraphResultError | null
   results: GraphResults<T>
+}
+
+export interface SingleTaskSolveResult<T extends Task = Task> {
+  error: GraphResultError | null
+  result: GraphResultFromTask<T> | null
 }
 
 @Profile()
@@ -134,17 +139,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
           results.setResult(request.task, result)
 
-          if (throwOnError && result.error) {
-            cleanup({
-              error: new GraphResultError({
-                message: `Failed to ${result.description}: ${result.error}`,
-                results,
-                wrappedErrors: [toGardenError(result.error)],
-              }),
-            })
-            return
-          }
-
           const missing = results.getMissing()
 
           if (missing.length > 0) {
@@ -180,14 +174,20 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             error = new GraphResultError({ message: msg, results, wrappedErrors })
           }
 
-          cleanup({ error: null })
-
-          if (error) {
-            log.silly(() => `Batch ${batchId} failed: ${error.message}`)
-          } else {
+          if (!error) {
             log.silly(() => `Batch ${batchId} completed`)
+          } else {
+            log.silly(() => `Batch ${batchId} failed: ${error.message}`)
+
+            if (throwOnError) {
+              // if throwOnError is true, we reject the promise with the error.
+              cleanup({ error })
+              return
+            }
           }
 
+          // if throwOnError is false, we resolve the promise with the error and results.
+          cleanup({ error: null })
           resolve({ error, results })
         }
 

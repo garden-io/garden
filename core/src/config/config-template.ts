@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -158,7 +158,7 @@ export const configTemplateSchema = createSchema({
       .description(
         "Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided all inputs will be accepted."
       ),
-    // TODO: remove in 0.14
+    // TODO(deprecation): deprecate in 0.14 and remove in 0.15
     modules: joi
       .array()
       .items(moduleSchema())

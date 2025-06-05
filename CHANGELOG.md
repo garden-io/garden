@@ -1,4 +1,34 @@
 
+<a name="0.14.3"></a>
+## [0.14.3](https://github.com/garden-io/garden/compare/0.14.2...0.14.3) (2025-04-24)
+
+### Bug Fixes
+
+* prevent unnecessary execution of builds referenced in runtime actions ([#7171](https://github.com/garden-io/garden/issues/7171)) ([2a9041415](https://github.com/garden-io/garden/commit/2a9041415))
+* log "accelerated by remote container builder" even when timeSaved is 0 ([#7137](https://github.com/garden-io/garden/issues/7137)) ([0d4850de8](https://github.com/garden-io/garden/commit/0d4850de8))
+* **login:** send the right `organizationId` on login ([#7162](https://github.com/garden-io/garden/issues/7162)) ([97dec4adc](https://github.com/garden-io/garden/commit/97dec4adc))
+* **solver:** throw if a dependency failed and `throwOnError` is true ([#6577](https://github.com/garden-io/garden/issues/6577)) ([c32bbd78d](https://github.com/garden-io/garden/commit/c32bbd78d))
+
+### Bundled Tool Version Updates
+
+* **kubectl:** update version to 1.32.3 ([#7093](https://github.com/garden-io/garden/issues/7093)) ([9fa8d1e21](https://github.com/garden-io/garden/commit/9fa8d1e21))
+* **mutagen:** update mutagen to 0.18.1 and base alpine image to 3.21.3 ([#7157](https://github.com/garden-io/garden/issues/7157)) ([56547ee1e](https://github.com/garden-io/garden/commit/56547ee1e))
+
+<a name="0.14.2"></a>
+## [0.14.2](https://github.com/garden-io/garden/compare/0.14.1...0.14.2) (2025-04-09)
+
+### Bug Fixes
+
+* do not throw on unknown action types for disabled actions ([#7062](https://github.com/garden-io/garden/issues/7062)) ([619ddd8ff](https://github.com/garden-io/garden/commit/619ddd8ff))
+* **git:** replace vulnerable parse-git-config with ini file parser  ([#7086](https://github.com/garden-io/garden/issues/7086)) ([9b8b7826e](https://github.com/garden-io/garden/commit/9b8b7826e))
+* **graph:** use a special helper to check if an action is disabled ([#7069](https://github.com/garden-io/garden/issues/7069)) ([4db004ca1](https://github.com/garden-io/garden/commit/4db004ca1))
+* **self-update:** fix version detection when use `--major` flag ([#7045](https://github.com/garden-io/garden/issues/7045)) ([976de249b](https://github.com/garden-io/garden/commit/976de249b))
+* **sync:** await monitors stop on `sync stop` completion ([#7056](https://github.com/garden-io/garden/issues/7056)) ([88f564aa5](https://github.com/garden-io/garden/commit/88f564aa5))
+
+### Bundled Tool Version Updates
+
+* **helm:** update version to 3.17.2 ([#7084](https://github.com/garden-io/garden/issues/7084)) ([9392233ac](https://github.com/garden-io/garden/commit/9392233ac))
+
 <a name="0.14.1"></a>
 ## [0.14.1](https://github.com/garden-io/garden/compare/0.14.0...0.14.1) (2025-03-26)
 

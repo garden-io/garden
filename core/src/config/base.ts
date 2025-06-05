@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -98,12 +98,12 @@ export interface BaseGardenResource {
 export const baseInternalFieldsSchema = createSchema({
   name: "base-internal-fields",
   keys: () => ({
-    basePath: joi.string().required().meta({ internal: true }),
-    configFilePath: joi.string().optional().meta({ internal: true }),
-    inputs: joi.object().optional().meta({ internal: true }),
-    parentName: joi.string().optional().meta({ internal: true }),
-    templateName: joi.string().optional().meta({ internal: true }),
-    yamlDoc: joi.any().optional().meta({ internal: true }),
+    basePath: joi.string().required(),
+    configFilePath: joi.string().optional(),
+    inputs: joi.object().optional(),
+    parentName: joi.string().optional(),
+    templateName: joi.string().optional(),
+    yamlDoc: joi.any().optional(),
   }),
   allowUnknown: true,
   meta: { internal: true },

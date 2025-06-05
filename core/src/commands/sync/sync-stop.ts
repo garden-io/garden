@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -114,7 +114,7 @@ export class SyncStopCommand extends Command<Args, Opts> {
         await router.deploy.stopSync({ log: actionLog, action, graph })
 
         // Halt any active monitors for the sync
-        garden.monitors.find({ type: "sync", key: action.name }).map((m) => m.stop())
+        await Promise.all(garden.monitors.find({ type: "sync", key: action.name }).map((m) => m.stop()))
 
         actionLog.info("Syncing successfully stopped.")
       })

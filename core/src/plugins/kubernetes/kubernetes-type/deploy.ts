@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -34,6 +34,8 @@ import type { KubernetesDeployActionSpecFileSources } from "./common.js"
 import { getSpecFiles } from "./common.js"
 import type { ActionModes } from "../../../actions/types.js"
 import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
+import { styles } from "../../../logger/styles.js"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -45,7 +47,15 @@ export const kubernetesDeployDocs = dedent`
   If you need more advanced templating features you can use the [helm](./helm.md) Deploy type.
 `
 
-export function evaluateKubernetesDeploySpecFiles({
+/**
+ * Evaluates the value of a given spec field if it is a template string.
+ *
+ * @param ctx the plugin context
+ * @param config the kubernetes Deploy action configuration
+ * @param filesFieldName the name of the Deploy action spec's field
+ * @param filesFieldSchema the schema to validate the resolved value of the action spec's field
+ */
+export function evaluateKubernetesDeploySpecField({
   ctx,
   config,
   filesFieldName,
@@ -84,13 +94,13 @@ export function getFileSources({
   ctx: PluginContext
   config: KubernetesDeployActionConfig
 }): KubernetesDeployActionSpecFileSources {
-  const manifestFiles = evaluateKubernetesDeploySpecFiles({
+  const manifestFiles = evaluateKubernetesDeploySpecField({
     ctx,
     config,
     filesFieldName: "manifestFiles",
     filesFieldSchema: kubernetesManifestFilesSchema,
   })
-  const manifestTemplates = evaluateKubernetesDeploySpecFiles({
+  const manifestTemplates = evaluateKubernetesDeploySpecField({
     ctx,
     config,
     filesFieldName: "manifestTemplates",
@@ -107,11 +117,19 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
     configure: async ({ ctx, config, log }) => {
+      let deprecationFound = false
       if (config.spec["devMode"]) {
         reportDeprecatedFeatureUsage({ log, deprecation: "devMode" })
+        deprecationFound = true
       }
       if (config.spec["localMode"]) {
         reportDeprecatedFeatureUsage({ log, deprecation: "localMode" })
+        deprecationFound = true
+      }
+
+      if (deprecationFound) {
+        const configPath = config.internal.configFilePath || config.internal.basePath
+        emitNonRepeatableWarning(log, `Please check your action configuration file at ${styles.highlight(configPath)}`)
       }
 
       if (!config.spec.kustomize) {

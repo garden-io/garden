@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -49,6 +49,10 @@ describe("getManifests", () => {
       })) as KubernetesProvider
       ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       api = await KubeApi.factory(garden.log, ctx, provider)
+    })
+
+    after(() => {
+      garden && garden.close()
     })
 
     beforeEach(async () => {
@@ -163,6 +167,10 @@ describe("getManifests", () => {
       api = await KubeApi.factory(garden.log, ctx, provider)
     })
 
+    after(() => {
+      garden && garden.close()
+    })
+
     beforeEach(async () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       action = await garden.resolveAction<KubernetesDeployAction>({
@@ -237,6 +245,10 @@ describe("getManifests", () => {
       })) as KubernetesProvider
       ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       api = await KubeApi.factory(garden.log, ctx, provider)
+    })
+
+    after(() => {
+      garden && garden.close()
     })
 
     beforeEach(async () => {
@@ -767,6 +779,10 @@ describe("readManifests", () => {
       name: "local-kubernetes",
     })) as KubernetesProvider
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+  })
+
+  after(() => {
+    garden && garden.close()
   })
 
   beforeEach(async () => {

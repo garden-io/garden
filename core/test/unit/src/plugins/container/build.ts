@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,6 +26,7 @@ import { joinWithPosix } from "../../../../../src/util/fs.js"
 import type { TestGarden } from "../../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import fsExtra from "fs-extra"
+
 const { createFile } = fsExtra
 import { type ContainerBuildActionSpec } from "../../../../../src/plugins/container/config.js"
 import { makeSecret, toClearText } from "../../../../../src/util/secrets.js"
@@ -39,13 +40,17 @@ context("build.ts", () => {
   let containerProvider: ContainerProvider
   let graph: ConfigGraph
 
-  beforeEach(async () => {
+  before(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
     actionLog = createActionLog({ log, actionName: "", actionKind: "" })
     containerProvider = await garden.resolveProvider({ log: garden.log, name: "container" })
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
     graph = await garden.getConfigGraph({ log, emit: false })
+  })
+
+  after(() => {
+    garden.close()
   })
 
   const getAction = async () => await garden.resolveAction({ action: graph.getBuild("module-a"), log, graph })

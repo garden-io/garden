@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -77,7 +77,7 @@ declare class _TypedEventEmitter<T> {
   waitFor(event: keyof T | eventNS, options?: WaitForOptions): CancelablePromise<any[]>
   listenTo(target: GeneralEventEmitter, events: keyof T | eventNS, options?: ListenToOptions): this
   listenTo(target: GeneralEventEmitter, events: keyof T[], options?: ListenToOptions): this
-  listenTo(target: GeneralEventEmitter, events: Object, options?: ListenToOptions): this
+  listenTo(target: GeneralEventEmitter, events: object, options?: ListenToOptions): this
   stopListeningTo(target?: GeneralEventEmitter, event?: keyof T | eventNS): boolean
   hasListeners(event?: string): boolean
   static once<T extends object = any>(

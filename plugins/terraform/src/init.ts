@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,7 +21,7 @@ import type { ProviderHandlers } from "@garden-io/sdk/build/src/types.js"
 import { terraform } from "./cli.js"
 import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
-// TODO: 0.14.1+ (or 0.15?), remove this function
+// TODO: 0.14, remove this function
 export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider
 

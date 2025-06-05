@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,9 +18,13 @@ describe("dockerBuildLogs", () => {
   let garden: TestGarden
   let log: ActionLog
 
-  beforeEach(async () => {
+  before(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenContainerPlugin()] })
     log = createActionLog({ log: garden.log, actionName: "simple-build", actionKind: "Build" })
+  })
+
+  after(() => {
+    garden && garden.close()
   })
 
   it("should output docker build logs in human readable text in log level verbose", async () => {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -235,7 +235,8 @@ export class AuthRedirectServer {
     app.use(http.allowedMethods())
     app.use(http.routes())
     app.on("error", (err) => {
-      this.log.error(`Auth redirect request failed with status ${err.status}: ${err.message}`)
+      this.log.error(`Auth redirect request failed with the error: ${err.message}`)
+      throw err
     })
     this.server = app.listen(port)
     this.app = app

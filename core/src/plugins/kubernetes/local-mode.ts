@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,10 +15,10 @@ export const kubernetesLocalModeSchema = () =>
     target: joi
       .object()
       .keys({
-        kind: joi.string().optional().meta({ internal: true }),
-        name: joi.string().optional().meta({ internal: true }),
-        podSelector: joi.string().optional().meta({ internal: true }),
-        containerName: joi.string().optional().meta({ internal: true }),
+        kind: joi.string().optional(),
+        name: joi.string().optional(),
+        podSelector: joi.string().optional(),
+        containerName: joi.string().optional(),
       })
       .meta({ internal: true }),
   })

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,7 +18,7 @@ export type ActionStatusDetailedState = DeployState | BuildState | RunState
  * These are the states emitted in status events. Here, we include additional states to help distinguish status event
  * emitted around status/cache checks VS statuses emitted around the execution after a failed status check.
  */
-const actionStateTypesForEvent = [...actionStates, "getting-status", "cached"] as const
+const _actionStateTypesForEvent = [...actionStates, "getting-status", "cached"] as const
 /**
  * This type represents the lifecycle of an individual action execution as emitted to Cloud. Note that the
  * internal semantics are slightly different (e.g. Garden uses "ready" instead of "cached" internally).
@@ -82,7 +82,7 @@ const actionStateTypesForEvent = [...actionStates, "getting-status", "cached"] a
  *   - Note that in the case of Test actions, this does not suggest that the underlying test failed, but rather
  *     that the action itself failed and the test status is simply unknown.
  */
-export type ActionStateForEvent = (typeof actionStateTypesForEvent)[number]
+export type ActionStateForEvent = (typeof _actionStateTypesForEvent)[number]
 
 interface ActionStatusPayloadBase {
   actionName: string

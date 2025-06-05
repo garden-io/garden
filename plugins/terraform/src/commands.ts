@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -49,11 +49,13 @@ function makeRootCommand(commandName: string): PluginCommand {
       })
       await remove(cachePath)
 
+      // Use provider config
       const root = join(ctx.projectRoot, provider.config.initRoot)
       const workspace = provider.config.workspace || null
+      const backendConfig = provider.config.backendConfig
 
       await ensureWorkspace({ ctx, provider, root, log, workspace })
-      await ensureTerraformInit({ ctx, provider, root, log })
+      await ensureTerraformInit({ ctx, provider, root, log, backendConfig })
 
       args = [commandName, ...(await prepareVariables(root, provider.config.variables)), ...args]
 
@@ -93,10 +95,12 @@ function makeActionCommand(commandName: string): PluginCommand {
       const root = join(action.sourcePath(), spec.root)
 
       const provider = ctx.provider as TerraformProvider
+      // Use action spec
       const workspace = spec.workspace || null
+      const backendConfig = spec.backendConfig
 
       await ensureWorkspace({ ctx, provider, root, log, workspace })
-      await ensureTerraformInit({ ctx, provider, root, log })
+      await ensureTerraformInit({ ctx, provider, root, log, backendConfig })
 
       args = [commandName, ...(await prepareVariables(root, spec.variables)), ...args.slice(1)]
       await terraform(ctx, provider).spawnAndWait({

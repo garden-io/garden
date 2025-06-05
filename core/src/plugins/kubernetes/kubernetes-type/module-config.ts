@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -77,7 +77,7 @@ export const kubernetesModuleSpecSchema = () =>
         )
         .keys({
           containerModule: containerModuleSchema(),
-          // TODO(deprecation): deprecate in 0.14
+          // TODO(0.15): remove this
           hotReloadArgs: joi.any().meta({ internal: true }),
         }),
       tasks: joiSparseArray(kubernetesTaskSchema()),

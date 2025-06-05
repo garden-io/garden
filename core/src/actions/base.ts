@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -78,9 +78,9 @@ const actionInternalFieldsSchema = createSchema({
   name: "action-config-internal-fields",
   extend: baseInternalFieldsSchema,
   keys: () => ({
-    groupName: joi.string().optional().meta({ internal: true }),
-    moduleName: joi.string().optional().meta({ internal: true }),
-    resolved: joi.boolean().optional().meta({ internal: true }),
+    groupName: joi.string().optional(),
+    moduleName: joi.string().optional(),
+    resolved: joi.boolean().optional(),
   }),
   allowUnknown: true,
   meta: { internal: true },

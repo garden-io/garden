@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -437,17 +437,13 @@ export async function upsertConfigMap({
   }
 
   try {
-    await api.core.createNamespacedConfigMap({ namespace, body: <any>body })
+    await api.core.createNamespacedConfigMap({ namespace, body })
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }
     if (err.responseStatusCode === 409) {
-      await api.core.patchNamespacedConfigMap({
-        name: key,
-        namespace,
-        body,
-      })
+      await api.core.patchNamespacedConfigMap({ name: key, namespace, body })
     } else {
       throw err
     }

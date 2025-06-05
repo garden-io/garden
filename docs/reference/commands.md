@@ -117,7 +117,8 @@ build:
     outputs:
       <name>:
 
-# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+# [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -249,7 +250,8 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -358,7 +360,8 @@ test:
     # The output log from the run.
     log:
 
-# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -394,7 +397,8 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -1080,7 +1084,8 @@ build:
     outputs:
       <name>:
 
-# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+# [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -1212,7 +1217,8 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -1321,7 +1327,8 @@ test:
     # The output log from the run.
     log:
 
-# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -1357,7 +1364,8 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -1723,24 +1731,6 @@ providers:
 
         # The module spec, as defined by the provider plugin.
         spec:
-
-            # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
-            # directory (for remote modules this means the root of the module repository, otherwise the directory of
-            # the module configuration).
-            #
-            # Note that any existing file with the same name will be overwritten. If the path contains one or more
-            # directories, they will be automatically created if missing.
-            targetPath:
-
-            # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to
-            # false to skip resolving template strings. Note that this does not apply when setting the `value` field,
-            # since that's resolved earlier when parsing the configuration.
-            resolveTemplates:
-
-            # The desired file contents as a string.
-            value:
-
-            sourcePath:
 
         # The name of the parent module (e.g. a templated module that generated this module), if applicable.
         parentName:
@@ -2676,24 +2666,6 @@ moduleConfigs:
     # The module spec, as defined by the provider plugin.
     spec:
 
-        # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
-        # directory (for remote modules this means the root of the module repository, otherwise the directory of the
-        # module configuration).
-        #
-        # Note that any existing file with the same name will be overwritten. If the path contains one or more
-        # directories, they will be automatically created if missing.
-        targetPath:
-
-        # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
-        # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
-        # resolved earlier when parsing the configuration.
-        resolveTemplates:
-
-        # The desired file contents as a string.
-        value:
-
-        sourcePath:
-
     # The name of the parent module (e.g. a templated module that generated this module), if applicable.
     parentName:
 
@@ -3245,24 +3217,6 @@ modules:
 
     # The module spec, as defined by the provider plugin.
     spec:
-
-        # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
-        # directory (for remote modules this means the root of the module repository, otherwise the directory of the
-        # module configuration).
-        #
-        # Note that any existing file with the same name will be overwritten. If the path contains one or more
-        # directories, they will be automatically created if missing.
-        targetPath:
-
-        # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
-        # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
-        # resolved earlier when parsing the configuration.
-        resolveTemplates:
-
-        # The desired file contents as a string.
-        value:
-
-        sourcePath:
 
     # The name of the parent module (e.g. a templated module that generated this module), if applicable.
     parentName:
@@ -4426,7 +4380,8 @@ build:
     outputs:
       <name>:
 
-# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+# [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -4558,7 +4513,8 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -4667,7 +4623,8 @@ test:
     # The output log from the run.
     log:
 
-# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -4703,7 +4660,8 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -4854,7 +4812,8 @@ build:
     outputs:
       <name>:
 
-# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+# [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -4986,7 +4945,8 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -5095,7 +5055,8 @@ test:
     # The output log from the run.
     log:
 
-# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -5131,7 +5092,8 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.
@@ -5439,7 +5401,8 @@ build:
     outputs:
       <name>:
 
-# Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about them.
+# [DEPRECATED] Alias for `build`. A map of all executed Builds (or Builds scheduled/attempted) and information about
+# them. Please do not use this alias, it will be removed in a future release.
 builds:
   <Build name>:
     # The full log from the build.
@@ -5571,7 +5534,8 @@ deploy:
     outputs:
       <name>:
 
-# Alias for `deploys`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy status.
+# [DEPRECATED] Alias for `deploy`. A map of all executed Deploys (or Deployments scheduled/attempted) and the Deploy
+# status. Please do not use this alias, it will be removed in a future release.
 deployments:
   <Deploy name>:
     # When the service was first deployed by the provider.
@@ -5680,7 +5644,8 @@ test:
     # The output log from the run.
     log:
 
-# Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# [DEPRECATED] Alias for `test`. A map of all Tests that were executed (or scheduled/attempted) and the Test results.
+# Please do not use this alias, it will be removed in a future release.
 tests:
   <Test name>:
     # Whether the module was successfully run.
@@ -5716,7 +5681,8 @@ run:
     # The output log from the run.
     log:
 
-# Alias for `runs`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# [DEPRECATED] Alias for `run`. A map of all Runs that were executed (or scheduled/attempted) and the Run results.
+# Please do not use this alias, it will be removed in a future release.
 tasks:
   <Run name>:
     # Whether the module was successfully run.

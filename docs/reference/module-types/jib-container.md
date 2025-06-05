@@ -11,7 +11,7 @@ Modules are deprecated and will be removed in version `0.14`. Please use [action
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.14.1/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.14.3/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -534,6 +534,7 @@ services:
         # `servicePort:80 -> containerPort:8080 -> process:8080`
         servicePort:
 
+        # Number of port to expose on the pod's IP address.
         hostPort:
 
         # Set this to expose the service on the specified port on the host node (may not be supported by all
@@ -1950,7 +1951,7 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 [services](#services) > limits
 
 {% hint style="warning" %}
-**Deprecated**: Please use the `cpu` and `memory` fields instead.
+**Deprecated**: Please use the `cpu` and `memory` configuration fields instead.
 {% endhint %}
 
 Specify resource limits for the service.
@@ -2084,8 +2085,10 @@ services:
 [services](#services) > [ports](#servicesports) > hostPort
 
 {% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
+**Deprecated**: It's generally not recommended to use the `hostPort` field of the `V1ContainerPort` spec. You can learn more about Kubernetes best practices at: https://kubernetes.io/docs/concepts/configuration/overview/
 {% endhint %}
+
+Number of port to expose on the pod's IP address.
 
 | Type     | Required |
 | -------- | -------- |

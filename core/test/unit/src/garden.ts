@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -3441,6 +3441,10 @@ describe("Garden", () => {
         })
       })
 
+      afterEach(() => {
+        garden.close()
+      })
+
       it("resolves referenced project variables", async () => {
         garden.setPartialModuleConfigs([
           {
@@ -4271,6 +4275,52 @@ describe("Garden", () => {
       expect(a.isDisabled()).to.be.false
       expect(b.isDisabled()).to.be.true
     })
+
+    describe("disabled actions", () => {
+      context("should not throw if disabled action does not have a configured provider", () => {
+        it("when action is disabled explicitly via `disabled: true` flag", async () => {
+          // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
+          const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
+            environmentString: "no-k8s",
+          })
+
+          // The disabled action with no provider configured should not cause an error
+          const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          // The action 'k8s-deploy-disabled-via-flag' is disabled via disabled:true flag,
+          // and should be unreachable from graph-lookups.
+          const actionName = "k8s-deploy-disabled-via-flag"
+          void expectError(() => graph.getDeploy(actionName), {
+            contains: `Deploy type=kubernetes name=${actionName} is disabled`,
+          })
+
+          // The enabled acton 'say-hi' should be reachable from graph-lookups
+          const sayHiRun = graph.getRun("say-hi")
+          expect(sayHiRun.isDisabled()).to.be.false
+        })
+
+        it("when action is disabled implicitly via environment config", async () => {
+          // The action 'k8s-deploy' is disabled and configured only in 'no-k8s' environment that does not have kubernetes provider
+          const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-without-provider"), {
+            environmentString: "no-k8s",
+          })
+
+          // The disabled action with no provider configured should not cause an error
+          const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          // The action 'k8s-deploy-disabled-via-env-config' is disabled via the environment config,
+          // and should be unreachable from graph-lookups.
+          const actionName = "k8s-deploy-disabled-via-env-config"
+          void expectError(() => graph.getDeploy(actionName), {
+            contains: `Deploy type=kubernetes name=${actionName} is disabled`,
+          })
+
+          // The enabled acton 'say-hi' should be reachable from graph-lookups
+          const sayHiRun = graph.getRun("say-hi")
+          expect(sayHiRun.isDisabled()).to.be.false
+        })
+      })
+    })
   })
 
   context("module type has a base", () => {
@@ -4982,6 +5032,10 @@ describe("Garden", () => {
         })
       })
 
+      afterEach(() => {
+        gardenA.close()
+      })
+
       it("should return module version if there are no dependencies", async () => {
         const module = await gardenA.resolveModule("module-a")
         gardenA.vcs = handlerA
@@ -5262,6 +5316,10 @@ describe("Garden", () => {
     beforeEach(async () => {
       garden = await makeTestGardenA()
       key = randomString()
+    })
+
+    afterEach(() => {
+      garden.close()
     })
 
     describe("hideWarning", () => {

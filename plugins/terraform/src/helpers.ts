@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -45,10 +45,11 @@ export const terraformBackendConfigSchema = () =>
 
         If Garden sees that the backend has changes, it'll re-initialize Terraform and set the new values.
       `
-    ).example(dedent`
-      bucket: \$\{environment.name\}-bucket
-      key: tf-state/\$\{local.username\}/terraform.tfstate
-    `)
+    )
+    .example({
+      bucket: "${environment.name}-bucket",
+      key: "tf-state/${local.username}/terraform.tfstate",
+    })
 
 export const variablesSchema = () => joiStringMap(joi.any())
 
@@ -93,7 +94,7 @@ const terraformValidateOutputSchema = s
 
 /**
  * Reads the current backend config from the `.terraform/terraform.tfstate` file and
- * compares it to the backend config supplied by the user via the Garden config (passed)
+ * compares it to the backend config supplied by the user via the Garden config passed
  * as an argument to this function.
  *
  * Returns true if the user defined backend config is different from the one in the `tfstate` file.
@@ -124,7 +125,7 @@ export async function hasBackendConfigChanged({
     throw err
   }
 
-  const currentBackendConfig = tfState?.backend?.["config"] as { [key: string]: string } | undefined
+  const currentBackendConfig = tfState?.backend?.["config"] as { [key: string]: string | null | undefined } | undefined
 
   const hasChanged =
     (currentBackendConfig &&
@@ -208,7 +209,7 @@ export async function ensureTerraformInit(params: TerraformParams & { backendCon
     // It failed when running "terraform init": in this case we only add the error from the
     // first validation try
     if (initError) {
-      const resultErrors = res.diagnostics.map((d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`)
+      const resultErrors = res.diagnostics.map((d) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`)
       errorMsg += dedent`\n\n${resultErrors.join("\n")}
 
         Garden tried running "terraform init" but got the following error:\n

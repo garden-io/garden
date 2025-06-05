@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +13,7 @@ import { getActionNamespaceStatus } from "../namespace.js"
 import type { ActionKind, RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
 import { dedent } from "../../../util/string.js"
 import type { RunAction, RunActionConfig } from "../../../actions/run.js"
-import { createSchema } from "../../../config/common.js"
+import { createSchema, joi } from "../../../config/common.js"
 import type { V1PodSpec } from "@kubernetes/client-node"
 import { runOrTestWithPod } from "./common.js"
 import type { KubernetesRunOutputs, KubernetesTestOutputs } from "./config.js"
@@ -35,6 +35,22 @@ import { getRunResultCache, getTestResultCache } from "../results-cache.js"
 import { toActionStatus } from "../util.js"
 import { InternalError } from "../../../exceptions.js"
 import type { KubernetesRunResult } from "../../../plugin/base.js"
+import { reportDeprecatedFeatureUsage } from "../../../util/deprecations.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
+import { styles } from "../../../logger/styles.js"
+import { actionReferenceToString } from "../../../actions/base.js"
+import type { Log } from "../../../logger/log-entry.js"
+
+function examineForDeprecations(config: KubernetesPodRunActionConfig | KubernetesPodTestActionConfig, log: Log) {
+  const spec = config.spec
+  if ("files" in spec) {
+    emitNonRepeatableWarning(
+      log,
+      `Obsolete configuration field ${styles.highlight("spec.files")} found in the action ${styles.highlight(actionReferenceToString(config))} at ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}`
+    )
+    reportDeprecatedFeatureUsage({ log, deprecation: "kubernetesPodSpecFiles" })
+  }
+}
 
 // RUN //
 
@@ -79,7 +95,7 @@ export const kubernetesRunPodSchema = (kind: ActionKind) => {
       manifests: kubernetesManifestsSchema().description(
         `List of Kubernetes resource manifests to be searched (using \`resource\`e for the pod spec for the ${kind}. If \`files\` is also specified, this is combined with the manifests read from the files.`
       ),
-      files: kubernetesPodManifestTemplatesSchema(kind).meta({ deprecated: true }),
+      files: joi.any().meta({ internal: true }),
       manifestFiles: kubernetesManifestFilesSchema(),
       manifestTemplates: kubernetesPodManifestTemplatesSchema(kind),
       resource: runPodResourceSchema(kind),
@@ -101,6 +117,10 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
   schema: kubernetesRunPodSchema("Run"),
   runtimeOutputsSchema: kubernetesRunOutputsSchema(),
   handlers: {
+    configure: async ({ log, config }) => {
+      examineForDeprecations(config, log)
+      return { config, supportedModes: {} }
+    },
     run: async (params) => {
       const { ctx, log, action } = params
       const k8sCtx = <KubernetesPluginContext>ctx
@@ -155,6 +175,10 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
   schema: kubernetesRunPodSchema("Test"),
   runtimeOutputsSchema: kubernetesTestOutputsSchema(),
   handlers: {
+    configure: async ({ log, config }) => {
+      examineForDeprecations(config, log)
+      return { config, supportedModes: {} }
+    },
     run: async (params) => {
       const { ctx, log, action } = params
       const k8sCtx = <KubernetesPluginContext>ctx

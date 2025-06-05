@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -762,15 +762,7 @@ export class GardenCloudApi {
   async registerCloudBuilderBuild({
     organizationId,
     ...body
-  }: {
-    organizationId: string
-    actionName: string
-    actionUid: string
-    actionVersion: string
-    coreSessionId: string
-    platforms: string[]
-    mtlsClientPublicKeyPEM: string | undefined
-  }): Promise<RegisterCloudBuilderBuildResponse> {
+  }: RegisterBuildRequestV2): Promise<RegisterCloudBuilderBuildResponse> {
     try {
       return await this.post<RegisterCloudBuilderBuildResponse>(
         `/organizations/${organizationId}/cloudbuilder/builds/`,
@@ -832,9 +824,35 @@ export class GardenCloudApi {
       })
     }
   }
+
+  async revokeToken(clientAuthToken: ClientAuthToken) {
+    try {
+      await this.post("token/logout", { headers: { Cookie: `rt=${clientAuthToken?.refreshToken}` } })
+    } catch (err) {
+      if (!(err instanceof GotHttpError)) {
+        throw err
+      }
+
+      throw new CloudApiTokenRefreshError({
+        message: `An error occurred while revoking client auth token with ${this.distroName}: ${err.message}`,
+        responseStatusCode: err.response?.statusCode,
+      })
+    }
+  }
 }
 
 // TODO(cloudbuilder): import these from api-types
+type RegisterBuildRequestV2 = {
+  organizationId: string
+  actionUid: string
+  actionName: string
+  coreSessionId: string
+  platforms: string[]
+
+  // for authentication against the builder
+  // If not specified, the private key will be generated server-side.
+  mtlsClientPublicKeyPEM?: string
+}
 type RegisterCloudBuilderBuildResponseV2 = {
   data: {
     version: "v2"

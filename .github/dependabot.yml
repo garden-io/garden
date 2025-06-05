@@ -25,3 +25,33 @@ updates:
     open-pull-requests-limit: 5
     schedule:
       interval: "weekly"
+
+  ### 0.13 branch
+
+  # Automatically update GitHub Actions
+  - package-ecosystem: "github-actions"
+    target-branch: "0.13"
+    labels:
+      - "0.13"
+    directory: "/"
+    open-pull-requests-limit: 5
+    schedule:
+      interval: "weekly"
+  # Automatically update Dockerfile FROM images
+  - package-ecosystem: "docker"
+    target-branch: "0.13"
+    labels:
+      - "0.13"
+    directory: "/support/"
+    open-pull-requests-limit: 5
+    schedule:
+      interval: "weekly"
+  # Automatically update NPM packages
+  - package-ecosystem: "npm"
+    target-branch: "0.13"
+    labels:
+      - "0.13"
+    directory: "/"
+    open-pull-requests-limit: 5
+    schedule:
+      interval: "weekly"

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,9 +15,9 @@ export interface MonitorBaseParams {
 
 export abstract class Monitor {
   public subscribers: Command[]
-  protected garden: Garden
+  protected readonly garden: Garden
 
-  constructor(params: MonitorBaseParams) {
+  protected constructor(params: MonitorBaseParams) {
     this.subscribers = []
     this.garden = params.garden
   }
@@ -27,8 +27,8 @@ export abstract class Monitor {
   abstract key(): string
   abstract description(): string
 
-  abstract start(): Promise<{}>
-  abstract stop(): Promise<{}>
+  abstract start(): Promise<void>
+  abstract stop(): Promise<void>
 
   subscribe(subscriber: Command) {
     this.subscribers.push(subscriber)

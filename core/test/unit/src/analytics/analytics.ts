@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -72,6 +72,7 @@ describe("AnalyticsHandler", () => {
 
   after(async () => {
     await resetAnalyticsConfig()
+    garden.close()
   })
 
   beforeEach(async () => {
@@ -85,6 +86,7 @@ describe("AnalyticsHandler", () => {
     await mockServer.stop()
     mockServer.reset()
   })
+
   describe("factory", () => {
     beforeEach(async () => {
       garden = await makeTestGardenA()
@@ -96,6 +98,7 @@ describe("AnalyticsHandler", () => {
       // Flush so queued events don't leak between tests
       await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
+      garden.close()
     })
 
     it("should initialize the analytics config if missing", async () => {
@@ -288,6 +291,7 @@ describe("AnalyticsHandler", () => {
     afterEach(async () => {
       await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
+      garden.close()
     })
 
     it("should not replace the anonymous user ID with the Cloud user ID", async () => {
@@ -364,7 +368,7 @@ describe("AnalyticsHandler", () => {
       ])
     })
     // TODO(0.14): I have no idea why we send an event here. I've debugged it and analytics is disabled!
-    // eslint-disable-next-line mocha/no-skipped-tests
+    // eslint-disable-next-line mocha/no-pending-tests
     it.skip("should not identify the user if analytics is disabled via env var", async () => {
       const mockedEndpoint = await mockServer.forPost("/v1/batch").thenReply(200)
 
@@ -392,6 +396,7 @@ describe("AnalyticsHandler", () => {
       // Flush so queued events don't leak between tests
       await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
+      garden.close()
     })
 
     it("should return the event with the correct project metadata", async () => {
@@ -757,6 +762,7 @@ describe("AnalyticsHandler", () => {
       // Flush so queued events don't leak between tests
       await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
+      garden.close()
     })
 
     it("should return the event as a success", async () => {
@@ -979,6 +985,7 @@ describe("AnalyticsHandler", () => {
       // Flush so queued events don't leak between tests
       await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
+      garden.close()
     })
 
     it("should wait for pending events on network delays", async () => {

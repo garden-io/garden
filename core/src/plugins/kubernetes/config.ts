@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -82,7 +82,6 @@ export interface KubernetesResourceSpec {
 
 interface KubernetesResources {
   builder: KubernetesResourceSpec
-  sync: KubernetesResourceSpec
   util: KubernetesResourceSpec
 }
 
@@ -181,16 +180,6 @@ export const defaultResources: KubernetesResources = {
       memory: 512,
     },
   },
-  sync: {
-    limits: {
-      cpu: 500,
-      memory: 512,
-    },
-    requests: {
-      cpu: 100,
-      memory: 90,
-    },
-  },
   util: {
     limits: {
       cpu: 256,
@@ -210,7 +199,7 @@ export const defaultStorage: KubernetesStorage = {
   },
 }
 
-const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =>
+const resourceSchema = (defaults: KubernetesResourceSpec) =>
   joi
     .object()
     .keys({
@@ -222,25 +211,21 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .integer()
             .default(defaults.limits.cpu)
             .description("CPU limit in millicpu.")
-            .example(defaults.limits.cpu)
-            .meta({ deprecated }),
+            .example(defaults.limits.cpu),
           memory: joi
             .number()
             .integer()
             .default(defaults.limits.memory)
             .description("Memory limit in megabytes.")
-            .example(defaults.limits.memory)
-            .meta({ deprecated }),
+            .example(defaults.limits.memory),
           ephemeralStorage: joi
             .number()
             .integer()
             .optional()
             .description("Ephemeral storage limit in megabytes.")
-            .example(8192)
-            .meta({ deprecated }),
+            .example(8192),
         })
-        .default(defaults.limits)
-        .meta({ deprecated }),
+        .default(defaults.limits),
       requests: joi
         .object()
         .keys({
@@ -249,25 +234,21 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .integer()
             .default(defaults.requests.cpu)
             .description("CPU request in millicpu.")
-            .example(defaults.requests.cpu)
-            .meta({ deprecated }),
+            .example(defaults.requests.cpu),
           memory: joi
             .number()
             .integer()
             .default(defaults.requests.memory)
             .description("Memory request in megabytes.")
-            .example(defaults.requests.memory)
-            .meta({ deprecated }),
+            .example(defaults.requests.memory),
           ephemeralStorage: joi
             .number()
             .integer()
             .optional()
             .description("Ephemeral storage request in megabytes.")
-            .example(8192)
-            .meta({ deprecated }),
+            .example(8192),
         })
-        .default(defaults.requests)
-        .meta({ deprecated }),
+        .default(defaults.requests),
     })
     .default(defaults)
 
@@ -982,31 +963,23 @@ export const resourcesSchema = () =>
   joi
     .object()
     .keys({
-      builder: resourceSchema(defaultResources.builder, false).description(dedent`
+      builder: resourceSchema(defaultResources.builder).description(dedent`
             Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're using when configuring this.
 
             When \`buildMode\` is \`kaniko\`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
 
             When \`buildMode\` is \`cluster-buildkit\`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
           `),
-      util: resourceSchema(defaultResources.util, false).description(dedent`
+      util: resourceSchema(defaultResources.util).description(dedent`
             Resource requests and limits for the util pod for in-cluster builders.
             This pod is used to get, start, stop and inquire the status of the builds.
 
             This pod is created in each garden namespace.
           `),
-      sync: resourceSchema(defaultResources.sync, true)
-        .description(
-          dedent`
-            Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
-            ahead of building images. This generally is not resource intensive, but you might want to adjust the
-            defaults if you have many concurrent users.
-          `
-        )
-        // TODO(deprecation): deprecate in 0.14
-        .meta({
-          deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
-        }),
+      // TODO(0.15): remove this
+      // This config has no effect.
+      // It was used only by `cluster-docker` build mode which was removed in 0.13.
+      sync: joi.any().meta({ internal: true }),
     })
     .default(defaultResources).description(deline`
         Resource requests and limits for the in-cluster builder..

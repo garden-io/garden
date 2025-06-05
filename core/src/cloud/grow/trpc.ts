@@ -1,17 +1,19 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CreateTRPCClient } from "@trpc/client"
+import type { CreateTRPCClient, TRPCClientError } from "@trpc/client"
 import { createTRPCClient, httpLink, loggerLink } from "@trpc/client"
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import superjson from "superjson"
 import type { AppRouter } from "./trpc-schema.js"
 import { getPackageVersion } from "../../util/util.js"
+import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
+import { isError } from "lodash-es"
 
 export type RouterOutput = inferRouterOutputs<AppRouter>
 export type RouterInput = inferRouterInputs<AppRouter>
@@ -23,7 +25,7 @@ export type RouterInput = inferRouterInputs<AppRouter>
  * The `organizationId` is already known and stored in the {@link GrowCloudApi} class,
  * so the class should use that value to compose tRPC request payloads.
  */
-export type ClientRequest<T extends { organizationId?: string | undefined }> = Omit<T, "organizationId">
+export type ClientRequest<T extends { organizationId: string }> = Omit<T, "organizationId">
 
 export type DockerBuildReport = ClientRequest<RouterInput["dockerBuild"]["create"]>
 
@@ -80,3 +82,82 @@ export function getNonAuthenticatedApiClient(trpcConfigParams: Omit<TrpcConfigPa
 }
 
 export type ApiClient = CreateTRPCClient<AppRouter>
+
+export function isAggregateError(err: Error): err is AggregateError {
+  return err.constructor.name === "AggregateError"
+}
+
+type ErrorCause = { type: string; msg: string }
+
+export function getErrorCauseChain(err: TRPCClientError<InferrableClientTypes>): ErrorCause[] {
+  const errorCauses: ErrorCause[] = []
+  const seen = new Set<Error>()
+
+  let currentError: Error | undefined = err
+  while (currentError !== undefined) {
+    // to avoid potential circular causes
+    if (seen.has(currentError)) {
+      break
+    }
+
+    seen.add(currentError)
+
+    const errorType = currentError.constructor.name
+    const errorMsg = isAggregateError(currentError)
+      ? currentError.errors
+          .map((e) => (isError(e) ? e.message : ""))
+          .filter((m) => !!m)
+          .join("; ")
+      : currentError.message
+
+    const errorCause = { type: errorType, msg: errorMsg }
+    errorCauses.push(errorCause)
+
+    if (isError(currentError.cause)) {
+      currentError = currentError.cause
+    } else {
+      currentError = undefined
+    }
+  }
+
+  return errorCauses
+}
+
+type TRPCErrorDesc = {
+  short: string
+  detailed: () => string
+}
+
+/**
+ * Collects deduplicated chain of error messages.
+ *
+ * @param errorCauses the list of the errors
+ */
+function getShortDesc(errorCauses: ErrorCause[]): string {
+  const errorMessages = new Set<string>()
+  for (const errorCause of errorCauses) {
+    errorMessages.add(errorCause.msg)
+  }
+  return [...errorMessages].join(": ")
+}
+
+/**
+ * Collects the actual chain of error messages with the corresponding constructor names.
+ *
+ * @param errorCauses the list of the errors
+ */
+function getDetailedDesc(errorCauses: ErrorCause[]): string {
+  const errorMessages: string[] = []
+  for (const errorCause of errorCauses) {
+    errorMessages.push(`${errorCause.type}: ${errorCause.msg}`)
+  }
+  return errorMessages.join("; caused by: ")
+}
+
+export function describeTRPCClientError(err: TRPCClientError<InferrableClientTypes>): TRPCErrorDesc {
+  const errorCauses = getErrorCauseChain(err)
+  return {
+    short: getShortDesc(errorCauses),
+    detailed: () => getDetailedDesc(errorCauses),
+  }
+}

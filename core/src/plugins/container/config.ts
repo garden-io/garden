@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,13 +9,13 @@
 import type { Primitive, PrimitiveMap } from "../../config/common.js"
 import {
   artifactsTargetDescription,
+  createSchema,
   envVarRegex,
   joi,
   joiPrimitive,
   joiSparseArray,
   joiStringMap,
   joiUserIdentifier,
-  createSchema,
 } from "../../config/common.js"
 import type { ArtifactSpec } from "../../config/validation.js"
 import { ingressHostnameSchema, linkUrlSchema } from "../../types/service.js"
@@ -33,11 +33,10 @@ import { templateStringLiteral } from "../../docs/common.js"
 import { syncGuideLink } from "../kubernetes/constants.js"
 import { makeSecret, type Secret } from "../../util/secrets.js"
 import type { ActionKind } from "../../plugin/action-types.js"
-import { makeDeprecationMessage } from "../../util/deprecations.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
-export const defaultContainerLimits: ServiceLimitSpec = {
+export const defaultContainerLimits: LegacyServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
   memory: 1024, // = 1024MB = 1GB
 }
@@ -74,13 +73,11 @@ export interface ServicePortSpec {
   nodePort?: number | true
 }
 
-export interface ContainerVolumeSpecBase {
+export interface ContainerVolumeSpec {
   name: string
   containerPath: string
   hostPath?: string
 }
-
-export interface ContainerVolumeSpec extends ContainerVolumeSpecBase {}
 
 export interface ServiceHealthCheckSpec {
   httpGet?: {
@@ -95,11 +92,12 @@ export interface ServiceHealthCheckSpec {
 }
 
 /**
- * DEPRECATED: Use {@link ContainerResourcesSpec} instead.
+ * TODO(0.15): remove this
+ * @deprecated use {@link ContainerResourcesSpec} instead.
  */
-export interface ServiceLimitSpec {
-  cpu: number
-  memory: number
+export interface LegacyServiceLimitSpec {
+  cpu: number | undefined
+  memory: number | undefined
 }
 
 export interface ContainerResourcesSpec {
@@ -322,8 +320,8 @@ export const containerSyncPathSchema = createSchema({
 export const localModeRestartSchema = createSchema({
   name: "local-mode-restart",
   keys: () => ({
-    delayMsec: joi.number().integer().optional().meta({ internal: true }),
-    max: joi.number().integer().optional().meta({ internal: true }),
+    delayMsec: joi.number().integer().optional(),
+    max: joi.number().integer().optional(),
   }),
   options: { presence: "optional" },
   meta: { internal: true },
@@ -332,8 +330,8 @@ export const localModeRestartSchema = createSchema({
 export const localModePortsSchema = createSchema({
   name: "local-mode-port",
   keys: () => ({
-    local: joi.number().integer().optional().meta({ internal: true }),
-    remote: joi.number().integer().optional().meta({ internal: true }),
+    local: joi.number().integer().optional(),
+    remote: joi.number().integer().optional(),
   }),
   meta: { internal: true },
 })
@@ -342,14 +340,11 @@ export const containerLocalModeSchema = createSchema({
   name: "container-local-mode",
   description: `This feature has been deleted.`,
   keys: () => ({
-    ports: joi.array().optional().items(localModePortsSchema()).meta({ internal: true }),
-    command: joi.sparseArray().optional().items(joi.string()).meta({ internal: true }),
+    ports: joi.array().optional().items(localModePortsSchema()),
+    command: joi.sparseArray().optional().items(joi.string()),
     restart: localModeRestartSchema(),
   }),
-  meta: {
-    deprecated: makeDeprecationMessage({ deprecation: "localMode" }),
-    internal: true,
-  },
+  meta: { internal: true },
 })
 
 const annotationsSchema = memoize(() =>
@@ -464,14 +459,14 @@ const limitsSchema = createSchema({
     cpu: joi
       .number()
       .min(10)
-      .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)")
-      .meta({ deprecated: true }), // TODO(deprecation): deprecate in 0.14
+      .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)"),
     memory: joi
       .number()
       .min(64)
-      .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)")
-      .meta({ deprecated: true }), // TODO(deprecation): deprecate in 0.14
+      .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)"),
   }),
+  description: "Specify resource limits for the service.",
+  meta: { deprecation: "containerDeployActionLimits" },
 })
 
 export const containerCpuSchema = () =>
@@ -544,7 +539,10 @@ export const portSchema = createSchema({
         The service port maps to the container port:
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
-    hostPort: joi.number().meta({ deprecated: true }),
+    hostPort: joi
+      .number()
+      .description("Number of port to expose on the pod's IP address.")
+      .meta({ deprecation: "containerDeployActionHostPort" }),
     nodePort: joi.number().allow(true).description(deline`
         Set this to expose the service on the specified port on the host node (may not be supported by all providers).
         Set to \`true\` to have the cluster pick a port automatically, which is most often advisable if the cluster is
@@ -612,7 +610,11 @@ interface ContainerCommonRuntimeSpec {
   command?: string[]
   env: PrimitiveMap
 
-  limits?: ServiceLimitSpec
+  /**
+   * TODO(0.15) remove this
+   * @deprecated use {@link #cpu} and {@link #memory} instead
+   */
+  limits?: LegacyServiceLimitSpec
   cpu: ContainerResourcesSpec["cpu"]
   memory: ContainerResourcesSpec["memory"]
 
@@ -712,13 +714,14 @@ export const containerDeploySchemaKeys = memoize(() => ({
     .description("List of ingress endpoints that the service exposes.")
     .example([{ path: "/api", port: "http" }]),
   healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
-  // TODO(deprecation): deprecate in 0.14
+  // TODO(0.15): remove this
   hotReload: joi.any().meta({ internal: true }),
   timeout: k8sDeploymentTimeoutSchema(),
-  limits: limitsSchema()
-    .description("Specify resource limits for the service.")
-    .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }), // TODO(deprecation): deprecate in 0.14
-  ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
+  limits: limitsSchema(),
+  ports: joiSparseArray(portSchema())
+    .unique("name")
+    .default([])
+    .description("List of ports that the service container exposes."),
   replicas: joi.number().integer().description(deline`
     The number of instances of the service to deploy.
     Defaults to 3 for environments configured with \`production: true\`, otherwise 1.

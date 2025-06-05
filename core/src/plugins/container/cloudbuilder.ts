@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -158,7 +158,6 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
       organizationId: cloudProject.organization.id,
       actionUid: action.uid,
       actionName: action.name,
-      actionVersion: action.getFullVersion().toString(),
       coreSessionId: ctx.sessionId,
       // if platforms are not set, we default to linux/amd64
       platforms: action.getSpec().platforms || ["linux/amd64"],
