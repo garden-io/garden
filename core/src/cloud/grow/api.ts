@@ -326,16 +326,9 @@ export class GrowCloudApi {
   // GRPC clients
 
   private get grpcTransport() {
-    const url = new URL(this.domain)
-    const domainParts = url.host.split(".")
-    if (domainParts.length > 1) {
-      domainParts[0] = `${domainParts[0]}-grpc`
-    }
-    url.host = domainParts.join(".")
-    const grpcUrl = url.toString()
-    this.log.debug({ msg: `Using gRPC transport with URL: ${grpcUrl}` })
+    this.log.debug({ msg: `Using gRPC transport with URL: ${this.domain}` })
     return createGrpcTransport({
-      baseUrl: grpcUrl,
+      baseUrl: this.domain,
 
       // Interceptors apply to all calls running through this transport.
       interceptors: [],
