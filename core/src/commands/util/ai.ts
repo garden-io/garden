@@ -78,7 +78,7 @@ Garden is a CLI dev tool used to build, test and deploy Kubernetes apps. It leve
 It's configured via garden.yml config files. Garden config files contain Build, Deploy, Run, and Test actions that describe a given part of a system. Usually there's a Garden config file for each service, co-located with that service. Garden parses this config and translates it into a graph it can execute.
 
 ## Garden project
-Each Garden project has a top level project config file at the root of the repo, usually called \`project.garden.yml\`. This file contains high level config that's common to the project.
+Each Garden project has a top level project config file at the root of the repo, usually called \`project.garden.yml\`. This file contains high level config that's common to the project. There is no \`description\` field in the project config.
 
 ## Garden actions
 Each Garden project has one or more actions actions which are the building blocks of a Garden project. They all have the same structure, can depend on other actions and define outputs that other actions can read.
