@@ -37,6 +37,7 @@ import {
 } from "@kubernetes/client-node"
 import { load } from "js-yaml"
 import fsExtra from "fs-extra"
+
 const { readFile } = fsExtra
 import type WebSocket from "isomorphic-ws"
 import pRetry from "p-retry"
@@ -72,6 +73,8 @@ import https from "node:https"
 import http from "node:http"
 import { ProxyAgent } from "proxy-agent"
 import { type MaybeSecret, toClearText } from "../../util/secrets.js"
+import type { ConfigurationOptions } from "@kubernetes/client-node/dist/gen/configuration.js"
+import { isPlainObject } from "../../util/objects.js"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -251,6 +254,89 @@ async function createProxyAgent(agent: RequestInit["agent"]): Promise<ProxyAgent
 
 type ApiConstructor<T extends ApiType> = new (config: Configuration) => T
 
+/**
+ * We need this hack to enable the middleware that is already configure in api.core.
+ *
+ * Otherwise, the middleware will be completely ignored because of the bug in the @kubernetes/client-node,
+ * see the function patchNamespaceWithHttpInfo in ObservableAPI.js
+ * and the following issues:
+ *  - https://github.com/kubernetes-client/javascript/issues/2160#issuecomment-2620169494
+ *  - https://github.com/kubernetes-client/javascript/issues/2264#issuecomment-2826382923
+ *
+ *  Waiting for https://github.com/kubernetes-client/javascript/issues/2264 to be fixed properly.
+ */
+function getConfigOptionsForPatchRequest(): ConfigurationOptions {
+  return { middleware: [], middlewareMergeStrategy: "append" }
+}
+
+type ConfigOptionsField = keyof ConfigurationOptions
+const configurableOptionsFields: ConfigOptionsField[] = [
+  "baseServer",
+  "httpApi",
+  "middleware",
+  "authMethods",
+  "middlewareMergeStrategy",
+] as const
+
+function isConfigurationOptions(obj: unknown): obj is ConfigurationOptions {
+  if (!isPlainObject(obj)) {
+    return false
+  }
+
+  for (const configurableOptionsField of configurableOptionsFields) {
+    if (configurableOptionsField in obj) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * Checks if a k8s api call is a patch request that needs extra middleware config options,
+ * and adds those options if necessary.
+ *
+ * This function is side effect free and does not modify the original array of arguments.
+ *
+ * The checking criteria are:
+ *  - method's name starts with "patch"
+ *  - the last argument is not a ConfigurationOptions object, or it is missing the middleware configuration
+ *
+ * @param fnName the name of the K8sApi function
+ * @param fnArgs the list of the runtime arguments
+ * @return a new array of arguments with the config options changes applied, or the original array otherwise
+ */
+function ensureMiddlewareForPatchRequests(fnName: string, fnArgs: any[]): any[] {
+  if (!fnName.startsWith("patch")) {
+    return fnArgs
+  }
+
+  // The ConfigurationOptions is always the last argument of the function.
+  const lastArg = fnArgs.slice(-1).pop()
+
+  // if options are not defined, add middleware config
+  if (!isConfigurationOptions(lastArg)) {
+    return fnArgs.concat(getConfigOptionsForPatchRequest())
+  }
+
+  // if the middleware config is already defined, respect it
+  if (!!lastArg.middleware) {
+    return fnArgs
+  }
+
+  // preserve provided config options if any, and add missing middleware config if necessary
+  const overrides = getConfigOptionsForPatchRequest()
+  const patchedLastArg: ConfigurationOptions = {
+    baseServer: lastArg.baseServer,
+    authMethods: lastArg.authMethods,
+    httpApi: lastArg.httpApi,
+    middleware: overrides.middleware,
+    middlewareMergeStrategy: overrides.middlewareMergeStrategy,
+  }
+
+  return [...fnArgs.slice(0, -1), patchedLastArg]
+}
+
 function makeApiClient<T extends ApiType>(kubeConfig: KubeConfig, apiClientType: ApiConstructor<T>): T {
   const cluster = kubeConfig.getCurrentCluster()
   if (!cluster) {
@@ -267,11 +353,8 @@ function makeApiClient<T extends ApiType>(kubeConfig: KubeConfig, apiClientType:
       {
         pre: async (context) => {
           // patch the patch bug... (https://github.com/kubernetes-client/javascript/issues/19)
-          // See also https://github.com/kubernetes-client/javascript/pull/1341 (That's why we have to use the fork)
           if (context.getHttpMethod() === "PATCH") {
-            // this does not work because it lowercases the header param:
-            // context.setHeaderParam("Content-Type", "application/merge-patch+json")
-            context["headers"]["Content-Type"] = "application/merge-patch+json"
+            context.setHeaderParam("Content-Type", "application/merge-patch+json")
           }
 
           const agent = await createProxyAgent(context.getAgent())
@@ -822,7 +905,9 @@ export class KubeApi {
 
         return (...args: any[]) => {
           return requestWithRetry(log, `Kubernetes API: ${name}`, () => {
-            const output = target[name](...args)
+            // TODO: remove this when https://github.com/kubernetes-client/javascript/issues/2264 is fixed
+            const patchedArgs = ensureMiddlewareForPatchRequests(name, args)
+            const output = target[name](...patchedArgs)
 
             if (typeof output.then === "function") {
               return (

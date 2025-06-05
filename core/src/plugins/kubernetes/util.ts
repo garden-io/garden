@@ -437,17 +437,13 @@ export async function upsertConfigMap({
   }
 
   try {
-    await api.core.createNamespacedConfigMap({ namespace, body: <any>body })
+    await api.core.createNamespacedConfigMap({ namespace, body })
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }
     if (err.responseStatusCode === 409) {
-      await api.core.patchNamespacedConfigMap({
-        name: key,
-        namespace,
-        body,
-      })
+      await api.core.patchNamespacedConfigMap({ name: key, namespace, body })
     } else {
       throw err
     }
