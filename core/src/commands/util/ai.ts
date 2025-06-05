@@ -260,6 +260,8 @@ Follow the instructions below to configure a Garden project:
 
 You are operating from the repo root and all file paths are relative to that root. There will be back and forth and the prompt/context will grow as you use tools and they're output gets added.
 
+When possible, use the write_file_and_validate tool instead of write_file and garden_validate separately.
+
 In your responses, DO NOT repeat the prompt that you received or the results from tools used.
 ***END INIT PROMPT***
 `
@@ -325,6 +327,29 @@ Use force=true to skip overwrite confirmation.`,
     input_schema: {
       type: "object" as const,
       properties: {},
+    },
+  },
+  {
+    name: "write_file_and_validate",
+    description:
+      "Writes content to a file and then validates all Garden config files in one go, which is faster than using the write_file and garden_validate separately. Takes the same inputs as write_file.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        content: {
+          type: "string",
+          description: "The file contents to write",
+        },
+        file_path: {
+          type: "string",
+          description: "The path where the file should be written",
+        },
+        force: {
+          type: "boolean",
+          description: "If true, skip the overwrite confirmation prompt and write the file directly.",
+        },
+      },
+      required: ["content", "file_path"],
     },
   },
 ] as Array<ToolUnion>
@@ -527,6 +552,26 @@ const toolMap: Record<string, ToolHandler> = {
 
       return { content: stripAnsi(errorMessage), result: "error_continue" }
     }
+  },
+
+  write_file_and_validate: async ({ rootDir, input, log }: ToolParams): Promise<ToolResponse> => {
+    const writeFileHandler = toolMap.write_file
+    const validateHandler = toolMap.garden_validate
+
+    // Call write_file logic
+    const writeFileResult = await writeFileHandler({ rootDir, log, input })
+
+    if (writeFileResult.result !== "success") {
+      return writeFileResult // Return early if write_file failed
+    }
+
+    log.info(chalk.cyan("File written successfully, proceeding to validation."))
+
+    // Call garden_validate logic
+    // garden_validate's input schema is empty, so we pass an empty object for its specific input part.
+    const validateResult = await validateHandler({ rootDir, log, input: {} })
+
+    return validateResult // Return the result from validateHandler directly
   },
 }
 
