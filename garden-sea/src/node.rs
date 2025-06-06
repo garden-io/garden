@@ -55,6 +55,8 @@ where
         format!("--max-old-space-size={}", max_old_space_size).into(),
         // Disable deprecation warnings; We still see deprecation warnings during development, but in release binaries we want to hide them.
         "--no-deprecation".into(),
+        // Make error stack traces more useful. Error stack traces will reference the original typescript source code.
+        "--enable-source-maps".into(),
     ]);
 
 
