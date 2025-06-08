@@ -92,36 +92,3 @@ export interface AgentAction {
   type: "create_file" | "update_file" | "analyze_file" | "run_validation"
   data: Record<string, unknown>
 }
-
-export abstract class BaseAgent {
-  protected name: string
-  protected conversationHistory: MessageParam[] = []
-
-  constructor(
-    protected context: AgentContext,
-    name: string
-  ) {
-    this.name = name
-  }
-
-  abstract getName(): string
-  abstract getDescription(): string
-  abstract getSystemPrompt(): string
-
-  abstract processQuery(query: string, additionalContext?: Record<string, unknown>): Promise<AgentResponse>
-
-  protected addToHistory(message: MessageParam) {
-    this.conversationHistory.push(message)
-  }
-
-  protected async callAnthropic(messages: MessageParam[]): Promise<Anthropic.Messages.Message> {
-    const response = await this.context.anthropic.messages.create({
-      model: "claude-3-sonnet-20241022",
-      max_tokens: 4096,
-      system: this.getSystemPrompt(),
-      messages,
-    })
-
-    return response
-  }
-}

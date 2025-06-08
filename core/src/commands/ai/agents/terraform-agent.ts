@@ -7,7 +7,7 @@
  */
 
 import type { AgentContext, AgentResponse, MessageParam } from "../types.js"
-import { BaseAgent } from "../types.js"
+import { BaseAgent } from "./base-agent.js"
 
 export class TerraformAgent extends BaseAgent {
   constructor(context: AgentContext) {

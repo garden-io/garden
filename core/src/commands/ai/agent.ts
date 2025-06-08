@@ -70,7 +70,7 @@ export class AgentCommand extends Command<Args, Opts> {
     }
 
     // Initialize the main agent
-    const mainAgent = new MainAgent(context)
+    const mainAgent = new MainAgent(context, garden.projectRoot)
 
     // Start the interactive session
     const rl = readline.createInterface({ input, output })
