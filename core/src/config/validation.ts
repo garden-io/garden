@@ -48,6 +48,7 @@ export interface ValidateOptions {
   context?: string // Descriptive text to include in validation error messages, e.g. "module at some/local/path"
   ErrorClass?: typeof ConfigurationError
   source?: ConfigSource
+  docsUrl?: string
 }
 
 export interface ValidateWithPathParams {
@@ -59,6 +60,7 @@ export interface ValidateWithPathParams {
   configType: string // The type of top-level entity that the config belongs to, e.g. "module" or "project"
   source: ConfigSource | undefined
   ErrorClass?: typeof ConfigurationError
+  docsUrl?: string
 }
 
 /**
@@ -76,6 +78,7 @@ export function validateWithPath<T>({
   configType,
   ErrorClass,
   source,
+  docsUrl,
 }: ValidateWithPathParams) {
   const context =
     `${configType} ${name ? `'${name}' ` : ""}` +
@@ -84,6 +87,7 @@ export function validateWithPath<T>({
   const validateOpts = {
     context: context.trim(),
     source,
+    docsUrl,
   }
 
   if (ErrorClass) {
@@ -121,7 +125,7 @@ export function validateConfig<T extends BaseGardenResource>(params: ValidateCon
 export function validateSchema<T>(
   value: unknown,
   schema: Joi.Schema,
-  { source, context = "", ErrorClass = ConfigurationError }: ValidateOptions = {}
+  { source, context = "", ErrorClass = ConfigurationError, docsUrl }: ValidateOptions = {}
 ): T {
   const result = schema.validate(value, joiOptions)
   const error = result.error
@@ -161,6 +165,10 @@ export function validateSchema<T>(
   if (schemaDescription.keys && errorDescription.includes("is not allowed at path")) {
     // Not the case e.g. for array schemas
     errorDescription += `. Available keys: ${Object.keys(schema.describe().keys).join(", ")})`
+  }
+
+  if (docsUrl) {
+    errorDescription += `\n\nFor more information, see ${docsUrl}`
   }
 
   throw new ErrorClass({
