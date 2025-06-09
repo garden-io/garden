@@ -9,6 +9,9 @@
 import type { Anthropic } from "@anthropic-ai/sdk"
 import type { Log } from "../../logger/log-entry.js"
 import type { Garden } from "../../garden.js"
+import type { BaseMessage } from "@langchain/core/messages"
+import { Command } from "@langchain/langgraph"
+import { Annotation, messagesStateReducer } from "@langchain/langgraph"
 
 export type MessageParam = Anthropic.Messages.MessageParam
 
@@ -76,19 +79,49 @@ export interface AgentContext {
   garden: Garden
 }
 
-export interface AgentMessage {
-  role: "user" | "assistant"
-  content: string
-}
+// Define the state annotation
+export const GraphStateAnnotation = Annotation.Root({
+  query: Annotation<string>({
+    reducer: (_old, newVal) => newVal ?? "",
+    default: () => "",
+  }),
+  messages: Annotation<BaseMessage[]>({
+    reducer: messagesStateReducer,
+    default: () => [],
+  }),
+  projectInfo: Annotation<string>({
+    reducer: (_old, newVal) => newVal ?? "",
+    default: () => "",
+  }),
+  userFeedback: Annotation<string | undefined>({
+    reducer: (_old, newVal) => newVal,
+    default: () => undefined,
+  }),
+  context: Annotation<AgentContext | null>({
+    reducer: (old) => old, // Context is immutable
+    default: () => null,
+  }),
+  step: Annotation<number>({
+    reducer: (_old, newVal) => newVal ?? 0,
+    default: () => 0,
+  }),
+}) // Export the state type for use in other files
 
-export interface AgentResponse {
-  message: string
-  actions?: AgentAction[]
-  needsUserInput?: boolean
-  userPrompt?: string
-}
+export type GraphState = typeof GraphStateAnnotation.State
+// Define node names as const to get literal types
 
-export interface AgentAction {
-  type: "create_file" | "update_file" | "analyze_file" | "run_validation"
-  data: Record<string, unknown>
-}
+export const NODE_NAMES = {
+  HUMAN_LOOP: "human_loop",
+  MAIN_AGENT: "main_agent",
+  PROJECT_EXPLORER: "project_explorer",
+  KUBERNETES_AGENT: "kubernetes_agent",
+  // DOCKER_AGENT: "docker_agent",
+  GARDEN_AGENT: "garden_agent",
+  // TERRAFORM_AGENT: "terraform_agent",
+  // RESPONSE_SYNTHESIZER: "response_synthesizer",
+} as const
+// Extract the node names type
+
+export type NodeName = (typeof NODE_NAMES)[keyof typeof NODE_NAMES]
+
+export class ResponseCommand extends Command<unknown, Partial<GraphState>, NodeName | "__end__"> {}

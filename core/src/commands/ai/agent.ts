@@ -10,11 +10,10 @@ import { Command } from "../base.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import type { AgentContext } from "./types.js"
 import { FilesystemScanner } from "./filesystem-scanner.js"
-import { MainAgent } from "./agents/main-agent.js"
+import { createAgentGraph } from "./agents/langgraph/graph.js"
+import type { GraphState } from "./types.js"
 import Anthropic from "@anthropic-ai/sdk"
 import chalk from "chalk"
-import * as readline from "node:readline/promises"
-import { stdin as input, stdout as output } from "node:process"
 import { printHeader } from "../../logger/util.js"
 import dedent from "dedent"
 
@@ -36,7 +35,7 @@ export class AgentCommand extends Command<Args, Opts> {
     - Container builds and Dockerfiles
     - Garden configurations
     - Terraform infrastructure
-    
+
     The agent will scan your project structure and provide context-aware assistance.
   `
 
@@ -50,6 +49,13 @@ export class AgentCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log }: CommandParams<Args, Opts>): Promise<CommandResult> {
+    // Check for API key
+    if (!process.env.ANTHROPIC_API_KEY) {
+      log.error(chalk.red("Error: ANTHROPIC_API_KEY environment variable is not set."))
+      log.info(chalk.yellow("Please set your Anthropic API key to use this feature."))
+      return { exitCode: 1 }
+    }
+
     // Initialize Anthropic client
     const anthropic = new Anthropic({})
 
@@ -69,38 +75,45 @@ export class AgentCommand extends Command<Args, Opts> {
       garden,
     }
 
-    // Initialize the main agent
-    const mainAgent = new MainAgent(context, garden.projectRoot)
+    // Create the LangGraph agent network
+    const agentGraph = createAgentGraph(context)
 
-    // Start the interactive session
-    const rl = readline.createInterface({ input, output })
-
+    // Welcome message
     log.info("")
     log.info(chalk.green("Welcome to the DevOps AI Assistant!"))
     log.info(chalk.gray("I can help you create and improve Kubernetes, Docker, Garden, and Terraform configurations."))
     log.info(chalk.gray("Type 'exit' or 'quit' to end the session."))
     log.info("")
 
-    let continueSession = true
-
-    while (continueSession) {
-      const userInput = await rl.question(chalk.cyan("\nYou: "))
-
-      if (userInput.toLowerCase() === "exit" || userInput.toLowerCase() === "quit") {
-        continueSession = false
-        break
-      }
-
-      try {
-        await mainAgent.processUserInput(userInput)
-      } catch (error) {
-        log.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`))
-        log.debug(`Full error: ${error}`)
-      }
+    // Initialize the conversation state
+    const initialState: GraphState = {
+      query: "",
+      messages: [],
+      projectInfo: "",
+      userFeedback: undefined,
+      context,
+      step: 0,
     }
 
-    rl.close()
-    log.info(chalk.green("\nThank you for using the DevOps AI Assistant. Goodbye!"))
+    try {
+      // Run the graph in a streaming fashion
+      const stream = await agentGraph.stream(initialState, {
+        streamMode: "values",
+      })
+
+      // Process the stream
+      for await (const state of stream) {
+        // The human-in-the-loop node will handle user interaction
+        // and the graph will continue until the user exits
+        if (state.userFeedback === "exit" || state.userFeedback === "quit") {
+          break
+        }
+      }
+    } catch (error) {
+      log.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`))
+      log.debug(`Full error: ${error}`)
+      return { exitCode: 1 }
+    }
 
     return {}
   }
