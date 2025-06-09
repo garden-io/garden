@@ -6,14 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { NODE_NAMES } from "../../../types.js"
 import { BaseAgentNode } from "./base-node.js"
 
 /**
  * Terraform expert agent node
  */
 export class TerraformAgentNode extends BaseAgentNode {
-  getName(): string {
-    return "TerraformAgent"
+  getName() {
+    return NODE_NAMES.TERRAFORM_AGENT
   }
 
   getAgentDescription(): string {

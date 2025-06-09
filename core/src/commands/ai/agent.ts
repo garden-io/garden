@@ -9,14 +9,13 @@
 import { Command } from "../base.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import type { AgentContext } from "./types.js"
-import { FilesystemScanner } from "./filesystem-scanner.js"
 import { createAgentGraph } from "./agents/langgraph/graph.js"
-import type { GraphState } from "./types.js"
 import Anthropic from "@anthropic-ai/sdk"
 import chalk from "chalk"
 import { printHeader } from "../../logger/util.js"
 import dedent from "dedent"
 import { BooleanParameter } from "../../cli/params.js"
+import type { AgentGraphState } from "./agents/langgraph/types.js"
 
 export const agentArgs = {}
 export const agentOpts = {
@@ -65,18 +64,11 @@ export class AgentCommand extends Command<Args, Opts> {
     // Initialize Anthropic client
     const anthropic = new Anthropic({})
 
-    // Initialize the filesystem scanner
-    const scanner = new FilesystemScanner(garden.projectRoot, log)
-
-    // Scan the project structure
-    log.info(chalk.cyan("Scanning project structure..."))
-    const projectInfo = await scanner.scan()
-
     // Create the agent context
     const context: AgentContext = {
       anthropic,
       projectRoot: garden.projectRoot,
-      projectInfo,
+      projectInfo: undefined,
       log,
       garden,
       yolo: opts.yolo,
@@ -87,29 +79,39 @@ export class AgentCommand extends Command<Args, Opts> {
 
     // Welcome message
     log.info("")
-    log.info(chalk.green("Welcome to the DevOps AI Assistant!"))
-    log.info(chalk.gray("I can help you create and improve Kubernetes, Docker, Garden, and Terraform configurations."))
-    log.info(chalk.gray("Type 'exit' or 'quit' to end the session."))
+    log.info(chalk.gray("Type 'exit' or 'quit' at the prompt to end the session."))
+    log.info("")
+    log.info(chalk.gray("Initializing..."))
     log.info("")
 
+    if (opts.yolo) {
+      log.info(
+        chalk.yellow(
+          "\nWARNING: YOLO mode is enabled. This will overwrite files without confirmation. Kindly make sure you can undo any changes (say, by having your files under version control).\n"
+        )
+      )
+    }
+
     // Initialize the conversation state
-    const initialState: GraphState = {
-      query: "",
+    const initialState: AgentGraphState = {
+      initialUserQuery: "",
       messages: [],
-      projectInfo: "",
-      userFeedback: undefined,
+      expertsConsulted: [],
       context,
       step: 0,
+      userFeedback: undefined,
     }
 
     try {
       // Run the graph in a streaming fashion
       const stream = await agentGraph.stream(initialState, {
-        streamMode: "values",
+        streamMode: "debug",
+        debug: true,
       })
 
       // Process the stream
       for await (const state of stream) {
+        // console.log("state", state)
         // The human-in-the-loop node will handle user interaction
         // and the graph will continue until the user exits
         // TODO: allow main agent to summarize the conversation and provide a final response
