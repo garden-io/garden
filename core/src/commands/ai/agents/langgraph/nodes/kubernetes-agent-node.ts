@@ -6,14 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { NODE_NAMES } from "../../../types.js"
 import { BaseAgentNode } from "./base-node.js"
 
 /**
  * Kubernetes expert agent node
  */
 export class KubernetesAgentNode extends BaseAgentNode {
-  getName(): string {
-    return "KubernetesAgent"
+  getName() {
+    return NODE_NAMES.KUBERNETES_AGENT
   }
 
   getAgentDescription(): string {
@@ -40,6 +41,11 @@ Always provide practical, production-ready solutions with security and scalabili
 
 Provide specific, actionable advice.
 
-If the user needs help creating or modifying Kubernetes manifests, use the available tools to read existing files or create new ones.`
+If the user needs help creating or modifying Kubernetes manifests, use the available tools to read existing files or create new ones.
+
+A user query may be about multiple tasks. You MUST ONLY perform tasks relating to Kubernetes. You MUST NOT do anything else. You MUST NOT attempt to create or modify Terraform, Docker or Garden configuration.
+
+When creating manifests for a specific service, place those in a sub-directory under the service's directory.
+`
   }
 }

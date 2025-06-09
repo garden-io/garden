@@ -6,14 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { NODE_NAMES } from "../../../types.js"
 import { BaseAgentNode } from "./base-node.js"
 
 /**
  * Docker expert agent node
  */
 export class DockerAgentNode extends BaseAgentNode {
-  getName(): string {
-    return "DockerAgent"
+  getName() {
+    return NODE_NAMES.DOCKER_AGENT
   }
 
   getAgentDescription(): string {

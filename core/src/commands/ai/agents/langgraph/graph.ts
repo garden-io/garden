@@ -7,7 +7,7 @@
  */
 
 import { StateGraph, START } from "@langchain/langgraph"
-import { GraphStateAnnotation, NODE_NAMES, type AgentContext } from "../../types.js"
+import { NODE_NAMES, type AgentContext } from "../../types.js"
 import { MainAgentNode } from "./nodes/main-agent-node.js"
 import { ProjectExplorerNode } from "./nodes/project-explorer-node.js"
 import { KubernetesAgentNode } from "./nodes/kubernetes-agent-node.js"
@@ -15,48 +15,97 @@ import { KubernetesAgentNode } from "./nodes/kubernetes-agent-node.js"
 import { GardenAgentNode } from "./nodes/garden-agent-node.js"
 // import { TerraformAgentNode } from "./nodes/terraform-agent-node.js"
 import { HumanInTheLoopNode } from "./nodes/human-in-the-loop-node.js"
+import { StateAnnotation } from "./types.js"
+import { ChatAnthropic } from "@langchain/anthropic"
+import z from "zod"
+import { DynamicStructuredTool } from "@langchain/core/tools"
 
 /**
  * Creates the LangGraph agent network
  */
 export function createAgentGraph(context: AgentContext) {
-  // Initialize all nodes
-  const mainAgentNode = new MainAgentNode(context)
-  const projectExplorerNode = new ProjectExplorerNode(context)
-  const kubernetesAgentNode = new KubernetesAgentNode(context)
-  // const dockerAgentNode = new DockerAgentNode(context)
-  const gardenAgentNode = new GardenAgentNode(context)
-  // const terraformAgentNode = new TerraormAgentNode(context)
-  const humanInTheLoopNode = new HumanInTheLoopNode(context)
+  const model = new ChatAnthropic({
+    modelName: "claude-sonnet-4-20250514",
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+    temperature: 0.7,
+    maxTokens: 64000,
+    streaming: true,
+    // verbose: true,
+  })
 
-  mainAgentNode.addAvailableNodes([projectExplorerNode, kubernetesAgentNode, gardenAgentNode, humanInTheLoopNode])
-  projectExplorerNode.addAvailableNodes([humanInTheLoopNode])
-  kubernetesAgentNode.addAvailableNodes([humanInTheLoopNode])
-  gardenAgentNode.addAvailableNodes([humanInTheLoopNode, kubernetesAgentNode])
+  // Initialize all nodes
+  const mainAgentNode = new MainAgentNode(context, model)
+  const projectExplorerNode = new ProjectExplorerNode(context, model)
+  const kubernetesAgentNode = new KubernetesAgentNode(context, model)
+  // const dockerAgentNode = new DockerAgentNode(context)
+  const gardenAgentNode = new GardenAgentNode(context, model)
+  // const terraformAgentNode = new TerraormAgentNode(context)
+  const humanInTheLoopNode = new HumanInTheLoopNode(context, model)
+
+  const team = [mainAgentNode, projectExplorerNode, kubernetesAgentNode, gardenAgentNode, humanInTheLoopNode]
+
+  mainAgentNode.addAvailableNodes(team)
+  projectExplorerNode.addAvailableNodes([mainAgentNode, humanInTheLoopNode])
+  kubernetesAgentNode.addAvailableNodes([mainAgentNode, humanInTheLoopNode])
+  gardenAgentNode.addAvailableNodes([humanInTheLoopNode])
+
+  const routingTool = new DynamicStructuredTool({
+    name: "route",
+    description: "Select the next agent to engage.",
+    schema: z.object({
+      next: z.enum([
+        NODE_NAMES.PROJECT_EXPLORER,
+        NODE_NAMES.KUBERNETES_AGENT,
+        NODE_NAMES.GARDEN_AGENT,
+        NODE_NAMES.HUMAN_LOOP,
+      ]),
+    }),
+    func: async (input) => {
+      return {
+        next: input.next,
+      }
+    },
+  })
+
+  mainAgentNode.addTool(routingTool)
 
   // Create the state graph
-  const workflow = new StateGraph(GraphStateAnnotation)
-    .addNode(NODE_NAMES.MAIN_AGENT, mainAgentNode.makeNode({ endNodeName: "__end__" }))
+  const workflow = new StateGraph(StateAnnotation)
+    .addNode(
+      NODE_NAMES.MAIN_AGENT,
+      mainAgentNode.makeNode({ endNodeName: NODE_NAMES.HUMAN_LOOP }),
+      mainAgentNode.getNodeOptions()
+    )
     .addNode(
       NODE_NAMES.HUMAN_LOOP,
       // TODO: human in the loop node should always go to the node that referred to it, not the main agent
-      humanInTheLoopNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT })
+      humanInTheLoopNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }),
+      humanInTheLoopNode.getNodeOptions()
     )
-    .addNode(NODE_NAMES.PROJECT_EXPLORER, projectExplorerNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }))
-    .addNode(NODE_NAMES.KUBERNETES_AGENT, kubernetesAgentNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }))
+    .addNode(
+      NODE_NAMES.PROJECT_EXPLORER,
+      projectExplorerNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }),
+      projectExplorerNode.getNodeOptions()
+    )
+    .addNode(
+      NODE_NAMES.KUBERNETES_AGENT,
+      kubernetesAgentNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }),
+      kubernetesAgentNode.getNodeOptions()
+    )
     // .addNode(NODE_NAMES.DOCKER_AGENT, async (state: typeof GraphStateAnnotation.State) => {
     //   return await dockerAgentNode.process({ ...state, context })
     // })
-    .addNode(NODE_NAMES.GARDEN_AGENT, gardenAgentNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }))
+    .addNode(
+      NODE_NAMES.GARDEN_AGENT,
+      gardenAgentNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }),
+      gardenAgentNode.getNodeOptions()
+    )
+    // Start with main agent
+    .addEdge(START, NODE_NAMES.MAIN_AGENT)
+
   // .addNode(NODE_NAMES.TERRAFORM_AGENT, async (state: typeof GraphStateAnnotation.State) => {
   //   return await terraformAgentNode.process({ ...state, context })
   // })
-
-  // Add edges
-  workflow.addEdge(START, NODE_NAMES.HUMAN_LOOP)
-
-  // NOTE: we're using goto commands to control the flow of the graph, so we don't need to add conditional edges
-  // TODO: see if there's still some benefit to using conditional edges
 
   // From human-in-the-loop -> main agent (if user continues) or END (if user exits)
   // workflow.addConditionalEdges(NODE_NAMES.HUMAN_LOOP, (state) => {
@@ -89,9 +138,6 @@ export function createAgentGraph(context: AgentContext) {
   //   }
   //   return NODE_NAMES.RESPONSE_SYNTHESIZER
   // })
-
-  // Project explorer -> back to main agent
-  workflow.addEdge(NODE_NAMES.PROJECT_EXPLORER, NODE_NAMES.MAIN_AGENT)
 
   // expertNodes.forEach((node) => {
   //   workflow.addConditionalEdges(node, (state) => {
