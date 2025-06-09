@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { StateGraph, START, END } from "@langchain/langgraph"
+import { StateGraph, START } from "@langchain/langgraph"
 import { GraphStateAnnotation, NODE_NAMES, type AgentContext } from "../../types.js"
 import { MainAgentNode } from "./nodes/main-agent-node.js"
 import { ProjectExplorerNode } from "./nodes/project-explorer-node.js"
@@ -32,7 +32,7 @@ export function createAgentGraph(context: AgentContext) {
   mainAgentNode.addAvailableNodes([projectExplorerNode, kubernetesAgentNode, gardenAgentNode, humanInTheLoopNode])
   projectExplorerNode.addAvailableNodes([humanInTheLoopNode])
   kubernetesAgentNode.addAvailableNodes([humanInTheLoopNode])
-  gardenAgentNode.addAvailableNodes([humanInTheLoopNode])
+  gardenAgentNode.addAvailableNodes([humanInTheLoopNode, kubernetesAgentNode])
 
   // Create the state graph
   const workflow = new StateGraph(GraphStateAnnotation)
@@ -55,13 +55,16 @@ export function createAgentGraph(context: AgentContext) {
   // Add edges
   workflow.addEdge(START, NODE_NAMES.HUMAN_LOOP)
 
+  // NOTE: we're using goto commands to control the flow of the graph, so we don't need to add conditional edges
+  // TODO: see if there's still some benefit to using conditional edges
+
   // From human-in-the-loop -> main agent (if user continues) or END (if user exits)
-  workflow.addConditionalEdges(NODE_NAMES.HUMAN_LOOP, (state) => {
-    if (state.userFeedback === "exit" || state.userFeedback === "quit") {
-      return END
-    }
-    return NODE_NAMES.MAIN_AGENT
-  })
+  // workflow.addConditionalEdges(NODE_NAMES.HUMAN_LOOP, (state) => {
+  //   if (state.userFeedback === "quit") {
+  //     return END
+  //   }
+  //   return NODE_NAMES.MAIN_AGENT
+  // })
 
   // // Main agent decides whether to explore or select experts
   // workflow.addConditionalEdges(NODE_NAMES.MAIN_AGENT, (state) => {
@@ -89,25 +92,6 @@ export function createAgentGraph(context: AgentContext) {
 
   // Project explorer -> back to main agent
   workflow.addEdge(NODE_NAMES.PROJECT_EXPLORER, NODE_NAMES.MAIN_AGENT)
-
-  // // Each expert agent routes to the next expert or synthesizer
-  // const expertAgentMappings: Record<NodeName, string> = {
-  //   [NODE_NAMES.KUBERNETES_AGENT]: "KubernetesAgent",
-  //   // [NODE_NAMES.DOCKER_AGENT]: "DockerAgent",
-  //   [NODE_NAMES.GARDEN_AGENT]: "GardenAgent",
-  //   // [NODE_NAMES.TERRAFORM_AGENT]: "TerraformAgent",
-  //   [NODE_NAMES.HUMAN_LOOP]: "",
-  //   [NODE_NAMES.MAIN_AGENT]: "",
-  //   [NODE_NAMES.PROJECT_EXPLORER]: "",
-  //   // [NODE_NAMES.RESPONSE_SYNTHESIZER]: "",
-  // }
-
-  // const expertNodes: NodeName[] = [
-  //   NODE_NAMES.KUBERNETES_AGENT,
-  //   // NODE_NAMES.DOCKER_AGENT,
-  //   NODE_NAMES.GARDEN_AGENT,
-  //   // NODE_NAMES.TERRAFORM_AGENT,
-  // ]
 
   // expertNodes.forEach((node) => {
   //   workflow.addConditionalEdges(node, (state) => {

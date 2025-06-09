@@ -15,9 +15,13 @@ import { SystemMessage } from "@langchain/core/messages"
 import type { AnyZodObject } from "zod"
 import { z } from "zod"
 import { promises as fs } from "fs"
-import { join } from "path"
+import { join, resolve, relative } from "path"
 import { ResponseCommand } from "../../../types.js"
 import { NODE_NAMES, type AgentContext } from "../../../types.js"
+import chalk from "chalk"
+import * as readline from "node:readline/promises"
+import type { Log } from "../../../../../logger/log-entry.js"
+import { renderDivider } from "../../../../../logger/util.js"
 
 const listDirectoryDefaultMaxDepth = 100
 
@@ -29,9 +33,12 @@ export abstract class BaseAgentNode {
   protected model: ChatAnthropic
   protected tools: DynamicStructuredTool[]
   protected availableNodes: { [key: string]: BaseAgentNode }
+  protected log: Log
+  protected yoloMessageShown: boolean
 
   constructor(context: AgentContext) {
     this.context = context
+    this.log = context.log
 
     // Initialize base tools
     this.tools = this.initializeTools()
@@ -45,12 +52,13 @@ export abstract class BaseAgentNode {
     })
 
     this.availableNodes = {}
+    this.yoloMessageShown = false
   }
 
   /**
-   * Get the system prompt for this agent
+   * Get the init prompt for this agent
    */
-  abstract getSystemPrompt(): string
+  abstract getInitPrompt(): string
 
   /**
    * Get the name of this agent
@@ -92,16 +100,16 @@ export abstract class BaseAgentNode {
       })
 
       // TODO: only add system prompt if it's the first invocation of the node?
-      const messages = [new SystemMessage(this.formatSystemPrompt()), ...state.messages]
+      const messages = [new SystemMessage(this.formatInitPrompt()), ...state.messages]
       return await this.generateResponse(state, responseSchema, messages)
     }
   }
 
-  protected formatSystemPrompt() {
+  protected formatInitPrompt() {
     const availableNodes = Object.values(this.availableNodes)
       .map((node) => `- ${node.getName()}: ${node.getAgentDescription()}`)
       .join("\n")
-    return `${this.getSystemPrompt()}
+    return `${this.getInitPrompt()}
 
 You can consult with the following other agents:
 ${availableNodes}`
@@ -191,18 +199,14 @@ ${availableNodes}`
     tools.push(
       new DynamicStructuredTool({
         name: "list_directory",
-        description: "List files and directories in a specified directory. Returns results as a JSON-encoded array.",
+        description:
+          "List contents of a directory. Returns a JSON object with 'files' array containing file/directory information and optional 'error' field if something fails.",
         schema: z.object({
-          directoryPath: z.string().describe("The directory path to list"),
-          recursive: z.boolean().optional().describe("Whether to list recursively"),
-          maxDepth: z
-            .number()
-            .optional()
-            .describe("Maximum depth for recursive listing")
-            .default(listDirectoryDefaultMaxDepth),
+          directoryPath: z.string().describe("Path to the directory to list"),
+          maxDepth: z.number().optional().describe("Maximum depth to traverse (default: 100)"),
         }),
-        func: async ({ directoryPath, recursive, maxDepth }) => {
-          return this.listDirectory(directoryPath, recursive, maxDepth)
+        func: async ({ directoryPath, maxDepth }) => {
+          return await this.listDirectory(directoryPath, maxDepth)
         },
       })
     )
@@ -211,7 +215,8 @@ ${availableNodes}`
     tools.push(
       new DynamicStructuredTool({
         name: "read_files",
-        description: "Read the contents of one or more files. Returns results as a JSON-encoded array.",
+        description:
+          "Read the contents of one or more files. Returns a JSON array where each element has a 'path' field, a 'data' field with the file contents and an optional 'error' field if the file could not be read.",
         schema: z.object({
           filePaths: z.array(z.string()).describe("Array of file paths to read"),
         }),
@@ -225,14 +230,15 @@ ${availableNodes}`
     tools.push(
       new DynamicStructuredTool({
         name: "write_file",
-        description: "Write content to a file",
+        description: "Write content to a file. Asks user for confirmation if file exists unless force=true is used.",
         schema: z.object({
           filePath: z.string().describe("The file path to write to"),
           content: z.string().describe("The content to write"),
-          overwrite: z.boolean().optional().describe("Whether to overwrite existing file"),
+          force: z.boolean().optional().describe("Whether to overwrite existing file without confirmation"),
         }),
         func: async ({ filePath, content, overwrite }) => {
-          return this.writeFile(filePath, content, overwrite)
+          // Allow overwriting without confirmation if yolo is enabled
+          return this.writeFile(filePath, content, overwrite || this.context.yolo)
         },
       })
     )
@@ -240,77 +246,110 @@ ${availableNodes}`
     return tools
   }
 
-  // TODO: disallow reading from or writing to files outside of the project root!
+  // ✅ Security: Path validation implemented to prevent access outside project root
+
+  /**
+   * Validates that a given path is within the project root directory
+   * @param targetPath The path to validate
+   * @returns true if the path is safe (within project root), false otherwise
+   */
+  private validatePathSafety(targetPath: string): boolean {
+    try {
+      const projectRoot = resolve(this.context.projectRoot)
+
+      // Resolve the target path - handle both relative and absolute paths
+      const absoluteTargetPath = resolve(targetPath.startsWith("/") ? targetPath : join(projectRoot, targetPath))
+      const relativePath = relative(projectRoot, absoluteTargetPath)
+
+      // The path is safe if:
+      // 1. The relative path doesn't start with ".." (not going up beyond project root)
+      // 2. The relative path is not empty (not the same as project root)
+      // 3. No null byte injection attacks
+      return relativePath !== "" && !relativePath.startsWith("..") && !relativePath.includes("\0") // Prevent null byte attacks
+    } catch (error) {
+      // If there's any error in path resolution, consider it unsafe
+      return false
+    }
+  }
+
+  /**
+   * Get a safe absolute path within the project root
+   * @param targetPath The path to resolve
+   * @returns The safe absolute path or throws an error if outside project root
+   */
+  private getSafePath(targetPath: string): string {
+    if (!this.validatePathSafety(targetPath)) {
+      throw new Error(`Access denied: Path '${targetPath}' is outside the project root directory`)
+    }
+    return join(this.context.projectRoot, targetPath)
+  }
 
   /**
    * List directory contents
    */
-  protected async listDirectory(
-    directoryPath: string,
-    recursive = false,
-    maxDepth = listDirectoryDefaultMaxDepth
-  ): Promise<string> {
+  protected async listDirectory(directoryPath: string, maxDepth = listDirectoryDefaultMaxDepth): Promise<string> {
     try {
-      const absolutePath = join(this.context.projectRoot, directoryPath)
+      const absolutePath = this.getSafePath(directoryPath)
 
+      // Check if directory exists
       if (
         !(await fs
           .access(absolutePath)
           .then(() => true)
           .catch(() => false))
       ) {
-        return `Directory not found: ${directoryPath}`
+        return JSON.stringify({
+          files: [],
+          error: `Directory not found: ${directoryPath}`,
+        })
       }
 
-      const ignorePatterns = [
-        "node_modules",
-        ".git",
-        ".idea",
-        ".vscode",
-        "dist",
-        "build",
-        ".garden",
-        "__pycache__",
-        ".pytest_cache",
-        ".next",
-        ".nuxt",
-        "coverage",
-      ]
-
-      const listDir = async (path: string, depth: number): Promise<ListDirectoryResult[]> => {
+      const listDir = async (
+        dir: string,
+        depth: number
+      ): Promise<Array<{ name: string; type: "file" | "directory"; path: string; depth: number }>> => {
         if (depth > maxDepth) return []
 
-        const dirItems = await fs.readdir(path)
+        const entries = await fs.readdir(dir, { withFileTypes: true })
+        const items: Array<{ name: string; type: "file" | "directory"; path: string; depth: number }> = []
 
-        const results: ListDirectoryResult[] = []
+        for (const entry of entries) {
+          const fullPath = join(dir, entry.name)
+          const relativePath = relative(this.context.projectRoot, fullPath)
 
-        for (const item of dirItems) {
-          if (ignorePatterns.some((pattern) => item.includes(pattern))) {
-            continue
-          }
-
-          const itemPath = join(path, item)
-          const relativePath = itemPath.replace(absolutePath + "/", "")
-
-          const stats = await fs.stat(itemPath)
-          if (stats.isDirectory()) {
-            results.push({ type: "directory", path: relativePath })
-            if (recursive && depth < maxDepth) {
-              const subItems = await listDir(itemPath, depth + 1)
-              results.push(...subItems)
+          if (entry.isDirectory()) {
+            items.push({
+              name: entry.name + "/",
+              type: "directory",
+              path: relativePath,
+              depth,
+            })
+            if (depth < maxDepth) {
+              const subItems = await listDir(fullPath, depth + 1)
+              items.push(...subItems)
             }
           } else {
-            results.push({ type: "file", path: relativePath })
+            items.push({
+              name: entry.name,
+              type: "file",
+              path: relativePath,
+              depth,
+            })
           }
         }
 
-        return results
+        return items
       }
 
-      const items = await listDir(absolutePath, 0)
-      return items.join("\n") || "Empty directory"
+      const files = await listDir(absolutePath, 0)
+      return JSON.stringify({
+        files,
+      })
     } catch (error) {
-      return `Error listing directory: ${error instanceof Error ? error.message : String(error)}`
+      return JSON.stringify({
+        files: [],
+        error: `Error listing directory: ${error instanceof Error ? error.message : String(error)}`,
+      })
     }
   }
 
@@ -318,11 +357,14 @@ ${availableNodes}`
    * Read files contents
    */
   protected async readFiles(filePaths: string[]): Promise<string> {
-    const results: { filePath: string; content: string; error?: string }[] = []
+    const results: { path: string; data: string; error?: string }[] = []
+
+    let errorCount = 0
+    let successCount = 0
 
     for (const filePath of filePaths) {
       try {
-        const absolutePath = join(this.context.projectRoot, filePath)
+        const absolutePath = this.getSafePath(filePath)
 
         if (
           !(await fs
@@ -330,15 +372,25 @@ ${availableNodes}`
             .then(() => true)
             .catch(() => false))
         ) {
-          results.push({ filePath, content: "", error: "File not found" })
+          results.push({ path: filePath, data: "", error: "File not found" })
+          errorCount++
           continue
         }
 
         const content = await fs.readFile(absolutePath, "utf-8")
-        results.push({ filePath, content })
+        results.push({ path: filePath, data: content })
+        successCount++
       } catch (error) {
-        results.push({ filePath, content: "", error: error instanceof Error ? error.message : String(error) })
+        results.push({ path: filePath, data: "", error: error instanceof Error ? error.message : String(error) })
+        errorCount++
       }
+    }
+
+    if (successCount > 0) {
+      this.log.info(`✅ Successfully read ${successCount} files:\n${results.map((r) => "- " + r.path).join("\n")}`)
+    }
+    if (errorCount > 0) {
+      this.log.error(`❌ Error reading ${errorCount} files:\n${results.map((r) => "- " + r.error).join(", ")}`)
     }
 
     return JSON.stringify(results, null, 2)
@@ -347,28 +399,91 @@ ${availableNodes}`
   /**
    * Write content to a file
    */
-  protected async writeFile(filePath: string, content: string, overwrite = false): Promise<string> {
-    // TODO: prompt for user confirmation before writing to file
-    // TODO: add yolo mode as a CLI command flag, overwrite freely without confirmation when yolo is enabled
+  protected async writeFile(filePath: string, content: string, force = false): Promise<string> {
     try {
-      const absolutePath = join(this.context.projectRoot, filePath)
+      const absolutePath = this.getSafePath(filePath)
 
-      if (
-        (await fs
-          .access(absolutePath)
-          .then(() => true)
-          .catch(() => false)) &&
-        !overwrite
-      ) {
-        return `File already exists: ${filePath}. Set overwrite=true to overwrite.`
+      // Check if file already exists
+      const fileExists = await fs
+        .access(absolutePath)
+        .then(() => true)
+        .catch(() => false)
+
+      if (fileExists && !force) {
+        // Log warning for potential file overwrite
+        this.log.warn(`Attempting to overwrite existing file: ${filePath}`)
+
+        // Read existing file to show what would be overwritten
+        let existingContent = ""
+        try {
+          existingContent = await fs.readFile(absolutePath, "utf-8")
+        } catch (error) {
+          // If we can't read it, just note that
+          existingContent = "<unable to read existing content>"
+        }
+
+        // Provide detailed information about the operation
+        const existingSize = existingContent.length
+        const newSize = content.length
+
+        // Show confirmation details
+        this.log.info(chalk.yellow(`⚠️ File '${filePath}' already exists.`))
+        this.log.info(chalk.gray(`📊 File Details:`))
+        this.log.info(chalk.gray(`   - Current size: ${existingSize} characters`))
+        this.log.info(chalk.gray(`   - New size: ${newSize} characters`))
+
+        this.log.info(chalk.gray(renderDivider({ title: "🔍 Current content preview (first 200 chars)" })))
+        this.log.info(chalk.gray(existingContent.substring(0, 200) + (existingContent.length > 200 ? "..." : "")))
+        this.log.info(chalk.gray(renderDivider()))
+
+        this.log.info(chalk.gray(renderDivider({ title: "🔍 New content preview (first 200 chars)" })))
+        this.log.info(chalk.gray(content.substring(0, 200) + (content.length > 200 ? "..." : "")))
+        this.log.info(chalk.gray(renderDivider()))
+
+        if (!this.context.yolo && !this.yoloMessageShown) {
+          this.log.info("FYI: You can use the `--yolo` CLI flag on this command to write files without confirmation.")
+          this.yoloMessageShown = true
+        }
+
+        // Create readline interface for confirmation
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+
+        try {
+          const answer = await rl.question(chalk.yellow(`\nDo you want to overwrite '${filePath}'? (y/N): `))
+          rl.close()
+
+          const confirmed = answer.toLowerCase().trim() === "y" || answer.toLowerCase().trim() === "yes"
+
+          if (!confirmed) {
+            this.log.info(`File write cancelled by user: ${filePath}`)
+            return `❌ File write cancelled by user. File '${filePath}' was not modified.`
+          }
+
+          this.log.info(`User confirmed file overwrite: ${filePath}`)
+        } catch (error) {
+          rl.close()
+          return `❌ Error getting user confirmation: ${error instanceof Error ? error.message : String(error)}`
+        }
       }
 
+      // Create directory if it doesn't exist
       await fs.mkdir(join(absolutePath, ".."), { recursive: true })
+
+      // Write the file
       await fs.writeFile(absolutePath, content, "utf-8")
 
-      return `Successfully wrote to ${filePath}`
+      // Log successful write
+      if (fileExists) {
+        this.log.info(`File overwritten: ${filePath}`)
+      } else {
+        this.log.info(`New file created: ${filePath}`)
+      }
+
+      return `✅ Successfully ${fileExists ? "overwrote" : "created"} file: ${filePath} (${content.length} characters)`
     } catch (error) {
-      return `Error writing file: ${error instanceof Error ? error.message : String(error)}`
+      const errorMessage = `Error writing file: ${error instanceof Error ? error.message : String(error)}`
+      this.log.error(errorMessage)
+      return errorMessage
     }
   }
 

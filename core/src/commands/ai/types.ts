@@ -77,6 +77,7 @@ export interface AgentContext {
   projectInfo: ProjectInfo
   log: Log
   garden: Garden
+  yolo: boolean
 }
 
 // Define the state annotation
@@ -93,13 +94,12 @@ export const GraphStateAnnotation = Annotation.Root({
     reducer: (_old, newVal) => newVal ?? "",
     default: () => "",
   }),
-  userFeedback: Annotation<string | undefined>({
+  userFeedback: Annotation<"quit" | undefined>({
     reducer: (_old, newVal) => newVal,
     default: () => undefined,
   }),
-  context: Annotation<AgentContext | null>({
+  context: Annotation<AgentContext>({
     reducer: (old) => old, // Context is immutable
-    default: () => null,
   }),
   step: Annotation<number>({
     reducer: (_old, newVal) => newVal ?? 0,

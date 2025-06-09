@@ -20,7 +20,7 @@ export class GardenAgentNode extends BaseAgentNode {
     return "Expert in Garden development framework, garden.yml configurations, action definitions, workflows, environment management, and CI/CD integration. Consult for Garden project setup, configuration optimization, or development workflow questions."
   }
 
-  getSystemPrompt(): string {
+  getInitPrompt(): string {
     return `You are the GardenAgent, an expert in the Garden development framework.
 
 Your expertise includes:

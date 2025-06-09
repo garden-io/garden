@@ -36,7 +36,7 @@ export class HumanInTheLoopNode extends BaseAgentNode {
     return "Human interaction agent - not a consultable expert"
   }
 
-  getSystemPrompt(): string {
+  getInitPrompt(): string {
     // This node doesn't use AI, so no system prompt needed
     return ""
   }
@@ -57,6 +57,8 @@ export class HumanInTheLoopNode extends BaseAgentNode {
       return new ResponseCommand({
         update: {
           messages: [...messages, new HumanMessage(userFeedback)],
+          userFeedback: "quit",
+          step: state.step + 1,
         },
         goto: "__end__",
       })

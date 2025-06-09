@@ -20,7 +20,7 @@ export class MainAgentNode extends BaseAgentNode {
     return "Main coordinator agent - not a consultable expert"
   }
 
-  getSystemPrompt(): string {
+  getInitPrompt(): string {
     return `You are the MainAgent, a DevOps AI assistant coordinator helping users with their infrastructure and development needs.
 
 Your responsibilities:

@@ -16,9 +16,15 @@ import Anthropic from "@anthropic-ai/sdk"
 import chalk from "chalk"
 import { printHeader } from "../../logger/util.js"
 import dedent from "dedent"
+import { BooleanParameter } from "../../cli/params.js"
 
 export const agentArgs = {}
-export const agentOpts = {}
+export const agentOpts = {
+  yolo: new BooleanParameter({
+    help: "Overwrite files without confirmation",
+    defaultValue: false,
+  }),
+}
 
 type Args = typeof agentArgs
 type Opts = typeof agentOpts
@@ -48,7 +54,7 @@ export class AgentCommand extends Command<Args, Opts> {
     printHeader(log, "DevOps AI Assistant", "🤖")
   }
 
-  async action({ garden, log }: CommandParams<Args, Opts>): Promise<CommandResult> {
+  async action({ garden, log, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
     // Check for API key
     if (!process.env.ANTHROPIC_API_KEY) {
       log.error(chalk.red("Error: ANTHROPIC_API_KEY environment variable is not set."))
@@ -73,6 +79,7 @@ export class AgentCommand extends Command<Args, Opts> {
       projectInfo,
       log,
       garden,
+      yolo: opts.yolo,
     }
 
     // Create the LangGraph agent network
@@ -105,7 +112,8 @@ export class AgentCommand extends Command<Args, Opts> {
       for await (const state of stream) {
         // The human-in-the-loop node will handle user interaction
         // and the graph will continue until the user exits
-        if (state.userFeedback === "exit" || state.userFeedback === "quit") {
+        // TODO: allow main agent to summarize the conversation and provide a final response
+        if (state.userFeedback === "quit") {
           break
         }
       }

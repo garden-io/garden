@@ -20,7 +20,7 @@ export class ProjectExplorerNode extends BaseAgentNode {
     return "Project exploration agent - not a consultable expert"
   }
 
-  getSystemPrompt(): string {
+  getInitPrompt(): string {
     return `You are the ProjectExplorer, responsible for exploring project structure and gathering relevant information.
 
 You have access to these tools:

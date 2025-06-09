@@ -20,7 +20,7 @@ export class DockerAgentNode extends BaseAgentNode {
     return "Expert in Docker containerization, Dockerfile optimization, multi-stage builds, container security, Docker Compose, and image management. Consult for container-related tasks, Dockerfile creation, or Docker best practices."
   }
 
-  getSystemPrompt(): string {
+  getInitPrompt(): string {
     return `You are the DockerAgent, an expert in Docker, containerization, and container build optimization.
 
 Your expertise includes:
