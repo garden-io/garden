@@ -9,7 +9,6 @@
 import { Command } from "../base.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import type { AgentContext } from "./types.js"
-import { FilesystemScanner } from "./filesystem-scanner.js"
 import { createAgentGraph } from "./agents/langgraph/graph.js"
 import Anthropic from "@anthropic-ai/sdk"
 import chalk from "chalk"
@@ -65,18 +64,11 @@ export class AgentCommand extends Command<Args, Opts> {
     // Initialize Anthropic client
     const anthropic = new Anthropic({})
 
-    // Initialize the filesystem scanner
-    const scanner = new FilesystemScanner(garden.projectRoot, log)
-
-    // Scan the project structure
-    log.info(chalk.cyan("Scanning project structure..."))
-    const projectInfo = await scanner.scan()
-
     // Create the agent context
     const context: AgentContext = {
       anthropic,
       projectRoot: garden.projectRoot,
-      projectInfo,
+      projectInfo: undefined,
       log,
       garden,
       yolo: opts.yolo,
@@ -87,9 +79,9 @@ export class AgentCommand extends Command<Args, Opts> {
 
     // Welcome message
     log.info("")
-    log.info(chalk.green("Welcome to the DevOps AI Assistant!"))
-    log.info(chalk.gray("I can help you create and improve Kubernetes, Docker, Garden, and Terraform configurations."))
     log.info(chalk.gray("Type 'exit' or 'quit' at the prompt to end the session."))
+    log.info("")
+    log.info(chalk.gray("Initializing..."))
     log.info("")
 
     if (opts.yolo) {

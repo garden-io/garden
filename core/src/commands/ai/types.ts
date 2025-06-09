@@ -71,7 +71,7 @@ export interface InfrastructureInfo {
 export interface AgentContext {
   anthropic: Anthropic
   projectRoot: string
-  projectInfo: ProjectInfo
+  projectInfo?: ProjectInfo
   log: Log
   garden: Garden
   yolo: boolean
@@ -79,13 +79,13 @@ export interface AgentContext {
 
 // Define node names as const to get literal types
 export const NODE_NAMES = {
-  HUMAN_LOOP: "human_loop",
+  HUMAN_LOOP: "user_input",
   MAIN_AGENT: "main_agent",
   PROJECT_EXPLORER: "project_explorer",
-  KUBERNETES_AGENT: "kubernetes_agent",
-  DOCKER_AGENT: "docker_agent",
-  GARDEN_AGENT: "garden_agent",
-  TERRAFORM_AGENT: "terraform_agent",
+  KUBERNETES_AGENT: "kubernetes",
+  DOCKER_AGENT: "docker",
+  GARDEN_AGENT: "garden",
+  TERRAFORM_AGENT: "terraform",
   // RESPONSE_SYNTHESIZER: "response_synthesizer",
 } as const
 // Extract the node names type

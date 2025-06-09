@@ -26,7 +26,7 @@ export class MainAgentNode extends BaseAgentNode {
   }
 
   getAgentDescription(): string {
-    return "Main coordinator agent - not a consultable expert"
+    return `Main coordinator agent. Once you are done with your task, you MUST hand off to ${NODE_NAMES.MAIN_AGENT} which will then orchestrate from there.`
   }
 
   getInitPrompt(): string {
@@ -49,9 +49,24 @@ Guidelines for final response:
 If the user's query is not related to DevOps, politely inform them that you are not able to help with that.
 
 When analyzing queries:
-- If the query mentions specific files or asks about the project structure, use the project_explorer agent.
+- First, break it down into individual components.
 - Identify relevant experts based on the technologies mentioned or implied in the query
-- You can select multiple experts if the query spans multiple domains
+- Create a plan of action for the user based on the query:
+  - Break it down into individual tasks
+  - For each task, identify the expert agent that should be used to complete it
+  - Reformulate the task as a prompt for that agent, focusing ONLY on the specific task that the selected agent should address
+  - Once the expert agent has answered, incorporate their response into the plan of action
+  - Continue this process until the user's entire query has been resolved
+
+For example, the user might say the want to both create Kubernetes manifests and Garden configuration. In that case, you should break it down into two steps:
+  - Create Kubernetes manifests using the ${NODE_NAMES.KUBERNETES_AGENT} agent
+  - Create Garden configuration using the ${NODE_NAMES.GARDEN_AGENT} agent
+
+You MUST NOT attempt to solve problems yourself that you have expert agents for. For example, if the user wants help with Kubernetes related issues, you MUST hand off to the ${NODE_NAMES.KUBERNETES_AGENT} agent.
+
+Users may ask for multiple things in one prompt. When you hand off to a different agent, please separate the relevant request per each call to the other agent.
+
+Once the user's query has been resolved, you MUST ask the user if they have any other questions using the ${NODE_NAMES.HUMAN_LOOP} agent.
 
 Start by introducing yourself and asking the user what they would like to do, using the ${NODE_NAMES.HUMAN_LOOP} agent to request user input.
 `

@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { AgentContext } from "../../../types.js"
 import { NODE_NAMES } from "../../../types.js"
 import { BaseAgentNode } from "./base-node.js"
 
@@ -13,6 +14,11 @@ import { BaseAgentNode } from "./base-node.js"
  * Project explorer node that uses tools to explore the project structure
  */
 export class ProjectExplorerNode extends BaseAgentNode {
+  constructor(context: AgentContext) {
+    super(context)
+    this.tools = this.tools.filter((tool) => tool.name !== "write_file")
+  }
+
   getName() {
     return NODE_NAMES.PROJECT_EXPLORER
   }
@@ -43,6 +49,8 @@ Focus on finding:
 - Any other files relevant to the user's query
 
 You MUST ONLY list and read files from within the project root directory.
+
+You MUST ONLY perform the above tasks. You MUST NOT do anything else.
 `
   }
 

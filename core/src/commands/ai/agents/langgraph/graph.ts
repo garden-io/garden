@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { StateGraph, START, END } from "@langchain/langgraph"
+import { StateGraph, START } from "@langchain/langgraph"
 import { NODE_NAMES, type AgentContext } from "../../types.js"
 import { MainAgentNode } from "./nodes/main-agent-node.js"
 import { ProjectExplorerNode } from "./nodes/project-explorer-node.js"
@@ -31,13 +31,17 @@ export function createAgentGraph(context: AgentContext) {
   const humanInTheLoopNode = new HumanInTheLoopNode(context)
 
   mainAgentNode.addAvailableNodes([projectExplorerNode, kubernetesAgentNode, gardenAgentNode, humanInTheLoopNode])
-  projectExplorerNode.addAvailableNodes([humanInTheLoopNode])
-  kubernetesAgentNode.addAvailableNodes([humanInTheLoopNode])
-  gardenAgentNode.addAvailableNodes([humanInTheLoopNode, kubernetesAgentNode])
+  projectExplorerNode.addAvailableNodes([mainAgentNode, humanInTheLoopNode])
+  kubernetesAgentNode.addAvailableNodes([mainAgentNode, humanInTheLoopNode])
+  gardenAgentNode.addAvailableNodes([humanInTheLoopNode])
 
   // Create the state graph
   const workflow = new StateGraph(StateAnnotation)
-    .addNode(NODE_NAMES.MAIN_AGENT, mainAgentNode.makeNode({ endNodeName: END }), mainAgentNode.getNodeOptions())
+    .addNode(
+      NODE_NAMES.MAIN_AGENT,
+      mainAgentNode.makeNode({ endNodeName: NODE_NAMES.HUMAN_LOOP }),
+      mainAgentNode.getNodeOptions()
+    )
     .addNode(
       NODE_NAMES.HUMAN_LOOP,
       // TODO: human in the loop node should always go to the node that referred to it, not the main agent

@@ -70,6 +70,8 @@ export class HumanInTheLoopNode extends BaseAgentNode {
       }
     }
 
+    this.log.info(chalk.gray(`\nThinking...`))
+
     // Find the last message that had `goto: NODE_NAMES.HUMAN_LOOP`
     let sender: NodeName = NODE_NAMES.MAIN_AGENT
 
