@@ -6,14 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { NODE_NAMES } from "../../../types.js"
 import { BaseAgentNode } from "./base-node.js"
 
 /**
  * Project explorer node that uses tools to explore the project structure
  */
 export class ProjectExplorerNode extends BaseAgentNode {
-  getName(): string {
-    return "ProjectExplorer"
+  getName() {
+    return NODE_NAMES.PROJECT_EXPLORER
   }
 
   getAgentDescription(): string {

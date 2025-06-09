@@ -10,7 +10,8 @@ import type { BaseMessage } from "@langchain/core/messages"
 import { HumanMessage } from "@langchain/core/messages"
 import { BaseAgentNode } from "./base-node.js"
 import type { NodeName } from "../../../types.js"
-import { NODE_NAMES, ResponseCommand, type AgentContext } from "../../../types.js"
+import { NODE_NAMES, type AgentContext } from "../../../types.js"
+import { ResponseCommand } from "../types.js"
 import chalk from "chalk"
 import * as readline from "node:readline/promises"
 import { stdin as input, stdout as output } from "node:process"
@@ -26,14 +27,15 @@ export class HumanInTheLoopNode extends BaseAgentNode {
   constructor(context: AgentContext) {
     super(context)
     this.rl = readline.createInterface({ input, output })
+    this.initPromptSent = true // Don't add init prompt to human-in-the-loop node messages
   }
 
-  getName(): string {
-    return "HumanInTheLoop"
+  getName() {
+    return NODE_NAMES.HUMAN_LOOP
   }
 
   getAgentDescription(): string {
-    return "Human interaction agent - not a consultable expert"
+    return "Human interaction agent. Use this to request user input when needed."
   }
 
   getInitPrompt(): string {
@@ -48,20 +50,24 @@ export class HumanInTheLoopNode extends BaseAgentNode {
     messages: BaseMessage[]
   ): Promise<ResponseCommand> {
     // Get user feedback
-    const userFeedback = await this.rl.question(chalk.cyan("\nYou: "))
+    let userFeedback = ""
 
-    if (userFeedback.toLowerCase() === "exit" || userFeedback.toLowerCase() === "quit") {
-      // TODO: throw back to main agent and have it summarize the conversation and provide a final response
-      this.rl.close()
-      this.context.log.info(chalk.green("\nThank you for using the DevOps AI Assistant. Goodbye!"))
-      return new ResponseCommand({
-        update: {
-          messages: [...messages, new HumanMessage(userFeedback)],
-          userFeedback: "quit",
-          step: state.step + 1,
-        },
-        goto: "__end__",
-      })
+    while (userFeedback.trim().length === 0) {
+      userFeedback = await this.rl.question(chalk.cyan("\nYou: "))
+
+      if (userFeedback.toLowerCase() === "exit" || userFeedback.toLowerCase() === "quit") {
+        // TODO: throw back to main agent and have it summarize the conversation and provide a final response
+        this.rl.close()
+        this.context.log.info(chalk.green("\nThank you for using the DevOps AI Assistant. Goodbye!"))
+        return new ResponseCommand({
+          update: {
+            messages: [...messages, new HumanMessage(userFeedback)],
+            userFeedback: "quit",
+            step: state.step + 1,
+          },
+          goto: "__end__",
+        })
+      }
     }
 
     // Find the last message that had `goto: NODE_NAMES.HUMAN_LOOP`

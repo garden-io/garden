@@ -6,14 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { AgentContext } from "../../../types.js"
+import { NODE_NAMES } from "../../../types.js"
 import { BaseAgentNode } from "./base-node.js"
 
 /**
  * Main coordinator agent node
  */
 export class MainAgentNode extends BaseAgentNode {
-  getName(): string {
-    return "MainAgent"
+  constructor(context: AgentContext) {
+    super(context)
+    this.tools = []
+    // Don't want prefixes on the main agent output
+    this.log = context.log.createLog()
+  }
+
+  getName() {
+    return NODE_NAMES.MAIN_AGENT
   }
 
   getAgentDescription(): string {
@@ -21,10 +30,10 @@ export class MainAgentNode extends BaseAgentNode {
   }
 
   getInitPrompt(): string {
-    return `You are the MainAgent, a DevOps AI assistant coordinator helping users with their infrastructure and development needs.
+    return `You are a DevOps AI assistant helping users with their infrastructure and development needs.
 
 Your responsibilities:
-1. Analyze user queries to understand their intent
+1. Analyze user queries to understand their intent. When requesting user input, use the ${NODE_NAMES.HUMAN_LOOP} agent to do so.
 2. Determine if project exploration is needed. If so, use the project_explorer agent to explore the project.
 3. Identify which expert agents should be consulted and use them to answer the user's query.
 4. Coordinate the overall conversation flow
@@ -43,6 +52,8 @@ When analyzing queries:
 - If the query mentions specific files or asks about the project structure, use the project_explorer agent.
 - Identify relevant experts based on the technologies mentioned or implied in the query
 - You can select multiple experts if the query spans multiple domains
+
+Start by introducing yourself and asking the user what they would like to do, using the ${NODE_NAMES.HUMAN_LOOP} agent to request user input.
 `
   }
 }

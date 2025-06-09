@@ -11,12 +11,12 @@ import { ChatAnthropic } from "@langchain/anthropic"
 import { DynamicStructuredTool } from "@langchain/core/tools"
 import type { BaseMessage } from "@langchain/core/messages"
 import { AIMessage, ToolMessage } from "@langchain/core/messages"
-import { SystemMessage } from "@langchain/core/messages"
 import type { AnyZodObject } from "zod"
 import { z } from "zod"
 import { promises as fs } from "fs"
 import { join, resolve, relative } from "path"
-import { ResponseCommand } from "../../../types.js"
+import type { NodeName } from "../../../types.js"
+import { ResponseCommand } from "../types.js"
 import { NODE_NAMES, type AgentContext } from "../../../types.js"
 import chalk from "chalk"
 import * as readline from "node:readline/promises"
@@ -35,10 +35,13 @@ export abstract class BaseAgentNode {
   protected availableNodes: { [key: string]: BaseAgentNode }
   protected log: Log
   protected yoloMessageShown: boolean
+  protected initPromptSent: boolean
 
   constructor(context: AgentContext) {
     this.context = context
-    this.log = context.log
+    this.log = context.log.createLog({
+      name: this.getName(),
+    })
 
     // Initialize base tools
     this.tools = this.initializeTools()
@@ -48,11 +51,14 @@ export abstract class BaseAgentNode {
       modelName: "claude-sonnet-4-20250514",
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
       temperature: 0.7,
-      maxTokens: 100000,
+      maxTokens: 64000,
+      streaming: true,
+      // verbose: true,
     })
 
     this.availableNodes = {}
     this.yoloMessageShown = false
+    this.initPromptSent = false
   }
 
   /**
@@ -63,7 +69,7 @@ export abstract class BaseAgentNode {
   /**
    * Get the name of this agent
    */
-  abstract getName(): string
+  abstract getName(): NodeName
 
   /**
    * Get the description of this agent for other agents to know what to use it for.
@@ -84,7 +90,7 @@ export abstract class BaseAgentNode {
 
   public makeNode(params: { endNodeName: string }) {
     return async (state: typeof StateAnnotation.State) => {
-      const possibleDestinations = [params.endNodeName, ...Object.keys(this.availableNodes)] as const
+      const possibleDestinations = [params.endNodeName, this.getName(), ...Object.keys(this.availableNodes)] as const
       // define schema for the structured output:
       const responseSchema = z.object({
         response: z
@@ -95,13 +101,29 @@ export abstract class BaseAgentNode {
         goto: z
           .enum(possibleDestinations)
           .describe(
-            `The next agent to call, or ${NODE_NAMES.HUMAN_LOOP} if you need user input to proceed, or ${params.endNodeName} if the user's query has been resolved. Must be one of the specified values.`
+            `The next agent to call, or ${this.getName()} if you need to keep going yourself, or ${NODE_NAMES.HUMAN_LOOP} if you need user input to proceed, or ${params.endNodeName} if the user's query has been resolved. Must be one of the specified values.`
           ),
       })
 
       // TODO: only add system prompt if it's the first invocation of the node?
-      const messages = [new SystemMessage(this.formatInitPrompt()), ...state.messages]
-      return await this.generateResponse(state, responseSchema, messages)
+      let messages = [...state.messages]
+
+      if (!this.initPromptSent) {
+        this.initPromptSent = true
+        messages = [new AIMessage(this.formatInitPrompt()), ...state.messages]
+      }
+
+      const command = await this.generateResponse(state, responseSchema, messages)
+
+      this.log.debug(`Command from ${this.getName()}: ${JSON.stringify(command, null, 2)}`)
+
+      return command
+    }
+  }
+
+  public getNodeOptions() {
+    return {
+      ends: Object.keys(this.availableNodes),
     }
   }
 
@@ -112,7 +134,9 @@ export abstract class BaseAgentNode {
     return `${this.getInitPrompt()}
 
 You can consult with the following other agents:
-${availableNodes}`
+${availableNodes}
+
+DO NOT attempt to solve problems yourself that you have expert agents for.`
   }
 
   /**
@@ -124,7 +148,12 @@ ${availableNodes}`
     messages: BaseMessage[]
   ): Promise<ResponseCommand> {
     // Invoke the model with tools if needed
+    this.log.debug(
+      `Invoking agent ${this.getName()} with messages: ${messages.map((m) => JSON.stringify(m._printableFields, null, 2)).join("\n")}`
+    )
     const response = await this.model.bindTools(this.tools).invoke(messages)
+
+    // console.log("response", response)
 
     // Execute any tool calls
     const toolResults: ToolMessage[] = []
@@ -166,16 +195,26 @@ ${availableNodes}`
       }
 
       // Continue
-      return this.generateResponse(state, responseSchema, [...messages, ...toolResults])
+      return this.generateResponse(state, responseSchema, [...messages, response, ...toolResults])
     } else {
-      const summaryMessages = [...messages, new SystemMessage(this.getSummaryPrompt())]
+      const summaryMessages = [...messages, new AIMessage(this.getSummaryPrompt())]
+      this.log.debug(
+        `Invoking agent ${this.getName()} with messages: ${summaryMessages.map((m) => JSON.stringify(m._printableFields, null, 2)).join("\n")}`
+      )
 
+      // TODO: see about avoiding this extra call
       const result: z.infer<T> = await this.model
         .withStructuredOutput(responseSchema, {
           name: this.getName(),
           strict: true,
         })
         .invoke(summaryMessages)
+
+      this.log.info(result.response)
+
+      if (result.goto !== this.getName()) {
+        this.log.info(`Handing off to ${result.goto}`)
+      }
 
       // handoff to another node or halt
       const aiMessage = new AIMessage({
@@ -263,9 +302,8 @@ ${availableNodes}`
 
       // The path is safe if:
       // 1. The relative path doesn't start with ".." (not going up beyond project root)
-      // 2. The relative path is not empty (not the same as project root)
-      // 3. No null byte injection attacks
-      return relativePath !== "" && !relativePath.startsWith("..") && !relativePath.includes("\0") // Prevent null byte attacks
+      // 2. No null byte injection attacks
+      return !relativePath.startsWith("..") && !relativePath.includes("\0") // Prevent null byte attacks
     } catch (error) {
       // If there's any error in path resolution, consider it unsafe
       return false

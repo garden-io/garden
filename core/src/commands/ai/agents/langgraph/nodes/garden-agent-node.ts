@@ -6,14 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { NODE_NAMES } from "../../../types.js"
 import { BaseAgentNode } from "./base-node.js"
 
 /**
  * Garden framework expert agent node
  */
 export class GardenAgentNode extends BaseAgentNode {
-  getName(): string {
-    return "GardenAgent"
+  getName() {
+    return NODE_NAMES.GARDEN_AGENT
   }
 
   getAgentDescription(): string {

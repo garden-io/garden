@@ -7,8 +7,8 @@
  */
 
 import type { BaseMessage } from "@langchain/core/messages"
-import type { AgentContext } from "../../types.js"
-import { Annotation, messagesStateReducer } from "@langchain/langgraph"
+import type { AgentContext, NodeName } from "../../types.js"
+import { Annotation, Command, messagesStateReducer } from "@langchain/langgraph"
 
 // TODO: merge with ../types.ts
 
@@ -27,9 +27,6 @@ export const StateAnnotation = Annotation.Root({
     reducer: uniqueReducer,
     default: () => [],
   }),
-  finalResponse: Annotation<string>({
-    reducer: overwriteReducer,
-  }),
   context: Annotation<AgentContext>({
     reducer: overwriteReducer,
   }),
@@ -37,12 +34,13 @@ export const StateAnnotation = Annotation.Root({
     reducer: overwriteReducer,
     default: () => 0,
   }),
+  userFeedback: Annotation<"quit" | undefined>({
+    reducer: overwriteReducer,
+    default: () => undefined,
+  }),
 })
 
 export type AgentGraphState = typeof StateAnnotation.State
-
-// TODO
-export type ProcessOutput = {}
 
 /**
  * Agent node types in the graph
@@ -66,3 +64,4 @@ export interface AgentTool {
   schema: Record<string, unknown>
   handler: (input: unknown) => Promise<string>
 }
+export class ResponseCommand extends Command<unknown, Partial<AgentGraphState>, NodeName | "__end__"> {}
