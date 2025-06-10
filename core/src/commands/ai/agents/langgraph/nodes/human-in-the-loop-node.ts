@@ -17,6 +17,7 @@ import * as readline from "node:readline/promises"
 import { stdin as input, stdout as output } from "node:process"
 import type { AnyZodObject } from "zod"
 import type { StateAnnotation } from "../types.js"
+import type { ChatAnthropic } from "@langchain/anthropic"
 
 /**
  * Human-in-the-loop node for user interaction
@@ -24,8 +25,8 @@ import type { StateAnnotation } from "../types.js"
 export class HumanInTheLoopNode extends BaseAgentNode {
   private rl: readline.Interface
 
-  constructor(context: AgentContext) {
-    super(context)
+  constructor(context: AgentContext, model: ChatAnthropic) {
+    super(context, model)
     this.rl = readline.createInterface({ input, output })
     this.initPromptSent = true // Don't add init prompt to human-in-the-loop node messages
   }

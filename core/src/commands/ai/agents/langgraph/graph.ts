@@ -16,24 +16,58 @@ import { GardenAgentNode } from "./nodes/garden-agent-node.js"
 // import { TerraformAgentNode } from "./nodes/terraform-agent-node.js"
 import { HumanInTheLoopNode } from "./nodes/human-in-the-loop-node.js"
 import { StateAnnotation } from "./types.js"
+import { ChatAnthropic } from "@langchain/anthropic"
+import z from "zod"
+import { DynamicStructuredTool } from "@langchain/core/tools"
 
 /**
  * Creates the LangGraph agent network
  */
 export function createAgentGraph(context: AgentContext) {
-  // Initialize all nodes
-  const mainAgentNode = new MainAgentNode(context)
-  const projectExplorerNode = new ProjectExplorerNode(context)
-  const kubernetesAgentNode = new KubernetesAgentNode(context)
-  // const dockerAgentNode = new DockerAgentNode(context)
-  const gardenAgentNode = new GardenAgentNode(context)
-  // const terraformAgentNode = new TerraormAgentNode(context)
-  const humanInTheLoopNode = new HumanInTheLoopNode(context)
+  const model = new ChatAnthropic({
+    modelName: "claude-sonnet-4-20250514",
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+    temperature: 0.7,
+    maxTokens: 64000,
+    streaming: true,
+    // verbose: true,
+  })
 
-  mainAgentNode.addAvailableNodes([projectExplorerNode, kubernetesAgentNode, gardenAgentNode, humanInTheLoopNode])
+  // Initialize all nodes
+  const mainAgentNode = new MainAgentNode(context, model)
+  const projectExplorerNode = new ProjectExplorerNode(context, model)
+  const kubernetesAgentNode = new KubernetesAgentNode(context, model)
+  // const dockerAgentNode = new DockerAgentNode(context)
+  const gardenAgentNode = new GardenAgentNode(context, model)
+  // const terraformAgentNode = new TerraormAgentNode(context)
+  const humanInTheLoopNode = new HumanInTheLoopNode(context, model)
+
+  const team = [mainAgentNode, projectExplorerNode, kubernetesAgentNode, gardenAgentNode, humanInTheLoopNode]
+
+  mainAgentNode.addAvailableNodes(team)
   projectExplorerNode.addAvailableNodes([mainAgentNode, humanInTheLoopNode])
   kubernetesAgentNode.addAvailableNodes([mainAgentNode, humanInTheLoopNode])
   gardenAgentNode.addAvailableNodes([humanInTheLoopNode])
+
+  const routingTool = new DynamicStructuredTool({
+    name: "route",
+    description: "Select the next agent to engage.",
+    schema: z.object({
+      next: z.enum([
+        NODE_NAMES.PROJECT_EXPLORER,
+        NODE_NAMES.KUBERNETES_AGENT,
+        NODE_NAMES.GARDEN_AGENT,
+        NODE_NAMES.HUMAN_LOOP,
+      ]),
+    }),
+    func: async (input) => {
+      return {
+        next: input.next,
+      }
+    },
+  })
+
+  mainAgentNode.addTool(routingTool)
 
   // Create the state graph
   const workflow = new StateGraph(StateAnnotation)

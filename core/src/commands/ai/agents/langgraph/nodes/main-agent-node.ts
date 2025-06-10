@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { ChatAnthropic } from "@langchain/anthropic"
 import type { AgentContext } from "../../../types.js"
 import { NODE_NAMES } from "../../../types.js"
 import { BaseAgentNode } from "./base-node.js"
@@ -14,8 +15,8 @@ import { BaseAgentNode } from "./base-node.js"
  * Main coordinator agent node
  */
 export class MainAgentNode extends BaseAgentNode {
-  constructor(context: AgentContext) {
-    super(context)
+  constructor(context: AgentContext, model: ChatAnthropic) {
+    super(context, model)
     this.tools = []
     // Don't want prefixes on the main agent output
     this.log = context.log.createLog()

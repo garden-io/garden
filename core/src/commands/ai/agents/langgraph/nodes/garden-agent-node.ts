@@ -17,13 +17,14 @@ import { LogLevel, VoidLogger } from "../../../../../logger/logger.js"
 import stripAnsi from "strip-ansi"
 import { DynamicStructuredTool } from "@langchain/core/tools"
 import z from "zod"
+import type { ChatAnthropic } from "@langchain/anthropic"
 
 /**
  * Garden framework expert agent node
  */
 export class GardenAgentNode extends BaseAgentNode {
-  constructor(context: AgentContext) {
-    super(context)
+  constructor(context: AgentContext, model: ChatAnthropic) {
+    super(context, model)
     // Override tools with Garden-specific tools that include validation
     this.tools.push(
       // Garden validate tool

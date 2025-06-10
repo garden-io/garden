@@ -7,7 +7,7 @@
  */
 
 import type { StateAnnotation } from "../types.js"
-import { ChatAnthropic } from "@langchain/anthropic"
+import type { ChatAnthropic } from "@langchain/anthropic"
 import type { DynamicStructuredTool } from "@langchain/core/tools"
 import type { BaseMessage } from "@langchain/core/messages"
 import { AIMessage, ToolMessage } from "@langchain/core/messages"
@@ -32,7 +32,7 @@ export abstract class BaseAgentNode {
   protected yoloMessageShown: boolean
   protected initPromptSent: boolean
 
-  constructor(context: AgentContext) {
+  constructor(context: AgentContext, model: ChatAnthropic) {
     this.context = context
     this.log = context.log.createLog({
       origin: this.getName(),
@@ -42,14 +42,7 @@ export abstract class BaseAgentNode {
     this.tools = createAgentTools(context)
 
     // Initialize Anthropic model via LangChain
-    this.model = new ChatAnthropic({
-      modelName: "claude-sonnet-4-20250514",
-      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-      temperature: 0.7,
-      maxTokens: 64000,
-      streaming: true,
-      // verbose: true,
-    })
+    this.model = model
 
     this.availableNodes = {}
     this.yoloMessageShown = false
@@ -81,6 +74,10 @@ export abstract class BaseAgentNode {
     for (const node of nodes) {
       this.availableNodes[node.getName()] = node
     }
+  }
+
+  public addTool(tool: DynamicStructuredTool) {
+    this.tools.push(tool)
   }
 
   public makeNode(params: { endNodeName: string }) {
@@ -153,6 +150,7 @@ DO NOT attempt to solve problems yourself that you have expert agents for.`
 
     const response = await this.model.bindTools(this.tools).invoke(messages)
 
+    // eslint-disable-next-line no-console
     console.log(this.getName() + " agent response", response)
 
     // Execute any tool calls
