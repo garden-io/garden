@@ -59,7 +59,7 @@
     "handlebars": "^4.7.6",
     "husky": "^9.1.7",
     "lodash-es": "^4.17.21",
-    "markdown-link-check": "^3.12.2",
+    "markdown-link-check": "^3.13.7",
     "minimatch": "^10.0.1",
     "minimist": "^1.2.6",
     "node-jsonl": "^0.1.0",
