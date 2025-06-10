@@ -7,7 +7,7 @@
  */
 
 import { NODE_NAMES } from "../../../types.js"
-import { BaseAgentNode } from "./base-node.js"
+import { ExpertAgentNode } from "./expert-agent-node.js"
 import type { AgentContext } from "../../../types.js"
 import type { BaseToolParams } from "./tools.js"
 import { writeFile } from "./tools.js"
@@ -22,7 +22,7 @@ import type { ChatAnthropic } from "@langchain/anthropic"
 /**
  * Garden framework expert agent node
  */
-export class GardenAgentNode extends BaseAgentNode {
+export class GardenAgentNode extends ExpertAgentNode {
   constructor(context: AgentContext, model: ChatAnthropic) {
     super(context, model)
     // Override tools with Garden-specific tools that include validation

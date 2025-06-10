@@ -25,7 +25,7 @@ export class ProjectExplorerNode extends BaseAgentNode {
   }
 
   getAgentDescription(): string {
-    return "Project exploration agent - not a consultable expert"
+    return "Project exploration agent. Use this to explore the project structure and gather high-level information about the project."
   }
 
   getInitPrompt(): string {
@@ -36,9 +36,9 @@ You have access to these tools:
 - read_files: Read content of specific files
 
 Your task is to:
-1. Start by listing the root directory
+1. Start by listing the root directory recursively
 2. Identify relevant subdirectories and configuration files based on the user's query
-3. Explore those directories and read important files
+3. Explore those directories and read important files. Try to read multiple files in one call to read_files
 4. Summarize your findings in a clear, structured format
 
 Focus on finding:
@@ -50,6 +50,10 @@ Focus on finding:
 - Any other files relevant to the user's query
 
 You MUST ONLY list and read files from within the project root directory.
+
+No need to introduce yourself, just describe what you're doing and what you've found.
+
+Once you have completed your exploration, return a concise summary of your findings in the \`response\` field **and** set \`goto\` to \`main_agent\` so that planning can continue.
 
 You MUST ONLY perform the above tasks. You MUST NOT do anything else.
 `
