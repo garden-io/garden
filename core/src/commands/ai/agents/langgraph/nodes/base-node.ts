@@ -162,31 +162,28 @@ DO NOT attempt to solve problems yourself that you have expert agents for.`
         if (tool) {
           try {
             const result = await tool.invoke(toolCall.args)
+            this.log.debug(`Tool ${toolCall.name} executed successfully.`)
             toolResults.push(
               new ToolMessage({
-                name: toolCall.name,
                 content: result,
                 tool_call_id: toolCall.id ?? "",
-                status: "success",
               })
             )
           } catch (error) {
+            this.log.debug(`Error executing tool ${toolCall.name}: ${error}`)
             toolResults.push(
               new ToolMessage({
-                name: toolCall.name,
                 content: `Error executing ${toolCall.name}: ${error}`,
                 tool_call_id: toolCall.id ?? "",
-                status: "error",
               })
             )
           }
         } else {
+          this.log.debug(`Tool ${toolCall.name} not found in available tools.`)
           toolResults.push(
             new ToolMessage({
-              name: toolCall.name,
               content: `Tool ${toolCall.name} not found`,
               tool_call_id: toolCall.id ?? "",
-              status: "error",
             })
           )
         }

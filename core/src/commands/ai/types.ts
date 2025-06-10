@@ -86,6 +86,7 @@ export const NODE_NAMES = {
   DOCKER_AGENT: "docker",
   GARDEN_AGENT: "garden",
   TERRAFORM_AGENT: "terraform",
+  TASK_ROUTER: "task_router",
   // RESPONSE_SYNTHESIZER: "response_synthesizer",
 } as const
 // Extract the node names type
