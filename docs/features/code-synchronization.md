@@ -298,7 +298,7 @@ garden util mutagen sync list
 Starting from the version `0.13.26`, Garden offers a new file synchronization machinery.
 It is available via the environment variable `GARDEN_ENABLE_NEW_SYNC` and it disabled by default up until version `0.13.32`.
 
-Starting from the version `0.13.33`, the new synchronization machinery is enabled by default.
+Starting from the version `0.13.34`, the new synchronization machinery is enabled by default.
 
 From version `0.13.44` the old synchronization machinery is completely removed together with the `GARDEN_ENABLE_NEW_SYNC` variable.
 
