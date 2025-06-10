@@ -43,6 +43,12 @@ export interface WriteFileResult {
   bytesWritten?: number
 }
 
+export interface RemoveFilesResult {
+  path: string
+  success: boolean
+  message: string
+}
+
 // Base interface for all tool parameters
 export interface BaseToolParams {
   context: AgentContext
@@ -61,6 +67,11 @@ export interface ReadFilesParams extends BaseToolParams {
 export interface WriteFileParams extends BaseToolParams {
   filePath: string
   content: string
+  force?: boolean
+}
+
+export interface RemoveFilesParams extends BaseToolParams {
+  filePaths: string[]
   force?: boolean
 }
 
@@ -198,7 +209,12 @@ export async function readFiles({ context, filePaths }: ReadFilesParams): Promis
     log.info(`✅ Successfully read ${successCount} files:\n${results.map((r) => "- " + r.path).join("\n")}`)
   }
   if (errorCount > 0) {
-    log.error(`❌ Error reading ${errorCount} files:\n${results.map((r) => `- ${r.path}: ${r.error}`).join("\n")}`)
+    log.error(
+      `❌ Error reading ${errorCount} files:\n${results
+        .filter((r) => !!r.error)
+        .map((r) => `- ${r.path}: ${r.error}`)
+        .join("\n")}`
+    )
   }
 
   return JSON.stringify(results, null, 2)
@@ -295,6 +311,148 @@ export async function writeFile({ context, filePath, content, force = false }: W
   }
 }
 
+export async function removeFiles({ context, filePaths, force = false }: RemoveFilesParams): Promise<string> {
+  const results: RemoveFilesResult[] = []
+  const log = context.log.createLog({ origin: "remove_files" })
+
+  let errorCount = 0
+  let successCount = 0
+
+  // First, validate all paths and check which files exist
+  const validFilePaths: string[] = []
+  const fileDetails: { path: string; absolutePath: string; exists: boolean }[] = []
+
+  for (const filePath of filePaths) {
+    try {
+      const absolutePath = getSafePath(filePath, context.projectRoot)
+      const fileExists = await fs
+        .access(absolutePath)
+        .then(() => true)
+        .catch(() => false)
+
+      fileDetails.push({ path: filePath, absolutePath, exists: fileExists })
+      if (fileExists) {
+        validFilePaths.push(filePath)
+      }
+    } catch (error) {
+      results.push({
+        path: filePath,
+        success: false,
+        message: `Invalid path: ${error instanceof Error ? error.message : String(error)}`,
+      })
+      errorCount++
+    }
+  }
+
+  // If no valid files to delete, return early
+  if (validFilePaths.length === 0) {
+    log.warn("No valid files found to delete")
+    return JSON.stringify(results, null, 2)
+  }
+
+  // Show files that will be deleted and get confirmation if needed
+  if (!force && !context.yolo) {
+    log.info(chalk.yellow(`⚠️ You are about to delete ${validFilePaths.length} file(s):`))
+    for (const filePath of validFilePaths) {
+      log.info(chalk.gray(`   - ${filePath}`))
+    }
+
+    if (!yoloMessageShown) {
+      log.info("FYI: You can use the `--yolo` CLI flag on this command to delete files without confirmation.")
+      yoloMessageShown = true
+    }
+
+    // Create readline interface for confirmation
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+
+    try {
+      const answer = await rl.question(
+        chalk.yellow(`\nDo you want to delete ${validFilePaths.length} file(s)? (y/N): `)
+      )
+      rl.close()
+
+      const confirmed = answer.toLowerCase().trim() === "y" || answer.toLowerCase().trim() === "yes"
+
+      if (!confirmed) {
+        log.info("File deletion cancelled by user")
+        // Add cancelled results for valid files
+        for (const filePath of validFilePaths) {
+          results.push({
+            path: filePath,
+            success: false,
+            message: "Deletion cancelled by user",
+          })
+        }
+        return JSON.stringify(results, null, 2)
+      }
+
+      log.info("User confirmed file deletion")
+    } catch (error) {
+      rl.close()
+      const errorMessage = `Error getting user confirmation: ${error instanceof Error ? error.message : String(error)}`
+      log.error(errorMessage)
+      // Add error results for valid files
+      for (const filePath of validFilePaths) {
+        results.push({
+          path: filePath,
+          success: false,
+          message: errorMessage,
+        })
+      }
+      return JSON.stringify(results, null, 2)
+    }
+  }
+
+  // Delete the files
+  for (const { path: filePath, absolutePath, exists } of fileDetails) {
+    if (!exists) {
+      results.push({
+        path: filePath,
+        success: false,
+        message: "File not found",
+      })
+      errorCount++
+      continue
+    }
+
+    try {
+      await fs.unlink(absolutePath)
+      results.push({
+        path: filePath,
+        success: true,
+        message: "File deleted successfully",
+      })
+      successCount++
+    } catch (error) {
+      results.push({
+        path: filePath,
+        success: false,
+        message: `Delete failed: ${error instanceof Error ? error.message : String(error)}`,
+      })
+      errorCount++
+    }
+  }
+
+  if (successCount > 0) {
+    log.info(
+      `✅ Successfully deleted ${successCount} files:\n${results
+        .filter((r) => r.success)
+        .map((r) => "- " + r.path)
+        .join("\n")}`
+    )
+  }
+  if (errorCount > 0) {
+    log.error(
+      `❌ Error deleting ${errorCount} files:\n${results
+        .filter((r) => !r.success)
+        .map((r) => `- ${r.path}: ${r.message}`)
+        .join("\n")}`
+    )
+  }
+
+  return JSON.stringify(results, null, 2)
+}
+
 // Tool definitions factory
 export function createAgentTools(context: AgentContext): DynamicStructuredTool[] {
   return [
@@ -337,6 +495,21 @@ export function createAgentTools(context: AgentContext): DynamicStructuredTool[]
       func: async ({ filePath, content, force }) => {
         // Allow overwriting without confirmation if yolo is enabled or force is true
         return writeFile({ context, filePath, content, force: force || context.yolo })
+      },
+    }),
+
+    // Remove files tool
+    new DynamicStructuredTool({
+      name: "remove_files",
+      description:
+        "Delete one or more files. Asks user for confirmation unless force=true is used. Returns a JSON array where each element has 'path', 'success', and 'message' fields.",
+      schema: z.object({
+        filePaths: z.array(z.string()).describe("Array of file paths to delete"),
+        force: z.boolean().optional().describe("Whether to delete files without confirmation"),
+      }),
+      func: async ({ filePaths, force }) => {
+        // Allow deletion without confirmation if yolo is enabled or force is true
+        return removeFiles({ context, filePaths, force: force || context.yolo })
       },
     }),
   ]

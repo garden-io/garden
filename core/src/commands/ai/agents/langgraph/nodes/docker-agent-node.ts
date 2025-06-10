@@ -7,12 +7,12 @@
  */
 
 import { NODE_NAMES } from "../../../types.js"
-import { BaseAgentNode } from "./base-node.js"
+import { ExpertAgentNode } from "./expert-agent-node.js"
 
 /**
  * Docker expert agent node
  */
-export class DockerAgentNode extends BaseAgentNode {
+export class DockerAgentNode extends ExpertAgentNode {
   getName() {
     return NODE_NAMES.DOCKER_AGENT
   }

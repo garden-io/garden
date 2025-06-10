@@ -16,6 +16,7 @@ import { printHeader } from "../../logger/util.js"
 import dedent from "dedent"
 import { BooleanParameter } from "../../cli/params.js"
 import type { AgentGraphState } from "./agents/langgraph/types.js"
+import { GlobalConfigStore } from "../../config-store/global.js"
 
 export const agentArgs = {}
 export const agentOpts = {
@@ -74,8 +75,13 @@ export class AgentCommand extends Command<Args, Opts> {
       yolo: opts.yolo,
     }
 
+    // Load prompt history and config store
+    const globalStore = new GlobalConfigStore()
+    const historyRaw = await globalStore.get("aiPromptHistory")
+    const promptHistory = Array.isArray(historyRaw) ? (historyRaw as string[]) : []
+
     // Create the LangGraph agent network
-    const agentGraph = createAgentGraph(context)
+    const agentGraph = createAgentGraph(context, globalStore, promptHistory)
 
     // Welcome message
     log.info("")
@@ -100,6 +106,8 @@ export class AgentCommand extends Command<Args, Opts> {
       context,
       step: 0,
       userFeedback: undefined,
+      tasks: [],
+      currentTask: undefined,
     }
 
     try {
