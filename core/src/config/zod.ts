@@ -87,7 +87,7 @@ type GardenSchema = typeof z & {
  */
 export function renderZodError(error: z.ZodError): string {
   return error.issues
-    .map((i: Zod.ZodIssue & { expected?: unknown; received?: unknown }) => {
+    .map((i: z.ZodIssue & { expected?: unknown; received?: unknown }) => {
       const path = i.path && i.path.length > 0 ? `at path ${styles.highlight(i.path.join("."))}` : ""
       if (i["expected"] && i["received"]) {
         return `Expected ${i["expected"]} ${path}, but received ${i["received"]}.`

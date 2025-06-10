@@ -289,6 +289,9 @@ export interface BaseServerRequest {
   command?: string
   environment?: string
   projectRoot?: string
+  /**
+   * @deprecated TODO(deprecation): get rid of its usages in 0.14 and remove in 0.15
+   */
   stringArguments?: string[]
   internal?: boolean
 }
@@ -311,13 +314,13 @@ export const serverRequestSchema = createSchema({
       .description(
         "Specify a project root. By default the cwd of the server process is used. Note that if this is set, it must point to a directory that exists, and only that specific directory will be searched (as opposed to scanning parent directories)."
       ),
+    // TODO(deprecation): get rid of its usages in 0.14 and remove in 0.15
     stringArguments: joi
       .array()
       .items(joi.string())
       .description(
-        "Array of args to append to the given command. Kept for backwards compatibility (it's now enough to just use the command string."
-      )
-      .meta({ deprecated: true }), // TODO(deprecation): deprecate in 0.14
+        "[DEPRECATED] Array of args to append to the given command. Kept for backwards compatibility (it's now enough to just use the command string."
+      ),
     internal: joi
       .boolean()
       .description(

@@ -4,7 +4,7 @@ name: circleci-runner
 description: Used for the core pipeline in CircleCI
 variables:
   image-name: gardendev/circleci-runner
-  release-tag: 22.9.0-0
+  release-tag: 22.16.0-0
 spec:
   publishId: ${var.image-name}:${var.release-tag}
   localId: ${var.image-name}
