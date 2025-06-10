@@ -22,7 +22,7 @@
     "minimist": "^1.2.8"
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@types/node": "^24",
     "prettier": "3.5.3",
     "typescript": "^5.5.3"
   },
