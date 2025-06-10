@@ -315,7 +315,6 @@ export async function configureSyncMode({
   // Make sure we don't modify inputs in-place
   manifests = cloneDeep(manifests)
 
-  const overridesByTarget: { [ref: string]: KubernetesDeployOverrideSpec } = {}
   const dedupedTargets: { [ref: string]: KubernetesTargetResourceSpec } = {}
 
   const targetKey = (t: KubernetesTargetResourceSpec) => {
@@ -343,7 +342,6 @@ export async function configureSyncMode({
     }
     if (target.kind && target.name) {
       const key = targetKey(target)
-      overridesByTarget[key] = override
       dedupedTargets[key] = target
     }
   }
