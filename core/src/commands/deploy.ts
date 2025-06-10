@@ -122,8 +122,6 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
         garden deploy --sync=my-deploy     # deploys all Deploys, with sync enabled for my-deploy
         garden deploy --sync               # deploys all compatible Deploys with sync enabled
-        garden deploy --local=my-deploy    # deploys all Deploys, with local mode enabled for my-deploy
-        garden deploy --local              # deploys all compatible Deploys with local mode enabled
         garden deploy --env stage          # deploy your Deploys to an environment called stage
         garden deploy --skip deploy-b      # deploy everything except deploy-b
         garden deploy --forward            # deploy everything and start port forwards without sync or local mode

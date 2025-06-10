@@ -382,8 +382,6 @@ export async function createWorkloadManifest({
   }
 
   const syncSpec = convertContainerSyncSpec(ctx, action)
-
-  // Local mode always takes precedence over sync mode
   if (mode === "sync" && syncSpec) {
     log.debug(styles.primary(`-> Configuring in sync mode`))
     const configured = await configureSyncMode({
