@@ -84,7 +84,7 @@ type GardenSchema = typeof z & {
  */
 export function renderZodError(error: z.ZodError): string {
   return error.issues
-    .map((i: Zod.ZodIssue) => {
+    .map((i: z.ZodIssue) => {
       if (i.message === "Required" && i["expected"] && i["received"]) {
         return `Expected ${i["expected"]}, but received ${i["received"]}`
       } else {

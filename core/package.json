@@ -162,7 +162,7 @@
     "yaml": "^2.5.1",
     "yaml-lint": "^1.2.4",
     "zod": "^3.24.2",
-    "zod-to-json-schema": "^3.23.5"
+    "zod-to-json-schema": "^3.24.5"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
