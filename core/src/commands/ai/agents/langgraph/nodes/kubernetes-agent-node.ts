@@ -7,12 +7,12 @@
  */
 
 import { NODE_NAMES } from "../../../types.js"
-import { BaseAgentNode } from "./base-node.js"
+import { ExpertAgentNode } from "./expert-agent-node.js"
 
 /**
  * Kubernetes expert agent node
  */
-export class KubernetesAgentNode extends BaseAgentNode {
+export class KubernetesAgentNode extends ExpertAgentNode {
   getName() {
     return NODE_NAMES.KUBERNETES_AGENT
   }

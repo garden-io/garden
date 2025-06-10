@@ -8,17 +8,18 @@
 
 import { StateGraph, START } from "@langchain/langgraph"
 import { NODE_NAMES, type AgentContext } from "../../types.js"
-import { MainAgentNode } from "./nodes/main-agent-node.js"
+import { PlannerNode } from "./nodes/planner-node.js"
 import { ProjectExplorerNode } from "./nodes/project-explorer-node.js"
 import { KubernetesAgentNode } from "./nodes/kubernetes-agent-node.js"
-// import { DockerAgentNode } from "./nodes/docker-agent-node.js"
+import { DockerAgentNode } from "./nodes/docker-agent-node.js"
 import { GardenAgentNode } from "./nodes/garden-agent-node.js"
-// import { TerraformAgentNode } from "./nodes/terraform-agent-node.js"
+import { TerraformAgentNode } from "./nodes/terraform-agent-node.js"
 import { HumanInTheLoopNode } from "./nodes/human-in-the-loop-node.js"
 import { StateAnnotation } from "./types.js"
 import { ChatAnthropic } from "@langchain/anthropic"
 import z from "zod"
 import { DynamicStructuredTool } from "@langchain/core/tools"
+import { taskRouterNode } from "./nodes/task-router-node.js"
 
 /**
  * Creates the LangGraph agent network
@@ -34,20 +35,30 @@ export function createAgentGraph(context: AgentContext) {
   })
 
   // Initialize all nodes
-  const mainAgentNode = new MainAgentNode(context, model)
+  const plannerNode = new PlannerNode(context, model)
   const projectExplorerNode = new ProjectExplorerNode(context, model)
   const kubernetesAgentNode = new KubernetesAgentNode(context, model)
-  // const dockerAgentNode = new DockerAgentNode(context)
+  const dockerAgentNode = new DockerAgentNode(context, model)
   const gardenAgentNode = new GardenAgentNode(context, model)
-  // const terraformAgentNode = new TerraormAgentNode(context)
+  const terraformAgentNode = new TerraformAgentNode(context, model)
   const humanInTheLoopNode = new HumanInTheLoopNode(context, model)
 
-  const team = [mainAgentNode, projectExplorerNode, kubernetesAgentNode, gardenAgentNode, humanInTheLoopNode]
+  const team = [
+    plannerNode,
+    projectExplorerNode,
+    kubernetesAgentNode,
+    dockerAgentNode,
+    gardenAgentNode,
+    terraformAgentNode,
+    humanInTheLoopNode,
+  ]
 
-  mainAgentNode.addAvailableNodes(team)
-  projectExplorerNode.addAvailableNodes([mainAgentNode, humanInTheLoopNode])
-  kubernetesAgentNode.addAvailableNodes([mainAgentNode, humanInTheLoopNode])
-  gardenAgentNode.addAvailableNodes([humanInTheLoopNode])
+  plannerNode.addAvailableNodes(team)
+  projectExplorerNode.addAvailableNodes([plannerNode, humanInTheLoopNode])
+  kubernetesAgentNode.addAvailableNodes([plannerNode, humanInTheLoopNode])
+  dockerAgentNode.addAvailableNodes([plannerNode, humanInTheLoopNode])
+  gardenAgentNode.addAvailableNodes([plannerNode, humanInTheLoopNode])
+  terraformAgentNode.addAvailableNodes([plannerNode, humanInTheLoopNode])
 
   const routingTool = new DynamicStructuredTool({
     name: "route",
@@ -56,7 +67,9 @@ export function createAgentGraph(context: AgentContext) {
       next: z.enum([
         NODE_NAMES.PROJECT_EXPLORER,
         NODE_NAMES.KUBERNETES_AGENT,
+        NODE_NAMES.DOCKER_AGENT,
         NODE_NAMES.GARDEN_AGENT,
+        NODE_NAMES.TERRAFORM_AGENT,
         NODE_NAMES.HUMAN_LOOP,
       ]),
     }),
@@ -67,14 +80,15 @@ export function createAgentGraph(context: AgentContext) {
     },
   })
 
-  mainAgentNode.addTool(routingTool)
+  // Planner gets routing tool
+  plannerNode.addTool(routingTool)
 
   // Create the state graph
   const workflow = new StateGraph(StateAnnotation)
     .addNode(
       NODE_NAMES.MAIN_AGENT,
-      mainAgentNode.makeNode({ endNodeName: NODE_NAMES.HUMAN_LOOP }),
-      mainAgentNode.getNodeOptions()
+      plannerNode.makeNode({ endNodeName: NODE_NAMES.HUMAN_LOOP }),
+      plannerNode.getNodeOptions()
     )
     .addNode(
       NODE_NAMES.HUMAN_LOOP,
@@ -92,14 +106,22 @@ export function createAgentGraph(context: AgentContext) {
       kubernetesAgentNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }),
       kubernetesAgentNode.getNodeOptions()
     )
-    // .addNode(NODE_NAMES.DOCKER_AGENT, async (state: typeof GraphStateAnnotation.State) => {
-    //   return await dockerAgentNode.process({ ...state, context })
-    // })
+    .addNode(
+      NODE_NAMES.DOCKER_AGENT,
+      dockerAgentNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }),
+      dockerAgentNode.getNodeOptions()
+    )
     .addNode(
       NODE_NAMES.GARDEN_AGENT,
       gardenAgentNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }),
       gardenAgentNode.getNodeOptions()
     )
+    .addNode(
+      NODE_NAMES.TERRAFORM_AGENT,
+      terraformAgentNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }),
+      terraformAgentNode.getNodeOptions()
+    )
+    .addNode(NODE_NAMES.TASK_ROUTER, taskRouterNode(), { ends: Object.values(NODE_NAMES) })
     // Start with main agent
     .addEdge(START, NODE_NAMES.MAIN_AGENT)
 

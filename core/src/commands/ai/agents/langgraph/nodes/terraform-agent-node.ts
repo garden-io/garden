@@ -7,12 +7,12 @@
  */
 
 import { NODE_NAMES } from "../../../types.js"
-import { BaseAgentNode } from "./base-node.js"
+import { ExpertAgentNode } from "./expert-agent-node.js"
 
 /**
  * Terraform expert agent node
  */
-export class TerraformAgentNode extends BaseAgentNode {
+export class TerraformAgentNode extends ExpertAgentNode {
   getName() {
     return NODE_NAMES.TERRAFORM_AGENT
   }

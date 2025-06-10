@@ -15,6 +15,14 @@ import { Annotation, Command, messagesStateReducer } from "@langchain/langgraph"
 const uniqueReducer = (left: string[], right: string[]) => [...new Set([...left, ...right])]
 const overwriteReducer = <T>(_left: T, right: T) => right
 
+export interface Task {
+  id: string
+  description: string
+  expert: NodeName
+  status: "pending" | "in-progress" | "done"
+  summary?: string
+}
+
 export const StateAnnotation = Annotation.Root({
   messages: Annotation<BaseMessage[]>({
     reducer: messagesStateReducer,
@@ -35,6 +43,20 @@ export const StateAnnotation = Annotation.Root({
     default: () => 0,
   }),
   userFeedback: Annotation<"quit" | undefined>({
+    reducer: overwriteReducer,
+    default: () => undefined,
+  }),
+  tasks: Annotation<Task[]>({
+    reducer: (left: Task[], right: Task[]) => {
+      // Merge tasks by id, prefer right side updates
+      const taskMap = new Map<string, Task>()
+      left.forEach((t) => taskMap.set(t.id, t))
+      right.forEach((t) => taskMap.set(t.id, t))
+      return Array.from(taskMap.values())
+    },
+    default: () => [],
+  }),
+  currentTask: Annotation<Task | undefined>({
     reducer: overwriteReducer,
     default: () => undefined,
   }),

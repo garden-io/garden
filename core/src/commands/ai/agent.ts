@@ -100,6 +100,8 @@ export class AgentCommand extends Command<Args, Opts> {
       context,
       step: 0,
       userFeedback: undefined,
+      tasks: [],
+      currentTask: undefined,
     }
 
     try {
