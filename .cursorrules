@@ -17,6 +17,7 @@ Welcome to the Garden project! This file provides comprehensive guidelines for A
 3. **Implementation Approach**
    - To build the project, run `npm run build` from the `cli/` directory
    - To build individual files run `tsc` from the `cli/` directory with the relative path
+   - Always run a build and any relevant test suites after making changes, and make sure both complete successfully.
 
 ## Project Information
 
@@ -114,18 +115,30 @@ All source files must include the MPL-2.0 license header:
  */
 ```
 
-This is enforced by eslint-plugin-header.
+## Testing
 
-## Testing Guidelines
+### Running unit tests
 
-### Framework
+#### Running specific unit test suites in the core package
 
-- **Test Runner**: Mocha
+This is always much faster than running all unit tests.
+
+```sh
+cd core
+mocha -g '<Test Suite Name>'
+```
+
+#### The whole project
+
+Note: Try to avoid testing the whole project and instead focus on individual modules or tests
+
+```sh
+npm run test:framework:unit
+```
 
 ### Testing Rules
 
-- **No Pending Tests**: Warning (mocha/no-pending-tests)
-- **No Exclusive Tests**: Error (mocha/no-exclusive-tests) - e.g., `it.only` is not allowed
+- Never use `.only()` or `.skip()` on tests or test suites
 
 ## Version Control & Commit Guidelines
 
@@ -174,13 +187,14 @@ npx tsc --build . --pretty false
 2. Update the appropriate package.json file
 3. Run `npm install` from the project root
 
-### TypeScript Configuration
+### TypeScript
 
 - **Base Config**: `tsconfig.base.json`
 - **Module System**: nodenext
 - **Target**: ES2022
 - **Strict Mode**: Enabled
 - **Source Maps**: Inline
+- Avoid using the `any` type, make sure everything you generate is strongly typed.
 
 ### Directory Structure Conventions
 
