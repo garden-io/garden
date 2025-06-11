@@ -164,8 +164,7 @@ set a specific tag or you can _use template strings for the tag_. For example, y
 - Set a custom prefix on tags with the current git branch: `garden publish --tag 'v0.1-${git.branch}'`
 
 {% hint style="warning" %}
-Note that you most likely need to wrap templated tags with single quotes, to prevent your shell from attempting to
-perform its own substitution.
+Note that you most likely need to wrap templated tags with single quotes, to prevent your shell from attempting to perform its own substitution.
 {% endhint %}
 
 Generally, you can use any template strings available for action configs for the tags, with the addition of the
