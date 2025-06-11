@@ -84,7 +84,6 @@ export class AgentCommand extends Command<Args, Opts> {
     const agentGraph = createAgentGraph(context, globalStore, promptHistory)
 
     // Welcome message
-    log.info("")
     log.info(chalk.gray("Type 'exit' or 'quit' at the prompt to end the session."))
     log.info("")
     log.info(chalk.gray("Initializing..."))

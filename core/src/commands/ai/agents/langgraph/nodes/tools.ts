@@ -13,6 +13,7 @@ import { join, resolve, relative } from "path"
 import type { AgentContext } from "../../../types.js"
 import chalk from "chalk"
 import * as readline from "node:readline/promises"
+import { stdin as input, stdout as output } from "node:process"
 import { renderDivider } from "../../../../../logger/util.js"
 
 const DEFAULT_MAX_DEPTH = 100
@@ -68,6 +69,14 @@ export interface WriteFileParams extends BaseToolParams {
   filePath: string
   content: string
   force?: boolean
+}
+
+export interface WriteFilesParams extends BaseToolParams {
+  files: Array<{
+    filePath: string
+    content: string
+    force?: boolean
+  }>
 }
 
 export interface RemoveFilesParams extends BaseToolParams {
@@ -234,7 +243,11 @@ export async function writeFile({ context, filePath, content, force = false }: W
       .then(() => true)
       .catch(() => false)
 
-    if (fileExists && !force) {
+    // Auto-overwrite if the file was originally created earlier in this session by the assistant
+    const absolutePathKey = absolutePath
+    const createdThisRun = context.newFiles?.has(absolutePathKey) ?? false
+
+    if (fileExists && !force && !createdThisRun) {
       // Log warning for potential file overwrite
       log.warn(`Attempting to overwrite existing file: ${filePath}`)
 
@@ -256,26 +269,27 @@ export async function writeFile({ context, filePath, content, force = false }: W
       log.info(chalk.gray(`   - Current size: ${existingSize} characters`))
       log.info(chalk.gray(`   - New size: ${newSize} characters`))
 
-      log.info(chalk.gray(renderDivider({ title: "🔍 Current content preview (first 200 chars)" })))
-      log.info(chalk.gray(existingContent.substring(0, 200) + (existingContent.length > 200 ? "..." : "")))
-      log.info(chalk.gray(renderDivider()))
+      // -----------------------------------------------------------------
+      // Show full diff between existing and new content
+      // -----------------------------------------------------------------
+      const diffLines = generateDiff(existingContent, content)
 
-      log.info(chalk.gray(renderDivider({ title: "🔍 New content preview (first 200 chars)" })))
-      log.info(chalk.gray(content.substring(0, 200) + (content.length > 200 ? "..." : "")))
-      log.info(chalk.gray(renderDivider()))
+      const diffLog = log.createLog({ origin: undefined })
+      diffLog.info(renderDivider({ title: "🔍 Diff (current ↔ new)", width: 50 }))
+      diffLines.forEach((line) => {
+        diffLog.info(line)
+      })
+      diffLog.info(renderDivider({ width: 50 }))
 
       if (!context.yolo && !yoloMessageShown) {
         log.info("FYI: You can use the `--yolo` CLI flag on this command to write files without confirmation.")
         yoloMessageShown = true
       }
 
-      // Create readline interface for confirmation
-      const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+      const rl = getSharedReadline(context)
 
       try {
-        const answer = await rl.question(chalk.yellow(`\nDo you want to overwrite '${filePath}'? (y/N): `))
-        rl.close()
-
+        const answer = await rl.question(chalk.yellow.bold(`\nDo you want to overwrite '${filePath}'? (y/N): `))
         const confirmed = answer.toLowerCase().trim() === "y" || answer.toLowerCase().trim() === "yes"
 
         if (!confirmed) {
@@ -285,8 +299,7 @@ export async function writeFile({ context, filePath, content, force = false }: W
 
         log.info(`User confirmed file overwrite: ${filePath}`)
       } catch (error) {
-        rl.close()
-        return `❌ Error getting user confirmation: ${error instanceof Error ? error.message : String(error)}`
+        // Do not close shared readline
       }
     }
 
@@ -295,6 +308,15 @@ export async function writeFile({ context, filePath, content, force = false }: W
 
     // Write the file
     await fs.writeFile(absolutePath, content, "utf-8")
+
+    // Track newly created files so that subsequent overwrites in the same run
+    // can proceed without confirmation.
+    if (!fileExists) {
+      if (!context.newFiles) {
+        context.newFiles = new Set<string>()
+      }
+      context.newFiles.add(absolutePathKey)
+    }
 
     // Log successful write
     if (fileExists) {
@@ -309,6 +331,24 @@ export async function writeFile({ context, filePath, content, force = false }: W
     log.error(errorMessage)
     return errorMessage
   }
+}
+
+export async function writeFiles({ context, files }: WriteFilesParams): Promise<string> {
+  const results: WriteFileResult[] = []
+
+  for (const { filePath, content, force } of files) {
+    // Reuse existing writeFile logic for each entry
+    const res = await writeFile({ context, filePath, content, force })
+
+    // Normalise result into WriteFileResult for aggregated JSON output
+    results.push({
+      success: res.startsWith("✅"),
+      message: res,
+      filePath,
+    })
+  }
+
+  return JSON.stringify(results, null, 2)
 }
 
 export async function removeFiles({ context, filePaths, force = false }: RemoveFilesParams): Promise<string> {
@@ -362,15 +402,12 @@ export async function removeFiles({ context, filePaths, force = false }: RemoveF
       yoloMessageShown = true
     }
 
-    // Create readline interface for confirmation
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+    const rl = getSharedReadline(context)
 
     try {
       const answer = await rl.question(
         chalk.yellow(`\nDo you want to delete ${validFilePaths.length} file(s)? (y/N): `)
       )
-      rl.close()
-
       const confirmed = answer.toLowerCase().trim() === "y" || answer.toLowerCase().trim() === "yes"
 
       if (!confirmed) {
@@ -388,18 +425,7 @@ export async function removeFiles({ context, filePaths, force = false }: RemoveF
 
       log.info("User confirmed file deletion")
     } catch (error) {
-      rl.close()
-      const errorMessage = `Error getting user confirmation: ${error instanceof Error ? error.message : String(error)}`
-      log.error(errorMessage)
-      // Add error results for valid files
-      for (const filePath of validFilePaths) {
-        results.push({
-          path: filePath,
-          success: false,
-          message: errorMessage,
-        })
-      }
-      return JSON.stringify(results, null, 2)
+      // Do not close shared readline
     }
   }
 
@@ -498,6 +524,28 @@ export function createAgentTools(context: AgentContext): DynamicStructuredTool[]
       },
     }),
 
+    // Write multiple files tool
+    new DynamicStructuredTool({
+      name: "write_files",
+      description:
+        "Write multiple files in one go. Accepts an array of {filePath, content, force}. Sequentially invokes write_file logic for each entry. Use this when you need to write multiple files at once, since it will be faster.",
+      schema: z.object({
+        files: z
+          .array(
+            z.object({
+              filePath: z.string().describe("Path of the file to write"),
+              content: z.string().describe("Content to write"),
+              force: z.boolean().optional().describe("Force overwrite even if file exists"),
+            })
+          )
+          .min(1)
+          .describe("Array of files to write"),
+      }),
+      func: async ({ files }) => {
+        return writeFiles({ context, files })
+      },
+    }),
+
     // Remove files tool
     new DynamicStructuredTool({
       name: "remove_files",
@@ -513,4 +561,64 @@ export function createAgentTools(context: AgentContext): DynamicStructuredTool[]
       },
     }),
   ]
+}
+
+// -------------------------------------------------------------------------
+// Diff helper
+// -------------------------------------------------------------------------
+
+function generateDiff(oldStr: string, newStr: string): string[] {
+  const oldLines = oldStr.split(/\r?\n/)
+  const newLines = newStr.split(/\r?\n/)
+
+  // Build LCS length table
+  const m = oldLines.length
+  const n = newLines.length
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0))
+
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      if (oldLines[i] === newLines[j]) {
+        dp[i][j] = dp[i + 1][j + 1] + 1
+      } else {
+        dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1])
+      }
+    }
+  }
+
+  const diff: string[] = []
+
+  let i = 0
+  let j = 0
+  while (i < m && j < n) {
+    if (oldLines[i] === newLines[j]) {
+      diff.push(chalk.gray("  " + oldLines[i]))
+      i++
+      j++
+    } else if (dp[i][j + 1] >= dp[i + 1][j]) {
+      diff.push(chalk.green("+ " + newLines[j]))
+      j++
+    } else {
+      diff.push(chalk.red("- " + oldLines[i]))
+      i++
+    }
+  }
+
+  while (i < m) {
+    diff.push(chalk.red("- " + oldLines[i]))
+    i++
+  }
+  while (j < n) {
+    diff.push(chalk.green("+ " + newLines[j]))
+    j++
+  }
+
+  return diff
+}
+
+function getSharedReadline(context: AgentContext): readline.Interface {
+  if (!context.rl) {
+    context.rl = readline.createInterface({ input, output })
+  }
+  return context.rl
 }

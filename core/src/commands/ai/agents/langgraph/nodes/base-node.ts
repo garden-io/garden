@@ -9,8 +9,8 @@
 import type { StateAnnotation } from "../types.js"
 import type { ChatAnthropic } from "@langchain/anthropic"
 import type { DynamicStructuredTool } from "@langchain/core/tools"
-import type { BaseMessage } from "@langchain/core/messages"
-import { AIMessage, ToolMessage } from "@langchain/core/messages"
+import { BaseMessage } from "@langchain/core/messages"
+import { AIMessage, SystemMessage, ToolMessage } from "@langchain/core/messages"
 import type { AnyZodObject } from "zod"
 import { z } from "zod"
 import type { NodeName } from "../../../types.js"
@@ -19,6 +19,9 @@ import { NODE_NAMES, type AgentContext } from "../../../types.js"
 import type { Log } from "../../../../../logger/log-entry.js"
 import { createAgentTools } from "./tools.js"
 import chalk from "chalk"
+import { safeDumpYaml } from "../../../../../util/serialization.js"
+import { omit, truncate } from "lodash-es"
+import { isArray } from "../../../../../util/objects.js"
 
 /**
  * Base class for all agent nodes in the LangGraph
@@ -30,7 +33,6 @@ export abstract class BaseAgentNode {
   protected availableNodes: { [key: string]: BaseAgentNode }
   protected log: Log
   protected yoloMessageShown: boolean
-  protected initPromptSent: boolean
 
   constructor(context: AgentContext, model: ChatAnthropic) {
     this.context = context
@@ -46,13 +48,12 @@ export abstract class BaseAgentNode {
 
     this.availableNodes = {}
     this.yoloMessageShown = false
-    this.initPromptSent = false
   }
 
   /**
    * Get the init prompt for this agent
    */
-  abstract getInitPrompt(): string
+  abstract getSystemPrompt(): string
 
   /**
    * Get the name of this agent
@@ -97,17 +98,9 @@ export abstract class BaseAgentNode {
           ),
       })
 
-      // TODO: only add system prompt if it's the first invocation of the node?
-      let messages = [...state.messages]
+      const command = await this.generateResponse(state, responseSchema, state.messages)
 
-      if (!this.initPromptSent) {
-        this.initPromptSent = true
-        messages = [new AIMessage(this.formatInitPrompt()), ...state.messages]
-      }
-
-      const command = await this.generateResponse(state, responseSchema, messages)
-
-      this.log.debug(`Command from ${this.getName()}: ${JSON.stringify(command, null, 2)}`)
+      this.debugLogCommand(command)
 
       return command
     }
@@ -119,16 +112,42 @@ export abstract class BaseAgentNode {
     }
   }
 
-  protected formatInitPrompt() {
+  protected debugLogCommand(command: ResponseCommand) {
+    const update: Record<string, unknown> = (command.update as Record<string, unknown>) || {}
+
+    const abridgedCommand: Record<string, unknown> = {
+      goto: command.goto,
+      update: omit(update, "messages"),
+    }
+
+    if (update.messages && isArray(update.messages) && update.messages.length > 0) {
+      const lastMessage = update.messages[update.messages.length - 1] as BaseMessage
+      abridgedCommand.lastMessage = abridgeMessage(lastMessage)
+    } else if (update.messages) {
+      abridgedCommand.lastMessage = abridgeMessage(update.messages as BaseMessage)
+    }
+
+    this.log.debug(`Command from ${this.getName()}:\n${safeDumpYaml(abridgedCommand)}`)
+  }
+
+  protected debugLogMessages(context: string, messages: BaseMessage[]) {
+    const abridgedMessages = messages.map(abridgeMessage)
+
+    this.log.debug(context + ":\n" + safeDumpYaml(abridgedMessages))
+  }
+
+  protected formatSystemPrompt(): SystemMessage {
     const availableNodes = Object.values(this.availableNodes)
       .map((node) => `- ${node.getName()}: ${node.getAgentDescription()}`)
       .join("\n")
-    return `${this.getInitPrompt()}
 
-You can consult with the following other agents:
-${availableNodes}
+    let prompt = this.getSystemPrompt()
 
-DO NOT attempt to solve problems yourself that you have expert agents for.`
+    if (availableNodes.length > 0) {
+      prompt += `You can consult with the following other agents:\n${availableNodes}\n\nDO NOT attempt to solve problems yourself that you have expert agents for.`
+    }
+
+    return new SystemMessage(prompt.trim())
   }
 
   /**
@@ -143,15 +162,14 @@ DO NOT attempt to solve problems yourself that you have expert agents for.`
     const lastMessage = messages[messages.length - 1]
 
     if (lastMessage) {
-      this.log.debug(
-        `Invoking agent ${this.getName()}. Last message: ${JSON.stringify(lastMessage._printableFields, null, 2)}`
-      )
+      this.log.debug(`Invoking agent ${this.getName()}. Last message:\n${safeDumpYaml([abridgeMessage(lastMessage)])}`)
     }
 
-    const response = await this.model.bindTools(this.tools).invoke(messages)
+    const systemPrompt = this.formatSystemPrompt()
 
-    // eslint-disable-next-line no-console
-    console.log(this.getName() + " agent response", response)
+    const response = await this.model.bindTools(this.tools).invoke([systemPrompt, ...messages])
+
+    this.debugLogMessages(this.getName() + " agent response", [response])
 
     // Execute any tool calls
     const toolResults: ToolMessage[] = []
@@ -199,7 +217,7 @@ DO NOT attempt to solve problems yourself that you have expert agents for.`
           strict: true,
         })
         // Note that we're not adding the last response to the messages, so we're not repeating ourselves
-        .invoke(messages)
+        .invoke([systemPrompt, ...messages])
 
       this.log.info("\n" + result.response + "\n")
 
@@ -219,4 +237,48 @@ DO NOT attempt to solve problems yourself that you have expert agents for.`
       })
     }
   }
+}
+
+function abridgeMessage(m: BaseMessage) {
+  const message: Record<string, unknown> = {
+    type: m.getType(),
+    name: m.name,
+    ...omit(
+      m._printableFields,
+      "type",
+      "name",
+      "tool_call_chunks",
+      "additional_kwargs",
+      "response_metadata",
+      "usage_metadata"
+    ),
+  }
+
+  if (m.content && typeof m.content === "string") {
+    message.content = truncate(m.content, { length: 100 })
+  }
+
+  if (m.text && typeof m.text === "string") {
+    message.text = truncate(m.text, { length: 100 })
+  }
+
+  if (m.content && isArray(m.content)) {
+    message.content = m.content.map((c) => {
+      if (c instanceof BaseMessage) {
+        return abridgeMessage(c)
+      } else {
+        return c
+      }
+    })
+  }
+
+  // if (m instanceof AIMessageChunk && m.tool_calls && m.tool_calls.length > 0) {
+  //   message.tool_calls = m.tool_calls.map((t) => ({
+  //     id: t.id,
+  //     name: t.name,
+  //     args: t.args,
+  //   }))
+  // }
+
+  return message
 }

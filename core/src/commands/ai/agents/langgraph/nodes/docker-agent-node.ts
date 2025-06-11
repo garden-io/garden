@@ -21,7 +21,7 @@ export class DockerAgentNode extends ExpertAgentNode {
     return "Expert in Docker containerization, Dockerfile optimization, multi-stage builds, container security, Docker Compose, and image management. Consult for container-related tasks, Dockerfile creation, or Docker best practices."
   }
 
-  getInitPrompt(): string {
+  getSystemPrompt(): string {
     return `You are the DockerAgent, an expert in Docker, containerization, and container build optimization.
 
 Your expertise includes:
