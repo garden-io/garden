@@ -198,7 +198,12 @@ export async function readFiles({ context, filePaths }: ReadFilesParams): Promis
     log.info(`✅ Successfully read ${successCount} files:\n${results.map((r) => "- " + r.path).join("\n")}`)
   }
   if (errorCount > 0) {
-    log.error(`❌ Error reading ${errorCount} files:\n${results.map((r) => `- ${r.path}: ${r.error}`).join("\n")}`)
+    log.error(
+      `❌ Error reading ${errorCount} files:\n${results
+        .filter((r) => !!r.error)
+        .map((r) => `- ${r.path}: ${r.error}`)
+        .join("\n")}`
+    )
   }
 
   return JSON.stringify(results, null, 2)

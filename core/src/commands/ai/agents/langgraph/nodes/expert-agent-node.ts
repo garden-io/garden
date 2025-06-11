@@ -11,7 +11,7 @@ import { BaseAgentNode } from "./base-node.js"
 import { NODE_NAMES, type NodeName } from "../../../types.js"
 import type { AgentContext } from "../../../types.js"
 import type { ChatAnthropic } from "@langchain/anthropic"
-import { AIMessage } from "@langchain/core/messages"
+import { AIMessage, ToolMessage } from "@langchain/core/messages"
 import { ResponseCommand } from "../types.js"
 import type { StateAnnotation } from "../types.js"
 
@@ -108,9 +108,9 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
         const tool = this.tools.find((t) => t.name === call.name)
         if (!tool) {
           toolResults.push(
-            new AIMessage({
-              name: call.name,
+            new ToolMessage({
               content: `Tool ${call.name} not found`,
+              tool_call_id: call.id ?? "",
             })
           )
           continue
@@ -119,16 +119,16 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
         try {
           const output = await tool.invoke(call.args)
           toolResults.push(
-            new AIMessage({
-              name: call.name,
+            new ToolMessage({
               content: output,
+              tool_call_id: call.id ?? "",
             })
           )
         } catch (err) {
           toolResults.push(
-            new AIMessage({
-              name: call.name,
+            new ToolMessage({
               content: `Error executing ${call.name}: ${err}`,
+              tool_call_id: call.id ?? "",
             })
           )
         }

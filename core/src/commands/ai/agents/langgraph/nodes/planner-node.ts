@@ -14,6 +14,7 @@ import type { Task } from "../types.js"
 import { ResponseCommand } from "../types.js"
 import { AIMessage } from "@langchain/core/messages"
 import type { StateAnnotation } from "../types.js"
+import chalk from "chalk"
 
 /**
  * Planner node – responsible for breaking the user request into tasks and
@@ -25,7 +26,13 @@ export class PlannerNode extends BaseAgentNode {
     super(context, model)
     // Planner coordinates, it should not expose any file-system tools directly
     this.tools = []
+
+    // Track whether we've already invoked the ProjectExplorer
+    this.explorationDone = false
   }
+
+  // Flag to avoid repeatedly calling the explorer
+  private explorationDone: boolean
 
   getName(): NodeName {
     return NODE_NAMES.MAIN_AGENT
@@ -50,6 +57,28 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
    */
   override makeNode(_params: { endNodeName: string }) {
     return async (state: typeof StateAnnotation.State) => {
+      // -------------------------------------------------------------------
+      // 0.1 LLM-based project exploration (invoke ProjectExplorer once)
+      // -------------------------------------------------------------------
+      const hasUserMessage = state.messages.some((m) => m.getType() === "human")
+
+      if (!this.explorationDone && hasUserMessage) {
+        const hasExplorerMessage = state.messages.some(
+          (m) => m.getType() === "ai" && m.name === NODE_NAMES.PROJECT_EXPLORER
+        )
+
+        if (!hasExplorerMessage) {
+          this.log.info(`Let me start by exploring and gathering high-level information about the project.`)
+          return new ResponseCommand({
+            goto: NODE_NAMES.PROJECT_EXPLORER,
+            update: {},
+          })
+        }
+
+        // We have received the explorer summary message → mark exploration as done
+        this.explorationDone = true
+      }
+
       // --- 0. Post-execution phase: all tasks done → summarise & ask user ---
       if (state.tasks.length > 0 && state.tasks.every((t) => t.status === "done")) {
         const summaryLines = state.tasks.map((t) => `• ${t.description} – ${t.summary ?? "completed"}`)
@@ -59,6 +88,9 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
           ...summaryLines,
           "\nLet me know if you'd like any further changes or additional tasks.",
         ].join("\n")
+
+        // Surface to the user
+        this.log.info("\n" + finalSummary + "\n")
 
         return new ResponseCommand({
           goto: NODE_NAMES.HUMAN_LOOP,
@@ -72,6 +104,8 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
 
       // --- 1. Execution phase: tasks exist but not finished → send to router ---
       if (state.tasks.some((t) => t.status === "pending" || t.status === "in-progress")) {
+        // Handing off to task router – inform in logs
+        this.log.info(chalk.gray(`Handing off to ${NODE_NAMES.TASK_ROUTER} to execute planned tasks...`))
         return new ResponseCommand({
           goto: NODE_NAMES.TASK_ROUTER,
           update: {},
@@ -79,7 +113,12 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
       }
 
       // --- 2. Planning phase (initial) ---
-      const possibleDestinations = [NODE_NAMES.HUMAN_LOOP, NODE_NAMES.TASK_ROUTER, _params.endNodeName] as const
+      const possibleDestinations = [
+        NODE_NAMES.HUMAN_LOOP,
+        NODE_NAMES.TASK_ROUTER,
+        this.getName(),
+        _params.endNodeName,
+      ] as const
 
       const taskSchema = z.object({
         id: z.string(),
@@ -116,7 +155,18 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
       }
 
       if (result.tasks && result.tasks.length > 0) {
-        update.tasks = result.tasks as unknown as Task[]
+        // Enrich tasks with default status "pending" so the TaskRouter can act on them
+        update.tasks = (result.tasks as unknown as Omit<Task, "status">[]).map((t) => ({
+          ...t,
+          status: "pending",
+        }))
+      }
+
+      // Print the assistant response so the user sees the plan / follow-up question
+      this.log.info("\n" + result.response + "\n")
+
+      if (result.goto !== NODE_NAMES.HUMAN_LOOP) {
+        this.log.info(chalk.gray(`Handing off to ${result.goto} agent...`))
       }
 
       // If all tasks are done we hand off to end

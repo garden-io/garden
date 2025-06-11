@@ -24,7 +24,7 @@ import { taskRouterNode } from "./nodes/task-router-node.js"
 /**
  * Creates the LangGraph agent network
  */
-export function createAgentGraph(context: AgentContext) {
+export function createAgentGraph(context: AgentContext, globalStore: any, promptHistory: string[]) {
   const model = new ChatAnthropic({
     modelName: "claude-sonnet-4-20250514",
     anthropicApiKey: process.env.ANTHROPIC_API_KEY,
@@ -41,7 +41,7 @@ export function createAgentGraph(context: AgentContext) {
   const dockerAgentNode = new DockerAgentNode(context, model)
   const gardenAgentNode = new GardenAgentNode(context, model)
   const terraformAgentNode = new TerraformAgentNode(context, model)
-  const humanInTheLoopNode = new HumanInTheLoopNode(context, model)
+  const humanInTheLoopNode = new HumanInTheLoopNode(context, model, globalStore, promptHistory)
 
   const team = [
     plannerNode,

@@ -18,17 +18,36 @@ import { stdin as input, stdout as output } from "node:process"
 import type { AnyZodObject } from "zod"
 import type { StateAnnotation } from "../types.js"
 import type { ChatAnthropic } from "@langchain/anthropic"
+import type { GlobalConfigStore } from "../../../../../config-store/global.js"
+
+const historySize = 30
 
 /**
  * Human-in-the-loop node for user interaction
  */
 export class HumanInTheLoopNode extends BaseAgentNode {
   private rl: readline.Interface
+  private store: GlobalConfigStore
 
-  constructor(context: AgentContext, model: ChatAnthropic) {
+  constructor(context: AgentContext, model: ChatAnthropic, store: GlobalConfigStore, history: string[]) {
     super(context, model)
-    this.rl = readline.createInterface({ input, output })
-    this.initPromptSent = true // Don't add init prompt to human-in-the-loop node messages
+    this.store = store
+    this.rl = readline.createInterface({ input, output, history, removeHistoryDuplicates: true, historySize })
+
+    // Save history as we go
+    this.rl.on("history", (h) => {
+      this.store
+        .set("aiPromptHistory", h)
+        .then(() => this.log.debug("Saved AI prompt history"))
+        .catch((e) => {
+          this.log.warn("Failed to save AI prompt history: " + String(e))
+        })
+    })
+
+    // This node does not require an initial system prompt; mark as sent to
+    // prevent the BaseAgentNode from injecting an empty init prompt that
+    // clutters the conversation log.
+    this.initPromptSent = true
   }
 
   getName() {
