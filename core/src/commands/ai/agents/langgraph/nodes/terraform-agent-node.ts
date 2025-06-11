@@ -21,7 +21,7 @@ export class TerraformAgentNode extends ExpertAgentNode {
     return "Expert in Terraform infrastructure as code, resource management, state management, modules, and multi-cloud deployments. Consult for infrastructure provisioning, Terraform configurations, or cloud resource management."
   }
 
-  getInitPrompt(): string {
+  getSystemPrompt(): string {
     return `You are the TerraformAgent, an expert in Terraform infrastructure as code.
 
 Your expertise includes:
