@@ -371,7 +371,7 @@ export class GrpcEventConverter {
   /**
    * Maps a legacy {@code UUID} value to a valid ULID.
    *
-   * The mapping persists in the {@link #sessionIdToUlidMap}.
+   * The mapping persists in the {@link #uuidToUlidMap}.
    */
   private mapToUlid(uuid: UUID, fromDescription: string, toDescription: string): ULID {
     const existingSessionUlid = this.uuidToUlidMap.get(uuid)
