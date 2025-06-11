@@ -141,7 +141,7 @@ export function createAgentGraph(
       terraformAgentNode.makeNode({ endNodeName: NODE_NAMES.MAIN_AGENT }),
       terraformAgentNode.getNodeOptions()
     )
-    .addNode(NODE_NAMES.TASK_ROUTER, taskRouterNode(), { ends: Object.values(NODE_NAMES) })
+    .addNode(NODE_NAMES.TASK_ROUTER, taskRouterNode(context), { ends: Object.values(NODE_NAMES) })
     // Start with main agent
     .addEdge(START, NODE_NAMES.MAIN_AGENT)
 

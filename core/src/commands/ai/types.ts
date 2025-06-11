@@ -9,6 +9,7 @@
 import type { Anthropic } from "@anthropic-ai/sdk"
 import type { Log } from "../../logger/log-entry.js"
 import type { Garden } from "../../garden.js"
+import type { Interface as ReadLineInterface } from "node:readline/promises"
 
 export type MessageParam = Anthropic.Messages.MessageParam
 
@@ -75,12 +76,19 @@ export interface AgentContext {
   log: Log
   garden: Garden
   yolo: boolean
+  rl?: ReadLineInterface
+  /**
+   * Tracks files newly created by the AI assistant in the current run. Used to
+   * allow subsequent overwrites without prompting the user again (idempotent
+   * writes).
+   */
+  newFiles?: Set<string>
 }
 
 // Define node names as const to get literal types
 export const NODE_NAMES = {
-  HUMAN_LOOP: "user_input",
-  MAIN_AGENT: "main_agent",
+  HUMAN_LOOP: "user",
+  MAIN_AGENT: "planner",
   PROJECT_EXPLORER: "project_explorer",
   KUBERNETES_AGENT: "kubernetes",
   DOCKER_AGENT: "docker",

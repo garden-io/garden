@@ -7,6 +7,7 @@
  */
 
 import { ResponseCommand } from "../types.js"
+import type { AgentContext } from "../../../types.js"
 import { NODE_NAMES, type NodeName } from "../../../types.js"
 import { type Task } from "../types.js"
 import type { StateAnnotation } from "../types.js"
@@ -16,7 +17,7 @@ import type { StateAnnotation } from "../types.js"
  * task, marks it in-progress, sets state.currentTask and routes execution to
  * the corresponding expert.
  */
-export function taskRouterNode() {
+export function taskRouterNode(context: AgentContext) {
   return async (state: typeof StateAnnotation.State) => {
     const nextTask = state.tasks.find((t) => t.status === "pending")
 
@@ -30,6 +31,8 @@ export function taskRouterNode() {
 
     // Mark task in-progress
     const updatedTasks: Task[] = state.tasks.map((t) => (t.id === nextTask.id ? { ...t, status: "in-progress" } : t))
+
+    context.log.debug(`Tasks planned:\n${JSON.stringify(updatedTasks, null, 2)}`)
 
     return new ResponseCommand({
       goto: [nextTask.expert as NodeName] as unknown as NodeName,

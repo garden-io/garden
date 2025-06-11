@@ -30,7 +30,7 @@ export class MainAgentNode extends BaseAgentNode {
     return `Main coordinator agent. Once you are done with your task, you MUST hand off to ${NODE_NAMES.MAIN_AGENT} which will then orchestrate from there.`
   }
 
-  getInitPrompt(): string {
+  getSystemPrompt(): string {
     return `You are a DevOps AI assistant helping users with their infrastructure and development needs.
 
 Your responsibilities:
