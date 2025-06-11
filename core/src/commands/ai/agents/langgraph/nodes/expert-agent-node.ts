@@ -35,6 +35,9 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
         return new ResponseCommand({ goto: NODE_NAMES.MAIN_AGENT, update: {} })
       }
 
+      // Log progress: starting work on the task
+      this.log.info(`🔧 ${this.getName()} agent started task: "${task.description}"`)
+
       const possibleDestinations = [NODE_NAMES.HUMAN_LOOP, this.getName(), NODE_NAMES.MAIN_AGENT] as const
 
       const responseSchema = z.object({
@@ -74,6 +77,11 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
         updatedTasks = state.tasks.map((t) =>
           t.id === task.id ? { ...t, status: "done", summary: result.summary } : t
         )
+      }
+
+      // Log progress: task completed (if done)
+      if (result.done) {
+        this.log.info(`✅ ${this.getName()} agent completed task: "${task.description}"`)
       }
 
       const update: Partial<typeof StateAnnotation.State> = {

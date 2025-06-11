@@ -8,6 +8,7 @@
 
 import { StateGraph, START } from "@langchain/langgraph"
 import { NODE_NAMES, type AgentContext } from "../../types.js"
+import type { GlobalConfigStore } from "../../../../config-store/global.js"
 import { PlannerNode } from "./nodes/planner-node.js"
 import { ProjectExplorerNode } from "./nodes/project-explorer-node.js"
 import { KubernetesAgentNode } from "./nodes/kubernetes-agent-node.js"
@@ -24,15 +25,34 @@ import { taskRouterNode } from "./nodes/task-router-node.js"
 /**
  * Creates the LangGraph agent network
  */
-export function createAgentGraph(context: AgentContext, globalStore: any, promptHistory: string[]) {
-  const model = new ChatAnthropic({
-    modelName: "claude-sonnet-4-20250514",
-    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-    temperature: 0.7,
-    maxTokens: 64000,
-    streaming: true,
-    // verbose: true,
-  })
+export function createAgentGraph(
+  context: AgentContext,
+  globalStore: GlobalConfigStore,
+  promptHistory: string[],
+  options: {
+    /**
+     * Optional custom chat model implementation. Primarily intended for tests so we can
+     * inject a deterministic stub that doesn't call external services.
+     */
+    model?: ChatAnthropic
+    /**
+     * Optional function that provides user input when the Human-In-The-Loop node
+     * requests it. If omitted we fall back to stdin via readline. This makes the
+     * graph fully non-interactive in automated tests.
+     */
+    getUserInput?: () => Promise<string>
+  } = {}
+) {
+  const model =
+    options.model ||
+    new ChatAnthropic({
+      modelName: "claude-sonnet-4-20250514",
+      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+      temperature: 0.7,
+      maxTokens: 64000,
+      streaming: true,
+      // verbose: true,
+    })
 
   // Initialize all nodes
   const plannerNode = new PlannerNode(context, model)
@@ -41,7 +61,7 @@ export function createAgentGraph(context: AgentContext, globalStore: any, prompt
   const dockerAgentNode = new DockerAgentNode(context, model)
   const gardenAgentNode = new GardenAgentNode(context, model)
   const terraformAgentNode = new TerraformAgentNode(context, model)
-  const humanInTheLoopNode = new HumanInTheLoopNode(context, model, globalStore, promptHistory)
+  const humanInTheLoopNode = new HumanInTheLoopNode(context, model, globalStore, promptHistory, options.getUserInput)
 
   const team = [
     plannerNode,

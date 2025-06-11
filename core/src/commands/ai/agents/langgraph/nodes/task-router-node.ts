@@ -23,7 +23,7 @@ export function taskRouterNode() {
     if (!nextTask) {
       // No tasks left – back to planner for wrap-up
       return new ResponseCommand({
-        goto: NODE_NAMES.MAIN_AGENT,
+        goto: [NODE_NAMES.MAIN_AGENT] as unknown as NodeName,
         update: {},
       })
     }
@@ -32,7 +32,7 @@ export function taskRouterNode() {
     const updatedTasks: Task[] = state.tasks.map((t) => (t.id === nextTask.id ? { ...t, status: "in-progress" } : t))
 
     return new ResponseCommand({
-      goto: nextTask.expert as NodeName,
+      goto: [nextTask.expert as NodeName] as unknown as NodeName,
       update: {
         tasks: updatedTasks,
         currentTask: nextTask,

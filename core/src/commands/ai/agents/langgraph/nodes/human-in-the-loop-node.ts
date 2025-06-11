@@ -26,23 +26,40 @@ const historySize = 30
  * Human-in-the-loop node for user interaction
  */
 export class HumanInTheLoopNode extends BaseAgentNode {
-  private rl: readline.Interface
+  private rl?: readline.Interface
   private store: GlobalConfigStore
+  private getUserInput?: () => Promise<string>
 
-  constructor(context: AgentContext, model: ChatAnthropic, store: GlobalConfigStore, history: string[]) {
+  constructor(
+    context: AgentContext,
+    model: ChatAnthropic,
+    store: GlobalConfigStore,
+    history: string[],
+    getUserInput?: () => Promise<string>
+  ) {
     super(context, model)
     this.store = store
-    this.rl = readline.createInterface({ input, output, history, removeHistoryDuplicates: true, historySize })
+    this.getUserInput = getUserInput
 
-    // Save history as we go
-    this.rl.on("history", (h) => {
-      this.store
-        .set("aiPromptHistory", h)
-        .then(() => this.log.debug("Saved AI prompt history"))
-        .catch((e) => {
-          this.log.warn("Failed to save AI prompt history: " + String(e))
-        })
-    })
+    if (!this.getUserInput) {
+      this.rl = readline.createInterface({
+        input,
+        output,
+        history,
+        removeHistoryDuplicates: true,
+        historySize,
+      })
+
+      // Save history as we go
+      this.rl.on("history", (h) => {
+        this.store
+          .set("aiPromptHistory", h)
+          .then(() => this.log.debug("Saved AI prompt history"))
+          .catch((e) => {
+            this.log.warn("Failed to save AI prompt history: " + String(e))
+          })
+      })
+    }
 
     // This node does not require an initial system prompt; mark as sent to
     // prevent the BaseAgentNode from injecting an empty init prompt that
@@ -72,12 +89,19 @@ export class HumanInTheLoopNode extends BaseAgentNode {
     // Get user feedback
     let userFeedback = ""
 
-    while (userFeedback.trim().length === 0) {
-      userFeedback = await this.rl.question(chalk.cyan("\nYou: "))
+    const readInput = async (): Promise<string> => {
+      if (this.getUserInput) {
+        return (await this.getUserInput()) || ""
+      }
 
-      if (userFeedback.toLowerCase() === "exit" || userFeedback.toLowerCase() === "quit") {
-        // TODO: throw back to main agent and have it summarize the conversation and provide a final response
-        this.rl.close()
+      return await this.rl!.question(chalk.cyan("\nYou: "))
+    }
+
+    while (userFeedback.trim().length === 0) {
+      userFeedback = await readInput()
+
+      if (["exit", "quit"].includes(userFeedback.trim().toLowerCase())) {
+        if (this.rl) this.rl.close()
         this.context.log.info(chalk.green("\nThank you for using the DevOps AI Assistant. Goodbye!"))
         return new ResponseCommand({
           update: {
