@@ -4,9 +4,7 @@ order: 99
 ---
 
 {% hint style="info" %}
-
 If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](https://go.garden.io/discord).
-
 {% endhint %}
 
 ## Contributing guidelines

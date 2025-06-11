@@ -24,7 +24,7 @@ You can also use a combination of the two if you'd like. Below we'll walk throug
 Garden will not automatically apply the Terraform stack, unless you explicitly set the `autoApply` flag on the config for the stack. Instead, Garden will warn you if the stack is out of date.
 
 {% hint style="warning" %}
-We only recommend using `autoApply` for private development environments, since otherwise you may accidentally apply hazardous changes, or conflict with other users of an environment.
+We only recommend using `autoApply` for private development environments, since otherwise you may accidentally apply hazardous changes, or conflict with other users of an environment.
 {% endhint %}
 
 To manually plan and apply stacks, we provide the following commands:
