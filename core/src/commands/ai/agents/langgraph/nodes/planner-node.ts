@@ -24,6 +24,10 @@ import chalk from "chalk"
 export class PlannerNode extends BaseAgentNode {
   constructor(context: AgentContext, model: ChatAnthropic) {
     super(context, model)
+
+    // Skip the main_agent log prefix
+    this.log = context.log.root.createLog()
+
     // Planner coordinates, it should not expose any file-system tools directly
     this.tools = []
 
@@ -43,11 +47,18 @@ export class PlannerNode extends BaseAgentNode {
   }
 
   getInitPrompt(): string {
-    return `You are the Planner agent. Your responsibilities:
+    return `You are a DevOps assistant. Your responsibilities are as follows:
+
 1. Read the user's request and decompose it into a list of discrete DevOps tasks.
 2. For each task choose exactly one expert that should handle it. Valid experts are: kubernetes, docker, garden, terraform.
 3. Produce a human-readable plan summarising the tasks and ask for confirmation (goto user_input).
 4. Once confirmed, instruct the TaskRouter (goto task_router) to start executing the tasks one-by-one.
+
+If the user's request is not clear, ask for clarification (goto user_input).
+
+When formulating tasks, DO NOT add any additional instructions on top of the user's request in each task. Each expert is an expert in their own right and will be better at inferring the user's intent.
+
+If there are multiple consecutive tasks for one agent, combine them into a single task.
 
 When you output a plan you MUST include the full list of tasks in the \`tasks\` field of your JSON response so that they can be stored in graph state.`
   }
@@ -156,10 +167,26 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
 
       if (result.tasks && result.tasks.length > 0) {
         // Enrich tasks with default status "pending" so the TaskRouter can act on them
-        update.tasks = (result.tasks as unknown as Omit<Task, "status">[]).map((t) => ({
+        const pendingTasks = (result.tasks as unknown as Omit<Task, "status">[]).map((t) => ({
           ...t,
-          status: "pending",
+          status: "pending" as const,
         }))
+
+        // Merge consecutive tasks assigned to the same expert into a single task
+        const mergedTasks: Task[] = []
+        for (const task of pendingTasks) {
+          const last = mergedTasks[mergedTasks.length - 1]
+          if (last && last.expert === task.expert) {
+            // concatenate descriptions
+            last.description = `${last.description}; ${task.description}`
+            // Keep id list for traceability
+            last.id = `${last.id},${task.id}`
+          } else {
+            mergedTasks.push({ ...task })
+          }
+        }
+
+        update.tasks = mergedTasks
       }
 
       // Print the assistant response so the user sees the plan / follow-up question

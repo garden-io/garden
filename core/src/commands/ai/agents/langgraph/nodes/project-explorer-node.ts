@@ -51,7 +51,7 @@ Focus on finding:
 
 You MUST ONLY list and read files from within the project root directory.
 
-No need to introduce yourself, just describe what you're doing and what you've found.
+No need to introduce yourself, just describe what you're doing and what you've found. Do not suggest any further actions.
 
 Once you have completed your exploration, return a concise summary of your findings in the \`response\` field **and** set \`goto\` to \`main_agent\` so that planning can continue.
 

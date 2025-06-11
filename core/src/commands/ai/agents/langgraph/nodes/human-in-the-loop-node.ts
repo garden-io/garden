@@ -42,22 +42,25 @@ export class HumanInTheLoopNode extends BaseAgentNode {
     this.getUserInput = getUserInput
 
     if (!this.getUserInput) {
-      this.rl = readline.createInterface({
-        input,
-        output,
-        history,
-        removeHistoryDuplicates: true,
-        historySize,
-      })
+      if (context.rl) {
+        this.rl = context.rl
+      } else {
+        this.rl = readline.createInterface({
+          input,
+          output,
+          history,
+          removeHistoryDuplicates: true,
+          historySize,
+        })
+        // store in context for reuse
+        context.rl = this.rl
+      }
 
       // Save history as we go
       this.rl.on("history", (h) => {
-        this.store
-          .set("aiPromptHistory", h)
-          .then(() => this.log.debug("Saved AI prompt history"))
-          .catch((e) => {
-            this.log.warn("Failed to save AI prompt history: " + String(e))
-          })
+        this.store.set("aiPromptHistory", h).catch((e) => {
+          this.log.warn("Failed to save AI prompt history: " + String(e))
+        })
       })
     }
 
@@ -101,7 +104,9 @@ export class HumanInTheLoopNode extends BaseAgentNode {
       userFeedback = await readInput()
 
       if (["exit", "quit"].includes(userFeedback.trim().toLowerCase())) {
-        if (this.rl) this.rl.close()
+        if (this.rl && this.rl !== this.context.rl) {
+          this.rl.close()
+        }
         this.context.log.info(chalk.green("\nThank you for using the DevOps AI Assistant. Goodbye!"))
         return new ResponseCommand({
           update: {
@@ -114,7 +119,7 @@ export class HumanInTheLoopNode extends BaseAgentNode {
       }
     }
 
-    this.log.info(chalk.gray(`\nThinking...`))
+    this.log.info(chalk.gray(`\nThinking...\n`))
 
     // Find the last message that had `goto: NODE_NAMES.HUMAN_LOOP`
     let sender: NodeName = NODE_NAMES.MAIN_AGENT
@@ -149,7 +154,7 @@ export class HumanInTheLoopNode extends BaseAgentNode {
    * Clean up resources
    */
   cleanup(): void {
-    if (this.rl) {
+    if (this.rl && this.rl !== this.context.rl) {
       this.rl.close()
     }
   }
