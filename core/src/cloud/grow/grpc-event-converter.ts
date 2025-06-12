@@ -52,7 +52,12 @@ export class GrpcEventConverter {
   private readonly garden: GardenWithNewBackend
   private readonly log: Log
 
-  private readonly uuidToUlidMap = new Map<UUID, ULID>()
+  /**
+   * It is important to keep it static,
+   * because each command execution in the dev console causes a new instance creation.
+   * We need to be sure that uuid to ulid mapping is stable is the case if we have a cache miss here.
+   */
+  private static readonly uuidToUlidMap = new Map<UUID, ULID>()
 
   constructor(garden: GardenWithNewBackend, log: Log) {
     this.garden = garden
@@ -363,13 +368,13 @@ export class GrpcEventConverter {
    * The mapping persists in the {@link #uuidToUlidMap}.
    */
   private mapToUlid(uuid: UUID, fromDescription: string, toDescription: string): ULID {
-    const existingSessionUlid = this.uuidToUlidMap.get(uuid)
+    const existingSessionUlid = GrpcEventConverter.uuidToUlidMap.get(uuid)
     if (!!existingSessionUlid) {
       return existingSessionUlid
     }
 
     const generatedUlid = ulid()
-    this.uuidToUlidMap.set(uuid, generatedUlid)
+    GrpcEventConverter.uuidToUlidMap.set(uuid, generatedUlid)
     this.log.silly(() => `GrpcEventConverter: Mapped ${fromDescription}=${uuid} to ${toDescription}=${generatedUlid}`)
     return generatedUlid
   }
