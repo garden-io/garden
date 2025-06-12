@@ -32,7 +32,7 @@ export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig
   ConfigureActionConfigResult<T>
 > {
   description = dedent`
-    Apply transformation to the given action configuration, at resolution time. Should also indicate whether the resulting action supports sync or local modes.
+    Apply transformation to the given action configuration, at resolution time. Should also indicate whether the resulting action supports sync mode.
 
     Be aware that the \`spec\` and \`variables\` fields on the action config will *not* be fully resolved when passed to this handler, so referencing those fields in the handler must be done with care.
 
