@@ -92,7 +92,7 @@ describe("GrpcEventStream", () => {
     const event = receivedEvents[0]
     expect(event.eventUlid).to.be.a("string")
     expect(event.eventData).to.be.an("object")
-    expect(event.eventData).to.have.property("case", "garden")
+    expect(event.eventData).to.have.property("case", "gardenCli")
     expect(event.eventData.value).to.be.an("object")
   })
 
@@ -121,7 +121,7 @@ describe("GrpcEventStream", () => {
     const event = receivedEvents[0]
     expect(event.eventUlid).to.be.a("string")
     expect(event.eventData).to.be.an("object")
-    expect(event.eventData).to.have.property("case", "garden")
+    expect(event.eventData).to.have.property("case", "gardenCli")
     expect(event.eventData.value).to.be.an("object")
   })
 
@@ -152,7 +152,7 @@ describe("GrpcEventStream", () => {
     const event = receivedEvents[0]
     expect(event.eventUlid).to.be.a("string")
     expect(event.eventData).to.be.an("object")
-    expect(event.eventData).to.have.property("case", "garden")
+    expect(event.eventData).to.have.property("case", "gardenCli")
     expect(event.eventData.value).to.be.an("object")
   })
 })
