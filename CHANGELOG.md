@@ -1,4 +1,17 @@
 
+<a name="0.14.4"></a>
+## [0.14.4](https://github.com/garden-io/garden/compare/0.14.3...0.14.4) (2025-06-11)
+
+### Bug Fixes
+
+* log full error in debug loglevel when mutagen sync flush fails ([#7240](https://github.com/garden-io/garden/issues/7240)) ([a65255fed](https://github.com/garden-io/garden/commit/a65255fed))
+* improve reliability by removing config store file lock ([#7237](https://github.com/garden-io/garden/issues/7237)) ([c78183e9c](https://github.com/garden-io/garden/commit/c78183e9c))
+* **cloud:** handle tRPC errors in authentication functions ([#7239](https://github.com/garden-io/garden/issues/7239)) ([b90548fab](https://github.com/garden-io/garden/commit/b90548fab))
+* **docker:** improve error handling in Docker builds ([#7123](https://github.com/garden-io/garden/issues/7123)) ([28e1c8784](https://github.com/garden-io/garden/commit/28e1c8784))
+* **docs:** correct config formating in terraform examples ([#7219](https://github.com/garden-io/garden/issues/7219)) ([7ddfca96c](https://github.com/garden-io/garden/commit/7ddfca96c))
+* **login:** fix JWT token validity period retrieval and improve validation ([#7217](https://github.com/garden-io/garden/issues/7217)) ([9b22101d7](https://github.com/garden-io/garden/commit/9b22101d7))
+* **terraform:** use backendConfig with plugin commands ([#7249](https://github.com/garden-io/garden/issues/7249)) ([f256e1776](https://github.com/garden-io/garden/commit/f256e1776))
+
 <a name="0.14.3"></a>
 ## [0.14.3](https://github.com/garden-io/garden/compare/0.14.2...0.14.3) (2025-04-24)
 
