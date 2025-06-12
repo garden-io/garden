@@ -5,10 +5,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
 import type { Event_GardenCliEvent } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
-import { Event_GardenCliEvent_EventDataType } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
 import {
   Event_GardenCliEventSchema,
+  Event_GardenCliEvent_EventDataType,
   EventSchema,
   type Event as GrpcEventEnvelope,
 } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
@@ -123,7 +124,6 @@ export class GrpcEventConverter {
           createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_status_started_event, {
             case: "actionStatusStarted",
             value: create(GardenActionGetStatusStartedSchema, {
-              commandUlid: context.commandUlid,
               actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
               startedAt: timestampFromDate(new Date()),
             }),
@@ -134,7 +134,6 @@ export class GrpcEventConverter {
           createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_run_started_event, {
             case: "actionRunStarted",
             value: create(GardenActionRunStartedSchema, {
-              commandUlid: context.commandUlid,
               actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
               startedAt: timestampFromDate(new Date()),
             }),
@@ -150,7 +149,6 @@ export class GrpcEventConverter {
             createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_status_completed_event, {
               case: "actionStatusCompleted",
               value: create(GardenActionGetStatusCompletedSchema, {
-                commandUlid: context.commandUlid,
                 actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
                 completedAt: timestampFromDate(new Date()),
                 success: payload.state !== "failed",
@@ -163,7 +161,6 @@ export class GrpcEventConverter {
             createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_run_completed_event, {
               case: "actionRunCompleted",
               value: create(GardenActionRunCompletedSchema, {
-                commandUlid: context.commandUlid,
                 actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
                 completedAt: timestampFromDate(new Date()),
                 success: !["not-ready", "failed", "unknown"].includes(payload.state),
@@ -207,7 +204,6 @@ export class GrpcEventConverter {
         createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_scanned_event, {
           case: "actionScanned",
           value: create(GardenActionScannedSchema, {
-            commandUlid: context.commandUlid,
             actionUlid: a.actionUlid,
             scannedAt: timestampFromDate(new Date()),
             name: a.name,
@@ -221,7 +217,6 @@ export class GrpcEventConverter {
         createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_resolved_graph_event, {
           case: "actionResolvedGraph",
           value: create(GardenActionResolvedGraphSchema, {
-            commandUlid: context.commandUlid,
             actionUlid: a.actionUlid,
             graphResolvedAt: timestampFromDate(new Date()),
             dependencies: a.dependencies.map((dep) =>
@@ -255,8 +250,6 @@ export class GrpcEventConverter {
     const event = createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.command_execution_completed_event, {
       case: "commandExecutionCompleted",
       value: create(GardenCommandExecutionCompletedSchema, {
-        commandUlid: context.commandUlid,
-
         // completed now
         completedAt: timestampFromDate(new Date()),
         success: true,
@@ -274,8 +267,6 @@ export class GrpcEventConverter {
     const event = createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.command_execution_completed_event, {
       case: "commandExecutionCompleted",
       value: create(GardenCommandExecutionCompletedSchema, {
-        commandUlid: context.commandUlid,
-
         // completed now
         completedAt: timestampFromDate(new Date()),
         success: false,
@@ -294,8 +285,6 @@ export class GrpcEventConverter {
     const event = createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.command_execution_started_event, {
       case: "commandExecutionStarted",
       value: create(GardenCommandExecutionStartedSchema, {
-        commandUlid: context.commandUlid,
-
         // started now
         startedAt: timestampFromDate(new Date()),
 
@@ -392,6 +381,7 @@ export function createGardenCliEvent(
   eventData: Event_GardenCliEvent["eventData"]
 ): GrpcEventEnvelope {
   const event = create(Event_GardenCliEventSchema, {
+    commandUlid: context.commandUlid,
     organizationId: context.organizationId,
     sessionUlid: context.sessionUlid,
     clientVersion: context.clientVersion,
