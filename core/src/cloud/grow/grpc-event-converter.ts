@@ -5,9 +5,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-import type { Event_GardenEvent } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
+import type { Event_GardenCliEvent } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
 import {
-  Event_GardenEventSchema,
+  Event_GardenCliEventSchema,
   EventSchema,
   type Event as GrpcEventEnvelope,
 } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
@@ -331,7 +331,6 @@ export class GrpcEventConverter {
           projectApiVersion: payload._projectApiVersion,
           projectRootDir: payload._projectRootDirAbs,
 
-          // @ts-expect-error FIXME: add namespaceName to grpc schema
           namespaceName: payload.namespaceName,
           environmentName: payload.environmentName,
 
@@ -388,9 +387,9 @@ export class GrpcEventConverter {
 
 export function createGardenEvent(
   context: GardenEventContext,
-  eventData: Event_GardenEvent["eventData"]
+  eventData: Event_GardenCliEvent["eventData"]
 ): GrpcEventEnvelope {
-  const event = create(Event_GardenEventSchema, {
+  const event = create(Event_GardenCliEventSchema, {
     organizationId: context.organizationId,
     sessionUlid: context.sessionUlid,
     clientVersion: context.clientVersion,
@@ -401,7 +400,7 @@ export function createGardenEvent(
   const envelope: GrpcEventEnvelope = create(EventSchema, {
     eventUlid: nextEventUlid(),
     eventData: {
-      case: "garden",
+      case: "gardenCli",
       value: event,
     },
   })
