@@ -2,7 +2,7 @@
 FROM google/cloud-sdk:495.0.0@sha256:19e21718258a1073f19bba970f6b22bcdc4b869d7b679bdddeb50985e69e75eb as gcloud
 
 #### ghr utility ####
-FROM cibuilds/github:0.13.0@sha256:a247975213771f2f4c61b806771ef6c22b225fdc46558738b7c935517c0dcdd4 AS ghr
+FROM cibuilds/github:0.13.0@sha256:2cee61741812b8ecaa53a92b0cdb3d8fea24bc7c50c9d394c055df97497857be AS ghr
 
 #### ldid utility ####
 FROM cimg/node:22.16.0@sha256:4b35806379d431601e325a2d33c090df5609a98e54309c167a3438a85063ac96 as ldid
