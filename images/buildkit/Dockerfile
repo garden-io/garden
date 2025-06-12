@@ -30,7 +30,7 @@ RUN cd /usr/local/bin && \
   rm ${GCR_HELPER_DISTR_NAME} && \
   chmod +x docker-credential-gcr
 
-FROM moby/buildkit:v0.13.2-rootless@sha256:1fa728c7d7e97630ee551a69c7f8672ebdfc859922822ee249cf80ab3ee2ee4c as buildkit-rootless
+FROM moby/buildkit:v0.13.2-rootless@sha256:cf1c082979eec06a0eff50cd9b20172a0bf8bfe9af3bb9f8261d439f5af07ce1 as buildkit-rootless
 
 COPY --from=buildkit /usr/local/bin/${ECR_HELPER_DISTR_NAME} /usr/local/bin/${ECR_HELPER_DISTR_NAME}
 COPY --from=buildkit /usr/local/bin/docker-credential-gcr /usr/local/bin/docker-credential-gcr
