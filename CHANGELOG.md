@@ -1,4 +1,12 @@
 
+<a name="0.13.60"></a>
+## [0.13.60](https://github.com/garden-io/garden/compare/0.13.59...0.13.60) (2025-06-10)
+
+### Bug Fixes
+
+* **docs:** correct config formatting in terraform examples ([#7232](https://github.com/garden-io/garden/issues/7232)) ([37b464611](https://github.com/garden-io/garden/commit/37b464611))
+* **terraform:** use backendConfig with plugin commands ([#7249](https://github.com/garden-io/garden/issues/7249)) ([#7252](https://github.com/garden-io/garden/issues/7252)) ([c7504014a](https://github.com/garden-io/garden/commit/c7504014a))
+
 <a name="0.13.59"></a>
 ## [0.13.59](https://github.com/garden-io/garden/compare/0.13.58...0.13.59) (2025-04-25)
 
