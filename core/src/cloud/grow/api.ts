@@ -30,6 +30,9 @@ import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
 import { TRPCClientError } from "@trpc/client"
 import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
+import { createGrpcTransport } from "@connectrpc/connect-node"
+import { createClient } from "@connectrpc/connect"
+import { GardenEventIngestionService } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -37,6 +40,9 @@ export type GrowCloudApiFactory = (params: CloudApiFactoryParams) => Promise<Gro
 
 export class GrowCloudError extends GardenError {
   readonly type = "garden-cloud-v2-error"
+}
+
+export class GrowCloudTRPCError extends GrowCloudError {
   override readonly cause: TRPCClientError<InferrableClientTypes> | undefined
 
   constructor({ message, cause }: GardenErrorParams & { cause: TRPCClientError<InferrableClientTypes> }) {
@@ -46,7 +52,7 @@ export class GrowCloudError extends GardenError {
 
   public static wrapTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
     const errorDesc = describeTRPCClientError(err)
-    return new GrowCloudError({
+    return new GrowCloudTRPCError({
       message: `An error occurred while calling Garden Backend: ${errorDesc.short}`,
       cause: err,
     })
@@ -284,7 +290,7 @@ export class GrowCloudApi {
         throw err
       }
 
-      throw GrowCloudError.wrapTRPCClientError(err)
+      throw GrowCloudTRPCError.wrapTRPCClientError(err)
     }
   }
 
@@ -313,7 +319,33 @@ export class GrowCloudApi {
         throw err
       }
 
-      throw GrowCloudError.wrapTRPCClientError(err)
+      throw GrowCloudTRPCError.wrapTRPCClientError(err)
     }
+  }
+
+  // GRPC clients
+
+  private get grpcTransport() {
+    this.log.debug({ msg: `Using gRPC transport with URL: ${this.domain}` })
+    return createGrpcTransport({
+      baseUrl: this.domain,
+
+      // Interceptors apply to all calls running through this transport.
+      interceptors: [
+        (next) => {
+          return async (req) => {
+            // Set the auth token in the request headers
+            req.header.set("authorization", `token ${this.authToken}`)
+
+            // Call the next interceptor or the actual gRPC call
+            return await next(req)
+          }
+        },
+      ],
+    })
+  }
+
+  public get eventIngestionService() {
+    return createClient(GardenEventIngestionService, this.grpcTransport)
   }
 }
