@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Event_GardenCliEvent } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
+import type { GardenCliEvent } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import {
-  Event_GardenCliEventSchema,
-  Event_GardenCliEvent_EventDataType,
+  GardenCliEventSchema,
   EventSchema,
   type Event as GrpcEventEnvelope,
-} from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
+  EventType,
+  GardenCliEventType,
+} from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import type { EventName as CoreEventName, EventPayload as CoreEventPayload } from "../../events/events.js"
 import type { GardenWithNewBackend } from "../../garden.js"
 import type { Log } from "../../logger/log-entry.js"
@@ -26,7 +27,7 @@ import {
   GardenCommandExecutionStarted_InvocationSchema,
   GardenCommandExecutionStarted_ProjectMetadataSchema,
   GardenCommandExecutionStartedSchema,
-} from "@buf/garden_grow-platform.bufbuild_es/public/events/garden-command/garden-command_pb.js"
+} from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_command_pb.js"
 import { timestampFromDate } from "@bufbuild/protobuf/wkt"
 import {
   GardenActionGetStatusCompletedSchema,
@@ -37,7 +38,7 @@ import {
   GardenActionRunCompletedSchema,
   GardenActionRunStartedSchema,
   GardenActionScannedSchema,
-} from "@buf/garden_grow-platform.bufbuild_es/public/events/garden-action/garden-action_pb.js"
+} from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_action_pb.js"
 
 const nextEventUlid = monotonicFactory()
 
@@ -126,7 +127,7 @@ export class GrpcEventConverter {
     switch (payload.state) {
       case "getting-status":
         return [
-          createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_status_started_event, {
+          createGardenCliEvent(context, GardenCliEventType.ACTION_STATUS_STARTED, {
             case: "actionStatusStarted",
             value: create(GardenActionGetStatusStartedSchema, {
               actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
@@ -136,7 +137,7 @@ export class GrpcEventConverter {
         ]
       case "processing":
         return [
-          createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_run_started_event, {
+          createGardenCliEvent(context, GardenCliEventType.ACTION_RUN_STARTED, {
             case: "actionRunStarted",
             value: create(GardenActionRunStartedSchema, {
               actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
@@ -151,7 +152,7 @@ export class GrpcEventConverter {
       case "failed":
         if (payload.operation === "getStatus") {
           return [
-            createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_status_completed_event, {
+            createGardenCliEvent(context, GardenCliEventType.ACTION_STATUS_COMPLETED, {
               case: "actionStatusCompleted",
               value: create(GardenActionGetStatusCompletedSchema, {
                 actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
@@ -163,7 +164,7 @@ export class GrpcEventConverter {
           ]
         } else if (payload.operation === "process") {
           return [
-            createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_run_completed_event, {
+            createGardenCliEvent(context, GardenCliEventType.ACTION_RUN_COMPLETED, {
               case: "actionRunCompleted",
               value: create(GardenActionRunCompletedSchema, {
                 actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
@@ -206,7 +207,7 @@ export class GrpcEventConverter {
 
     for (const a of actions) {
       events.push(
-        createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_scanned_event, {
+        createGardenCliEvent(context, GardenCliEventType.ACTION_SCANNED, {
           case: "actionScanned",
           value: create(GardenActionScannedSchema, {
             actionUlid: a.actionUlid,
@@ -219,7 +220,7 @@ export class GrpcEventConverter {
       )
 
       events.push(
-        createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.action_resolved_graph_event, {
+        createGardenCliEvent(context, GardenCliEventType.ACTION_RESOLVED_GRAPH, {
           case: "actionResolvedGraph",
           value: create(GardenActionResolvedGraphSchema, {
             actionUlid: a.actionUlid,
@@ -252,7 +253,7 @@ export class GrpcEventConverter {
     context: GardenEventContext
     payload: CoreEventPayload<"sessionCompleted">
   }): GrpcEventEnvelope[] {
-    const event = createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.command_execution_completed_event, {
+    const event = createGardenCliEvent(context, GardenCliEventType.COMMAND_EXECUTION_COMPLETED, {
       case: "commandExecutionCompleted",
       value: create(GardenCommandExecutionCompletedSchema, {
         // completed now
@@ -269,7 +270,7 @@ export class GrpcEventConverter {
     context: GardenEventContext
     payload: CoreEventPayload<"sessionFailed">
   }): GrpcEventEnvelope[] {
-    const event = createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.command_execution_completed_event, {
+    const event = createGardenCliEvent(context, GardenCliEventType.COMMAND_EXECUTION_COMPLETED, {
       case: "commandExecutionCompleted",
       value: create(GardenCommandExecutionCompletedSchema, {
         // completed now
@@ -287,7 +288,7 @@ export class GrpcEventConverter {
     context: GardenEventContext
     payload: CoreEventPayload<"commandInfo">
   }): GrpcEventEnvelope[] {
-    const event = createGardenCliEvent(context, Event_GardenCliEvent_EventDataType.command_execution_started_event, {
+    const event = createGardenCliEvent(context, GardenCliEventType.COMMAND_EXECUTION_STARTED, {
       case: "commandExecutionStarted",
       value: create(GardenCommandExecutionStartedSchema, {
         // started now
@@ -382,21 +383,22 @@ export class GrpcEventConverter {
 
 export function createGardenCliEvent(
   context: GardenEventContext,
-  eventDataType: Event_GardenCliEvent["eventDataType"],
-  eventData: Event_GardenCliEvent["eventData"]
+  eventType: GardenCliEventType,
+  eventData: GardenCliEvent["eventData"]
 ): GrpcEventEnvelope {
-  const event = create(Event_GardenCliEventSchema, {
+  const event = create(GardenCliEventSchema, {
     commandUlid: context.commandUlid,
     organizationId: context.organizationId,
     sessionUlid: context.sessionUlid,
     clientVersion: context.clientVersion,
     // actor id will be filled in by the backend
-    eventDataType,
+    eventType,
     eventData,
   })
 
   const envelope: GrpcEventEnvelope = create(EventSchema, {
     eventUlid: nextEventUlid(),
+    eventType: EventType.GARDEN_CLI,
     eventData: {
       case: "gardenCli",
       value: event,

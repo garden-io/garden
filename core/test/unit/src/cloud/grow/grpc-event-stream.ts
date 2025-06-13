@@ -8,11 +8,11 @@
 
 import { expect } from "chai"
 import { createClient, createRouterTransport } from "@connectrpc/connect"
-import type { Event } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
+import type { Event } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import {
-  EventResponseSchema,
+  IngestEventsResponseSchema,
   GardenEventIngestionService,
-} from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
+} from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import { create } from "@bufbuild/protobuf"
 import type { GardenWithNewBackend } from "../../../../../src/garden.js"
 import { GrpcEventStream } from "../../../../../src/cloud/grow/grpc-event-stream.js"
@@ -25,9 +25,13 @@ const receivedEvents = new Array<Event>()
 const mockTransport = createRouterTransport(({ service }) => {
   service(GardenEventIngestionService, {
     ingestEvents: async function* ingest(eventStream) {
-      for await (const event of eventStream) {
+      for await (const { event } of eventStream) {
+        if (!event) {
+          continue
+        }
+        // Simulate processing the event
         receivedEvents.push(event)
-        yield create(EventResponseSchema, {
+        yield create(IngestEventsResponseSchema, {
           eventUlid: event.eventUlid,
           success: true,
           final: true,

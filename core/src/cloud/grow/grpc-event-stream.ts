@@ -14,17 +14,22 @@ import type { EventName, EventPayload, GardenEventAnyListener } from "../../even
 import { LogLevel } from "../../logger/logger.js"
 import type { LogEntryEventPayload } from "../restful-event-stream.js"
 import type {
-  Event as GrpcEventEnvelope,
+  Event as GrpcEvent,
   GardenEventIngestionService,
-  EventResponse,
-} from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
-import { EventResponse_Message_Severity } from "@buf/garden_grow-platform.bufbuild_es/public/events/events_pb.js"
+  IngestEventsResponse,
+  IngestEventsRequest,
+} from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
+import {
+  IngestEventsRequestSchema,
+  IngestEventsResponse_Message_Severity,
+} from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import { ConnectError, type Client } from "@connectrpc/connect"
 import type { WritableIterable } from "@connectrpc/connect/protocol"
 import { createWritableIterable } from "@connectrpc/connect/protocol"
 
 import { GrowCloudError } from "./api.js"
 import { describeGrpcEvent, GrpcEventConverter } from "./grpc-event-converter.js"
+import { create } from "@bufbuild/protobuf"
 
 export class GrpcEventStream {
   private readonly garden: GardenWithNewBackend
@@ -40,9 +45,9 @@ export class GrpcEventStream {
   /**
    * Maps a globally _monotonic_ ULID (event ID) to the corresponding event's payload.
    */
-  private readonly eventBuffer = new Map<ULID, GrpcEventEnvelope>()
+  private readonly eventBuffer = new Map<ULID, GrpcEvent>()
 
-  private outputStream: WritableIterable<GrpcEventEnvelope> | undefined
+  private outputStream: WritableIterable<IngestEventsRequest> | undefined
   private isClosed: boolean
   private readonly closeCallbacks: (() => void)[] = []
 
@@ -160,17 +165,17 @@ export class GrpcEventStream {
 
   private handleEvent<T extends EventName>(name: T, payload: EventPayload<T>) {
     const events = this.converter.convert(name, payload)
-    for (const envelope of events) {
+    for (const event of events) {
       this.log.silly(
-        () => `GrpcEventStream: ${this.outputStream ? "Sending" : "Buffering"} event ${describeGrpcEvent(envelope)}`
+        () => `GrpcEventStream: ${this.outputStream ? "Sending" : "Buffering"} event ${describeGrpcEvent(event)}`
       )
 
-      this.eventBuffer.set(envelope.eventUlid, envelope)
+      this.eventBuffer.set(event.eventUlid, event)
 
       // NOTE: we don't need to wait for the promise to resolve.
       // If sending the event fails, it will be retried as it lives in the event buffer.
       // See the caller of `streamEvents`.
-      void this.outputStream?.write(envelope).catch((_) => undefined)
+      void this.outputStream?.write(create(IngestEventsRequestSchema, { event })).catch((_) => undefined)
     }
   }
 
@@ -183,7 +188,7 @@ export class GrpcEventStream {
   }
 
   private async streamEvents() {
-    this.outputStream = createWritableIterable<GrpcEventEnvelope>()
+    this.outputStream = createWritableIterable<IngestEventsRequest>()
 
     const ackStream = this.eventIngestionService.ingestEvents(this.outputStream)
 
@@ -200,7 +205,7 @@ export class GrpcEventStream {
     }
   }
 
-  private async consumeAcks(ackStream: AsyncIterable<EventResponse>) {
+  private async consumeAcks(ackStream: AsyncIterable<IngestEventsResponse>) {
     for await (const nextAck of ackStream) {
       if (!nextAck.success) {
         this.log.silly(
@@ -220,22 +225,26 @@ export class GrpcEventStream {
         const logMessage = `${this.garden.cloudApiV2.distroName} failed to process event ulid=${nextAck.eventUlid}: ${msg.text}`
 
         switch (msg.severity) {
-          case EventResponse_Message_Severity.DEBUG:
+          case IngestEventsResponse_Message_Severity.DEBUG:
             this.log.debug(logMessage)
             break
-          case EventResponse_Message_Severity.INFO:
+          case IngestEventsResponse_Message_Severity.INFO:
             this.log.info(logMessage)
             break
-          case EventResponse_Message_Severity.WARNING:
+          case IngestEventsResponse_Message_Severity.WARNING:
             this.log.warn(logMessage)
             break
-          case EventResponse_Message_Severity.ERROR:
+          case IngestEventsResponse_Message_Severity.ERROR:
             throw new GrowCloudError({
               message: logMessage,
             })
+          case IngestEventsResponse_Message_Severity.UNSPECIFIED:
+            this.log.debug(
+              `GrpcEventStream: Unspecified message severity for event ulid=${nextAck.eventUlid}: ${msg.text}`
+            )
+            break
           default:
             msg.severity satisfies never
-            this.log.silly(`GrpcEventStream: Unknown message severity ${msg.severity}: ${msg.text}`)
         }
       }
 
@@ -270,7 +279,7 @@ export class GrpcEventStream {
       }
       // NOTE: we're not waiting for the promise to resolve on purpose, as we want to synchronously flush all events
       // to the underlying queue avoiding out-of-order event transmission.
-      void this.outputStream.write(event).catch((_) => undefined)
+      void this.outputStream.write(create(IngestEventsRequestSchema, { event })).catch((_) => undefined)
     }
   }
 }
