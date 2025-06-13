@@ -331,7 +331,17 @@ export class GrowCloudApi {
       baseUrl: this.domain,
 
       // Interceptors apply to all calls running through this transport.
-      interceptors: [],
+      interceptors: [
+        (next) => {
+          return async (req) => {
+            // Set the auth token in the request headers
+            req.header.set("authorization", `token ${this.authToken}`)
+
+            // Call the next interceptor or the actual gRPC call
+            return await next(req)
+          }
+        },
+      ],
     })
   }
 
