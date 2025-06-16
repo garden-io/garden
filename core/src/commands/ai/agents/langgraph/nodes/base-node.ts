@@ -20,8 +20,14 @@ import type { Log } from "../../../../../logger/log-entry.js"
 import { createAgentTools } from "./tools.js"
 import chalk from "chalk"
 import { safeDumpYaml } from "../../../../../util/serialization.js"
-import { omit, truncate } from "lodash-es"
+import { isString, omit, truncate } from "lodash-es"
 import { isArray } from "../../../../../util/objects.js"
+import { getTerminalWidth } from "../../../../../logger/util.js"
+import wrapAnsi from "wrap-ansi"
+import { marked } from "marked"
+import { markedTerminal } from "marked-terminal"
+
+marked.use(new markedTerminal({}, { em: chalk.bold, showSectionPrefix: false }))
 
 /**
  * Base class for all agent nodes in the LangGraph
@@ -36,9 +42,7 @@ export abstract class BaseAgentNode {
 
   constructor(context: AgentContext, model: ChatAnthropic) {
     this.context = context
-    this.log = context.log.createLog({
-      origin: this.getName(),
-    })
+    this.log = context.log
 
     // Initialize tools using the factory function
     this.tools = createAgentTools(context)
@@ -150,6 +154,14 @@ export abstract class BaseAgentNode {
     return new SystemMessage(prompt.trim())
   }
 
+  protected logAgentMessage(message: string) {
+    const indented = wordWrapWithIndent(message.trimStart(), 100, 2)
+    const markdownStyled = marked.parse(indented.trimStart(), { async: false })
+    const msg = chalk.cyan("\n> ") + markdownStyled.trimEnd() + "\n"
+    this.log.info({ msg })
+  }
+
+  // TODO: deduplicate this with the code in expert-agent-node.ts
   /**
    * Generate response using the model with optional tool invocation
    */
@@ -175,6 +187,17 @@ export abstract class BaseAgentNode {
     const toolResults: ToolMessage[] = []
 
     if (response.tool_calls && response.tool_calls.length > 0) {
+      // Log text nodes in the chunked response
+      if (isString(response.content)) {
+        this.logAgentMessage(response.content)
+      } else {
+        for (const c of response.content) {
+          if (c.type === "text" && c.text) {
+            this.logAgentMessage(c.text)
+          }
+        }
+      }
+
       for (const toolCall of response.tool_calls) {
         const tool = this.tools.find((t) => t.name === toolCall.name)
         if (tool) {
@@ -219,7 +242,7 @@ export abstract class BaseAgentNode {
         // Note that we're not adding the last response to the messages, so we're not repeating ourselves
         .invoke([systemPrompt, ...messages])
 
-      this.log.info("\n" + result.response + "\n")
+      this.logAgentMessage(result.response)
 
       if (result.goto !== this.getName() && result.goto !== NODE_NAMES.HUMAN_LOOP) {
         this.log.info(chalk.gray(`Handing off to ${result.goto} agent...`))
@@ -258,9 +281,9 @@ function abridgeMessage(m: BaseMessage) {
     message.content = truncate(m.content, { length: 100 })
   }
 
-  if (m.text && typeof m.text === "string") {
-    message.text = truncate(m.text, { length: 100 })
-  }
+  // if (m.text && typeof m.text === "string") {
+  //   message.text = truncate(m.text, { length: 100 })
+  // }
 
   if (m.content && isArray(m.content)) {
     message.content = m.content.map((c) => {
@@ -281,4 +304,15 @@ function abridgeMessage(m: BaseMessage) {
   // }
 
   return message
+}
+
+function wordWrapWithIndent(text: string, maxWidth: number, indent: number) {
+  const termWidth = getTerminalWidth() - indent
+  const width = maxWidth > termWidth ? termWidth : maxWidth
+  return wrapAnsi(text, width)
+    .trimEnd()
+    .split("\n")
+    .map((line) => " ".repeat(indent) + line)
+    .join("\n")
+    .trimEnd()
 }

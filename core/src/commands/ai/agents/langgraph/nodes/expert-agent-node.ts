@@ -14,6 +14,9 @@ import type { ChatAnthropic } from "@langchain/anthropic"
 import { AIMessage, AIMessageChunk, SystemMessage, ToolMessage } from "@langchain/core/messages"
 import { ResponseCommand } from "../types.js"
 import type { StateAnnotation } from "../types.js"
+import { isString } from "lodash-es"
+import chalk from "chalk"
+import titleize from "titleize"
 
 /**
  * Abstract helper for expert agents that work on a single currentTask and mark it done.
@@ -40,7 +43,7 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
       }
 
       // Log progress: starting work on the task
-      this.log.info(`🔧  Starting task: "${task.description}"`)
+      this.log.info(chalk.magenta(`🔧  Starting task: "${task.description}"`))
 
       const possibleDestinations = [NODE_NAMES.HUMAN_LOOP, this.getName(), NODE_NAMES.MAIN_AGENT] as const
 
@@ -75,7 +78,7 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
       this.debugLogMessages("relevant messages", messages)
 
       // --- Run the model with tool support first ---
-      const finalMessages = await this.invokeWithTools(messages)
+      const finalMessages = await this.runWithTools(messages)
 
       // --- Now ask for the structured task-completion object ---
       const result = await this.model
@@ -92,7 +95,7 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
 
       // Log progress: task completed (if done)
       if (result.done) {
-        this.log.info(`✅ ${this.getName()} agent completed task: "${task.description}"`)
+        this.log.info(chalk.green(`✅  ${titleize(this.getName())} expert completed task: "${task.description}"\n`))
       }
 
       const update: Partial<typeof StateAnnotation.State> = {
@@ -113,14 +116,26 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
    * Recursively call the model with tools enabled until no further tool calls are produced.
    * Returns the final augmented messages array (initial + AI + tool messages ...).
    */
-  private async invokeWithTools(initial: AIMessage[]): Promise<AIMessage[]> {
+  private async runWithTools(initial: AIMessage[]): Promise<AIMessage[]> {
     const messages: AIMessage[] = [...initial]
 
     // Call model with tools bound
     const response = await this.model.bindTools(this.tools).invoke([this.formatSystemPrompt(), ...messages])
+    let partialResponse = false
 
     // Collect tool calls (if any) and execute
     if (response.tool_calls && response.tool_calls.length > 0) {
+      // Log text nodes in the chunked response
+      if (isString(response.content)) {
+        this.logAgentMessage(response.content)
+      } else {
+        for (const c of response.content) {
+          if (c.type === "text" && c.text) {
+            this.logAgentMessage(c.text)
+          }
+        }
+      }
+
       const toolResults: AIMessage[] = []
 
       for (const call of response.tool_calls) {
@@ -154,19 +169,28 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
       }
 
       // Recurse with new messages (AI response + tool results)
-      return this.invokeWithTools([...messages, response, ...toolResults])
+      return this.runWithTools([...messages, response, ...toolResults])
     } else {
-      // console.log("response", response)
-      this.log.info("\n" + response.text + "\n")
+      // // eslint-disable-next-line no-console
+      // console.log(response)
+
+      if (response.additional_kwargs?.stop_reason && response.text === ".") {
+        // Unclear why but Claude 4 sometimes returns a text response with just a single period.
+        // We should continue in this case. I think... (maybe we need to bail from the loop)
+        partialResponse = true
+      }
+
+      this.debugLogMessages("response", [response])
+      this.logAgentMessage(response.text)
     }
 
     // TODO: handle different stop reasons
-    if (response.additional_kwargs?.stop_reason) {
+    if (!partialResponse && response.additional_kwargs?.stop_reason) {
       // No further tool calls, return transcript with the last response
       return [...messages, response]
     } else {
       // Still going... (last response should then be a status message to the user)
-      return this.invokeWithTools([...messages, response])
+      return this.runWithTools([...messages, response])
     }
   }
 }

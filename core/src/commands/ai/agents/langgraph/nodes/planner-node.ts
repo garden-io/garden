@@ -26,9 +26,6 @@ export class PlannerNode extends BaseAgentNode {
   constructor(context: AgentContext, model: ChatAnthropic) {
     super(context, model)
 
-    // Skip the main_agent log prefix
-    this.log = context.log.root.createLog()
-
     // Planner coordinates, it should not expose any file-system tools directly
     this.tools = []
 
@@ -109,16 +106,18 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
 
       // --- 0. Post-execution phase: all tasks done → summarise & ask user ---
       if (state.tasks.length > 0 && state.tasks.every((t) => t.status === "done")) {
-        const summaryLines = state.tasks.map((t, i) => `\n• ${i + 1}. ${t.description} – ${t.summary ?? "completed"}`)
+        const summaryLines = state.tasks.map(
+          (t, i) => chalk.bold(`\n${i + 1}. ${t.description} `) + `– ${t.summary ?? "completed"}`
+        )
 
         const finalSummary = [
-          "Here's what I accomplished:",
+          "Here's what we've done:",
           ...summaryLines,
           "\nLet me know if you'd like any further changes or additional tasks.",
         ].join("\n")
 
         // Surface to the user
-        this.log.info("\n" + finalSummary + "\n")
+        this.logAgentMessage(finalSummary)
 
         return new ResponseCommand({
           goto: NODE_NAMES.HUMAN_LOOP,
@@ -133,7 +132,7 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
       // --- 1. Execution phase: tasks exist but not finished → send to router ---
       if (state.tasks.some((t) => t.status === "pending" || t.status === "in-progress")) {
         // Handing off to task router – inform in logs
-        this.log.info(chalk.gray(`Handing off to ${NODE_NAMES.TASK_ROUTER} to execute planned tasks...`))
+        this.log.debug(chalk.gray(`Handing off to ${NODE_NAMES.TASK_ROUTER} to execute planned tasks...`))
         return new ResponseCommand({
           goto: NODE_NAMES.TASK_ROUTER,
           update: {},
@@ -207,7 +206,7 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
       }
 
       // Print the assistant response so the user sees the plan / follow-up question
-      this.log.info("\n" + result.response + "\n")
+      this.logAgentMessage(result.response)
 
       if (result.goto !== NODE_NAMES.HUMAN_LOOP) {
         this.log.info(chalk.gray(`Handing off to ${result.goto} agent...`))

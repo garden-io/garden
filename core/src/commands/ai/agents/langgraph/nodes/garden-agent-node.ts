@@ -130,9 +130,12 @@ export async function gardenValidate({ context }: GardenValidateParams): Promise
   log.info("Running 'garden validate'")
 
   const validateCommand = new ValidateCommand()
+  const logger = new VoidLogger({ level: LogLevel.info })
+  const voidLog = logger.createLog()
 
   try {
     const garden = await Garden.factory(context.projectRoot, {
+      log: voidLog,
       commandInfo: {
         name: "validate",
         args: {},
@@ -140,11 +143,9 @@ export async function gardenValidate({ context }: GardenValidateParams): Promise
       },
     })
 
-    const logger = new VoidLogger({ level: LogLevel.info })
-
     await validateCommand.action({
       garden,
-      log: logger.createLog(),
+      log: voidLog,
       args: {},
       opts: {
         "resolve": [],
