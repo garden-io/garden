@@ -15,6 +15,7 @@ import chalk from "chalk"
 import * as readline from "node:readline/promises"
 import { stdin as input, stdout as output } from "node:process"
 import { renderDivider } from "../../../../../logger/util.js"
+import type { LogEntryTransformers } from "../../../../../logger/log-entry.js"
 
 const DEFAULT_MAX_DEPTH = 100
 
@@ -107,6 +108,12 @@ function getSafePath(targetPath: string, projectRoot: string): string {
   return targetPath.startsWith("/") ? targetPath : join(projectRoot, targetPath)
 }
 
+const toolLogTransformers: LogEntryTransformers = {
+  default: (entry) => {
+    return { ...entry, msg: chalk.gray(entry.msg) }
+  },
+}
+
 // Tool implementation functions
 export async function listDirectory({
   context,
@@ -115,7 +122,7 @@ export async function listDirectory({
 }: ListDirectoryParams): Promise<string> {
   try {
     const absolutePath = getSafePath(directoryPath, context.projectRoot)
-    const log = context.log.createLog({ origin: "list_directory" })
+    const log = context.log
 
     // Check if directory exists
     const directoryExists = await fs
@@ -166,7 +173,7 @@ export async function listDirectory({
     }
 
     const files = await listDir(absolutePath, 0)
-    log.info(`✅ Successfully listed directory (found ${files.length} files): ${directoryPath}`)
+    log.info(`Listed directory (found ${files.length} files): ${directoryPath}`)
 
     const result: ListDirectoryResult = { files }
     return JSON.stringify(result)
@@ -181,7 +188,7 @@ export async function listDirectory({
 
 export async function readFiles({ context, filePaths }: ReadFilesParams): Promise<string> {
   const results: FileReadResult[] = []
-  const log = context.log.createLog({ origin: "read_files" })
+  const log = context.log
 
   let errorCount = 0
   let successCount = 0
@@ -215,11 +222,11 @@ export async function readFiles({ context, filePaths }: ReadFilesParams): Promis
   }
 
   if (successCount > 0) {
-    log.info(`✅ Successfully read ${successCount} files:\n${results.map((r) => "- " + r.path).join("\n")}`)
+    log.info(`Read ${successCount} files:\n${results.map((r) => "- " + r.path).join("\n")}`)
   }
   if (errorCount > 0) {
     log.error(
-      `❌ Error reading ${errorCount} files:\n${results
+      `❌  Error reading ${errorCount} files:\n${results
         .filter((r) => !!r.error)
         .map((r) => `- ${r.path}: ${r.error}`)
         .join("\n")}`
@@ -232,7 +239,7 @@ export async function readFiles({ context, filePaths }: ReadFilesParams): Promis
 let yoloMessageShown = false
 
 export async function writeFile({ context, filePath, content, force = false }: WriteFileParams): Promise<string> {
-  const log = context.log.createLog({ origin: "write_file" })
+  const log = context.log
 
   try {
     const absolutePath = getSafePath(filePath, context.projectRoot)
@@ -274,12 +281,11 @@ export async function writeFile({ context, filePath, content, force = false }: W
       // -----------------------------------------------------------------
       const diffLines = generateDiff(existingContent, content)
 
-      const diffLog = log.createLog({ origin: undefined })
-      diffLog.info(renderDivider({ title: "🔍 Diff (current ↔ new)", width: 50 }))
+      log.info(renderDivider({ title: "🔍 Diff (current ↔ new)", width: 50 }))
       diffLines.forEach((line) => {
-        diffLog.info(line)
+        log.info(line)
       })
-      diffLog.info(renderDivider({ width: 50 }))
+      log.info(renderDivider({ width: 50 }))
 
       if (!context.yolo && !yoloMessageShown) {
         log.info("FYI: You can use the `--yolo` CLI flag on this command to write files without confirmation.")
@@ -325,7 +331,7 @@ export async function writeFile({ context, filePath, content, force = false }: W
       log.info(`New file created: ${filePath}`)
     }
 
-    return `✅ Successfully ${fileExists ? "overwrote" : "created"} file: ${filePath} (${content.length} characters)`
+    return `✅  Successfully ${fileExists ? "overwrote" : "created"} file: ${filePath} (${content.length} characters)`
   } catch (error) {
     const errorMessage = `Error writing file: ${error instanceof Error ? error.message : String(error)}`
     log.error(errorMessage)
@@ -353,7 +359,7 @@ export async function writeFiles({ context, files }: WriteFilesParams): Promise<
 
 export async function removeFiles({ context, filePaths, force = false }: RemoveFilesParams): Promise<string> {
   const results: RemoveFilesResult[] = []
-  const log = context.log.createLog({ origin: "remove_files" })
+  const log = context.log
 
   let errorCount = 0
   let successCount = 0
@@ -461,7 +467,7 @@ export async function removeFiles({ context, filePaths, force = false }: RemoveF
 
   if (successCount > 0) {
     log.info(
-      `✅ Successfully deleted ${successCount} files:\n${results
+      `Deleted ${successCount} files:\n${results
         .filter((r) => r.success)
         .map((r) => "- " + r.path)
         .join("\n")}`
@@ -469,7 +475,7 @@ export async function removeFiles({ context, filePaths, force = false }: RemoveF
   }
   if (errorCount > 0) {
     log.error(
-      `❌ Error deleting ${errorCount} files:\n${results
+      `❌  Error deleting ${errorCount} files:\n${results
         .filter((r) => !r.success)
         .map((r) => `- ${r.path}: ${r.message}`)
         .join("\n")}`
@@ -481,6 +487,8 @@ export async function removeFiles({ context, filePaths, force = false }: RemoveF
 
 // Tool definitions factory
 export function createAgentTools(context: AgentContext): DynamicStructuredTool[] {
+  context.log = context.log.createLog({ transformers: toolLogTransformers })
+
   return [
     // List directory tool
     new DynamicStructuredTool({
@@ -512,11 +520,11 @@ export function createAgentTools(context: AgentContext): DynamicStructuredTool[]
     // Write file tool
     new DynamicStructuredTool({
       name: "write_file",
-      description: "Write content to a file. Asks user for confirmation if file exists unless force=true is used.",
+      description:
+        "Write content to a file. Asks user for confirmation if file exists unless they're in YOLO mode or if the file was previously created by you or another agent.",
       schema: z.object({
         filePath: z.string().describe("The file path to write to"),
         content: z.string().describe("The content to write"),
-        force: z.boolean().optional().describe("Whether to overwrite existing file without confirmation"),
       }),
       func: async ({ filePath, content, force }) => {
         // Allow overwriting without confirmation if yolo is enabled or force is true
@@ -528,14 +536,13 @@ export function createAgentTools(context: AgentContext): DynamicStructuredTool[]
     new DynamicStructuredTool({
       name: "write_files",
       description:
-        "Write multiple files in one go. Accepts an array of {filePath, content, force}. Sequentially invokes write_file logic for each entry. Use this when you need to write multiple files at once, since it will be faster.",
+        "Write multiple files in one go. Accepts an array of {filePath, content}. Sequentially invokes write_file logic for each entry. Use this when you need to write multiple files at once, since it will be faster.",
       schema: z.object({
         files: z
           .array(
             z.object({
               filePath: z.string().describe("Path of the file to write"),
               content: z.string().describe("Content to write"),
-              force: z.boolean().optional().describe("Force overwrite even if file exists"),
             })
           )
           .min(1)

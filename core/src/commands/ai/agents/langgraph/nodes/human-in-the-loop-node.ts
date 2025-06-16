@@ -42,9 +42,6 @@ export class HumanInTheLoopNode extends BaseAgentNode {
     this.store = store
     this.getUserInput = getUserInput
 
-    // Skip the agent log prefix
-    this.log = context.log.root.createLog()
-
     if (!this.getUserInput) {
       if (context.rl) {
         this.rl = context.rl

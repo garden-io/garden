@@ -18,8 +18,6 @@ export class MainAgentNode extends BaseAgentNode {
   constructor(context: AgentContext, model: ChatAnthropic) {
     super(context, model)
     this.tools = []
-    // Don't want prefixes on the main agent output
-    this.log = context.log.createLog()
   }
 
   getName() {
