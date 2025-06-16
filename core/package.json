@@ -112,6 +112,8 @@
     "lodash-es": "^4.17.21",
     "log-symbols": "^7.0.1",
     "lru-cache": "^11.1.0",
+    "marked": "^15.0.12",
+    "marked-terminal": "^7.3.0",
     "micromatch": "^4.0.8",
     "mimic-function": "^5.0.1",
     "minimatch": "^10.0.3",
