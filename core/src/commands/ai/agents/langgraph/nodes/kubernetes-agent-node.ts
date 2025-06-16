@@ -21,7 +21,7 @@ export class KubernetesAgentNode extends ExpertAgentNode {
     return "Expert in Kubernetes configurations, deployments, manifests, services, scaling, troubleshooting, and best practices. Consult for any Kubernetes-related questions, YAML configurations, or container orchestration needs."
   }
 
-  getInitPrompt(): string {
+  getSystemPrompt(): string {
     return `You are the KubernetesAgent, an expert in Kubernetes configurations, deployments, and best practices.
 
 Your expertise includes:

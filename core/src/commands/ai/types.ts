@@ -87,8 +87,8 @@ export interface AgentContext {
 
 // Define node names as const to get literal types
 export const NODE_NAMES = {
-  HUMAN_LOOP: "user_input",
-  MAIN_AGENT: "main_agent",
+  HUMAN_LOOP: "user",
+  MAIN_AGENT: "planner",
   PROJECT_EXPLORER: "project_explorer",
   KUBERNETES_AGENT: "kubernetes",
   DOCKER_AGENT: "docker",

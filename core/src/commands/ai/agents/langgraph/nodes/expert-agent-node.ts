@@ -11,7 +11,7 @@ import { BaseAgentNode } from "./base-node.js"
 import { NODE_NAMES, type NodeName } from "../../../types.js"
 import type { AgentContext } from "../../../types.js"
 import type { ChatAnthropic } from "@langchain/anthropic"
-import { AIMessage, AIMessageChunk, ToolMessage } from "@langchain/core/messages"
+import { AIMessage, AIMessageChunk, SystemMessage, ToolMessage } from "@langchain/core/messages"
 import { ResponseCommand } from "../types.js"
 import type { StateAnnotation } from "../types.js"
 
@@ -21,6 +21,10 @@ import type { StateAnnotation } from "../types.js"
 export abstract class ExpertAgentNode extends BaseAgentNode {
   constructor(context: AgentContext, model: ChatAnthropic) {
     super(context, model)
+  }
+
+  protected override formatSystemPrompt() {
+    return new SystemMessage(super.formatSystemPrompt().content + "\n\nYou MUST ONLY do what the user asks you to do.")
   }
 
   /**
@@ -36,7 +40,7 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
       }
 
       // Log progress: starting work on the task
-      this.log.info(`🔧 ${this.getName()} agent started task: "${task.description}"`)
+      this.log.info(`🔧  Starting task: "${task.description}"`)
 
       const possibleDestinations = [NODE_NAMES.HUMAN_LOOP, this.getName(), NODE_NAMES.MAIN_AGENT] as const
 
@@ -53,7 +57,7 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
       //   • Project context messages produced by the project explorer agent
       const allowedAgentNames: NodeName[] = [this.getName(), NODE_NAMES.TASK_ROUTER, NODE_NAMES.PROJECT_EXPLORER]
 
-      console.log("state.messages", state.messages)
+      // console.log("state.messages", state.messages)
 
       const relevantMessages = state.messages.filter((m) => {
         if ("name" in m && m.name && (allowedAgentNames as readonly string[]).includes(m.name)) {
@@ -66,15 +70,9 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
       })
 
       // Take only the last 40 messages to keep token usage under control
-      let messages = [...relevantMessages.slice(-40), new AIMessage(task.description)]
+      const messages = [...relevantMessages.slice(-40), new AIMessage(task.description)]
 
-      if (!this.initPromptSent) {
-        this.initPromptSent = true
-        messages = [new AIMessage(this.formatInitPrompt()), ...messages]
-      }
-
-      // eslint-disable-next-line no-console
-      console.log("messages", JSON.stringify(messages, null, 2))
+      this.debugLogMessages("relevant messages", messages)
 
       // --- Run the model with tool support first ---
       const finalMessages = await this.invokeWithTools(messages)
@@ -82,7 +80,7 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
       // --- Now ask for the structured task-completion object ---
       const result = await this.model
         .withStructuredOutput(responseSchema, { name: this.getName(), strict: true })
-        .invoke(finalMessages)
+        .invoke([this.formatSystemPrompt(), ...finalMessages])
 
       // Build updated tasks list
       let updatedTasks = state.tasks
@@ -119,7 +117,7 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
     const messages: AIMessage[] = [...initial]
 
     // Call model with tools bound
-    const response = await this.model.bindTools(this.tools).invoke(messages)
+    const response = await this.model.bindTools(this.tools).invoke([this.formatSystemPrompt(), ...messages])
 
     // Collect tool calls (if any) and execute
     if (response.tool_calls && response.tool_calls.length > 0) {
@@ -158,10 +156,17 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
       // Recurse with new messages (AI response + tool results)
       return this.invokeWithTools([...messages, response, ...toolResults])
     } else {
+      // console.log("response", response)
       this.log.info("\n" + response.text + "\n")
     }
 
-    // No further tool calls, return transcript with the last response
-    return [...messages, response]
+    // TODO: handle different stop reasons
+    if (response.additional_kwargs?.stop_reason) {
+      // No further tool calls, return transcript with the last response
+      return [...messages, response]
+    } else {
+      // Still going... (last response should then be a status message to the user)
+      return this.invokeWithTools([...messages, response])
+    }
   }
 }

@@ -7,7 +7,7 @@
  */
 
 import type { BaseMessage } from "@langchain/core/messages"
-import { HumanMessage } from "@langchain/core/messages"
+import { HumanMessage, SystemMessage } from "@langchain/core/messages"
 import { BaseAgentNode } from "./base-node.js"
 import type { NodeName } from "../../../types.js"
 import { NODE_NAMES, type AgentContext } from "../../../types.js"
@@ -21,6 +21,7 @@ import type { ChatAnthropic } from "@langchain/anthropic"
 import type { GlobalConfigStore } from "../../../../../config-store/global.js"
 
 const historySize = 30
+const exitCommands = ["exit", "quit"]
 
 /**
  * Human-in-the-loop node for user interaction
@@ -41,6 +42,9 @@ export class HumanInTheLoopNode extends BaseAgentNode {
     this.store = store
     this.getUserInput = getUserInput
 
+    // Skip the agent log prefix
+    this.log = context.log.root.createLog()
+
     if (!this.getUserInput) {
       if (context.rl) {
         this.rl = context.rl
@@ -57,17 +61,20 @@ export class HumanInTheLoopNode extends BaseAgentNode {
       }
 
       // Save history as we go
-      this.rl.on("history", (h) => {
-        this.store.set("aiPromptHistory", h).catch((e) => {
-          this.log.warn("Failed to save AI prompt history: " + String(e))
-        })
+      this.rl.on("history", (lines) => {
+        this.store
+          .set(
+            "aiPromptHistory",
+            lines
+              .map((line) => line.trim())
+              // Don't remember exit commands or one-letter responses
+              .filter((line) => line.length > 1 && !exitCommands.includes(line.trim().toLowerCase()))
+          )
+          .catch((e) => {
+            this.log.warn("Failed to save AI prompt history: " + String(e))
+          })
       })
     }
-
-    // This node does not require an initial system prompt; mark as sent to
-    // prevent the BaseAgentNode from injecting an empty init prompt that
-    // clutters the conversation log.
-    this.initPromptSent = true
   }
 
   getName() {
@@ -78,9 +85,13 @@ export class HumanInTheLoopNode extends BaseAgentNode {
     return "Human interaction agent. Use this to request user input when needed."
   }
 
-  getInitPrompt(): string {
+  getSystemPrompt(): string {
     // This node doesn't use AI, so no system prompt needed
     return ""
+  }
+
+  protected override formatSystemPrompt(): SystemMessage {
+    return new SystemMessage("")
   }
 
   // TODO: don't use AnyZodObject, use a more specific type with response and goto fields
@@ -103,7 +114,7 @@ export class HumanInTheLoopNode extends BaseAgentNode {
     while (userFeedback.trim().length === 0) {
       userFeedback = await readInput()
 
-      if (["exit", "quit"].includes(userFeedback.trim().toLowerCase())) {
+      if (exitCommands.includes(userFeedback.trim().toLowerCase())) {
         if (this.rl && this.rl !== this.context.rl) {
           this.rl.close()
         }

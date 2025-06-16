@@ -12,9 +12,10 @@ import { NODE_NAMES, type AgentContext, type NodeName } from "../../../types.js"
 import type { ChatAnthropic } from "@langchain/anthropic"
 import type { Task } from "../types.js"
 import { ResponseCommand } from "../types.js"
-import { AIMessage } from "@langchain/core/messages"
+import { AIMessage, HumanMessage } from "@langchain/core/messages"
 import type { StateAnnotation } from "../types.js"
 import chalk from "chalk"
+import { dedent } from "../../../../../util/string.js"
 
 /**
  * Planner node – responsible for breaking the user request into tasks and
@@ -46,7 +47,7 @@ export class PlannerNode extends BaseAgentNode {
     return `Central planner and coordinator. Breaks user requests into tasks, asks for confirmation, routes each task to its dedicated expert, then summarises results.`
   }
 
-  getInitPrompt(): string {
+  getSystemPrompt(): string {
     return `You are a DevOps assistant. Your responsibilities are as follows:
 
 1. Read the user's request and decompose it into a list of discrete DevOps tasks.
@@ -80,19 +81,35 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
 
         if (!hasExplorerMessage) {
           this.log.info(`Let me start by exploring and gathering high-level information about the project.`)
-          return new ResponseCommand({
-            goto: NODE_NAMES.PROJECT_EXPLORER,
-            update: {},
-          })
         }
 
         // We have received the explorer summary message → mark exploration as done
         this.explorationDone = true
+
+        const relevantMessages = state.messages.filter(
+          (m) => m.getType() === "human" || (m.getType() === "ai" && m.name === NODE_NAMES.MAIN_AGENT)
+        )
+
+        return new ResponseCommand({
+          goto: NODE_NAMES.PROJECT_EXPLORER,
+          update: {
+            messages: [
+              ...relevantMessages,
+              new HumanMessage({
+                name: this.getName(),
+                content: dedent`
+                  Given the above context, explore the project structure and gather high-level information about the
+                  project, paying special attention to what the user has asked for.
+                `,
+              }),
+            ],
+          },
+        })
       }
 
       // --- 0. Post-execution phase: all tasks done → summarise & ask user ---
       if (state.tasks.length > 0 && state.tasks.every((t) => t.status === "done")) {
-        const summaryLines = state.tasks.map((t) => `• ${t.description} – ${t.summary ?? "completed"}`)
+        const summaryLines = state.tasks.map((t, i) => `\n• ${i + 1}. ${t.description} – ${t.summary ?? "completed"}`)
 
         const finalSummary = [
           "Here's what I accomplished:",
@@ -148,16 +165,16 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
         goto: z.enum(possibleDestinations),
       })
 
-      let messages = [...state.messages]
-      if (!this.initPromptSent) {
-        this.initPromptSent = true
-        messages = [new AIMessage(this.formatInitPrompt()), ...state.messages]
+      const messages = [...state.messages]
+
+      if (messages.length === 0) {
+        messages.push(new HumanMessage("Please introduce yourself and ask me what I'd like to do."))
       }
 
       // Invoke LLM (no tools) to get structured output
       const result = await this.model
         .withStructuredOutput(responseSchema, { name: this.getName(), strict: true })
-        .invoke(messages)
+        .invoke([this.formatSystemPrompt(), ...messages])
 
       // Prepare state update
       const update: Partial<typeof StateAnnotation.State> = {
