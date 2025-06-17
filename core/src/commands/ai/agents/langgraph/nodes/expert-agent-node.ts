@@ -81,9 +81,7 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
       const finalMessages = await this.runWithTools(messages)
 
       // --- Now ask for the structured task-completion object ---
-      const result = await this.model
-        .withStructuredOutput(responseSchema, { name: this.getName(), strict: true })
-        .invoke([this.formatSystemPrompt(), ...finalMessages])
+      const result = await this.invokeWithResponseSchema(responseSchema, [this.formatSystemPrompt(), ...finalMessages])
 
       // Build updated tasks list
       let updatedTasks = state.tasks
@@ -120,7 +118,7 @@ export abstract class ExpertAgentNode extends BaseAgentNode {
     const messages: AIMessage[] = [...initial]
 
     // Call model with tools bound
-    const response = await this.model.bindTools(this.tools).invoke([this.formatSystemPrompt(), ...messages])
+    const response = await this.invokeWithTools([this.formatSystemPrompt(), ...messages])
     let partialResponse = false
 
     // Collect tool calls (if any) and execute
