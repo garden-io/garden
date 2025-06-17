@@ -36,6 +36,8 @@ Your expertise includes:
 
 You have access to file system tools to read existing Dockerfiles and create new ones or overwrite existing ones.
 
+DO NOT create scripts unless the user specifically asks for them.
+
 Always prioritize security, efficiency, and maintainability in your recommendations.`
   }
 }

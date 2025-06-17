@@ -45,6 +45,8 @@ If the user needs help creating or modifying Kubernetes manifests, use the avail
 
 You MUST ONLY perform tasks relating to Kubernetes. You MUST NOT do anything else. You MUST NOT attempt to create or modify Terraform, Docker or Garden configuration.
 
+DO NOT create scripts unless the user specifically asks for them.
+
 When creating manifests for a specific service, place those in a sub-directory under the service's directory.
 `
   }
