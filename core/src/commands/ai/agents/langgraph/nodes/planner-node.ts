@@ -171,9 +171,7 @@ When you output a plan you MUST include the full list of tasks in the \`tasks\` 
       }
 
       // Invoke LLM (no tools) to get structured output
-      const result = await this.model
-        .withStructuredOutput(responseSchema, { name: this.getName(), strict: true })
-        .invoke([this.formatSystemPrompt(), ...messages])
+      const result = await this.invokeWithResponseSchema(responseSchema, [this.formatSystemPrompt(), ...messages])
 
       // Prepare state update
       const update: Partial<typeof StateAnnotation.State> = {

@@ -9,6 +9,7 @@
 import type { StateAnnotation } from "../types.js"
 import type { ChatAnthropic } from "@langchain/anthropic"
 import type { DynamicStructuredTool } from "@langchain/core/tools"
+import type { AIMessageChunk } from "@langchain/core/messages"
 import { BaseMessage } from "@langchain/core/messages"
 import { AIMessage, SystemMessage, ToolMessage } from "@langchain/core/messages"
 import type { AnyZodObject } from "zod"
@@ -26,15 +27,20 @@ import { getTerminalWidth } from "../../../../../logger/util.js"
 import wrapAnsi from "wrap-ansi"
 import { marked } from "marked"
 import { markedTerminal } from "marked-terminal"
+import pRetry from "p-retry"
 
 marked.use(new markedTerminal({}, { em: chalk.bold, showSectionPrefix: false }))
+
+const maxRetries = 3
+const retryFactor = 2
+const minTimeout = 1000
 
 /**
  * Base class for all agent nodes in the LangGraph
  */
 export abstract class BaseAgentNode {
   protected context: AgentContext
-  protected model: ChatAnthropic
+  private model: ChatAnthropic // Sub-classes should use helper methods to run the model
   protected tools: DynamicStructuredTool[]
   protected availableNodes: { [key: string]: BaseAgentNode }
   protected log: Log
@@ -161,6 +167,60 @@ export abstract class BaseAgentNode {
     this.log.info({ msg })
   }
 
+  // TODO: implement retries and error handling for e.g. overload errors
+  protected async invokeWithTools(messages: BaseMessage[]): Promise<AIMessageChunk> {
+    return pRetry(async () => this.model.bindTools(this.tools).invoke(messages), {
+      retries: maxRetries,
+      factor: retryFactor,
+      minTimeout,
+      onFailedAttempt: (error) => {
+        this.log.error(`Error invoking model: ${error}`)
+        if (this.isRetryableError(error)) {
+          return
+        } else {
+          throw error
+        }
+      },
+    })
+  }
+
+  protected async invokeWithResponseSchema<T extends AnyZodObject>(
+    responseSchema: T,
+    messages: BaseMessage[]
+  ): Promise<z.infer<T>> {
+    return pRetry(
+      async () =>
+        this.model
+          .withStructuredOutput(responseSchema, {
+            name: this.getName(),
+            strict: true,
+          })
+          .invoke(messages),
+      {
+        retries: maxRetries,
+        factor: retryFactor,
+        minTimeout,
+        onFailedAttempt: (error) => {
+          this.log.error(`Error invoking model: ${error}`)
+          // Catch overload errors and retry
+          if (this.isRetryableError(error)) {
+            this.log.info(`Retrying... (attempt ${error.attemptNumber + 1} of ${maxRetries})`)
+            return
+          } else {
+            throw error
+          }
+        },
+      }
+    )
+  }
+
+  private isRetryableError(error: Error) {
+    // TODO: this is a hack, we should expect more specific errors
+    // // eslint-disable-next-line no-console
+    // console.log(error)
+    return error instanceof Error && error.message.toLowerCase().includes("overloaded")
+  }
+
   // TODO: deduplicate this with the code in expert-agent-node.ts
   /**
    * Generate response using the model with optional tool invocation
@@ -179,7 +239,7 @@ export abstract class BaseAgentNode {
 
     const systemPrompt = this.formatSystemPrompt()
 
-    const response = await this.model.bindTools(this.tools).invoke([systemPrompt, ...messages])
+    const response = await this.invokeWithTools([systemPrompt, ...messages])
 
     this.debugLogMessages(this.getName() + " agent response", [response])
 
@@ -233,14 +293,7 @@ export abstract class BaseAgentNode {
       // Continue
       return this.generateResponse(state, responseSchema, [...messages, response, ...toolResults])
     } else {
-      // TODO: see about avoiding this extra call, can't see how to get structured outputs and tool calls to work together
-      const result: z.infer<T> = await this.model
-        .withStructuredOutput(responseSchema, {
-          name: this.getName(),
-          strict: true,
-        })
-        // Note that we're not adding the last response to the messages, so we're not repeating ourselves
-        .invoke([systemPrompt, ...messages])
+      const result = await this.invokeWithResponseSchema(responseSchema, [systemPrompt, ...messages])
 
       this.logAgentMessage(result.response)
 
