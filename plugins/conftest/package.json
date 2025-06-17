@@ -17,7 +17,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^22",
     "chai": "^5.2.0",
-    "mocha": "^11.0.1",
+    "mocha": "^11.6.0",
     "strip-ansi": "^7.1.0"
   },
   "scripts": {
