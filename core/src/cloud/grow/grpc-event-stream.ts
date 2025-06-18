@@ -30,6 +30,7 @@ import { createWritableIterable } from "@connectrpc/connect/protocol"
 import { GrowCloudError } from "./api.js"
 import { describeGrpcEvent, GrpcEventConverter } from "./grpc-event-converter.js"
 import { create } from "@bufbuild/protobuf"
+import { InternalError } from "../../exceptions.js"
 
 export class GrpcEventStream {
   private readonly garden: GardenWithNewBackend
@@ -169,6 +170,12 @@ export class GrpcEventStream {
       this.log.silly(
         () => `GrpcEventStream: ${this.outputStream ? "Sending" : "Buffering"} event ${describeGrpcEvent(event)}`
       )
+
+      // The eventUlid must be set by the converter call above.
+      // The field is optional because of the protobuf validation rules.
+      if (!event.eventUlid) {
+        throw new InternalError({ message: "Event must have a non-empty ulid" })
+      }
 
       this.eventBuffer.set(event.eventUlid, event)
 
