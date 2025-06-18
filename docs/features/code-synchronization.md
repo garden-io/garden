@@ -8,8 +8,8 @@ Garden includes a *sync* mode that allows you to rapidly synchronize your code (
 The sync mode uses [Mutagen](https://mutagen.io/) under the hood. Garden automatically takes care of fetching Mutagen, so you don't need to install any dependencies yourself to make use of sync mode.
 
 {% hint style="info" %}
-This feature used to be called _dev mode_ but as of version 0.13 we've opted for more straightforward terminology. The
-functionality is exactly the same as before.
+This feature used to be called _dev mode_ but as of version 0.13 we've opted for more straightforward terminology.
+The functionality is exactly the same as before.
 {% endhint %}
 
 ## Configuration
@@ -298,7 +298,7 @@ garden util mutagen sync list
 Starting from the version `0.13.26`, Garden offers a new file synchronization machinery.
 It is available via the environment variable `GARDEN_ENABLE_NEW_SYNC` and it disabled by default up until version `0.13.32`.
 
-Starting from the version `0.13.33`, the new synchronization machinery is enabled by default.
+Starting from the version `0.13.34`, the new synchronization machinery is enabled by default.
 
 From version `0.13.44` the old synchronization machinery is completely removed together with the `GARDEN_ENABLE_NEW_SYNC` variable.
 

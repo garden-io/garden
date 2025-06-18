@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "ignorePaths": ["core/test/data/**", "e2e/projects/**", "examples/**", "plugins/**/test/**"],
+  {
+    "matchDepTypes": ["devDependencies"],
+    "matchUpdateTypes": ["patch", "minor"],
+    "groupName": "dev dependencies (non-major)"
+  },
+  {
+    "matchDepTypes": ["dependencies"],
+    "matchUpdateTypes": ["patch", "minor"],
+    "groupName": "prod dependencies (non-major)"
+  }
+}

@@ -13,7 +13,6 @@ Our `../../gitbook.yaml` file determines link redirects and the basic structure 
 
 {% hint style="warning" %}
 *The `README.md` file at the top of the `docs/` folder and the `reference/*` files are all auto-generated and should never be touched directly. Refer to [Make your changes and open a pull request (PR)](#make-your-changes-and-open-a-pull-request-pr) for details.
-
 {% endhint %}
 
 ## Making your first contribution

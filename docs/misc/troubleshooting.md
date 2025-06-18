@@ -65,8 +65,7 @@ This is likely because they're being excluded somewhere, e.g. in `.gitignore` or
 {% hint style="warning" %}
 Prior to Garden 0.13.0, `.gitignore` files were respected by default.
 In Garden 0.13.0 that behaviour was changed.
-Now it's possible to only specify a [single ".ignore" file](../guides/include-exclude.md)
-in the [project-level configuration](../reference/project-config.md#dotIgnoreFile).
+Now it's possible to only specify a [single ".ignore" file](../guides/include-exclude.md) in the [project-level configuration](../reference/project-config.md#dotIgnoreFile).
 {% endhint %}
 
 Please check your [dotIgnoreFile(s) configuration](../guides/include-exclude.md)

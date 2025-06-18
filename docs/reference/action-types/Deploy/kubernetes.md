@@ -523,9 +523,9 @@ Wait until the jobs have been completed. Garden will wait for as long as `timeou
 
 [spec](#spec) > defaultTarget
 
-Specify a default resource in the deployment to use for syncs, local mode, and for the `garden exec` command.
+Specify a default resource in the deployment to use for syncs and for the `garden exec` command.
 
-Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing or local mode).
+Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
 
 Set `containerName` to specify a container to connect to in the remote Pod. By default the first container in the Pod is used.
 

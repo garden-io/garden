@@ -45,9 +45,9 @@ A Build action which executes a build command "locally" on the host.
 This is commonly used together with exec Deploy actions when a local build step needs to be executed first.
 
 {% hint style="info" %}
-Note that by default, Garden will "stage" the build to the `./garden` directory and execute the
-build there. This is to ensure that the command doesn't mess with your local project
-files. You can disable that by setting `buildAtSource: true`.
+Note that by default, Garden will "stage" the build to the `./garden` directory and execute the build there.
+This is to ensure that the command doesn't mess with your local project files.
+You can disable that by setting `buildAtSource: true`.
 {% endhint %}
 
 For example:

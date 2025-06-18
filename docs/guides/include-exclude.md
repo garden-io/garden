@@ -38,8 +38,7 @@ The `scan.exclude` field is also used to limit the number of files and directori
 ## .ignore file
 
 {% hint style="info" %}
-Generally, using .gardenignore files is far more performant than exclude config statements and will decrease
-graph resolution time.
+Generally, using `.gardenignore` files is far more performant than exclude config statements and will decrease graph resolution time.
 {% endhint %}
 
 By default, Garden respects `.gardenignore` files and excludes any patterns matched in those files. You can place the ignore files anywhere in your repository, much like `.gitignore` files, and they will follow the same semantics.
@@ -57,8 +56,7 @@ This would cause Garden to ignore `node_modules` and `public` directories across
 Note that _these take precedence over both `scan.include` fields in your project config, and `include` fields in your module configs_. If a path is matched by one of the ignore files, the path will not be included in your project or modules.
 
 {% hint style="warning" %}
-Prior to Garden `0.13`, it was possible to specify _multiple_ ".ignore" files
-using the [`dotIgnoreFiles`](../reference/project-config.md#dotIgnoreFiles) field in a project configuration:
+Prior to Garden `0.13`, it was possible to specify _multiple_ ".ignore" files using the [`dotIgnoreFiles`](../reference/project-config.md#dotIgnoreFiles) field in a project configuration:
 
 ```yaml
 apiVersion: garden.io/v2
@@ -103,8 +101,7 @@ exclude:
 ```
 
 {% hint style="info" %}
-Generally, using `.gardenignore` files is far more performant than exclude config statements and will decrease
-graph resolution time.
+Generally, using `.gardenignore` files is far more performant than exclude config statements and will decrease graph resolution time.
 {% endhint %}
 
 Here we only include the `Dockerfile` and all the `.py` files under `my-sources/`, but exclude the `my-sources/tmp`
