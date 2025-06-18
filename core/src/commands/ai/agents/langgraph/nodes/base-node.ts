@@ -216,9 +216,9 @@ export abstract class BaseAgentNode {
 
   private isRetryableError(error: Error) {
     // TODO: this is a hack, we should expect more specific errors
-    // eslint-disable-next-line no-console
-    console.log(error)
-    return error instanceof Error && error.message.includes("overload")
+    // // eslint-disable-next-line no-console
+    // console.log(error)
+    return error instanceof Error && error.message.toLowerCase().includes("overloaded")
   }
 
   // TODO: deduplicate this with the code in expert-agent-node.ts
