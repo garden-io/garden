@@ -29,8 +29,8 @@ export const agentOpts = {
 type Args = typeof agentArgs
 type Opts = typeof agentOpts
 
-export class AgentCommand extends Command<Args, Opts> {
-  name = "agent"
+export class AICommand extends Command<Args, Opts> {
+  name = "ai"
   help = "[EXPERIMENTAL] DevOps AI assistant powered by Anthropic's Claude"
 
   override noProject = true
@@ -44,8 +44,6 @@ export class AgentCommand extends Command<Args, Opts> {
 
     The agent will scan your project structure and provide context-aware assistance.
   `
-
-  override aliases = ["ai"]
 
   override arguments = agentArgs
   override options = agentOpts
@@ -91,7 +89,7 @@ export class AgentCommand extends Command<Args, Opts> {
 
     if (opts.yolo) {
       log.info(
-        chalk.yellow(
+        chalk.yellow.bold(
           "\nWARNING: YOLO mode is enabled. This will overwrite files without confirmation. Kindly make sure you can undo any changes (say, by having your files under version control).\n"
         )
       )
