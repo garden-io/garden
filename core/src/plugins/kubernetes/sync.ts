@@ -27,7 +27,7 @@ import {
   syncSourcePathSchema,
   syncTargetPathSchema,
 } from "../container/moduleConfig.js"
-import { dedent, gardenAnnotationKey } from "../../util/string.js"
+import { dedent, deline, gardenAnnotationKey } from "../../util/string.js"
 import cloneDeep from "fast-copy"
 import { kebabCase, keyBy, omit, set } from "lodash-es"
 import {
@@ -52,6 +52,7 @@ import type {
   KubernetesProvider,
   KubernetesTargetResourceSpec,
   KubernetesTargetResourceSyncModeSpec,
+  KubernetesTargetResourceSyncModeStrictSpec,
   ServiceResourceSpec,
 } from "./config.js"
 import { targetResourceSpecSchema } from "./config.js"
@@ -73,6 +74,7 @@ import { styles } from "../../logger/styles.js"
 import { commandListToShellScript } from "../../util/escape.js"
 import { toClearText } from "../../util/secrets.js"
 import type { V1Container } from "@kubernetes/client-node"
+import { emitNonRepeatableWarning } from "../../warnings.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -317,9 +319,16 @@ export async function configureSyncMode({
   manifests = cloneDeep(manifests)
 
   if (defaultTarget?.podSelector) {
-    // todo: warn
+    emitNonRepeatableWarning(
+      log,
+      deline`
+      The ${styles.highlight("defaultResource.podSelector")} has no effect for ${styles.highlight("kubernetes")} and ${styles.highlight("helm")} Deploy actions in sync mode.
+      Please use the combination of ${styles.highlight("defaultResource.kind")} and ${styles.highlight("defaultResource.name")} instead.
+      `
+    )
   }
 
+  // ignore defaultTarget.podSelector in sync mode
   const effectiveDefaultTarget: KubernetesTargetResourceSyncModeSpec | undefined = defaultTarget
     ? {
         kind: defaultTarget.kind,
@@ -339,7 +348,21 @@ export async function configureSyncMode({
   }
 
   for (const override of spec.overrides || []) {
-    const target = override.target || effectiveDefaultTarget
+    const overrideTarget = override.target
+    if (overrideTarget?.podSelector) {
+      // todo: warn with deprecation
+    }
+
+    // ignore override.target.podSelector in sync mode
+    const effectiveOverrideTarget: KubernetesTargetResourceSyncModeStrictSpec | undefined = overrideTarget
+      ? {
+          kind: overrideTarget.kind,
+          name: overrideTarget.name,
+        }
+      : undefined
+    const target: KubernetesTargetResourceSyncModeStrictSpec | undefined =
+      effectiveOverrideTarget || effectiveDefaultTarget
+
     if (!target) {
       throw new ConfigurationError({
         message: dedent`
@@ -353,17 +376,29 @@ export async function configureSyncMode({
         `,
       })
     }
+
     if (target.kind && target.name) {
       const key = targetKey(target)
       dedupedTargets[key] = target
-    }
-    if (target.podSelector) {
-      // todo: warn and continue
+    } else {
+      // todo: warn that override config entry has no effect
     }
   }
 
   for (const sync of spec.paths || []) {
-    const target = sync.target || effectiveDefaultTarget
+    const syncTarget = sync.target
+    if (syncTarget?.podSelector) {
+      // todo: warn with deprecation
+    }
+
+    // ignore sync.target.podSelector in sync mode
+    const effectiveSyncTarget: KubernetesTargetResourceSyncModeStrictSpec | undefined = syncTarget
+      ? {
+          kind: syncTarget.kind,
+          name: syncTarget.name,
+        }
+      : undefined
+    const target: KubernetesTargetResourceSyncModeStrictSpec | undefined = effectiveSyncTarget || effectiveDefaultTarget
 
     if (!target) {
       throw new ConfigurationError({
@@ -378,14 +413,12 @@ export async function configureSyncMode({
       })
     }
 
-    // todo warn on podSelector in sync mode
-    if (target.podSelector) {
-      // These don't call for modification to manifests
-      continue
+    if (target.kind && target.name) {
+      const key = targetKey(target)
+      dedupedTargets[key] = target
+    } else {
+      // todo: warn that sync config entry has no effect
     }
-
-    const key = targetKey(target)
-    dedupedTargets[key] = target
   }
 
   const resolvedTargets: { [ref: string]: SyncableResource } = {}
