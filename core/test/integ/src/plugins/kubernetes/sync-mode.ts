@@ -8,14 +8,16 @@
 
 import { expect } from "chai"
 import fsExtra from "fs-extra"
-
-const { mkdirp, pathExists, readFile, remove, writeFile } = fsExtra
 import { join } from "path"
 import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status.js"
 import type { ActionLog, Log } from "../../../../../src/logger/log-entry.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
-import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
+import type {
+  KubernetesPluginContext,
+  KubernetesProvider,
+  KubernetesTargetResourceSyncModeSpec,
+} from "../../../../../src/plugins/kubernetes/config.js"
 import { getMutagenMonitor, Mutagen } from "../../../../../src/mutagen.js"
 import type { KubernetesWorkload, SyncableRuntimeAction } from "../../../../../src/plugins/kubernetes/types.js"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util.js"
@@ -41,6 +43,8 @@ import {
 } from "../../../../../src/plugins/kubernetes/constants.js"
 import type { Action, Resolved } from "../../../../../src/actions/types.js"
 import stripAnsi from "strip-ansi"
+
+const { mkdirp, pathExists, readFile, remove, writeFile } = fsExtra
 
 describe("sync mode deployments and sync behavior", () => {
   describe("sync mode deployments", () => {
@@ -882,6 +886,7 @@ describe("sync mode deployments and sync behavior", () => {
         },
       ]
 
+      const target: KubernetesTargetResourceSyncModeSpec = { podSelector: { app: "sync-mode" } }
       const res = await configureSyncMode({
         ctx,
         log: actionLog,
@@ -892,7 +897,7 @@ describe("sync mode deployments and sync behavior", () => {
         spec: {
           paths: [
             {
-              target: { podSelector: { app: "sync-mode" } },
+              target,
               sourcePath: join(action.sourcePath(), "src"),
               containerPath: "/app/src",
             },
