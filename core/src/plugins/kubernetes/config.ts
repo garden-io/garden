@@ -729,12 +729,21 @@ export interface KubernetesTargetResourceSpec {
   containerName?: string
 }
 
+/**
+ * Temporary type to keep podSelector deprecated in sync mode in 0.14.
+ * TODO(0.15): remove this and use {@link KubernetesTargetResourceSyncModeStrictSpec} as a replacement.
+ */
 export type KubernetesTargetResourceSyncModeSpec = Omit<KubernetesTargetResourceSpec, "podSelector"> & {
   /**
    * @deprecated `podSelector` is deprecated in sync mode
    */
   podSelector?: { [key: string]: string }
 }
+
+/**
+ * TODO(0.15): rename this and use it instead of {@link KubernetesTargetResourceSyncModeSpec}.
+ */
+export type KubernetesTargetResourceSyncModeStrictSpec = Omit<KubernetesTargetResourceSyncModeSpec, "podSelector">
 
 export interface ServiceResourceSpec extends KubernetesTargetResourceSpec {
   containerModule?: string
