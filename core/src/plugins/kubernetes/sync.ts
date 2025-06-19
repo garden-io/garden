@@ -358,7 +358,7 @@ export async function configureSyncMode({
       throw new ConfigurationError({
         message: dedent`
           Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
-          Either specify a target via the \`spec.sync.overrides[].target\` or \`spec.defaultTarget\`.
+          Either specify a target via the ${styles.highlight("spec.sync.overrides[].target")} or ${styles.highlight("spec.defaultTarget")}.
 
           Override configuration:
           ${(override.command?.length ?? 0) > 0 ? `Command: ${override.command?.join(" ")}` : ""}
@@ -372,7 +372,20 @@ export async function configureSyncMode({
       const key = targetKey(target)
       dedupedTargets[key] = target
     } else {
-      // todo: warn that override config entry has no effect
+      // print a warning instead of throwing an error for compatibility
+      emitNonRepeatableWarning(
+        log,
+        dedent`
+          Sync override configuration on ${action.longDescription()} doesn't specify a target properly.
+          This target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields
+          either in the ${styles.highlight("spec.sync.overrides[].target")} or ${styles.highlight("spec.defaultTarget")}.
+
+          Sync override configuration:
+          ${(override.command?.length ?? 0) > 0 ? `Command: ${override.command?.join(" ")}` : ""}
+          ${(override.args?.length ?? 0) > 0 ? `Args: ${override.args?.join(" ")}` : ""}
+          ${(override.image?.length ?? 0) ? `Image: ${override.image}` : ""}
+        `
+      )
     }
   }
 
@@ -394,9 +407,10 @@ export async function configureSyncMode({
     if (!target) {
       throw new ConfigurationError({
         message: dedent`
-          Sync configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
+          Sync path configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
+          Either specify a target via the ${styles.highlight("spec.sync.paths[].target")} or ${styles.highlight("spec.defaultTarget")}.
 
-          Sync configuration:
+          Sync path configuration:
           Source path: ${sync.sourcePath}
           Container path: ${sync.containerPath}
           ${sync.containerName ? `Container name: ${sync.containerName}` : ""}
@@ -408,7 +422,20 @@ export async function configureSyncMode({
       const key = targetKey(target)
       dedupedTargets[key] = target
     } else {
-      // todo: warn that sync config entry has no effect
+      // print a warning instead of throwing an error for compatibility
+      emitNonRepeatableWarning(
+        log,
+        dedent`
+          Sync path configuration on ${action.longDescription()} doesn't specify a target properly.
+          This target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields
+          either in the ${styles.highlight("spec.sync.paths[].target")} or ${styles.highlight("spec.defaultTarget")}.
+
+          Sync path configuration:
+          Source path: ${sync.sourcePath}
+          Container path: ${sync.containerPath}
+          ${sync.containerName ? `Container name: ${sync.containerName}` : ""}
+        `
+      )
     }
   }
 
