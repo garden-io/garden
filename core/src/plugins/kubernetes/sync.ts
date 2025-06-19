@@ -69,6 +69,7 @@ import { commandListToShellScript } from "../../util/escape.js"
 import { toClearText } from "../../util/secrets.js"
 import type { V1Container } from "@kubernetes/client-node"
 import { emitNonRepeatableWarning } from "../../warnings.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -337,7 +338,7 @@ export async function configureSyncMode({
   for (const override of spec.overrides || []) {
     const overrideTarget = override.target
     if (overrideTarget?.podSelector) {
-      // todo: warn with deprecation
+      reportDeprecatedFeatureUsage({ log, deprecation: "podSelectorInSyncMode" })
     }
 
     // ignore override.target.podSelector in sync mode
@@ -388,7 +389,7 @@ export async function configureSyncMode({
   for (const sync of spec.paths || []) {
     const syncTarget = sync.target
     if (syncTarget?.podSelector) {
-      // todo: warn with deprecation
+      reportDeprecatedFeatureUsage({ log, deprecation: "podSelectorInSyncMode" })
     }
 
     // ignore sync.target.podSelector in sync mode
