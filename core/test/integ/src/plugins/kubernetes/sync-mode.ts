@@ -944,7 +944,7 @@ describe("sync mode deployments and sync behavior", () => {
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.contain(
-            stripAnsi(`Sync configuration on ${action.longDescription()} doesn't specify a target`)
+            stripAnsi(`Sync path configuration on ${action.longDescription()} doesn't specify a target`)
           )
       )
     })
