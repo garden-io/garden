@@ -1,4 +1,4 @@
 jq 1.6
 nodejs 22
-kubectl 1.24.6
+kubectl 1.33.2
 helm 3.10.0
