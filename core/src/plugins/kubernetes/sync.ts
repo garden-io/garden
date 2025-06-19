@@ -374,8 +374,7 @@ export async function configureSyncMode({
         log,
         dedent`
           Sync override configuration on ${action.longDescription()} doesn't specify a target properly.
-          This target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields
-          either in the ${styles.highlight("spec.sync.overrides[].target")} or ${styles.highlight("spec.defaultTarget")}.
+          This target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields either in the ${styles.highlight("spec.sync.overrides[].target")} or ${styles.highlight("spec.defaultTarget")}.
 
           Sync override configuration:
           ${(override.command?.length ?? 0) > 0 ? `Command: ${override.command?.join(" ")}` : ""}
@@ -424,8 +423,7 @@ export async function configureSyncMode({
         log,
         dedent`
           Sync path configuration on ${action.longDescription()} doesn't specify a target properly.
-          This target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields
-          either in the ${styles.highlight("spec.sync.paths[].target")} or ${styles.highlight("spec.defaultTarget")}.
+          This target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields either in the ${styles.highlight("spec.sync.paths[].target")} or ${styles.highlight("spec.defaultTarget")}.
 
           Sync path configuration:
           Source path: ${sync.sourcePath}
