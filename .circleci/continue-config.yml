@@ -5,7 +5,7 @@ orbs:
   win: circleci/windows@5.0.0
   rok8s-scripts: fairwinds/rok8s-scripts@14.1.0
   macos: circleci/macos@2.5.3
-  aws-cli: circleci/aws-cli@5.1.2
+  aws-cli: circleci/aws-cli@5.4.0
 
 parameters:
   run-test-dockerhub:
