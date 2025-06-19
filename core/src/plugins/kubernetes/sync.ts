@@ -51,6 +51,7 @@ import type {
   KubernetesPluginContext,
   KubernetesProvider,
   KubernetesTargetResourceSpec,
+  KubernetesTargetResourceSyncModeSpec,
   ServiceResourceSpec,
 } from "./config.js"
 import { targetResourceSpecSchema } from "./config.js"
@@ -131,7 +132,7 @@ export const syncDefaultsSchema = () =>
 export interface KubernetesDeployDevModeSyncSpec extends DevModeSyncOptions {
   sourcePath: string
   containerPath: string
-  target?: KubernetesTargetResourceSpec
+  target?: KubernetesTargetResourceSyncModeSpec
   containerName?: string
 }
 
@@ -159,7 +160,7 @@ export const kubernetesDeploySyncPathSchema = () =>
     )
 
 export interface KubernetesDeployOverrideSpec {
-  target?: KubernetesTargetResourceSpec
+  target?: KubernetesTargetResourceSyncModeSpec
   command?: string[]
   args?: string[]
   image?: string
@@ -217,6 +218,10 @@ export function convertKubernetesModuleDevModeSpec(
   const target = convertServiceResource(module, serviceResource)
   const sourcePath = service.sourceModule.path
   const syncSpec = module.spec.sync
+
+  if (target?.podSelector) {
+    // todo: warn
+  }
 
   if (!syncSpec || !target) {
     return undefined
@@ -285,7 +290,7 @@ export function convertContainerSyncSpec(
 function convertSyncPaths(
   basePath: string,
   syncSpecs: DevModeSyncSpec[],
-  target: KubernetesTargetResourceSpec | undefined
+  target: KubernetesTargetResourceSyncModeSpec | undefined
 ): KubernetesDeployDevModeSyncSpec[] {
   return syncSpecs.map((sync) => ({
     ...omit(sync, ["source"]),
@@ -315,9 +320,21 @@ export async function configureSyncMode({
   // Make sure we don't modify inputs in-place
   manifests = cloneDeep(manifests)
 
+  if (defaultTarget?.podSelector) {
+    // todo: warn
+  }
+
+  const effectiveDefaultTarget: KubernetesTargetResourceSyncModeSpec | undefined = defaultTarget
+    ? {
+        kind: defaultTarget.kind,
+        name: defaultTarget.name,
+      }
+    : undefined
+
   const dedupedTargets: { [ref: string]: KubernetesTargetResourceSpec } = {}
 
   const targetKey = (t: KubernetesTargetResourceSpec) => {
+    // todo: remove podSelector
     if (t.podSelector) {
       return labelSelectorToString(t.podSelector)
     } else {
@@ -326,7 +343,7 @@ export async function configureSyncMode({
   }
 
   for (const override of spec.overrides || []) {
-    const target = override.target || defaultTarget
+    const target = override.target || effectiveDefaultTarget
     if (!target) {
       throw new ConfigurationError({
         message: dedent`
@@ -344,10 +361,13 @@ export async function configureSyncMode({
       const key = targetKey(target)
       dedupedTargets[key] = target
     }
+    if (target.podSelector) {
+      // todo: warn and continue
+    }
   }
 
   for (const sync of spec.paths || []) {
-    const target = sync.target || defaultTarget
+    const target = sync.target || effectiveDefaultTarget
 
     if (!target) {
       throw new ConfigurationError({
@@ -362,6 +382,7 @@ export async function configureSyncMode({
       })
     }
 
+    // todo warn on podSelector in sync mode
     if (target.podSelector) {
       // These don't call for modification to manifests
       continue
@@ -389,7 +410,7 @@ export async function configureSyncMode({
   )
 
   for (const override of spec.overrides || []) {
-    const target = override.target || defaultTarget
+    const target = override.target || effectiveDefaultTarget
     if (!target) {
       continue
     }
@@ -419,7 +440,7 @@ export async function configureSyncMode({
   }
 
   for (const sync of spec.paths || []) {
-    const target = sync.target || defaultTarget
+    const target = sync.target || effectiveDefaultTarget
 
     if (!target) {
       continue
@@ -524,7 +545,7 @@ interface GetSyncStatusParams extends StartSyncsParams {
 interface PrepareSyncParams extends SyncParamsBase {
   action: Resolved<SupportedRuntimeAction>
   target: SyncableResource
-  resourceSpec: KubernetesTargetResourceSpec
+  resourceSpec: KubernetesTargetResourceSyncModeSpec
   spec: KubernetesDeployDevModeSyncSpec
 }
 

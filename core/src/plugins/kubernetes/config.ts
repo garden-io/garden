@@ -729,6 +729,13 @@ export interface KubernetesTargetResourceSpec {
   containerName?: string
 }
 
+export type KubernetesTargetResourceSyncModeSpec = Omit<KubernetesTargetResourceSpec, "podSelector"> & {
+  /**
+   * @deprecated `podSelector` is deprecated in sync mode
+   */
+  podSelector?: { [key: string]: string }
+}
+
 export interface ServiceResourceSpec extends KubernetesTargetResourceSpec {
   containerModule?: string
 }
