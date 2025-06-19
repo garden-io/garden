@@ -30,13 +30,7 @@ import {
 import { dedent, deline, gardenAnnotationKey } from "../../util/string.js"
 import cloneDeep from "fast-copy"
 import { kebabCase, keyBy, omit, set } from "lodash-es"
-import {
-  getResourceContainer,
-  getResourceKey,
-  getResourcePodSpec,
-  getTargetResource,
-  labelSelectorToString,
-} from "./util.js"
+import { getResourceContainer, getResourceKey, getResourcePodSpec, getTargetResource } from "./util.js"
 import type {
   KubernetesResource,
   OctalPermissionMask,
@@ -338,14 +332,7 @@ export async function configureSyncMode({
 
   const dedupedTargets: { [ref: string]: KubernetesTargetResourceSpec } = {}
 
-  const targetKey = (t: KubernetesTargetResourceSpec) => {
-    // todo: remove podSelector
-    if (t.podSelector) {
-      return labelSelectorToString(t.podSelector)
-    } else {
-      return `${t.kind}/${t.name}`
-    }
-  }
+  const targetKey = (t: KubernetesTargetResourceSyncModeStrictSpec) => `${t.kind}/${t.name}`
 
   for (const override of spec.overrides || []) {
     const overrideTarget = override.target
