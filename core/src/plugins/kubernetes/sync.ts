@@ -334,7 +334,7 @@ export async function configureSyncMode({
       }
     : undefined
 
-  const dedupedTargets: { [ref: string]: KubernetesTargetResourceSpec } = {}
+  const dedupedTargets: { [ref: string]: KubernetesTargetResourceSyncModeStrictSpec } = {}
 
   const targetKey = (t: KubernetesTargetResourceSyncModeStrictSpec) => `${t.kind}/${t.name}`
 
