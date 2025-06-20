@@ -10,6 +10,7 @@ import { BuildCommand } from "./build.js"
 import { CloudCommand } from "./cloud/cloud.js"
 import type { Command } from "./base.js"
 import { CommandGroup } from "./base.js"
+import { AICommand } from "./ai/agent.js"
 import { CommunityCommand } from "./community.js"
 import { ConfigCommand } from "./config/config.js"
 import { CreateCommand } from "./create/create.js"
@@ -42,6 +43,7 @@ import { UpCommand } from "./up.js"
 import { VersionCommand } from "./version.js"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
+  new AICommand(),
   new BuildCommand(),
   new CloudCommand(),
   new CommunityCommand(),

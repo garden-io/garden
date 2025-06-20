@@ -22,6 +22,7 @@ export const globalConfigFilename = "global-config.json"
 export const emptyGlobalConfig: GlobalConfig = {
   activeProcesses: {},
   analytics: {},
+  aiPromptHistory: [],
   clientAuthTokens: {},
   versionCheck: {},
   requirementsCheck: {},
@@ -66,6 +67,8 @@ const globalConfigSchema = z.object({
 
   // Note: Indexed on cloud domain
   clientAuthTokens: z.record(z.string().describe("The Garden Cloud domain"), clientAuthTokenSchema),
+
+  aiPromptHistory: z.array(z.string()).describe("History of AI assistant prompts for CLI arrow navigation").default([]),
 
   versionCheck: z.object({
     lastRun: z.coerce.date().optional().describe("When the automatic version check was last run."),

@@ -85,6 +85,17 @@ export interface ActionLogContext extends BaseContext {
 
 export type LogContext = CoreLogContext | ActionLogContext
 
+export type LogEntryTransformer = (entry: LogEntry) => LogEntry
+
+export interface LogEntryTransformers {
+  default?: LogEntryTransformer
+  debug?: LogEntryTransformer
+  verbose?: LogEntryTransformer
+  info?: LogEntryTransformer
+  warn?: LogEntryTransformer
+  error?: LogEntryTransformer
+}
+
 /**
  * Common Log config that the class implements and other interfaces pick / omit from.
  */
@@ -114,6 +125,11 @@ interface LogConfig<C extends BaseContext> {
    * E.g.: If calling `log.success(Done!)`, then the log message becomes "Done! (in 4 sec)" if showDuration=true.
    */
   showDuration?: boolean
+  /**
+   * Transformers to apply to the log entry. Set the default transformer to apply to all log entries and/or
+   * override the default transformer for any or each specific log level.
+   */
+  transformers?: LogEntryTransformers
 }
 
 interface LogConstructor<C extends BaseContext> extends Omit<LogConfig<C>, "key" | "timestamp"> {
@@ -122,11 +138,11 @@ interface LogConstructor<C extends BaseContext> extends Omit<LogConfig<C>, "key"
 }
 
 interface CreateLogParams
-  extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "showDuration">,
+  extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "showDuration" | "transformers">,
     Pick<LogContext, "origin"> {}
 
 interface CreateCoreLogParams
-  extends Pick<LogConfig<CoreLogContext>, "metadata" | "fixLevel" | "showDuration">,
+  extends Pick<LogConfig<CoreLogContext>, "metadata" | "fixLevel" | "showDuration" | "transformers">,
     Pick<CoreLogContext, "name" | "origin"> {
   name?: string
   origin?: string
@@ -138,7 +154,7 @@ export function resolveMsg(logEntry: LogEntry): string | undefined {
   return typeof logEntry.msg === "function" ? logEntry.msg() : logEntry.msg
 }
 
-export function transformMsg(msg: Msg, transformer: (input: string) => string): Msg {
+function transformMsg(msg: Msg, transformer: (input: string) => string): Msg {
   if (typeof msg === "function") {
     return () => transformer(msg())
   }
@@ -168,7 +184,7 @@ export interface LogEntry<C extends BaseContext = LogContext>
    * A symbol that's printed with the log message to indicate it's type (e.g. "error" or "success").
    */
   symbol?: LogSymbol
-  data?: any
+  data?: unknown
   dataFormat?: "json" | "yaml"
   error?: GardenError
   skipEmit?: boolean
@@ -234,6 +250,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
   public readonly fixLevel?: LogLevel
   public readonly entries: LogEntry[]
   public readonly context: C
+  public readonly transformers: LogEntryTransformers
 
   constructor(params: LogConstructor<C>) {
     this.key = uniqid()
@@ -245,6 +262,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
     this.metadata = params.metadata
     this.context = params.context
     this.showDuration = params.showDuration || false
+    this.transformers = params.transformers || {}
   }
 
   /**
@@ -294,6 +312,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
       },
       root: this.root,
       parentConfigs: [...this.parentConfigs, this.getConfig()],
+      transformers: params.transformers || this.transformers,
     }
   }
 
@@ -303,7 +322,15 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
   abstract createLog(params?: CreateLogParams | CreateCoreLogParams): CoreLog | ActionLog
 
   private log(params: CreateLogEntryParams) {
-    const entry = this.createLogEntry(params) as LogEntry
+    let entry = this.createLogEntry(params) as LogEntry
+
+    if (this.transformers.default) {
+      entry = this.transformers.default(entry)
+    }
+    if (this.transformers[entry.level]) {
+      entry = this.transformers[entry.level](entry)
+    }
+
     if (this.root.storeEntries) {
       this.entries.push(entry)
     }
@@ -421,6 +448,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
       timestamp: this.timestamp,
       key: this.key,
       fixLevel: this.fixLevel,
+      transformers: this.transformers,
     }
   }
 
