@@ -18,6 +18,7 @@ import stripAnsi from "strip-ansi"
 import { DynamicStructuredTool } from "@langchain/core/tools"
 import z from "zod"
 import type { ChatAnthropic } from "@langchain/anthropic"
+import { uuidv4 } from "../../../../../util/random.js"
 
 /**
  * Garden framework expert agent node
@@ -135,11 +136,15 @@ export async function gardenValidate({ context }: GardenValidateParams): Promise
 
   try {
     const garden = await Garden.factory(context.projectRoot, {
+      sessionId: uuidv4(),
+      parentSessionId: context.garden.sessionId,
       log: voidLog,
       commandInfo: {
         name: "validate",
         args: {},
         opts: {},
+        rawArgs: [],
+        isCustomCommand: false,
       },
     })
 

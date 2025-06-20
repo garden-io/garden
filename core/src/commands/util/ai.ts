@@ -25,6 +25,7 @@ import type { Log } from "../../logger/log-entry.js"
 import stripAnsi from "strip-ansi"
 import { LogLevel, VoidLogger } from "../../logger/logger.js"
 import type { MessageParam, ToolResultBlockParam } from "@anthropic-ai/sdk/resources/messages.mjs"
+import { uuidv4 } from "../../util/random.js"
 
 export const aiOpts: Record<string, never> = {}
 
@@ -61,7 +62,7 @@ export class AiConfigGenCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log }: CommandParams<Args, Opts>): Promise<CommandResult> {
-    await gardenBot(garden.projectRoot, log)
+    await gardenBot(garden, log)
 
     return {}
   }
@@ -365,6 +366,7 @@ interface WriteFileToolInput {
 }
 
 interface ToolParams {
+  garden: Garden
   rootDir: string
   log: Log
   input: unknown // Changed from object to unknown to match tool.input type
@@ -498,17 +500,21 @@ const toolMap: Record<string, ToolHandler> = {
     return { content: successMessage, result: "success" }
   },
 
-  garden_validate: async ({ rootDir, log }: ToolParams) => {
+  garden_validate: async ({ garden: parentGarden, rootDir, log }: ToolParams) => {
     log.info(chalk.cyan("Running 'garden validate'"))
 
     const validateCommand = new ValidateCommand()
 
     try {
       const garden = await Garden.factory(rootDir, {
+        sessionId: uuidv4(),
+        parentSessionId: parentGarden.sessionId,
         commandInfo: {
           name: "validate",
           args: {},
           opts: {},
+          rawArgs: [],
+          isCustomCommand: false,
         },
       })
 
@@ -554,12 +560,12 @@ const toolMap: Record<string, ToolHandler> = {
     }
   },
 
-  write_file_and_validate: async ({ rootDir, input, log }: ToolParams): Promise<ToolResponse> => {
+  write_file_and_validate: async ({ garden, rootDir, input, log }: ToolParams): Promise<ToolResponse> => {
     const writeFileHandler = toolMap.write_file
     const validateHandler = toolMap.garden_validate
 
     // Call write_file logic
-    const writeFileResult = await writeFileHandler({ rootDir, log, input })
+    const writeFileResult = await writeFileHandler({ garden, rootDir, log, input })
 
     if (writeFileResult.result !== "success") {
       return writeFileResult // Return early if write_file failed
@@ -569,13 +575,14 @@ const toolMap: Record<string, ToolHandler> = {
 
     // Call garden_validate logic
     // garden_validate's input schema is empty, so we pass an empty object for its specific input part.
-    const validateResult = await validateHandler({ rootDir, log, input: {} })
+    const validateResult = await validateHandler({ garden, rootDir, log, input: {} })
 
     return validateResult // Return the result from validateHandler directly
   },
 }
 
-async function gardenBot(rootDir: string, log: Log) {
+async function gardenBot(garden: Garden, log: Log) {
+  const rootDir = garden.projectRoot
   const messages: MessageParam[] = [{ role: "user", content: initPrompt }]
 
   let loop = true
@@ -600,6 +607,7 @@ async function gardenBot(rootDir: string, log: Log) {
 
       try {
         const toolResult = await toolHandler({
+          garden,
           rootDir,
           log: log.createLog({ origin: chalk.cyan(tool.name) }),
           input: tool.input,

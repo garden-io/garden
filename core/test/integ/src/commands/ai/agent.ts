@@ -99,7 +99,6 @@ describe("AI Agent end-to-end", () => {
     const getUserInput = async () => inputs.shift() ?? "quit"
 
     const context: AgentContext = {
-      anthropic: {} as any,
       projectRoot: garden.projectRoot,
       projectInfo: undefined,
       log: garden.log,
