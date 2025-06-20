@@ -109,6 +109,7 @@ export async function shutdown(code?: number) {
   }
 }
 
+// TODO: make sure it waits for the callback function completion
 export function registerCleanupFunction(name: string, func: HookCallback) {
   exitHookNames.push(name)
   const callbackFunc = (signal: number) => {

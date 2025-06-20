@@ -24,7 +24,8 @@
   "devDependencies": {
     "@types/node": "^24",
     "prettier": "3.5.3",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "ulid": "^3.0.0"
   },
   "scripts": {
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",

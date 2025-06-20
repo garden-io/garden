@@ -41,10 +41,13 @@ export type WrappedFromGarden = Pick<
   | "namespace"
   | "production"
   | "sessionId"
+  | "parentSessionId"
 >
 
 export interface CommandInfo {
   name: string
+  rawArgs: string[]
+  isCustomCommand: boolean
   args: ParameterValues<ParameterObject>
   opts: ParameterValues<ParameterObject>
 }
@@ -74,6 +77,11 @@ export const pluginContextSchema = createSchema({
         name: joi.string().required().description("The command name currently being executed."),
         args: joiVariables().required().description("The positional arguments passed to the command."),
         opts: joiVariables().required().description("The optional flags passed to the command."),
+        rawArgs: joi.array().items(joi.string()).required().description("The raw arguments passed to the command."),
+        isCustomCommand: joi
+          .boolean()
+          .default(false)
+          .description("Indicates if this is a user-declared custom command."),
       })
       .description("Information about the command being executed, if applicable."),
     environmentName: environmentNameSchema(),
@@ -101,6 +109,7 @@ export const pluginContextSchema = createSchema({
       ),
     deepEvaluate: joi.function().description("Helper function to deeply resolve parsed template strings."),
     sessionId: joi.string().description("The unique ID of the currently active session."),
+    parentSessionId: joi.string().optional().description("The unique ID of the currently active parent session."),
     tools: joiStringMap(joi.object()),
     workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     cloudApi: joi.any().optional(),
@@ -252,6 +261,7 @@ export async function createPluginContext({
       })
     },
     sessionId: garden.sessionId,
+    parentSessionId: garden.parentSessionId,
     tools: await garden.getTools(),
     workingCopyId: garden.workingCopyId,
     cloudApi: garden.cloudApi,

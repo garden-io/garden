@@ -436,9 +436,17 @@ describe("Garden", () => {
             - name: local
         `
         )
-        await expectError(async () => Garden.factory(tmpPath, { commandInfo: { name: "test", args: {}, opts: {} } }), {
-          type: "runtime",
-        })
+        await expectError(
+          async () =>
+            Garden.factory(tmpPath, {
+              commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+              sessionId: uuidv4(),
+              parentSessionId: undefined,
+            }),
+          {
+            type: "runtime",
+          }
+        )
       } finally {
         await dir.cleanup()
       }

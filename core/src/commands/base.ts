@@ -13,35 +13,33 @@ import { flatMap, fromPairs, mapValues, pickBy, size } from "lodash-es"
 import type { PrimitiveMap } from "../config/common.js"
 import { createSchema, joi, joiArray, joiIdentifierMap, joiStringMap, joiVariables } from "../config/common.js"
 import type { GardenError } from "../exceptions.js"
-import { RuntimeError, InternalError, toGardenError } from "../exceptions.js"
+import { InternalError, RuntimeError, toGardenError } from "../exceptions.js"
 import type { Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger.js"
-import { eventLogLevel } from "../logger/logger.js"
 import { printEmoji, printFooter } from "../logger/util.js"
 import { getDurationMsec, getPackageVersion, userPrompt } from "../util/util.js"
-import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers.js"
-import type { GlobalOptions, ParameterValues, ParameterObject } from "../cli/params.js"
+import { cliStyles, optionsWithAliasValues, renderArguments, renderCommands, renderOptions } from "../cli/helpers.js"
+import type { GlobalOptions, ParameterObject, ParameterValues } from "../cli/params.js"
 import { globalOptions } from "../cli/params.js"
 import type { GardenCli } from "../cli/cli.js"
 import type { CommandLine } from "../cli/command-line.js"
 import type { SolveResult } from "../graph/solver.js"
 import { waitForOutputFlush } from "../process.js"
-import { BufferedEventStream } from "../cloud/buffered-event-stream.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { GardenServer } from "../server/server.js"
 import type { CloudSession } from "../cloud/api.js"
 import type { DeployState, ForwardablePort, ServiceIngress } from "../types/service.js"
 import { deployStates, forwardablePortSchema, serviceIngressSchema } from "../types/service.js"
-import type { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from "../graph/results.js"
+import type { GraphResultMapWithoutTask, GraphResults, GraphResultWithoutTask } from "../graph/results.js"
 import { splitFirst } from "../util/string.js"
-import { actionStates, type ActionMode, type ActionState } from "../actions/types.js"
+import { type ActionMode, type ActionState, actionStates } from "../actions/types.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { styles } from "../logger/styles.js"
 import { clearVarfileCache } from "../config/base.js"
-import { getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
+import { createCloudEventStream, getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -338,39 +336,42 @@ export abstract class Command<
 
         const commandInfo: CommandInfo = {
           name: this.getFullName(),
+          rawArgs: args["$all"] || [],
+          isCustomCommand: this.isCustom,
           args,
           opts: optionsWithAliasValues(this, allOpts),
         }
 
-        const cloudEventStream = new BufferedEventStream({
-          log,
-          cloudSession,
-          maxLogLevel: eventLogLevel,
-          garden,
-          streamEvents: this.streamEvents,
-          streamLogEntries: this.streamLogEntries,
-        })
-
         let result: CommandResult<R>
 
+        const cloudEventStream = createCloudEventStream({
+          sessionId: garden.sessionId,
+          log,
+          garden,
+          opts: { shouldStreamEvents: this.streamEvents, shouldStreamLogs: this.streamLogEntries },
+        })
+        if (cloudEventStream) {
+          log.silly(() => `Connecting Garden instance events to Cloud API`)
+        }
+
         try {
-          if (cloudSession && this.streamEvents) {
-            log.silly(() => `Connecting Garden instance events to Cloud API`)
-            garden.events.emit("commandInfo", {
-              ...commandInfo,
-              environmentName: garden.environmentName,
-              environmentId: cloudSession.environmentId,
-              projectName: garden.projectName,
-              projectId: cloudSession.projectId,
-              namespaceName: garden.namespace,
-              namespaceId: cloudSession.namespaceId,
-              coreVersion: getPackageVersion(),
-              vcsBranch: garden.vcsInfo.branch,
-              vcsCommitHash: garden.vcsInfo.commitHash,
-              vcsOriginUrl: garden.vcsInfo.originUrl,
-              sessionId: garden.sessionId,
-            })
-          }
+          garden.events.emit("commandInfo", {
+            ...commandInfo,
+            environmentName: garden.environmentName,
+            environmentId: cloudSession?.environmentId,
+            projectName: garden.projectName,
+            projectId: cloudSession?.projectId,
+            namespaceName: garden.namespace,
+            namespaceId: cloudSession?.namespaceId,
+            coreVersion: getPackageVersion(),
+            vcsBranch: garden.vcsInfo.branch,
+            vcsCommitHash: garden.vcsInfo.commitHash,
+            vcsOriginUrl: garden.vcsInfo.originUrl,
+            sessionId: garden.sessionId,
+            _vcsRepositoryRootDirAbs: garden.vcsInfo.repositoryRootDirAbs,
+            _projectApiVersion: garden.getProjectConfig().apiVersion,
+            _projectRootDirAbs: garden.projectRoot,
+          })
 
           // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
           if (await this.isAllowedToRun(garden, log, allOpts)) {
@@ -427,7 +428,7 @@ export abstract class Command<
             garden.close()
             parentGarden.nestedSessions.delete(sessionId)
           }
-          await cloudEventStream.close()
+          await cloudEventStream?.close()
         }
 
         // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to

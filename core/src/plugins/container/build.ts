@@ -437,7 +437,7 @@ export async function sendBuildReport({
 
     const growCloudApi = ctx.cloudApiV2
     if (!growCloudApi) {
-      log.warn("Garden Cloud v2 not available. Are you logged in?")
+      log.debug("Not sending build report to Garden Cloud v1 (Only sending to Garden Cloud v2)")
       return { timeSaved: 0 }
     }
 
