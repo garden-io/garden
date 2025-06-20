@@ -10,7 +10,6 @@ import { expect } from "chai"
 import { taskRouterNode } from "../../../../../src/commands/ai/agents/langgraph/nodes/task-router-node.js"
 import { NODE_NAMES, type NodeName, type AgentContext } from "../../../../../src/commands/ai/types.js"
 import type { Task, AgentGraphState } from "../../../../../src/commands/ai/agents/langgraph/types.js"
-import type { Anthropic } from "@anthropic-ai/sdk"
 import type { Log } from "../../../../../src/logger/log-entry.js"
 import type { Garden } from "../../../../../src/garden.js"
 
@@ -26,7 +25,6 @@ const stubLog = stubLogBase as unknown as Log
 
 // Minimal stub context for tests
 const testContext: AgentContext = {
-  anthropic: null as unknown as Anthropic,
   projectRoot: "/tmp",
   log: stubLog,
   garden: null as unknown as Garden,
