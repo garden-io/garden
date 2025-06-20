@@ -171,6 +171,7 @@ describe("ConfigStore", () => {
           passed: true,
         },
         versionCheck: {},
+        aiPromptHistory: [],
       })
     })
 
