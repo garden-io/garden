@@ -1482,6 +1482,10 @@ export class Garden {
         })
       }
 
+      for (const template of configTemplates) {
+        this.configTemplates[template.name] = template
+      }
+
       // Convert type:templated modules to Render configs
       // TODO(0.15): remove modules
       const rawTemplatedModules = rawModuleConfigs.filter((m) => m.type === "templated") as TemplatedModuleConfig[]
@@ -1539,10 +1543,6 @@ export class Garden {
 
       this.state.configsScanned = true
 
-      for (const template of configTemplates) {
-        this.configTemplates[template.name] = template
-      }
-
       this.events.emit("configsScanned", {})
     })
   }
@@ -1575,6 +1575,20 @@ export class Garden {
     return !!resolved
   }
 
+  private getConfigTemplatePath(templateName: string | undefined) {
+    if (!templateName) {
+      return undefined
+    }
+    const templateConfigPath = this.configTemplates[templateName]?.internal?.configFilePath
+    if (!templateConfigPath) {
+      // This shouldn't happen, since config templates should have been scanned by this point.
+      throw new InternalError({
+        message: `Template '${templateName}' is missing a config file path, or it hasn't been scanned yet. This is a bug.`,
+      })
+    }
+    return relative(this.projectRoot, templateConfigPath)
+  }
+
   /**
    * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
@@ -1585,6 +1599,7 @@ export class Garden {
         `Adding action config for ${config.kind} ${styles.highlight(config.name)} ${!!parentTemplateName ? `(from template ${styles.highlight(parentTemplateName)})` : ""}`
     )
     const key = actionReferenceToString(config)
+    config.internal.templatePath = this.getConfigTemplatePath(parentTemplateName)
     const existing = this.actionConfigs[config.kind][config.name]
 
     if (existing) {
@@ -1614,7 +1629,7 @@ export class Garden {
   }
 
   /**
-   * Add a module config to the context, after validating and calling the appropriate configure plugin handler.
+   * Add a moduleconfig to the context, after validating and calling the appropriate configure plugin handler.
    */
   private addRawModuleConfig(config: ModuleConfig) {
     const key = config.name
@@ -1629,7 +1644,7 @@ export class Garden {
         message: `Module ${key} is declared multiple times (in '${pathA}' and '${pathB}')`,
       })
     }
-
+    config.templatePath = this.getConfigTemplatePath(config.templateName)
     this.moduleConfigs[key] = config
   }
 
