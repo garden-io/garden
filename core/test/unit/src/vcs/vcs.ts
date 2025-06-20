@@ -57,6 +57,7 @@ export class TestVcsHandler extends VcsHandler {
 
   async getPathInfo() {
     return {
+      repositoryRootDirAbs: "/fake/root/",
       branch: "main",
       commitHash: "acbdefg",
       originUrl: "git@github.com:garden-io/foo.git",

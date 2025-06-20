@@ -33,6 +33,7 @@ import { fileURLToPath } from "node:url"
 import dedent from "dedent"
 import { getDeprecations } from "../util/deprecations.js"
 import { isErrnoException } from "../exceptions.js"
+import { uuidv4 } from "../util/random.js"
 
 const { writeFileSync, readFile, writeFile, mkdirp } = fsExtra
 
@@ -76,7 +77,9 @@ export async function writeConfigReferenceDocs(
   ]
   const getFreshGarden = async () => {
     return await Garden.factory(moduleDirName, {
-      commandInfo: { name: "generate-docs", args: {}, opts: {} },
+      sessionId: uuidv4(),
+      parentSessionId: undefined,
+      commandInfo: { name: "generate-docs", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
       config: {
         configPath: import.meta.filename,
         path: moduleDirName,

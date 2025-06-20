@@ -8,7 +8,7 @@
 
 import { getLogLevelChoices, LogLevel } from "../logger/logger.js"
 import stringArgv from "string-argv"
-import type { Command, CommandParams, CommandResult } from "../commands/base.js"
+import type { BuiltinArgs, Command, CommandParams, CommandResult } from "../commands/base.js"
 import { ConsoleCommand } from "../commands/base.js"
 import { createSchema, joi } from "../config/common.js"
 import { type Log } from "../logger/log-entry.js"
@@ -387,7 +387,7 @@ export async function resolveRequest({
   let command: Command | undefined
   let rest: string[] = []
   let argv: ParsedArgs | undefined
-  let cmdArgs: ParameterValues<ParameterObject> = {}
+  let cmdArgs: BuiltinArgs & ParameterValues<ParameterObject> = {}
   let cmdOpts: ParameterValues<ParameterObject> = {}
 
   if (request.command) {

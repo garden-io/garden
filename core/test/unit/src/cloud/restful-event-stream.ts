@@ -7,17 +7,29 @@
  */
 
 import { expect } from "chai"
-import type { StreamEvent, LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream.js"
-import { BufferedEventStream } from "../../../../src/cloud/buffered-event-stream.js"
+import type { LogEntryEventPayload, StreamEvent } from "../../../../src/cloud/restful-event-stream.js"
+import { RestfulEventStream } from "../../../../src/cloud/restful-event-stream.js"
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
 import { makeTestGardenA } from "../../../helpers.js"
 import { find, isMatch, range, repeat } from "lodash-es"
+import type { CloudSession, GardenCloudApi } from "../../../../src/cloud/api.js"
 
 function makeDummyRecord(sizeKb: number) {
   return { someKey: repeat("a", sizeKb * 1024) }
 }
 
-describe("BufferedEventStream", () => {
+const mockCloudSession: CloudSession = {
+  // this api is never called in the tests below, all caller functions are overridden in the individual tests
+  api: {} as GardenCloudApi,
+  // we do not need any correct values of these for this test suite
+  id: "fake-session-ulid",
+  shortId: "fake-short-id",
+  projectId: "fake-project-id",
+  environmentId: "fake-namespace-id",
+  namespaceId: "fake-namespace-id",
+}
+
+describe("RestfulEventStream", () => {
   const maxLogLevel = LogLevel.debug
 
   it("should flush events and log entries emitted by a connected event emitter", async () => {
@@ -28,7 +40,7 @@ describe("BufferedEventStream", () => {
 
     const garden = await makeTestGardenA()
 
-    const bufferedEventStream = new BufferedEventStream({ log, garden, maxLogLevel, cloudSession: undefined })
+    const bufferedEventStream = new RestfulEventStream({ log, garden, maxLogLevel, cloudSession: mockCloudSession })
 
     bufferedEventStream["getTargets"] = () => {
       return [{ enterprise: true }]
@@ -55,6 +67,8 @@ describe("BufferedEventStream", () => {
 
   describe("makeBatch", () => {
     const maxBatchBytes = 3 * 1024 // Set this to a low value (3 Kb) to keep the memory use of the test suite low.
+    const recordSizeKb = 0.5
+
     const targets = [
       {
         host: "dummy-platform_url",
@@ -64,18 +78,18 @@ describe("BufferedEventStream", () => {
     ]
 
     it("should pick records until the batch size reaches MAX_BATCH_BYTES", async () => {
-      const recordSizeKb = 0.5
       const log = getRootLogger().createLog()
       const garden = await makeTestGardenA()
-      const bufferedEventStream = new BufferedEventStream({
+      const bufferedEventStream = new RestfulEventStream({
         log,
         garden,
         targets,
         maxLogLevel,
-        cloudSession: undefined,
+        cloudSession: mockCloudSession,
+        maxBatchBytes,
       })
       await bufferedEventStream.close()
-      bufferedEventStream["maxBatchBytes"] = maxBatchBytes
+
       // Total size is ~3MB, which exceeds MAX_BATCH_BYTES
       const records = range(100).map((_) => makeDummyRecord(recordSizeKb))
       const batch = bufferedEventStream.makeBatch(records)
@@ -86,18 +100,18 @@ describe("BufferedEventStream", () => {
     })
 
     it("should drop individual records whose payload size exceeds MAX_BATCH_BYTES", async () => {
-      const recordSizeKb = 0.5
       const log = getRootLogger().createLog()
       const garden = await makeTestGardenA()
-      const bufferedEventStream = new BufferedEventStream({
+      const bufferedEventStream = new RestfulEventStream({
         log,
         garden,
         targets,
         maxLogLevel,
-        cloudSession: undefined,
+        cloudSession: mockCloudSession,
+        maxBatchBytes,
       })
       await bufferedEventStream.close()
-      bufferedEventStream["maxBatchBytes"] = maxBatchBytes
+
       // This record's size, exceeds MAX_BATCH_BYTES, so it should be dropped by `makeBatch`.
       const tooLarge = {
         ...makeDummyRecord(maxBatchBytes / 1024 + 3),

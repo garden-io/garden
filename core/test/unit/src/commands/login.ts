@@ -23,6 +23,7 @@ import { makeDummyGarden } from "../../../../src/garden.js"
 import type { Garden } from "../../../../src/index.js"
 import { FakeGardenCloudApi } from "../../../helpers/api.js"
 import dedent from "dedent"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 function loginCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: {} }) {
   const log = garden.log
@@ -64,7 +65,7 @@ describe("LoginCommand", () => {
     const command = new LoginCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain"), {
       skipCloudConnect: false,
-      commandInfo: { name: "foo", args: {}, opts: {} },
+      commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
       globalConfigStore,
     })
 
@@ -90,7 +91,7 @@ describe("LoginCommand", () => {
     const command = new LoginCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       skipCloudConnect: false,
-      commandInfo: { name: "foo", args: {}, opts: {} },
+      commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
       globalConfigStore,
     })
 
@@ -117,7 +118,7 @@ describe("LoginCommand", () => {
     const command = new LoginCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       skipCloudConnect: false,
-      commandInfo: { name: "foo", args: {}, opts: {} },
+      commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
       globalConfigStore,
     })
 
@@ -153,7 +154,9 @@ describe("LoginCommand", () => {
     // secrets which are not available unless we mock the cloud API instance.
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "secret-in-project-variables"), {
       skipCloudConnect: false,
-      commandInfo: { name: "foo", args: {}, opts: {} },
+      commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
+      sessionId: uuidv4(),
+      parentSessionId: undefined,
       globalConfigStore,
     })
 
@@ -181,7 +184,7 @@ describe("LoginCommand", () => {
     }
     const command = new LoginCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "missing-domain"), {
-      commandInfo: { name: "foo", args: {}, opts: {} },
+      commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
     })
 
     setTimeout(() => {
@@ -208,7 +211,7 @@ describe("LoginCommand", () => {
     const command = new LoginCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       skipCloudConnect: false,
-      commandInfo: { name: "foo", args: {}, opts: {} },
+      commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
       globalConfigStore,
     })
 
@@ -254,7 +257,9 @@ describe("LoginCommand", () => {
 
       // this is a bit of a workaround to run outside of the garden root dir
       const garden = await makeDummyGarden(tmpDirOutsideProjectRoot.path, {
-        commandInfo: { name: "foo", args: {}, opts: {} },
+        commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
+        sessionId: uuidv4(),
+        parentSessionId: undefined,
       })
 
       setTimeout(() => {
@@ -295,7 +300,7 @@ describe("LoginCommand", () => {
       const command = new LoginCommand()
       const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
         skipCloudConnect: false,
-        commandInfo: { name: "foo", args: {}, opts: {} },
+        commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
         globalConfigStore,
         // FakeCloudApi bypasses the login and returns mock project data
         overrideCloudApiFactory: FakeGardenCloudApi.factory,
@@ -315,7 +320,7 @@ describe("LoginCommand", () => {
       const command = new LoginCommand()
       const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
         skipCloudConnect: false,
-        commandInfo: { name: "foo", args: {}, opts: {} },
+        commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
         globalConfigStore,
         // FakeCloudApi bypasses the login and returns mock project data
         overrideCloudApiFactory: FakeGardenCloudApi.factory,
@@ -351,7 +356,7 @@ describe("LoginCommand", () => {
       const command = new LoginCommand()
       const garden = await makeTestGarden(getDataDir("test-projects", "login", "missing-domain"), {
         skipCloudConnect: false,
-        commandInfo: { name: "foo", args: {}, opts: {} },
+        commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
         globalConfigStore,
       })
 
@@ -377,7 +382,7 @@ describe("LoginCommand", () => {
       const command = new LoginCommand()
       const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain"), {
         skipCloudConnect: false,
-        commandInfo: { name: "foo", args: {}, opts: {} },
+        commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
         globalConfigStore,
       })
 

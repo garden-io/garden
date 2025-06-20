@@ -7,6 +7,11 @@
  */
 import type { ProjectConfig } from "../config/project.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
+import type { Log } from "../logger/log-entry.js"
+import type { Garden } from "../garden.js"
+import { RestfulEventStream } from "./restful-event-stream.js"
+import { GrpcEventStream } from "./grow/grpc-event-stream.js"
+import { eventLogLevel } from "../logger/logger.js"
 
 export type GardenCloudDistroName = "Garden Enterprise" | "Garden Cloud"
 
@@ -65,4 +70,48 @@ export function getCloudDomain(projectConfig: ProjectConfig): string {
 
 export function getBackendType(projectConfig: ProjectConfig): "v1" | "v2" {
   return projectConfig.id ? "v1" : "v2"
+}
+
+interface CreateCloudEventStreamParams {
+  sessionId: string
+  log: Log
+  garden: Garden
+  opts: { shouldStreamEvents: boolean; shouldStreamLogs: boolean }
+}
+
+export function createCloudEventStream({
+  sessionId,
+  log,
+  garden,
+  opts,
+}: CreateCloudEventStreamParams): RestfulEventStream | GrpcEventStream | undefined {
+  if (garden.isOldBackendAvailable()) {
+    const cloudApi = garden.cloudApi
+    const cloudSession = cloudApi.getRegisteredSession(sessionId)
+    if (!cloudSession) {
+      log.debug(`Cannot find session ${sessionId}. No events will be sent to ${cloudApi.distroName}.`)
+      return undefined
+    }
+
+    return new RestfulEventStream({
+      log,
+      cloudSession,
+      maxLogLevel: eventLogLevel,
+      garden,
+      streamEvents: opts.shouldStreamEvents,
+      streamLogEntries: opts.shouldStreamLogs,
+    })
+  }
+
+  if (garden.isNewBackendAvailable() && opts.shouldStreamEvents) {
+    return new GrpcEventStream({
+      log,
+      garden,
+      shouldStreamLogEntries: opts.shouldStreamLogs,
+      eventIngestionService: garden.cloudApiV2.eventIngestionService,
+    })
+  }
+
+  log.debug(`Neither old nor new backend is available. No events will be sent to the Garden Cloud API.`)
+  return undefined
 }

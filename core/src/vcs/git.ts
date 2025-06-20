@@ -117,6 +117,7 @@ export class GitCli {
 
   public async getPathInfo() {
     const output: VcsInfo = {
+      repositoryRootDirAbs: "",
       branch: "",
       commitHash: "",
       originUrl: "",
@@ -136,6 +137,13 @@ export class GitCli {
     } catch (err) {
       // Just ignore if not available
       this.log.silly(() => `Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
+    }
+
+    try {
+      output.repositoryRootDirAbs = await this.getRepositoryRoot()
+    } catch (err) {
+      // Just ignore if not available
+      this.log.silly(() => `Tried to retrieve git repository root but encountered an error: ${err}`)
     }
 
     return output
