@@ -83,9 +83,9 @@ describe("Log", () => {
       expect(entry.level).to.eql(LogLevel.info)
       expect(entry.msg).to.eql(styles.success("success"))
     })
-    it("should log success message in original color if it has ansi", () => {
+    it("should include ansi color in log success message", () => {
       const entry = log.success(`hello ${styles.highlight("cyan")}`).getLatestEntry()
-      expect(entry.msg).to.eql(`hello ${styles.highlight("cyan")}`)
+      expect(entry.msg).to.eql(styles.success(`hello ${styles.highlight("cyan")}`))
     })
     it("should set the symbol to success", () => {
       const entry = log.success("success").getLatestEntry()
@@ -181,8 +181,10 @@ describe("CoreLog", () => {
             timestamp: log.timestamp,
             key: log.key,
             fixLevel: log.fixLevel,
+            transformers: log.transformers,
           },
         ],
+        transformers: log.transformers,
       })
     })
     it("should ensure child log inherits config", () => {
@@ -209,6 +211,7 @@ describe("CoreLog", () => {
         },
         metadata: { workflowStep: { index: 2 } },
         parentConfigs: [log.getConfig(), coreLog.getConfig()],
+        transformers: log.transformers,
       })
     })
     it("should optionally overwrite context", () => {
@@ -298,8 +301,10 @@ describe("ActionLog", () => {
             timestamp: log.timestamp,
             key: log.key,
             fixLevel: log.fixLevel,
+            transformers: log.transformers,
           },
         ],
+        transformers: log.transformers,
       })
     })
 
@@ -374,6 +379,7 @@ describe("ActionLog", () => {
         },
         metadata: inheritedMetadata,
         parentConfigs: [log.getConfig(), actionLog.getConfig()],
+        transformers: {},
       })
     })
     it("should optionally overwrite origin", () => {

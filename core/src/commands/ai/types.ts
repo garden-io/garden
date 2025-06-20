@@ -70,7 +70,6 @@ export interface InfrastructureInfo {
 }
 
 export interface AgentContext {
-  anthropic: Anthropic
   projectRoot: string
   projectInfo?: ProjectInfo
   log: Log

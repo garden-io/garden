@@ -10,7 +10,6 @@ import { Command } from "../base.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import type { AgentContext } from "./types.js"
 import { createAgentGraph } from "./agents/langgraph/graph.js"
-import Anthropic from "@anthropic-ai/sdk"
 import chalk from "chalk"
 import { printHeader } from "../../logger/util.js"
 import dedent from "dedent"
@@ -60,12 +59,8 @@ export class AICommand extends Command<Args, Opts> {
       return { exitCode: 1 }
     }
 
-    // Initialize Anthropic client
-    const anthropic = new Anthropic({})
-
     // Create the agent context
     const context: AgentContext = {
-      anthropic,
       projectRoot: garden.projectRoot,
       projectInfo: undefined,
       log,
