@@ -52,12 +52,12 @@ export function testFromConfig<M extends GardenModule = GardenModule>(
     recursive: true,
   })
   // We sort the dependencies by type and name to avoid unnecessary cache invalidation due to possible ordering changes.
-  const depHashes = [
-    ...sortBy(deps.build, (mod) => mod.name).map((mod) => mod.version),
+  const depConfigs = [
+    ...sortBy(deps.build, (mod) => mod.name).map((mod) => serializeConfig(mod)),
     ...sortBy(deps.deploy, (s) => s.module.name).map((s) => serializeConfig(s)),
     ...sortBy(deps.run, (t) => t.module.name).map((t) => serializeConfig(t)),
   ]
-  const version = `${versionStringPrefix}${hashStrings([getEntityVersion(module, config), ...depHashes])}`
+  const version = `${versionStringPrefix}${hashStrings([getEntityVersion(module, config), ...depConfigs])}`
   return {
     name: config.name,
     module,

@@ -8,7 +8,6 @@
 
 import _dedent from "dedent"
 import _deline from "deline"
-import _urlJoin from "proper-url-join"
 import _stableStringify from "json-stable-stringify"
 import _titleize from "titleize"
 import CliTable from "cli-table3"
@@ -21,8 +20,21 @@ import wrapAnsi from "wrap-ansi"
 // the import syntax, and it for some reason doesn't play nice with IDEs).
 export const dedent = _dedent
 export const deline = _deline
-export const urlJoin = _urlJoin as (...args: string[]) => string
-export const stableStringify = _stableStringify
+
+/**
+ * Returns null- and undefined-sdafe value of type {@code string}.
+ *
+ * The explicit types were introduced in json-stable-stringify 1.2.0,
+ * see https://github.com/ljharb/json-stable-stringify/commit/5dbd6c802fe013082e597ecf6a8c3428e60d906b
+ *
+ * Priopr to the change above, the return type was {@code any} and we did not check that and have not got any failures so far.
+ * For compatibility and stability reasons, let's consider all possible undefined values as empty strings.
+ *
+ * @param obj the object to be stringified
+ */
+export function stableStringify(obj: unknown): string {
+  return _stableStringify(obj) || ""
+}
 
 // helper to enforce annotating images that we bundle with
 // Garden to include the sha256 digest for extra security.
