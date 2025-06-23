@@ -1,0 +1,6 @@
+{
+  "type": "object",
+  "default": {},
+  "properties": {},
+  "additionalProperties": false
+}

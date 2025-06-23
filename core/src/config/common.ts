@@ -845,9 +845,9 @@ export const joiIdentifierMap = memoize((valueSchema: Joi.Schema) =>
 export const joiVarfile = memoize(() =>
   joi
     .alternatives(
-      joi.posixPath().description("Path to a file containing a path."),
+      joi.posixPath().description("Path to a file containing variables."),
       joi.object().keys({
-        path: joi.posixPath().required().description("Path to a file containing a path."),
+        path: joi.posixPath().required().description("Path to a file containing variables."),
         optional: joi.boolean().description("Whether the varfile is optional."),
       })
     )

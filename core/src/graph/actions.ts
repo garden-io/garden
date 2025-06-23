@@ -641,7 +641,7 @@ export async function executeAction<T extends Action>({
   return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }
 
-function getActionSchema(kind: ActionKind) {
+export function getActionSchema(kind: ActionKind) {
   switch (kind) {
     case "Build":
       return buildActionConfigSchema()

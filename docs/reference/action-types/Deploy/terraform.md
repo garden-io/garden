@@ -234,7 +234,7 @@ varfiles:
 
 [varfiles](#varfiles) > path
 
-Path to a file containing a path.
+Path to a file containing variables.
 
 | Type        | Required |
 | ----------- | -------- |

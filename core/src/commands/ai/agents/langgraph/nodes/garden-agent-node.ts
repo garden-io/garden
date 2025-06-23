@@ -26,6 +26,7 @@ import { uuidv4 } from "../../../../../util/random.js"
 export class GardenAgentNode extends ExpertAgentNode {
   constructor(context: AgentContext, model: ChatAnthropic) {
     super(context, model)
+
     // Override tools with Garden-specific tools that include validation
     this.tools.push(
       // Garden validate tool

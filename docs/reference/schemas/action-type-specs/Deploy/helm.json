@@ -1,0 +1,776 @@
+{
+  "type": "object",
+  "properties": {
+    "namespace": {
+      "type": "string",
+      "description": "A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.",
+      "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$",
+      "maxLength": 63
+    },
+    "portForwards": {
+      "type": "array",
+      "description": "Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "An identifier to describe the port forward.",
+            "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$"
+          },
+          "resource": {
+            "type": "string",
+            "description": "The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command."
+          },
+          "targetPort": {
+            "type": "integer",
+            "description": "The port number on the remote resource to forward to."
+          },
+          "localPort": {
+            "type": "integer",
+            "description": "The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is not available, a warning is shown and a random port chosen instead."
+          }
+        },
+        "required": [
+          "resource",
+          "targetPort"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "releaseName": {
+      "type": "string",
+      "description": "Optionally override the release name used when installing (defaults to the Deploy name).",
+      "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$"
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks).",
+      "default": 300
+    },
+    "values": {
+      "type": "object",
+      "description": "Map of values to pass to Helm when rendering the templates. May include arrays and nested objects. When specified, these take precedence over the values in the `values.yaml` file (or the files specified in `valueFiles`).",
+      "properties": {
+        "/.+/": {
+          "$ref": "#/$defs/parameterValue"
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        ".+": {
+          "$ref": "#/$defs/parameterValue"
+        }
+      }
+    },
+    "valueFiles": {
+      "type": "array",
+      "description": "Specify value files to use when rendering the Helm chart. These will take precedence over the `values.yaml` file\nbundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in\nthis list will have the highest precedence.\n\nIf you _also_ specify keys under the `values` field, those will effectively be added as another file at the end\nof this list, so they will take precedence over other files listed here.\n\nNote that the paths here should be relative to the _config_ root, and the files should be contained in\nthis action config's directory.",
+      "default": []
+    },
+    "atomic": {
+      "type": "boolean",
+      "description": "Whether to set the `--atomic` flag during installs and upgrades. Set to `true` if you'd like the changes applied\nto be reverted on failure. Set to false if e.g. you want to see more information about failures and then manually\nroll back, instead of having Helm do it automatically on failure.\n\nNote that setting `atomic` to `true` implies `wait`.",
+      "default": false
+    },
+    "waitForUnhealthyResources": {
+      "type": "boolean",
+      "description": "Whether to wait for the Helm command to complete before throwing an error if one of the resources being installed/upgraded is unhealthy.\n\nBy default, Garden will monitor the resources being created by Helm and throw an error as soon as one of them is unhealthy. This allows Garden to fail fast if there's an issue with one of the resources. If no issue is detected, Garden waits for the Helm command to complete.\n\nIf however `waitForUnhealthyResources` is set to `true` and some resources are unhealthy, then Garden will wait for Helm itself to throw an error which typically happens when it times out in the case of unhealthy resources (e.g. due to `ImagePullBackOff` or `CrashLoopBackOff` errors).\n\nWaiting for the timeout can take awhile so using the default value here is recommended unless you'd like to completely mimic Helm's behaviour and not rely on Garden's resource monitoring.\n\nNote that setting `atomic` to `true` implies `waitForUnhealthyResources`.",
+      "default": false
+    },
+    "chart": {
+      "type": "object",
+      "description": "Specify the Helm chart to use.\n\nIf the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set `chart.path` to the directory path, relative to the action directory.\n\nFor remote charts, there are multiple options:\n- **[Helm Chart repository](https://helm.sh/docs/topics/chart_repository/)**: specify `chart.name` and `chart.version\\, and optionally `chart.repo` (if the chart is not in the default \"stable\" repo).\n- **[OCI-Based Registry](https://helm.sh/docs/topics/registries/)**: specify `chart.url` with the `oci://` URL and optionally `chart.version`.\n- **Absolute URL to a packaged chart**: specify `chart.url`.\n\nOne of `chart.name`, `chart.path` or `chart.url` must be specified.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "examples": [
+            "ingress-nginx"
+          ],
+          "description": "A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain the Helm chart itself."
+        },
+        "path": {
+          "type": "posixPath",
+          "description": "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repository URL to fetch the chart from. Defaults to the \"stable\" helm repo (https://charts.helm.sh/stable)."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to OCI repository, or a URL to a packaged Helm chart archive.",
+          "format": "uri"
+        },
+        "version": {
+          "type": "string",
+          "description": "The chart version to deploy."
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "path"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "name"
+                  ]
+                },
+                {
+                  "required": [
+                    "repo"
+                  ]
+                },
+                {
+                  "required": [
+                    "version"
+                  ]
+                },
+                {
+                  "required": [
+                    "url"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "url"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "name"
+                  ]
+                },
+                {
+                  "required": [
+                    "repo"
+                  ]
+                },
+                {
+                  "required": [
+                    "path"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "propertyNames": {
+              "enum": [
+                "name",
+                "path",
+                "url"
+              ]
+            },
+            "minProperties": 2
+          },
+          "then": false,
+          "else": {
+            "oneOf": [
+              {
+                "required": [
+                  "name"
+                ]
+              },
+              {
+                "required": [
+                  "path"
+                ]
+              },
+              {
+                "required": [
+                  "url"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "defaultTarget": {
+      "type": "object",
+      "description": "Specify a default resource in the deployment to use for syncs and for the `garden exec` command.\n\nSpecify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).\n\nSet `containerName` to specify a container to connect to in the remote Pod. By default the first container in the Pod is used.\n\nNote that if you specify `podSelector` here, it is not validated to be a selector matching one of the resources deployed by the action.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "The kind of Kubernetes resource to find.",
+          "enum": [
+            "Deployment",
+            "DaemonSet",
+            "StatefulSet"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the resource, of the specified `kind`. If specified, you must also specify `kind`."
+        },
+        "podSelector": {
+          "type": "object",
+          "description": "A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.",
+          "properties": {
+            "/.+/": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "type": "string"
+            }
+          }
+        },
+        "containerName": {
+          "type": "string",
+          "description": "The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec."
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "podSelector"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "required": [
+                    "name"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "propertyNames": {
+              "enum": [
+                "kind",
+                "podSelector"
+              ]
+            },
+            "minProperties": 2
+          },
+          "then": false,
+          "else": {
+            "oneOf": [
+              {
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "required": [
+                  "podSelector"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "dependentRequired": {
+        "name": [
+          "kind"
+        ]
+      }
+    },
+    "sync": {
+      "type": "object",
+      "description": "Configure path syncs for the resources in this Deploy.\n\nIf you have multiple syncs for the Deploy, you can use the `defaults` field to set common configuration for every individual sync.",
+      "properties": {
+        "defaults": {
+          "type": "object",
+          "description": "Defaults to set across every sync for this Deploy. If you use the `exclude` field here, it will be merged with any excludes set in individual syncs. These are applied on top of any defaults set in the provider configuration.",
+          "properties": {
+            "exclude": {
+              "type": "array",
+              "examples": [
+                [
+                  "dist/**/*",
+                  "*.log"
+                ]
+              ],
+              "description": "Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.\n\nAny exclusion patterns defined in individual sync specs will be applied in addition to these patterns.\n\n`.git` directories and `.garden` directories are always ignored.",
+              "items": {
+                "type": "posixPath"
+              }
+            },
+            "fileMode": {
+              "type": "number",
+              "description": "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.",
+              "default": 420,
+              "minimum": 0,
+              "maximum": 511
+            },
+            "directoryMode": {
+              "type": "number",
+              "description": "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.",
+              "default": 493,
+              "minimum": 0,
+              "maximum": 511
+            },
+            "owner": {
+              "description": "Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.",
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "group": {
+              "description": "Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.",
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "paths": {
+          "type": "array",
+          "description": "A list of syncs to start once the Deploy is successfully started.",
+          "items": {
+            "type": "object",
+            "description": "Define a sync to start after the initial Deploy is complete.",
+            "properties": {
+              "target": {
+                "type": "object",
+                "description": "The Kubernetes resource to sync to. If specified, this is used instead of `spec.defaultTarget`.",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "description": "The kind of Kubernetes resource to find.",
+                    "enum": [
+                      "Deployment",
+                      "DaemonSet",
+                      "StatefulSet"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the resource, of the specified `kind`. If specified, you must also specify `kind`."
+                  },
+                  "podSelector": {
+                    "type": "object",
+                    "description": "A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.",
+                    "properties": {
+                      "/.+/": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "patternProperties": {
+                      ".+": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "containerName": {
+                    "type": "string",
+                    "description": "The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec."
+                  }
+                },
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "if": {
+                      "required": [
+                        "podSelector"
+                      ]
+                    },
+                    "then": {
+                      "not": {
+                        "anyOf": [
+                          {
+                            "required": [
+                              "kind"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "name"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "propertyNames": {
+                        "enum": [
+                          "kind",
+                          "podSelector"
+                        ]
+                      },
+                      "minProperties": 2
+                    },
+                    "then": false,
+                    "else": {
+                      "oneOf": [
+                        {
+                          "required": [
+                            "kind"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "podSelector"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "dependentRequired": {
+                  "name": [
+                    "kind"
+                  ]
+                }
+              },
+              "sourcePath": {
+                "type": "string",
+                "examples": [
+                  "src"
+                ],
+                "description": "Path to a local directory to be synchronized with the target.\nThis should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path.\nIf a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a delimiter, as Windows-style paths with back slashes (`\\`) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.\nDefaults to the Deploy action's config's directory if no value is provided.",
+                "default": "."
+              },
+              "containerPath": {
+                "type": "posixPath",
+                "examples": [
+                  "/app/src"
+                ],
+                "description": "POSIX-style absolute path to sync to inside the container. The root path (i.e. \"/\") is not allowed.",
+                "not": {
+                  "type": "posixPath",
+                  "enum": [
+                    "/"
+                  ]
+                }
+              },
+              "exclude": {
+                "type": "array",
+                "examples": [
+                  [
+                    "dist/**/*",
+                    "*.log"
+                  ]
+                ],
+                "description": "Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.\n\n`.git` directories and `.garden` directories are always ignored.",
+                "items": {
+                  "type": "posixPath"
+                }
+              },
+              "mode": {
+                "type": "string",
+                "description": "The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details.",
+                "default": "one-way-safe",
+                "enum": [
+                  "one-way",
+                  "one-way-safe",
+                  "one-way-replica",
+                  "one-way-reverse",
+                  "one-way-replica-reverse",
+                  "two-way",
+                  "two-way-safe",
+                  "two-way-resolved"
+                ]
+              },
+              "defaultFileMode": {
+                "type": "number",
+                "description": "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.",
+                "default": 420,
+                "minimum": 0,
+                "maximum": 511
+              },
+              "defaultDirectoryMode": {
+                "type": "number",
+                "description": "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.",
+                "default": 493,
+                "minimum": 0,
+                "maximum": 511
+              },
+              "defaultOwner": {
+                "description": "Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.",
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "defaultGroup": {
+                "description": "Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.",
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "containerPath"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "overrides": {
+          "type": "array",
+          "description": "Overrides for the container command and/or arguments for when in sync mode.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "target": {
+                "type": "object",
+                "description": "The Kubernetes resources to override. If specified, this is used instead of `spec.defaultTarget`.",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "description": "The kind of Kubernetes resource to find.",
+                    "enum": [
+                      "Deployment",
+                      "DaemonSet",
+                      "StatefulSet"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the resource, of the specified `kind`. If specified, you must also specify `kind`."
+                  },
+                  "podSelector": {
+                    "type": "object",
+                    "description": "A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.",
+                    "properties": {
+                      "/.+/": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "patternProperties": {
+                      ".+": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "containerName": {
+                    "type": "string",
+                    "description": "The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec."
+                  }
+                },
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "if": {
+                      "required": [
+                        "podSelector"
+                      ]
+                    },
+                    "then": {
+                      "not": {
+                        "anyOf": [
+                          {
+                            "required": [
+                              "kind"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "name"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "propertyNames": {
+                        "enum": [
+                          "kind",
+                          "podSelector"
+                        ]
+                      },
+                      "minProperties": 2
+                    },
+                    "then": false,
+                    "else": {
+                      "oneOf": [
+                        {
+                          "required": [
+                            "kind"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "podSelector"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "dependentRequired": {
+                  "name": [
+                    "kind"
+                  ]
+                }
+              },
+              "command": {
+                "type": "array",
+                "description": "Override the command/entrypoint in the matched container."
+              },
+              "args": {
+                "type": "array",
+                "description": "Override the args in the matched container."
+              },
+              "image": {
+                "type": "string",
+                "description": "Override the image of the matched container."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "localMode": {
+      "type": "object",
+      "description": "This feature has been deleted.",
+      "properties": {
+        "ports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "local": {
+                "type": "integer"
+              },
+              "remote": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "command": {
+          "type": "array"
+        },
+        "restart": {
+          "type": "object",
+          "properties": {
+            "delayMsec": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        },
+        "target": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "podSelector": {
+              "type": "string"
+            },
+            "containerName": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "parameterValue": {
+      "anyOf": [
+        {
+          "description": "Number, string or boolean",
+          "anyOf": [
+            {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameterValue"
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "/.+/": {
+              "$ref": "#/$defs/parameterValue"
+            }
+          },
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "$ref": "#/$defs/parameterValue"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "type": "object",
+  "properties": {
+    "allowDestroy": {
+      "type": "boolean",
+      "description": "If set to true, Garden will destroy the stack when calling `garden cleanup namespace` or `garden cleanup deploy <deploy action name>`.\nThis is useful to prevent unintentional destroys in production or shared environments.",
+      "default": true
+    },
+    "autoApply": {
+      "type": "boolean",
+      "description": "If set to false, deployments will fail unless a `planPath` is provided for this deploy action. This is useful when deploying to\nproduction or shared environments, or when the action deploys infrastructure that you don't want to unintentionally update/create.",
+      "default": true
+    },
+    "createStack": {
+      "type": "boolean",
+      "description": "If set to true, Garden will automatically create the stack if it doesn't already exist.",
+      "default": false
+    },
+    "root": {
+      "type": "posixPath",
+      "description": "Specify the path to the Pulumi project root, relative to the deploy action's root.",
+      "default": "."
+    },
+    "useNewPulumiVarfileSchema": {
+      "type": "boolean",
+      "description": "If set to true, the deploy action will use the new Pulumi varfile schema, which does not nest all variables under\nthe 'config' key automatically like the old schema. This allow setting variables at the root level of the varfile\nthat don't belong to the 'config' key. Example:\n```\nconfig:\n  myVar: value\nsecretsprovider: gcpkms://projects/xyz/locations/global/keyRings/pulumi/cryptoKeys/pulumi-secrets\n```\nFor more information see [this guide on pulumi varfiles and variables](https://docs.garden.io/pulumi-plugin/about#pulumi-varfile-schema)",
+      "default": false
+    },
+    "pulumiVariables": {
+      "type": "object",
+      "description": "A map of config variables to use when applying the stack. These are merged with the contents of any `pulumiVarfiles` provided\nfor this deploy action. The deploy action's stack config will be overwritten with the resulting merged config.\nVariables declared here override any conflicting config variables defined in this deploy action's `pulumiVarfiles`.\n\nNote: `pulumiVariables` should not include action outputs from other pulumi deploy actions when `cacheStatus` is set to true, since\nthe outputs may change from the time the stack status of the dependency action is initially queried to when it's been deployed.\n\nInstead, use pulumi stack references when using the `cacheStatus` config option.",
+      "default": {},
+      "properties": {
+        "/[a-zA-Z][a-zA-Z0-9_\\-]*/i": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "link"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "link"
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": true,
+      "patternProperties": {
+        "[a-zA-Z][a-zA-Z0-9_\\-]*/": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "link"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "link"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "pulumiVarfiles": {
+      "type": "array",
+      "description": "Specify one or more paths (relative to the deploy action's root) to YAML files containing pulumi configuration.\n\nTemplated paths that resolve to `null`, `undefined` or an empty string are ignored.\n\nAny Garden template strings in these varfiles will be resolved when the files are loaded.\n\nEach file must consist of a single YAML document, which must be a map (dictionary). Keys may contain any\nvalue type.\n\nIf one or more varfiles is not found, no error is thrown (that varfile path is simply ignored).\n\nNote: The old varfile schema nests all variables under the 'config' key automatically. If you need to set variables\nat the root level of the varfile that don't belong to the 'config' key, set `useNewPulumiVarfileSchema` to true.",
+      "default": []
+    },
+    "orgName": {
+      "type": "string",
+      "description": "The name of the pulumi organization to use. Overrides the `orgName` set on the pulumi provider (if any).\nTo use the default org, set to null."
+    },
+    "cacheStatus": {
+      "type": "boolean",
+      "description": "When set to true, the pulumi stack will be tagged with the Garden service version when deploying. The tag\nwill then be used for service status checks for this service. If the version doesn't change between deploys,\nthe subsequent deploy is skipped.\n\nNote that this will not pick up changes to stack outputs referenced via stack references in your pulumi stack,\nunless they're referenced via template strings in the deploy action configuration.\n\nWhen using stack references to other pulumi deploy actions in your project, we recommend including them in this\ndeploy action's `stackReferences` config field (see the documentation for that field on this page).\n\n`cacheStatus: true` is not supported for self-managed state backends.",
+      "default": false
+    },
+    "stackReferences": {
+      "type": "array",
+      "examples": [
+        [
+          "${actions.deploy.some-pulumi-deploy-action.outputs.ip-address}",
+          "${actions.deploy.some-other-pulumi-deploy-action.outputs.database-url}"
+        ]
+      ],
+      "description": "When setting `cacheStatus` to true for this deploy action, you should include all stack references used by this\ndeploy action's pulumi stack in this field.\n\nThis lets Garden know to redeploy the pulumi stack if the output values of one or more of these stack references\nhave changed since the last deployment.",
+      "default": []
+    },
+    "deployFromPreview": {
+      "type": "boolean",
+      "description": "When set to true, will use pulumi plans generated by the `garden plugins pulumi preview` command when\ndeploying, and will fail if no plan exists locally for the deploy action.\n\nWhen this option is used, the pulumi plugin bypasses the status check altogether and passes the plan directly\nto `pulumi up` (via the `--plan` option, which is experimental as of March 2022). You should therefore\ntake care to only use this config option when you're sure you want to apply the changes in the plan.\n\nThis option is intended for two-phase pulumi deployments, where pulumi preview diffs are first reviewed (e.g.\nduring code review).",
+      "default": false
+    },
+    "stack": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The name of the pulumi stack to use. Defaults to the current environment name."
+    },
+    "showSecretsInOutput": {
+      "type": "boolean",
+      "description": "When set to true, stack outputs which are marked as secrets will be shown in the output.\n\nBy default, Pulumi will print secret stack outputs as the string '[secret]' instead of\nthe true content of the output.",
+      "default": false
+    }
+  },
+  "additionalProperties": false
+}

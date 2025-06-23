@@ -10,6 +10,11 @@ import { isArray } from "lodash-es"
 import { BaseKeyDescription } from "./common.js"
 import { ValidationError } from "../exceptions.js"
 import { safeDumpYaml } from "../util/serialization.js"
+import type Joi from "@hapi/joi"
+
+// Note sure why this is not working with the import statement, but it works like this
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const joiToJson: any = await import("joi-to-json")
 
 export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
   override type: string
@@ -173,4 +178,46 @@ function formatType(schema: any) {
   } else {
     return type || ""
   }
+}
+
+export function joiToJsonSchema(joiSchema: Joi.Schema) {
+  const jsonSchema = joiToJson.default(joiSchema, "json")
+  return JSON.stringify(replaceSparseArrayWithArray(jsonSchema), null, 2)
+}
+
+/**
+ * Recursively traverses a JSON schema object and replaces all instances of
+ * "type": "sparseArray" with "type": "array".
+ *
+ * @param schema - The JSON schema object to process
+ * @returns A new JSON schema object with sparseArray types replaced with array types
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function replaceSparseArrayWithArray(schema: any): any {
+  if (schema === null || schema === undefined) {
+    return schema
+  }
+
+  if (typeof schema !== "object") {
+    return schema
+  }
+
+  if (isArray(schema)) {
+    return schema.map((item) => replaceSparseArrayWithArray(item))
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result: any = {}
+
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === "type" && value === "sparseArray") {
+      result[key] = "array"
+    } else if (typeof value === "object" && value !== null) {
+      result[key] = replaceSparseArrayWithArray(value)
+    } else {
+      result[key] = value
+    }
+  }
+
+  return result
 }
