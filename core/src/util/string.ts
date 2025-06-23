@@ -8,7 +8,6 @@
 
 import _dedent from "dedent"
 import _deline from "deline"
-import _urlJoin from "proper-url-join"
 import _stableStringify from "json-stable-stringify"
 import _titleize from "titleize"
 import CliTable from "cli-table3"
@@ -21,7 +20,6 @@ import wrapAnsi from "wrap-ansi"
 // the import syntax, and it for some reason doesn't play nice with IDEs).
 export const dedent = _dedent
 export const deline = _deline
-export const urlJoin = _urlJoin as (...args: string[]) => string
 
 /**
  * Returns null- and undefined-sdafe value of type {@code string}.
