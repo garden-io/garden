@@ -15,7 +15,7 @@
     "which": "^4.0.0"
   },
   "peerDependencies": {
-    "@types/hapi__joi": "^17.1.9"
+    "@types/hapi__joi": "^17.1.15"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",
