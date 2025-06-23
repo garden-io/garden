@@ -15,5 +15,6 @@
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "prod dependencies (non-major)"
     }
-  ]
+  ],
+  "rangeStrategy": "bump"
 }
