@@ -1,0 +1,265 @@
+{
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "array",
+      "examples": [
+        [
+          "/bin/sh",
+          "-c"
+        ]
+      ],
+      "description": "The command/entrypoint to run the container with."
+    },
+    "args": {
+      "type": "array",
+      "examples": [
+        [
+          "npm",
+          "start"
+        ]
+      ],
+      "description": "The arguments (on top of the `command`, i.e. entrypoint) to run the container with."
+    },
+    "env": {
+      "type": "object",
+      "examples": [
+        [
+          {
+            "MY_VAR": "some-value",
+            "MY_SECRET_VAR": {
+              "secretRef": {
+                "name": "my-secret",
+                "key": "some-key"
+              }
+            }
+          },
+          {}
+        ]
+      ],
+      "description": "Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.",
+      "properties": {
+        "/^(?!garden)[a-z_][a-z0-9_\\.]*$/i": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "description": "A reference to a secret, that should be applied to the environment variable. Note that this secret must already be defined in the provider.",
+              "properties": {
+                "secretRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the secret to refer to."
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The key to read from in the referenced secret. May be required for some providers."
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(?!garden)[a-z_][a-z0-9_\\.]*$/": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "description": "A reference to a secret, that should be applied to the environment variable. Note that this secret must already be defined in the provider.",
+              "properties": {
+                "secretRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the secret to refer to."
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The key to read from in the referenced secret. May be required for some providers."
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "cpu": {
+      "type": "object",
+      "default": {
+        "min": 10,
+        "max": 1000
+      },
+      "properties": {
+        "min": {
+          "type": "number",
+          "description": "The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)",
+          "default": 10
+        },
+        "max": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.",
+          "default": 1000,
+          "minimum": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "memory": {
+      "type": "object",
+      "default": {
+        "min": 90,
+        "max": 1024
+      },
+      "properties": {
+        "min": {
+          "type": "number",
+          "description": "The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)",
+          "default": 90
+        },
+        "max": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.",
+          "default": 1024,
+          "minimum": 64
+        }
+      },
+      "additionalProperties": false
+    },
+    "volumes": {
+      "type": "array",
+      "description": "List of volumes that should be mounted when starting the container.\n\nNote: If neither `hostPath` nor `action` is specified,\nan empty ephemeral volume is created and mounted when deploying the container.",
+      "default": []
+    },
+    "privileged": {
+      "type": "boolean",
+      "description": "If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false."
+    },
+    "addCapabilities": {
+      "type": "array",
+      "description": "POSIX capabilities to add when running the container."
+    },
+    "dropCapabilities": {
+      "type": "array",
+      "description": "POSIX capabilities to remove when running the container."
+    },
+    "tty": {
+      "type": "boolean",
+      "description": "Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).",
+      "default": false
+    },
+    "deploymentStrategy": {
+      "type": "string",
+      "description": "Specifies the container's deployment strategy.",
+      "default": "RollingUpdate",
+      "enum": [
+        "RollingUpdate",
+        "Recreate"
+      ]
+    },
+    "artifacts": {
+      "type": "array",
+      "examples": [
+        [
+          {
+            "source": "/report/**/*"
+          }
+        ]
+      ],
+      "description": "Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the `.garden/artifacts` directory.\n\nNote: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable the file transfer.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "posixPath",
+            "examples": [
+              "/output/**/*"
+            ],
+            "description": "A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards."
+          },
+          "target": {
+            "type": "posixPath",
+            "examples": [
+              "outputs/foo/"
+            ],
+            "description": "A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at `.garden/artifacts`.",
+            "default": "."
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "image": {
+      "type": "string",
+      "description": "Specify an image ID to deploy. Should be a valid Docker image identifier. Required."
+    },
+    "cacheResult": {
+      "type": "boolean",
+      "description": "Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is only re-run when its version changes, or when you run `garden run`.",
+      "default": true
+    }
+  },
+  "required": [
+    "image"
+  ],
+  "additionalProperties": false
+}

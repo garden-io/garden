@@ -1,0 +1,345 @@
+{
+  "type": "object",
+  "properties": {
+    "cacheResult": {
+      "type": "boolean",
+      "description": "Set to false if you don't want the Run action result to be cached. Use this if the Run action needs to be run any time your project (or one or more of the Run action's dependants) is deployed. Otherwise the Run action is only re-run when its version changes, or when you run `garden run`.",
+      "default": true
+    },
+    "command": {
+      "type": "array",
+      "examples": [
+        [
+          "/bin/sh",
+          "-c"
+        ]
+      ],
+      "description": "The command/entrypoint used to run inside the container."
+    },
+    "args": {
+      "type": "array",
+      "examples": [
+        [
+          "rake",
+          "db:migrate"
+        ]
+      ],
+      "description": "The arguments to pass to the command/entrypoint used for execution."
+    },
+    "env": {
+      "type": "object",
+      "examples": [
+        [
+          {
+            "MY_VAR": "some-value",
+            "MY_SECRET_VAR": {
+              "secretRef": {
+                "name": "my-secret",
+                "key": "some-key"
+              }
+            }
+          },
+          {}
+        ]
+      ],
+      "description": "Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.",
+      "properties": {
+        "/^(?!garden)[a-z_][a-z0-9_\\.]*$/i": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "description": "A reference to a secret, that should be applied to the environment variable. Note that this secret must already be defined in the provider.",
+              "properties": {
+                "secretRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the secret to refer to."
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The key to read from in the referenced secret. May be required for some providers."
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(?!garden)[a-z_][a-z0-9_\\.]*$/": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "description": "A reference to a secret, that should be applied to the environment variable. Note that this secret must already be defined in the provider.",
+              "properties": {
+                "secretRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the secret to refer to."
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The key to read from in the referenced secret. May be required for some providers."
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "Specify artifacts to copy out of the container after the run. The artifacts are stored locally under\nthe `.garden/artifacts` directory.",
+      "default": []
+    },
+    "namespace": {
+      "type": "string",
+      "description": "A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.",
+      "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$",
+      "maxLength": 63
+    },
+    "kustomize": {
+      "type": "object",
+      "description": "Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or `manifests` as well, these are also included.",
+      "properties": {
+        "path": {
+          "description": "The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action root. Defaults to the action root. If you set this to null, kustomize will not be run.",
+          "default": ".",
+          "anyOf": [
+            {
+              "type": "posixPath"
+            },
+            {
+              "type": "string",
+              "format": "uri"
+            }
+          ],
+          "type": "null"
+        },
+        "version": {
+          "type": "integer",
+          "description": "The Kustomize version to use.",
+          "default": 5,
+          "enum": [
+            4,
+            5
+          ]
+        },
+        "extraArgs": {
+          "type": "array",
+          "description": "A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output' is not allowed.",
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "patchResources": {
+      "type": "array",
+      "description": "A list of resources to patch using Kubernetes' patch strategies. This is useful for e.g. overwriting a given container image name with an image built by Garden\nwithout having to actually modify the underlying Kubernetes manifest in your source code. Another common example is to use this to change the number of replicas for a given\nKubernetes Deployment.\n\nUnder the hood, Garden just applies the `kubectl patch` command to the resource that matches the specified `kind` and `name`.\n\nPatches are applied to file manifests, inline manifests, and kustomize files.\n\nYou can learn more about patching Kubernetes resources here: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/",
+      "default": []
+    },
+    "manifests": {
+      "type": "array",
+      "description": "List of Kubernetes resource manifests to be searched (using `resource`e for the pod spec for the Run. If `files` is also specified, this is combined with the manifests read from the files.",
+      "default": []
+    },
+    "files": {
+      "type": [
+        "array",
+        "boolean",
+        "number",
+        "object",
+        "string",
+        "null"
+      ]
+    },
+    "manifestFiles": {
+      "type": "array",
+      "description": "POSIX-style paths to YAML files to load manifests from. Garden will *not* use the Garden Template Language to transform manifests in these files. Each file can contain multiple manifests.",
+      "default": []
+    },
+    "manifestTemplates": {
+      "type": "array",
+      "description": "POSIX-style paths to YAML files to load manifests from. Each file may contain multiple manifests.\n\nGarden will treat each manifestTemplate file as a template string expression, resolve it and then attempt to parse the resulting string as YAML.\n\nThen it will find the resource matching the Pod spec for the Run ([See also `spec.resource`](#specresource)).",
+      "default": []
+    },
+    "resource": {
+      "type": "object",
+      "description": "Specify a Kubernetes resource to derive the Pod spec from for the Run.\n\nThis resource will be selected from the manifests provided in this Run's `files` or `manifests` config field.\n\nThe following fields from the Pod will be used (if present) when executing the Run:\n\n**Warning**: Garden will retain `configMaps` and `secrets` as volumes, but remove `persistentVolumeClaim` volumes from the Pod spec, as they might already be mounted.\n* `affinity`\n* `automountServiceAccountToken`\n* `containers`\n* `dnsConfig`\n* `dnsPolicy`\n* `enableServiceLinks`\n* `hostAliases`\n* `hostIPC`\n* `hostNetwork`\n* `hostPID`\n* `hostname`\n* `imagePullSecrets`\n* `nodeName`\n* `nodeSelector`\n* `overhead`\n* `preemptionPolicy`\n* `priority`\n* `priorityClassName`\n* `runtimeClassName`\n* `schedulerName`\n* `securityContext`\n* `serviceAccount`\n* `serviceAccountName`\n* `shareProcessNamespace`\n* `subdomain`\n* `tolerations`\n* `topologySpreadConstraints`\n* `volumes`",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "The kind of Kubernetes resource to find.",
+          "enum": [
+            "Deployment",
+            "DaemonSet",
+            "StatefulSet"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the resource, of the specified `kind`. If specified, you must also specify `kind`."
+        },
+        "podSelector": {
+          "type": "object",
+          "description": "A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.",
+          "properties": {
+            "/.+/": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "type": "string"
+            }
+          }
+        },
+        "containerName": {
+          "type": "string",
+          "description": "The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec."
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "podSelector"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "required": [
+                    "name"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "propertyNames": {
+              "enum": [
+                "kind",
+                "podSelector"
+              ]
+            },
+            "minProperties": 2
+          },
+          "then": false,
+          "else": {
+            "oneOf": [
+              {
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "required": [
+                  "podSelector"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "dependentRequired": {
+        "name": [
+          "kind"
+        ]
+      }
+    },
+    "podSpec": {
+      "type": "object",
+      "description": "Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the Run, including overriding with other fields you may set here (such as `args` and `env`), and removing certain fields that are not supported.\n\nYou can find the full Pod spec in the [official Kubernetes documentation](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec)\n\nThe following Pod spec fields from the `podSpec` will be used (if present) when executing the Run:\n* `affinity`\n* `automountServiceAccountToken`\n* `containers`\n* `dnsConfig`\n* `dnsPolicy`\n* `enableServiceLinks`\n* `hostAliases`\n* `hostIPC`\n* `hostNetwork`\n* `hostPID`\n* `hostname`\n* `imagePullSecrets`\n* `nodeName`\n* `nodeSelector`\n* `overhead`\n* `preemptionPolicy`\n* `priority`\n* `priorityClassName`\n* `runtimeClassName`\n* `schedulerName`\n* `securityContext`\n* `serviceAccount`\n* `serviceAccountName`\n* `shareProcessNamespace`\n* `subdomain`\n* `tolerations`\n* `topologySpreadConstraints`\n* `volumes`",
+      "properties": {},
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "if": {
+    "propertyNames": {
+      "enum": [
+        "resource",
+        "podSpec"
+      ]
+    },
+    "minProperties": 2
+  },
+  "then": false,
+  "else": {
+    "oneOf": [
+      {
+        "required": [
+          "resource"
+        ]
+      },
+      {
+        "required": [
+          "podSpec"
+        ]
+      }
+    ]
+  }
+}

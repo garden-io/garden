@@ -1,0 +1,121 @@
+{
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "array",
+      "examples": [
+        [
+          "npm",
+          "run",
+          "test:integ"
+        ]
+      ],
+      "description": "The command to run inside the kubernetes workload."
+    },
+    "resource": {
+      "type": "object",
+      "description": "Specify a Kubernetes resource to derive the Pod spec from for the Test.\n\nThis resource will be selected from the manifests provided in this Test's `files` or `manifests` config field.\n\nThe following fields from the Pod will be used (if present) when executing the Test:\n\n**Warning**: Garden will retain `configMaps` and `secrets` as volumes, but remove `persistentVolumeClaim` volumes from the Pod spec, as they might already be mounted.\n* `affinity`\n* `automountServiceAccountToken`\n* `containers`\n* `dnsConfig`\n* `dnsPolicy`\n* `enableServiceLinks`\n* `hostAliases`\n* `hostIPC`\n* `hostNetwork`\n* `hostPID`\n* `hostname`\n* `imagePullSecrets`\n* `nodeName`\n* `nodeSelector`\n* `overhead`\n* `preemptionPolicy`\n* `priority`\n* `priorityClassName`\n* `runtimeClassName`\n* `schedulerName`\n* `securityContext`\n* `serviceAccount`\n* `serviceAccountName`\n* `shareProcessNamespace`\n* `subdomain`\n* `tolerations`\n* `topologySpreadConstraints`\n* `volumes`",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "The kind of Kubernetes resource to find.",
+          "enum": [
+            "Deployment",
+            "DaemonSet",
+            "StatefulSet"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the resource, of the specified `kind`. If specified, you must also specify `kind`."
+        },
+        "podSelector": {
+          "type": "object",
+          "description": "A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.",
+          "properties": {
+            "/.+/": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "type": "string"
+            }
+          }
+        },
+        "containerName": {
+          "type": "string",
+          "description": "The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec."
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "podSelector"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "required": [
+                    "name"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "propertyNames": {
+              "enum": [
+                "kind",
+                "podSelector"
+              ]
+            },
+            "minProperties": 2
+          },
+          "then": false,
+          "else": {
+            "oneOf": [
+              {
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "required": [
+                  "podSelector"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "dependentRequired": {
+        "name": [
+          "kind"
+        ]
+      }
+    },
+    "namespace": {
+      "type": "string",
+      "description": "A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.",
+      "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$",
+      "maxLength": 63
+    }
+  },
+  "required": [
+    "resource"
+  ],
+  "additionalProperties": false
+}

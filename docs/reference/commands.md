@@ -35,7 +35,7 @@ The following option flags can be used with any of the CLI commands:
   | `--version` |  | boolean | Show the current CLI version.
   | `--help` |  | boolean | Show help
 
-### garden agent
+### garden ai
 
 **[EXPERIMENTAL] DevOps AI assistant powered by Anthropic's Claude**
 
@@ -49,8 +49,13 @@ The agent will scan your project structure and provide context-aware assistance.
 
 #### Usage
 
-    garden agent 
+    garden ai [options]
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--yolo` |  | boolean | Overwrite files without confirmation
 
 
 ### garden build
@@ -1921,7 +1926,7 @@ actionConfigs:
       #   - path: my-action.env
       #     optional: true
       varfiles:
-        - # Path to a file containing a path.
+        - # Path to a file containing variables.
           path:
 
           # Whether the varfile is optional.
@@ -2191,7 +2196,7 @@ actionConfigs:
       #   - path: my-action.env
       #     optional: true
       varfiles:
-        - # Path to a file containing a path.
+        - # Path to a file containing variables.
           path:
 
           # Whether the varfile is optional.
@@ -2400,7 +2405,7 @@ actionConfigs:
       #   - path: my-action.env
       #     optional: true
       varfiles:
-        - # Path to a file containing a path.
+        - # Path to a file containing variables.
           path:
 
           # Whether the varfile is optional.
@@ -2609,7 +2614,7 @@ actionConfigs:
       #   - path: my-action.env
       #     optional: true
       varfiles:
-        - # Path to a file containing a path.
+        - # Path to a file containing variables.
           path:
 
           # Whether the varfile is optional.

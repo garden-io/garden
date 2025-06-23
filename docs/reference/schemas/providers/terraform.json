@@ -1,0 +1,138 @@
+{
+  "$ref": "#/$defs/providerConfig",
+  "$defs": {
+    "providerConfig": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "examples": [
+            "local-kubernetes"
+          ],
+          "description": "The name of the provider plugin to use.",
+          "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$"
+        },
+        "dependencies": {
+          "type": "array",
+          "examples": [
+            [
+              "exec"
+            ]
+          ],
+          "description": "List other providers that should be resolved before this one.",
+          "default": []
+        },
+        "environments": {
+          "type": "array",
+          "examples": [
+            [
+              "dev",
+              "stage"
+            ]
+          ],
+          "description": "If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.",
+          "items": {
+            "type": "string",
+            "description": "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63 characters.",
+            "pattern": "^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+          }
+        },
+        "preInit": {
+          "type": "object",
+          "properties": {
+            "runScript": {
+              "type": "string",
+              "description": "A script to run before the provider is initialized. This is useful for performing any provider-specific setup outside of Garden. For example, you can use this to perform authentication, such as authenticating with a Kubernetes cluster provider.\nThe script will always be run from the project root directory.\nNote that provider statuses are cached, so this script will generally only be run once, but you can force a re-run by setting `--force-refresh` on any Garden command that uses the provider."
+            }
+          },
+          "additionalProperties": false
+        },
+        "allowDestroy": {
+          "type": "boolean",
+          "description": "If set to true, Garden will run `terraform destroy` on the project root stack when calling `garden delete env`.",
+          "default": false
+        },
+        "autoApply": {
+          "type": "boolean",
+          "description": "If set to true, Garden will automatically run `terraform apply -auto-approve` when a stack is not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.\n\n**Note: This is not recommended for production, or shared environments in general!**",
+          "default": false
+        },
+        "initRoot": {
+          "type": "posixPath",
+          "description": "Specify the path to a Terraform config directory, that should be resolved when initializing the provider. This is useful when other providers need to be able to reference the outputs from the stack.\n\nSee the [Terraform guide](https://docs.garden.io/cedar-0.14/advanced/terraform) for more information."
+        },
+        "variables": {
+          "type": "object",
+          "description": "A map of variables to use when applying Terraform stacks. You can define these here, in individual\n`terraform` action configs, or you can place a `terraform.tfvars` file in each working directory.",
+          "properties": {
+            "/.+/": {
+              "type": [
+                "array",
+                "boolean",
+                "number",
+                "object",
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "type": [
+                "array",
+                "boolean",
+                "number",
+                "object",
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The version of Terraform to use. Set to `null` to use whichever version of `terraform` that is on your PATH.",
+          "default": "1.4.6",
+          "enum": [
+            "0.12.26",
+            "0.13.3",
+            "0.14.7",
+            "1.0.5",
+            "1.2.9",
+            "1.4.6",
+            null
+          ]
+        },
+        "workspace": {
+          "type": "string",
+          "description": "Use the specified Terraform workspace."
+        },
+        "streamLogsToCloud": {
+          "type": "boolean",
+          "description": "Set to `true` to make logs from Terraform Deploy actions visible in Garden Cloud/Enterprise. Defaults to `false`",
+          "default": false
+        },
+        "backendConfig": {
+          "type": "object",
+          "examples": [
+            {
+              "bucket": "${environment.name}-bucket",
+              "key": "tf-state/${local.username}/terraform.tfstate"
+            }
+          ],
+          "description": "Configure the Terraform backend.\n\nThe key-value pairs defined here are set as the `-backend-config` options when Garden\nruns `terraform init`.\n\nThis can be used to dynamically set a Terraform backend depending on the environment.\n\nIf Garden sees that the backend has changes, it'll re-initialize Terraform and set the new values.",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

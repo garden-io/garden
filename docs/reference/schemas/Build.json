@@ -1,0 +1,304 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "description": "The schema version of this config (currently unused).",
+      "default": "garden.io/v0",
+      "const": "garden.io/v0"
+    },
+    "type": {
+      "type": "string",
+      "description": "The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be defined by your configured providers.",
+      "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$"
+    },
+    "name": {
+      "type": "string",
+      "description": "A valid name for the action. Must be unique across all actions of the same _kind_ in your project.",
+      "pattern": "^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    },
+    "description": {
+      "type": "string",
+      "description": "A description of the action."
+    },
+    "internal": {
+      "type": "object",
+      "properties": {
+        "basePath": {
+          "type": "string"
+        },
+        "configFilePath": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "parentName": {
+          "type": "string"
+        },
+        "templateName": {
+          "type": "string"
+        },
+        "yamlDoc": {
+          "type": [
+            "array",
+            "boolean",
+            "number",
+            "object",
+            "string",
+            "null"
+          ]
+        },
+        "groupName": {
+          "type": "string"
+        },
+        "moduleName": {
+          "type": "string"
+        },
+        "resolved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "basePath"
+      ],
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "object",
+      "description": "By default, the directory where the action is defined is used as the source for the build context.\n\nYou can override the directory that is used for the build context by setting `source.path`.\n\nYou can use `source.repository` to get the source from an external repository. For more information on remote actions, please refer to the [Remote Sources guide](https://docs.garden.io/cedar-0.14/advanced/using-remote-sources).",
+      "properties": {
+        "path": {
+          "type": "posixPath",
+          "description": "A relative POSIX-style path to the source directory for this action.\n\nIf specified together with `source.repository`, the path will be relative to the repository root.\n\nOtherwise, the path will be relative to the directory containing the Garden configuration file."
+        },
+        "repository": {
+          "type": "object",
+          "description": "When set, Garden will import the action source from this repository, but use this action configuration (and not scan for configs in the separate repository).",
+          "properties": {
+            "url": {
+              "examples": [
+                "git+https://github.com/org/repo.git#v2.0"
+              ],
+              "description": "A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>",
+              "anyOf": [
+                {
+                  "type": "gitUrl"
+                },
+                {
+                  "type": "string",
+                  "format": "uri"
+                }
+              ]
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "type": "array",
+      "examples": [
+        [
+          "build.my-image",
+          "deploy.api"
+        ]
+      ],
+      "description": "A list of other actions that this action depends on, and should be built, deployed or run (depending on the action type) before processing this action.\n\nEach dependency should generally be expressed as a `\"<kind>.<name>\"` string, where _<kind>_ is one of `build`, `deploy`, `run` or `test`, and _<name>_ is the name of the action to depend on.\n\nYou may also optionally specify a dependency as an object, e.g. `{ kind: \"Build\", name: \"some-image\" }`.\n\nAny empty values (i.e. null or empty strings) are ignored, so that you can conditionally add in a dependency via template expressions.",
+      "default": []
+    },
+    "disabled": {
+      "type": "boolean",
+      "description": "Set this to `true` to disable the action. You can use this with conditional template strings to disable actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == \"prod\"}`). This can be handy when you only need certain actions for specific environments, e.g. only for development.\n\nFor Build actions, this means the build is not performed _unless_ it is declared as a dependency by another enabled action (in which case the Build is assumed to be necessary for the dependant action to be run or built).\n\nFor other action kinds, the action is skipped in all scenarios, and dependency declarations to it are ignored. Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the action is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.",
+      "default": false
+    },
+    "environments": {
+      "type": "array",
+      "description": "If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand for the `disabled` field with an expression for environments. For example, `environments: [\"prod\"]` is equivalent to `disabled: ${environment.name != \"prod\"}`."
+    },
+    "variables": {
+      "type": "object",
+      "description": "A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.",
+      "properties": {
+        "/[a-zA-Z][a-zA-Z0-9_\\-]*/i": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "link"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "link"
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": true,
+      "patternProperties": {
+        "[a-zA-Z][a-zA-Z0-9_\\-]*/": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "link"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "link"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "varfiles": {
+      "type": "array",
+      "examples": [
+        "my-action.env"
+      ],
+      "description": "Specify a list of paths (relative to the directory where the action is defined) to a file containing variables, that we apply on top of the action-level `variables` field, and take precedence over group-level variables (if applicable) and project-level variables, in that order.\n\nIf you specify multiple paths, they are merged in the order specified, i.e. the last one takes precedence over the previous ones.\n\nThe format of the files is determined by the configured file's extension:\n\n* `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type. YAML format is used by default.\n* `.env` - Standard \"dotenv\" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).\n* `.json` - JSON. Must contain a single JSON _object_ (not an array).\n\n_NOTE: The default varfile format was changed to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._\n\nTo use different varfiles in different environments, you can template in the environment name to the varfile name, e.g. `varfile: \"my-action.${environment.name}.env\"` (this assumes that the corresponding varfiles exist).\n\nIf a listed varfile cannot be found, throwing an error.\nTo add optional varfiles, you can use a list item object with a `path` and an optional `optional` boolean field.\n```yaml\nvarfiles:\n  - path: my-action.env\n    optional: true\n```",
+      "default": [],
+      "items": {
+        "description": "A path to a file containing variables, or an object with a path and optional flag.",
+        "anyOf": [
+          {
+            "type": "posixPath",
+            "description": "Path to a file containing variables."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "posixPath",
+                "description": "Path to a file containing variables."
+              },
+              "optional": {
+                "type": "boolean",
+                "description": "Whether the varfile is optional."
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "version": {
+      "type": "object",
+      "properties": {
+        "excludeFields": {
+          "type": "array",
+          "description": "Specify a list of config fields that should be ignored when computing the version hash for this action. Each item should be an array of strings, specifying the path to the field to ignore, e.g. `[spec, env, HOSTNAME]` would ignore `spec.env.HOSTNAME` in the configuration when computing the version.\n\nFor example, you might have a field that naturally changes for every individual test or dev environment, such as a dynamic hostname. You could solve for that with something like this:\n\n```yaml\nversion:\n  excludeFields:\n    - [spec, env, HOSTNAME]\n```\n\nArrays can also be indexed with numeric indices, but you can also use wildcards to exclude specific fields on all objects in arrays. Example:\n\n```yaml\nkind: Test\ntype: container\n...\nspec:\n  artifacts:\n    - source: foo\n      target: bar  # Gets excluded from the version calculation\nversion:\n  excludeFields:\n    - [spec, artifacts, \"*\", target]\n```\n\nOnly simple `\"*\"` wildcards are supported for the moment (i.e. you can't exclude by `\"something*\"` or use question marks for individual character matching).\n\nNote that it is very important not to specify overly broad exclusions here, as this may cause the version to change too rarely, which may cause build errors or tests to not run when they should.",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "excludeValues": {
+          "type": "array",
+          "description": "Specify one or more string values that should be ignored when computing the version hash for this action. You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.\n\nFor example, you might have a variable that naturally changes for every individual test or dev environment, such as a dynamic hostname. You could solve for that with something like this:\n\n```yaml\nversion:\n  excludeValues:\n    - ${var.hostname}\n```\n\nWith the `hostname` variable being defined in the Project configuration.\n\nFor each value specified under this field, every occurrence of that string value (even as part of a longer string) will be replaced when calculating the action version. The action configuration (used when performing the action) is not affected.\n\nFor instances when the value to replace may be overly broad (e.g. \"api\") it is generally better to use the `excludeFields` option, since that can be applied more surgically.",
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "spec": {
+      "type": "object",
+      "description": "The spec for the specific action type.",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "kind": {
+      "const": "Build"
+    },
+    "allowPublish": {
+      "type": "boolean",
+      "description": "When false, disables publishing this build to remote registries via the publish command.",
+      "default": true
+    },
+    "buildAtSource": {
+      "type": "boolean",
+      "description": "By default, builds are _staged_ in `.garden/build/<build name>` and that directory is used as the build context. This is done to avoid builds contaminating the source tree, which can end up confusing version computation, or a build including files that are not intended to be part of it. In most scenarios, the default behavior is desired and leads to the most predictable and verifiable builds, as well as avoiding potential confusion around file watching.\n\nYou _can_ override this by setting `buildAtSource: true`, which basically sets the build root for this action at the location of the Build action config in the source tree. This means e.g. that the build command in `exec` Builds runs at the source, and for Docker image builds the build is initiated from the source directory.\n\nAn important implication is that `include` and `exclude` directives for the action, as well as `.gardenignore` files, only affect version hash computation but are otherwise not effective in controlling the build context. This may lead to unexpected variation in builds with the same version hash. **This may also slow down code synchronization to remote destinations, e.g. when performing remote Docker image builds.**\n\nAdditionally, any `exec` runtime actions (and potentially others) that reference this Build with the `build` field, will run from the source directory of this action.\n\nWhile there may be good reasons to do this in some situations, please be aware that this increases the potential for side-effects and variability in builds. **You must take extra care**, including making sure that files generated during builds are excluded with e.g. `.gardenignore` files or `exclude` fields on potentially affected actions. Another potential issue is causing infinite loops when running with file-watching enabled, basically triggering a new build during the build.",
+      "default": false
+    },
+    "copyFrom": {
+      "type": "array",
+      "description": "Copy files from other builds, ahead of running this build.",
+      "default": []
+    },
+    "include": {
+      "type": "array",
+      "examples": [
+        [
+          "my-app.js",
+          "some-assets/**/*"
+        ]
+      ],
+      "description": "Specify a list of POSIX-style paths or globs that should be included as the build context for the Build, and will affect the computed _version_ of the action.\n\nIf nothing is specified here, the whole directory may be assumed to be included in the build. Providers are sometimes able to infer the list of paths, e.g. from a Dockerfile, but often this is inaccurate (say, if a Dockerfile has an `ADD .` statement) so it may be important to set `include` and/or `exclude` to define the build context. Otherwise you may find unrelated files being included in the build context and the build version, which may result in unnecessarily repeated builds.\n\nYou can _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details."
+    },
+    "exclude": {
+      "type": "array",
+      "examples": [
+        [
+          "tmp/**/*",
+          "*.log"
+        ]
+      ],
+      "description": "Specify a list of POSIX-style paths or glob patterns that should be explicitly excluded from the build context and the Build version.\n\nProviders are sometimes able to infer the `include` field, e.g. from a Dockerfile, but often this is inaccurate (say, if a Dockerfile has an `ADD .` statement) so it may be important to set `include` and/or `exclude` to define the build context. Otherwise you may find unrelated files being included in the build context and the build version, which may result in unnecessarily repeated builds.\n\nUnlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes when watching is enabled. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes."
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "Set a timeout for the build to complete, in seconds.",
+      "default": 600,
+      "minimum": 1
+    }
+  },
+  "required": [
+    "type",
+    "name"
+  ],
+  "additionalProperties": false
+}
