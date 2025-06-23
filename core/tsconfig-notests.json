@@ -2,7 +2,6 @@
   "extends": "../tsconfig.base.json",
   "include": [
     "src/**/*.ts",
-    // TODO-G2
     // "test/*.ts",
     // "test/e2e/*.ts",
     // "test/e2e/**/*.ts",
