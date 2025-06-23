@@ -71,11 +71,10 @@
     "split2": "^4.1.0",
     "strip-ansi": "^7.1.0",
     "treeify": "^1.1.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.5.3",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
     "wrap-ansi": "^9.0.0",
-    "yargs": "^17.7.2",
-    "tsx": "^4.19.3"
+    "yargs": "^17.7.2"
   },
   "scripts": {
     "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path core/src:core/test --output-dir .",

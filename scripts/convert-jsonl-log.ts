@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --import ./scripts/register-hook.js
+#!/usr/bin/env tsx
 /*
  * Copyright (C) 2018-2025 Garden Technologies, Inc. <info@garden.io>
  *
