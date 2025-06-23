@@ -1,8 +1,0 @@
-requiredChecks:
-  - commit
-  - test-minikube-1.12
-  - test-minikube-1.13
-  - test-minikube-1.14
-  - test-minikube-1.15
-  - test-minikube-1.16
-mergeMethod: rebase
