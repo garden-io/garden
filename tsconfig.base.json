@@ -1,8 +1,4 @@
 {
-  "ts-node": {
-    // Tell ts-node CLI to install the --loader automatically, explained below
-    "esm": true
-  },
   "compilerOptions": {
     "allowJs": false,
     "allowUnreachableCode": false,
