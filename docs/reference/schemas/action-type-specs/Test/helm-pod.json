@@ -1,0 +1,473 @@
+{
+  "type": "object",
+  "properties": {
+    "cacheResult": {
+      "type": "boolean",
+      "description": "Set to false if you don't want the Test action result to be cached. Use this if the Test action needs to be run any time your project (or one or more of the Test action's dependants) is deployed. Otherwise the Test action is only re-run when its version changes, or when you run `garden run`.",
+      "default": true
+    },
+    "command": {
+      "type": "array",
+      "examples": [
+        [
+          "/bin/sh",
+          "-c"
+        ]
+      ],
+      "description": "The command/entrypoint used to run inside the container."
+    },
+    "args": {
+      "type": "array",
+      "examples": [
+        [
+          "rake",
+          "db:migrate"
+        ]
+      ],
+      "description": "The arguments to pass to the command/entrypoint used for execution."
+    },
+    "env": {
+      "type": "object",
+      "examples": [
+        [
+          {
+            "MY_VAR": "some-value",
+            "MY_SECRET_VAR": {
+              "secretRef": {
+                "name": "my-secret",
+                "key": "some-key"
+              }
+            }
+          },
+          {}
+        ]
+      ],
+      "description": "Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.",
+      "properties": {
+        "/^(?!garden)[a-z_][a-z0-9_\\.]*$/i": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "description": "A reference to a secret, that should be applied to the environment variable. Note that this secret must already be defined in the provider.",
+              "properties": {
+                "secretRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the secret to refer to."
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The key to read from in the referenced secret. May be required for some providers."
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(?!garden)[a-z_][a-z0-9_\\.]*$/": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "description": "A reference to a secret, that should be applied to the environment variable. Note that this secret must already be defined in the provider.",
+              "properties": {
+                "secretRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the secret to refer to."
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The key to read from in the referenced secret. May be required for some providers."
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "Specify artifacts to copy out of the container after the run. The artifacts are stored locally under\nthe `.garden/artifacts` directory.",
+      "default": []
+    },
+    "namespace": {
+      "type": "string",
+      "description": "A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.",
+      "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$",
+      "maxLength": 63
+    },
+    "releaseName": {
+      "type": "string",
+      "description": "Optionally override the release name used when rendering the templates (defaults to the Test name).",
+      "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$"
+    },
+    "chart": {
+      "type": "object",
+      "description": "Specify the Helm chart to use.\n\nIf the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set `chart.path` to the directory path, relative to the action directory.\n\nFor remote charts, there are multiple options:\n- **[Helm Chart repository](https://helm.sh/docs/topics/chart_repository/)**: specify `chart.name` and `chart.version\\, and optionally `chart.repo` (if the chart is not in the default \"stable\" repo).\n- **[OCI-Based Registry](https://helm.sh/docs/topics/registries/)**: specify `chart.url` with the `oci://` URL and optionally `chart.version`.\n- **Absolute URL to a packaged chart**: specify `chart.url`.\n\nOne of `chart.name`, `chart.path` or `chart.url` must be specified.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "examples": [
+            "ingress-nginx"
+          ],
+          "description": "A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the action doesn't contain the Helm chart itself."
+        },
+        "path": {
+          "type": "posixPath",
+          "description": "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repository URL to fetch the chart from. Defaults to the \"stable\" helm repo (https://charts.helm.sh/stable)."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to OCI repository, or a URL to a packaged Helm chart archive.",
+          "format": "uri"
+        },
+        "version": {
+          "type": "string",
+          "description": "The chart version to deploy."
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "path"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "name"
+                  ]
+                },
+                {
+                  "required": [
+                    "repo"
+                  ]
+                },
+                {
+                  "required": [
+                    "version"
+                  ]
+                },
+                {
+                  "required": [
+                    "url"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "url"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "name"
+                  ]
+                },
+                {
+                  "required": [
+                    "repo"
+                  ]
+                },
+                {
+                  "required": [
+                    "path"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "propertyNames": {
+              "enum": [
+                "name",
+                "path",
+                "url"
+              ]
+            },
+            "minProperties": 2
+          },
+          "then": false,
+          "else": {
+            "oneOf": [
+              {
+                "required": [
+                  "name"
+                ]
+              },
+              {
+                "required": [
+                  "path"
+                ]
+              },
+              {
+                "required": [
+                  "url"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "values": {
+      "type": "object",
+      "description": "Map of values to pass to Helm when rendering the templates. May include arrays and nested objects. When specified, these take precedence over the values in the `values.yaml` file (or the files specified in `valueFiles`).",
+      "properties": {
+        "/.+/": {
+          "$ref": "#/$defs/parameterValue"
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        ".+": {
+          "$ref": "#/$defs/parameterValue"
+        }
+      }
+    },
+    "valueFiles": {
+      "type": "array",
+      "description": "Specify value files to use when rendering the Helm chart. These will take precedence over the `values.yaml` file\nbundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in\nthis list will have the highest precedence.\n\nIf you _also_ specify keys under the `values` field, those will effectively be added as another file at the end\nof this list, so they will take precedence over other files listed here.\n\nNote that the paths here should be relative to the _config_ root, and the files should be contained in\nthis action config's directory.",
+      "default": []
+    },
+    "resource": {
+      "type": "object",
+      "description": "Specify a Kubernetes resource to derive the Pod spec from for the Test.\n\nThis resource will be selected from the manifests provided in this Test's `files` or `manifests` config field.\n\nThe following fields from the Pod will be used (if present) when executing the Test:\n\n**Warning**: Garden will retain `configMaps` and `secrets` as volumes, but remove `persistentVolumeClaim` volumes from the Pod spec, as they might already be mounted.\n* `affinity`\n* `automountServiceAccountToken`\n* `containers`\n* `dnsConfig`\n* `dnsPolicy`\n* `enableServiceLinks`\n* `hostAliases`\n* `hostIPC`\n* `hostNetwork`\n* `hostPID`\n* `hostname`\n* `imagePullSecrets`\n* `nodeName`\n* `nodeSelector`\n* `overhead`\n* `preemptionPolicy`\n* `priority`\n* `priorityClassName`\n* `runtimeClassName`\n* `schedulerName`\n* `securityContext`\n* `serviceAccount`\n* `serviceAccountName`\n* `shareProcessNamespace`\n* `subdomain`\n* `tolerations`\n* `topologySpreadConstraints`\n* `volumes`",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "The kind of Kubernetes resource to find.",
+          "enum": [
+            "Deployment",
+            "DaemonSet",
+            "StatefulSet"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the resource, of the specified `kind`. If specified, you must also specify `kind`."
+        },
+        "podSelector": {
+          "type": "object",
+          "description": "A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.",
+          "properties": {
+            "/.+/": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "type": "string"
+            }
+          }
+        },
+        "containerName": {
+          "type": "string",
+          "description": "The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec."
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "podSelector"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "required": [
+                    "name"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "propertyNames": {
+              "enum": [
+                "kind",
+                "podSelector"
+              ]
+            },
+            "minProperties": 2
+          },
+          "then": false,
+          "else": {
+            "oneOf": [
+              {
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "required": [
+                  "podSelector"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "dependentRequired": {
+        "name": [
+          "kind"
+        ]
+      }
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "Time in seconds to wait for Helm to render templates.",
+      "default": 300
+    }
+  },
+  "additionalProperties": false,
+  "if": {
+    "propertyNames": {
+      "enum": [
+        "resource",
+        "podSpec"
+      ]
+    },
+    "minProperties": 2
+  },
+  "then": false,
+  "else": {
+    "oneOf": [
+      {
+        "required": [
+          "resource"
+        ]
+      },
+      {
+        "required": [
+          "podSpec"
+        ]
+      }
+    ]
+  },
+  "$defs": {
+    "parameterValue": {
+      "anyOf": [
+        {
+          "description": "Number, string or boolean",
+          "anyOf": [
+            {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameterValue"
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "/.+/": {
+              "$ref": "#/$defs/parameterValue"
+            }
+          },
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "$ref": "#/$defs/parameterValue"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

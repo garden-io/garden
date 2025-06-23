@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "app-namespace": {
+      "type": "string",
+      "description": "The primary namespace used for resource deployments.",
+      "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$"
+    },
+    "default-hostname": {
+      "type": "string",
+      "description": "The default hostname configured on the provider."
+    }
+  },
+  "required": [
+    "app-namespace"
+  ],
+  "additionalProperties": false
+}

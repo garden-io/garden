@@ -1,0 +1,78 @@
+{
+  "type": "object",
+  "properties": {
+    "allowDestroy": {
+      "type": "boolean",
+      "description": "If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden delete deploy <deploy name>`.",
+      "default": false
+    },
+    "autoApply": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not\nup-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing\nentirely.\n\n**NOTE: This is not recommended for production, or shared environments in general!**\n\nDefaults to the value set in the provider config."
+    },
+    "root": {
+      "type": "posixPath",
+      "description": "Specify the path to the working directory root—i.e. where your Terraform files are—relative to the config directory.",
+      "default": "."
+    },
+    "variables": {
+      "type": "object",
+      "description": "A map of variables to use when applying the stack. You can define these here or you can place a\n`terraform.tfvars` file in the working directory root.\n\nIf you specified `variables` in the `terraform` provider config, those will be included but the variables\nspecified here take precedence.",
+      "properties": {
+        "/.+/": {
+          "type": [
+            "array",
+            "boolean",
+            "number",
+            "object",
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        ".+": {
+          "type": [
+            "array",
+            "boolean",
+            "number",
+            "object",
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The version of Terraform to use. Defaults to the version set in the provider config.\nSet to `null` to use whichever version of `terraform` that is on your PATH."
+    },
+    "workspace": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Use the specified Terraform workspace."
+    },
+    "backendConfig": {
+      "type": "object",
+      "examples": [
+        {
+          "bucket": "${environment.name}-bucket",
+          "key": "tf-state/${local.username}/terraform.tfstate"
+        }
+      ],
+      "description": "Configure the Terraform backend.\n\nThe key-value pairs defined here are set as the `-backend-config` options when Garden\nruns `terraform init`.\n\nThis can be used to dynamically set a Terraform backend depending on the environment.\n\nIf Garden sees that the backend has changes, it'll re-initialize Terraform and set the new values.",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
