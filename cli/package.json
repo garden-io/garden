@@ -37,13 +37,13 @@
     "@types/chai": "^5.2.2",
     "@types/fs-extra": "^11.0.4",
     "@types/mocha": "^10.0.10",
-    "@types/tar": "^6.1.11",
-    "@types/unzipper": "^0.10.10",
+    "@types/tar": "^6.1.13",
+    "@types/unzipper": "^0.10.11",
     "chai": "^5.2.0",
     "fs-extra": "^11.3.0",
     "lodash-es": "^4.17.21",
     "minimist": "^1.2.8",
-    "mocha": "^11.1.0",
+    "mocha": "^11.7.0",
     "typescript": "^5.8.3"
   },
   "scripts": {
