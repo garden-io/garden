@@ -22,10 +22,10 @@
     "minimist": "^1.2.8"
   },
   "devDependencies": {
-    "@types/node": "^24",
-    "prettier": "3.5.3",
+    "@types/node": "^24.0.3",
+    "prettier": "3.6.0",
     "typescript": "^5.8.3",
-    "ulid": "^3.0.0"
+    "ulid": "^3.0.1"
   },
   "scripts": {
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
