@@ -12,12 +12,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "lib": [
-      "es5",
-      "es2015.promise",
-      "es2016",
       "esnext",
-      "esnext.asynciterable",
-      "es2017",
     ],
     "module": "nodenext",
     "moduleResolution": "nodenext",
