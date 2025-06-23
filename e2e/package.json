@@ -41,15 +41,15 @@
     "prettier": "3.5.3",
     "replace-in-file": "^8.3.0",
     "split2": "^4.2.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.5.3",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
     "username": "^7.0.0"
   },
   "scripts": {
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
     "dev": "tsc --build . -w --preserveWatchOutput",
-    "e2e-project": "node --import ../scripts/register-hook.js e2e-project.ts",
+    "e2e-project": "tsx e2e-project.ts",
     "fix-format": "npm run lint -- --fix --quiet",
     "lint": "eslint --ignore-pattern 'projects/**' --ext .ts ."
   }

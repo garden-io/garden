@@ -1,4 +1,4 @@
-node-option: ["experimental-specifier-resolution=node", "loader=ts-node/esm"]
+node-option: ["experimental-specifier-resolution=node", "import=tsx/esm"]
 ignore:
   - .garden
 reporter: spec

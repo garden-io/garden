@@ -26,7 +26,7 @@ nvm alias default v22
 nvm use default
 
 # install/update global packages
-npm install -g ts-node typescript
+npm install -g typescript
 
 # install npm
 npm install -g npm@10

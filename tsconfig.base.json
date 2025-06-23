@@ -1,8 +1,4 @@
 {
-  "ts-node": {
-    // Tell ts-node CLI to install the --loader automatically, explained below
-    "esm": true
-  },
   "compilerOptions": {
     "allowJs": false,
     "allowUnreachableCode": false,
@@ -16,12 +12,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "lib": [
-      "es5",
-      "es2015.promise",
-      "es2016",
       "esnext",
-      "esnext.asynciterable",
-      "es2017",
     ],
     "module": "nodenext",
     "moduleResolution": "nodenext",

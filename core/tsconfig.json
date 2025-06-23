@@ -22,7 +22,5 @@
     "outDir": "build",
     "jsx": "react",
     "resolveJsonModule": true,
-    "module": "nodenext",
-    "moduleResolution": "nodenext"
   }
 }

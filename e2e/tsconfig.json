@@ -10,8 +10,6 @@
   "compilerOptions": {
     "composite": true,
     "outDir": "build",
-    "module": "nodenext",
-    "moduleResolution": "nodenext"
   },
   "references": [
     {
