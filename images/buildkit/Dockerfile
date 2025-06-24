@@ -5,13 +5,13 @@ RUN apk add --no-cache wget
 ARG TARGETARCH
 # ECR credential helper
 RUN cd /usr/local/bin && \
-  ECR_HELPER_VERSION="0.8.0" && \
+  ECR_HELPER_VERSION="0.10.0" && \
   ECR_HELPER_DISTR_NAME="docker-credential-ecr-login" && \
   wget https://amazon-ecr-credential-helper-releases.s3.us-east-2.amazonaws.com/${ECR_HELPER_VERSION}/linux-$TARGETARCH/${ECR_HELPER_DISTR_NAME} && \
   if [ "$TARGETARCH" = "amd64" ]; then \
-    echo "dcc7ae9915b5d8fa2d9e2b18fc30bab5bfbbce5b82401c7644e6ab97973ac35c  ${ECR_HELPER_DISTR_NAME}" | sha256sum -c; \
+    echo "90fd5506d242a26b0e116b0a1ee7e67aa469e653f641a19939fe27b53bc4d20f  ${ECR_HELPER_DISTR_NAME}" | sha256sum -c; \
   elif [ "$TARGETARCH" = "arm64" ]; then \
-    echo "d62badea3153688ec5c24f440df9fb84ff4b02c624dff9288967267e7445daa1  ${ECR_HELPER_DISTR_NAME}" | sha256sum -c; \
+    echo "6c4392e081a08bfd0dcfe8baf62f3dbb6fdf41a99d426bdddddfb32b10ea2a75  ${ECR_HELPER_DISTR_NAME}" | sha256sum -c; \
   fi && \
   chmod +x ${ECR_HELPER_DISTR_NAME}
 
