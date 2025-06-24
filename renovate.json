@@ -3,7 +3,7 @@
   "extends": [
     "config:recommended"
   ],
-  "ignorePaths": ["core/test/data/**", "e2e/projects/**", "examples/**", "plugins/**/test/**"],
+  "ignorePaths": ["core/lib/**", "core/test/data/**", "e2e/projects/**", "examples/**", "plugins/**/test/**"],
   "packageRules": [
     {
       "matchManagers": ["npm"],
