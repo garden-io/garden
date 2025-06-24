@@ -4,7 +4,7 @@ name: buildkit
 description: Used for the cluster-buildkit build mode in the kubernetes provider
 variables:
   image-name: gardendev/buildkit
-  release-tag: v0.16.0
+  release-tag: v0.23.1
 spec:
   publishId: ${var.image-name}:${var.release-tag}
   localId: ${var.image-name}
@@ -22,7 +22,7 @@ dependencies:
   - build.buildkit
 variables:
   image-name: gardendev/buildkit
-  release-tag: v0.16.0-rootless
+  release-tag: v0.23.1-rootless
 spec:
   publishId: ${var.image-name}:${var.release-tag}
   localId: ${var.image-name}
