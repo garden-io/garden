@@ -18,13 +18,13 @@ RUN cd /usr/local/bin && \
 ARG TARGETARCH
 # GCR credential helper
 RUN cd /usr/local/bin && \
-  GCR_HELPER_VERSION="2.1.22" && \
+  GCR_HELPER_VERSION="2.1.29" && \
   GCR_HELPER_DISTR_NAME="docker-credential-gcr_linux_$TARGETARCH-${GCR_HELPER_VERSION}.tar.gz" && \
   wget https://github.com/GoogleCloudPlatform/docker-credential-gcr/releases/download/v${GCR_HELPER_VERSION}/${GCR_HELPER_DISTR_NAME} && \
   if [ "$TARGETARCH" = "amd64" ]; then \
-    echo "443e897dc383d69e55e6dbcb13802f4ec88444848612e83f0381df2ddd721694  ${GCR_HELPER_DISTR_NAME}" | sha256sum -c; \
+    echo "9e676f2233b93e763276101dd8530e634aebf5d31d5581f64e7ffa978aefa0d8  ${GCR_HELPER_DISTR_NAME}" | sha256sum -c; \
   elif [ "$TARGETARCH" = "arm64" ]; then \
-    echo "b607dfb7516dc1ca6a2a05322d938cea58cc5975e2063efc3695ee6ddb2dccc7  ${GCR_HELPER_DISTR_NAME}" | sha256sum -c; \
+    echo "edb3b0c1f667fb1fc5250d84a4d623886b3f0313d2838ed20885018c141348f9  ${GCR_HELPER_DISTR_NAME}" | sha256sum -c; \
   fi && \
   tar xzf ${GCR_HELPER_DISTR_NAME} && \
   rm ${GCR_HELPER_DISTR_NAME} && \
