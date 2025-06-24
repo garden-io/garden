@@ -54,7 +54,7 @@
     "async": "^3.2.6",
     "async-lock": "^1.4.1",
     "chalk": "^5.4.1",
-    "chokidar": "^3.6.0",
+    "chokidar": "^4.0.3",
     "ci-info": "^4.2.0",
     "cli-table3": "^0.6.5",
     "cli-truncate": "^4.0.0",
