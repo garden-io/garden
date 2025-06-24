@@ -11,7 +11,7 @@ Specify a Helm chart (either in your repository or remote from a registry) to de
 
 Refer to the [Helm guide](../../../garden-for/kubernetes/install-helm-chart.md) for usage instructions.
 
-Garden uses Helm 3.17.2.
+Garden uses Helm 3.18.3.
 
 Below is the full schema reference for the action.
 
