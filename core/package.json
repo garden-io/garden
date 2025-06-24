@@ -241,7 +241,7 @@
     "nock": "^12.0.3",
     "nodemon": "^3.1.10",
     "p-event": "^6.0.1",
-    "peggy": "^4.2.0",
+    "peggy": "^5.0.4",
     "prettier": "3.6.0",
     "ps-tree": "^1.2.0",
     "serve-static": "^2.2.0",
