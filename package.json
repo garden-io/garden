@@ -23,7 +23,7 @@
     "@rollup/plugin-esm-shim": "^0.1.8",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-replace": "^5.0.7",
+    "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-url": "^8.0.2",
     "@rollup/wasm-node": "^4.44.0",
     "@types/fs-extra": "^11.0.4",
