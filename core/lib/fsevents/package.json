@@ -13,7 +13,7 @@
     "fsevents.node"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=18.20.8"
   },
   "scripts": {
     "clean": "node-gyp clean && rm -f fsevents.node",
