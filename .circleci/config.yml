@@ -3,7 +3,7 @@ version: 2.1
 setup: true
 
 orbs:
-  path-filtering: circleci/path-filtering@1.3.0
+  path-filtering: circleci/path-filtering@2.0.1
 
 # We are using a setup workflow here to filter based on the path of changed resources
 # and then continue the workflow with continue-config.yml based on the filters.
