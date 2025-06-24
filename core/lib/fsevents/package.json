@@ -57,6 +57,6 @@
   },
   "homepage": "https://github.com/fsevents/fsevents",
   "devDependencies": {
-    "node-gyp": "^6.1.0"
+    "node-gyp": "^11.2.0"
   }
 }
