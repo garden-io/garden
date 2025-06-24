@@ -59,7 +59,7 @@
     "cli-table3": "^0.6.5",
     "cli-truncate": "^4.0.0",
     "cpy": "^11.1.0",
-    "cross-spawn": "^7.0.5",
+    "cross-spawn": "^7.0.6",
     "crypto-random-string": "^5.0.0",
     "date-fns": "^4.1.0",
     "dedent": "^1.6.0",
