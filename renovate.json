@@ -22,6 +22,13 @@
     {
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "npm prod dependencies (major)",
+      "labels": ["dependencies", "javascript"]
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "npm prod dependencies (non-major)",
       "labels": ["dependencies", "javascript"]
@@ -43,10 +50,17 @@
     {
       "matchManagers": ["cargo"],
       "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "cargo prod dependencies (major)",
+      "labels": ["dependencies", "rust"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchDepTypes": ["dependencies"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "cargo prod dependencies (non-major)",
       "labels": ["dependencies", "rust"]
-    }
+    },
   ],
   "rangeStrategy": "bump"
 }
