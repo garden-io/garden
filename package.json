@@ -40,7 +40,7 @@
     "csv": "^6.3.11",
     "csv-stringify": "^6.5.2",
     "deline": "^1.0.4",
-    "dependency-graph": "^0.11.0",
+    "dependency-graph": "^1.0.0",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.29.0",
     "eslint": "^9.29.0",
@@ -54,7 +54,7 @@
     "eslint-plugin-header": "^3.1.1",
     "eslint-plugin-mocha": "^11.1.0",
     "eslint-plugin-unused-imports": "^4.1.4",
-    "execa": "^8.0.1",
+    "execa": "^9.6.0",
     "fs-extra": "^11.3.0",
     "handlebars": "^4.7.8",
     "husky": "^9.1.7",
@@ -74,7 +74,7 @@
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "wrap-ansi": "^9.0.0",
-    "yargs": "^17.7.2"
+    "yargs": "^18.0.0"
   },
   "scripts": {
     "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path core/src:core/test --output-dir .",
