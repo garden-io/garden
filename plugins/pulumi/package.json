@@ -8,13 +8,13 @@
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",
     "chalk": "^5.4.1",
-    "execa": "^8.0.1",
+    "execa": "^9.6.0",
     "fs-extra": "^11.3.0",
     "js-yaml": "^4.1.0",
     "json-merge-patch": "^1.0.2",
     "lodash-es": "^4.17.21",
     "slash": "^5.1.0",
-    "which": "^4.0.0"
+    "which": "^5.0.0"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",
