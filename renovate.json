@@ -13,7 +13,6 @@
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["major"],
-      "groupName": "npm dev dependencies (major)",
       "labels": ["dev-dependencies", "javascript"]
     },
     {
@@ -27,7 +26,6 @@
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies"],
       "matchUpdateTypes": ["major"],
-      "groupName": "npm prod dependencies (major)",
       "labels": ["dependencies", "javascript"]
     },
     {
@@ -41,7 +39,6 @@
       "matchManagers": ["cargo"],
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["major"],
-      "groupName": "cargo dev dependencies (major)",
       "labels": ["dev-dependencies", "rust"]
     },
     {
@@ -55,7 +52,6 @@
       "matchManagers": ["cargo"],
       "matchDepTypes": ["dependencies"],
       "matchUpdateTypes": ["major"],
-      "groupName": "cargo prod dependencies (major)",
       "labels": ["dependencies", "rust"]
     },
     {
