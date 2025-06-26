@@ -75,7 +75,7 @@ function getRustTarget(spec: TargetSpec): string {
   return target
 }
 
-export const nodeVersion = "22.16.0"
+export const nodeVersion = "22.17.0"
 export const nodeTargets: {
   [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerParams) => Promise<void> }
 } = {
@@ -86,7 +86,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "darwin",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-darwin-x64.tar.gz`,
-      checksum: "838d400f7e66c804e5d11e2ecb61d6e9e878611146baff69d6a2def3cc23f4ac",
+      checksum: "c39c8ec3cdadedfcc75de0cb3305df95ae2aecebc5db8d68a9b67bd74616d2ad",
     },
     handler: pkgMacos,
   },
@@ -97,7 +97,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "darwin",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-darwin-arm64.tar.gz`,
-      checksum: "1d7f34ec4c03e12d8b33481e5c4560432d7dc31a0ef3ff5a4d9a8ada7cf6ecc9",
+      checksum: "615dda58b5fb41fad2be43940b6398ca56554cbe05800953afadc724729cb09e",
     },
     handler: pkgMacos,
   },
@@ -108,7 +108,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "linux",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-linux-x64.tar.gz`,
-      checksum: "fb870226119d47378fa9c92c4535389c72dae14fcc7b47e6fdcc82c43de5a547",
+      checksum: "0fa01328a0f3d10800623f7107fbcd654a60ec178fab1ef5b9779e94e0419e1a",
     },
     handler: pkgLinux,
   },
@@ -119,7 +119,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "linux",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-linux-arm64.tar.gz`,
-      checksum: "1725602e9fb150eb8b8220a899085190e1c04d1a5f3862b01c3dc1dfce0157f9",
+      checksum: "3e99df8b01b27dc8b334a2a30d1cd500442b3b0877d217b308fd61a9ccfc33d4",
     },
     handler: pkgLinux,
   },
@@ -131,7 +131,7 @@ export const nodeTargets: {
       nodeBinaryPlatform: "linux",
       // Alpine builds live in https://unofficial-builds.nodejs.org/download/release/
       url: `https://unofficial-builds.nodejs.org/download/release/v${nodeVersion}/node-v${nodeVersion}-linux-x64-musl.tar.gz`,
-      checksum: "6d20ac7f034c4117bbefcbde6b63412637dba30aab144a1114fc604b6609fcba",
+      checksum: "b7e6d8279f654e741f9cd9f199d5091d74492df0bd2f2e70f6bc0cb6e3369e7f",
     },
     handler: pkgAlpine,
   },
@@ -142,7 +142,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "win32",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-win-x64.zip`,
-      checksum: "21c2d9735c80b8f86dab19305aa6a9f6f59bbc808f68de3eef09d5832e3bfbbd",
+      checksum: "721ab118a3aac8584348b132767eadf51379e0616f0db802cc1e66d7f0d98f85",
     },
     handler: pkgWindows,
   },
