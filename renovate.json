@@ -4,6 +4,10 @@
     "config:recommended"
   ],
   "ignorePaths": ["core/lib/**", "core/test/data/**", "e2e/projects/**", "examples/**", "plugins/**/test/**"],
+  "schedule": ["before 6am on Monday"],
+  "minimumReleaseAge": "7 days",
+  "prConcurrentLimit": 5,
+  "automerge": true,
   "packageRules": [
     {
       "matchManagers": ["npm"],
@@ -60,7 +64,7 @@
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "cargo prod dependencies (non-major)",
       "labels": ["dependencies", "rust"]
-    },
+    }
   ],
   "rangeStrategy": "bump"
 }
