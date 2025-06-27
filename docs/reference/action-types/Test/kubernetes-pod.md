@@ -493,7 +493,7 @@ The name of the resource to patch.
 
 The patch strategy to use. One of 'json', 'merge', or 'strategic'. Defaults to 'strategic'.
 
-You can read more about the different strategies in the offical Kubernetes documentation at:
+You can read more about the different strategies in the official Kubernetes documentation at:
 https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
 
 | Type     | Default       | Required |
