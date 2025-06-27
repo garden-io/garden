@@ -27,11 +27,16 @@ export class RenderTemplateConfigContext extends EnvironmentConfigContext {
   public inputs: InputContext
 
   constructor(
-    params: { parentName: string; templateName: string; inputs: InputContext } & EnvironmentConfigContextParams
+    params: {
+      parentName: string
+      templateName: string
+      templatePath: string
+      inputs: InputContext
+    } & EnvironmentConfigContextParams
   ) {
     super(params)
     this.parent = new ParentContext(params.parentName)
-    this.template = new TemplateContext(params.templateName)
+    this.template = new TemplateContext({ name: params.templateName, path: params.templatePath })
     this.inputs = params.inputs
   }
 }
