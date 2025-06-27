@@ -10,6 +10,16 @@
   "automerge": true,
   "packageRules": [
     {
+      "matchPackageNames": ["@bufbuild/protobuf"],
+      "enabled": false,
+      "description": "Pinned manually to current version to be consistent with @buf/garden_grow-platform.bufbuild_es."
+    },
+    {
+      "matchPackageNames": ["@buf/garden_grow-platform.bufbuild_es"],
+      "enabled": false,
+      "description": "Pinned manually to current version to ignore intermediate and experimental versions from the dev loop."
+    },
+    {
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["major"],
