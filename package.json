@@ -74,7 +74,7 @@
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "wrap-ansi": "^9.0.0",
-    "yargs": "^17.7.2"
+    "yargs": "^18.0.0"
   },
   "scripts": {
     "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path core/src:core/test --output-dir .",
