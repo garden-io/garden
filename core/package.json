@@ -116,7 +116,7 @@
     "p-filter": "^4.1.0",
     "p-map": "^7.0.1",
     "p-props": "^6.0.0",
-    "p-queue": "^8.0.1",
+    "p-queue": "^8.1.0",
     "p-retry": "^6.1.0",
     "parse-duration": "^2.1.4",
     "path-is-inside": "^1.0.2",
