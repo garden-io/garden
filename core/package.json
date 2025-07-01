@@ -245,7 +245,7 @@
     "ps-tree": "^1.2.0",
     "serve-static": "^2.2.0",
     "shx": "^0.4.0",
-    "sinon": "^20.0.0",
+    "sinon": "^21.0.0",
     "testdouble": "^3.20.2",
     "timekeeper": "^2.3.1",
     "type-fest": "^4.41.0",
