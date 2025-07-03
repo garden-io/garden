@@ -60,11 +60,19 @@ export const execPlugin = sdk.createGardenPlugin({
 
 export const execProvider = execPlugin.createProvider({
   configSchema: s.object({
-    initScript: s.string().optional().describe(dedent`
-      An optional script to run in the project root when initializing providers. This is handy for running an arbitrary
-      script when initializing. For example, another provider might declare a dependency on this provider, to ensure
-      this script runs before resolving that provider.
-    `),
+    initScript: s
+      .string()
+      .optional()
+      .describe(
+        dedent`
+          DEPRECATED: Use the \`preInit.runScript\` field instead on any provider that needs setup outside of Garden.
+
+          An optional script to run in the project root when initializing providers. This is handy for running an arbitrary
+          script when initializing. For example, another provider might declare a dependency on this provider, to ensure
+          this script runs before resolving that provider.
+        `
+      )
+      .setMetadata({ deprecated: true }),
   }),
   outputsSchema: s.object({
     initScript: s

@@ -31,6 +31,15 @@ providers:
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 
+    preInit:
+      # A script to run before the provider is initialized. This is useful for performing any provider-specific setup
+      # outside of Garden. For example, you can use this to perform authentication, such as authenticating with a
+      # Kubernetes cluster provider.
+      # The script will always be run from the project root directory.
+      # Note that provider statuses are cached, so this script will generally only be run once, but you can force a
+      # re-run by setting `--force-refresh` on any Garden command that uses the provider.
+      runScript:
+
     # The version of pulumi to use. Set to `null` to use whichever version of `pulumi` is on your PATH.
     version: 3.122.0
 
@@ -133,6 +142,26 @@ providers:
       - dev
       - stage
 ```
+
+### `providers[].preInit`
+
+[providers](#providers) > preInit
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].preInit.runScript`
+
+[providers](#providers) > [preInit](#providerspreinit) > runScript
+
+A script to run before the provider is initialized. This is useful for performing any provider-specific setup outside of Garden. For example, you can use this to perform authentication, such as authenticating with a Kubernetes cluster provider.
+The script will always be run from the project root directory.
+Note that provider statuses are cached, so this script will generally only be run once, but you can force a re-run by setting `--force-refresh` on any Garden command that uses the provider.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `providers[].version`
 
