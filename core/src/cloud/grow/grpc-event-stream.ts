@@ -144,19 +144,21 @@ export class GrpcEventStream {
       this.closeCallbacks.push(resolve)
     })
 
+    // Wait max 1 second for the events to be acknowledged
+    const timeout = 1000
     // TODO(production): use 30 seconds when we go to production, but for now let's only wait 100ms for acknowledgements.
-    const timeout = 100
-    // wait max 10 seconds for the events to be acknowledged
     // const timeout = 30000
 
+    const timeoutSec = timeout / 1000
     await Promise.race([
       promise,
       (async () => {
+        this.log.info(`Waiting for ${timeoutSec} seconds to flush events to Garden Cloud`)
         await sleep(timeout)
-        // TODO(production): use warn loglevel instead of debug for this one
         this.log.debug(
-          `Not all events were acknowledged within ${timeout / 1000} seconds. Information in Garden Cloud may be incomplete.`
+          `GrpcEventStream: Not all events were acknowledged within ${timeoutSec} seconds. Information in Garden Cloud may be incomplete.`
         )
+        this.log.warn("Not all events have been sent to Garden Cloud. Check the debug logs for more details.")
       })(),
     ])
 
@@ -182,7 +184,9 @@ export class GrpcEventStream {
       // NOTE: we don't need to wait for the promise to resolve.
       // If sending the event fails, it will be retried as it lives in the event buffer.
       // See the caller of `streamEvents`.
-      void this.outputStream?.write(create(IngestEventsRequestSchema, { event })).catch((_) => undefined)
+      void this.outputStream
+        ?.write(create(IngestEventsRequestSchema, { event }))
+        .catch((err) => this.log.debug(`GrpcEventStream: Failed to write event ${event.eventUlid}: ${err}`))
     }
   }
 
@@ -197,15 +201,24 @@ export class GrpcEventStream {
   private async streamEvents() {
     this.outputStream = createWritableIterable<IngestEventsRequest>()
 
-    const ackStream = this.eventIngestionService.ingestEvents(this.outputStream)
+    let ackStream: AsyncIterable<IngestEventsResponse>
+    try {
+      ackStream = this.eventIngestionService.ingestEvents(this.outputStream)
+    } catch (err) {
+      this.log.debug(`GrpcEventStream: Failed to start event ingestion bi-directional stream: ${err}`)
+      throw err
+    }
 
     this.log.silly(() => "GrpcEventStream: Connected")
 
-    // we synchronously flush all events into the output stream, to ensure that we don't send events out-of-order
     this.flushEventBuffer()
 
     try {
       await this.consumeAcks(ackStream)
+    } catch (err) {
+      this.log.debug(`GrpcEventStream: Error while consuming acks: ${err}`)
+      // Let the outer retry handle this
+      throw err
     } finally {
       this.outputStream?.close()
       this.outputStream = undefined
@@ -215,11 +228,14 @@ export class GrpcEventStream {
   private async consumeAcks(ackStream: AsyncIterable<IngestEventsResponse>) {
     for await (const nextAck of ackStream) {
       if (!nextAck.success) {
-        this.log.silly(
-          `GrpcEventStream: Server failed to process event with ulid=${nextAck.eventUlid}, final=${nextAck.final}: ${JSON.stringify(this.eventBuffer.get(nextAck.eventUlid), (_, v) => (typeof v === "bigint" ? v.toString() : v))}`
+        this.log.debug(
+          `GrpcEventStream: Server failed to process event ulid=${nextAck.eventUlid}, final=${nextAck.final}: ` +
+            `${JSON.stringify(this.eventBuffer.get(nextAck.eventUlid), (_, v) =>
+              typeof v === "bigint" ? v.toString() : v
+            )}`
         )
       } else {
-        this.log.silly(() => `GrpcEventStream: Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`)
+        this.log.debug(() => `GrpcEventStream: Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`)
       }
 
       // Remove acknowledged event from the buffer
@@ -277,16 +293,25 @@ export class GrpcEventStream {
       return
     }
 
-    this.log.silly(() => `GrpcEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
-    // NOTE: The Map implementation in the javascript runtime guarantees that values will be iterated in the order they were added (FIFO).
-    for (const event of this.eventBuffer.values()) {
-      if (!this.outputStream) {
-        this.log.silly(() => `GrpcEventStream: Stream closed during flush`)
-        break
+    this.log.debug(() => `GrpcEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
+    // Serialize writes to avoid race/out-of-order issues
+    const writeEvents = async () => {
+      // NOTE: The Map implementation in the javascript runtime guarantees that values will be iterated in the order they were added (FIFO).
+      for (const event of this.eventBuffer.values()) {
+        if (!this.outputStream) {
+          this.log.silly(() => `GrpcEventStream: Stream closed during flush`)
+          break
+        }
+        try {
+          await this.outputStream.write(create(IngestEventsRequestSchema, { event }))
+        } catch (err) {
+          this.log.debug(`GrpcEventStream: Failed to write event ${event.eventUlid} during flush: ${err}`)
+          // We don't throw here to avoid breaking the flush loop
+        }
       }
-      // NOTE: we're not waiting for the promise to resolve on purpose, as we want to synchronously flush all events
-      // to the underlying queue avoiding out-of-order event transmission.
-      void this.outputStream.write(create(IngestEventsRequestSchema, { event })).catch((_) => undefined)
     }
+
+    // Start flushing but don't block caller
+    void writeEvents()
   }
 }
