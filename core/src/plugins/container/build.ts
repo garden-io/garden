@@ -239,7 +239,14 @@ async function buildxBuildContainer({
 
   const internalDockerFlags = ["--progress", "rawjson", "--metadata-file", metadataFile]
 
-  const dockerFlags = [...getDockerBuildFlags(action, ctx.provider.config), ...extraDockerOpts, ...internalDockerFlags]
+  const dockerBuildFlags = getDockerBuildFlags(action, ctx.provider.config)
+  // we add --push in the Kubernetes local-docker handler when using the Kubernetes plugin with a deploymentRegistry setting.
+  // If we have --push, no need to --load.
+  if (!dockerBuildFlags.includes("--push")) {
+    // This action makes sure to download the image from the Container Builder, and make it available locally.
+    extraDockerOpts.push("--load")
+  }
+  const dockerFlags = [...dockerBuildFlags, ...extraDockerOpts, ...internalDockerFlags]
 
   const { secretArgs, secretEnvVars } = getDockerSecrets(action.getSpec())
   dockerFlags.push(...secretArgs)
@@ -342,14 +349,6 @@ async function buildContainerInCloudBuilder(params: {
 
   const res = await cloudBuilder.withBuilder(params.ctx, params.availability, async (builderName) => {
     const extraDockerOpts = ["--builder", builderName]
-
-    // we add --push in the Kubernetes local-docker handler when using the Kubernetes plugin with a deploymentRegistry setting.
-    // If we have --push, no need to --load.
-    if (!getDockerBuildFlags(params.action, params.ctx.provider.config).includes("--push")) {
-      // This action makes sure to download the image from the Container Builder, and make it available locally.
-      extraDockerOpts.push("--load")
-    }
-
     return await buildxBuildContainer({ ...params, extraDockerOpts, runtime, dockerLogs: params.dockerLogs })
   })
 
