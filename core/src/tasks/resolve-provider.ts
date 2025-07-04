@@ -24,7 +24,7 @@ import { Profile } from "../util/profiling.js"
 import { join, dirname } from "path"
 import { deserialize, serialize } from "v8"
 import { environmentStatusSchema } from "../config/status.js"
-import { hashString, isNotNull } from "../util/util.js"
+import { hashString, isNotNull, runScript } from "../util/util.js"
 import { CACHE_DIR_NAME, gardenEnv } from "../constants.js"
 import { stableStringify } from "../util/string.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
@@ -392,6 +392,16 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     if (cachedStatus) {
       providerLog.success(`Provider status cached`)
       return cachedStatus
+    }
+
+    if (tmpProvider.config.preInit?.runScript) {
+      providerLog.info(`Running pre-init script`)
+      await runScript({
+        log: providerLog,
+        cwd: this.garden.projectRoot,
+        script: tmpProvider.config.preInit.runScript,
+      })
+      providerLog.info(`Pre-init script completed successfully`)
     }
 
     // TODO: Remove this condition in 0.14 since we no longer check provider statuses when

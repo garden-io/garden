@@ -16,7 +16,7 @@ import { makeTempDir, makeTestGarden, stubProviderAction, createProjectConfig } 
 import { ResolveProviderTask } from "../../../../src/tasks/resolve-provider.js"
 import fsExtra from "fs-extra"
 
-const { pathExists, writeFile, remove } = fsExtra
+const { pathExists, writeFile, remove, readFile } = fsExtra
 import { join } from "path"
 import { serialize } from "v8"
 import moment from "moment"
@@ -43,7 +43,7 @@ describe("ResolveProviderTask", () => {
     garden = await makeTestGarden(tmpDir.path, {
       config: createProjectConfig({
         path: tmpDir.path,
-        providers: [{ name: "test-plugin" }],
+        providers: [{ name: "test-plugin", preInit: { runScript: "echo OK > preinit.txt" } }],
       }),
     })
 
@@ -153,6 +153,34 @@ describe("ResolveProviderTask", () => {
 
     const provider = await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
     expect(provider.status.cached).to.be.undefined
+  })
+
+  it("should run the preInit script if it is set", async () => {
+    const testFilePath = join(tmpDir.path, "preinit.txt")
+    await remove(testFilePath)
+
+    const cachePath = task["getCachePath"]()
+    await remove(cachePath)
+
+    await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
+
+    const testFileContent = await readFile(testFilePath, "utf8")
+    expect(testFileContent.trim()).to.eql("OK")
+  })
+
+  it("should not run the preInit script if status is cached", async () => {
+    const cachePath = task["getCachePath"]()
+    await remove(cachePath)
+
+    await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
+
+    const testFilePath = join(tmpDir.path, "preinit.txt")
+    await remove(testFilePath)
+
+    await task.process({ statusOnly: false, dependencyResults: new GraphResults([]) })
+
+    const testFileExists = await pathExists(testFilePath)
+    expect(testFileExists).to.be.false
   })
 })
 

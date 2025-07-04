@@ -37,6 +37,17 @@ providers:
     # Example: `["dev","stage"]`
     environments:
 
+    preInit:
+      # A script to run before the provider is initialized. This is useful for performing any provider-specific setup
+      # outside of Garden. For example, you can use this to perform authentication, such as authenticating with a
+      # Kubernetes cluster provider.
+      # The script will always be run from the project root directory.
+      # Note that provider statuses are cached, so this script will generally only be run once, but you can force a
+      # re-run by setting `--force-refresh` on any Garden command that uses the provider.
+      runScript:
+
+    # DEPRECATED: Use the `preInit.runScript` field instead on any provider that needs setup outside of Garden.
+    #
     # An optional script to run in the project root when initializing providers. This is handy for running an
     # arbitrary
     # script when initializing. For example, another provider might declare a dependency on this provider, to ensure
@@ -85,9 +96,31 @@ Example: `["dev","stage"]`
 | ------- | -------- |
 | `array` | No       |
 
+### `providers[].preInit`
+
+[providers](#providers) > preInit
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].preInit.runScript`
+
+[providers](#providers) > [preInit](#providerspreinit) > runScript
+
+A script to run before the provider is initialized. This is useful for performing any provider-specific setup outside of Garden. For example, you can use this to perform authentication, such as authenticating with a Kubernetes cluster provider.
+The script will always be run from the project root directory.
+Note that provider statuses are cached, so this script will generally only be run once, but you can force a re-run by setting `--force-refresh` on any Garden command that uses the provider.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `providers[].initScript`
 
 [providers](#providers) > initScript
+
+DEPRECATED: Use the `preInit.runScript` field instead on any provider that needs setup outside of Garden.
 
 An optional script to run in the project root when initializing providers. This is handy for running an arbitrary
 script when initializing. For example, another provider might declare a dependency on this provider, to ensure

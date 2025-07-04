@@ -33,6 +33,17 @@ import { defaultVisitorOpts, getContextLookupReferences, visitAll } from "../tem
 import type { ConfigContext } from "./template-contexts/base.js"
 import type { UnresolvedProviderConfig } from "./project.js"
 
+const preInitDescription = deline`
+  A script to run before the provider is initialized. This is useful for performing any provider-specific setup outside
+  of Garden. For example, you can use this to perform authentication, such as authenticating with a
+  Kubernetes cluster provider.
+
+  The script will always be run from the project root directory.
+
+  Note that provider statuses are cached, so this script will generally only be run once, but you can force a re-run by
+  setting \`--force-refresh\` on any Garden command that uses the provider.
+`
+
 // TODO: dedupe from the joi schema below
 export const baseProviderConfigSchemaZod = s.object({
   name: s.identifier().describe("The name of the provider plugin to use."),
@@ -51,6 +62,11 @@ export const baseProviderConfigSchemaZod = s.object({
       `
     )
     .example(["dev", "stage"]),
+  preInit: s
+    .object({
+      runScript: s.string().optional().describe(preInitDescription),
+    })
+    .optional(),
 })
 
 export interface BaseProviderConfig {
@@ -58,6 +74,9 @@ export interface BaseProviderConfig {
   dependencies?: string[]
   environments?: string[]
   path?: string
+  preInit?: {
+    runScript?: string
+  }
 }
 
 const providerFixedFieldsSchema = memoize(() =>
@@ -77,6 +96,12 @@ const providerFixedFieldsSchema = memoize(() =>
       `
       )
       .example(["dev", "stage"]),
+    preInit: joi
+      .object()
+      .keys({
+        runScript: joi.string().optional().description(preInitDescription),
+      })
+      .optional(),
   })
 )
 
