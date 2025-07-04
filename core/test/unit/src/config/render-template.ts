@@ -205,6 +205,7 @@ describe("config templates", () => {
                 {
                   type: "test",
                   name: "${parent.name}-${template.name}-${inputs.foo}",
+                  variables: { templatePath: "${template.path}" },
                   build: {
                     dependencies: [{ name: "${parent.name}-${template.name}-foo", copy: [] }],
                     timeout: DEFAULT_BUILD_TIMEOUT_SEC,
@@ -228,10 +229,12 @@ describe("config templates", () => {
       const module = resolved.modules[0]
 
       expect(module.name).to.equal("test-test-bar")
+      // TODO-DODDI: Here, we need to be actually verifying that the right values come through when resolved!
       expect(serialiseUnresolvedTemplates(module.build.dependencies)).to.eql([
         { name: "${parent.name}-${template.name}-foo", copy: [] },
       ])
       expect(serialiseUnresolvedTemplates(module.spec.image)).to.equal("${modules.foo.outputs.bar || inputs.foo}")
+      // expect(module.variables!["templatePath"]).to.equal(garden.projectRoot)
     })
 
     it("throws if config is invalid", async () => {
