@@ -887,26 +887,33 @@ describe("sync mode deployments and sync behavior", () => {
       ]
 
       const target: KubernetesTargetResourceSyncModeSpec = { podSelector: { app: "sync-mode" } }
-      const res = await configureSyncMode({
-        ctx,
-        log: actionLog,
-        provider,
-        action,
-        manifests,
-        defaultTarget: undefined,
-        spec: {
-          paths: [
-            {
-              target,
-              sourcePath: join(action.sourcePath(), "src"),
-              containerPath: "/app/src",
+      await expectError(
+        () =>
+          configureSyncMode({
+            ctx,
+            log: actionLog,
+            provider,
+            action,
+            manifests,
+            defaultTarget: undefined,
+            spec: {
+              paths: [
+                {
+                  target,
+                  sourcePath: join(action.sourcePath(), "src"),
+                  containerPath: "/app/src",
+                },
+              ],
             },
+          }),
+        {
+          contains: [
+            "doesn't specify a target, and none is set as a default",
+            "Either specify a target via the spec.sync.paths[].target or spec.defaultTarget",
+            "The target must be configured via a pair of kind and name fields either in the spec.sync.paths[].target or spec.defaultTarget",
           ],
-        },
-      })
-
-      // Verify that the manifest was not modified (podSelector doesn't modify manifests)
-      expect(res.manifests).to.deep.equal(manifests)
+        }
+      )
     })
     it("should throw an error when sync path has no target and no defaultTarget", async () => {
       const manifests = [
