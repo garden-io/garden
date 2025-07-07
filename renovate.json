@@ -8,6 +8,7 @@
   "minimumReleaseAge": "7 days",
   "prConcurrentLimit": 5,
   "automerge": true,
+  "semanticCommits": "auto",
   "packageRules": [
     {
       "matchPackageNames": ["@bufbuild/protobuf"],
@@ -18,6 +19,10 @@
       "matchPackageNames": ["@buf/garden_grow-platform.bufbuild_es"],
       "enabled": false,
       "description": "Pinned manually to current version to ignore intermediate and experimental versions from the dev loop."
+    },
+    {
+      "matchDepTypes": ["dependencies"],
+      "semanticCommitType": "chore"
     },
     {
       "matchManagers": ["npm"],
