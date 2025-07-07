@@ -8,14 +8,16 @@
 
 import { expect } from "chai"
 import fsExtra from "fs-extra"
-
-const { mkdirp, pathExists, readFile, remove, writeFile } = fsExtra
 import { join } from "path"
 import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status.js"
 import type { ActionLog, Log } from "../../../../../src/logger/log-entry.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
-import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
+import type {
+  KubernetesPluginContext,
+  KubernetesProvider,
+  KubernetesTargetResourceSyncModeSpec,
+} from "../../../../../src/plugins/kubernetes/config.js"
 import { getMutagenMonitor, Mutagen } from "../../../../../src/mutagen.js"
 import type { KubernetesWorkload, SyncableRuntimeAction } from "../../../../../src/plugins/kubernetes/types.js"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util.js"
@@ -41,6 +43,8 @@ import {
 } from "../../../../../src/plugins/kubernetes/constants.js"
 import type { Action, Resolved } from "../../../../../src/actions/types.js"
 import stripAnsi from "strip-ansi"
+
+const { mkdirp, pathExists, readFile, remove, writeFile } = fsExtra
 
 describe("sync mode deployments and sync behavior", () => {
   describe("sync mode deployments", () => {
@@ -882,26 +886,34 @@ describe("sync mode deployments and sync behavior", () => {
         },
       ]
 
-      const res = await configureSyncMode({
-        ctx,
-        log: actionLog,
-        provider,
-        action,
-        manifests,
-        defaultTarget: undefined,
-        spec: {
-          paths: [
-            {
-              target: { podSelector: { app: "sync-mode" } },
-              sourcePath: join(action.sourcePath(), "src"),
-              containerPath: "/app/src",
+      const target: KubernetesTargetResourceSyncModeSpec = { podSelector: { app: "sync-mode" } }
+      await expectError(
+        () =>
+          configureSyncMode({
+            ctx,
+            log: actionLog,
+            provider,
+            action,
+            manifests,
+            defaultTarget: undefined,
+            spec: {
+              paths: [
+                {
+                  target,
+                  sourcePath: join(action.sourcePath(), "src"),
+                  containerPath: "/app/src",
+                },
+              ],
             },
+          }),
+        {
+          contains: [
+            "doesn't specify a target, and none is set as a default",
+            "Either specify a target via the spec.sync.paths[].target or spec.defaultTarget",
+            "The target must be configured via a pair of kind and name fields either in the spec.sync.paths[].target or spec.defaultTarget",
           ],
-        },
-      })
-
-      // Verify that the manifest was not modified (podSelector doesn't modify manifests)
-      expect(res.manifests).to.deep.equal(manifests)
+        }
+      )
     })
     it("should throw an error when sync path has no target and no defaultTarget", async () => {
       const manifests = [
@@ -939,7 +951,7 @@ describe("sync mode deployments and sync behavior", () => {
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.contain(
-            stripAnsi(`Sync configuration on ${action.longDescription()} doesn't specify a target`)
+            stripAnsi(`Sync path configuration on ${action.longDescription()} doesn't specify a target`)
           )
       )
     })

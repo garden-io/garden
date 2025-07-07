@@ -8,7 +8,7 @@
 
 import type { ContainerDeployAction } from "../../container/moduleConfig.js"
 import { getAppNamespace } from "../namespace.js"
-import type { KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
+import type { KubernetesPluginContext, KubernetesTargetResourceSyncModeSpec } from "../config.js"
 import type { KubernetesDeployDevModeSyncSpec } from "../sync.js"
 import { getSyncStatus, startSyncs, stopSyncs } from "../sync.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
@@ -87,7 +87,7 @@ export const k8sContainerGetSyncStatus: DeployActionHandler<"getSyncStatus", Con
 
 function getSyncs(action: Executed<ContainerDeployAction>): {
   syncs: KubernetesDeployDevModeSyncSpec[]
-  target?: KubernetesTargetResourceSpec | undefined
+  target?: KubernetesTargetResourceSyncModeSpec | undefined
   deployedResources: KubernetesResource[]
 } {
   const status = action.getStatus()

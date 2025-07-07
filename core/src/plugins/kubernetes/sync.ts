@@ -27,16 +27,10 @@ import {
   syncSourcePathSchema,
   syncTargetPathSchema,
 } from "../container/moduleConfig.js"
-import { dedent, gardenAnnotationKey } from "../../util/string.js"
+import { dedent, deline, gardenAnnotationKey } from "../../util/string.js"
 import cloneDeep from "fast-copy"
 import { kebabCase, keyBy, omit, set } from "lodash-es"
-import {
-  getResourceContainer,
-  getResourceKey,
-  getResourcePodSpec,
-  getTargetResource,
-  labelSelectorToString,
-} from "./util.js"
+import { getResourceContainer, getResourceKey, getResourcePodSpec, getTargetResource } from "./util.js"
 import type {
   KubernetesResource,
   OctalPermissionMask,
@@ -51,6 +45,8 @@ import type {
   KubernetesPluginContext,
   KubernetesProvider,
   KubernetesTargetResourceSpec,
+  KubernetesTargetResourceSyncModeSpec,
+  KubernetesTargetResourceSyncModeStrictSpec,
   ServiceResourceSpec,
 } from "./config.js"
 import { targetResourceSpecSchema } from "./config.js"
@@ -72,6 +68,8 @@ import { styles } from "../../logger/styles.js"
 import { commandListToShellScript } from "../../util/escape.js"
 import { toClearText } from "../../util/secrets.js"
 import type { V1Container } from "@kubernetes/client-node"
+import { emitNonRepeatableWarning } from "../../warnings.js"
+import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -131,7 +129,7 @@ export const syncDefaultsSchema = () =>
 export interface KubernetesDeployDevModeSyncSpec extends DevModeSyncOptions {
   sourcePath: string
   containerPath: string
-  target?: KubernetesTargetResourceSpec
+  target?: KubernetesTargetResourceSyncModeSpec
   containerName?: string
 }
 
@@ -159,7 +157,7 @@ export const kubernetesDeploySyncPathSchema = () =>
     )
 
 export interface KubernetesDeployOverrideSpec {
-  target?: KubernetesTargetResourceSpec
+  target?: KubernetesTargetResourceSyncModeSpec
   command?: string[]
   args?: string[]
   image?: string
@@ -285,7 +283,7 @@ export function convertContainerSyncSpec(
 function convertSyncPaths(
   basePath: string,
   syncSpecs: DevModeSyncSpec[],
-  target: KubernetesTargetResourceSpec | undefined
+  target: KubernetesTargetResourceSyncModeSpec | undefined
 ): KubernetesDeployDevModeSyncSpec[] {
   return syncSpecs.map((sync) => ({
     ...omit(sync, ["source"]),
@@ -315,24 +313,50 @@ export async function configureSyncMode({
   // Make sure we don't modify inputs in-place
   manifests = cloneDeep(manifests)
 
-  const overridesByTarget: { [ref: string]: KubernetesDeployOverrideSpec } = {}
-  const dedupedTargets: { [ref: string]: KubernetesTargetResourceSpec } = {}
-
-  const targetKey = (t: KubernetesTargetResourceSpec) => {
-    if (t.podSelector) {
-      return labelSelectorToString(t.podSelector)
-    } else {
-      return `${t.kind}/${t.name}`
-    }
+  if (defaultTarget?.podSelector) {
+    emitNonRepeatableWarning(
+      log,
+      deline`
+      The ${styles.highlight("defaultResource.podSelector")} has no effect for ${styles.highlight("kubernetes")} and ${styles.highlight("helm")} Deploy actions in sync mode.
+      Please use the combination of ${styles.highlight("defaultResource.kind")} and ${styles.highlight("defaultResource.name")} instead.
+      `
+    )
   }
 
+  // ignore defaultTarget.podSelector in sync mode
+  const effectiveDefaultTarget: KubernetesTargetResourceSyncModeSpec | undefined = defaultTarget
+    ? {
+        kind: defaultTarget.kind,
+        name: defaultTarget.name,
+      }
+    : undefined
+
+  const dedupedTargets: { [ref: string]: KubernetesTargetResourceSyncModeStrictSpec } = {}
+
+  const targetKey = (t: KubernetesTargetResourceSyncModeStrictSpec) => `${t.kind}/${t.name}`
+
   for (const override of spec.overrides || []) {
-    const target = override.target || defaultTarget
-    if (!target) {
-      throw new ConfigurationError({
+    const overrideTarget = override.target
+    if (overrideTarget?.podSelector) {
+      reportDeprecatedFeatureUsage({ log, deprecation: "podSelectorInSyncMode" })
+    }
+
+    // ignore override.target.podSelector in sync mode
+    const effectiveOverrideTarget: KubernetesTargetResourceSyncModeStrictSpec | undefined = overrideTarget
+      ? {
+          kind: overrideTarget.kind,
+          name: overrideTarget.name,
+        }
+      : undefined
+    const target: KubernetesTargetResourceSyncModeStrictSpec | undefined =
+      effectiveOverrideTarget || effectiveDefaultTarget
+
+    const tailorSyncOverrideConfigError = () =>
+      new ConfigurationError({
         message: dedent`
           Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
-          Either specify a target via the \`spec.sync.overrides[].target\` or \`spec.defaultTarget\`.
+          Either specify a target via the ${styles.highlight("spec.sync.overrides[].target")} or ${styles.highlight("spec.defaultTarget")}.
+          The target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields either in the ${styles.highlight("spec.sync.overrides[].target")} or ${styles.highlight("spec.defaultTarget")}.
 
           Override configuration:
           ${(override.command?.length ?? 0) > 0 ? `Command: ${override.command?.join(" ")}` : ""}
@@ -340,33 +364,46 @@ export async function configureSyncMode({
           ${(override.image?.length ?? 0) ? `Image: ${override.image}` : ""}
         `,
       })
+
+    if (!target || !(target.kind && target.name)) {
+      throw tailorSyncOverrideConfigError()
     }
-    if (target.kind && target.name) {
-      const key = targetKey(target)
-      overridesByTarget[key] = override
-      dedupedTargets[key] = target
-    }
+
+    const key = targetKey(target)
+    dedupedTargets[key] = target
   }
 
   for (const sync of spec.paths || []) {
-    const target = sync.target || defaultTarget
+    const syncTarget = sync.target
+    if (syncTarget?.podSelector) {
+      reportDeprecatedFeatureUsage({ log, deprecation: "podSelectorInSyncMode" })
+    }
 
-    if (!target) {
-      throw new ConfigurationError({
+    // ignore sync.target.podSelector in sync mode
+    const effectiveSyncTarget: KubernetesTargetResourceSyncModeStrictSpec | undefined = syncTarget
+      ? {
+          kind: syncTarget.kind,
+          name: syncTarget.name,
+        }
+      : undefined
+    const target: KubernetesTargetResourceSyncModeStrictSpec | undefined = effectiveSyncTarget || effectiveDefaultTarget
+
+    const tailorSyncPathConfigError = () =>
+      new ConfigurationError({
         message: dedent`
-          Sync configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
+          Sync path configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
+          Either specify a target via the ${styles.highlight("spec.sync.paths[].target")} or ${styles.highlight("spec.defaultTarget")}.
+          The target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields either in the ${styles.highlight("spec.sync.paths[].target")} or ${styles.highlight("spec.defaultTarget")}.
 
-          Sync configuration:
+          Sync path configuration:
           Source path: ${sync.sourcePath}
           Container path: ${sync.containerPath}
           ${sync.containerName ? `Container name: ${sync.containerName}` : ""}
         `,
       })
-    }
 
-    if (target.podSelector) {
-      // These don't call for modification to manifests
-      continue
+    if (!target || !(target.kind && target.name)) {
+      throw tailorSyncPathConfigError()
     }
 
     const key = targetKey(target)
@@ -391,7 +428,7 @@ export async function configureSyncMode({
   )
 
   for (const override of spec.overrides || []) {
-    const target = override.target || defaultTarget
+    const target = override.target || effectiveDefaultTarget
     if (!target) {
       continue
     }
@@ -421,7 +458,7 @@ export async function configureSyncMode({
   }
 
   for (const sync of spec.paths || []) {
-    const target = sync.target || defaultTarget
+    const target = sync.target || effectiveDefaultTarget
 
     if (!target) {
       continue
@@ -526,7 +563,7 @@ interface GetSyncStatusParams extends StartSyncsParams {
 interface PrepareSyncParams extends SyncParamsBase {
   action: Resolved<SupportedRuntimeAction>
   target: SyncableResource
-  resourceSpec: KubernetesTargetResourceSpec
+  resourceSpec: KubernetesTargetResourceSyncModeSpec
   spec: KubernetesDeployDevModeSyncSpec
 }
 

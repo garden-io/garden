@@ -85,6 +85,17 @@ The `cleanup-cluster-registry` command in the `kubernetes` and `local-kubernetes
 
 # Deprecated configuration
 
+<h2 id="podselectorinsyncmode"><code>podSelector</code> configuration field in sync mode</h2>
+
+The `podSelector` configuration field is deprecated and has no effect in `spec.sync.overrides[].target` and `spec.sync.paths[].target` configurations of `kubernetes` and `helm` Deploy actions. Please, use the combination of `kind` and `name` configuration fields instead.
+
+Usage of the `podSelector` as a target sync resource can cause unpredicted behaviour, because such selector picks up the first matching Pod in the cluster.
+Instead, a pair of `kind` and `name` should be used with one of the following kinds: `Deployment`, `DaemonSet` or `StatefulSet`.
+Garden ensures that each kind of these resources has exactly 1 Pod when running in sync mode.
+
+For `kubernetes` Deploy actions see [`spec.sync.overrides[].target`](../reference/action-types/Deploy/kubernetes#spec.sync.overrides-.target) and [`spec.sync.paths[].target`](../reference/action-types/Deploy/kubernetes#spec.sync.paths-.target).
+For `helm` Deploy actions see [`spec.sync.overrides[].target`](../reference/action-types/Deploy/helm#spec.sync.overrides-.target) and [`spec.sync.paths[].target`](../reference/action-types/Deploy/helm#spec.sync.paths-.target).
+
 <h2 id="containerdeployactionhostport"><code>spec.ports[].hostPort</code> configuration field in <code>container</code> Deploy action</h2>
 
 It's generally not recommended to use the `hostPort` field of the `V1ContainerPort` spec. You can learn more about Kubernetes best practices at: https://kubernetes.io/docs/concepts/configuration/overview/

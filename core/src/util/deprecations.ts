@@ -107,6 +107,22 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: null,
     },
+    podSelectorInSyncMode: {
+      docsSection: "Deprecated configuration",
+      docsHeadline: `${style("podSelector")} configuration field in sync mode`,
+      warnHint: deline`
+        The ${style("podSelector")} configuration field is deprecated and has no effect in ${style("spec.sync.overrides[].target")} and ${style("spec.sync.paths[].target")} configurations of ${style("kubernetes")} and ${style("helm")} Deploy actions.
+        Please, use the combination of ${style("kind")} and ${style("name")} configuration fields instead.
+      `,
+      docs: dedent`
+      Usage of the ${style("podSelector")} as a target sync resource can cause unpredicted behaviour, because such selector picks up the first matching Pod in the cluster.
+      Instead, a pair of ${style("kind")} and ${style("name")} should be used with one of the following kinds: ${style("Deployment")}, ${style("DaemonSet")} or ${style("StatefulSet")}.
+      Garden ensures that each kind of these resources has exactly 1 Pod when running in sync mode.
+
+      For ${style("kubernetes")} Deploy actions see [${style("spec.sync.overrides[].target")}](../reference/action-types/Deploy/kubernetes#spec.sync.overrides-.target) and [${style("spec.sync.paths[].target")}](../reference/action-types/Deploy/kubernetes#spec.sync.paths-.target).
+      For ${style("helm")} Deploy actions see [${style("spec.sync.overrides[].target")}](../reference/action-types/Deploy/helm#spec.sync.overrides-.target) and [${style("spec.sync.paths[].target")}](../reference/action-types/Deploy/helm#spec.sync.paths-.target).
+      `,
+    },
     containerDeployActionHostPort: {
       docsSection: "Deprecated configuration",
       docsHeadline: `${style("spec.ports[].hostPort")} configuration field in ${style("container")} Deploy action`,
