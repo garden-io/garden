@@ -14,6 +14,7 @@ import type { EventBus } from "./events/events.js"
 import type { Stats } from "fs"
 import { join } from "path"
 import stringify from "json-stringify-safe"
+import type { EventName } from "chokidar/handler.js"
 
 let watcher: Watcher | undefined
 
@@ -62,7 +63,7 @@ export class Watcher extends EventEmitter2.EventEmitter2 {
     })
 
     this.fsWatcher
-      .on("error", (err: Error) => {
+      .on("error", (err: unknown) => {
         this.log.error(`Watcher: Error - ${err}`)
         this.emit("error", err)
       })
@@ -167,7 +168,7 @@ export class Watcher extends EventEmitter2.EventEmitter2 {
     this.log.debug(`Watcher: Cleaned up`)
   }
 
-  private routeEvent(_eventName: "add" | "addDir" | "change" | "unlink" | "unlinkDir", path: string, _stats?: Stats) {
+  private routeEvent(_eventName: EventName, path: string, _stats?: Stats) {
     for (const subscriber of this.subscribers) {
       const match = subscriber.paths.get(path)
       if (match?.type === "config") {
