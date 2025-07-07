@@ -351,11 +351,12 @@ export async function configureSyncMode({
     const target: KubernetesTargetResourceSyncModeStrictSpec | undefined =
       effectiveOverrideTarget || effectiveDefaultTarget
 
-    if (!target) {
-      throw new ConfigurationError({
+    const tailorSyncOverrideConfigError = () =>
+      new ConfigurationError({
         message: dedent`
           Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
           Either specify a target via the ${styles.highlight("spec.sync.overrides[].target")} or ${styles.highlight("spec.defaultTarget")}.
+          The target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields either in the ${styles.highlight("spec.sync.overrides[].target")} or ${styles.highlight("spec.defaultTarget")}.
 
           Override configuration:
           ${(override.command?.length ?? 0) > 0 ? `Command: ${override.command?.join(" ")}` : ""}
@@ -363,26 +364,13 @@ export async function configureSyncMode({
           ${(override.image?.length ?? 0) ? `Image: ${override.image}` : ""}
         `,
       })
+
+    if (!target || !(target.kind && target.name)) {
+      throw tailorSyncOverrideConfigError()
     }
 
-    if (target.kind && target.name) {
-      const key = targetKey(target)
-      dedupedTargets[key] = target
-    } else {
-      // print a warning instead of throwing an error for compatibility
-      emitNonRepeatableWarning(
-        log,
-        dedent`
-          Sync override configuration on ${action.longDescription()} doesn't specify a target properly.
-          This target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields either in the ${styles.highlight("spec.sync.overrides[].target")} or ${styles.highlight("spec.defaultTarget")}.
-
-          Sync override configuration:
-          ${(override.command?.length ?? 0) > 0 ? `Command: ${override.command?.join(" ")}` : ""}
-          ${(override.args?.length ?? 0) > 0 ? `Args: ${override.args?.join(" ")}` : ""}
-          ${(override.image?.length ?? 0) ? `Image: ${override.image}` : ""}
-        `
-      )
-    }
+    const key = targetKey(target)
+    dedupedTargets[key] = target
   }
 
   for (const sync of spec.paths || []) {
@@ -400,11 +388,12 @@ export async function configureSyncMode({
       : undefined
     const target: KubernetesTargetResourceSyncModeStrictSpec | undefined = effectiveSyncTarget || effectiveDefaultTarget
 
-    if (!target) {
-      throw new ConfigurationError({
+    const tailorSyncPathConfigError = () =>
+      new ConfigurationError({
         message: dedent`
           Sync path configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
           Either specify a target via the ${styles.highlight("spec.sync.paths[].target")} or ${styles.highlight("spec.defaultTarget")}.
+          The target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields either in the ${styles.highlight("spec.sync.paths[].target")} or ${styles.highlight("spec.defaultTarget")}.
 
           Sync path configuration:
           Source path: ${sync.sourcePath}
@@ -412,26 +401,13 @@ export async function configureSyncMode({
           ${sync.containerName ? `Container name: ${sync.containerName}` : ""}
         `,
       })
+
+    if (!target || !(target.kind && target.name)) {
+      throw tailorSyncPathConfigError()
     }
 
-    if (target.kind && target.name) {
-      const key = targetKey(target)
-      dedupedTargets[key] = target
-    } else {
-      // print a warning instead of throwing an error for compatibility
-      emitNonRepeatableWarning(
-        log,
-        dedent`
-          Sync path configuration on ${action.longDescription()} doesn't specify a target properly.
-          This target must be configured via a pair of ${styles.highlight("kind")} and ${styles.highlight("name")} fields either in the ${styles.highlight("spec.sync.paths[].target")} or ${styles.highlight("spec.defaultTarget")}.
-
-          Sync path configuration:
-          Source path: ${sync.sourcePath}
-          Container path: ${sync.containerPath}
-          ${sync.containerName ? `Container name: ${sync.containerName}` : ""}
-        `
-      )
-    }
+    const key = targetKey(target)
+    dedupedTargets[key] = target
   }
 
   const resolvedTargets: { [ref: string]: SyncableResource } = {}
