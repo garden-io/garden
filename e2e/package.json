@@ -25,7 +25,7 @@
     "@garden-io/core": "*"
   },
   "devDependencies": {
-    "@types/chai": "^5.2.1",
+    "@types/chai": "^5.2.2",
     "@types/lodash-es": "^4.17.12",
     "@types/minimist": "^1.2.5",
     "@types/mocha": "^10.0.7",
