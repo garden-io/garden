@@ -229,7 +229,7 @@
     "chai": "^5.2.0",
     "eslint": "^9.29.0",
     "eslint-config-prettier": "^10.1.5",
-    "eslint-plugin-jsdoc": "^51.2.3",
+    "eslint-plugin-jsdoc": "^51.3.4",
     "eslint-plugin-no-null": "^1.0.2",
     "eslint-plugin-react": "^7.37.5",
     "finalhandler": "^2.1.0",
