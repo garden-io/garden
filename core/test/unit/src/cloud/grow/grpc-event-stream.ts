@@ -33,7 +33,7 @@ const mockTransport = createRouterTransport(({ service }) => {
         }
 
         if (simulateUnreliableBackend) {
-          await sleep(5) // Introduce latency
+          await sleep(1) // Introduce latency
           if (Math.random() < 0.5) {
             // Simulate a transient failure
             yield create(IngestEventsResponseSchema, {
@@ -147,7 +147,7 @@ describe("GrpcEventStream", () => {
     simulateUnreliableBackend = true
 
     for (let i = 0; i < 100; i++) {
-      await sleep(10) // Simulate some delay between events
+      await sleep(2) // Simulate some delay between events
       garden.events.emit("commandInfo", {
         ...fakeCommandEvent,
         name: `deploy-${i}`,
