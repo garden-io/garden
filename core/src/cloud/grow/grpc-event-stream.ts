@@ -294,24 +294,18 @@ export class GrpcEventStream {
     }
 
     this.log.debug(() => `GrpcEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
-    // Serialize writes to avoid race/out-of-order issues
-    const writeEvents = async () => {
-      // NOTE: The Map implementation in the javascript runtime guarantees that values will be iterated in the order they were added (FIFO).
-      for (const event of this.eventBuffer.values()) {
-        if (!this.outputStream) {
-          this.log.silly(() => `GrpcEventStream: Stream closed during flush`)
-          break
-        }
-        try {
-          await this.outputStream.write(create(IngestEventsRequestSchema, { event }))
-        } catch (err) {
-          this.log.debug(`GrpcEventStream: Failed to write event ${event.eventUlid} during flush: ${err}`)
-          // We don't throw here to avoid breaking the flush loop
-        }
-      }
-    }
 
-    // Start flushing but don't block caller
-    void writeEvents()
+    // NOTE: The Map implementation in the javascript runtime guarantees that values will be iterated in the order they were added (FIFO).
+    for (const event of this.eventBuffer.values()) {
+      if (!this.outputStream) {
+        this.log.silly(() => `GrpcEventStream: Stream closed during flush`)
+        break
+      }
+
+      // NOTE: We ignore the promise on purpose to avoid out-of-order events.
+      void this.outputStream.write(create(IngestEventsRequestSchema, { event })).catch((err) => {
+        this.log.debug(`GrpcEventStream: Failed to write event ${event.eventUlid} during flush: ${err}`)
+      })
+    }
   }
 }
