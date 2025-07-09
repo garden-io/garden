@@ -227,7 +227,7 @@
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.35.1",
     "chai": "^5.2.0",
-    "eslint": "^9.29.0",
+    "eslint": "^9.30.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-jsdoc": "^51.2.3",
     "eslint-plugin-no-null": "^1.0.2",
