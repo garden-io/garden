@@ -71,7 +71,7 @@
     "env-var": "^7.5.0",
     "eventemitter2": "^6.4.9",
     "eventemitter3": "^5.0.1",
-    "execa": "^8.0.1",
+    "execa": "^9.6.0",
     "fast-copy": "^3.0.2",
     "flatted": "^3.3.3",
     "fs-extra": "^11.3.0",
