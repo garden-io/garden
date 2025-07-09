@@ -67,6 +67,13 @@ export interface ValidResultType {
   state: ActionState
   outputs: {}
   attached?: boolean
+  // TODO: Make required
+  didRun?: boolean
+  runReason?: string
+  cacheInfo?: {
+    cacheSource: string
+    notFoundReason?: string
+  }
 }
 
 export interface ValidExecutionActionResultType extends ValidResultType {
@@ -499,7 +506,7 @@ export function logAndEmitGetStatusEvents<
 
       const willRerun = this.force && !statusOnly
       if (result.state === "ready" && !willRerun) {
-        log.success({ msg: `Already ${logStrings.ready}`, showDuration: false })
+        log.success({ msg: `💥 Already ${logStrings.ready}`, showDuration: false })
       } else if (result.state === "ready" && willRerun) {
         log.info(`${styledName} is already ${styles.highlight(logStrings.ready)}, ${logStrings.force}`)
       } else {

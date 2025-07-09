@@ -883,5 +883,5 @@ export function isOctal(value: string) {
 }
 
 export function toActionStatus<T extends RunResult>(detail: T): ActionStatus {
-  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log } }
+  return { state: runResultToActionState(detail), detail, outputs: { log: detail.log }, cacheInfo: detail["cacheInfo"] }
 }

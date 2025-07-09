@@ -36,3 +36,13 @@ dependencies:
 spec:
   command: ["sh", "-c", "echo task output"]
   image: ${actions.build.backend.outputs.deploymentImageId}
+
+---
+kind: Test
+name: backend-test
+type: container
+dependencies:
+  - build.backend
+spec:
+  command: ["sh", "-c", "echo test output13"]
+  image: ${actions.build.backend.outputs.deploymentImageId}

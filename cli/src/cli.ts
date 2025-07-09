@@ -75,6 +75,7 @@ export async function runCli({
 }: { args?: string[]; cli?: GardenCli; initLogger?: boolean } = {}) {
   let code = 0
   let result: RunOutput | undefined = undefined
+  const startedAt = new Date()
 
   if (!args) {
     args = process.argv.slice(2)
@@ -89,7 +90,7 @@ export async function runCli({
         }
 
         // Note: We slice off the binary/script name from argv.
-        const results = await cli.run({ args: args || [] })
+        const results = await cli.run({ args: args || [], startedAt })
 
         return results
       })

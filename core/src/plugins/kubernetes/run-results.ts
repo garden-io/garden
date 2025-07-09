@@ -27,15 +27,21 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
   const cache = getRunResultCache(ctx)
   const cachedResult = await cache.load({ action, ctx, keyData: { namespaceUid: namespaceStatus.namespaceUid }, log })
 
+  const cacheInfo: KubernetesRunResult["cacheInfo"] = {
+    cacheSource: cache.brandName,
+    notFoundReason: undefined,
+  }
+
   if (!cachedResult.found) {
     const reason = `(reason: ${cachedResult.notFoundReason})`
+    cacheInfo.notFoundReason = cachedResult.notFoundReason
     log.info(`No cached result found in ${cache.brandName} ${styles.secondary(reason)}`)
 
-    return { state: "not-ready", detail: null, outputs: { log: "" } }
+    return { state: "not-ready", detail: null, outputs: { log: "" }, cacheInfo }
   }
 
   const result = cachedResult.result
-  log.info(styles.success(`Cached result found in ${cache.brandName} ${renderSavedTime(result)}`))
+  log.info(styles.success(`💥 Cached result found in ${cache.brandName} ${renderSavedTime(result)}`))
 
-  return toActionStatus<KubernetesRunResult>({ ...cachedResult.result, namespaceStatus })
+  return toActionStatus<KubernetesRunResult>({ ...cachedResult.result, namespaceStatus, cacheInfo })
 }

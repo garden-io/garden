@@ -85,6 +85,8 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     const log = this.log
     await this.buildStaging(action)
 
+    console.log("Running build task", action.name)
+
     try {
       const { result } = await wrapActiveSpan("build", () =>
         router.build.build({

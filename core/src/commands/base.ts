@@ -40,6 +40,7 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { styles } from "../logger/styles.js"
 import { clearVarfileCache } from "../config/base.js"
 import { createCloudEventStream, getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
+import { Task } from "../tasks/base.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -435,11 +436,16 @@ export abstract class Command<
         // fire, which may be needed to e.g. capture monitors added in event handlers
         await waitForOutputFlush()
 
+        const printSummary = true
+
         if (commandResultUrl) {
           const msg = `View command results at: \n\n${printEmoji("👉", log)}${styles.link(
             commandResultUrl
           )} ${printEmoji("👈", log)}\n`
           log.info("\n" + msg)
+        }
+
+        if (printSummary) {
         }
 
         return result
@@ -802,6 +808,7 @@ export type ProcessResultMetadata = {
   durationMsec?: number | null
   success: boolean
   error?: string
+  didRun: boolean
   inputVersion: string | null
   actionState: ActionState
 }
@@ -892,6 +899,19 @@ function prepareProcessResults(taskType: string, graphResults: GraphResults) {
   return fromPairs(
     resultsForType.map(([name, graphResult]) => {
       return [splitFirst(name, ".")[1], prepareProcessResult(taskType, graphResult)]
+    })
+  )
+}
+
+function prepareProcessResultsV2(taskType: string, graphResults: GraphResultWithoutTask<Task>[]) {
+  // const resultsForType = Object.entries(graphResults.filterForGraphResult()).filter(([name, _]) => {
+  //   return name.split(".")[0] === taskType
+  // })
+  // const resultsForType = Object.entries(graphResults.filterForGraphResult())
+
+  return fromPairs(
+    graphResults.map((res) => {
+      return [res.name, prepareProcessResult(taskType, res)]
     })
   )
 }
@@ -1019,6 +1039,7 @@ function prepareRunResult(graphResult: GraphResultWithoutTask): RunResultForExpo
 function commonResultFields(graphResult: GraphResultWithoutTask) {
   return {
     aborted: false,
+    didRun: graphResult.didRun,
     durationMsec: durationMsecForGraphResult(graphResult),
     error: graphResult.error?.message,
     success: !graphResult.error,
@@ -1054,10 +1075,30 @@ export async function handleProcessResults(
 
   const success = failedCount === 0 && abortedCount === 0
 
-  const buildResults = prepareProcessResults("build", graphResults) as ProcessCommandResult["build"]
-  const deployResults = prepareProcessResults("deploy", graphResults) as ProcessCommandResult["deploy"]
-  const runResults = prepareProcessResults("run", graphResults) as ProcessCommandResult["run"]
-  const testResults = prepareProcessResults("test", graphResults) as ProcessCommandResult["test"]
+  const graphResFlat = flattenGraphResults(graphResultsForExport)
+  const actionRes = graphResFlat
+    .reverse()
+    .filter((res1, idx, arr) => {
+      return arr.findIndex((res2) => res2.key === res1.key) === idx
+    })
+    .reverse()
+
+  const buildResults = prepareProcessResultsV2(
+    "build",
+    actionRes.filter((r) => r.type === "build")
+  ) as ProcessCommandResult["build"]
+  const deployResults = prepareProcessResultsV2(
+    "deploy",
+    actionRes.filter((r) => r.type === "deploy")
+  ) as ProcessCommandResult["deploy"]
+  const runResults = prepareProcessResultsV2(
+    "run",
+    actionRes.filter((r) => r.type === "run")
+  ) as ProcessCommandResult["run"]
+  const testResults = prepareProcessResultsV2(
+    "test",
+    actionRes.filter((r) => r.type === "test")
+  ) as ProcessCommandResult["test"]
   const result: ProcessCommandResult = {
     aborted: false,
     success,
@@ -1088,18 +1129,104 @@ export async function handleProcessResults(
       message: errMsg,
       wrappedErrors,
     })
+
     return { result, errors: [error] }
   }
 
   await waitForOutputFlush()
 
+  console.log("build", buildResults)
+  console.log("deploy", deployResults)
+  console.log(actionRes)
+
+  const builds = Object.values(buildResults)
+  const cachedBuilds = builds.filter((b) => b.didRun === false)
+  const deploys = Object.values(deployResults)
+  const cachedDeploys = deploys.filter((d) => d.didRun === false)
+  const runs = Object.values(runResults)
+  const cachedRuns = runs.filter((r) => r.didRun === false)
+  const tests = Object.values(testResults)
+  const cachedTests = tests.filter((t) => t.didRun === false)
+  const totalCached = cachedBuilds.length + cachedDeploys.length + cachedTests.length + cachedRuns.length
+
+  const buildsDescription =
+    builds.length > 0
+      ? `${cachedBuilds.length}/${builds.length} already built${cachedBuilds.length > 0 ? " 💥" : ""}`
+      : `No Build actions processed`
+  const deploysDescription =
+    deploys.length > 0
+      ? `${cachedDeploys.length}/${deploys.length} already running${cachedDeploys.length > 0 ? " 💥" : ""}`
+      : `No Deploy actions processed`
+  const testsDescription =
+    tests.length > 0
+      ? `${cachedTests.length}/${tests.length} cached${cachedTests.length > 0 ? " 💥" : ""}`
+      : `No Test actions processed`
+  const runsDescription =
+    runs.length > 0
+      ? `${runs.length}/${cachedRuns.length} cached${cachedRuns.length > 0 ? " 💥" : ""}`
+      : `No Run actions processed`
+
   if (garden.monitors.getAll().length === 0) {
+    log.info("")
+    log.info(dedent`
+    ${styles.highlight("Command summary:")}
+
+    ${totalCached}/${actionRes.length} processed actions cached or ready${totalCached > 0 ? " 💥" : ""}
+
+    🔨 Builds: ${buildsDescription}
+    🚀 Deploys: ${deploysDescription}
+    🧪 Tests: ${testsDescription}
+    ▶️  Runs: ${runsDescription}
+  `)
+
     printFooter(log)
   }
 
   return {
     result,
   }
+}
+
+function flattenGraphResults(graph: GraphResultMapWithoutTask<Task>) {
+  const targetTypes = new Set(["deploy", "build", "test", "run"])
+  const results: GraphResultWithoutTask<Task>[] = []
+  const visited = new Set()
+
+  function traverse(node: GraphResultWithoutTask<Task>, path = "") {
+    if (visited.has(node)) {
+      return
+    }
+    visited.add(node)
+
+    if (node && node.dependencyResults) {
+      for (const [key, dependencyNode] of Object.entries(node.dependencyResults)) {
+        if (dependencyNode && typeof dependencyNode === "object") {
+          if (targetTypes.has(dependencyNode.type)) {
+            results.push(dependencyNode)
+          }
+
+          traverse(dependencyNode, path ? `${path}.${key}` : key)
+        }
+      }
+    }
+
+    visited.delete(node)
+  }
+
+  if (graph) {
+    for (const [key, node] of Object.entries(graph)) {
+      if (node && typeof node === "object") {
+        if (targetTypes.has(node.type)) {
+          results.push(node)
+        }
+
+        // Traverse its dependencies
+        traverse(node, key)
+      }
+    }
+  }
+
+  return results
 }
 
 export const emptyActionResults = {

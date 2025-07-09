@@ -309,6 +309,7 @@ export class DeployCommand extends Command<Args, Opts> {
       return task
     })
 
+    console.log("tasks:", tasks.map((t) => t.getName()).join(", "))
     const results = await garden.processTasks({ tasks })
 
     return handleProcessResults(garden, log, "deploy", results)

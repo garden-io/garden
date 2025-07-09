@@ -81,6 +81,8 @@ export const localBuild: BuildHandler = async (params) => {
   const localId = outputs.localImageId
   const remoteId = outputs.deploymentImageId
 
+  console.log("doing local build")
+
   const builtByCloudBuilder = await cloudBuilder.getAvailability(ctx, action)
 
   // TODO: Kubernetes plugin and container plugin are a little bit twisted; Container plugin has some awareness of Kubernetes, but in this
@@ -113,7 +115,7 @@ export const localBuild: BuildHandler = async (params) => {
     await containerHelpers.dockerCli({ cwd: buildPath, args: ["push", remoteId], log, ctx })
   }
 
-  return buildResult
+  return { ...buildResult }
 }
 
 export const kubernetesContainerHelpers = {

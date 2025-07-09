@@ -21,11 +21,17 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   const cache = getTestResultCache(ctx)
   const cachedResult = await cache.load({ action, ctx, keyData: undefined, log })
 
+  const cacheInfo: KubernetesRunResult["cacheInfo"] = {
+    cacheSource: cache.brandName,
+    notFoundReason: undefined,
+  }
+
   if (!cachedResult.found) {
     const reason = `(reason: ${cachedResult.notFoundReason})`
+    cacheInfo.notFoundReason = cachedResult.notFoundReason
     log.info(`No cached result found in ${cache.brandName} ${styles.secondary(reason)}`)
 
-    return { state: "not-ready", detail: null, outputs: { log: "" } }
+    return { state: "not-ready", detail: null, outputs: { log: "" }, cacheInfo }
   }
 
   // Fetch namespace status if we got a cache hit
@@ -38,7 +44,8 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   })
 
   const result = cachedResult.result
-  log.info(styles.success(`Cached result found in ${cache.brandName} ${renderSavedTime(result)}`))
+  result["cacheInfo"] = cacheInfo
+  log.info(styles.success(`💥 Cached result found in ${cache.brandName} ${renderSavedTime(result)}`))
 
   return toActionStatus<KubernetesRunResult>({ ...result, namespaceStatus })
 }

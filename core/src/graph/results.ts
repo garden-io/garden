@@ -38,6 +38,12 @@ export interface GraphResult<R extends ValidResultType = ValidResultType> extend
   // and attached to the Garden process. Not necessary for e.g. normal deployments that keep
   // running but outside of the Garden process.
   attached: boolean
+  didRun: boolean
+  runReason: string
+  cacheInfo?: {
+    cacheSource: string
+    notFoundReason?: string
+  }
 }
 
 export type GraphResultWithoutTask<T extends Task = Task> = Omit<GraphResultFromTask<T>, "task">
@@ -155,6 +161,8 @@ function prepareForExport(graphResult: GraphResultWithoutTask | null) {
     ...pick(
       graphResult,
       "type",
+      "didRun",
+      "cacheInfo",
       "description",
       "key",
       "name",

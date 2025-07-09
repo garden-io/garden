@@ -146,6 +146,8 @@ export abstract class TaskNode<T extends Task = Task> {
       result,
       dependencyResults: dependencyResults.filterForGraphResult(),
       aborted,
+      didRun: (result?.didRun === true && this.executionType === "process") || false,
+      cacheInfo: result?.cacheInfo,
       startedAt,
       completedAt: new Date(),
       error,
@@ -155,6 +157,7 @@ export abstract class TaskNode<T extends Task = Task> {
       processed: this.executionType === "process",
       success: !error && !aborted,
       attached: !!result?.attached,
+      runReason: result?.runReason || "",
     }
 
     if (aborted || error) {
@@ -315,6 +318,10 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
 
     const status = statusResult.result
 
+    if (this.task.getKey() === "test.backend-test") {
+      console.log(statusResult.result)
+    }
+
     if (!this.task.force && status?.state === "ready") {
       return status
     }
@@ -327,12 +334,18 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
         dependencyResults,
         statusOnly: this.statusOnly,
       })
+      console.log("Processed task", this.task.isExecuteTask(), this.task.getKey())
       this.task.emit("processed", { result: processResult })
       if (processResult.state === "ready") {
         const msg = `${this.task.getDescription()} is ready.`
         this.statusOnly || this.task.type === "resolve-action" ? this.task.log.debug(msg) : this.task.log.verbose(msg)
       }
-      return processResult
+      return {
+        ...processResult,
+        // Use the cache info from the getStatus call
+        cacheInfo: statusResult.cacheInfo,
+        didRun: true,
+      }
     } catch (error) {
       this.task.emit("processed", { error: toGardenError(error) })
       throw error

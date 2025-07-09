@@ -376,8 +376,11 @@ ${renderCommands(commands)}
     args,
     processRecord,
     cwd,
+    startedAt,
   }: {
     args: string[]
+    // TODO @eysi: Make required and fix type errors
+    startedAt?: Date
     processRecord?: GardenProcess
     cwd?: string
   }): Promise<RunOutput> {
@@ -594,6 +597,11 @@ ${renderCommands(commands)}
     if (gardenErrors.length > 0) {
       renderCommandErrors(logger, gardenErrors)
       code = commandResult.exitCode || 1
+    }
+
+    if (startedAt) {
+      log.info("")
+      log.info(`Took ${(new Date().getTime() - startedAt.getTime()) / 1000}s`)
     }
 
     return { argv, code, errors, result: commandResult?.result }

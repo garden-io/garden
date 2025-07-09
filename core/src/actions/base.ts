@@ -408,6 +408,10 @@ export const actionStatusSchema = createSchema({
       .allow(null)
       .description("Optional provider-specific information about the action status or results."),
     outputs: actionOutputsSchema(),
+    cacheInfo: joi.object().keys({
+      cacheSource: joi.string(),
+      notFoundReason: joi.string(),
+    }),
     attached: joi
       .boolean()
       .description(

@@ -168,6 +168,11 @@ export const runResultSchemaZod = z.object({
 export type RunResult = z.infer<typeof runResultSchemaZod>
 export type KubernetesRunResult = RunResult & {
   namespaceStatus: NamespaceStatus
+  // TODO: Make required
+  cacheInfo?: {
+    cacheSource: string
+    notFoundReason?: string
+  }
 }
 
 export const runResultSchema = createSchema({

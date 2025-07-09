@@ -78,6 +78,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     })
 
     const testResult = status?.detail
+    console.log("status res", status)
 
     const version = action.versionString(log)
     const executedAction = resolvedActionToExecuted(action, { status })
