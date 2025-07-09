@@ -22,6 +22,8 @@ import { makeTestGardenA } from "../../../../helpers.js"
 import { sleep } from "../../../../../src/util/util.js"
 
 const receivedEvents = new Array<Event>()
+// if this is true, the mock backend will simulate failures.
+let simulateUnreliableBackend = false
 const mockTransport = createRouterTransport(({ service }) => {
   service(GardenEventIngestionService, {
     ingestEvents: async function* ingest(eventStream) {
@@ -29,6 +31,20 @@ const mockTransport = createRouterTransport(({ service }) => {
         if (!event) {
           continue
         }
+
+        if (simulateUnreliableBackend) {
+          await sleep(1) // Introduce latency
+          if (Math.random() < 0.5) {
+            // Simulate a transient failure
+            yield create(IngestEventsResponseSchema, {
+              eventUlid: event.eventUlid,
+              success: false,
+              final: false,
+            })
+            break
+          }
+        }
+
         // Simulate processing the event
         receivedEvents.push(event)
         yield create(IngestEventsResponseSchema, {
@@ -41,6 +57,26 @@ const mockTransport = createRouterTransport(({ service }) => {
   })
 })
 const mockClient = createClient(GardenEventIngestionService, mockTransport)
+
+const fakeCommandEvent = {
+  environmentName: "fake-environment-name",
+  projectName: "fake-project-name",
+  projectId: "fake-project-id",
+  namespaceName: "fake-namespace-name",
+  coreVersion: "fake-core-version",
+  vcsBranch: "fake-vcs-branch",
+  vcsCommitHash: "fake-vcs-commit-hash",
+  vcsOriginUrl: "fake-origin-url",
+  _projectApiVersion: "fake-project-api-version",
+  _projectRootDirAbs: "fake-project-root-dir",
+  _vcsRepositoryRootDirAbs: "",
+  sessionId: "fake-session-id",
+  name: "deploy",
+  args: {},
+  opts: {},
+  rawArgs: [],
+  isCustomCommand: false,
+}
 
 describe("GrpcEventStream", () => {
   let log: Log
@@ -70,25 +106,7 @@ describe("GrpcEventStream", () => {
   })
 
   it("should send start command event (flush on connect)", async () => {
-    garden.events.emit("commandInfo", {
-      environmentName: "fake-environment-name",
-      projectName: "fake-project-name",
-      projectId: "fake-project-id",
-      namespaceName: "fake-namespace-name",
-      coreVersion: "fake-core-version",
-      vcsBranch: "fake-vcs-branch",
-      vcsCommitHash: "fake-vcs-commit-hash",
-      vcsOriginUrl: "fake-origin-url",
-      _projectApiVersion: "fake-project",
-      _projectRootDirAbs: "fake-project",
-      sessionId: "fake-session-id",
-      name: "deploy",
-      args: {},
-      opts: {},
-      _vcsRepositoryRootDirAbs: "",
-      rawArgs: [],
-      isCustomCommand: false,
-    })
+    garden.events.emit("commandInfo", fakeCommandEvent)
     // wait until connected
     await sleep(100)
     await bufferedEventStream.close()
@@ -101,25 +119,7 @@ describe("GrpcEventStream", () => {
   })
 
   it("should send start command event (flush on close)", async () => {
-    garden.events.emit("commandInfo", {
-      environmentName: "fake-environment-name",
-      projectName: "fake-project-name",
-      projectId: "fake-project-id",
-      namespaceName: "fake-namespace-name",
-      coreVersion: "fake-core-version",
-      vcsBranch: "fake-vcs-branch",
-      vcsCommitHash: "fake-vcs-commit-hash",
-      vcsOriginUrl: "fake-origin-url",
-      sessionId: "fake-session-id",
-      _projectApiVersion: "",
-      _projectRootDirAbs: "",
-      _vcsRepositoryRootDirAbs: "",
-      name: "deploy",
-      args: {},
-      opts: {},
-      rawArgs: [],
-      isCustomCommand: false,
-    })
+    garden.events.emit("commandInfo", fakeCommandEvent)
     await bufferedEventStream.close()
     expect(receivedEvents.length).to.equal(1)
     const event = receivedEvents[0]
@@ -132,25 +132,7 @@ describe("GrpcEventStream", () => {
   it("should send start command event (streamed)", async () => {
     // wait until connected
     await sleep(100)
-    garden.events.emit("commandInfo", {
-      environmentName: "fake-environment-name",
-      projectName: "fake-project-name",
-      projectId: "fake-project-id",
-      namespaceName: "fake-namespace-name",
-      coreVersion: "fake-core-version",
-      vcsBranch: "fake-vcs-branch",
-      vcsCommitHash: "fake-vcs-commit-hash",
-      vcsOriginUrl: "fake-origin-url",
-      _projectApiVersion: "fake-project-api-version",
-      _projectRootDirAbs: "fake-project-root-dir",
-      _vcsRepositoryRootDirAbs: "",
-      sessionId: "fake-session-id",
-      name: "deploy",
-      args: {},
-      opts: {},
-      rawArgs: [],
-      isCustomCommand: false,
-    })
+    garden.events.emit("commandInfo", fakeCommandEvent)
     await bufferedEventStream.close()
     expect(receivedEvents.length).to.equal(1)
     const event = receivedEvents[0]
@@ -158,5 +140,33 @@ describe("GrpcEventStream", () => {
     expect(event.eventData).to.be.an("object")
     expect(event.eventData).to.have.property("case", "gardenCli")
     expect(event.eventData.value).to.be.an("object")
+  })
+
+  it("should send events in the correct order even when facing transient failures", async () => {
+    // Simulate unreliable backend
+    simulateUnreliableBackend = true
+
+    for (let i = 0; i < 100; i++) {
+      await sleep(2) // Simulate some delay between events
+      garden.events.emit("commandInfo", {
+        ...fakeCommandEvent,
+        name: `deploy-${i}`,
+      })
+    }
+
+    await bufferedEventStream.close()
+    // Check that events are in the correct order
+    const receivedCommandNames = receivedEvents.map((event) => {
+      if (event.eventData.case !== "gardenCli") {
+        throw new Error(`Unexpected event.eventData.case: ${event.eventData.case}`)
+      }
+      if (event.eventData.value.eventData.case !== "commandExecutionStarted") {
+        throw new Error(`Unexpected event.eventData.value.eventData.case: ${event.eventData.value.eventData.case}`)
+      }
+
+      return event.eventData.value.eventData.value.invocation?.instruction?.name
+    })
+    expect(receivedCommandNames).to.deep.equal(Array.from({ length: 100 }, (_, i) => `deploy-${i}`))
+    expect(receivedEvents.length).to.be.equal(100)
   })
 })
