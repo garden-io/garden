@@ -85,7 +85,7 @@
     "ini": "^5.0.0",
     "ink": "^5.1.0",
     "ink-spinner": "^5.0.0",
-    "inquirer": "^12.6.3",
+    "inquirer": "^12.7.0",
     "is-glob": "^4.0.3",
     "is-url": "^1.2.4",
     "isomorphic-ws": "^5.0.0",
