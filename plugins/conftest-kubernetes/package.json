@@ -14,7 +14,7 @@
     "slash": "^5.1.0"
   },
   "devDependencies": {
-    "@types/chai": "^5.2.1",
+    "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22",
     "chai": "^5.2.0",
