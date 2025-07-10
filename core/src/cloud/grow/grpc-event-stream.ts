@@ -153,7 +153,7 @@ export class GrpcEventStream {
     await Promise.race([
       promise,
       (async () => {
-        this.log.info(`Waiting for ${timeoutSec} seconds to flush events to Garden Cloud`)
+        this.log.debug(`Waiting for ${timeoutSec} seconds to flush events to Garden Cloud`)
         await sleep(timeout)
         this.log.debug(
           `GrpcEventStream: Not all events were acknowledged within ${timeoutSec} seconds. Information in Garden Cloud may be incomplete.`
