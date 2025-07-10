@@ -27,7 +27,7 @@ spec:
   manifestFiles: [./postgres-manifests/**/*] # <--- Here we read the manifests from a file
 ```
 
-The same patter could also be used for e.g. creating secrets.
+The same pattern could also be used for e.g. creating secrets.
 
 Note that in this example we define the volume name as a Garden variable and reference it in the inline manifest like so: `name: ${var.volumeName}`. For the `postgres` action we use the `patchResources` field to set the volume name. (You could also skip this and just hard code the values.)
 
