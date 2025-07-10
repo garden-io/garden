@@ -22,7 +22,7 @@ configs:
       - $concat: "${inputs.dependencies || []}"
 
     spec:
-      manifestTemplates: ${inputs.manifests}
+      manifestFiles: ${inputs.manifests}
 
       # Default target for syncs and exec commands
       defaultTarget:

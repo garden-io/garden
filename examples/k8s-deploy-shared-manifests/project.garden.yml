@@ -26,8 +26,8 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [local]
+    namespace: k8s-deploy-shared-manifests
   - name: kubernetes
-    dependencies: [exec]
     environments: [remote]
     # Replace the below values as appropriate
     context: gke_garden-ci_europe-west1-b_core-ci
