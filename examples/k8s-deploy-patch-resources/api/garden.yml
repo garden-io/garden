@@ -17,7 +17,7 @@ dependencies:
   - run.db-init
 
 spec:
-  manifestTemplates:
+  manifestFiles:
     - manifests/api.yaml
 
   # Default target for syncs and exec commands
@@ -31,8 +31,7 @@ spec:
         containerPath: /app
         mode: "one-way-replica"
     overrides:
-      - command:
-          ["/bin/sh", "-c", "ls /app/app.py | entr -r -n python /app/app.py"]
+      - command: ["/bin/sh", "-c", "ls /app/app.py | entr -r -n python /app/app.py"]
 
   # Patch the K8s manifests for the api service so that we can set the correct image
   # and other variables.
@@ -48,12 +47,12 @@ spec:
                 - name: api
                   image: ${actions.build.api.outputs.deployment-image-id}
                   env:
-                  - name: PGDATABASE
-                    value: ${var.postgresDatabase}
-                  - name: PGUSER
-                    value: ${var.postgresUsername}
-                  - name: PGPASSWORD
-                    value: ${var.postgresPassword}
+                    - name: PGDATABASE
+                      value: ${var.postgresDatabase}
+                    - name: PGUSER
+                      value: ${var.postgresUsername}
+                    - name: PGPASSWORD
+                      value: ${var.postgresPassword}
               imagePullSecrets:
                 - name: ${var.imagePullSecretName}
 

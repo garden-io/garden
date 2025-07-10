@@ -17,7 +17,7 @@ dependencies:
   - deploy.api
 
 spec:
-  manifestTemplates:
+  manifestFiles:
     - manifests/web.yaml
 
   # Default target for syncs and exec commands

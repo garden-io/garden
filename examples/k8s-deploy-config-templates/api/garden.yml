@@ -26,4 +26,3 @@ inputs:
       value: ${var.postgresUsername}
     - name: PGPASSWORD
       value: ${var.postgresPassword}
-

@@ -1,0 +1,67 @@
+apiVersion: "garden.io/v2"
+kind: Project
+name: k8s-deploy-simple
+defaultEnvironment: local
+dotIgnoreFile: .gitignore
+
+variables:
+  volumeName: my-volume
+
+environments:
+  - name: local
+  - name: remote
+
+providers:
+  - name: local-kubernetes
+    environments: [local]
+    namespace: k8s-deploy-simple
+  - name: kubernetes
+    environments: [remote]
+    # Replace the below values as appropriate
+    context: gke_garden-ci_europe-west1-b_core-ci
+    ingressClass: "nginx"
+    imagePullSecrets:
+      - name: gcr-config
+        namespace: default
+    deploymentRegistry:
+      hostname: eu.gcr.io
+      namespace: garden-ci
+    namespace: k8s-deploy-simple-${kebabCase(local.username)}
+
+---
+kind: Deploy
+name: my-volume
+type: kubernetes
+spec:
+  manifests: # <--- Here we specify the manifests inline
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: ${var.volumeName} # <--- The volume name is a variable defined above so that it's easier to re-use.
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        volumeMode: Filesystem
+        resources:
+          requests:
+            storage: 8Gi
+
+---
+kind: Deploy
+name: postgres
+type: kubernetes
+spec:
+  manifestFiles: [./postgres-manifests/**/*] # <--- Here we read the manifests from a file
+
+  # Optionally patch the Postgres Deployment to be able to pass the volume name as a variable. You could also skip this and just hard code the value.
+  patchResources:
+    - name: postgres
+      kind: Deployment
+      patch:
+        spec:
+          template:
+            spec:
+              volumes:
+                - name: postgres-storage
+                  persistentVolumeClaim:
+                    claimName: ${var.volumeName}
