@@ -29,7 +29,7 @@ spec:
 
 The same patter could also be used for e.g. creating secrets.
 
-Note that in this example we define the volume name as a Garden variable and reference it it in the inline manifest like so: `name: ${var.volumeName}`. For the `postgres` action we use the `patchResources` field to set the volume name. (You could also skip this and just hard code the values.)
+Note that in this example we define the volume name as a Garden variable and reference it in the inline manifest like so: `name: ${var.volumeName}`. For the `postgres` action we use the `patchResources` field to set the volume name. (You could also skip this and just hard code the values.)
 
 Note also that here we have all the Garden actions in a single `garden.yml` config file at the root of the project. You can also split your Garden config into multiple files which tends to be better for larger projects (e.g. `project.garden.yml`, `api/garden.yml`, `web/garden.yml`).
 
