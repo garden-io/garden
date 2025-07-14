@@ -48,8 +48,10 @@ RUN sudo ln -s /usr/lib/google-cloud-sdk/bin/* /usr/local/bin/ \
   && cd / && gcloud version # make sure it works
 
 # install kubectl
-RUN wget -O kubectl https://storage.googleapis.com/kubernetes-release/release/v1.30.4/bin/linux/amd64/kubectl && \
-  echo "2ffd023712bbc1a9390dbd8c0c15201c165a69d394787ef03eda3eccb4b9ac06  kubectl" | sha256sum -c && \
-  chmod +x kubectl && \
-  sudo mv kubectl /usr/local/bin/ && \
-  cd / && kubectl version --client=true # make sure it works
+RUN KUBECTL_VERSION=1.33.2 && \
+    KUBECTL_HASH="33d0cdec6967817468f0a4a90f537dfef394dcf815d91966ca651cc118393eea" && \
+    wget -O kubectl https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
+    echo "${KUBECTL_HASH}  kubectl" | sha256sum -c && \
+    chmod +x kubectl && \
+    sudo mv kubectl /usr/local/bin/ && \
+    cd / && kubectl version --client=true # make sure it works
