@@ -1,5 +1,5 @@
 #### gcloud base image ####
-FROM google/cloud-sdk:528.0.0@sha256:04dbcfd6e6df1d10420d1de94607f8383cc887a5ca81bcc620d037b8a3c1f95a as gcloud
+FROM google/cloud-sdk:529.0.0@sha256:99c8977b5214a2c7da1cd0a77910f37bfbc7d8c3737446b886a5c058706c4c7c as gcloud
 
 #### ghr utility ####
 FROM cibuilds/github:0.13.0@sha256:a247975213771f2f4c61b806771ef6c22b225fdc46558738b7c935517c0dcdd4 AS ghr
@@ -48,8 +48,10 @@ RUN sudo ln -s /usr/lib/google-cloud-sdk/bin/* /usr/local/bin/ \
   && cd / && gcloud version # make sure it works
 
 # install kubectl
-RUN wget -O kubectl https://storage.googleapis.com/kubernetes-release/release/v1.30.4/bin/linux/amd64/kubectl && \
-  echo "2ffd023712bbc1a9390dbd8c0c15201c165a69d394787ef03eda3eccb4b9ac06  kubectl" | sha256sum -c && \
-  chmod +x kubectl && \
-  sudo mv kubectl /usr/local/bin/ && \
-  cd / && kubectl version --client=true # make sure it works
+RUN KUBECTL_VERSION=1.33.2 && \
+    KUBECTL_HASH="33d0cdec6967817468f0a4a90f537dfef394dcf815d91966ca651cc118393eea" && \
+    wget -O kubectl https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
+    echo "${KUBECTL_HASH}  kubectl" | sha256sum -c && \
+    chmod +x kubectl && \
+    sudo mv kubectl /usr/local/bin/ && \
+    cd / && kubectl version --client=true # make sure it works
