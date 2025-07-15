@@ -195,7 +195,7 @@
     "@types/koa-router": "^7.4.8",
     "@types/koa-websocket": "^5.0.10",
     "@types/lodash-es": "^4.17.12",
-    "@types/micromatch": "^4.0.7",
+    "@types/micromatch": "^4.0.9",
     "@types/minimist": "^1.2.5",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22",
