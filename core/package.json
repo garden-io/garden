@@ -87,7 +87,7 @@
     "humanize-string": "^3.0.0",
     "indent-string": "^5.0.0",
     "ini": "^5.0.0",
-    "ink": "^5.2.1",
+    "ink": "^6.0.1",
     "ink-spinner": "^5.0.0",
     "inquirer": "^12.6.3",
     "is-glob": "^4.0.3",
