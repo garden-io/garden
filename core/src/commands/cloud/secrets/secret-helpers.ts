@@ -7,7 +7,7 @@
  */
 
 import type { SecretResult as CloudApiSecretResult } from "@garden-io/platform-api-types"
-import type { CloudEnvironment, CloudProject } from "../../../cloud/api.js"
+import type { CloudEnvironment, CloudProject } from "../../../cloud/legacy/api.js"
 import { CloudApiError } from "../../../exceptions.js"
 import { dedent } from "../../../util/string.js"
 

@@ -8,18 +8,18 @@
 
 import stringify from "json-stringify-safe"
 
-import type { EventName, Events, GardenEventAnyListener } from "../events/events.js"
-import { shouldStreamEvent } from "../events/events.js"
-import type { Log, LogContext, LogEntry, LogMetadata } from "../logger/log-entry.js"
-import { got } from "../util/http.js"
+import type { EventName, Events, GardenEventAnyListener } from "../../events/events.js"
+import { shouldStreamEvent } from "../../events/events.js"
+import type { Log, LogContext, LogEntry, LogMetadata } from "../../logger/log-entry.js"
+import { got } from "../../util/http.js"
 
-import type { LogLevel } from "../logger/logger.js"
-import type { Garden } from "../garden.js"
+import type { LogLevel } from "../../logger/logger.js"
+import type { Garden } from "../../garden.js"
 import type { CloudSession } from "./api.js"
-import { getSection } from "../logger/renderers.js"
-import { registerCleanupFunction } from "../util/util.js"
+import { getSection } from "../../logger/renderers.js"
+import { registerCleanupFunction } from "../../util/util.js"
 import { makeAuthHeader } from "./auth.js"
-import { toGardenError } from "../exceptions.js"
+import { toGardenError } from "../../exceptions.js"
 
 const maxFlushFail = 10 // How many consecutive failures to flush events on a loop before stopping entirely
 /**

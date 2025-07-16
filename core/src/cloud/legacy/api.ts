@@ -7,13 +7,13 @@
  */
 
 import ci from "ci-info"
-import { GotHttpError } from "../util/http.js"
-import { CloudApiError, ConfigurationError, GardenError } from "../exceptions.js"
-import type { Log } from "../logger/log-entry.js"
-import { gardenEnv } from "../constants.js"
+import { GotHttpError } from "../../util/http.js"
+import { CloudApiError, ConfigurationError, GardenError } from "../../exceptions.js"
+import type { Log } from "../../logger/log-entry.js"
+import { gardenEnv } from "../../constants.js"
 import { Cookie } from "tough-cookie"
 import { omit } from "lodash-es"
-import { dedent, deline } from "../util/string.js"
+import { dedent, deline } from "../../util/string.js"
 import type {
   BaseResponse,
   CreateProjectsForRepoResponse,
@@ -28,21 +28,21 @@ import type {
   UpdateSecretRequest,
   UpdateSecretResponse,
 } from "@garden-io/platform-api-types"
-import type { CommandInfo } from "../plugin-context.js"
-import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
-import { LogLevel } from "../logger/logger.js"
+import type { CommandInfo } from "../../plugin-context.js"
+import type { ClientAuthToken, GlobalConfigStore } from "../../config-store/global.js"
+import { LogLevel } from "../../logger/logger.js"
 import { getStoredAuthToken, saveAuthToken } from "./auth.js"
-import type { StringMap } from "../config/common.js"
-import { styles } from "../logger/styles.js"
+import type { StringMap } from "../../config/common.js"
+import { styles } from "../../logger/styles.js"
 import { HTTPError, RequestError } from "got"
-import type { Garden } from "../garden.js"
-import type { ApiCommandError } from "../commands/cloud/helpers.js"
-import { enumerate } from "../util/enumerate.js"
+import type { Garden } from "../../garden.js"
+import type { ApiCommandError } from "../../commands/cloud/helpers.js"
+import { enumerate } from "../../util/enumerate.js"
 import queryString from "query-string"
 import type { ApiFetchOptions } from "./http-client.js"
 import { GardenCloudHttpClient } from "./http-client.js"
-import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
-import type { GrowCloudApiFactory } from "./grow/api.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
+import type { GrowCloudApiFactory } from "../grow/api.js"
 import type { JsonObject } from "type-fest"
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}

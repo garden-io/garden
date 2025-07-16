@@ -34,7 +34,7 @@ import {
   renderCommandErrors,
   cliStyles,
 } from "./helpers.js"
-import { enforceLogin } from "../cloud/auth.js"
+import { enforceLogin } from "../cloud/legacy/auth.js"
 import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
 import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
 import type { ProjectConfig } from "../config/project.js"

@@ -17,7 +17,7 @@ import type {
   GardenCloudApi,
   GetCachedActionRequest,
   GetCachedActionResponse,
-} from "../../cloud/api.js"
+} from "../../cloud/legacy/api.js"
 import { actionReferenceToString } from "../../actions/base.js"
 import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"

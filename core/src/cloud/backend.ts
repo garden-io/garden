@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { AuthRedirectServerConfig, AuthToken } from "./auth.js"
+import type { AuthRedirectServerConfig, AuthToken } from "./legacy/auth.js"
 import { isArray } from "lodash-es"
 import { z } from "zod"
 import { InternalError } from "../exceptions.js"
-import type { CloudApiFactory, GardenCloudApiFactory } from "./api.js"
-import { GardenCloudApi } from "./api.js"
+import type { CloudApiFactory, GardenCloudApiFactory } from "./legacy/api.js"
+import { GardenCloudApi } from "./legacy/api.js"
 import type { GrowCloudApiFactory } from "./grow/api.js"
 import { GrowCloudApi } from "./grow/api.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"

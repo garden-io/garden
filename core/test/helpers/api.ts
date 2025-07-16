@@ -6,8 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CloudApiFactoryParams, CloudOrganization, CloudProject, GetSecretsParams } from "../../src/cloud/api.js"
-import { GardenCloudApi } from "../../src/cloud/api.js"
+import type {
+  CloudApiFactoryParams,
+  CloudOrganization,
+  CloudProject,
+  GetSecretsParams,
+} from "../../src/cloud/legacy/api.js"
+import { GardenCloudApi } from "../../src/cloud/legacy/api.js"
 import { uuidv4 } from "../../src/util/random.js"
 import type { StringMap } from "../../src/config/common.js"
 import type { GetProfileResponse } from "@garden-io/platform-api-types"

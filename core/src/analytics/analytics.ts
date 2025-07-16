@@ -27,7 +27,7 @@ import type { GardenError, NodeJSErrnoException, StackTraceMetadata } from "../e
 import type { ActionConfigMap } from "../actions/types.js"
 import { getResultErrorProperties } from "./helpers.js"
 import { Analytics } from "@segment/analytics-node"
-import type { CloudProject } from "../cloud/api.js"
+import type { CloudProject } from "../cloud/legacy/api.js"
 import type { UnresolvedProviderConfig } from "../config/project.js"
 
 const CI_USER = "ci-user"

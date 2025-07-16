@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 import { expect } from "chai"
-import { enforceLogin } from "../../../../src/cloud/auth.js"
+import { enforceLogin } from "../../../../src/cloud/legacy/auth.js"
 import type { ProjectConfig } from "../../../../src/config/project.js"
 import type { CoreLog } from "../../../../src/logger/log-entry.js"
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
