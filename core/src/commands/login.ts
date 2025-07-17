@@ -17,7 +17,6 @@ import { AuthRedirectServer, saveAuthToken } from "../cloud/legacy/auth.js"
 import type { EventBus } from "../events/events.js"
 import { getCloudDomain } from "../cloud/util.js"
 import type { GardenBackend } from "../cloud/backend.js"
-import { gardenBackendFactory } from "../cloud/backend.js"
 import { gardenEnv } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import type { Document, ParsedNode } from "yaml"
@@ -28,6 +27,7 @@ const { readFile, writeFile } = fsExtra
 import { relative } from "path"
 import { findProjectConfigOrPrintInstructions } from "./helpers.js"
 import { styles } from "../logger/styles.js"
+import { gardenBackendFactory } from "../cloud/backend-factory.js"
 
 const loginTimeoutSec = 60 * 60 // 1 hour should be enough to sign up and choose/create an organization
 
