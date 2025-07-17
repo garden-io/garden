@@ -7,9 +7,10 @@
  */
 
 import type { AuthRedirectServerConfig } from "./legacy/auth.js"
-import type { CloudApiFactory } from "./legacy/api.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import type { Log } from "../logger/log-entry.js"
+import type { GrowCloudApiFactory } from "./grow/api.js"
+import type { GardenCloudApiFactory } from "./legacy/api.js"
 
 // TODO: Refactor all this to only provide projectId when initializing the backend v1,
 // and only providing organizationId (and always a string, never undefined) when
@@ -27,6 +28,8 @@ export type RevokeAuthTokenParams = {
   globalConfigStore: GlobalConfigStore
   log: Log
 }
+
+export type CloudApiFactory = GardenCloudApiFactory | GrowCloudApiFactory
 
 export interface GardenBackend {
   config: GardenBackendConfig
