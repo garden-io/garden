@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 import { expect } from "chai"
-import { enforceLogin } from "../../../../src/cloud/legacy/auth.js"
 import type { ProjectConfig } from "../../../../src/config/project.js"
 import type { CoreLog } from "../../../../src/logger/log-entry.js"
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
@@ -14,6 +13,7 @@ import { createProjectConfig, expectError, expectFuzzyMatch, makeTempDir, TestGa
 import type tmp from "tmp-promise"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings.js"
 import { uuidv4 } from "../../../../src/util/random.js"
+import { enforceLogin } from "../../../../src/cloud/enforce-login.js"
 
 describe("enforceLogin", () => {
   let tmpDir: tmp.DirectoryResult

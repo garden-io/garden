@@ -34,7 +34,6 @@ import {
   renderCommandErrors,
   cliStyles,
 } from "./helpers.js"
-import { enforceLogin } from "../cloud/legacy/auth.js"
 import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
 import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
 import type { ProjectConfig } from "../config/project.js"
@@ -57,6 +56,7 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
 import type minimist from "minimist"
 import { styles } from "../logger/styles.js"
+import { enforceLogin } from "../cloud/enforce-login.js"
 
 const { pathExists } = fsExtra
 
