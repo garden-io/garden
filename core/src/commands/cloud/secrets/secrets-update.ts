@@ -26,7 +26,7 @@ import type {
   Secret,
   SingleUpdateSecretRequest,
 } from "../../../cloud/legacy/api.js"
-import { handleSecretsUnavailableInNewBackend } from "../../../cloud/secrets.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/grow/secrets.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
