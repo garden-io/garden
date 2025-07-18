@@ -117,7 +117,7 @@ describe("enforceLogin", () => {
         {
           contains: [
             "Login required: This project is connected to Garden Cloud. Please run garden login to authenticate or set the GARDEN_AUTH_TOKEN environment variable.",
-            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Team Cache and Container Builder won't be available in the offline mode.",
+            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Team Cache and Container Builder won't be available in offline mode.",
           ],
         }
       )
@@ -231,7 +231,7 @@ describe("enforceLogin", () => {
         {
           contains: [
             "Login required: This project is connected to Garden Cloud. Please run garden login to authenticate or set the GARDEN_AUTH_TOKEN environment variable.",
-            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Team Cache and Container Builder won't be available in the offline mode.",
+            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Team Cache and Container Builder won't be available in offline mode.",
           ],
         }
       )
