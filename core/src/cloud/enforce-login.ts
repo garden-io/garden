@@ -20,7 +20,6 @@ class LoginRequiredWhenConnected extends GardenError {
     super({
       message: dedent`
         ${styles.primary(
-          // TODO(0.14): advertise team cache and container builder here as benefit for logging in
           `Login required: This project is connected to Garden Cloud. Please run ${styles.command("garden login")} to authenticate or set the ${styles.highlight("GARDEN_AUTH_TOKEN")} environment variable.`
         )}
 
