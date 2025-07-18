@@ -10,7 +10,7 @@ import type { ProjectConfig } from "../config/project.js"
 import { getBackendType } from "./util.js"
 import { GrowCloudBackend } from "./grow/backend-grow.js"
 import { GardenCloudBackend } from "./legacy/backend-garden.js"
-import type { GardenBackendConfig } from "./backend.js"
+import type { GardenBackendConfig } from "./backend-base.js"
 
 export function gardenBackendFactory(projectConfig: ProjectConfig, backendConfig: GardenBackendConfig) {
   const gardenBackendClass = getBackendType(projectConfig) === "v2" ? GrowCloudBackend : GardenCloudBackend

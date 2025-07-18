@@ -13,8 +13,8 @@ import type { AuthToken } from "../legacy/auth.js"
 import { InternalError } from "../../exceptions.js"
 import { renderZodError } from "../../config/zod.js"
 import { revokeAuthToken } from "./auth.js"
-import type { AuthRedirectConfig, RevokeAuthTokenParams } from "../backend.js"
-import { AbstractGardenBackend } from "../backend.js"
+import type { AuthRedirectConfig, RevokeAuthTokenParams } from "../backend-base.js"
+import { AbstractGardenBackend } from "../backend-base.js"
 
 export const growCloudTokenSchema = z.object({
   accessToken: z.string(),

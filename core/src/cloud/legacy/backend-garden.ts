@@ -13,8 +13,8 @@ import { InternalError } from "../../exceptions.js"
 import { renderZodError } from "../../config/zod.js"
 import { isArray } from "lodash-es"
 import { z } from "zod"
-import type { AuthRedirectConfig, RevokeAuthTokenParams } from "../backend.js"
-import { AbstractGardenBackend } from "../backend.js"
+import type { AuthRedirectConfig, RevokeAuthTokenParams } from "../backend-base.js"
+import { AbstractGardenBackend } from "../backend-base.js"
 
 export const gardenCloudTokenSchema = z.object({
   jwt: z.string().describe("JWT token"),
