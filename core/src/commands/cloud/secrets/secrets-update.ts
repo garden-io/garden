@@ -25,8 +25,8 @@ import type {
   GardenCloudApi,
   Secret,
   SingleUpdateSecretRequest,
-} from "../../../cloud/api.js"
-import { handleSecretsUnavailableInNewBackend } from "../../../cloud/secrets.js"
+} from "../../../cloud/legacy/api.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/grow/secrets.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({

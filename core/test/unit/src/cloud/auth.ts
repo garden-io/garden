@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 import { expect } from "chai"
-import { enforceLogin } from "../../../../src/cloud/auth.js"
 import type { ProjectConfig } from "../../../../src/config/project.js"
 import type { CoreLog } from "../../../../src/logger/log-entry.js"
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
@@ -14,6 +13,7 @@ import { createProjectConfig, expectError, expectFuzzyMatch, makeTempDir, TestGa
 import type tmp from "tmp-promise"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings.js"
 import { uuidv4 } from "../../../../src/util/random.js"
+import { enforceLogin } from "../../../../src/cloud/enforce-login.js"
 
 describe("enforceLogin", () => {
   let tmpDir: tmp.DirectoryResult
@@ -117,7 +117,7 @@ describe("enforceLogin", () => {
         {
           contains: [
             "Login required: This project is connected to Garden Cloud. Please run garden login to authenticate or set the GARDEN_AUTH_TOKEN environment variable.",
-            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Team Cache and Container Builder won't be available in the offline mode.",
+            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Team Cache and Container Builder won't be available in offline mode.",
           ],
         }
       )
@@ -231,7 +231,7 @@ describe("enforceLogin", () => {
         {
           contains: [
             "Login required: This project is connected to Garden Cloud. Please run garden login to authenticate or set the GARDEN_AUTH_TOKEN environment variable.",
-            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Team Cache and Container Builder won't be available in the offline mode.",
+            "NOTE: If you cannot log in right now, use the option --offline or the environment variable GARDEN_OFFLINE=true to enable offline mode. Team Cache and Container Builder won't be available in offline mode.",
           ],
         }
       )

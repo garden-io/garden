@@ -12,7 +12,7 @@ import { registerCleanupFunction, sleep } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { EventName, EventPayload, GardenEventAnyListener } from "../../events/events.js"
 import { LogLevel } from "../../logger/logger.js"
-import type { LogEntryEventPayload } from "../restful-event-stream.js"
+import type { LogEntryEventPayload } from "../legacy/restful-event-stream.js"
 import type {
   Event as GrpcEvent,
   GardenEventIngestionService,

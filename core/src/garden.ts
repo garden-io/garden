@@ -117,8 +117,8 @@ import {
   RemoteSourceConfigContext,
 } from "./config/template-contexts/project.js"
 import { TemplatableConfigContext } from "./config/template-contexts/templatable.js"
-import type { GardenCloudApiFactory } from "./cloud/api.js"
-import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
+import type { GardenCloudApiFactory } from "./cloud/legacy/api.js"
+import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/legacy/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
 import { deepResolveContext, ErrorContext, type ContextWithSchema } from "./config/template-contexts/base.js"

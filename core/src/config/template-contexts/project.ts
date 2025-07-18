@@ -19,7 +19,7 @@ import { type VcsInfo } from "../../vcs/vcs.js"
 import { styles } from "../../logger/styles.js"
 import type { VariablesContext } from "./variables.js"
 import { getBackendType, getCloudDistributionName } from "../../cloud/util.js"
-import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/secrets.js"
+import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/grow/secrets.js"
 
 const secretsSchema = joiStringMap(joi.string().description("The secret's value."))
   .description("A map of all secrets for this project in the current environment.")

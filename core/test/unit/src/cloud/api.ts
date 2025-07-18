@@ -12,7 +12,7 @@ import { gardenEnv } from "../../../../src/constants.js"
 import { uuidv4 } from "../../../../src/util/random.js"
 import { randomString } from "../../../../src/util/string.js"
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
-import { clearAuthToken, getAuthToken, saveAuthToken } from "../../../../src/cloud/auth.js"
+import { clearAuthToken, getAuthToken, saveAuthToken } from "../../../../src/cloud/legacy/auth.js"
 
 describe("GardenCloudApi", () => {
   const log = getRootLogger().createLog()

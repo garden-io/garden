@@ -21,7 +21,7 @@ import type {
   CloudBuilderAvailableV2,
   GardenCloudApi,
   RegisterCloudBuilderBuildResponseData,
-} from "../../cloud/api.js"
+} from "../../cloud/legacy/api.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
 import { gardenEnv } from "../../constants.js"

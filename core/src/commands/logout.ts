@@ -10,10 +10,10 @@ import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import { dedent } from "../util/string.js"
-import { clearAuthToken, getStoredAuthToken } from "../cloud/auth.js"
+import { clearAuthToken, getStoredAuthToken } from "../cloud/legacy/auth.js"
 import { getCloudDomain } from "../cloud/util.js"
-import { gardenBackendFactory } from "../cloud/backend.js"
 import { findProjectConfigOrPrintInstructions } from "./helpers.js"
+import { gardenBackendFactory } from "../cloud/backend-factory.js"
 
 type Opts = {}
 

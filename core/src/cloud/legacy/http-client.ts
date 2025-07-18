@@ -7,18 +7,18 @@
  */
 
 import type { IncomingHttpHeaders } from "http"
-import type { GotHeaders, GotJsonOptions, GotResponse } from "../util/http.js"
-import { got } from "../util/http.js"
-import { CloudApiError } from "../exceptions.js"
-import type { Log } from "../logger/log-entry.js"
+import type { GotHeaders, GotJsonOptions, GotResponse } from "../../util/http.js"
+import { got } from "../../util/http.js"
+import { CloudApiError } from "../../exceptions.js"
+import type { Log } from "../../logger/log-entry.js"
 import { isObject } from "lodash-es"
-import { dedent, deline } from "../util/string.js"
-import { getPackageVersion } from "../util/util.js"
-import type { GlobalConfigStore } from "../config-store/global.js"
-import { LogLevel } from "../logger/logger.js"
+import { dedent, deline } from "../../util/string.js"
+import { getPackageVersion } from "../../util/util.js"
+import type { GlobalConfigStore } from "../../config-store/global.js"
+import { LogLevel } from "../../logger/logger.js"
 import { getAuthToken, makeAuthHeader } from "./auth.js"
 import { RequestError } from "got"
-import { getCloudDistributionName } from "./util.js"
+import { getCloudDistributionName } from "../util.js"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()

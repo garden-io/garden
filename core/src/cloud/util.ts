@@ -9,7 +9,7 @@ import type { ProjectConfig } from "../config/project.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Garden } from "../garden.js"
-import { RestfulEventStream } from "./restful-event-stream.js"
+import { RestfulEventStream } from "./legacy/restful-event-stream.js"
 import { GrpcEventStream } from "./grow/grpc-event-stream.js"
 import { eventLogLevel } from "../logger/logger.js"
 
