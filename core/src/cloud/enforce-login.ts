@@ -25,7 +25,7 @@ class LoginRequiredWhenConnected extends GardenError {
         )}
 
         ${styles.secondary(
-          `NOTE: If you cannot log in right now, use the option ${styles.command("--offline")} or the environment variable ${styles.command("GARDEN_OFFLINE=true")} to enable offline mode. Team Cache and Container Builder won't be available in the offline mode.`
+          `NOTE: If you cannot log in right now, use the option ${styles.command("--offline")} or the environment variable ${styles.command("GARDEN_OFFLINE=true")} to enable offline mode. Team Cache and Container Builder won't be available in offline mode.`
         )}
       `,
     })
