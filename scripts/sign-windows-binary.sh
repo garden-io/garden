@@ -1,23 +1,13 @@
 #!/bin/bash
 set -e -o pipefail
 # Initialize variables
-aws_profile=""
 file_path=""
 version=""
 
 # Loop through arguments
-# We expect a profile name, a file path and a release version as arguments
+# We expect a file path and a release version as arguments
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
-        --profile)
-            if [[ -n "$2" && "$2" != --* ]]; then
-                aws_profile="$2"
-                shift 2
-            else
-                echo "Error: --profile requires a value." >&2
-                exit 1
-            fi
-            ;;
         --version)
             if [[ -n "$2" && "$2" != --* ]]; then
                 version="$2"
@@ -38,16 +28,16 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         *)
             echo "Invalid argument: $1" >&2
-            echo "Usage: $0 --profile <profile-name> --file <file-path>"
+            echo "Usage: $0 --file <file-path>"
             exit 1
             ;;
     esac
 done
 
 # Ensure both options are provided
-if [[ -z "$aws_profile" || -z "$file_path" || -z "$version" ]]; then
-    echo "All --profile, --file and --version options must be provided."
-    echo "Usage: $0 --profile <profile-name> --file <file-path> --version <version>"
+if [[ -z "$file_path" || -z "$version" ]]; then
+    echo "All --file and --version options must be provided."
+    echo "Usage: $0 --file <file-path> --version <version>"
     exit 1
 fi
 
@@ -68,12 +58,12 @@ fi
 
 # Upload file to S3
 echo Starting upload of $file_path to signing bucket
-aws s3 cp $file_folder/$file_name s3://$s3_bucket/ --profile $aws_profile
+aws s3 cp $file_folder/$file_name s3://$s3_bucket/
 
 # Check if signed file exists
 while true; do
   echo "Checking if file signed/$file_name exists"
-  file_present=$(aws s3api head-object --bucket $s3_bucket --key "signed/$file_name" --profile $aws_profile > /dev/null 2>&1; echo $?)
+  file_present=$(aws s3api head-object --bucket $s3_bucket --key "signed/$file_name" > /dev/null 2>&1; echo $?)
 
   if [ $file_present == 0 ]; then
     break
@@ -84,7 +74,7 @@ while true; do
 done
 
 echo "File successfully signed. Downloading signed file."
-aws s3 cp s3://$s3_bucket/signed/$file_name $file_folder/ --profile $aws_profile
+aws s3 cp s3://$s3_bucket/signed/$file_name $file_folder/
 
 # Rename file back to original name
 mv $file_folder/$file_name $file_path
