@@ -471,7 +471,7 @@ jobs:
     steps:
       - checkout
       - *attach-workspace
-      - aws-cli/setup:
+      - aws-cli/setup
       - run:
           name: Run script to sign Windows binaries
           command: |
