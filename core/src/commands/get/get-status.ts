@@ -159,7 +159,11 @@ export class GetStatusCommand extends Command {
   }
 }
 
-async function getDeployStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
+export async function getDeployStatuses(
+  router: ActionRouter,
+  graph: ResolvedConfigGraph,
+  log: Log
+): Promise<DeployStatusMap> {
   const actions = graph.getDeploys()
 
   return fromPairs(

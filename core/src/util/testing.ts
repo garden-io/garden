@@ -431,10 +431,14 @@ export class TestGarden extends Garden {
     command,
     args,
     opts,
+    throwOnError = false,
+    validateOutputs = true,
   }: {
     command: C
     args: ParameterValues<CommandArgsType<C>> & BuiltinArgs
     opts: ParameterValues<CommandOptionsType<C>>
+    throwOnError?: boolean
+    validateOutputs?: boolean
   }): Promise<CommandResult<CommandResultType<C>>> {
     const log = this.log
 
@@ -448,10 +452,16 @@ export class TestGarden extends Garden {
       },
     })
 
-    if (result.result && command.outputsSchema) {
+    if (validateOutputs && result.result && command.outputsSchema) {
       await validateSchema(result.result, command.outputsSchema(), {
         context: `outputs from '${command.name}' command`,
         ErrorClass: InternalError,
+      })
+    }
+
+    if (throwOnError && result.errors && result.errors.length > 0) {
+      throw new TestError({
+        message: `Expected no errors, got: ${result.errors.map((e) => e.message).join(", ")}`,
       })
     }
 
