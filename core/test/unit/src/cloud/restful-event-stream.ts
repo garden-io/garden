@@ -7,12 +7,12 @@
  */
 
 import { expect } from "chai"
-import type { LogEntryEventPayload, StreamEvent } from "../../../../src/cloud/restful-event-stream.js"
-import { RestfulEventStream } from "../../../../src/cloud/restful-event-stream.js"
+import type { LogEntryEventPayload, StreamEvent } from "../../../../src/cloud/legacy/restful-event-stream.js"
+import { RestfulEventStream } from "../../../../src/cloud/legacy/restful-event-stream.js"
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
 import { makeTestGardenA } from "../../../helpers.js"
 import { find, isMatch, range, repeat } from "lodash-es"
-import type { CloudSession, GardenCloudApi } from "../../../../src/cloud/api.js"
+import type { CloudSession, GardenCloudApi } from "../../../../src/cloud/legacy/api.js"
 
 function makeDummyRecord(sizeKb: number) {
   return { someKey: repeat("a", sizeKb * 1024) }

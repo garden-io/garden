@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenError } from "../exceptions.js"
-import type { Garden } from "../index.js"
-import { getBackendType, getCloudDistributionName } from "./util.js"
+import { GardenError } from "../../exceptions.js"
+import type { Garden } from "../../index.js"
+import { getBackendType, getCloudDistributionName } from "../util.js"
 
 class SecretsUnavailableInNewBackend extends GardenError {
   override type = "secrets-unavailable-in-new-backend"
