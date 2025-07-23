@@ -23,6 +23,7 @@ import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import type { InputContext } from "./input.js"
 import type { VariablesContext } from "./variables.js"
+import { InternalError } from "../../exceptions.js"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
@@ -238,6 +239,7 @@ export interface ModuleConfigContextParams extends OutputConfigContextParams {
   // Template attributes
   parentName: string | undefined
   templateName: string | undefined
+  templatePath: string | undefined
   inputs: InputContext
 }
 
@@ -272,14 +274,19 @@ export class ModuleConfigContext extends OutputConfigContext {
   constructor(params: ModuleConfigContextParams) {
     super(params)
 
-    const { name, path, inputs, parentName, templateName, buildPath } = params
+    const { name, path, inputs, parentName, templateName, templatePath, buildPath } = params
 
     // Throw specific error when attempting to resolve self
     this.modules.set(name, new ErrorContext(`Config ${styles.highlight.bold(name)} cannot reference itself.`))
 
-    if (parentName && templateName) {
+    if (parentName) {
+      if (!templateName || !templatePath) {
+        throw new InternalError({
+          message: `Missing template name and/or path when rendering ${parentName}. This is a bug, please report to the Garden team.`,
+        })
+      }
       this.parent = new ParentContext(parentName)
-      this.template = new TemplateContext(templateName)
+      this.template = new TemplateContext({ name: templateName, path: templatePath })
     }
     this.inputs = inputs
 
