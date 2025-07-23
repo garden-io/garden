@@ -64,6 +64,7 @@ export interface ApplyParams {
   validate?: boolean
   retryOpts?: RetryOpts
   applyArgs?: string[]
+  setHashAnnotation?: boolean
 }
 
 export const KUBECTL_DEFAULT_TIMEOUT = 300
@@ -79,6 +80,7 @@ export async function apply({
   pruneLabels,
   validate = true,
   applyArgs,
+  setHashAnnotation = true,
 }: ApplyParams) {
   // Hash the raw input and add as an annotation on each manifest (this is helpful beyond kubectl's own annotation,
   // because kubectl applies some normalization/transformation that is sometimes difficult to reason about).
@@ -87,10 +89,12 @@ export async function apply({
     if (!manifest.metadata.annotations) {
       manifest.metadata.annotations = {}
     }
-    if (manifest.metadata.annotations[k8sManifestHashAnnotationKey]) {
-      delete manifest.metadata.annotations[k8sManifestHashAnnotationKey]
+    if (setHashAnnotation) {
+      if (manifest.metadata.annotations[k8sManifestHashAnnotationKey]) {
+        delete manifest.metadata.annotations[k8sManifestHashAnnotationKey]
+      }
+      manifest.metadata.annotations[k8sManifestHashAnnotationKey] = await hashManifest(manifest)
     }
-    manifest.metadata.annotations[k8sManifestHashAnnotationKey] = await hashManifest(manifest)
   }
 
   // The `--prune` option for `kubectl apply` currently isn't backwards-compatible, so here, we essentially
