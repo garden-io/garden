@@ -1,4 +1,25 @@
 
+<a name="0.14.5"></a>
+## [0.14.5](https://github.com/garden-io/garden/compare/0.14.4...0.14.5) (2025-07-23)
+
+### Bug Fixes
+
+* error handling in BiDi gRPC events streaming ([#7457](https://github.com/garden-io/garden/issues/7457)) ([08cc29c76](https://github.com/garden-io/garden/commit/08cc29c76))
+* **GrpcEventStream:** avoid out of order events ([#7478](https://github.com/garden-io/garden/issues/7478)) ([d16425240](https://github.com/garden-io/garden/commit/d16425240))
+* **core:** set 'waiting to flush' log level to debug ([#7481](https://github.com/garden-io/garden/issues/7481)) ([576b172f0](https://github.com/garden-io/garden/commit/576b172f0))
+* **deps:** update npm prod dependencies (non-major) ([#7430](https://github.com/garden-io/garden/issues/7430)) ([79dd49aa2](https://github.com/garden-io/garden/commit/79dd49aa2))
+* **deps:** update dependency [@segment](https://github.com/segment)/analytics-node to v2.2.1 ([#7345](https://github.com/garden-io/garden/issues/7345)) ([69e5feb4c](https://github.com/garden-io/garden/commit/69e5feb4c))
+* **examples:** update some K8s deploy examples ([#7480](https://github.com/garden-io/garden/issues/7480)) ([b03d1b18a](https://github.com/garden-io/garden/commit/b03d1b18a))
+
+### Bundled Tool Version Updates
+
+* **helm:** update version to 3.18.3 ([#7405](https://github.com/garden-io/garden/issues/7405)) ([ea9d44232](https://github.com/garden-io/garden/commit/ea9d44232))
+* **kubectl:** update version to 1.33.2 ([#7404](https://github.com/garden-io/garden/issues/7404)) ([993f5071e](https://github.com/garden-io/garden/commit/993f5071e))
+
+### Features
+
+* add preInit.runScript option for all providers ([#7458](https://github.com/garden-io/garden/issues/7458)) ([0e66c658d](https://github.com/garden-io/garden/commit/0e66c658d))
+
 <a name="0.14.4"></a>
 ## [0.14.4](https://github.com/garden-io/garden/compare/0.14.3...0.14.4) (2025-06-11)
 
