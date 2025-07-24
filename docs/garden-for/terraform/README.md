@@ -13,7 +13,7 @@ Under the hood, Garden simply wraps Terraform, so there's no magic involved. Gar
 
 Terraform resources can be provisioned through the `terraform` provider when initializing Garden, or via `terraform` actions that are utilized like other actions in your stack.
 
-The former, having a single Terraform stack for your whole project, is most helpful if other provider configurations need to reference the outputs from your Terraform stack, or if most/all of your services depend on the infrastructure provisioned in your Terraform stack. A good example of this is the [terraform-gke example](https://github.com/garden-io/garden/tree/0.14.4/examples/terraform-gke) project, which provisions a GKE cluster that the `kubernetes` provider then runs on, along with the services in the project. The drawback is that Garden doesn't currently watch for changes in those Terraform files, and you need to restart to apply new changes, or apply them manually.
+The former, having a single Terraform stack for your whole project, is most helpful if other provider configurations need to reference the outputs from your Terraform stack, or if most/all of your services depend on the infrastructure provisioned in your Terraform stack. A good example of this is the [terraform-gke example](https://github.com/garden-io/garden/tree/0.14.5/examples/terraform-gke) project, which provisions a GKE cluster that the `kubernetes` provider then runs on, along with the services in the project. The drawback is that Garden doesn't currently watch for changes in those Terraform files, and you need to restart to apply new changes, or apply them manually.
 
 Using `terraform` _Deploy actions_, can be better if your other providers don't need to reference the stack outputs but other Deploy, Run and Test actions do. In this style, you can basically create small Terraform stacks that are part of your Stack Graph much like other services. A good example would be deploying a database instance, that other services in your project can then connect to.
 
@@ -56,5 +56,5 @@ multiple AWS labmdas that should each have their own stack), check out [the Terr
 ## Next steps
 
 Check out how to configure the Terraform provider and/or actions in the following pages.
-You'll find some [Terraform examples here](https://github.com/garden-io/garden/tree/0.14.4/examples).
+You'll find some [Terraform examples here](https://github.com/garden-io/garden/tree/0.14.5/examples).
 
