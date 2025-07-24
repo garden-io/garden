@@ -38,29 +38,3 @@ spec:
                   httpGet:
                     path: /api
                     port: 80
-
----
-
-kind: "Test"
-type: "kubernetes-pod"
-name: "with-source-module-test"
-spec:
-  command: [sh, -c, "echo ok"]
-  resource:
-    kind: Deployment
-    name: api-deployment
-    containerModule: api-image
-    containerName: api
-
----
-
-kind: "Run"
-type: "kubernetes-pod"
-name: "with-source-module-test"
-spec:
-  command: [sh, -c, "echo ok"]
-  resource:
-    kind: Deployment
-    name: api-deployment
-    containerModule: api-image
-    containerName: api

@@ -34,12 +34,13 @@ import type { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/
 import { loadAllYaml, loadYaml } from "@kubernetes/client-node"
 import fsExtra from "fs-extra"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
+import type { TestGardenOpts } from "../../../../../../src/util/testing.js"
 
 const { readdir, readFile } = fsExtra
 
-export async function getHelmTestGarden() {
+export async function getHelmTestGarden(opts: TestGardenOpts = {}) {
   const projectRoot = getDataDir("test-projects", "helm")
-  const garden = await makeTestGarden(projectRoot)
+  const garden = await makeTestGarden(projectRoot, opts)
   return garden
 }
 

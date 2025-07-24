@@ -46,6 +46,7 @@ import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kub
 import { makeDocsLinkPlain, makeDocsLinkStyled } from "../../docs/common.js"
 import { cleanupUtilDeployment } from "./commands/cleanup-garden-util.js"
 import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { pauseCommand } from "./commands/pause.js"
 
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 5
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 20
@@ -156,6 +157,7 @@ export const gardenPlugin = () => {
       cleanupClusterRegistry,
       cleanupUtilDeployment,
       uninstallGardenServices,
+      pauseCommand,
       pullImage,
       syncStatus,
       syncPause,
