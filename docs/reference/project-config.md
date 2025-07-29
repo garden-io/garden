@@ -94,6 +94,33 @@ environments:
     # strings.
     variables: {}
 
+    # Configuration for the Automatic Environment Cleanup feature.
+    #
+    # You must specify at least one of `afterLastUpdate` or `schedule`.
+    #
+    # Note that this feature is only available for Garden Cloud users on paid plans. Also note that the feature is
+    # currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
+    #
+    # Please refer to the [Automatic Environment Cleanup
+    # guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
+    aec:
+      # The time to live for the environment after the last update (i.e. the last time the environment was deployed or
+      # updated).
+      #
+      # Please refer to the [Automatic Environment Cleanup
+      # guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
+      afterLastUpdate:
+        unit:
+
+        value:
+
+      schedule:
+        every:
+
+        hourOfDay:
+
+        minuteOfHour:
+
 # A list of providers that should be used for this project, and their configuration. Please refer to individual
 # plugins/providers for details on how to configure them.
 providers:
@@ -423,6 +450,82 @@ A key/value map of variables that actions can reference when using this environm
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
+
+### `environments[].aec`
+
+[environments](#environments) > aec
+
+Configuration for the Automatic Environment Cleanup feature.
+
+You must specify at least one of `afterLastUpdate` or `schedule`.
+
+Note that this feature is only available for Garden Cloud users on paid plans. Also note that the feature is currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
+
+Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `environments[].aec.afterLastUpdate`
+
+[environments](#environments) > [aec](#environmentsaec) > afterLastUpdate
+
+The time to live for the environment after the last update (i.e. the last time the environment was deployed or updated).
+
+Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `environments[].aec.afterLastUpdate.unit`
+
+[environments](#environments) > [aec](#environmentsaec) > [afterLastUpdate](#environmentsaecafterlastupdate) > unit
+
+| Type     | Allowed Values  | Required |
+| -------- | --------------- | -------- |
+| `string` | "hours", "days" | Yes      |
+
+### `environments[].aec.afterLastUpdate.value`
+
+[environments](#environments) > [aec](#environmentsaec) > [afterLastUpdate](#environmentsaecafterlastupdate) > value
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | Yes      |
+
+### `environments[].aec.schedule`
+
+[environments](#environments) > [aec](#environmentsaec) > schedule
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `environments[].aec.schedule.every`
+
+[environments](#environments) > [aec](#environmentsaec) > [schedule](#environmentsaecschedule) > every
+
+| Type     | Allowed Values                                                                                 | Required |
+| -------- | ---------------------------------------------------------------------------------------------- | -------- |
+| `string` | "weekday", "day", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" | Yes      |
+
+### `environments[].aec.schedule.hourOfDay`
+
+[environments](#environments) > [aec](#environmentsaec) > [schedule](#environmentsaecschedule) > hourOfDay
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | Yes      |
+
+### `environments[].aec.schedule.minuteOfHour`
+
+[environments](#environments) > [aec](#environmentsaec) > [schedule](#environmentsaecschedule) > minuteOfHour
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | Yes      |
 
 ### `providers[]`
 

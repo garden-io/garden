@@ -47,6 +47,8 @@ import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
 import { getBackendType } from "../cloud/util.js"
+import type { EnvironmentAecConfig } from "./aec.js"
+import { aecConfigSchema } from "./aec.js"
 
 export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -67,6 +69,7 @@ export interface EnvironmentConfig {
   varfile?: string
   variables: DeepPrimitiveMap
   production?: boolean
+  aec?: EnvironmentAecConfig
 }
 
 export const environmentNameSchema = memoize(() =>
@@ -124,6 +127,7 @@ export const environmentSchema = createSchema({
           over variables defined in the top-level \`variables\` field, but may also reference the top-level variables in
           template strings.
         `),
+    aec: aecConfigSchema(),
   }),
 })
 

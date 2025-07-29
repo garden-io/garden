@@ -5,6 +5,14 @@ name: demo-project
 
 environments:
   - name: local
+    aec:
+      enabled: true
+      afterLastUpdate:
+        unit: hours
+        value: 1
+      schedule:
+        every: day
+        hourOfDay: 0
   - name: remote
     defaultNamespace: ${var.userId}
 providers:
