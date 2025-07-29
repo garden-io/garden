@@ -474,16 +474,11 @@ jobs:
     steps:
       - checkout
       - *attach-workspace
-      - aws-cli/setup:
-          aws_access_key_id: GARDEN_CODE_SIGNING_AWS_ACCESS_KEY_ID # This is the string of the env variable containing the key, not the value itself
-          aws_secret_access_key: GARDEN_CODE_SIGNING_AWS_SECRET_ACCESS_KEY # This is the string of the env variable containing the key, not the value itself
-          configure_profile_region: true
-          region: eu-central-1
-          profile_name: windows-code-signing-ib
+      - aws-cli/setup
       - run:
           name: Run script to sign Windows binaries
           command: |
-            ./scripts/sign-windows-binary.sh --version <<parameters.version>> --file dist/windows-amd64/garden.exe --profile windows-code-signing-ib
+            ./scripts/sign-windows-binary.sh --version <<parameters.version>> --file dist/windows-amd64/garden.exe
       - run:
           name: Prepare the windows binary zip and cleanup
           command: |
