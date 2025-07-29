@@ -218,9 +218,12 @@ async function renderModules({
 
       let moduleConfig: ModuleConfig
 
+      // Need to account for the path key for module templates
+      const coreKeys = [...coreModuleSpecKeys(), "path"]
+
       const resolvedSpec = { ...spec }
       try {
-        for (const key of coreModuleSpecKeys()) {
+        for (const key of coreKeys) {
           resolvedSpec[key] = deepEvaluate(resolvedSpec[key], { context, opts: {} })
         }
         moduleConfig = prepareModuleResource(resolvedSpec, renderConfigPath, garden.projectRoot)
@@ -230,7 +233,7 @@ async function renderModules({
         }
         let msg = error.message
 
-        if (coreModuleSpecKeys().some((k) => spec[k] instanceof UnresolvedTemplateValue)) {
+        if (coreKeys.some((k) => spec[k] instanceof UnresolvedTemplateValue)) {
           msg +=
             "\n\nNote that if a template string is used for the name, kind, type or apiVersion of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
         }

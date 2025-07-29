@@ -365,7 +365,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
   }
 
   // Built-in keys are validated here and the rest are put into the `spec` field
-  const path = dirname(configPath)
+  const path = spec.path ? resolve(dirname(configPath), spec.path) : dirname(configPath)
   const config: ModuleConfig = {
     apiVersion: spec.apiVersion || GardenApiVersion.v0,
     kind: "Module",
