@@ -177,7 +177,7 @@
     "@types/dedent": "^0.7.2",
     "@types/fs-extra": "^11.0.4",
     "@types/glob": "^8.1.0",
-    "@types/global-agent": "^2.1.3",
+    "@types/global-agent": "^3.0.0",
     "@types/hapi__joi": "^17.1.14",
     "@types/has-ansi": "^5.0.2",
     "@types/ink-divider": "^2.0.4",
