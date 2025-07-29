@@ -47,7 +47,6 @@ export interface ProviderActionOutputs<C extends BaseProviderConfig = any, O ext
   configureProvider: ConfigureProviderResult<C>
   augmentGraph: AugmentGraphResult
 
-  // Deprecated: Will be removed in 0.14
   getEnvironmentStatus: EnvironmentStatus<O>
   prepareEnvironment: PrepareEnvironmentResult<O>
   cleanupEnvironment: CleanupEnvironmentResult

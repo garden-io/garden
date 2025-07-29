@@ -180,5 +180,31 @@ describe("Kubernetes Namespace helpers", () => {
       expect(result.created).to.be.false
       expect(result.patched).to.be.false
     })
+
+    it("should add AEC annotations if the environment config has AEC enabled", async () => {
+      const namespace = {
+        name: namespaceName,
+        annotations: { foo: "bar" },
+        labels: { floo: "blar" },
+      }
+
+      ctx.environmentConfig.aec = {
+        triggers: [
+          {
+            afterLastUpdate: { unit: "hours", value: 1 },
+            action: "pause",
+          },
+        ],
+      }
+
+      const result = await ensureNamespace(api, ctx, namespace, log)
+
+      const ns = result.remoteResource
+
+      expect(ns?.metadata.annotations?.[gardenAnnotationKey("aec-config")]).to.equal(
+        JSON.stringify(ctx.environmentConfig.aec)
+      )
+      expect(ns?.metadata.annotations?.[gardenAnnotationKey("last-deployed")]).to.exist
+    })
   })
 })

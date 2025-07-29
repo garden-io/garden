@@ -323,6 +323,24 @@ export class GrowCloudApi {
     }
   }
 
+  async getCurrentAccount() {
+    return await this.api.account.getCurrentAccount.query()
+  }
+
+  async getOrganization() {
+    return await this.api.organization.getById.query({
+      organizationId: this.organizationId,
+    })
+  }
+
+  async getOrCreatServiceAccountAndToken({ accountId, name }: { accountId: string; name: string }) {
+    return await this.api.account.getOrCreateServiceAccount.mutate({
+      organizationId: this.organizationId,
+      accountId,
+      name,
+    })
+  }
+
   // GRPC clients
 
   private get grpcTransport() {
