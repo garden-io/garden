@@ -51,6 +51,19 @@ ENV HOME=/home/gardenuser
 RUN useradd -ms /bin/bash $USER
 USER $USER
 
+#### DEV IMAGE ####
+
+FROM garden-base-rootless as garden-local-dev
+
+ENV PATH /garden/bin:$PATH
+ENV GARDEN_DISABLE_ANALYTICS=true
+ENV GARDEN_DISABLE_VERSION_CHECK=true
+
+# Expect to be run in repo root (generally then volume mounted at runtime)
+ADD --chown=$USER:root . /garden
+
+#### END DEV IMAGE ####
+
 FROM garden-base-$VARIANT as garden-base
 
 # Note: This Dockerfile is run with dist/linux-amd64 as the context root

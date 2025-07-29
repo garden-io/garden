@@ -191,6 +191,25 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             success: boolean
           }
         }>
+        getOrCreateServiceAccount: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            organizationId: string
+            accountId: string
+            name: string
+          }
+          output: {
+            account: {
+              name: string
+              id: string
+              createdAt: Date
+              updatedAt: Date
+              email: string
+              role: "admin" | "member"
+              isOwner: boolean
+            }
+            token: string
+          }
+        }>
       }>
     >
     actionCache: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<

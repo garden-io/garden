@@ -63,6 +63,7 @@ export interface PluginCommand<C extends BaseProviderConfig = any, T extends obj
   handler: PluginCommandHandler<C, T>
   resolveGraph?: boolean
   title?: string | ((params: { args: string[]; environmentName: string }) => string | Promise<string>)
+  hidden?: boolean
 }
 
 export const pluginCommandSchema = createSchema({
@@ -85,5 +86,10 @@ export const pluginCommandSchema = createSchema({
       .func()
       // TODO: see if we can define/output the function schema somehow
       .description("The command handler."),
+    hidden: joi
+      .boolean()
+      .default(false)
+      .description("Set this to true if the command should not be shown in the CLI.")
+      .meta({ internal: true }),
   }),
 })
