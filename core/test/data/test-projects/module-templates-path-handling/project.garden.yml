@@ -1,0 +1,5 @@
+apiVersion: garden.io/v2
+kind: Project
+name: module-templates-path-handling
+environments:
+  - name: local
