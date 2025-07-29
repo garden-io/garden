@@ -18,6 +18,7 @@ import { KubeApi } from "../api.js"
 import { styles } from "../../../logger/styles.js"
 
 type PauseResult = {
+  actionKey: string
   errors?: string[]
   skipped?: string
   updatedWorkloads?: PausableWorkload[]
@@ -66,6 +67,7 @@ export const pauseCommand: PluginCommand = {
 
     result = await Promise.all(
       deploys.map(async (action): Promise<PauseResult> => {
+        const actionKey = action.key()
         const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
         // Check the Deploy status
@@ -74,7 +76,7 @@ export const pauseCommand: PluginCommand = {
         if (!status) {
           const msg = `Could not get status for ${action.type} Deploy ${action.name}`
           actionLog.error({ msg })
-          return { errors: [msg] }
+          return { actionKey, errors: [msg] }
         }
 
         const deployState = status.detail?.state
@@ -83,15 +85,15 @@ export const pauseCommand: PluginCommand = {
         if (deployState === "missing") {
           const msg = `Deploy ${action.name} is not deployed, skipping`
           actionLog.info({ msg })
-          return { skipped: msg }
+          return { actionKey, skipped: msg }
         } else if (deployState === "deploying") {
           const msg = `Deploy ${action.name} is being deployed, skipping`
           actionLog.info({ msg })
-          return { skipped: msg }
+          return { actionKey, skipped: msg }
         } else if (deployState === "stopped") {
           const msg = `Deploy ${action.name} is stopped, skipping`
           actionLog.info({ msg })
-          return { skipped: msg }
+          return { actionKey, skipped: msg }
         }
 
         // If the Deploy is deployed, get the resources from the cluster
@@ -100,7 +102,7 @@ export const pauseCommand: PluginCommand = {
         if (resources.length === 0) {
           const msg = `Deploy ${action.name} has no resources, skipping`
           actionLog.info({ msg })
-          return { skipped: msg }
+          return { actionKey, skipped: msg }
         }
 
         // Filter to the workloads
@@ -110,7 +112,7 @@ export const pauseCommand: PluginCommand = {
         if (workloads.length === 0) {
           const msg = `Deploy ${action.name} has no workloads that can be paused, skipping`
           actionLog.info({ msg })
-          return { skipped: msg }
+          return { actionKey, skipped: msg }
         }
 
         // Update the workloads
@@ -146,7 +148,7 @@ export const pauseCommand: PluginCommand = {
           })
         )
 
-        return { errors, updatedWorkloads }
+        return { actionKey, errors, updatedWorkloads }
       })
     )
 

@@ -7,7 +7,7 @@
  */
 
 import type { Garden } from "./garden.js"
-import type { SourceConfig } from "./config/project.js"
+import type { EnvironmentConfig, SourceConfig } from "./config/project.js"
 import { environmentNameSchema, projectNameSchema, projectSourcesSchema } from "./config/project.js"
 import type { BaseProviderConfig, Provider } from "./config/provider.js"
 import { providerSchema } from "./config/provider.js"
@@ -58,6 +58,7 @@ export interface PluginContext<C extends BaseProviderConfig = BaseProviderConfig
   command: CommandInfo
   log: Log
   events: PluginEventBroker
+  environmentConfig: EnvironmentConfig
   projectSources: SourceConfig[]
   provider: Provider<C>
   legacyResolveTemplateString: (value: string, opts?: ResolveTemplateStringsOpts) => ResolvedTemplate
@@ -238,6 +239,7 @@ export async function createPluginContext({
     command,
     events: events || new PluginEventBroker(garden),
     environmentName: garden.environmentName,
+    environmentConfig: garden.getEnvironmentConfig(),
     namespace: garden.namespace,
     gardenDirPath: garden.gardenDirPath,
     log: garden.log,

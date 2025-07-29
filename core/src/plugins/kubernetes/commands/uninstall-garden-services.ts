@@ -26,6 +26,8 @@ export const uninstallGardenServices: PluginCommand = {
       await ingressControllerUninstall(k8sCtx, log)
     }
 
+    // TODO: Clean up AEC agent if it's installed
+
     log.success({ msg: "\nDone!", showDuration: false })
 
     return { result: {} }

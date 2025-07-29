@@ -402,6 +402,24 @@ export class GardenCloudApi {
     return await revokeAuthToken({ clientAuthToken, cloudDomain: this.domain, log })
   }
 
+  async getCurrentAccount() {
+    return await this.trpc.account.getCurrentAccount.query()
+  }
+
+  async getOrganization() {
+    return await this.trpc.organization.getById.query({
+      organizationId: this.organizationId,
+    })
+  }
+
+  async getOrCreatServiceAccountAndToken({ accountId, name }: { accountId: string; name: string }) {
+    return await this.trpc.account.getOrCreateServiceAccount.mutate({
+      organizationId: this.organizationId,
+      accountId,
+      name,
+    })
+  }
+
   // GRPC clients
 
   private get grpcTransport() {

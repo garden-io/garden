@@ -148,9 +148,11 @@ async function listPlugins(garden: Garden, log: Log, pluginsToList: string[]) {
         return plugin
       }
 
-      const rows = commands.map((command) => {
-        return [` ${styles.highlight(pluginName + " " + command.name)}`, command.description]
-      })
+      const rows = commands
+        .filter((c) => !c.hidden)
+        .map((command) => {
+          return [` ${styles.highlight(pluginName + " " + command.name)}`, command.description]
+        })
 
       const maxCommandLengthAnsi = max(rows.map((r) => r[0].length))!
 
