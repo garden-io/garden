@@ -181,7 +181,7 @@
     "@types/cross-spawn": "^6.0.6",
     "@types/dedent": "^0.7.2",
     "@types/fs-extra": "^11.0.4",
-    "@types/glob": "^8.1.0",
+    "@types/glob": "^9.0.0",
     "@types/global-agent": "^3.0.0",
     "@types/hapi__joi": "^17.1.15",
     "@types/ink-divider": "^2.0.4",
