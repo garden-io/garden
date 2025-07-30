@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/sdk",
-  "version": "0.13.60",
+  "version": "0.13.61",
   "description": "TypeScript plugin SDK for Garden",
   "type": "module",
   "repository": {
