@@ -66,7 +66,24 @@ function getTrpcConfig({ hostUrl, tokenGetter }: TrpcConfigParams) {
           headers.set("x-client-version", getPackageVersion())
 
           // Use standard fetch instead of bunFetch from Grow
-          return await fetch(url, { ...options, headers })
+          const response = await fetch(url, { ...options, headers })
+
+          if (!response.ok) {
+            // XXX: Without this it's not possible to properly handle HTTP errors
+            // E.g. on 503 error, we'll get an error like `Unexpected token '<', "<html><h"... is not valid JSON`
+            throw new TRPCClientError(`HTTP status ${response.status}`, {
+              result: {
+                error: {
+                  data: {
+                    httpStatus: response.status,
+                    code: response.statusText || response.status.toString(),
+                  },
+                },
+              },
+            })
+          }
+
+          return response
         },
       }),
     ],
