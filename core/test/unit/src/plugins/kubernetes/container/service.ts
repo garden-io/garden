@@ -11,7 +11,7 @@ import { makeTestGarden, getDataDir } from "../../../../../helpers.js"
 import { gardenPlugin } from "../../../../../../src/plugins/container/container.js"
 import type { Garden } from "../../../../../../src/garden.js"
 import { expect } from "chai"
-import { gardenAnnotationKey } from "../../../../../../src/util/string.js"
+import { gardenAnnotationKey } from "../../../../../../src/util/annotations.js"
 
 describe("createServiceResources", () => {
   const projectRoot = getDataDir("test-project-container")

@@ -25,7 +25,7 @@ import type { ActionMode, Resolved } from "../../../actions/types.js"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status.js"
 import { isTruthy } from "../../../util/util.js"
 import { ChildProcessError, RuntimeError } from "../../../exceptions.js"
-import { gardenAnnotationKey } from "../../../util/string.js"
+import { gardenAnnotationKey } from "../../../util/annotations.js"
 import { deserializeValues } from "../../../util/serialization.js"
 
 export const gardenCloudAECPauseAnnotation = gardenAnnotationKey("aec-status")
