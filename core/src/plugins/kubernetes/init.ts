@@ -28,7 +28,8 @@ import type {
   CleanupEnvironmentResult,
 } from "../../plugin/handlers/Provider/cleanupEnvironment.js"
 import { millicpuToString, megabytesToString } from "./util.js"
-import { deline, dedent, gardenAnnotationKey } from "../../util/string.js"
+import { deline, dedent } from "../../util/string.js"
+import { gardenAnnotationKey } from "../../util/annotations.js"
 import { ConfigurationError } from "../../exceptions.js"
 import { readSecret } from "./secrets.js"
 import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants.js"

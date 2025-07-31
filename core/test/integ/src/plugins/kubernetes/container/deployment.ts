@@ -34,7 +34,7 @@ import type {
 } from "../../../../../../src/plugins/container/moduleConfig.js"
 import { apply } from "../../../../../../src/plugins/kubernetes/kubectl.js"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
-import { gardenAnnotationKey } from "../../../../../../src/util/string.js"
+import { gardenAnnotationKey } from "../../../../../../src/util/annotations.js"
 import {
   getK8sSyncUtilImagePath,
   k8sSyncUtilContainerName,

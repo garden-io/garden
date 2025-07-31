@@ -10,6 +10,7 @@ import dedent from "dedent"
 import { memoize } from "lodash-es"
 import { DOCS_BASE_URL } from "../constants.js"
 import { joi, createSchema } from "./common.js"
+import z from "zod"
 
 const aecTtlUnits = ["hours", "days"] as const
 
@@ -124,3 +125,87 @@ export const aecConfigSchema = createSchema({
       .description("The triggers that will cause the automatic environment cleanup to be performed."),
   }),
 })
+
+export const aecStatusSchema = z.enum(["paused", "cleaned-up", "in-progress", "none"])
+
+export type AecStatus = z.infer<typeof aecStatusSchema>
+
+const daysString = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const
+
+export function matchAecTriggers(
+  config: EnvironmentAecConfig,
+  lastDeployed: Date,
+  /**
+   * Used for schedule-based triggers, to ensure that a schedule trigger is matched even if a specific minute is missed,
+   * e.g. if the schedule is "every day at 10:05", a running cleanup loop started at 10:04, took a while so that the
+   * next cleanup loop started at 10:06, the trigger should still be matched if this is set to when the last cleanup
+   * loop started.
+   */
+  scheduleWindowStart?: Date
+): AecTrigger[] {
+  if (config.disabled) {
+    return []
+  }
+
+  const now = new Date()
+
+  return config.triggers.filter((trigger) => {
+    if (trigger.schedule) {
+      const { every, hourOfDay, minuteOfHour } = trigger.schedule
+
+      // Check the weekday
+      const weekday = now.getDay()
+      const weekdayString = daysString[weekday]
+
+      if (every === "weekday" && (weekdayString === "sunday" || weekdayString === "saturday")) {
+        return false
+      } else if (every !== weekdayString) {
+        return false
+      }
+
+      // Round up to the next minute
+      const scheduleWindowEnd = new Date(now.getTime() + 60000 - (now.getTime() % 60000))
+      if (!scheduleWindowStart) {
+        // Round down to the minute
+        scheduleWindowStart = new Date(scheduleWindowEnd.getTime() - (scheduleWindowEnd.getTime() % 60000))
+      }
+
+      // Check if the trigger is within the schedule window
+      const triggerTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hourOfDay, minuteOfHour)
+      if (
+        triggerTime.getTime() < scheduleWindowStart.getTime() ||
+        triggerTime.getTime() >= scheduleWindowEnd.getTime()
+      ) {
+        return false
+      }
+
+      return true
+    } else if (trigger.afterLastUpdate) {
+      const triggerTime = new Date(
+        lastDeployed.getTime() + trigger.afterLastUpdate.value * getTimeUnitMsec(trigger.afterLastUpdate.unit)
+      )
+      return triggerTime.getTime() > now.getTime()
+    }
+
+    return false
+  })
+}
+
+function getTimeUnitMsec(unit: (typeof aecTtlUnits)[number]) {
+  switch (unit) {
+    case "hours":
+      return 60 * 60 * 1000
+    case "days":
+      return 24 * 60 * 60 * 1000
+  }
+}
+
+export function describeTrigger(trigger: AecTrigger) {
+  if (trigger.schedule) {
+    return `Schedule: ${trigger.action} every ${trigger.schedule.every} at ${trigger.schedule.hourOfDay}:${trigger.schedule.minuteOfHour}`
+  } else if (trigger.afterLastUpdate) {
+    return `After last update: ${trigger.action} after ${trigger.afterLastUpdate.value} ${trigger.afterLastUpdate.unit}(s)`
+  } else {
+    throw new Error("Invalid trigger")
+  }
+}

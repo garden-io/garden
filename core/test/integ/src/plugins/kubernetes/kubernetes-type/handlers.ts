@@ -40,7 +40,8 @@ import {
   kubernetesDeploy,
 } from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers.js"
 import { buildHelmModules } from "../helm/common.js"
-import { gardenAnnotationKey, randomString } from "../../../../../../src/util/string.js"
+import { randomString } from "../../../../../../src/util/string.js"
+import { gardenAnnotationKey } from "../../../../../../src/util/annotations.js"
 import type { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
