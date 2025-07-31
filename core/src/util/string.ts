@@ -40,30 +40,6 @@ export function stableStringify(obj: unknown): string {
 // Garden to include the sha256 digest for extra security.
 export type DockerImageWithDigest = `${string}:${string}@sha256:${string}`
 
-const gardenAnnotationPrefix = "garden.io/"
-
-export type GardenAnnotationKey =
-  | "actionType"
-  | "action"
-  | "aec-status"
-  | "aec-force"
-  | "mode"
-  | "generated"
-  | "helm-migrated"
-  | "aec-config"
-  | "last-deployed"
-  | "manifest-hash"
-  | "module"
-  | "moduleVersion"
-  | "service"
-  | "task"
-  | "test"
-  | "version"
-
-export function gardenAnnotationKey(key: GardenAnnotationKey) {
-  return gardenAnnotationPrefix + key
-}
-
 /**
  * Truncates the first n characters from a string where n equals the number by
  * which the string byte length exceeds the `maxLength`.

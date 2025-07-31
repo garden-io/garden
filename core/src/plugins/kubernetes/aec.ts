@@ -8,9 +8,10 @@
 
 import { resolve } from "path"
 import { GARDEN_CORE_ROOT } from "../../constants.js"
-import { gardenAnnotationKey } from "../../util/string.js"
+import { gardenAnnotationKey } from "../../util/annotations.js"
 import type { KubernetesPluginContext } from "./config.js"
 import type { KubernetesDeployment, KubernetesResource } from "./types.js"
+import type { V1Deployment, V1StatefulSet, V1ReplicaSet } from "@kubernetes/client-node"
 
 export const gardenAecAgentServiceAccountName = "aec-agent"
 
@@ -197,4 +198,47 @@ export function getAecAnnotations(ctx: KubernetesPluginContext) {
 function getAecAgentImage(imageOverride: string | undefined, localDevMode?: boolean) {
   // TODO: Once stable, use a stable image tag based on the version of the CLI
   return imageOverride || (localDevMode ? "garden-dev-local" : "gardendev/garden:0.14-edge-bookworm")
+}
+
+export type PausableWorkload =
+  | KubernetesResource<V1Deployment>
+  | KubernetesResource<V1StatefulSet>
+  | KubernetesResource<V1ReplicaSet>
+
+export function isPausable(resource: KubernetesResource): resource is PausableWorkload {
+  return resource.kind === "Deployment" || resource.kind === "StatefulSet" || resource.kind === "ReplicaSet"
+}
+
+/**
+ * Update the manifest for the specified resource in order to "pause" it.
+ * Replicas are set to zero and annotations added.
+ * For resources managed by Helm we add a special annotation that is then
+ * checked when trying to redeploy a paused environment.
+ * Otherwise, we invalidate the "garden.io/manifest-hash" annotation.
+ */
+export function getPausedResourceManifest<R extends PausableWorkload>(resource: R): R {
+  if (typeof resource.spec?.replicas !== "undefined") {
+    resource.spec.replicas = 0
+
+    if (resource.metadata) {
+      resource.metadata.annotations = getAnnotationsForPausedWorkload(resource)
+    }
+  }
+  return resource
+}
+
+export function getAnnotationsForPausedWorkload(resource: PausableWorkload) {
+  const updatedAnnotations = { ...resource.metadata?.annotations }
+  // We invalidate the garden manifest hash to trigger a redeploy at the
+  // next "garden deploy" run.
+  if (resource.metadata?.annotations?.["garden.io/manifest-hash"]) {
+    updatedAnnotations["garden.io/manifest-hash"] = "paused"
+  }
+
+  // If the resource is managed by Helm we add the "garden.io/aec-status": "paused" annotation
+  if (resource.metadata?.labels?.["app.kubernetes.io/managed-by"] === "Helm") {
+    updatedAnnotations[gardenAnnotationKey("aec-status")] = "paused"
+  }
+
+  return updatedAnnotations
 }

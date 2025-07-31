@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { randomString, gardenAnnotationKey } from "../../../../../src/util/string.js"
+import { randomString } from "../../../../../src/util/string.js"
+import { gardenAnnotationKey } from "../../../../../src/util/annotations.js"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"

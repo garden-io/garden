@@ -9,7 +9,7 @@
 import { isEmpty, omit, partition, uniq } from "lodash-es"
 import type { ModuleActionHandlers } from "../../../plugin/plugin.js"
 import type { DeployState, ForwardablePort, ServiceStatus } from "../../../types/service.js"
-import { gardenAnnotationKey } from "../../../util/string.js"
+import { gardenAnnotationKey } from "../../../util/annotations.js"
 import { KubeApi } from "../api.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync.js"

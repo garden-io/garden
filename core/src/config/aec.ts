@@ -10,21 +10,11 @@ import dedent from "dedent"
 import { memoize } from "lodash-es"
 import { DOCS_BASE_URL } from "../constants.js"
 import { joi, createSchema } from "./common.js"
+import z from "zod"
 
 const aecTtlUnits = ["hours", "days"] as const
-
-const scheduleIntervals = [
-  "weekday",
-  "day",
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-  "sunday",
-] as const
-
+const daysString = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const
+const scheduleIntervals = ["weekday", "day", ...daysString] as const
 const aecActions = ["cleanup", "pause"] as const
 
 type AecAction = (typeof aecActions)[number]
@@ -49,27 +39,29 @@ export type AecTrigger = {
 
 const scheduleIntervalSchema = memoize(() => joi.string().valid(...scheduleIntervals))
 
-const aecTtlSchema = memoize(() =>
-  joi
-    .object()
-    .keys({
-      unit: joi
-        .string()
-        .valid(...aecTtlUnits)
-        .required(),
-      value: joi.number().min(1).required(),
-    })
-    .description(
-      dedent`
-      The time to live for the environment after the last update (i.e. the last time the environment was deployed or updated using \`garden deploy\`).
+const aecTtlSchema = createSchema({
+  name: "aec-ttl",
+  description: dedent`
+    The time to live for the environment after the last update (i.e. the last time the environment was deployed or updated using \`garden deploy\`).
 
-      Please refer to the [Automatic Environment Cleanup guide](${DOCS_BASE_URL}/guides/automatic-environment-cleanup) for details.
-      `
-    )
-)
+    Please refer to the [Automatic Environment Cleanup guide](${DOCS_BASE_URL}/guides/automatic-environment-cleanup) for details.
+  `,
+  keys: () => ({
+    unit: joi
+      .string()
+      .valid(...aecTtlUnits)
+      .required(),
+    value: joi.number().min(1).required(),
+  }),
+})
 
 const aecScheduleSchema = createSchema({
   name: "aec-schedule",
+  description: dedent`
+    Specify a cron-like schedule for the automatic environment cleanup. Use this to specify a fixed cadence and time of day for the cleanup.
+
+    Please refer to the [Automatic Environment Cleanup guide](${DOCS_BASE_URL}/guides/automatic-environment-cleanup) for details.
+  `,
   keys: () => ({
     every: scheduleIntervalSchema(),
     hourOfDay: joi.number().min(0).max(23).required(),
@@ -105,7 +97,7 @@ export const aecConfigSchema = createSchema({
 
     If you specify multiple triggers and multiple are matched, the _last_ trigger matched in the list will be used. For example, you can specify a trigger to pause the environment after 1 day of inactivity as the first trigger, and another trigger to fully clean up the environment after 1 week of inactivity or on a specific schedule as the second trigger.
 
-    Note that this feature is only available for Garden Cloud users. Also note that the feature is currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
+    Note that this feature is only available for paid Garden Cloud users. Also note that the feature is currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
 
     Please refer to the [Automatic Environment Cleanup guide](${DOCS_BASE_URL}/guides/automatic-environment-cleanup) for details.
   `,
@@ -124,3 +116,92 @@ export const aecConfigSchema = createSchema({
       .description("The triggers that will cause the automatic environment cleanup to be performed."),
   }),
 })
+
+export const aecStatusSchema = z.enum(["paused", "cleaned-up", "in-progress", "none"])
+
+export type AecStatus = z.infer<typeof aecStatusSchema>
+
+export function matchAecTriggers({
+  config,
+  lastDeployed,
+  scheduleWindowStart,
+  currentTime,
+}: {
+  config: EnvironmentAecConfig
+  lastDeployed: Date
+  /**
+   * Used for schedule-based triggers, to ensure that a schedule trigger is matched even if a specific minute is missed,
+   * e.g. if the schedule is "every day at 10:05", a running cleanup loop started at 10:04, took a while so that the
+   * next cleanup loop started at 10:06, the trigger should still be matched if this is set to when the last cleanup
+   * loop started.
+   */
+  scheduleWindowStart?: Date
+  // Used for testing, defaults to now
+  currentTime?: Date
+}): AecTrigger[] {
+  if (config.disabled) {
+    return []
+  }
+
+  const now = currentTime ?? new Date()
+
+  return config.triggers.filter((trigger) => {
+    if (trigger.schedule) {
+      const { every, hourOfDay, minuteOfHour } = trigger.schedule
+
+      // Check the weekday
+      const weekday = now.getDay()
+      const weekdayString = daysString[weekday]
+
+      if (every === "weekday" && (weekdayString === "sunday" || weekdayString === "saturday")) {
+        return false
+      } else if (every !== "day" && every !== weekdayString) {
+        return false
+      }
+
+      // Round up to the next minute
+      const scheduleWindowEnd = new Date(now.getTime() + 60000 - (now.getTime() % 60000))
+      if (!scheduleWindowStart) {
+        // Round down to the minute
+        scheduleWindowStart = new Date(now.getTime() - (now.getTime() % 60000))
+      }
+
+      // Check if the trigger is within the schedule window
+      const triggerTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hourOfDay, minuteOfHour)
+      if (
+        triggerTime.getTime() < scheduleWindowStart.getTime() ||
+        triggerTime.getTime() >= scheduleWindowEnd.getTime()
+      ) {
+        return false
+      }
+
+      return true
+    } else if (trigger.afterLastUpdate) {
+      const triggerTime = new Date(
+        lastDeployed.getTime() + trigger.afterLastUpdate.value * getTimeUnitMsec(trigger.afterLastUpdate.unit)
+      )
+      return triggerTime.getTime() <= now.getTime()
+    }
+
+    return false
+  })
+}
+
+function getTimeUnitMsec(unit: (typeof aecTtlUnits)[number]) {
+  switch (unit) {
+    case "hours":
+      return 60 * 60 * 1000
+    case "days":
+      return 24 * 60 * 60 * 1000
+  }
+}
+
+export function describeTrigger(trigger: AecTrigger) {
+  if (trigger.schedule) {
+    return `Schedule: ${trigger.action} every ${trigger.schedule.every} at ${trigger.schedule.hourOfDay}:${trigger.schedule.minuteOfHour}`
+  } else if (trigger.afterLastUpdate) {
+    return `After last update: ${trigger.action} after ${trigger.afterLastUpdate.value} ${trigger.afterLastUpdate.unit}(s)`
+  } else {
+    throw new Error("Invalid trigger")
+  }
+}

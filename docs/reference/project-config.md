@@ -96,30 +96,45 @@ environments:
 
     # Configuration for the Automatic Environment Cleanup feature.
     #
-    # You must specify at least one of `afterLastUpdate` or `schedule`.
+    # You must specify at least one _trigger_, which defines the schedule or time of inactivity that will cause the
+    # automatic environment cleanup to be performed, as well as the type of action to perform (pause or cleanup).
     #
-    # Note that this feature is only available for Garden Cloud users on paid plans. Also note that the feature is
-    # currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
+    # If you specify multiple triggers and multiple are matched, the _last_ trigger matched in the list will be used.
+    # For example, you can specify a trigger to pause the environment after 1 day of inactivity as the first trigger,
+    # and another trigger to fully clean up the environment after 1 week of inactivity or on a specific schedule as
+    # the second trigger.
+    #
+    # Note that this feature is only available for Garden Cloud users. Also note that the feature is currently in
+    # beta, and is only available for specific providers, in particular the Kubernetes provider.
     #
     # Please refer to the [Automatic Environment Cleanup
     # guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
     aec:
-      # The time to live for the environment after the last update (i.e. the last time the environment was deployed or
-      # updated).
-      #
-      # Please refer to the [Automatic Environment Cleanup
-      # guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
-      afterLastUpdate:
-        unit:
+      # Set to true to disable automatic environment cleanup. It may be useful to template this value in, in some
+      # scenarios.
+      disabled: false
 
-        value:
+      # The triggers that will cause the automatic environment cleanup to be performed.
+      triggers:
+        - # The action to perform when the trigger is matched.
+          action:
 
-      schedule:
-        every:
+          # The time to live for the environment after the last update (i.e. the last time the environment was
+          # deployed or updated using `garden deploy`).
+          #
+          # Please refer to the [Automatic Environment Cleanup
+          # guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
+          afterLastUpdate:
+            unit:
 
-        hourOfDay:
+            value:
 
-        minuteOfHour:
+          schedule:
+            every:
+
+            hourOfDay:
+
+            minuteOfHour: 0
 
 # A list of providers that should be used for this project, and their configuration. Please refer to individual
 # plugins/providers for details on how to configure them.
@@ -457,21 +472,11 @@ A key/value map of variables that actions can reference when using this environm
 
 Configuration for the Automatic Environment Cleanup feature.
 
-You must specify at least one of `afterLastUpdate` or `schedule`.
+You must specify at least one _trigger_, which defines the schedule or time of inactivity that will cause the automatic environment cleanup to be performed, as well as the type of action to perform (pause or cleanup).
 
-Note that this feature is only available for Garden Cloud users on paid plans. Also note that the feature is currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
+If you specify multiple triggers and multiple are matched, the _last_ trigger matched in the list will be used. For example, you can specify a trigger to pause the environment after 1 day of inactivity as the first trigger, and another trigger to fully clean up the environment after 1 week of inactivity or on a specific schedule as the second trigger.
 
-Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `environments[].aec.afterLastUpdate`
-
-[environments](#environments) > [aec](#environmentsaec) > afterLastUpdate
-
-The time to live for the environment after the last update (i.e. the last time the environment was deployed or updated).
+Note that this feature is only available for Garden Cloud users. Also note that the feature is currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
 
 Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
 
@@ -479,53 +484,95 @@ Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io
 | -------- | -------- |
 | `object` | No       |
 
-### `environments[].aec.afterLastUpdate.unit`
+### `environments[].aec.disabled`
 
-[environments](#environments) > [aec](#environmentsaec) > [afterLastUpdate](#environmentsaecafterlastupdate) > unit
+[environments](#environments) > [aec](#environmentsaec) > disabled
+
+Set to true to disable automatic environment cleanup. It may be useful to template this value in, in some scenarios.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
+### `environments[].aec.triggers[]`
+
+[environments](#environments) > [aec](#environmentsaec) > triggers
+
+The triggers that will cause the automatic environment cleanup to be performed.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `environments[].aec.triggers[].action`
+
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > action
+
+The action to perform when the trigger is matched.
+
+| Type     | Allowed Values     | Required |
+| -------- | ------------------ | -------- |
+| `string` | "cleanup", "pause" | Yes      |
+
+### `environments[].aec.triggers[].afterLastUpdate`
+
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > afterLastUpdate
+
+The time to live for the environment after the last update (i.e. the last time the environment was deployed or updated using `garden deploy`).
+
+Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `environments[].aec.triggers[].afterLastUpdate.unit`
+
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > [afterLastUpdate](#environmentsaectriggersafterlastupdate) > unit
 
 | Type     | Allowed Values  | Required |
 | -------- | --------------- | -------- |
 | `string` | "hours", "days" | Yes      |
 
-### `environments[].aec.afterLastUpdate.value`
+### `environments[].aec.triggers[].afterLastUpdate.value`
 
-[environments](#environments) > [aec](#environmentsaec) > [afterLastUpdate](#environmentsaecafterlastupdate) > value
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > [afterLastUpdate](#environmentsaectriggersafterlastupdate) > value
 
 | Type     | Required |
 | -------- | -------- |
 | `number` | Yes      |
 
-### `environments[].aec.schedule`
+### `environments[].aec.triggers[].schedule`
 
-[environments](#environments) > [aec](#environmentsaec) > schedule
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > schedule
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `environments[].aec.schedule.every`
+### `environments[].aec.triggers[].schedule.every`
 
-[environments](#environments) > [aec](#environmentsaec) > [schedule](#environmentsaecschedule) > every
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > [schedule](#environmentsaectriggersschedule) > every
 
 | Type     | Allowed Values                                                                                 | Required |
 | -------- | ---------------------------------------------------------------------------------------------- | -------- |
 | `string` | "weekday", "day", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" | Yes      |
 
-### `environments[].aec.schedule.hourOfDay`
+### `environments[].aec.triggers[].schedule.hourOfDay`
 
-[environments](#environments) > [aec](#environmentsaec) > [schedule](#environmentsaecschedule) > hourOfDay
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | Yes      |
-
-### `environments[].aec.schedule.minuteOfHour`
-
-[environments](#environments) > [aec](#environmentsaec) > [schedule](#environmentsaecschedule) > minuteOfHour
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > [schedule](#environmentsaectriggersschedule) > hourOfDay
 
 | Type     | Required |
 | -------- | -------- |
 | `number` | Yes      |
+
+### `environments[].aec.triggers[].schedule.minuteOfHour`
+
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > [schedule](#environmentsaectriggersschedule) > minuteOfHour
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `0`     | No       |
 
 ### `providers[]`
 
