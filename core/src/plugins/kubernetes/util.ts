@@ -26,12 +26,12 @@ import {
   base64,
   dedent,
   deline,
-  gardenAnnotationKey,
   naturalList,
   splitLast,
   stableStringify,
   truncate,
 } from "../../util/string.js"
+import { gardenAnnotationKey } from "../../util/annotations.js"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants.js"
 import type { ContainerEnvVars } from "../container/moduleConfig.js"
 import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions.js"
