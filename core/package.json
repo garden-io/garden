@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/core",
-  "version": "0.13.60",
+  "version": "0.13.61",
   "description": "A full-featured development framework for containers and serverless",
   "type": "module",
   "repository": {
