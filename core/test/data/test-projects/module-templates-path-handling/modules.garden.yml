@@ -1,0 +1,28 @@
+kind: ModuleTemplate
+name: gen-files
+modules:
+  - type: exec
+    name: ${template.name}-${inputs.name}
+    path: ${inputs.name}
+    include: []
+    build:
+      command: [echo, "hello"]
+    generateFiles:
+      - sourcePath: source.txt
+        targetPath: rendered.log
+---
+kind: Module
+type: templated
+template: gen-files
+name: module-a
+inputs:
+  name: module-a
+  value: test
+---
+kind: Module
+type: templated
+template: gen-files
+name: module-b
+inputs:
+  name: module-b
+  value: test
