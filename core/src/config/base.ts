@@ -84,6 +84,7 @@ export interface GardenResourceInternalFields {
   inputs?: DeepPrimitiveMap
   parentName?: string
   templateName?: string
+  templatePath?: string
   // Used to map fields to specific doc and location
   yamlDoc?: YamlDocumentWithSource
 }
@@ -103,6 +104,7 @@ export const baseInternalFieldsSchema = createSchema({
     inputs: joi.object().optional(),
     parentName: joi.string().optional(),
     templateName: joi.string().optional(),
+    templatePath: joi.posixPath().relativeOnly().optional(),
     yamlDoc: joi.any().optional(),
   }),
   allowUnknown: true,
