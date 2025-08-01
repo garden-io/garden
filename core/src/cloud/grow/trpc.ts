@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CreateTRPCClient, TRPCClientError } from "@trpc/client"
+import type { CreateTRPCClient } from "@trpc/client"
+import { TRPCClientError } from "@trpc/client"
 import { createTRPCClient, httpLink, loggerLink } from "@trpc/client"
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import superjson from "superjson"
@@ -66,7 +67,24 @@ function getTrpcConfig({ hostUrl, tokenGetter }: TrpcConfigParams) {
           headers.set("x-client-version", getPackageVersion())
 
           // Use standard fetch instead of bunFetch from Grow
-          return await fetch(url, { ...options, headers })
+          const response = await fetch(url, { ...options, headers })
+
+          if (!response.ok) {
+            // XXX: Without this it's not possible to properly handle HTTP errors
+            // E.g. on 503 error, we'll get an error like `Unexpected token '<', "<html><h"... is not valid JSON`
+            throw new TRPCClientError(`HTTP status ${response.status}`, {
+              result: {
+                error: {
+                  data: {
+                    httpStatus: response.status,
+                    code: response.statusText || response.status.toString(),
+                  },
+                },
+              },
+            })
+          }
+
+          return response
         },
       }),
     ],
