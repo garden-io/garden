@@ -2933,6 +2933,78 @@ describe("Garden", () => {
       })
     })
 
+    it("should correctly resolve module paths in module templates", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "module-templates-path-handling"))
+      await garden.scanAndAddConfigs()
+
+      const configA = (await garden.getRawModuleConfigs(["gen-files-module-a"]))[0]
+      const configB = (await garden.getRawModuleConfigs(["gen-files-module-b"]))[0]
+
+      // note that module config versions should default to v0 (previous version)
+      expect(serialiseUnresolvedTemplates(omitUndefined(configA))).to.eql({
+        apiVersion: GardenApiVersion.v0,
+        kind: "Module",
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        include: [],
+        configPath: resolve(garden.projectRoot, "modules.garden.yml"),
+        name: "gen-files-module-a",
+        path: resolve(garden.projectRoot, "module-a"),
+        serviceConfigs: [],
+        spec: {
+          build: {
+            command: ["echo", "hello"],
+            dependencies: [],
+          },
+        },
+        testConfigs: [],
+        type: "exec",
+        taskConfigs: [],
+        generateFiles: [
+          {
+            sourcePath: resolve(garden.projectRoot, "source.txt"),
+            targetPath: "rendered.log",
+          },
+        ],
+        parentName: "module-a",
+        templateName: "gen-files",
+        inputs: {
+          name: "module-a",
+          value: "test",
+        },
+      })
+      expect(serialiseUnresolvedTemplates(omitUndefined(configB))).to.eql({
+        apiVersion: GardenApiVersion.v0,
+        kind: "Module",
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        include: [],
+        configPath: resolve(garden.projectRoot, "modules.garden.yml"),
+        name: "gen-files-module-b",
+        path: resolve(garden.projectRoot, "module-b"),
+        serviceConfigs: [],
+        spec: {
+          build: {
+            command: ["echo", "hello"],
+            dependencies: [],
+          },
+        },
+        testConfigs: [],
+        type: "exec",
+        taskConfigs: [],
+        generateFiles: [
+          {
+            targetPath: "rendered.log",
+            sourcePath: resolve(garden.projectRoot, "source.txt"),
+          },
+        ],
+        parentName: "module-b",
+        templateName: "gen-files",
+        inputs: {
+          name: "module-b",
+          value: "test",
+        },
+      })
+    })
+
     it("should resolve actions from config templates", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-templates"))
       await garden.scanAndAddConfigs()
