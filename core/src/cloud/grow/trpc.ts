@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CreateTRPCClient, TRPCClientError } from "@trpc/client"
+import type { CreateTRPCClient } from "@trpc/client"
+import { TRPCClientError } from "@trpc/client"
 import { createTRPCClient, httpLink, loggerLink } from "@trpc/client"
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import superjson from "superjson"
