@@ -1,0 +1,2 @@
+Hello I am file!
+input: ${inputs.value}
