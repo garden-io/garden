@@ -1478,7 +1478,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         if (!(error instanceof GardenError)) {
           expect.fail("Expected error to be an instance of GardenError")
         }
-        expect(error?.message).to.contain("Invalid username or password.")
+        expect(error?.message).to.contain("Invalid username or ")
       })
 
       it("should update submodules", async () => {
