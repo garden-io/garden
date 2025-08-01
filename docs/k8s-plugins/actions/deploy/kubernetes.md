@@ -228,7 +228,7 @@ spec:
 
 With this approach, you can add the Garden action to your project without making any changes to existing config.
 
-Here's a [complete example project](https://github.com/garden-io/garden/tree/0.13.60/examples/k8s-deploy-patch-resources) using this approach.
+Here's a [complete example project](https://github.com/garden-io/garden/tree/0.13.61/examples/k8s-deploy-patch-resources) using this approach.
 
 ### Option 2: Using Garden template strings
 
@@ -259,7 +259,7 @@ spec:
           image: ${actions.build.api.outputs.deployment-image-id} # <--- Garden will resolve this to the correct image before applying the manifest
 ```
 
-Here's a [complete example](https://github.com/garden-io/garden/tree/0.13.60/examples/k8s-deploy-shared-manifests) using this approach. The downside though is that this is no longer a valid Kubernetes manifest.
+Here's a [complete example](https://github.com/garden-io/garden/tree/0.13.61/examples/k8s-deploy-shared-manifests) using this approach. The downside though is that this is no longer a valid Kubernetes manifest.
 
 Similarly, if you define your manifest inline you can set the image like so:
 
