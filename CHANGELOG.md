@@ -1,4 +1,15 @@
 
+<a name="0.14.6"></a>
+## [0.14.6](https://github.com/garden-io/garden/compare/0.14.5...0.14.6) (2025-07-29)
+
+### Bug Fixes
+
+* **templates:** incorrect path resolution for templated modules ([#7529](https://github.com/garden-io/garden/issues/7529)) ([b197775a6](https://github.com/garden-io/garden/commit/b197775a6))
+
+### Features
+
+* **k8s:** add pause command to scale workloads to zero ([#7505](https://github.com/garden-io/garden/issues/7505)) ([cf7b78a97](https://github.com/garden-io/garden/commit/cf7b78a97))
+
 <a name="0.14.5"></a>
 ## [0.14.5](https://github.com/garden-io/garden/compare/0.14.4...0.14.5) (2025-07-23)
 
