@@ -766,7 +766,6 @@ export class ContextLookupExpression extends TemplateExpression {
         message: getUnavailableReason(result),
         loc: this.loc,
         yamlSource,
-        lookupResult: result,
       })
     }
 
