@@ -1,6 +1,6 @@
 apiVersion: garden.io/v2
 kind: Project
-name: duplicate-module
+name: variable-crossreferences
 
 environments:
   - name: local

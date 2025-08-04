@@ -21,6 +21,7 @@ import { isMap } from "util/types"
 import { deline } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import type { ContextLookupReferenceFinding } from "../../template/analysis.js"
+import { TemplateStringError } from "../../template/errors.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -105,10 +106,10 @@ export type ContextResolveOutputNotFound = {
   }
 }
 
-export type ContextResolveOutput =
+export type ContextResolveOutput<T = ResolvedTemplate> =
   | {
       found: true
-      resolved: ResolvedTemplate
+      resolved: T
     }
   | ContextResolveOutputNotFound
 
@@ -364,17 +365,33 @@ export class LayeredContext extends ConfigContext {
   }
 
   override resolveImpl(args: ContextResolveParams): ContextResolveOutput {
+    const circularRefErrors: (ContextCircularlyReferencesItself | TemplateStringError)[] = []
     const layeredItems: ContextResolveOutput[] = []
 
     for (const context of this.layers.toReversed()) {
-      const resolved = context.resolve(args)
-      if (resolved.found) {
-        if (isTemplatePrimitive(resolved.resolved)) {
-          return resolved
+      try {
+        const resolved = context.resolve(args)
+
+        if (resolved.found) {
+          if (isTemplatePrimitive(resolved.resolved)) {
+            return resolved
+          }
+        }
+
+        layeredItems.push(resolved)
+      } catch (e) {
+        if (e instanceof ContextCircularlyReferencesItself) {
+          circularRefErrors.push(e)
+        } else if (e instanceof TemplateStringError && e.causedByCircularReferenceError) {
+          circularRefErrors.push(e)
+        } else {
+          throw e
         }
       }
+    }
 
-      layeredItems.push(resolved)
+    if (layeredItems.length === 0 && circularRefErrors.length > 0) {
+      throw circularRefErrors[0]
     }
 
     // if it could not be found in any context, aggregate error information from all contexts
