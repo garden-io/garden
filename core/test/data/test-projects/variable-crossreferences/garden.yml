@@ -1,6 +1,6 @@
 apiVersion: garden.io/v2
 kind: Project
-name: duplicate-module
+name: variable-crossreferences
 
 environments:
   - name: local
@@ -16,60 +16,3 @@ variables:
   projectLevel:
     suffix: "world"
     hello: hello ${var.projectLevel.suffix}
-
----
-
-kind: RenderTemplate
-template: tpl
-name: render
-inputs:
-  dt: test-1
-
----
-
-kind: ConfigTemplate
-name: tpl
-configs:
-  - kind: Build
-    type: exec
-    name: ${inputs.dt}-dummy
-    variables:
-      foo0: bar0
-      composeImageName: "busybox"
-      env:
-        DT: ${inputs.dt}
-        FOO0: ${var.foo0}
-
-  - kind: Deploy
-    type: container
-    name: ${inputs.dt}-container
-    # It must be possible to use var.dependencies despite the $merge in variables
-    dependencies: ${var.dependencies}
-    variables:
-      $merge: ${actions.build["${inputs.dt}-dummy"].var}
-      dependencies:
-        - build.${inputs.dt}-dummy
-    spec:
-      env:
-        FOO0: ${var.foo0}
-      image: "${ var.composeImageName }"
-      command:
-        - echo ${!(var contains "web")}
-
----
-
-kind: Deploy
-type: container
-name: standalone-container
-# It must be possible to use var.dependencies despite the $merge in variables
-dependencies: ${var.dependencies}
-variables:
-  $merge: ${actions.build.test-1-dummy.var}
-  dependencies:
-   - build.test-1-dummy
-spec:
-  env:
-    FOO0: ${var.foo0}
-  image: "${ var.composeImageName }"
-  command:
-    - echo ${!(var contains "web")}

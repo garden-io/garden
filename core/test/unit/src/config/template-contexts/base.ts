@@ -11,7 +11,6 @@ import stripAnsi from "strip-ansi"
 import type {
   ConfigContext,
   ContextKey,
-  ContextResolveOutputNotFound,
   ContextResolveParams,
 } from "../../../../../src/config/template-contexts/base.js"
 import {
@@ -377,11 +376,15 @@ describe("LayeredContext", () => {
     )
 
     const res = layeredContext.resolve({ key: ["baz"], nodePath: [], opts: {} })
-    expect(res.found).to.eql(false)
+    if (res.found) {
+      expect.fail("Did not expect to find key baz")
+    }
 
-    const explanation = (res as ContextResolveOutputNotFound).explanation
+    const explanation = res.explanation
+    if (explanation.reason !== "key_not_found") {
+      expect.fail("Expected explanation to be of type key_not_found")
+    }
     expect(explanation.key).to.eql("baz")
-    expect(explanation.reason).to.eql("key_not_found")
     expect(explanation.getAvailableKeys().sort()).to.eql(["bar", "foo"])
   })
 })

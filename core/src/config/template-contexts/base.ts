@@ -86,23 +86,32 @@ export interface ContextResolveParams {
   rootContext?: ConfigContext
 }
 
-export type ContextResolveOutputNotFound = {
-  found: false
+export type ContextResolveOutputCircularReference = {
   /**
-   * @example
+   * @example variable var.foo circularly references itself
+   * {
+   *  reason: "circular_reference",
+   *  key: "foo"
+   *  keyPath: ["var"],
+   * }
+   */
+  readonly reason: "circular_reference"
+  readonly keyPath: (string | number)[]
+}
+export type ContextResolveOutputNotFound = {
+  /**
+   * @example var does not have a key foo
    * {
    *  reason: "key_not_found",
    *  key: "foo"
-   *  keyPath: ["var"], // var does not have a key foo
+   *  keyPath: ["var"],
    * }
    */
-  explanation: {
-    reason: "key_not_found" | "not_indexable"
-    key: string | number
-    keyPath: (string | number)[]
-    getAvailableKeys: () => (string | number)[]
-    getFooterMessage?: () => string
-  }
+  readonly reason: "key_not_found" | "not_indexable"
+  readonly key: string | number
+  readonly keyPath: (string | number)[]
+  readonly getAvailableKeys: () => (string | number)[]
+  readonly getFooterMessage?: () => string
 }
 
 export type ContextResolveOutput =
@@ -110,7 +119,10 @@ export type ContextResolveOutput =
       found: true
       resolved: ResolvedTemplate
     }
-  | ContextResolveOutputNotFound
+  | {
+      found: false
+      explanation: ContextResolveOutputNotFound | ContextResolveOutputCircularReference
+    }
 
 export function schema(joiSchema: Joi.Schema) {
   return (target: any, propName: string) => {
@@ -148,21 +160,37 @@ export abstract class ConfigContext {
     this._cache.clear()
   }
 
-  private detectCircularReference({ nodePath, key, opts }: ContextResolveParams) {
+  private detectCircularReference({ nodePath, key, opts }: ContextResolveParams): {
+    circularRef?: ContextResolveOutputCircularReference
+    contextStackIdentifier: string
+  } {
     const plainKey = renderKeyPath(key)
-    const keyStr = `${this.constructor.name}(${this._id})-${plainKey}`
-    if (opts.stack?.includes(keyStr)) {
-      throw new ContextCircularlyReferencesItself({
-        message: `Circular reference detected when resolving key ${styles.highlight(renderKeyPath([...nodePath, ...key]))}`,
-      })
+    const stackIdentifier = `${this.constructor.name}(${this._id})-${plainKey}`
+    if (opts.stack?.includes(stackIdentifier)) {
+      return {
+        circularRef: {
+          reason: "circular_reference",
+          keyPath: [...nodePath, ...key],
+        },
+        contextStackIdentifier: stackIdentifier,
+      }
     }
-    return keyStr
+    return {
+      contextStackIdentifier: stackIdentifier,
+    }
   }
 
   protected abstract resolveImpl(params: ContextResolveParams): ContextResolveOutput
 
   public resolve(params: ContextResolveParams): ContextResolveOutput {
-    const key = this.detectCircularReference(params)
+    const { circularRef, contextStackIdentifier: key } = this.detectCircularReference(params)
+    if (circularRef) {
+      return {
+        found: false,
+        explanation: circularRef,
+      }
+    }
+
     if (!params.opts.stack) {
       params.opts.stack = [key]
     } else {
@@ -170,28 +198,32 @@ export abstract class ConfigContext {
     }
 
     try {
-      let res = this._cache.get(key)
-      if (res) {
-        return res
+      const cachedResult = this._cache.get(key)
+      if (cachedResult) {
+        return cachedResult
       }
-      res = this.resolveImpl(params)
+      const res = this.resolveImpl(params)
       if (res.found) {
         this._cache.set(key, res)
         return res
       }
+
+      const explanation = {
+        ...res.explanation,
+        getFooterMessage: () => {
+          const previousMsg =
+            res.explanation.reason === "circular_reference" ? "" : res.explanation.getFooterMessage?.()
+          const msg = this.getMissingKeyErrorFooter(params)
+          if (previousMsg) {
+            return `${previousMsg}\n${msg}`
+          }
+          return msg
+        },
+      }
+
       return {
         found: false,
-        explanation: {
-          ...res.explanation,
-          getFooterMessage: () => {
-            const previousMsg = res.explanation.getFooterMessage?.()
-            const msg = this.getMissingKeyErrorFooter(params)
-            if (previousMsg) {
-              return `${previousMsg}\n${msg}`
-            }
-            return msg
-          },
-        },
+        explanation,
       }
     } finally {
       params.opts.stack.pop()
@@ -391,12 +423,21 @@ export class LayeredContext extends ConfigContext {
       const all = layeredItems.filter((res) => isEqual(res.explanation.keyPath, deepestKeyPath))
       const lastError = all[all.length - 1]
 
+      const explanation = {
+        ...lastError.explanation,
+        getAvailableKeys: () =>
+          uniq(
+            flatten(
+              all.map((res) =>
+                res.explanation.reason !== "circular_reference" ? res.explanation.getAvailableKeys() : []
+              )
+            )
+          ),
+      }
+
       return {
         ...lastError,
-        explanation: {
-          ...lastError.explanation,
-          getAvailableKeys: () => uniq(flatten(all.map((res) => res.explanation.getAvailableKeys()))),
-        },
+        explanation,
       }
     }
 
@@ -500,7 +541,7 @@ function traverseContext(
     }
   }
 
-  const notFoundValues: ContextResolveOutputNotFound[] = []
+  const notFoundExplanations: (ContextResolveOutputCircularReference | ContextResolveOutputNotFound)[] = []
 
   // we are handling the case here, where the user looks up a collection of context keys, e.g. ${YAMLEncode(var)}
   const resolved = deepMap(value, (v, _, deepMapKeyPath) => {
@@ -517,7 +558,7 @@ function traverseContext(
         return res.resolved
       }
 
-      notFoundValues.push(res)
+      notFoundExplanations.push(res.explanation)
 
       return undefined
     }
@@ -525,8 +566,11 @@ function traverseContext(
     return v
   })
 
-  if (notFoundValues.length > 0) {
-    return notFoundValues[0]
+  if (notFoundExplanations.length > 0) {
+    return {
+      found: false,
+      explanation: notFoundExplanations[0],
+    }
   }
 
   return {
@@ -542,10 +586,15 @@ export function getUnavailableReason(result: ContextResolveOutput): string {
     })
   }
 
+  if (result.explanation.reason === "circular_reference") {
+    return `Circular reference detected when resolving key ${styles.highlight(renderKeyPath(result.explanation.keyPath))}`
+  }
+
   const available = result.explanation.getAvailableKeys()
+  const { keyPath, key } = result.explanation
 
   const message = deline`
-    Could not find key ${styles.highlight(result.explanation.key)}${result.explanation.keyPath.length > 0 ? ` under ${styles.highlight(renderKeyPath(result.explanation.keyPath))}` : ""}.
+    Could not find key ${styles.highlight(key)}${keyPath.length > 0 ? ` under ${styles.highlight(renderKeyPath(keyPath))}` : ""}.
     ${`Available keys: ${available?.length ? available.map((k) => styles.highlight(k)).join(", ") : "(none)"}.`}
   `
 

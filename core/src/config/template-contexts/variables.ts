@@ -79,7 +79,7 @@ export class VariablesContext extends LayeredContext {
       layers.push(capturedScope)
 
       // NOTE: we now mutate the context we just captured
-      // this allowsat  variables cross-referencing each other in the same scope, e.g. to reuse values across multiple variables
+      // this allows variables cross-referencing each other in the same scope, e.g. to reuse values across multiple variables
       const variableRoot = makeVariableRootContext(`variable root for scope ${i} in ${description}`, capturedScope)
       neededContext.addLayer(variableRoot)
 
