@@ -73,7 +73,7 @@ export class VariablesContext extends LayeredContext {
 
       // capture the needed context, so variables can be resolved correctly
       const capturedScope = new GenericContext(
-        `captured scope ${i} in ${description}`,
+        `peer variables for cross-referencing ${i} in ${description}`,
         capture(currentScope, neededContext, { isFinalContext })
       )
       layers.push(capturedScope)
