@@ -1,4 +1,4 @@
-FROM moby/buildkit:v0.23.1@sha256:dbc2dfd9342fd5c891ea94e9774c15cab985681e5ff995a9e366066aa0b9b2b4 as buildkit
+FROM moby/buildkit:v0.23.2@sha256:ddd1ca44b21eda906e81ab14a3d467fa6c39cd73b9a39df1196210edcb8db59e as buildkit
 
 RUN apk add --no-cache wget
 
@@ -30,7 +30,7 @@ RUN cd /usr/local/bin && \
   rm ${GCR_HELPER_DISTR_NAME} && \
   chmod +x docker-credential-gcr
 
-FROM moby/buildkit:v0.23.1-rootless@sha256:6d65d4ed00cc9e9183da5f3e5ecbe033ed6409e557785eac11c14c5f11048731 as buildkit-rootless
+FROM moby/buildkit:v0.23.2-rootless@sha256:cab936745de5d673465948f1e93ff4d6e372bbe33f218afd3314eba45a6f85a9 as buildkit-rootless
 
 COPY --from=buildkit /usr/local/bin/${ECR_HELPER_DISTR_NAME} /usr/local/bin/${ECR_HELPER_DISTR_NAME}
 COPY --from=buildkit /usr/local/bin/docker-credential-gcr /usr/local/bin/docker-credential-gcr
