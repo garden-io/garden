@@ -33,6 +33,7 @@ export class TemplateStringError extends GardenError {
   type = "template-string"
 
   loc: Location
+  yamlSource: ConfigSource
   originalMessage: string
   lookupResult?: ContextResolveOutputNotFound
 
@@ -58,6 +59,7 @@ export class TemplateStringError extends GardenError {
 
     super({ ...params, message: enriched })
     this.loc = params.loc
+    this.yamlSource = params.yamlSource
     this.originalMessage = params.message
     this.causedByCircularReferenceError = params.causedByCircularReferenceError || false
   }

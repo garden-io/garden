@@ -162,7 +162,7 @@ describe("VariablesContext", () => {
        * @see ContextResolveOpts.isFinalContext
        */
       describe("ContextResolveOpts.isFinalContext", () => {
-        describe("variables.$merge is unresolvable", () => {
+        describe("merge operator in variables is unresolvable", () => {
           const action = parseTemplateCollection({
             value: {
               variables: {
@@ -186,16 +186,16 @@ describe("VariablesContext", () => {
             })
           })
 
-          it("given a final context, a $merge operation in variables causes lookup to fail", () => {
+          it("given a final context, a merge operation in variables causes lookup to fail", () => {
             expect(() => finalContext.eval("${var.hello}")).to.throw("Could not find key") // <-- resolving hello fails
           })
 
-          it("given an incomplete context, we ignore unresolvable $merge operators", () => {
+          it("given an incomplete context, we ignore unresolvable merge operators", () => {
             expect(incompleteContext.eval("${var.hello}")).to.eql("world, I am here!") // <-- resolving works in incompleteContext
             expect(() => finalContext.eval("${var.doesNotExist}")).to.throw("Could not find key") // <-- will fail on non-existent keys
           })
 
-          it("does not ignore resolvable $merge operations", () => {
+          it("does not ignore resolvable merge operations", () => {
             expect(incompleteContext.eval("${var.hello}")).to.eql("world, I am here!") // <-- resolving works in incompleteContext
           })
         })
@@ -343,7 +343,7 @@ describe("VariablesContext", () => {
       garden = await makeTestGarden(getDataDir("test-projects", "variable-crossreferences-merge"))
     })
 
-    it("should resolve the environment config with $merge correctly", () => {
+    it("should resolve the environment config with merge operator correctly", () => {
       const resolved = deepResolveContext("project and environment variables", garden.variables)
       expect(resolved).to.eql({
         patch: {
@@ -403,25 +403,66 @@ describe("VariablesContext", () => {
     })
 
     it("throws a good error message when encountering a circular reference on the project-level", async () => {
-      const variables = parseTemplateCollection({
-        value: {
-          foo: "${var.foo}",
-        },
-        source: {
-          path: [],
-        },
-      })
-      garden.variables = await VariablesContext.forProject(
-        {
-          ...garden.getProjectConfig(),
-          variables,
-        },
-        {},
-        garden.getProjectConfigContext()
-      )
+      const projectVariables = {
+        foo: "bar",
+      }
 
-      await expectError(() => deepResolveContext("project variables", garden.variables), {
-        contains: "Could not find key foo under var. Available keys: (none)",
+      const environmentVariables = {
+        one: "one",
+        two: "two",
+        three: parseTemplateString({ rawTemplateString: "${var.three}", source: { path: [] } }),
+      }
+
+      const context = new TestContext({
+        var: VariablesContext.forTest({ garden, variablePrecedence: [projectVariables, environmentVariables] }),
+      })
+
+      await expectError(() => context.eval("${var.three}"), {
+        contains: "Could not find key three under var. Available keys: one, two, foo",
+      })
+    })
+
+    it("throws a good error message when encountering a circular reference in a nested path on the project-level", async () => {
+      const projectVariables = {
+        nested: {
+          foo: "bar",
+        },
+      }
+
+      const environmentVariables = {
+        one: "one",
+        nested: {
+          two: "two",
+          three: parseTemplateString({ rawTemplateString: "${var.nested.three}", source: { path: [] } }),
+        },
+      }
+
+      const context = new TestContext({
+        var: VariablesContext.forTest({ garden, variablePrecedence: [projectVariables, environmentVariables] }),
+      })
+
+      await expectError(() => context.eval("${var.nested.three}"), {
+        contains: "Could not find key three under var.nested. Available keys: two, foo",
+      })
+    })
+
+    it("throws a good error message when encountering a circular reference part of the way down a nested path on the project-level", async () => {
+      const projectVariables = {
+        three: "three",
+      }
+
+      const environmentVariables = {
+        one: "one",
+        two: "two",
+        nested: parseTemplateString({ rawTemplateString: "${var.nested}", source: { path: [] } }),
+      }
+
+      const context = new TestContext({
+        var: VariablesContext.forTest({ garden, variablePrecedence: [projectVariables, environmentVariables] }),
+      })
+
+      await expectError(() => context.eval("${var.nested.three}"), {
+        contains: "Could not find key nested under var. Available keys: three, one, two",
       })
     })
   })
