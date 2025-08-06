@@ -8,7 +8,6 @@
   "minimumReleaseAge": "14 days",
   "mergeConfidence": "high",
   "prConcurrentLimit": 5,
-  "automerge": true,
   "semanticCommits": "auto",
   "packageRules": [
     {
