@@ -6,24 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { KubernetesPluginContext } from "../config.js"
-import type { PluginCommand } from "../../../plugin/command.js"
+import type { KubernetesConfig, KubernetesPluginContext } from "../config.js"
+import type { PluginCommand, PluginCommandParams } from "../../../plugin/command.js"
 import { dedent } from "../../../util/string.js"
 import { gardenAnnotationKey, validateAnnotation } from "../../../util/annotations.js"
 import { KubeApi } from "../api.js"
 import minimist from "minimist"
-import { CloudApiError } from "../../../exceptions.js"
+import { CloudApiError, ParameterError } from "../../../exceptions.js"
 import { sleep } from "../../../util/util.js"
 import { styles } from "../../../logger/styles.js"
 import type { Log } from "../../../logger/log-entry.js"
-import type { AecStatus, AecTrigger, EnvironmentAecConfig } from "../../../config/aec.js"
+import type { AecAction, AecAgentInfo, AecStatus, AecTrigger, EnvironmentAecConfig } from "../../../config/aec.js"
 import { aecConfigSchema, describeTrigger, matchAecTriggers } from "../../../config/aec.js"
 import { validateSchema } from "../../../config/validation.js"
 import { getAnnotationsForPausedWorkload } from "../aec.js"
 import type { V1Namespace } from "@kubernetes/client-node"
+import type { EventBus } from "../../../events/events.js"
 
 const defaultCleanupInterval = 60000
-const recycleAfterMinutes = 60 * 24 // 24 hours
+const defaultTtlSeconds = 60 * 60 * 24 // 24 hours
 
 export const aecAgentCommand: PluginCommand = {
   name: "aec-agent",
@@ -36,90 +37,159 @@ export const aecAgentCommand: PluginCommand = {
   resolveGraph: false,
   hidden: true,
 
-  handler: async ({ ctx, log, args, garden }) => {
-    const result = {}
-    const k8sCtx = ctx as KubernetesPluginContext
-    const provider = k8sCtx.provider
+  handler: async (params) => {
+    try {
+      const result = await handler(params)
+      params.garden.events.emit("aecAgentStatus", {
+        aecAgentInfo: {
+          pluginName: params.ctx.provider.name,
+          environmentType: params.ctx.environmentName,
+          description: params.args["description"],
+        },
+        status: "stopped",
+        statusDescription: "Exiting gracefully",
+      })
+      return result
+    } catch (e) {
+      // Catch unexpected errors and emit event to Cloud
+      params.garden.events.emit("aecAgentStatus", {
+        aecAgentInfo: {
+          pluginName: params.ctx.provider.name,
+          environmentType: params.ctx.environmentName,
+          description: params.args["description"],
+        },
+        status: "error",
+        statusDescription: String(e),
+      })
 
-    const opts = minimist(args, {
-      string: ["interval"],
+      return { result: { error: e } }
+    }
+  },
+}
+
+async function handler({ ctx, log, args, garden }: PluginCommandParams<KubernetesConfig>) {
+  const result = {}
+  const k8sCtx = ctx as KubernetesPluginContext
+  const provider = k8sCtx.provider
+
+  const opts = minimist(args, {
+    string: ["interval", "ttl", "description"],
+    boolean: ["dry-run"],
+  })
+
+  if (!opts["description"]) {
+    throw new ParameterError({
+      message: "--description is required",
     })
+  }
 
-    let interval = defaultCleanupInterval
+  const aecAgentInfo: AecAgentInfo = {
+    pluginName: provider.name,
+    environmentType: ctx.environmentName,
+    description: opts["description"],
+  }
 
-    if (opts["interval"]) {
+  const dryRun = !!opts["dry-run"]
+
+  for (const key of ["interval", "ttl"]) {
+    if (opts[key]) {
       try {
-        interval = parseInt(opts["interval"], 10)
+        opts[key] = parseInt(opts[key], 10)
       } catch (e) {
-        log.error({ msg: `Invalid interval: ${opts["interval"]}` })
+        log.error({ msg: `Invalid ${key}: ${opts[key]}` })
         return { result }
       }
     }
+  }
 
-    const api = await KubeApi.factory(log, ctx, provider)
+  const interval = opts["interval"] ?? defaultCleanupInterval
+  // Set to 0 to have the command exit after the first loop
+  const ttl = opts["ttl"] ?? defaultTtlSeconds
 
-    // TODO: Deduplicate this with the setup-aec command
-    const cloudApi = garden.cloudApiV2
+  const api = await KubeApi.factory(log, ctx, provider)
 
-    if (!cloudApi) {
-      if (garden.cloudApi) {
-        throw new CloudApiError({
-          message:
-            "You must be logged in to app.garden.io to use this command. Single-tenant Garden Enterprise is currently not supported.",
-        })
-      }
+  // TODO: Deduplicate this with the setup-aec command
+  const cloudApi = garden.cloudApiV2
 
+  if (!cloudApi) {
+    if (garden.cloudApi) {
       throw new CloudApiError({
         message:
-          "You must be logged in to Garden Cloud and have admin access to your project's organization to use this command.",
+          "You must be logged in to app.garden.io to use this command. Single-tenant Garden Enterprise is currently not supported.",
       })
     }
 
-    const organization = await cloudApi.getOrganization()
+    throw new CloudApiError({
+      message: "A valid Cloud API access token for app.garden.io is required to use this command.",
+    })
+  }
 
-    if (organization.plan === "free") {
-      throw new CloudApiError({
-        message: `Your organization (${organization.name}) is on the Free plan. The AEC feature is currentlyonly available on paid plans. Please upgrade your organization to continue.`,
+  const organization = await cloudApi.getOrganization()
+
+  if (organization.plan === "free") {
+    throw new CloudApiError({
+      message: `Your organization (${organization.name}) is on the Free plan. The AEC feature is currently only available on paid plans. Please upgrade your organization to continue.`,
+    })
+  }
+
+  const account = await cloudApi.getCurrentAccount()
+
+  // Note: This shouldn't happen
+  if (!account) {
+    throw new CloudApiError({
+      message: "You must be logged in to Garden Cloud to use this command.",
+    })
+  }
+
+  const startTime = new Date()
+  let lastLoopStart = startTime
+
+  garden.events.emit("aecAgentStatus", {
+    aecAgentInfo,
+    status: "running",
+    statusDescription: "AEC agent service started",
+  })
+
+  while (true) {
+    const now = new Date()
+    lastLoopStart = now
+
+    const exit = await cleanupLoop({
+      log,
+      ctx,
+      api,
+      lastLoopStart,
+      currentTime: now,
+      dryRun,
+      aecAgentInfo,
+      events: garden.events,
+    })
+    const timeSinceStart = now.getTime() - startTime.getTime()
+    const secondsSinceStart = timeSinceStart / 1000
+
+    if (secondsSinceStart > ttl) {
+      const msg = `AEC agent service stopping to recycle after ${secondsSinceStart} seconds`
+      log.info({
+        msg: styles.warning(msg),
       })
-    }
-
-    const account = await cloudApi.getCurrentAccount()
-
-    // Note: This shouldn't happen
-    if (!account) {
-      throw new CloudApiError({
-        message: "You must be logged in to Garden Cloud to use this command.",
+      // Note: A stopped status is emitted after returning
+      garden.events.emit("aecAgentStatus", {
+        aecAgentInfo,
+        status: "running",
+        statusDescription: msg,
       })
+      break
     }
 
-    const startTime = new Date()
-    let lastLoopStart = startTime
-
-    while (true) {
-      const now = new Date()
-      lastLoopStart = now
-
-      const exit = await cleanupLoop({ log, ctx, api, lastLoopStart, currentTime: now })
-      const timeSinceStart = now.getTime() - startTime.getTime()
-      const minutesSinceStart = timeSinceStart / 60000
-
-      if (minutesSinceStart > recycleAfterMinutes) {
-        log.info({
-          msg: styles.warning(`AEC agent service stopping to recycle after ${minutesSinceStart} minutes`),
-        })
-        break
-      }
-
-      if (exit) {
-        break
-      }
-      await sleep(interval)
+    if (exit) {
+      break
     }
+    await sleep(interval)
+  }
 
-    log.info({ msg: styles.warning("AEC agent service stopped") })
+  log.info({ msg: styles.warning("AEC agent service stopped") })
 
-    return { result }
-  },
+  return { result }
 }
 
 async function cleanupLoop({
@@ -127,47 +197,90 @@ async function cleanupLoop({
   api,
   lastLoopStart,
   currentTime,
+  dryRun,
+  aecAgentInfo,
+  events,
 }: {
   log: Log
   ctx: KubernetesPluginContext
   api: KubeApi
   lastLoopStart: Date
   currentTime: Date
+  dryRun?: boolean
+  aecAgentInfo: AecAgentInfo
+  events: EventBus
 }) {
   log.info({ msg: "Checking namespaces..." })
 
-  // TODO: Send heartbeat to Cloud
+  // Send heartbeat to Cloud
+  events.emit("aecAgentStatus", {
+    aecAgentInfo,
+    status: "running",
+    statusDescription: "Checking namespaces...",
+  })
 
   const allNamespaces = await api.core.listNamespace()
 
   await Promise.all(
     allNamespaces.items.map(async (ns) => {
-      await checkAndCleanupNamespace({
-        log: log.createLog({ origin: ns.metadata?.name || "<unknown>" }),
-        api,
-        namespace: ns,
-        lastLoopStart,
-        currentTime,
-      })
+      const namespaceName = ns.metadata?.name || "<unknown>"
+      const nsLog = log.createLog({ origin: namespaceName })
+
+      try {
+        const result = await checkAndCleanupNamespace({
+          log: nsLog,
+          api,
+          namespace: ns,
+          lastLoopStart,
+          currentTime,
+          dryRun,
+          aecAgentInfo,
+          events,
+        })
+
+        // Skip sending events if the namespace is not configured for AEC
+        if (result.aecConfigured) {
+          events.emit("aecAgentNamespaceUpdate", {
+            aecAgentInfo,
+            namespaceName,
+            statusDescription: result.status,
+            lastDeployed: result.lastDeployed,
+            actionTriggered: result.actionTriggered,
+            inProgress: result.inProgress ?? false,
+            error: result.error ?? false,
+            success: result.success ?? false,
+          })
+        }
+      } catch (e) {
+        const msg = `Unexpected error: ${e}`
+        nsLog.error({ msg })
+        events.emit("aecAgentNamespaceUpdate", {
+          aecAgentInfo,
+          namespaceName,
+          statusDescription: msg,
+          inProgress: false,
+          error: true,
+          success: false,
+        })
+      }
     })
   )
-
-  // TODO: Send results to Cloud (either at end of loop or for each namespace)
 
   return false
 }
 
 interface CheckAndCleanupResult {
   namespace: V1Namespace
+  status: string
   aecConfigured?: boolean
   aecStatus?: AecStatus
   lastDeployed?: Date
   aecConfigParsed?: EnvironmentAecConfig
   matchedTriggers?: AecTrigger[]
-  error?: string
+  actionTriggered?: AecAction
+  success?: boolean
+  error?: boolean
   inProgress?: boolean
-  paused?: boolean
-  deleted?: boolean
 }
 
 export async function checkAndCleanupNamespace({
@@ -177,6 +290,8 @@ export async function checkAndCleanupNamespace({
   lastLoopStart,
   currentTime,
   dryRun,
+  aecAgentInfo,
+  events,
 }: {
   log: Log
   api: KubeApi
@@ -184,14 +299,18 @@ export async function checkAndCleanupNamespace({
   lastLoopStart: Date
   currentTime: Date
   dryRun?: boolean
+  aecAgentInfo: AecAgentInfo
+  events: EventBus
 }): Promise<CheckAndCleanupResult> {
   const namespaceName = namespace.metadata?.name
 
   if (!namespaceName) {
     // Should never happen, but just in case
-    log.warn({ msg: `Namespace has no name, skipping` })
+    const msg = `Namespace has no name, skipping`
+    log.warn({ msg })
     return {
       namespace,
+      status: msg,
     }
   }
 
@@ -202,66 +321,84 @@ export async function checkAndCleanupNamespace({
   const aecForceAnnotation = annotations[gardenAnnotationKey("aec-force")]
   const lastDeployedAnnotation = annotations[gardenAnnotationKey("last-deployed")]
 
-  let aecConfigured = false
   let aecStatus: AecStatus = "none"
   let lastDeployed: Date | null = null
   let aecConfigParsed: EnvironmentAecConfig | null = null
 
   if (aecStatusAnnotation) {
-    aecStatus = validateAnnotation("aec-status", aecStatusAnnotation)
+    const result = validateAnnotation("aec-status", aecStatusAnnotation)
+
+    if (result.error) {
+      const msg = `Invalid AEC status annotation: ${result.error}`
+      log.error({ msg })
+      return {
+        namespace,
+        status: msg,
+        error: true,
+      }
+    }
+
+    aecStatus = result.data
   }
 
   if (aecConfigAnnotation) {
     try {
       aecConfigParsed = JSON.parse(aecConfigAnnotation)
     } catch (e) {
-      const msg = `Invalid AEC config on namespace ${namespaceName} - Could not parse JSON: ${e}`
+      const msg = `Invalid AEC config - Could not parse JSON: ${e}`
       log.error({ msg })
       return {
         namespace,
-        error: msg,
+        status: msg,
+        error: true,
       }
     }
 
     try {
-      validateSchema(aecConfigParsed, aecConfigSchema())
+      aecConfigParsed = validateSchema(aecConfigParsed, aecConfigSchema())
     } catch (e) {
-      const msg = `Invalid AEC config on namespace ${namespaceName}: ${e}`
+      const msg = `Invalid AEC config: ${e}`
       log.error({ msg })
       return {
         namespace,
-        error: msg,
+        status: msg,
+        error: true,
       }
-    }
-
-    if (!aecConfigParsed?.disabled && aecConfigParsed?.triggers?.length && aecConfigParsed.triggers.length > 0) {
-      aecConfigured = true
     }
   }
 
   if (lastDeployedAnnotation) {
-    try {
-      lastDeployed = new Date(lastDeployedAnnotation)
-    } catch (e) {
-      const msg = `Invalid last-deployed annotation on namespace ${namespaceName} - Could not parse date: ${e}`
+    const result = validateAnnotation("last-deployed", lastDeployedAnnotation)
+
+    if (result.error) {
+      const msg = `Invalid last-deployed annotation: ${result.error}`
       log.error({ msg })
       return {
         namespace,
-        aecConfigured,
-        error: msg,
+        status: msg,
+        error: true,
       }
     }
+
+    lastDeployed = new Date(result.data)
   }
 
   const now = new Date()
 
   const stringStatus: string[] = []
+  const status = () => stringStatus.join(" | ")
 
-  if (aecConfigured) {
-    if (aecConfigParsed?.disabled) {
+  if (aecConfigParsed) {
+    if (aecConfigParsed.disabled) {
       stringStatus.push("AEC configured but disabled")
-    } else if (aecConfigParsed?.triggers.length === 0) {
+    } else if (aecConfigParsed.triggers.length === 0) {
       stringStatus.push("AEC enabled but no triggers configured")
+      return {
+        namespace,
+        aecConfigured: true,
+        status: status(),
+        error: true,
+      }
     } else {
       stringStatus.push("AEC enabled")
     }
@@ -273,6 +410,8 @@ export async function checkAndCleanupNamespace({
     stringStatus.push("Workloads paused")
   }
 
+  stringStatus.push(`Status: ${aecStatus}`)
+
   if (lastDeployed) {
     // Log time since last deployed in HH:MM:SS format
     // TODO: Use date-fns or similar to format the time
@@ -281,19 +420,22 @@ export async function checkAndCleanupNamespace({
     const minutes = Math.floor((timeSinceLastDeployed % 3600000) / 60000)
     const seconds = Math.floor((timeSinceLastDeployed % 60000) / 1000)
     stringStatus.push(`Last deployed ${hours}:${minutes}:${seconds} ago`)
+  } else {
+    stringStatus.push("No last-deployed annotation")
   }
 
-  log.info({ msg: `${stringStatus.join(" | ")}` })
+  log.info({ msg: status() })
 
-  if (aecForceAnnotation) {
+  if (aecForceAnnotation === "true") {
     log.info({ msg: `AEC force triggered: ${aecForceAnnotation}` })
-    if (!aecConfigured) {
+    if (!aecConfigParsed) {
       const msg = `AEC force triggered but AEC not configured, skipping`
       log.info({ msg })
       return {
         namespace,
-        aecConfigured,
-        error: msg,
+        aecConfigured: false,
+        status: msg,
+        error: true,
       }
     }
   }
@@ -304,6 +446,17 @@ export async function checkAndCleanupNamespace({
       namespace,
       aecConfigured: false,
       aecStatus,
+      status: status(),
+    }
+  }
+
+  if (aecConfigParsed && aecConfigParsed.disabled) {
+    // Already logged above
+    return {
+      namespace,
+      aecConfigured: true,
+      aecStatus,
+      status: status(),
     }
   }
 
@@ -312,10 +465,10 @@ export async function checkAndCleanupNamespace({
     log.warn({ msg })
     return {
       namespace,
-      aecConfigured,
+      aecConfigured: true,
       aecStatus,
       aecConfigParsed,
-      error: msg,
+      status: status(),
     }
   }
 
@@ -324,12 +477,12 @@ export async function checkAndCleanupNamespace({
     log.info({ msg })
     return {
       namespace,
-      aecConfigured,
+      aecConfigured: true,
       inProgress: true,
       aecStatus,
       lastDeployed,
       aecConfigParsed,
-      error: msg,
+      status: status(),
     }
   }
 
@@ -345,22 +498,25 @@ export async function checkAndCleanupNamespace({
   // If no triggers are matched, skip
   if (matchedTriggers.length === 0) {
     const msg = `No triggers matched, nothing to do`
+    stringStatus.push(msg)
     log.info({ msg })
     return {
       namespace,
-      aecConfigured,
+      aecConfigured: true,
       aecStatus,
       lastDeployed,
       aecConfigParsed,
       matchedTriggers,
-      error: msg,
+      status: status(),
     }
   } else if (matchedTriggers.length === 1) {
-    log.info({ msg: `Matched trigger: ${describeTrigger(lastMatchedTrigger)}` })
+    const msg = `Matched trigger: ${describeTrigger(lastMatchedTrigger)}`
+    stringStatus.push(msg)
+    log.info({ msg })
   } else {
-    log.info({
-      msg: `Matched ${matchedTriggers.length} triggers. Last trigger matched: ${describeTrigger(lastMatchedTrigger)}`,
-    })
+    const msg = `Matched ${matchedTriggers.length} triggers. Last trigger matched: ${describeTrigger(lastMatchedTrigger)}`
+    stringStatus.push(msg)
+    log.info({ msg })
   }
 
   // Pick last matched trigger
@@ -371,37 +527,32 @@ export async function checkAndCleanupNamespace({
       log.info({ msg: `Workloads already paused, nothing to do` })
       return {
         namespace,
-        aecConfigured,
+        aecConfigured: true,
         aecStatus,
         lastDeployed,
         aecConfigParsed,
         matchedTriggers,
+        status: status(),
       }
     }
 
     log.info({ msg: `Pausing workloads...` })
 
-    // Make aec-status "in-progress"
     if (!dryRun) {
-      await api.core.patchNamespace({
-        name: namespaceName,
-        body: {
-          metadata: {
-            annotations: {
-              [gardenAnnotationKey("aec-status")]: "in-progress",
-            },
-          },
-        },
+      events.emit("aecAgentNamespaceUpdate", {
+        aecAgentInfo,
+        namespaceName,
+        actionTriggered: "pause",
+        statusDescription: "Pausing workloads...",
+        inProgress: true,
+        error: false,
       })
-    }
 
-    if (!dryRun) {
+      // Make aec-status "in-progress" on namespace
+      namespace = await markNamespaceAsInProgress({ api, namespaceName })
+
       await pauseWorkloadsInNamespace({ log, api, namespaceName })
-    }
 
-    log.info({ msg: `Workloads paused` })
-
-    if (!dryRun) {
       namespace = await api.core.patchNamespace({
         name: namespaceName,
         body: {
@@ -415,33 +566,64 @@ export async function checkAndCleanupNamespace({
       })
     }
 
+    const msg = `Workloads paused`
+    log.info({ msg })
+    stringStatus.push(msg)
+
     return {
       namespace,
-      aecConfigured,
+      aecConfigured: true,
       aecStatus: "paused",
       lastDeployed,
       aecConfigParsed,
       matchedTriggers,
-      paused: true,
+      actionTriggered: "pause",
+      status: status(),
     }
   } else {
     log.info({ msg: `Cleaning up namespace` })
 
     if (!dryRun) {
+      events.emit("aecAgentNamespaceUpdate", {
+        aecAgentInfo,
+        namespaceName,
+        actionTriggered: "cleanup",
+        statusDescription: "Cleaning up namespace...",
+        inProgress: true,
+        error: false,
+      })
+      // Make aec-status "in-progress" on namespace before deleting, to avoid confusion in following loops, because deleting a namespace can take a while
+      namespace = await markNamespaceAsInProgress({ api, namespaceName })
       await api.core.deleteNamespace({ name: namespaceName })
     }
+
+    stringStatus.push("Namespace deleted")
 
     // TODO: Monitor the namespace deletion and wait for it to complete (on a timeout, no need to block the loop)
     return {
       namespace,
-      aecConfigured,
-      aecStatus,
+      aecConfigured: true,
+      aecStatus: "cleaned-up",
       lastDeployed,
       aecConfigParsed,
       matchedTriggers,
-      deleted: true,
+      actionTriggered: "cleanup",
+      status: status(),
     }
   }
+}
+
+async function markNamespaceAsInProgress({ api, namespaceName }: { api: KubeApi; namespaceName: string }) {
+  return await api.core.patchNamespace({
+    name: namespaceName,
+    body: {
+      metadata: {
+        annotations: {
+          [gardenAnnotationKey("aec-status")]: "in-progress",
+        },
+      },
+    },
+  })
 }
 
 export async function pauseWorkloadsInNamespace({

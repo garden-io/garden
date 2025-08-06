@@ -17,7 +17,13 @@ const daysString = ["sunday", "monday", "tuesday", "wednesday", "thursday", "fri
 const scheduleIntervals = ["weekday", "day", ...daysString] as const
 const aecActions = ["cleanup", "pause"] as const
 
-type AecAction = (typeof aecActions)[number]
+export type AecAction = (typeof aecActions)[number]
+
+export interface AecAgentInfo {
+  pluginName: string
+  environmentType: string
+  description: string
+}
 
 export type EnvironmentAecConfig = {
   disabled?: boolean
@@ -101,7 +107,6 @@ export const aecConfigSchema = createSchema({
 
     Please refer to the [Automatic Environment Cleanup guide](${DOCS_BASE_URL}/guides/automatic-environment-cleanup) for details.
   `,
-  or: [["afterLastUpdate", "schedule"]],
   keys: () => ({
     disabled: joi
       .boolean()
@@ -112,7 +117,7 @@ export const aecConfigSchema = createSchema({
     triggers: joi
       .array()
       .items(aecTriggerSchema())
-      .min(1)
+      .required()
       .description("The triggers that will cause the automatic environment cleanup to be performed."),
   }),
 })
