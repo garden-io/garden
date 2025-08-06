@@ -6,9 +6,8 @@
   "ignorePaths": ["core/lib/**", "core/test/data/**", "e2e/projects/**", "examples/**", "plugins/**/test/**"],
   "schedule": ["before 6am on Monday"],
   "minimumReleaseAge": "14 days",
-  "confidence": "high",
+  "mergeConfidence": "high",
   "prConcurrentLimit": 5,
-  "automerge": true,
   "semanticCommits": "auto",
   "packageRules": [
     {
