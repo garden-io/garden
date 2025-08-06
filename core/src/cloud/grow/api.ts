@@ -82,9 +82,11 @@ export class GrowCloudApi {
     globalConfigStore,
     organizationId,
     authToken,
+    apiClient,
   }: CloudApiParams & {
     authToken: string
     organizationId: string
+    apiClient?: ApiClient
   }) {
     this.log = log
     this.domain = domain
@@ -94,7 +96,7 @@ export class GrowCloudApi {
 
     this.authToken = authToken
     const tokenGetter = () => this.authToken
-    this.api = getAuthenticatedApiClient({ hostUrl: domain, tokenGetter })
+    this.api = apiClient ?? getAuthenticatedApiClient({ hostUrl: domain, tokenGetter })
   }
 
   /**
