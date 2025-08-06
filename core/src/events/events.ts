@@ -18,6 +18,7 @@ import type { GraphResult } from "../graph/results.js"
 import type { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status.js"
 import type { ActionStatusPayload } from "./action-status-events.js"
 import type { AuthToken } from "../cloud/common.js"
+import type { AecAction, AecAgentInfo, AecTrigger } from "../config/aec.js"
 
 interface EventContext {
   gardenKey?: string
@@ -288,6 +289,26 @@ export interface Events {
     index: number
     durationMsec: number
   }
+
+  // AEC events
+  aecAgentStatus: {
+    aecAgentInfo: AecAgentInfo
+    status: "running" | "stopped" | "error"
+    statusDescription: string
+  }
+  aecAgentNamespaceUpdate: AecAgentNamespaceUpdate
+}
+
+export interface AecAgentNamespaceUpdate {
+  aecAgentInfo: AecAgentInfo
+  namespaceName: string
+  matchedTriggers?: AecTrigger[]
+  lastDeployed?: Date
+  statusDescription: string
+  inProgress: boolean
+  error: boolean
+  actionTriggered?: AecAction
+  success?: boolean
 }
 
 export type EventName = keyof Events

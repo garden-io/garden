@@ -113,12 +113,13 @@ export class GardenCloudApi {
 
     this.authToken = authToken
     const tokenGetter = () => this.authToken
-    this.trpc = getAuthenticatedApiClient({ hostUrl: domain, tokenGetter })
 
     // Hacky way to set a fake tRPC client in tests since depdendency injecting it is a little tricky
     // due to the tokenGetter function which depends on class methods and needs to be set in the contructor.
     if (__trpcClientOverrideForTesting) {
       this.trpc = __trpcClientOverrideForTesting
+    } else {
+      this.trpc = getAuthenticatedApiClient({ hostUrl: domain, tokenGetter })
     }
   }
 

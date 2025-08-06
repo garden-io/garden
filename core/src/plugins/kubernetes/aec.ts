@@ -20,11 +20,13 @@ export function getAecAgentManifests({
   serviceAccessToken,
   systemNamespace,
   localDevMode,
+  description,
 }: {
   imageOverride: string | undefined
   serviceAccessToken: string
   systemNamespace: string
   localDevMode?: boolean
+  description: string
 }): KubernetesResource[] {
   const serviceAccountName = "garden-aec-agent"
 
@@ -63,7 +65,7 @@ export function getAecAgentManifests({
               name: serviceAccountName,
               image: getAecAgentImage(imageOverride, localDevMode),
               imagePullPolicy: "Always", // FIXME: Update this once we have a stable and versioned image tag
-              command: ["/bin/sh", "-c", "sleep infinity"], // TODO: Update once we have the AEC agent command
+              command: ["garden", "plugins", "kubernetes", "aec-agent", "--description", description],
               resources: {
                 requests: {
                   cpu: "100m",

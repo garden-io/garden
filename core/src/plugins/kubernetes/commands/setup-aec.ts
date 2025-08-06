@@ -107,6 +107,7 @@ export const setupAecCommand: PluginCommand = {
       imageOverride,
       serviceAccessToken: serviceAccount.token,
       systemNamespace,
+      description: `projectId=${garden.projectId} context=${provider.config.context} namespace=${systemNamespace}`,
     })
 
     log.info({
