@@ -62,14 +62,14 @@ export function getK8sSyncUtilImagePath(registryDomain: string): DockerImageWith
 
 export function getBuildkitImagePath(registryDomain: string): DockerImageWithDigest {
   const buildkitImageName: DockerImageWithDigest =
-    "gardendev/buildkit:v0.23.1@sha256:976685a5be67f760a7139d10e4dee5f9d08ce03b575849599dcb29b7aa0f4342"
+    "gardendev/buildkit:v0.23.2@sha256:b7ba903bfc3c0710214be1e68efb8b2d5efd9b13606558e9d4de54c9375a1107"
 
   return makeImagePath({ imageName: buildkitImageName, registryDomain })
 }
 
 export function getBuildkitRootlessImagePath(registryDomain: string): DockerImageWithDigest {
   const buildkitRootlessImageName: DockerImageWithDigest =
-    "gardendev/buildkit:v0.23.1-rootless@sha256:ab947d61620c0167394cee687f0a2a2a22c9bcf0e34f353d78fb9cab2fde1d28"
+    "gardendev/buildkit:v0.23.2-rootless@sha256:2ff5a23a9cf9ce0bf750204f9f167319746b53898e895fc8dcc16c42c2a02fb8"
 
   return makeImagePath({ imageName: buildkitRootlessImageName, registryDomain })
 }
