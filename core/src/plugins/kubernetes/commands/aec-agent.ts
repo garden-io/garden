@@ -240,11 +240,12 @@ async function cleanupLoop({
 
         // Skip sending events if the namespace is not configured for AEC
         if (result.aecConfigured) {
-          events.emit("aecAgentNamespaceUpdate", {
+          events.emit("aecAgentEnvironmentUpdate", {
             aecAgentInfo,
-            namespaceName,
+            environmentName: namespaceName,
             statusDescription: result.status,
-            lastDeployed: result.lastDeployed,
+            lastDeployed: result.lastDeployed?.toISOString(),
+            matchedTriggers: result.matchedTriggers,
             actionTriggered: result.actionTriggered,
             inProgress: result.inProgress ?? false,
             error: result.error ?? false,
@@ -254,9 +255,9 @@ async function cleanupLoop({
       } catch (e) {
         const msg = `Unexpected error: ${e}`
         nsLog.error({ msg })
-        events.emit("aecAgentNamespaceUpdate", {
+        events.emit("aecAgentEnvironmentUpdate", {
           aecAgentInfo,
-          namespaceName,
+          environmentName: namespaceName,
           statusDescription: msg,
           inProgress: false,
           error: true,
@@ -539,9 +540,11 @@ export async function checkAndCleanupNamespace({
     log.info({ msg: `Pausing workloads...` })
 
     if (!dryRun) {
-      events.emit("aecAgentNamespaceUpdate", {
+      events.emit("aecAgentEnvironmentUpdate", {
         aecAgentInfo,
-        namespaceName,
+        environmentName: namespaceName,
+        lastDeployed: lastDeployed?.toISOString(),
+        matchedTriggers,
         actionTriggered: "pause",
         statusDescription: "Pausing workloads...",
         inProgress: true,
@@ -584,9 +587,9 @@ export async function checkAndCleanupNamespace({
     log.info({ msg: `Cleaning up namespace` })
 
     if (!dryRun) {
-      events.emit("aecAgentNamespaceUpdate", {
+      events.emit("aecAgentEnvironmentUpdate", {
         aecAgentInfo,
-        namespaceName,
+        environmentName: namespaceName,
         actionTriggered: "cleanup",
         statusDescription: "Cleaning up namespace...",
         inProgress: true,

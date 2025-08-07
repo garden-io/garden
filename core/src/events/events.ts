@@ -296,14 +296,14 @@ export interface Events {
     status: "running" | "stopped" | "error"
     statusDescription: string
   }
-  aecAgentNamespaceUpdate: AecAgentNamespaceUpdate
+  aecAgentEnvironmentUpdate: AecAgentEnvironmentUpdate
 }
 
-export interface AecAgentNamespaceUpdate {
+export interface AecAgentEnvironmentUpdate {
   aecAgentInfo: AecAgentInfo
-  namespaceName: string
+  environmentName: string
   matchedTriggers?: AecTrigger[]
-  lastDeployed?: Date
+  lastDeployed?: string
   statusDescription: string
   inProgress: boolean
   error: boolean
