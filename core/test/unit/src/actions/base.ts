@@ -43,6 +43,7 @@ describe("getActionConfigVersion", () => {
       variables: { leftValue: { foo: "bar" }, rightValue: { bar: "baz" } },
       varfiles: { leftValue: ["foo.yml"], rightValue: ["bar.yml"] },
       source: { leftValue: { path: "path1" }, rightValue: { path: "path2" } },
+      version: { leftValue: {}, rightValue: { excludeValues: ["NOT-FOUND"] } },
     }
 
     for (const [field, valuePair] of Object.entries(testMatrix)) {
@@ -58,6 +59,28 @@ describe("getActionConfigVersion", () => {
         expect(version1).to.eql(version2)
       })
     }
+  })
+
+  it("handles version.excludeValues", () => {
+    const hostnameA = "a.example.com"
+
+    const configA = minimalActionConfig()
+    configA.spec.hostname = hostnameA
+    configA.version = {
+      excludeValues: [hostnameA],
+    }
+
+    const hostnameB = "b.example.com"
+    const configB = minimalActionConfig()
+    configB.spec.hostname = hostnameB
+    configB.version = {
+      excludeValues: [hostnameB],
+    }
+
+    const versionA = getActionConfigVersion(configA)
+    const versionB = getActionConfigVersion(configB)
+
+    expect(versionA).to.equal(versionB)
   })
 })
 
