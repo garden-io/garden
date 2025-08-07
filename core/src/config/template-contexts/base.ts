@@ -21,6 +21,7 @@ import { isMap } from "util/types"
 import { deline } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import type { ContextLookupReferenceFinding } from "../../template/analysis.js"
+import { isAbsolute } from "path"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -317,9 +318,18 @@ export class TemplateContext extends ContextWithSchema {
   @schema(joiIdentifier().description(`The name of the template.`))
   public readonly name: string
 
-  constructor(name: string) {
+  @schema(joi.string().description(`The relative path to the directory containing the ConfigTemplate being rendered.`))
+  public path: string
+
+  constructor(params: { name: string; path: string }) {
     super()
-    this.name = name
+
+    if (isAbsolute(params.path)) {
+      throw new InternalError({ message: `Template path must be relative path from project root, got ${params.path}` })
+    }
+
+    this.name = params.name
+    this.path = params.path
   }
 }
 

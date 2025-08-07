@@ -433,6 +433,14 @@ The name of the template.
 | -------- |
 | `string` |
 
+### `${template.path}`
+
+The relative path to the directory containing the ConfigTemplate being rendered.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${steps.*}`
 
 Reference previous steps in a workflow. Only available in the `steps[].command` and `steps[].script` fields.

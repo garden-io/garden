@@ -649,6 +649,14 @@ The name of the template.
 | -------- |
 | `string` |
 
+### `${template.path}`
+
+The relative path to the directory containing the ConfigTemplate being rendered.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${this.*}`
 
 Information about the action/module currently being resolved.

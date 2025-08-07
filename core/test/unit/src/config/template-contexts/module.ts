@@ -40,7 +40,10 @@ describe("ModuleConfigContext", () => {
       path: module.path,
       parentName: module.parentName,
       inputs: InputContext.forModule(garden, module),
-      templateName: module.templateName,
+      templateName: undefined,
+      templatePath: undefined,
+      // templateName: module.templateName,
+      // templatePath: module.templatePath ? relative(garden.projectRoot, module.templatePath) : undefined,
     })
   })
 

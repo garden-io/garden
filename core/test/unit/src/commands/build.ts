@@ -24,7 +24,7 @@ import type { Log } from "../../../../src/logger/log-entry.js"
 import fsExtra from "fs-extra"
 
 const { writeFile } = fsExtra
-import { join } from "path"
+import { join, resolve } from "path"
 import type { ProcessCommandResult } from "../../../../src/commands/base.js"
 import { nodeKey } from "../../../../src/graph/modules.js"
 import { gardenEnv } from "../../../../src/constants.js"
@@ -295,7 +295,7 @@ describe("BuildCommand", () => {
       log = tmpGarden.log
       buildCommand = new BuildCommand()
       defaultOpts = { log }
-      projectPath = join(tmpGarden.gardenDirPath, "../")
+      projectPath = resolve(tmpGarden.gardenDirPath, "../")
     })
 
     // The project needs to be deleted for fresh state, otherwise the same one would be reused across the test-cases.

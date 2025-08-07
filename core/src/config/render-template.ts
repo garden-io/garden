@@ -20,7 +20,7 @@ import { isUnresolved } from "../template/templated-strings.js"
 import { validateWithPath } from "./validation.js"
 import type { Garden } from "../garden.js"
 import { ConfigurationError, GardenError, InternalError } from "../exceptions.js"
-import { resolve, posix } from "path"
+import { resolve, posix, relative } from "path"
 import fsExtra from "fs-extra"
 
 const { ensureDir } = fsExtra
@@ -109,6 +109,10 @@ export interface RenderConfigTemplateResult {
   configs: TemplatableConfig[]
 }
 
+export function getRelativeTemplatePath(projectRoot: string, templatePath: string | undefined): string | undefined {
+  return templatePath ? relative(projectRoot, templatePath) : undefined
+}
+
 export async function renderConfigTemplate({
   garden,
   log,
@@ -178,6 +182,7 @@ export async function renderConfigTemplate({
     backendType: getBackendType(garden.getProjectConfig()),
     parentName: resolved.name,
     templateName: template.name,
+    templatePath: relative(garden.projectRoot, template.internal.configFilePath!),
     inputs: InputContext.forRenderTemplate(config, template),
   })
 
@@ -370,6 +375,7 @@ async function renderConfigs({
       // Attach metadata
       resource.internal.parentName = renderConfig.name
       resource.internal.templateName = template.name
+      resource.internal.templatePath = getRelativeTemplatePath(garden.projectRoot, template.internal.configFilePath)
 
       resource.internal.inputs = renderConfig.inputs
       return resource
