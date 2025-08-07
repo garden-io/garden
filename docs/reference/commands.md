@@ -1909,6 +1909,23 @@ actionConfigs:
           # Whether the varfile is optional.
           optional:
 
+      version:
+        # Specify one or more string values that should be ignored when computing the version hash for this action.
+        # You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
+        #
+        # For example, you might have a variable that naturally changes for every individual test or dev environment,
+        # such as a dynamic hostname. You could solve for that with something like this:
+        #
+        # version:
+        #   excludeValues:
+        #     - ${var.hostname}
+        #
+        # With the `hostname` variable being defined in the Project configuration.
+        #
+        # For each value specified under this field, every occurrence of that string value (even as part of a longer
+        # string) will be replaced when calculating the action version. The action configuration is not affected.
+        excludeValues:
+
       # The spec for the specific action type.
       spec:
 
@@ -2126,6 +2143,23 @@ actionConfigs:
           # Whether the varfile is optional.
           optional:
 
+      version:
+        # Specify one or more string values that should be ignored when computing the version hash for this action.
+        # You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
+        #
+        # For example, you might have a variable that naturally changes for every individual test or dev environment,
+        # such as a dynamic hostname. You could solve for that with something like this:
+        #
+        # version:
+        #   excludeValues:
+        #     - ${var.hostname}
+        #
+        # With the `hostname` variable being defined in the Project configuration.
+        #
+        # For each value specified under this field, every occurrence of that string value (even as part of a longer
+        # string) will be replaced when calculating the action version. The action configuration is not affected.
+        excludeValues:
+
       # The spec for the specific action type.
       spec:
 
@@ -2282,6 +2316,23 @@ actionConfigs:
           # Whether the varfile is optional.
           optional:
 
+      version:
+        # Specify one or more string values that should be ignored when computing the version hash for this action.
+        # You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
+        #
+        # For example, you might have a variable that naturally changes for every individual test or dev environment,
+        # such as a dynamic hostname. You could solve for that with something like this:
+        #
+        # version:
+        #   excludeValues:
+        #     - ${var.hostname}
+        #
+        # With the `hostname` variable being defined in the Project configuration.
+        #
+        # For each value specified under this field, every occurrence of that string value (even as part of a longer
+        # string) will be replaced when calculating the action version. The action configuration is not affected.
+        excludeValues:
+
       # The spec for the specific action type.
       spec:
 
@@ -2437,6 +2488,23 @@ actionConfigs:
 
           # Whether the varfile is optional.
           optional:
+
+      version:
+        # Specify one or more string values that should be ignored when computing the version hash for this action.
+        # You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
+        #
+        # For example, you might have a variable that naturally changes for every individual test or dev environment,
+        # such as a dynamic hostname. You could solve for that with something like this:
+        #
+        # version:
+        #   excludeValues:
+        #     - ${var.hostname}
+        #
+        # With the `hostname` variable being defined in the Project configuration.
+        #
+        # For each value specified under this field, every occurrence of that string value (even as part of a longer
+        # string) will be replaced when calculating the action version. The action configuration is not affected.
+        excludeValues:
 
       # The spec for the specific action type.
       spec:
