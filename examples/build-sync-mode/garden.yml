@@ -1,0 +1,28 @@
+apiVersion: garden.io/v2
+kind: Project
+name: build-sync-mode-example
+environments:
+  - name: local
+providers:
+  - name: local-kubernetes
+    # Configure the sync mode for build synchronization
+    # This affects how files are synced to .garden/build during container builds
+    buildSyncMode: two-way-resolved  # Use two-way-resolved to clean up empty directories
+
+---
+kind: Build
+name: example-service
+type: container
+
+---
+kind: Deploy
+name: example-service
+type: container
+dependencies:
+  - build.example-service
+spec:
+  image: ${actions.build.example-service.outputs.deploymentImageId}
+  args: [npm, start]
+  ports:
+    - name: http
+      containerPort: 8080 

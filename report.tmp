@@ -1,0 +1,90 @@
+[96m[39m
+[96mRunning script [97mtest[39m[96m in package(s) [97m@garden-io/cli, @garden-io/core, @garden-io/e2e, @garden-io/sdk[39m[96m[39m
+[90m┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄[39m
+[32m[1mcore   [22m[39m> @garden-io/core@0.14.6 test                                                       [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m> mocha --grep syncToBuildSync                                                      [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m[31m✖[39m [31mERROR:[39m Error: Cannot find module '../../../../build/test/setup.js'                [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mRequire stack:                                                                      [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m-                                                                                   [32m[1m  ┄┄[22m[39m
+      /home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/nodejs/esm-utils.js[32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m- /home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/mocha.js        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m-                                                                                   [32m[1m  ┄┄[22m[39m
+     /home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/cli/one-and-dones.js[32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m- /home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/cli/options.js  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m- /home/jon.lara/Documents/other/garden/core/node_modules/mocha/bin/mocha.js        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    at Function._resolveFilename (node:internal/modules/cjs/loader:1249:15)         [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    at Function._load (node:internal/modules/cjs/loader:1075:27)                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    at TracingChannel.traceSync (node:diagnostics_channel:315:14)                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    at wrapModuleLoad (node:internal/modules/cjs/loader:218:24)                     [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    at Module.require (node:internal/modules/cjs/loader:1340:12)                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    at require (node:internal/modules/helpers:141:16)                               [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    at tryImportAndRequire                                                          [32m[1m  ┄┄[22m[39m
+(/home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/nodejs/esm-utils.js:57:16)[32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    at async exports.handleRequires                                                 [32m[1m  ┄┄[22m[39m
+(/home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/cli/run-helpers.js:97:28)[32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    at async                                                                        [32m[1m  ┄┄[22m[39m
+       /home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/cli/run.js:358:25 [32m[1m  ┄┄[22m[39m
+       {                                                                                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  code: 'MODULE_NOT_FOUND',                                                         [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  requireStack: [                                                                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m                                                                                    [32m[1m  ┄┄[22m[39m
+   '/home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/nodejs/esm-utils.js',[32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    '/home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/mocha.js',   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m                                                                                    [32m[1m  ┄┄[22m[39m
+  '/home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/cli/one-and-dones.js',[32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m                                                                                    [32m[1m  ┄┄[22m[39m
+       '/home/jon.lara/Documents/other/garden/core/node_modules/mocha/lib/cli/options.js', [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    '/home/jon.lara/Documents/other/garden/core/node_modules/mocha/bin/mocha.js'    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  ]                                                                                 [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m}                                                                                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mnpm error Lifecycle script `test` failed with error:                                [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mnpm error code 1                                                                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mnpm error path /home/jon.lara/Documents/other/garden/core                           [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mnpm error workspace @garden-io/core@0.14.6                                          [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mnpm error location /home/jon.lara/Documents/other/garden/core                       [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mnpm error command failed                                                            [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mnpm error command sh -c mocha --grep syncToBuildSync                                [32m[1m  ┄┄[22m[39m
+[90m┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄[39m
+[94m[1mcli ┄  [22m[39m> @garden-io/cli@0.14.6 test                                                        [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m> mocha --grep syncToBuildSync                                                      [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m[31m✖[39m [31mERROR:[39m Error: Cannot find module 'build/test/setup.js'                            [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39mRequire stack:                                                                      [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m-                                                                                   [94m[1m  ┄┄[22m[39m
+       /home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/nodejs/esm-utils.js[94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m- /home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/mocha.js         [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m-                                                                                   [94m[1m  ┄┄[22m[39m
+      /home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/cli/one-and-dones.js[94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m- /home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/cli/options.js   [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m- /home/jon.lara/Documents/other/garden/cli/node_modules/mocha/bin/mocha.js         [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    at Function._resolveFilename (node:internal/modules/cjs/loader:1249:15)         [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    at Function._load (node:internal/modules/cjs/loader:1075:27)                    [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    at TracingChannel.traceSync (node:diagnostics_channel:315:14)                   [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    at wrapModuleLoad (node:internal/modules/cjs/loader:218:24)                     [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    at Module.require (node:internal/modules/cjs/loader:1340:12)                    [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    at require (node:internal/modules/helpers:141:16)                               [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    at tryImportAndRequire                                                          [94m[1m  ┄┄[22m[39m
+(/home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/nodejs/esm-utils.js:57:16)[94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    at async exports.handleRequires                                                 [94m[1m  ┄┄[22m[39m
+(/home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/cli/run-helpers.js:97:28)[94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    at async                                                                        [94m[1m  ┄┄[22m[39m
+       /home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/cli/run.js:358:25 {[94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m  code: 'MODULE_NOT_FOUND',                                                         [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m  requireStack: [                                                                   [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m                                                                                    [94m[1m  ┄┄[22m[39m
+    '/home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/nodejs/esm-utils.js',[94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    '/home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/mocha.js',    [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m                                                                                    [94m[1m  ┄┄[22m[39m
+   '/home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/cli/one-and-dones.js',[94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m                                                                                    [94m[1m  ┄┄[22m[39m
+       '/home/jon.lara/Documents/other/garden/cli/node_modules/mocha/lib/cli/options.js',  [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m    '/home/jon.lara/Documents/other/garden/cli/node_modules/mocha/bin/mocha.js'     [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m  ]                                                                                 [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39m}                                                                                   [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39mnpm error Lifecycle script `test` failed with error:                                [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39mnpm error code 1                                                                    [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39mnpm error path /home/jon.lara/Documents/other/garden/cli                            [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39mnpm error workspace @garden-io/cli@0.14.6                                           [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39mnpm error location /home/jon.lara/Documents/other/garden/cli                        [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39mnpm error command failed                                                            [94m[1m  ┄┄[22m[39m
+[94m[1mcli ┄  [22m[39mnpm error command sh -c mocha --grep syncToBuildSync                                [94m[1m  ┄┄[22m[39m
+[90m┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄[39m
