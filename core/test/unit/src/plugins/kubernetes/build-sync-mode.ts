@@ -7,18 +7,14 @@
  */
 
 import { expect } from "chai"
-import { syncToBuildSync } from "../../../../../src/plugins/kubernetes/container/build/common.js"
 import type { KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config.js"
-import type { ContainerBuildAction } from "../../../../../src/plugins/container/moduleConfig.js"
-import type { Log } from "../../../../../src/logger/log-entry.js"
-import type { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
 
 describe("k8s build sync mode", () => {
   describe("syncToBuildSync", () => {
     it("should use the configured buildSyncMode from provider config", async () => {
       // This is a basic test to ensure the configuration is properly typed and accessible
       // The actual sync functionality is tested in integration tests
-      
+
       const mockCtx = {
         provider: {
           config: {
@@ -26,10 +22,6 @@ describe("k8s build sync mode", () => {
           },
         },
       } as unknown as KubernetesPluginContext
-
-      const mockAction = {} as ContainerBuildAction
-      const mockLog = {} as Log
-      const mockApi = {} as KubeApi
 
       // Verify that the configuration is accessible
       expect(mockCtx.provider.config.buildSyncMode).to.equal("two-way-resolved")
@@ -48,4 +40,4 @@ describe("k8s build sync mode", () => {
       expect(mockCtx.provider.config.buildSyncMode).to.be.undefined
     })
   })
-}) 
+})
