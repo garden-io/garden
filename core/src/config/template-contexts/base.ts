@@ -9,18 +9,21 @@
 import type Joi from "@hapi/joi"
 import { ConfigurationError, GardenError, InternalError } from "../../exceptions.js"
 import type { CustomObjectSchema } from "../common.js"
-import { joi, joiIdentifier } from "../common.js"
+import { joi, joiIdentifier, objectSpreadKey } from "../common.js"
 import { Profile } from "../../util/profiling.js"
-import { deepMap, type Collection, type CollectionOrValue } from "../../util/objects.js"
+import { deepMap, isPlainObject, type Collection, type CollectionOrValue } from "../../util/objects.js"
 import type { ParsedTemplate, ParsedTemplateValue, ResolvedTemplate } from "../../template/types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "../../template/types.js"
 import merge from "lodash-es/merge.js"
 import omitBy from "lodash-es/omitBy.js"
-import { flatten, isEqual, isString, uniq } from "lodash-es"
+import { flatten, get, isEqual, isString, uniq } from "lodash-es"
 import { isMap } from "util/types"
 import { deline } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import type { ContextLookupReferenceFinding } from "../../template/analysis.js"
+import { TemplateStringError } from "../../template/errors.js"
+import { ObjectSpreadLazyValue } from "../../template/templated-collections.js"
+import { CapturedContextTemplateValue } from "../../template/capture.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -105,10 +108,10 @@ export type ContextResolveOutputNotFound = {
   }
 }
 
-export type ContextResolveOutput =
+export type ContextResolveOutput<T = ResolvedTemplate> =
   | {
       found: true
-      resolved: ResolvedTemplate
+      resolved: T
     }
   | ContextResolveOutputNotFound
 
@@ -258,6 +261,70 @@ export class GenericContext extends ConfigContext {
   protected override resolveImpl(params: ContextResolveParams): ContextResolveOutput {
     return traverseContext(this.data, { ...params, rootContext: params.rootContext || this })
   }
+
+  getResolvableKeys(args: ContextResolveParams): (string | number)[] {
+    const peerPath = args.key.slice(0, -1)
+    // TODO: Return resolvable keys when there's a merge operator. Right now, we bail and return an empty key list,
+    // in order to avoid having to deal with circular evaluation.
+    if (this.data instanceof CapturedContextTemplateValue && this.data.wrapped instanceof ObjectSpreadLazyValue) {
+      return []
+    }
+    const toEvaluate =
+      this.data instanceof UnresolvedTemplateValue
+        ? this.data.evaluate({ context: this, opts: {} }).resolved
+        : this.data
+    const evalResult = deepMap(toEvaluate, (value) => {
+      if (value instanceof ObjectSpreadLazyValue) {
+        return undefined
+      }
+      if (value instanceof UnresolvedTemplateValue) {
+        try {
+          return value.evaluate({ context: this, opts: {} })
+        } catch (e) {
+          // We'll filter these values out in filterKeys below
+          return undefined
+        }
+      }
+      return value
+    })
+    if (!isPlainObject(evalResult)) {
+      return []
+    }
+
+    const valueAtPeerPath = peerPath.length === 0 ? evalResult : get(evalResult, peerPath)
+
+    const filterKeys = (key: unknown) => {
+      if (typeof key !== "number" && typeof key !== "string") {
+        return false
+      }
+      if (valueAtPeerPath[key] === undefined) {
+        return false
+      }
+      if (typeof key === "string") {
+        return !key.startsWith("_") && key !== objectSpreadKey
+      }
+      return false
+    }
+    let keys: string[] = []
+    if (isPlainObject(valueAtPeerPath)) {
+      keys = Object.keys(valueAtPeerPath).filter(filterKeys)
+    } else {
+      keys = []
+    }
+    return keys.filter((key) => {
+      try {
+        this.resolve({
+          key: [key],
+          nodePath: [],
+          opts: { isFinalContext: true, keepEscapingInTemplateStrings: false },
+          rootContext: this,
+        })
+        return true
+      } catch (e) {
+        return false
+      }
+    })
+  }
 }
 
 export class EnvironmentContext extends ContextWithSchema {
@@ -364,17 +431,37 @@ export class LayeredContext extends ConfigContext {
   }
 
   override resolveImpl(args: ContextResolveParams): ContextResolveOutput {
+    const circularRefErrors: (ContextCircularlyReferencesItself | TemplateStringError)[] = []
     const layeredItems: ContextResolveOutput[] = []
 
     for (const context of this.layers.toReversed()) {
-      const resolved = context.resolve(args)
-      if (resolved.found) {
-        if (isTemplatePrimitive(resolved.resolved)) {
-          return resolved
+      try {
+        const resolved = context.resolve(args)
+
+        if (resolved.found) {
+          if (isTemplatePrimitive(resolved.resolved)) {
+            return resolved
+          }
+        }
+
+        layeredItems.push(resolved)
+      } catch (e) {
+        if (e instanceof ContextCircularlyReferencesItself) {
+          circularRefErrors.push(e)
+        } else if (e instanceof TemplateStringError) {
+          if (e.causedByCircularReferenceError) {
+            circularRefErrors.push(e)
+          } else {
+            throw this.makeImprovedLookupError(e, args)
+          }
+        } else {
+          throw e
         }
       }
+    }
 
-      layeredItems.push(resolved)
+    if (layeredItems.length === 0 && circularRefErrors.length > 0) {
+      throw circularRefErrors[0]
     }
 
     // if it could not be found in any context, aggregate error information from all contexts
@@ -416,6 +503,39 @@ export class LayeredContext extends ConfigContext {
       found: true,
       resolved: returnValue["resolved"],
     }
+  }
+
+  /**
+   * Because the lookup error may have occurred at a nested path, we need to reconstruct the available keys at the
+   * requested path across all layers. It would be better to do this without remaking the exception, but that would
+   * require a more extensive refactor.
+   *
+   * We make use of the fact that the `LayeredContext` class uses `GenericContext` to wrap e.g. variables and inputs.
+   *
+   * This is rather an ugly hack, but it allows us to a more useful list of available variable/input keys to the user
+   * when an unavailable (or circular) key is referenced.
+   */
+  private makeImprovedLookupError(error: TemplateStringError, args: ContextResolveParams) {
+    const peerPath = args.key.slice(0, -1)
+    const allKeys = this.layers
+      .toReversed()
+      .map((layer) => (layer instanceof GenericContext ? layer.getResolvableKeys(args) : []))
+      .flat()
+    const lookupResult: ContextResolveOutputNotFound = {
+      found: false,
+      explanation: {
+        reason: "key_not_found",
+        key: args.key.at(-1) as string | number,
+        keyPath: [...args.nodePath, ...peerPath],
+        getAvailableKeys: () => allKeys,
+      },
+    }
+    return new TemplateStringError({
+      message: getUnavailableReason(lookupResult),
+      loc: error.loc,
+      yamlSource: error.yamlSource,
+      causedByCircularReferenceError: false,
+    }) // rethrow with more context
   }
 }
 

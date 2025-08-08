@@ -526,7 +526,7 @@ describe("config templates", () => {
           "ConfigTemplate test returned an invalid module (named ${inputs.name}-module) for templated module test",
           "failed to evaluate template expression at inputs.name",
           "invalid template string (module-${modules.foo.version}) at path name",
-          "could not find key modules. available keys:",
+          "could not find key name under inputs. available keys:",
           "Note that if a template string is used for the name, kind, type or apiversion of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.",
         ],
       })
