@@ -10,23 +10,29 @@ import { expect } from "chai"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../src/constants.js"
 import type { ActionConfig, BaseActionConfig } from "../../../../src/actions/types.js"
 import type { NonVersionedActionConfigKey } from "../../../../src/actions/base.js"
-import { actionIsDisabled, getActionConfigVersion } from "../../../../src/actions/base.js"
+import {
+  actionIsDisabled,
+  excludeValueReplacement,
+  getActionConfigVersion,
+  replaceExcludeValues,
+} from "../../../../src/actions/base.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { createActionLog } from "../../../../src/logger/log-entry.js"
 
-describe("getActionConfigVersion", () => {
-  function minimalActionConfig(): ActionConfig {
-    return {
-      kind: "Build",
-      type: "test",
-      name: "foo",
-      timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-      internal: {
-        basePath: ".",
-      },
-      spec: {},
-    }
+function minimalActionConfig(): ActionConfig {
+  return {
+    kind: "Build",
+    type: "test",
+    name: "foo",
+    timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+    internal: {
+      basePath: ".",
+    },
+    spec: {},
   }
+}
+
+describe("getActionConfigVersion", () => {
   const log = createActionLog({
     log: getRootLogger().createLog(),
     actionName: "foo",
@@ -88,6 +94,25 @@ describe("getActionConfigVersion", () => {
     const versionB = getActionConfigVersion(log, configB)
 
     expect(versionA).to.equal(versionB)
+  })
+})
+
+describe("replaceExcludeValues", () => {
+  it("handles multiple replacements in the same string", () => {
+    const config = minimalActionConfig()
+    config.spec.hostname = "bla.foo.bar.foo"
+    config.version = {
+      excludeValues: ["foo"],
+    }
+
+    const log = createActionLog({
+      log: getRootLogger().createLog(),
+      actionName: "foo",
+      actionKind: "Build",
+    })
+    const replaced = replaceExcludeValues(config, log) as ActionConfig
+
+    expect(replaced.spec.hostname).to.equal(`bla.${excludeValueReplacement}.bar.${excludeValueReplacement}`)
   })
 })
 

@@ -1019,9 +1019,9 @@ const nonVersionedActionConfigKeys = [
 ] as const
 export type NonVersionedActionConfigKey = keyof Pick<BaseActionConfig, (typeof nonVersionedActionConfigKeys)[number]>
 
-const excludeValueReplacement = "!!!GARDEN-EXCLUDED!!!"
+export const excludeValueReplacement = "!!!GARDEN-EXCLUDED!!!"
 
-export function getActionConfigVersion<C extends BaseActionConfig>(log: ActionLog, config: C) {
+export function replaceExcludeValues(config: BaseActionConfig, log: ActionLog) {
   let configToHash: unknown = omit(config, ...nonVersionedActionConfigKeys)
 
   const excludeValues = config.version?.excludeValues || []
@@ -1041,5 +1041,10 @@ export function getActionConfigVersion<C extends BaseActionConfig>(log: ActionLo
     })
   }
 
+  return configToHash
+}
+
+export function getActionConfigVersion<C extends BaseActionConfig>(log: ActionLog, config: C) {
+  const configToHash = replaceExcludeValues(config, log)
   return versionStringPrefix + hashStrings([stableStringify(configToHash)])
 }
