@@ -79,7 +79,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
     const testResult = status?.detail
 
-    const version = action.versionString()
+    const version = action.versionString(log)
     const executedAction = resolvedActionToExecuted(action, { status })
 
     if (testResult && testResult.success) {
@@ -137,7 +137,11 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       throw new TestFailedError({ message: status.detail?.log || "The test failed, but it did not output anything." })
     }
 
-    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
+    return {
+      ...status,
+      version: action.versionString(this.log),
+      executedAction: resolvedActionToExecuted(action, { status }),
+    }
   }
 }
 

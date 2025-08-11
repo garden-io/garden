@@ -63,7 +63,7 @@ export class BuildStaging {
     }
 
     // Normalize to relative POSIX-style paths
-    const files = action.getFullVersion().files.map((f) => normalizeRelativePath(action.sourcePath(), f))
+    const files = action.getFullVersion(log).files.map((f) => normalizeRelativePath(action.sourcePath(), f))
 
     const buildPath = action.getBuildPath()
     await this.ensureDir(buildPath)

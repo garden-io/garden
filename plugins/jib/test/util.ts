@@ -18,6 +18,7 @@ import { gardenPlugin } from "../src/index.js"
 import { fileURLToPath } from "node:url"
 import { rm } from "node:fs/promises"
 import fsExtra from "fs-extra"
+import { ActionLog } from "@garden-io/sdk/src/types.js"
 const { createFile } = fsExtra
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
@@ -32,6 +33,7 @@ describe("util", function () {
   let graph: ResolvedConfigGraph
   let action: Resolved<JibBuildAction>
   let buildPath: string
+  let actionLog: ActionLog
 
   before(async () => {
     garden = await makeTestGarden(projectRoot, {
@@ -43,6 +45,7 @@ describe("util", function () {
     graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
     action = graph.getBuild("foo")
     buildPath = action.getBuildPath()
+    actionLog = action.createLog(garden.log)
   })
 
   describe("detectProjectType", async () => {
@@ -80,8 +83,8 @@ describe("util", function () {
     it("correctly sets default build flags", () => {
       action["_staticOutputs"].deploymentImageId = imageId
 
-      const versionString = action.getFullVersion().versionString
-      const { args } = getBuildFlags(action, "gradle")
+      const versionString = action.getFullVersion(actionLog).versionString
+      const { args } = getBuildFlags(actionLog, action, "gradle")
 
       expect(args).to.eql([
         "jib",
@@ -96,7 +99,7 @@ describe("util", function () {
     it("correctly sets the target for maven", () => {
       action["_staticOutputs"].deploymentImageId = imageId
 
-      const { args } = getBuildFlags(action, "maven")
+      const { args } = getBuildFlags(actionLog, action, "maven")
 
       expect(args).to.include("jib:build")
     })
@@ -105,8 +108,8 @@ describe("util", function () {
       action["_staticOutputs"].deploymentImageId = imageId
       action.getSpec().tarOnly = true
 
-      const versionString = action.getFullVersion().versionString
-      const { args, tarPath } = getBuildFlags(action, "maven")
+      const versionString = action.getFullVersion(actionLog).versionString
+      const { args, tarPath } = getBuildFlags(actionLog, action, "maven")
 
       expect(args).to.include(`-Djib.outputPaths.tar=target/jib-image-foo-${versionString}.tar`)
       expect(tarPath).to.include(`/target/jib-image-foo-${versionString}.tar`)
@@ -116,7 +119,7 @@ describe("util", function () {
       action["_staticOutputs"].deploymentImageId = imageId
       action.getSpec().extraFlags = ["bloop"]
 
-      const { args } = getBuildFlags(action, "maven")
+      const { args } = getBuildFlags(actionLog, action, "maven")
       expect(args).to.include("bloop")
     })
 
@@ -124,8 +127,8 @@ describe("util", function () {
       action["_staticOutputs"].deploymentImageId = imageId
       action.getSpec().buildArgs = { foo: "bar" }
 
-      const versionString = action.getFullVersion().versionString
-      const { args } = getBuildFlags(action, "maven")
+      const versionString = action.getFullVersion(actionLog).versionString
+      const { args } = getBuildFlags(actionLog, action, "maven")
 
       expect(args).to.include(
         `-Djib.container.args=GARDEN_MODULE_VERSION=${versionString},GARDEN_ACTION_VERSION=${versionString},foo=bar`
@@ -138,7 +141,7 @@ describe("util", function () {
       action.getSpec().tarOnly = true
       action.getSpec().tarFormat = "oci"
 
-      const { args } = getBuildFlags(action, "maven")
+      const { args } = getBuildFlags(actionLog, action, "maven")
 
       expect(args).to.include("-Djib.container.format=OCI")
     })
@@ -148,8 +151,8 @@ describe("util", function () {
         action["_staticOutputs"].deploymentImageId = imageId
         action.getSpec().tarOnly = true
 
-        const { args } = getBuildFlags(action, "gradle")
-        const versionString = action.getFullVersion().versionString
+        const { args } = getBuildFlags(actionLog, action, "gradle")
+        const versionString = action.getFullVersion(actionLog).versionString
 
         const targetDir = "build"
         const basenameSuffix = `-foo-${versionString}`
@@ -172,7 +175,7 @@ describe("util", function () {
         action["_staticOutputs"].deploymentImageId = imageId
         action.getSpec().tarOnly = true
 
-        const { args } = getBuildFlags(action, "maven")
+        const { args } = getBuildFlags(actionLog, action, "maven")
 
         expect(args).to.include("jib:buildTar")
       })
@@ -183,7 +186,7 @@ describe("util", function () {
         action["_staticOutputs"].deploymentImageId = imageId
         action.getSpec().dockerBuild = true
 
-        const { args } = getBuildFlags(action, "gradle")
+        const { args } = getBuildFlags(actionLog, action, "gradle")
 
         expect(args).to.include("jibDockerBuild")
       })
@@ -192,7 +195,7 @@ describe("util", function () {
         action["_staticOutputs"].deploymentImageId = imageId
         action.getSpec().dockerBuild = true
 
-        const { args } = getBuildFlags(action, "maven")
+        const { args } = getBuildFlags(actionLog, action, "maven")
 
         expect(args).to.include("jib:dockerBuild")
       })

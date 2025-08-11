@@ -101,7 +101,7 @@ function summarizeActionGraph(log: CommandParams["log"], graph: ConfigGraph) {
     if (exclude && exclude.length > 0) {
       log.info(indentString(styles.primary("  Exclude: " + exclude), indent))
     }
-    log.info(indentString(styles.primary("Tracked file count: ") + action.getFullVersion().files.length, indent))
+    log.info(indentString(styles.primary("Tracked file count: ") + action.getFullVersion(log).files.length, indent))
     log.info("")
   }
 }

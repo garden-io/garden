@@ -10,21 +10,34 @@ import { expect } from "chai"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../src/constants.js"
 import type { ActionConfig, BaseActionConfig } from "../../../../src/actions/types.js"
 import type { NonVersionedActionConfigKey } from "../../../../src/actions/base.js"
-import { actionIsDisabled, getActionConfigVersion } from "../../../../src/actions/base.js"
+import {
+  actionIsDisabled,
+  excludeValueReplacement,
+  getActionConfigVersion,
+  replaceExcludeValues,
+} from "../../../../src/actions/base.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { createActionLog } from "../../../../src/logger/log-entry.js"
+
+function minimalActionConfig(): ActionConfig {
+  return {
+    kind: "Build",
+    type: "test",
+    name: "foo",
+    timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+    internal: {
+      basePath: ".",
+    },
+    spec: {},
+  }
+}
 
 describe("getActionConfigVersion", () => {
-  function minimalActionConfig(): ActionConfig {
-    return {
-      kind: "Build",
-      type: "test",
-      name: "foo",
-      timeout: DEFAULT_BUILD_TIMEOUT_SEC,
-      internal: {
-        basePath: ".",
-      },
-      spec: {},
-    }
-  }
+  const log = createActionLog({
+    log: getRootLogger().createLog(),
+    actionName: "foo",
+    actionKind: "Build",
+  })
 
   context("action config version does not change", () => {
     // Helper types for testing non-versioned config fields.
@@ -43,21 +56,63 @@ describe("getActionConfigVersion", () => {
       variables: { leftValue: { foo: "bar" }, rightValue: { bar: "baz" } },
       varfiles: { leftValue: ["foo.yml"], rightValue: ["bar.yml"] },
       source: { leftValue: { path: "path1" }, rightValue: { path: "path2" } },
+      version: { leftValue: {}, rightValue: { excludeValues: ["NOT-FOUND"] } },
     }
 
     for (const [field, valuePair] of Object.entries(testMatrix)) {
       it(`on ${field} field modification`, () => {
         const config1 = minimalActionConfig()
         config1[field] = valuePair.leftValue
-        const version1 = getActionConfigVersion(config1)
+        const version1 = getActionConfigVersion(log, config1)
 
         const config2 = minimalActionConfig()
         config2[field] = valuePair.rightValue
-        const version2 = getActionConfigVersion(config2)
+        const version2 = getActionConfigVersion(log, config2)
 
         expect(version1).to.eql(version2)
       })
     }
+  })
+
+  it("handles version.excludeValues", () => {
+    const hostnameA = "a.example.com"
+
+    const configA = minimalActionConfig()
+    configA.spec.hostname = hostnameA
+    configA.version = {
+      excludeValues: [hostnameA],
+    }
+
+    const hostnameB = "b.example.com"
+    const configB = minimalActionConfig()
+    configB.spec.hostname = hostnameB
+    configB.version = {
+      excludeValues: [hostnameB],
+    }
+
+    const versionA = getActionConfigVersion(log, configA)
+    const versionB = getActionConfigVersion(log, configB)
+
+    expect(versionA).to.equal(versionB)
+  })
+})
+
+describe("replaceExcludeValues", () => {
+  it("handles multiple replacements in the same string", () => {
+    const config = minimalActionConfig()
+    config.spec.hostname = "bla.foo.bar.foo"
+    config.version = {
+      excludeValues: ["foo"],
+    }
+
+    const log = createActionLog({
+      log: getRootLogger().createLog(),
+      actionName: "foo",
+      actionKind: "Build",
+    })
+    const replaced = replaceExcludeValues(config, log) as ActionConfig
+
+    expect(replaced.spec.hostname).to.equal(`bla.${excludeValueReplacement}.bar.${excludeValueReplacement}`)
   })
 })
 

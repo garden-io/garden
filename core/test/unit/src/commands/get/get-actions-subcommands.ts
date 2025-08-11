@@ -158,7 +158,7 @@ describe("GetActionsSubCommands", () => {
           await Promise.all(
             graph
               .getActionsByKind(kind)
-              .map(async (a) => getActionsToDetailedWithStateOutput(a, garden, router, graph, log))
+              .map(async (a) => getActionsToDetailedWithStateOutput({ a, garden, router, graph, log }))
           ),
           "name"
         )
@@ -178,7 +178,7 @@ describe("GetActionsSubCommands", () => {
         })
         const graph = await garden.getResolvedConfigGraph({ log, emit: false })
         const expected = sortBy(
-          graph.getActionsByKind(kind).map((a) => getActionsToDetailedOutput(a, garden, graph)),
+          graph.getActionsByKind(kind).map((a) => getActionsToDetailedOutput({ a, garden, graph, log })),
           "name"
         )
         expect(command.outputsSchema().validate(result).error).to.be.undefined

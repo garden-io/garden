@@ -27,7 +27,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
       const artifactsPath = normalizePath(await realpath(tmpDir.path))
 
       const actionName = action.name
-      const actionVersion = action.versionString()
+      const actionVersion = action.versionString(params.log)
       const actionType = API_ACTION_TYPE
       const moduleName = action.moduleName()
 

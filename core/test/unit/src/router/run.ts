@@ -46,7 +46,7 @@ describe("run actions", () => {
         startedAt: dateUsedForCompleted,
         success: true,
         taskName: "task-a",
-        version: resolvedRunAction.versionString(),
+        version: resolvedRunAction.versionString(log),
       },
       outputs: {
         base: "ok",
@@ -143,7 +143,7 @@ describe("run actions", () => {
         expect(await pathExists(path)).to.be.true
       }
 
-      const metadataKey = `run.task-a.${runActionTaskA.versionString()}`
+      const metadataKey = `run.task-a.${runActionTaskA.versionString(log)}`
       const metadataFilename = `.metadata.${metadataKey}.json`
       const metadataPath = join(garden.artifactsPath, metadataFilename)
       expect(await pathExists(metadataPath)).to.be.true

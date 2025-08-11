@@ -23,6 +23,7 @@ import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import type { InputContext } from "./input.js"
 import type { VariablesContext } from "./variables.js"
+import type { Log } from "../../logger/log-entry.js"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
@@ -168,7 +169,7 @@ class RuntimeConfigContext extends ContextWithSchema {
   )
   public readonly tasks: Map<string, TaskRuntimeContext>
 
-  constructor(graphResults?: GraphResults) {
+  constructor(log: Log, graphResults?: GraphResults) {
     super()
 
     this.services = new Map()
@@ -178,10 +179,10 @@ class RuntimeConfigContext extends ContextWithSchema {
       for (const result of Object.values(graphResults.getMap())) {
         if (result?.task.type === "deploy" && result.result) {
           const r = (<GraphResultFromTask<DeployTask>>result).result!
-          this.services.set(result.name, new ServiceRuntimeContext(result.outputs, r.executedAction.versionString()))
+          this.services.set(result.name, new ServiceRuntimeContext(result.outputs, r.executedAction.versionString(log)))
         } else if (result?.task.type === "run") {
           const r = (<GraphResultFromTask<RunTask>>result).result!
-          this.tasks.set(result.name, new TaskRuntimeContext(result.outputs, r.executedAction.versionString()))
+          this.tasks.set(result.name, new TaskRuntimeContext(result.outputs, r.executedAction.versionString(log)))
         }
       }
     }
@@ -224,7 +225,7 @@ export class OutputConfigContext extends ProviderConfigContext {
       modules.map((config) => <[string, ModuleReferenceContext]>[config.name, new ModuleReferenceContext(config)])
     )
 
-    this.runtime = new RuntimeConfigContext(graphResults)
+    this.runtime = new RuntimeConfigContext(garden.log, graphResults)
   }
 }
 

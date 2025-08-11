@@ -147,7 +147,7 @@ export async function createContainerManifests({
     set(obj, ["metadata", "labels", gardenAnnotationKey("module")], action.moduleName() || "")
     set(obj, ["metadata", "labels", gardenAnnotationKey("service")], action.name)
     set(obj, ["metadata", "annotations", gardenAnnotationKey("generated")], "true")
-    set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], action.versionString())
+    set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], action.versionString(log))
   }
 
   return { workload, manifests }
@@ -195,7 +195,7 @@ export async function createWorkloadManifest({
     configuredReplicas = 1
   }
 
-  const env = prepareEnvVars({ ...action.getEnvVars(), ...spec.env })
+  const env = prepareEnvVars({ ...action.getEnvVars(log), ...spec.env })
 
   // expose some metadata to the container
   env.push({

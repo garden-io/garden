@@ -138,7 +138,7 @@ execDeploy.addHandler("getStatus", async (params) => {
       state: deployStateToActionState(state),
       detail: {
         state,
-        version: action.versionString(),
+        version: action.versionString(log),
         detail: { statusCommandOutput: result.all },
       },
       outputs: {
@@ -150,7 +150,7 @@ execDeploy.addHandler("getStatus", async (params) => {
 
     return {
       state: deployStateToActionState(state),
-      detail: { state, version: action.versionString(), detail: {} },
+      detail: { state, version: action.versionString(log), detail: {} },
       outputs: {
         log: "",
       },
@@ -437,7 +437,7 @@ function runPersistent({
   const proc = execa(cmd, args, {
     cwd: action.getBuildPath(),
     env: {
-      ...getDefaultEnvVars(action),
+      ...getDefaultEnvVars(action, log),
       ...(env ? mapValues(env, (v) => v + "") : {}),
       ...getTracePropagationEnvVars(),
     },

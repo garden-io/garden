@@ -71,7 +71,7 @@ export const pullImage: PluginCommand = {
 async function pullBuilds(ctx: KubernetesPluginContext, builds: Resolved<ContainerBuildAction>[], log: Log) {
   await Promise.all(
     builds.map(async (action) => {
-      const outputs = k8sGetContainerBuildActionOutputs({ provider: ctx.provider, action })
+      const outputs = k8sGetContainerBuildActionOutputs({ provider: ctx.provider, action, log })
       const remoteId = action.getSpec("publishId") || outputs.deploymentImageId
       const localId = outputs.localImageId
       log.info({ msg: styles.highlight(`Pulling image ${remoteId} to ${localId}`) })

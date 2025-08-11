@@ -23,7 +23,7 @@ export const openshiftContainerBuildExtension = (): BuildActionExtension<Contain
     async getOutputs({ ctx, action }) {
       const provider = ctx.provider as KubernetesProvider
       return {
-        outputs: k8sGetContainerBuildActionOutputs({ action, provider }) as unknown as DeepPrimitiveMap,
+        outputs: k8sGetContainerBuildActionOutputs({ action, provider, log: ctx.log }) as unknown as DeepPrimitiveMap,
       }
     },
 

@@ -95,7 +95,7 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
 
     if (res.detail) {
       artifacts = await getArtifactFileList({
-        key: getArtifactKey("test", action.name, action.versionString()),
+        key: getArtifactKey("test", action.name, action.versionString(log)),
         artifactsPath: garden.artifactsPath,
         log: garden.log,
       })

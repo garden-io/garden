@@ -231,7 +231,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   const gardenMetadata: HelmGardenMetadataConfigMapData = {
     actionName: action.name,
     projectName: ctx.projectName,
-    version: action.versionString(),
+    version: action.versionString(log),
     mode: action.mode(),
   }
 
@@ -292,7 +292,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     detail: {
       forwardablePorts,
       state: "ready",
-      version: action.versionString(),
+      version: action.versionString(log),
       ingresses,
       detail: { remoteResources: statuses.map((s) => s.resource), helmCommandSuccessful },
     },

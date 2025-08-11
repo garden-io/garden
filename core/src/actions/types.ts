@@ -44,6 +44,10 @@ export interface ActionSourceSpec {
   repository?: SourceRepositorySpec
 }
 
+export interface ActionVersionConfig {
+  excludeValues?: string[]
+}
+
 /**
  * These are the built-in fields in all action configs.
  *
@@ -95,6 +99,9 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   variables?: DeepPrimitiveMap
   // -> Templating with ActionConfigContext allowed, including in variables defined in the varfiles
   varfiles?: Varfile[]
+
+  // Version/caching controls
+  version?: ActionVersionConfig
 
   // Type-specific
   spec: Spec

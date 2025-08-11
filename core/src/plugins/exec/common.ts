@@ -18,10 +18,10 @@ import type { PluginContext } from "../../plugin-context.js"
 import type { ResolvedExecAction } from "./config.js"
 import { RuntimeError } from "../../exceptions.js"
 
-export function getDefaultEnvVars(action: ResolvedExecAction) {
+export function getDefaultEnvVars(action: ResolvedExecAction, log: Log) {
   return {
     ...process.env,
-    ...action.getEnvVars(),
+    ...action.getEnvVars(log),
     ...action.getSpec().env,
   }
 }
@@ -63,7 +63,7 @@ export async function execRunCommand({
   })
 
   const envVars = {
-    ...getDefaultEnvVars(action),
+    ...getDefaultEnvVars(action, log),
     ...(env ? mapValues(env, (v) => v + "") : {}),
   }
 

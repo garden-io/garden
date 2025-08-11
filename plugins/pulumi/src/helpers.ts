@@ -184,7 +184,7 @@ export async function setStackVersionTag({ log, ctx, provider, action }: PulumiP
   try {
     await pulumi(ctx, provider).stdout({
       log,
-      args: ["stack", "tag", "set", stackVersionKey, action.versionString()],
+      args: ["stack", "tag", "set", stackVersionKey, action.versionString(log)],
       env: ensureEnv({ log, ctx, provider, action }),
       cwd: getActionStackRoot(action),
     })
@@ -347,7 +347,9 @@ export async function getStackStatusFromTag(params: PulumiParams): Promise<Stack
   const currentDeployment = await getDeployment(params)
   const resources = currentDeployment.deployment.resources
   const tagVersion = await getStackVersionTag(params)
-  return tagVersion === params.action.versionString() && resources && resources.length > 0 ? "up-to-date" : "outdated"
+  return tagVersion === params.action.versionString(params.log) && resources && resources.length > 0
+    ? "up-to-date"
+    : "outdated"
 }
 
 async function readPulumiPlan(module: PulumiDeploy, planPath: string): Promise<PulumiPlan> {

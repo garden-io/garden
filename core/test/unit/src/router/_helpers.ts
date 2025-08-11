@@ -498,7 +498,7 @@ function getRouterUnitTestPlugins() {
                   log: "bla bla",
                   success: true,
                   startedAt: now,
-                  version: params.action.versionString(),
+                  version: params.action.versionString(params.log),
                 },
                 outputs: getTestPluginOutputs(params),
               }
@@ -520,7 +520,7 @@ function getRouterUnitTestPlugins() {
                   log: "bla bla",
                   success: true,
                   startedAt: now,
-                  version: params.action.versionString(),
+                  version: params.action.versionString(params.log),
                 },
                 outputs: getTestPluginOutputs(params),
               }
@@ -553,7 +553,7 @@ function getRouterUnitTestPlugins() {
                   success: true,
                   startedAt: now,
                   testName: params.action.name,
-                  version: params.action.versionString(),
+                  version: params.action.versionString(params.log),
                 },
                 outputs: getTestPluginOutputs(params),
               }
@@ -573,7 +573,7 @@ function getRouterUnitTestPlugins() {
                   success: true,
                   startedAt: now,
                   testName: params.action.name,
-                  version: params.action.versionString(),
+                  version: params.action.versionString(params.log),
                 },
                 outputs: getTestPluginOutputs(params),
               }

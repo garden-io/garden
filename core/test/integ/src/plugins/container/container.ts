@@ -114,7 +114,7 @@ describe("plugins.container", () => {
 
       sinon.assert.calledWithMatch(_dockerCli.firstCall, {
         cwd: action.getBuildPath(),
-        args: ["tag", `test:${action.versionString()}`, publishId],
+        args: ["tag", `test:${action.versionString(log)}`, publishId],
       })
 
       sinon.assert.calledWithMatch(_dockerCli.secondCall, {
@@ -137,7 +137,7 @@ describe("plugins.container", () => {
         _dockerCli,
         sinon.match({
           cwd: action.getBuildPath(),
-          args: ["tag", `test:${action.versionString()}`, "test:custom-tag"],
+          args: ["tag", `test:${action.versionString(log)}`, "test:custom-tag"],
         })
       )
 
@@ -182,7 +182,7 @@ describe("plugins.container", () => {
         action = await getTestBuild(config)
 
         const result = await publishContainerBuild({ ctx, log, action })
-        assertPublishId(`private-registry/foobar:${action.versionString()}`, result.detail)
+        assertPublishId(`private-registry/foobar:${action.versionString(log)}`, result.detail)
       })
 
       it("should fall back to action name if spec.localId and spec.publishId are not defined", async () => {
@@ -190,7 +190,7 @@ describe("plugins.container", () => {
 
         action = await getTestBuild(config)
         const result = await publishContainerBuild({ ctx, log, action })
-        assertPublishId(`test:${action.versionString()}`, result.detail)
+        assertPublishId(`test:${action.versionString(log)}`, result.detail)
       })
       it("should fall back to action.outputs.deploymentImageName if spec.localId and spec.publishId are not defined - with kubernetes provider with deployment registry", async () => {
         const kubernetesProvider = (await garden.resolveProvider({
@@ -212,7 +212,7 @@ describe("plugins.container", () => {
         action = await getTestBuild(config)
 
         const result = await publishContainerBuild({ ctx, log, action })
-        assertPublishId(`foo.io/bar/test:${action.versionString()}`, result.detail)
+        assertPublishId(`foo.io/bar/test:${action.versionString(log)}`, result.detail)
       })
       it("should respect tagOverride, which corresponds to garden publish --tag command line option", async () => {
         const config = cloneDeep(baseConfig)
@@ -305,7 +305,7 @@ describe("plugins.container", () => {
         graph: await garden.getConfigGraph({ log, emit: false }),
       })
 
-      const args = getDockerBuildFlags(resolvedBuild, ctx.provider.config)
+      const args = getDockerBuildFlags(resolvedBuild, ctx.provider.config, log)
 
       expect(args.slice(-2)).to.eql(["--cache-from", "some-image:latest"])
     })
@@ -321,11 +321,11 @@ describe("plugins.container", () => {
         graph: await garden.getConfigGraph({ log, emit: false }),
       })
 
-      const args = getDockerBuildFlags(resolvedBuild, ctx.provider.config)
+      const args = getDockerBuildFlags(resolvedBuild, ctx.provider.config, log)
 
       // Also module version is set for backwards compatability
-      expect(args.slice(0, 2)).to.eql(["--build-arg", `GARDEN_MODULE_VERSION=${buildAction.versionString()}`])
-      expect(args.slice(2, 4)).to.eql(["--build-arg", `GARDEN_ACTION_VERSION=${buildAction.versionString()}`])
+      expect(args.slice(0, 2)).to.eql(["--build-arg", `GARDEN_MODULE_VERSION=${buildAction.versionString(log)}`])
+      expect(args.slice(2, 4)).to.eql(["--build-arg", `GARDEN_ACTION_VERSION=${buildAction.versionString(log)}`])
     })
   })
 
@@ -341,7 +341,7 @@ describe("plugins.container", () => {
         graph: await garden.getConfigGraph({ log, emit: false }),
       })
 
-      const args = getDockerBuildFlags(resolvedBuild, ctx.provider.config)
+      const args = getDockerBuildFlags(resolvedBuild, ctx.provider.config, log)
       expect(args.slice(-4)).to.eql(["--platform", "linux/amd64", "--platform", "linux/arm64"])
     })
   })

@@ -74,7 +74,7 @@ describe("pulumi plugin handlers", () => {
       expect(status.outputs?.namespace).to.eql("pulumi-test")
 
       // The deployed stack should have been tagged with the service version
-      expect(versionTag).to.eql(action.versionString())
+      expect(versionTag).to.eql(action.versionString(actionLog))
     })
   })
 

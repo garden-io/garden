@@ -22,7 +22,7 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
 
   const localImageId = action.getOutput("localImageId")
   const deploymentRegistryImageId = action.getOutput("deploymentImageId")
-  const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
+  const remoteImageId = containerHelpers.getPublicImageId(action, log, tagOverride)
   const dockerBuildExtraFlags = action.getSpec("extraFlags")
 
   // For in-cluster building or Container Builder, use regctl to copy the image.

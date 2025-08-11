@@ -4356,6 +4356,38 @@ describe("Garden", () => {
       expect(b.isDisabled()).to.be.true
     })
 
+    it("correctly handles version.excludeValues", async () => {
+      const projectRoot = getDataDir("test-projects", "version-exclude-values")
+      const gardenA = await makeTestGarden(projectRoot, { environmentString: "a" })
+      const gardenB = await makeTestGarden(projectRoot, { environmentString: "b" })
+
+      const graphA = await gardenA.getConfigGraph({ log: gardenA.log, emit: false })
+      const graphB = await gardenB.getConfigGraph({ log: gardenB.log, emit: false })
+
+      const a = graphA.getTest("test")
+      const b = graphB.getTest("test")
+
+      const resolvedA = await resolveAction({
+        garden: gardenA,
+        graph: graphA,
+        log: gardenA.log,
+        action: a,
+      })
+      const resolvedB = await resolveAction({
+        garden: gardenB,
+        graph: graphB,
+        log: gardenB.log,
+        action: b,
+      })
+
+      // The spec.command field should have different values between environments
+      expect(resolvedA.getSpec().command).to.not.eql(resolvedB.getSpec().command)
+
+      // But the config versions should still resolve to the same
+      expect(a.configVersion(gardenA.log)).to.equal(b.configVersion(gardenB.log))
+      expect(resolvedA.configVersion(gardenA.log)).to.equal(resolvedB.configVersion(gardenB.log))
+    })
+
     describe("disabled actions", () => {
       context("should not throw if disabled action does not have a configured provider", () => {
         it("when action is disabled explicitly via `disabled: true` flag", async () => {

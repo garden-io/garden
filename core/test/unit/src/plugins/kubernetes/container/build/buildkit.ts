@@ -222,13 +222,14 @@ describe("buildkit build", () => {
 
       build._config.spec.targetStage = "foo"
 
-      const flags = getBuildkitFlags(build)
+      const flags = getBuildkitFlags(build, garden.log)
+      const versionString = build.versionString(garden.log)
 
       expect(flags).to.eql([
         "--opt",
-        "build-arg:GARDEN_MODULE_VERSION=" + build.versionString(),
+        "build-arg:GARDEN_MODULE_VERSION=" + versionString,
         "--opt",
-        "build-arg:GARDEN_ACTION_VERSION=" + build.versionString(),
+        "build-arg:GARDEN_ACTION_VERSION=" + versionString,
         "--opt",
         "target=foo",
       ])
@@ -264,7 +265,7 @@ describe("buildkit build", () => {
       const action = await garden.resolveAction({ action: rawBuild, log: garden.log, graph })
       action._config.spec.targetStage = "foo"
       const contextPath = `/garden-build/some-hash/${action.name}`
-      const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+      const outputs = k8sGetContainerBuildActionOutputs({ provider, action, log: garden.log })
 
       const buildCommand = makeBuildkitBuildCommand({
         provider,
@@ -272,11 +273,13 @@ describe("buildkit build", () => {
         action,
         contextPath,
         dockerfile: "dockerfile",
+        log: garden.log,
       })
       const cdCmd = `cd ${contextPath}`
+      const versionString = action.versionString(garden.log)
       const buildctlCmd = `'buildctl' 'build' '--frontend=dockerfile.v0' '--local' 'context=${contextPath}' '--local' 'dockerfile=${contextPath}' '--opt' 'filename=dockerfile' '--output' 'type=image,"name=gcr.io/deploymentRegistry/namespace/${
         action.name
-      }:${action.versionString()}",push=true' '--opt' 'build-arg:GARDEN_MODULE_VERSION=${action.versionString()}' '--opt' 'build-arg:GARDEN_ACTION_VERSION=${action.versionString()}' '--opt' 'target=foo'`
+      }:${versionString}",push=true' '--opt' 'build-arg:GARDEN_MODULE_VERSION=${versionString}' '--opt' 'build-arg:GARDEN_ACTION_VERSION=${versionString}' '--opt' 'target=foo'`
 
       expect(buildCommand).to.eql(["sh", "-c", `${cdCmd} && ${buildctlCmd}`])
     })

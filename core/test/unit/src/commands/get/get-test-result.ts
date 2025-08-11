@@ -129,7 +129,7 @@ describe("GetTestResultCommand", () => {
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
     const testAction = graph.getTest("module-a-unit")
-    const artifactKey = getArtifactKey("test", "module-a-unit", testAction.versionString())
+    const artifactKey = getArtifactKey("test", "module-a-unit", testAction.versionString(log))
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
     const metadata = {
       key: artifactKey,

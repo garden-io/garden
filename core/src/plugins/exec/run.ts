@@ -70,7 +70,7 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
     moduleName: action.moduleName(),
     taskName: action.name,
     command,
-    version: action.versionString(),
+    version: action.versionString(log),
     success: commandResult.success,
     log: commandResult.outputLog,
     startedAt,
