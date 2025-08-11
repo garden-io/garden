@@ -1,6 +1,6 @@
 apiVersion: garden.io/v2
 kind: Project
-name: version-exclude-values
+name: version-exclude-fields
 environments:
   - name: a
     variables:

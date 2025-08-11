@@ -71,7 +71,7 @@ import { dirname } from "node:path"
 import type { ResolvedTemplate } from "../template/types.js"
 import type { WorkflowConfig } from "../config/workflow.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
-import { deepMap } from "../util/objects.js"
+import { deepFilter, deepMap } from "../util/objects.js"
 
 // TODO: split this file
 
@@ -261,6 +261,41 @@ export const baseActionConfigSchema = createSchema({
     version: joi
       .object()
       .keys({
+        excludeFields: joi
+          .array()
+          .items(joi.array().items(joi.string()))
+          .description(
+            dedent`
+            Specify a list of config fields that should be ignored when computing the version hash for this action. Each item should be an array of strings, specifying the path to the field to ignore, e.g. \`[spec, env, HOSTNAME]\` would ignore \`spec.env.HOSTNAME\` in the configuration when computing the version.
+
+            For example, you might have a field that naturally changes for every individual test or dev environment, such as a dynamic hostname. You could solve for that with something like this:
+
+            \`\`\`yaml
+            version:
+              excludeFields:
+                - [spec, env, HOSTNAME]
+            \`\`\`
+
+            Arrays can also be indexed with numeric indices, but you can also use wildcards to exclude specific fields on all objects in arrays. Example:
+
+            \`\`\`yaml
+            kind: Test
+            type: container
+            ...
+            spec:
+              artifacts:
+                - source: foo
+                  target: bar  # Gets excluded from the version calculation
+            version:
+              excludeFields:
+                - [spec, artifacts, "*", target]
+            \`\`\`
+
+            Only simple \`"*"\` wildcards are supported for the moment (i.e. you can't exclude by \`"something*"\` or use question marks for individual character matching).
+
+            Note that it is very important not to specify overly broad exclusions here, as this may cause the version to change too rarely, which may cause build errors or tests to not run when they should.
+          `
+          ),
         excludeValues: joiSparseArray(joi.string()).description(
           dedent`
             Specify one or more string values that should be ignored when computing the version hash for this action. You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
@@ -275,7 +310,9 @@ export const baseActionConfigSchema = createSchema({
 
             With the \`hostname\` variable being defined in the Project configuration.
 
-            For each value specified under this field, every occurrence of that string value (even as part of a longer string) will be replaced when calculating the action version. The action configuration is not affected.
+            For each value specified under this field, every occurrence of that string value (even as part of a longer string) will be replaced when calculating the action version. The action configuration (used when performing the action) is not affected.
+
+            For instances when the value to replace may be overly broad (e.g. "api") it is generally better to use the \`excludeFields\` option, since that can be applied more surgically.
           `
         ),
       })
@@ -1026,10 +1063,44 @@ export function replaceExcludeValues(config: BaseActionConfig, log: ActionLog) {
 
   const excludeValues = config.version?.excludeValues || []
   const excludeValueRegexes = excludeValues.map((v) => new RegExp(v, "g"))
+  const excludeFields = config.version?.excludeFields || []
+
+  if (excludeFields.length > 0) {
+    configToHash = deepFilter(configToHash, (_v, _key, path) => {
+      for (const excludePath of excludeFields) {
+        let allPartsMatched = true
+
+        if (path.length < excludePath.length) {
+          break
+        }
+
+        for (let i = 0; i < path.length; i++) {
+          if (path[i] !== excludePath[i] && excludePath[i] !== "*") {
+            allPartsMatched = false
+            break
+          }
+        }
+
+        if (allPartsMatched) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }
 
   if (excludeValues.length > 0) {
     configToHash = deepMap(configToHash, (v, _key, path) => {
+      path = path.filter(isString) // The paths referenced in excludeFields ignore array indices
+
       if (isString(v)) {
+        for (const excludePath of config.version?.excludeFields || []) {
+          if (path.join(".") === excludePath.join(".")) {
+            return excludeValueReplacement
+          }
+        }
+
         for (const regex of excludeValueRegexes) {
           if (regex.test(v as string)) {
             log.verbose(`Excluding value ${v} from version calculation for ${path.join(".")}`)

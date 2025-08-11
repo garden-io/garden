@@ -46,12 +46,16 @@ export function deepMap<V, R>(
  */
 export function deepFilter<V>(
   value: CollectionOrValue<V>,
-  fn: (value: any, key: string | number) => boolean
+  fn: (value: any, key: string | number, keyPath: (number | string)[]) => boolean,
+  keyPath: (number | string)[] = []
 ): CollectionOrValue<V> {
   if (isArray(value)) {
-    return value.filter(fn).map((v) => deepFilter(v, fn))
+    return value.filter((v, k) => fn(v, k, [...keyPath, k])).map((v, k) => deepFilter(v, fn, [...keyPath, k]))
   } else if (isPlainObject(value)) {
-    return mapValues(pickBy(value, fn), (v) => deepFilter(v, fn))
+    return mapValues(
+      pickBy(value, (v, k) => fn(v, k, [...keyPath, k])),
+      (v, k) => deepFilter(v, fn, [...keyPath, k])
+    )
   } else {
     return value
   }
