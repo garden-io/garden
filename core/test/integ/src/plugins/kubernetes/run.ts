@@ -721,11 +721,11 @@ describe("kubernetes Pod runner functions", () => {
             env: [
               {
                 name: "GARDEN_ACTION_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
               {
                 name: "GARDEN_MODULE_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
             ],
             command: ["echo", "foo"],
@@ -773,11 +773,11 @@ describe("kubernetes Pod runner functions", () => {
             env: [
               {
                 name: "GARDEN_ACTION_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
               {
                 name: "GARDEN_MODULE_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
             ],
             command: ["echo", "foo"],
@@ -826,11 +826,11 @@ describe("kubernetes Pod runner functions", () => {
             env: [
               {
                 name: "GARDEN_ACTION_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
               {
                 name: "GARDEN_MODULE_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
             ],
             command: ["echo", "foo"],
@@ -1029,11 +1029,11 @@ describe("kubernetes Pod runner functions", () => {
             env: [
               {
                 name: "GARDEN_ACTION_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
               {
                 name: "GARDEN_MODULE_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
             ],
             command: ["echo", "foo"],
@@ -1058,7 +1058,7 @@ describe("kubernetes Pod runner functions", () => {
         containers: [
           {
             name: "api",
-            image: "api-image:" + apiImageBuildAction.versionString(),
+            image: "api-image:" + apiImageBuildAction.versionString(helmLog),
             imagePullPolicy: "IfNotPresent",
             args: ["python", "app.py"],
             ports: [
@@ -1112,11 +1112,11 @@ describe("kubernetes Pod runner functions", () => {
             env: [
               {
                 name: "GARDEN_ACTION_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
               {
                 name: "GARDEN_MODULE_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
             ],
             command: ["echo", "foo"],
@@ -1189,11 +1189,11 @@ describe("kubernetes Pod runner functions", () => {
             env: [
               {
                 name: "GARDEN_ACTION_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
               {
                 name: "GARDEN_MODULE_VERSION",
-                value: helmAction.versionString(),
+                value: helmAction.versionString(helmLog),
               },
             ],
             command: ["echo", "foo"],

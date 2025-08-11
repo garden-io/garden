@@ -90,7 +90,7 @@ const helpers = {
    * - The tag  part of the `spec.publishId` from the action configuration, if one is set, and it includes a tag part.
    * - The Garden version of the module.
    */
-  getPublicImageId(action: Resolved<ContainerBuildAction>, tagOverride?: string) {
+  getPublicImageId(action: Resolved<ContainerBuildAction>, log: Log, tagOverride?: string) {
     // TODO: allow setting a default user/org prefix in the project/plugin config
     const explicitPublishId = action.getSpec("publishId")
 
@@ -116,7 +116,7 @@ const helpers = {
     }
 
     if (!publishTag) {
-      publishTag = action.versionString()
+      publishTag = action.versionString(log)
     }
     return helpers.unparseImageId({ ...parsedImage, tag: publishTag })
   },
@@ -196,10 +196,11 @@ const helpers = {
   getBuildActionOutputs(
     action: Resolved<ContainerBuildAction>,
     // Requiring this parameter to avoid accidentally missing it
-    registryConfig: ContainerRegistryConfig | undefined
+    registryConfig: ContainerRegistryConfig | undefined,
+    log: Log
   ): ContainerBuildOutputs {
     const localId = action.getSpec("localId")
-    const version = action.moduleVersion()
+    const version = action.moduleVersion(log)
     const buildName = action.name
 
     const localImageName = containerHelpers.getLocalImageName(buildName, localId)

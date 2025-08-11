@@ -208,7 +208,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     const resolvedVariables = deepResolveContext("action variables", variables, inputsContext)
     if (!isPlainObject(resolvedVariables)) {
       throw new InternalError({
-        message: `Action variables for ${action.describe()} evaluated to ${typeof resolvedVariables}, expected a plain object.`,
+        message: `Action variables for ${action.describe(this.log)} evaluated to ${typeof resolvedVariables}, expected a plain object.`,
       })
     }
 

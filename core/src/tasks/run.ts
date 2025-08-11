@@ -65,14 +65,14 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
         return {
           ...status,
           state: "not-ready" as const,
-          version: action.versionString(),
+          version: action.versionString(log),
           executedAction: resolvedActionToExecuted(action, { status }),
         }
       }
 
       return {
         ...status,
-        version: action.versionString(),
+        version: action.versionString(log),
         executedAction: resolvedActionToExecuted(action, { status }),
       }
     } catch (err) {
@@ -117,7 +117,11 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       throw new RunFailedError({ message: status.detail?.log || "The run failed, but it did not output anything." })
     }
 
-    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
+    return {
+      ...status,
+      version: action.versionString(taskLog),
+      executedAction: resolvedActionToExecuted(action, { status }),
+    }
   }
 }
 

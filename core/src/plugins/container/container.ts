@@ -522,10 +522,10 @@ export const gardenPlugin = () =>
           staticOutputsSchema: containerBuildOutputsSchema(),
           schema: containerBuildSpecSchema(),
           handlers: {
-            async getOutputs({ action }) {
+            async getOutputs({ action, log }) {
               // TODO: figure out why this cast is needed here
               return {
-                outputs: getContainerBuildActionOutputs(action) as unknown as DeepPrimitiveMap,
+                outputs: getContainerBuildActionOutputs(action, log) as unknown as DeepPrimitiveMap,
               }
             },
 

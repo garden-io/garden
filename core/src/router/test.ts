@@ -28,7 +28,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionType = API_ACTION_TYPE
-      const actionVersion = action.versionString()
+      const actionVersion = action.versionString(params.log)
       const moduleName = action.moduleName()
 
       try {

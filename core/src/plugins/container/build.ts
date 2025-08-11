@@ -23,7 +23,7 @@ import {
   type ContainerProviderConfig,
 } from "./container.js"
 import type { Writable } from "stream"
-import type { ActionLog } from "../../logger/log-entry.js"
+import type { ActionLog, Log } from "../../logger/log-entry.js"
 import type { PluginContext } from "../../plugin-context.js"
 import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
@@ -239,7 +239,11 @@ async function buildxBuildContainer({
 
   const internalDockerFlags = ["--progress", "rawjson", "--metadata-file", metadataFile]
 
-  const dockerFlags = [...getDockerBuildFlags(action, ctx.provider.config), ...extraDockerOpts, ...internalDockerFlags]
+  const dockerFlags = [
+    ...getDockerBuildFlags(action, ctx.provider.config, log),
+    ...extraDockerOpts,
+    ...internalDockerFlags,
+  ]
 
   const { secretArgs, secretEnvVars } = getDockerSecrets(action.getSpec())
   dockerFlags.push(...secretArgs)
@@ -345,7 +349,7 @@ async function buildContainerInCloudBuilder(params: {
 
     // we add --push in the Kubernetes local-docker handler when using the Kubernetes plugin with a deploymentRegistry setting.
     // If we have --push, no need to --load.
-    if (!getDockerBuildFlags(params.action, params.ctx.provider.config).includes("--push")) {
+    if (!getDockerBuildFlags(params.action, params.ctx.provider.config, params.log).includes("--push")) {
       // This action makes sure to download the image from the Container Builder, and make it available locally.
       extraDockerOpts.push("--load")
     }
@@ -383,8 +387,11 @@ function getBuilderName(dockerMetadata: DockerBuildReport["dockerMetadata"]) {
   return "unknown"
 }
 
-export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
-  return containerHelpers.getBuildActionOutputs(action, undefined)
+export function getContainerBuildActionOutputs(
+  action: Resolved<ContainerBuildAction>,
+  log: Log
+): ContainerBuildOutputs {
+  return containerHelpers.getBuildActionOutputs(action, undefined, log)
 }
 
 export async function sendBuildReport({
@@ -533,13 +540,14 @@ export function getImageTags(dockerMetadata: DockerBuildReport["dockerMetadata"]
 
 export function getDockerBuildFlags(
   action: Resolved<ContainerBuildAction>,
-  containerProviderConfig: ContainerProviderConfig
+  containerProviderConfig: ContainerProviderConfig,
+  log: Log
 ) {
   const args: string[] = []
 
   const { targetStage, extraFlags, buildArgs, platforms } = action.getSpec()
 
-  for (const arg of getDockerBuildArgs(action.versionString(), buildArgs)) {
+  for (const arg of getDockerBuildArgs(action.versionString(log), buildArgs)) {
     args.push("--build-arg", arg)
   }
 

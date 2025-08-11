@@ -250,7 +250,12 @@ describe("kubernetes-type handlers", () => {
         skipCreate: true,
       })
 
-      const metadataManifest = getMetadataManifest(resolvedAction, namespace, [])
+      const metadataManifest = getMetadataManifest({
+        action: resolvedAction,
+        defaultNamespace: namespace,
+        declaredManifests: [],
+        log,
+      })
 
       await api.deleteBySpec({ log, namespace, manifest: metadataManifest })
 
@@ -274,7 +279,12 @@ describe("kubernetes-type handlers", () => {
 
       const declaredManifests = await readManifests(ctx, resolvedAction, log)
       // It's critical to pass in the existing manifests here, otherwise the code will not check their statuses
-      const metadataManifest = getMetadataManifest(resolvedAction, namespace, declaredManifests)
+      const metadataManifest = getMetadataManifest({
+        action: resolvedAction,
+        defaultNamespace: namespace,
+        declaredManifests,
+        log,
+      })
       metadataManifest.data!.resolvedVersion = "v-foo"
 
       await api.replace({ log, namespace, resource: metadataManifest })
@@ -329,7 +339,12 @@ describe("kubernetes-type handlers", () => {
         skipCreate: true,
       })
 
-      const metadataManifest = getMetadataManifest(resolvedAction, namespace, [])
+      const metadataManifest = getMetadataManifest({
+        action: resolvedAction,
+        defaultNamespace: namespace,
+        declaredManifests: [],
+        log,
+      })
       metadataManifest.data!.mode = "sync"
 
       await api.replace({ log, namespace, resource: metadataManifest })
@@ -408,7 +423,12 @@ describe("kubernetes-type handlers", () => {
         skipCreate: true,
       })
 
-      const emptyManifest = getMetadataManifest(resolvedAction, namespace, [])
+      const emptyManifest = getMetadataManifest({
+        action: resolvedAction,
+        defaultNamespace: namespace,
+        declaredManifests: [],
+        log,
+      })
 
       const metadataResource = await api.readBySpec({ log, namespace, manifest: emptyManifest })
 
@@ -416,7 +436,7 @@ describe("kubernetes-type handlers", () => {
 
       const parsedMetadata = parseMetadataResource(log, metadataResource)
 
-      expect(parsedMetadata.resolvedVersion).to.equal(resolvedAction.versionString())
+      expect(parsedMetadata.resolvedVersion).to.equal(resolvedAction.versionString(log))
       expect(parsedMetadata.mode).to.equal("default")
       expect(parsedMetadata.manifestMetadata).to.eql({
         "Deployment/busybox-deployment": {

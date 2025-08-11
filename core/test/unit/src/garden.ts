@@ -4384,8 +4384,8 @@ describe("Garden", () => {
       expect(resolvedA.getSpec().command).to.not.eql(resolvedB.getSpec().command)
 
       // But the config versions should still resolve to the same
-      expect(a.configVersion()).to.equal(b.configVersion())
-      expect(resolvedA.configVersion()).to.equal(resolvedB.configVersion())
+      expect(a.configVersion(gardenA.log)).to.equal(b.configVersion(gardenB.log))
+      expect(resolvedA.configVersion(gardenA.log)).to.equal(resolvedB.configVersion(gardenB.log))
     })
 
     describe("disabled actions", () => {

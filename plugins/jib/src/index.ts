@@ -236,7 +236,7 @@ export const gardenPlugin = () =>
 
               statusLine.info(`Using JAVA_HOME=${openJdkPath}`)
 
-              const { args, tarPath } = getBuildFlags(action, projectType)
+              const { args, tarPath } = getBuildFlags(log, action, projectType)
 
               if (projectType === "maven") {
                 await mvn({
@@ -275,7 +275,7 @@ export const gardenPlugin = () =>
               const outputs = action.getOutputs()
 
               return {
-                state: "ready",
+                state: "ready" as const,
                 detail: {
                   fetched: false,
                   buildLog,

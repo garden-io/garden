@@ -144,8 +144,8 @@ describe("kubernetes container deployment handlers", () => {
                   image: imageId,
                   command: ["sh", "-c", "echo Server running... && nc -l -p 8080"],
                   env: [
-                    { name: "GARDEN_ACTION_VERSION", value: action.getFullVersion().versionString },
-                    { name: "GARDEN_MODULE_VERSION", value: action.getFullVersion().versionString },
+                    { name: "GARDEN_ACTION_VERSION", value: action.getFullVersion(garden.log).versionString },
+                    { name: "GARDEN_MODULE_VERSION", value: action.getFullVersion(garden.log).versionString },
                     { name: "POD_HOST_IP", valueFrom: { fieldRef: { fieldPath: "status.hostIP" } } },
                     { name: "POD_IP", valueFrom: { fieldRef: { fieldPath: "status.podIP" } } },
                     { name: "POD_NAME", valueFrom: { fieldRef: { fieldPath: "metadata.name" } } },
@@ -451,10 +451,10 @@ describe("kubernetes container deployment handlers", () => {
 
         expect(findNamespaceStatusEvent(garden.events.eventLog, "container-default")).to.exist
         expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(
-          `${serviceAction.versionString()}`
+          `${serviceAction.versionString(garden.log)}`
         )
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `${serviceAction.name}:${buildAction.versionString()}`
+          `${serviceAction.name}:${buildAction.versionString(garden.log)}`
         )
       })
 
@@ -627,7 +627,7 @@ describe("kubernetes container deployment handlers", () => {
         const status = await processDeployAction(action)
 
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
-        const buildVersionString = action.getBuildAction()?.versionString()
+        const buildVersionString = action.getBuildAction()?.versionString(garden.log)
 
         // Note: the image version should match the build action version and not the
         // deploy action version
@@ -641,7 +641,7 @@ describe("kubernetes container deployment handlers", () => {
         const status = await processDeployAction(action)
 
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
-        const buildVersionString = action.getBuildAction()?.versionString()
+        const buildVersionString = action.getBuildAction()?.versionString(garden.log)
 
         // Note: the image version should match the build action version and not the
         // deploy action version
@@ -655,7 +655,7 @@ describe("kubernetes container deployment handlers", () => {
         const status = await processDeployAction(action)
 
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
-        const buildVersionString = action.getBuildAction()?.versionString()
+        const buildVersionString = action.getBuildAction()?.versionString(garden.log)
 
         // Note: the image version should match the build action version and not the
         // deploy action version

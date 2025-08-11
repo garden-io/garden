@@ -19,6 +19,7 @@ import type { ActionSpecContextParams } from "../config/template-contexts/action
 import { ActionSpecContext } from "../config/template-contexts/actions.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { InputContext } from "../config/template-contexts/input.js"
+import type { Log } from "../logger/log-entry.js"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   /**
@@ -90,12 +91,13 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         state: "ready" as const,
         detail: { published: false },
         outputs: {},
-        version: this.getResolvedAction(this.action, dependencyResults).versionString(),
+        version: this.getResolvedAction(this.action, dependencyResults).versionString(this.log),
       }
     }
 
     const action = this.getExecutedAction(this.action, dependencyResults)
-    const version = action.versionString()
+    const log = this.log.createLog()
+    const version = action.versionString(log)
 
     // This is only defined when a user defines --tag option
     let tagOverride: string | undefined = undefined
@@ -155,10 +157,10 @@ class BuildSelfContext extends ContextWithSchema {
   @schema(joi.string().description("The version hash of the build being tagged (minus the 'v-' prefix)."))
   public readonly hash: string
 
-  constructor(build: BuildAction) {
+  constructor(build: BuildAction, log: Log) {
     super()
     this.name = build.name
-    this.version = build.versionString()
+    this.version = build.versionString(log)
     this.hash = this.version.slice(versionStringPrefix.length)
   }
 }
@@ -172,6 +174,6 @@ class BuildTagContext extends ActionSpecContext {
 
   constructor(params: ActionSpecContextParams & { action: BuildAction }) {
     super(params)
-    this.build = this.module = new BuildSelfContext(params.action)
+    this.build = this.module = new BuildSelfContext(params.action, params.garden.log)
   }
 }

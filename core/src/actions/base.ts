@@ -61,6 +61,7 @@ import type { DeployAction } from "./deploy.js"
 import type { TestAction } from "./test.js"
 import type { RunAction } from "./run.js"
 import type { Log } from "../logger/log-entry.js"
+import { ActionLog } from "../logger/log-entry.js"
 import { createActionLog } from "../logger/log-entry.js"
 import { joinWithPosix } from "../util/fs.js"
 import type { LinkedSource } from "../config-store/local.js"
@@ -512,11 +513,11 @@ export abstract class BaseAction<
     return this._moduleName || null
   }
 
-  moduleVersion(): ModuleVersion {
+  moduleVersion(log: Log): ModuleVersion {
     if (this._moduleVersion) {
       return this._moduleVersion
     } else {
-      const version = this.getFullVersion()
+      const version = this.getFullVersion(log)
       return {
         contentHash: version.sourceVersion,
         versionString: version.versionString,
@@ -561,19 +562,20 @@ export abstract class BaseAction<
   }
 
   // Note: Making this name verbose so that people don't accidentally use this instead of versionString()
-  @Memoize()
-  getFullVersion(): ActionVersion {
+  @Memoize(() => true)
+  getFullVersion(log: Log): ActionVersion {
     const depPairs: string[][] = []
+    const actionLog = this.createLog(log)
     this.dependencies.forEach((d) => {
       const action = this.graph.getActionByRef(d, { includeDisabled: true })
       if (!action.isDisabled()) {
-        depPairs.push([action.key(), action.versionString()])
+        depPairs.push([action.key(), action.versionString(actionLog)])
       }
     })
     const sortedDeps = sortBy(depPairs, (pair) => pair[0])
     const dependencyVersions = fromPairs(depPairs)
 
-    const configVersion = this.configVersion()
+    const configVersion = this.configVersion(actionLog)
     const sourceVersion = this._treeVersion.contentHash
     const fullHash = fullHashStrings([configVersion, sourceVersion, ...flatten(sortedDeps)])
     const versionString = versionStringPrefix + fullHash.slice(0, SHORT_VERSION_HASH_LENGTH)
@@ -596,16 +598,16 @@ export abstract class BaseAction<
   /**
    * The version of this action's config (not including files or dependencies)
    */
-  @Memoize()
-  configVersion() {
-    return getActionConfigVersion(this._config)
+  @Memoize(() => true)
+  configVersion(log: Log) {
+    return getActionConfigVersion(this.createLog(log), this._config)
   }
 
   /**
    * Returns a map of commonly used environment variables for the action.
    */
-  getEnvVars() {
-    const GARDEN_ACTION_VERSION = this.versionString()
+  getEnvVars(log: Log) {
+    const GARDEN_ACTION_VERSION = this.versionString(log)
 
     return {
       GARDEN_ACTION_VERSION,
@@ -619,12 +621,12 @@ export abstract class BaseAction<
     return this.variables
   }
 
-  versionString(): string {
-    return this.getFullVersion().versionString
+  versionString(log: Log): string {
+    return this.getFullVersion(log).versionString
   }
 
-  versionStringFull(): string {
-    return this.getFullVersion().versionStringFull
+  versionStringFull(log: Log): string {
+    return this.getFullVersion(log).versionStringFull
   }
 
   getInternal(): BaseActionConfig["internal"] {
@@ -667,11 +669,11 @@ export abstract class BaseAction<
     return mode === "default" || !!this._supportedModes[mode]
   }
 
-  describe(): ActionDescription {
+  describe(log: ActionLog): ActionDescription {
     return {
       compatibleTypes: this.compatibleTypes,
       config: this.getConfig(),
-      configVersion: this.configVersion(),
+      configVersion: this.configVersion(log),
       group: this.groupName(),
       key: this.key(),
       kind: this.kind,
@@ -679,7 +681,7 @@ export abstract class BaseAction<
       moduleName: this.moduleName(),
       name: this.name,
       treeVersion: this.treeVersion(),
-      version: this.getFullVersion(),
+      version: this.getFullVersion(log),
     }
   }
 
@@ -687,7 +689,11 @@ export abstract class BaseAction<
    * Creates an ActionLog instance with this action as the log context.
    * Mainly used as a convenience during testing.
    */
-  createLog(log: Log) {
+  createLog(log: Log): ActionLog {
+    if (log instanceof ActionLog) {
+      return log
+    }
+
     return createActionLog({
       log,
       actionKind: this.kind,
@@ -1015,14 +1021,20 @@ export type NonVersionedActionConfigKey = keyof Pick<BaseActionConfig, (typeof n
 
 const excludeValueReplacement = "!!!GARDEN-EXCLUDED!!!"
 
-export function getActionConfigVersion<C extends BaseActionConfig>(config: C) {
+export function getActionConfigVersion<C extends BaseActionConfig>(log: ActionLog, config: C) {
   let configToHash: unknown = omit(config, ...nonVersionedActionConfigKeys)
 
-  if (config.version?.excludeValues && config.version.excludeValues.length > 0) {
-    configToHash = deepMap(configToHash, (v) => {
+  const excludeValues = config.version?.excludeValues || []
+  const excludeValueRegexes = excludeValues.map((v) => new RegExp(v, "g"))
+
+  if (excludeValues.length > 0) {
+    configToHash = deepMap(configToHash, (v, _key, path) => {
       if (isString(v)) {
-        for (const exclude of config.version!.excludeValues || []) {
-          v = (<string>v).replace(new RegExp(exclude, "g"), excludeValueReplacement)
+        for (const regex of excludeValueRegexes) {
+          if (regex.test(v as string)) {
+            log.verbose(`Excluding value ${v} from version calculation for ${path.join(".")}`)
+            return v.replace(regex, excludeValueReplacement)
+          }
         }
       }
       return v

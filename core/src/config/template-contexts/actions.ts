@@ -21,6 +21,7 @@ import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import type { InputContext } from "./input.js"
 import type { VariablesContext } from "./variables.js"
+import type { Log } from "../../logger/log-entry.js"
 
 type ActionConfigThisContextParams = Pick<ActionReferenceContextParams, "name" | "mode">
 
@@ -185,7 +186,7 @@ class ActionReferencesContext extends ContextWithSchema {
   @schema(_actionResultContextSchema.description("Alias for `run`."))
   public readonly tasks: Map<string, ActionResultContext>
 
-  constructor(actions: (ResolvedAction | ExecutedAction)[]) {
+  constructor(log: Log, actions: (ResolvedAction | ExecutedAction)[]) {
     super()
 
     this.build = new Map()
@@ -202,7 +203,7 @@ class ActionReferencesContext extends ContextWithSchema {
         new ActionResultContext({
           name: action.name,
           outputs: action.getOutputs(),
-          version: action.versionString(),
+          version: action.versionString(log),
           disabled: action.isDisabled(),
           buildPath: action.getBuildPath(),
           sourcePath: action.sourcePath(),
@@ -264,7 +265,7 @@ export class ActionSpecContext extends OutputConfigContext {
   public readonly this: ActionReferenceContext
 
   constructor(params: ActionSpecContextParams) {
-    const { action, variables, inputs, resolvedDependencies, executedDependencies } = params
+    const { garden, action, variables, inputs, resolvedDependencies, executedDependencies } = params
 
     const internal = action.getInternal()
     super({
@@ -278,7 +279,7 @@ export class ActionSpecContext extends OutputConfigContext {
     const parentName = internal?.parentName
     const templateName = internal?.templateName
 
-    this.actions = new ActionReferencesContext([...resolvedDependencies, ...executedDependencies])
+    this.actions = new ActionReferencesContext(garden.log, [...resolvedDependencies, ...executedDependencies])
 
     // Throw specific error when attempting to resolve self
     this.actions[action.kind.toLowerCase()].set(

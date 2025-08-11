@@ -115,7 +115,7 @@ describe("test actions", () => {
         expect(await pathExists(path)).to.be.true
       }
 
-      const metadataKey = `test.test.${action.versionString()}`
+      const metadataKey = `test.test.${action.versionString(log)}`
       const metadataFilename = `.metadata.${metadataKey}.json`
       const metadataPath = join(garden.artifactsPath, metadataFilename)
       expect(await pathExists(metadataPath)).to.be.true

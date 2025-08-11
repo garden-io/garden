@@ -107,7 +107,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     namespace,
   })
 
-  const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+  const outputs = k8sGetContainerBuildActionOutputs({ provider, action, log })
 
   const localId = outputs.localImageId
   const dockerfile = spec.dockerfile || defaultDockerfileName
@@ -133,7 +133,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
-  const command = makeBuildkitBuildCommand({ provider, outputs, action, contextPath, dockerfile })
+  const command = makeBuildkitBuildCommand({ provider, outputs, action, contextPath, dockerfile, log })
 
   // Execute the build
   const buildTimeout = action.getConfig("timeout")
@@ -275,12 +275,14 @@ export function makeBuildkitBuildCommand({
   action,
   contextPath,
   dockerfile,
+  log,
 }: {
   provider: KubernetesProvider
   outputs: ContainerModuleOutputs
   action: ResolvedBuildAction
   contextPath: string
   dockerfile: string
+  log: Log
 }): MaybeSecret[] {
   const { secretArgs, secretEnvVars } = getDockerSecrets(action.getSpec())
 
@@ -300,7 +302,7 @@ export function makeBuildkitBuildCommand({
       outputs,
       provider.config.deploymentRegistry!.insecure
     ),
-    ...getBuildkitFlags(action),
+    ...getBuildkitFlags(action, log),
   ]
 
   return [
@@ -310,12 +312,12 @@ export function makeBuildkitBuildCommand({
   ]
 }
 
-export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {
+export function getBuildkitFlags(action: Resolved<ContainerBuildAction>, log: Log) {
   const args: string[] = []
 
   const spec = action.getSpec()
 
-  for (const arg of getDockerBuildArgs(action.versionString(), spec.buildArgs)) {
+  for (const arg of getDockerBuildArgs(action.versionString(log), spec.buildArgs)) {
     args.push("--opt", "build-arg:" + arg)
   }
 

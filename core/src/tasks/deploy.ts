@@ -95,7 +95,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
     }
 
-    return { ...status, version: action.versionString(), executedAction }
+    return { ...status, version: action.versionString(log), executedAction }
   }
 
   @OtelTraced({
@@ -112,11 +112,10 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   @(logAndEmitProcessingEvents<DeployAction>)
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
-    const version = action.versionString()
+    const log = this.log.createLog()
+    const version = action.versionString(log)
 
     const router = await this.garden.getActionRouter()
-
-    const log = this.log.createLog()
 
     try {
       const output = await router.deploy.deploy({

@@ -32,6 +32,7 @@ import { createBuildTask } from "../tasks/build.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
 import type { ResolvedTemplate } from "../template/types.js"
+import type { Log } from "../logger/log-entry.js"
 
 export interface BuildCopyFrom {
   build: string
@@ -162,11 +163,11 @@ export class BuildAction<
    * Semantically, this should be irrelevant to the user, since build cache hits or misses should be triggered for
    * similar changes to the underlying build-relevant parts of the module config, or to the included sources.
    */
-  @Memoize()
-  override getFullVersion(): ActionVersion {
-    const actionVersion = super.getFullVersion()
+  @Memoize(() => true)
+  override getFullVersion(log: Log): ActionVersion {
+    const actionVersion = super.getFullVersion(log)
     if (this._moduleVersion) {
-      actionVersion.versionString = this.moduleVersion().versionString
+      actionVersion.versionString = this.moduleVersion(log).versionString
     }
     return actionVersion
   }

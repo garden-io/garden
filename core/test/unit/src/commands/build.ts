@@ -46,9 +46,9 @@ describe("BuildCommand", () => {
 
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
 
-    const versionA = graph.getBuild("module-a").versionString()
-    const versionB = graph.getBuild("module-b").versionString()
-    const versionC = graph.getBuild("module-c").versionString()
+    const versionA = graph.getBuild("module-a").versionString(log)
+    const versionB = graph.getBuild("module-b").versionString(log)
+    const versionC = graph.getBuild("module-c").versionString(log)
 
     // TODO-G2B: think about a way to use type-safe values in taskOutputResults
     const taskOutputResults = taskResultOutputs(result!)

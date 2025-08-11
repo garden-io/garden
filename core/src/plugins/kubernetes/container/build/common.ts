@@ -195,7 +195,7 @@ export async function skopeoBuildStatus({
     })
   }
 
-  const outputs = k8sGetContainerBuildActionOutputs({ action, provider })
+  const outputs = k8sGetContainerBuildActionOutputs({ action, provider, log })
 
   const remoteId = outputs.deploymentImageId
   const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "~/.docker/config.json"]

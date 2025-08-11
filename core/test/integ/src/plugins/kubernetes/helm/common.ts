@@ -205,7 +205,7 @@ spec:
       shareProcessNamespace: true
       containers:
         - name: api
-          image: "api-image:${buildImageAction.versionString()}"
+          image: "api-image:${buildImageAction.versionString(log)}"
           imagePullPolicy: IfNotPresent
           args: [python, app.py]
           ports:

@@ -102,7 +102,7 @@ describe("GetRunResultCommand", () => {
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const runAction = graph.getRun(name)
-    const artifactKey = getArtifactKey("run", name, runAction.versionString())
+    const artifactKey = getArtifactKey("run", name, runAction.versionString(log))
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
     const metadata = {
       key: artifactKey,

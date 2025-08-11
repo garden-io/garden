@@ -117,9 +117,9 @@ describe("PublishCommand", () => {
 
     const graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
 
-    const versionA = graph.getBuild("module-a").versionString()
-    const versionB = graph.getBuild("module-b").versionString()
-    const versionC = graph.getBuild("module-c").versionString()
+    const versionA = graph.getBuild("module-a").versionString(log)
+    const versionB = graph.getBuild("module-b").versionString(log)
+    const versionC = graph.getBuild("module-c").versionString(log)
 
     // detail.identifier is undefined because --tag option was not specified; The plugin needs to calculate the tag itself, the test plugin will just return the tagOverride value.
     expect(taskResultOutputs(result!)).to.eql({
@@ -278,8 +278,8 @@ describe("PublishTask", () => {
 
     const processed = await garden.processTasks({ tasks, throwOnError: true })
     const graphResultsMap = processed.results.getMap()
-    const verA = graph.getBuild("module-a").versionString()
-    const verB = graph.getBuild("module-b").versionString()
+    const verA = graph.getBuild("module-a").versionString(log)
+    const verB = graph.getBuild("module-b").versionString(log)
 
     expect(graphResultsMap["publish.module-a"]!.result.detail.published).to.be.true
     expect(graphResultsMap["publish.module-a"]!.result.detail.identifier).to.equal(`v1.0-module-a-${verA}`)

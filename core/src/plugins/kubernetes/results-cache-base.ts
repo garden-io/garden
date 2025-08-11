@@ -61,8 +61,8 @@ export class StructuredCacheKey<AdditionalKeyData> {
   private readonly actionVersion: string
   private readonly keyData: AdditionalKeyData
 
-  constructor({ action, keyData }: { action: CacheableAction; keyData: AdditionalKeyData }) {
-    this.actionVersion = action.versionStringFull()
+  constructor({ action, keyData, log }: { action: CacheableAction; keyData: AdditionalKeyData; log: Log }) {
+    this.actionVersion = action.versionStringFull(log)
     this.keyData = keyData
   }
 
@@ -145,13 +145,21 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
     return undefined
   }
 
-  protected cacheKey({ action, keyData }: { action: CacheableAction; keyData: AdditionalKeyData }): string {
-    const structuredCacheKey = new StructuredCacheKey<AdditionalKeyData>({ action, keyData })
+  protected cacheKey({
+    action,
+    keyData,
+    log,
+  }: {
+    action: CacheableAction
+    keyData: AdditionalKeyData
+    log: Log
+  }): string {
+    const structuredCacheKey = new StructuredCacheKey<AdditionalKeyData>({ action, keyData, log })
     return structuredCacheKey.calculate()
   }
 
   public async clear({ log, action, keyData }: ClearResultParams<A, AdditionalKeyData>): Promise<void> {
-    const key = this.cacheKey({ action, keyData })
+    const key = this.cacheKey({ action, keyData, log })
     try {
       await this.cacheStorage.remove(key, action)
     } catch (e) {
@@ -168,7 +176,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
     keyData,
     log,
   }: LoadResultParams<A, AdditionalKeyData>): Promise<ResultContainer<z.output<ResultSchema>>> {
-    const key = this.cacheKey({ action, keyData })
+    const key = this.cacheKey({ action, keyData, log })
     let cachedValue: ResultContainer<JsonObject>
     try {
       cachedValue = await this.cacheStorage.get(key, action)
@@ -204,7 +212,7 @@ export class ResultCache<A extends CacheableAction, ResultSchema extends AnyZodO
       return undefined
     }
 
-    const key = this.cacheKey({ action, keyData })
+    const key = this.cacheKey({ action, keyData, log })
     try {
       return await this.cacheStorage.put(key, validatedResult, action)
     } catch (e) {

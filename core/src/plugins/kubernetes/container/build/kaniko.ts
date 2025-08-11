@@ -103,7 +103,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     })
   }
 
-  const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+  const outputs = k8sGetContainerBuildActionOutputs({ provider, action, log })
 
   const localId = outputs.localImageId
   const deploymentImageId = outputs.deploymentImageId
@@ -193,7 +193,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   const containerProviderConfig: ContainerProviderConfig = provider.dependencies.container.config
 
-  args.push(...getDockerBuildFlags(action, containerProviderConfig))
+  args.push(...getDockerBuildFlags(action, containerProviderConfig, log))
 
   const buildRes = await runKaniko({
     ctx,

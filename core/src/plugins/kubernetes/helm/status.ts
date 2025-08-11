@@ -90,7 +90,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
     detail: {
       forwardablePorts,
       state,
-      version: state === "ready" ? action.versionString() : undefined,
+      version: state === "ready" ? action.versionString(log) : undefined,
       detail,
       mode: deployedMode,
       ingresses,
@@ -207,7 +207,7 @@ export async function getReleaseStatus({
   const deployedMode = gardenMetadata.mode
 
   if (state === "ready") {
-    if (action.mode() !== deployedMode || !deployedVersion || deployedVersion !== action.versionString()) {
+    if (action.mode() !== deployedMode || !deployedVersion || deployedVersion !== action.versionString(log)) {
       state = "outdated"
     }
   }

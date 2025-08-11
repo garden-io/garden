@@ -284,7 +284,7 @@ export async function prepareRunPodSpec({
   dropCapabilities?: string[]
 }): Promise<V1PodSpec> {
   // Prepare environment variables
-  envVars = { ...action.getEnvVars(), ...envVars }
+  envVars = { ...action.getEnvVars(log), ...envVars }
   const env = uniqByName([
     ...prepareEnvVars(envVars),
     // If `container` is specified, include its variables as well

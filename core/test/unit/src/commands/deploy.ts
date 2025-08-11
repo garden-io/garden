@@ -163,7 +163,7 @@ describe("DeployCommand", () => {
 
     const graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
 
-    const getDeployVersion = (serviceName: string) => graph.getDeploy(serviceName).versionString()
+    const getDeployVersion = (serviceName: string) => graph.getDeploy(serviceName).versionString(log)
 
     for (const graphResult of Object.values(deployResults)) {
       expect(graphResult).to.exist

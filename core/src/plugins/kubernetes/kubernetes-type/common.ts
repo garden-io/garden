@@ -169,7 +169,7 @@ export async function getManifests({
 
   if (action.kind === "Deploy") {
     // Add metadata ConfigMap to aid quick status check
-    const metadataManifest = getMetadataManifest(action, defaultNamespace, patchedManifests)
+    const metadataManifest = getMetadataManifest({ action, defaultNamespace, declaredManifests: patchedManifests, log })
     const declaredMetadataManifest: DeclaredManifest = {
       declaration: { type: "inline", index: patchedManifests.length },
       manifest: metadataManifest,
@@ -251,11 +251,17 @@ export interface ParsedMetadataManifestData {
   manifestMetadata: { [key: string]: ManifestMetadata }
 }
 
-export function getMetadataManifest(
-  action: Resolved<KubernetesDeployAction>,
-  defaultNamespace: string,
+export function getMetadataManifest({
+  action,
+  defaultNamespace,
+  declaredManifests,
+  log,
+}: {
+  action: Resolved<KubernetesDeployAction>
+  defaultNamespace: string
   declaredManifests: DeclaredManifest[]
-): KubernetesResource<V1ConfigMap> {
+  log: Log
+}): KubernetesResource<V1ConfigMap> {
   const manifestMetadata: ManifestMetadata[] = declaredManifests.map((declaredManifest) => {
     const m = declaredManifest.manifest
     return {
@@ -274,7 +280,7 @@ export function getMetadataManifest(
       name: `garden-meta-${action.kind.toLowerCase()}-${action.name}`,
     },
     data: {
-      resolvedVersion: action.versionString(),
+      resolvedVersion: action.versionString(log),
       mode: action.mode(),
       manifestMetadata: stableStringify(keyBy(manifestMetadata, "key")),
     },

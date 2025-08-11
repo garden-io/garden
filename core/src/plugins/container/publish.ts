@@ -18,7 +18,7 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   tagOverride,
 }) => {
   const localImageId = action.getOutput("localImageId")
-  const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
+  const remoteImageId = containerHelpers.getPublicImageId(action, log, tagOverride)
   const dockerBuildExtraFlags = action.getSpec("extraFlags")
 
   // If --push flag is set explicitly, use regctl to copy the image.

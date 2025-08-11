@@ -38,7 +38,17 @@ export const getActionsToSimpleWithStateOutput = async (
   }
 }
 
-export const getActionsToDetailedOutput = (a: Action, garden: TestGarden, graph: ResolvedConfigGraph) => {
+export const getActionsToDetailedOutput = ({
+  a,
+  garden,
+  graph,
+  log,
+}: {
+  a: Action
+  garden: TestGarden
+  graph: ResolvedConfigGraph
+  log: Log
+}) => {
   return {
     name: a.name,
     kind: a.kind,
@@ -53,20 +63,26 @@ export const getActionsToDetailedOutput = (a: Action, garden: TestGarden, graph:
       .map((d) => d.key())
       .sort(),
     disabled: a.isDisabled(),
-    version: omit(a.getFullVersion(), "versionStringFull"),
+    version: omit(a.getFullVersion(log), "versionStringFull"),
     allowPublish: a.getConfig().allowPublish ?? undefined,
     publishId: a.getConfig().spec.publishId ?? undefined,
     moduleName: a.moduleName() ?? undefined,
   }
 }
 
-export const getActionsToDetailedWithStateOutput = async (
-  a: Action,
-  garden: TestGarden,
-  router: ActionRouter,
-  graph: ResolvedConfigGraph,
+export const getActionsToDetailedWithStateOutput = async ({
+  a,
+  garden,
+  router,
+  graph,
+  log,
+}: {
+  a: Action
+  garden: TestGarden
+  router: ActionRouter
+  graph: ResolvedConfigGraph
   log: Log
-) => {
+}) => {
   {
     return {
       name: a.name,
@@ -83,7 +99,7 @@ export const getActionsToDetailedWithStateOutput = async (
         .map((d) => d.key())
         .sort(),
       disabled: a.isDisabled(),
-      version: omit(a.getFullVersion(), "versionStringFull"),
+      version: omit(a.getFullVersion(log), "versionStringFull"),
       allowPublish: a.getConfig().allowPublish ?? undefined,
       publishId: a.getConfig().spec.publishId ?? undefined,
       moduleName: a.moduleName() ?? undefined,
@@ -181,7 +197,7 @@ describe("GetActionsCommand", () => {
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const expected = sortBy(
-      graph.getActions().map((a) => getActionsToDetailedOutput(a, garden, graph)),
+      graph.getActions().map((a) => getActionsToDetailedOutput({ a, garden, graph, log })),
       "name"
     )
     expect(command.outputsSchema().validate(result).error).to.be.undefined
@@ -251,7 +267,7 @@ describe("GetActionsCommand", () => {
     const router = await garden.getActionRouter()
     const expected = sortBy(
       await Promise.all(
-        graph.getActions().map(async (a) => getActionsToDetailedWithStateOutput(a, garden, router, graph, log))
+        graph.getActions().map(async (a) => getActionsToDetailedWithStateOutput({ a, garden, router, graph, log }))
       ),
       "name"
     )

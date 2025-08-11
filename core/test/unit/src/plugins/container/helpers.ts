@@ -169,7 +169,7 @@ describe("containerHelpers", () => {
       action._config.spec.publishId = "some/image:1.1"
 
       const resolved = await garden.resolveAction({ action, graph, log })
-      expect(helpers.getPublicImageId(resolved)).to.equal("some/image:1.1")
+      expect(helpers.getPublicImageId(resolved, log)).to.equal("some/image:1.1")
     })
 
     it("should use image name if specified with commit hash if no version is set", async () => {
@@ -181,7 +181,7 @@ describe("containerHelpers", () => {
 
       const resolved = await garden.resolveAction({ action, graph, log })
 
-      expect(helpers.getPublicImageId(resolved)).to.equal("some/image:" + resolved.versionString())
+      expect(helpers.getPublicImageId(resolved, log)).to.equal("some/image:" + resolved.versionString(log))
     })
 
     it("should use local id if no image name is set", async () => {
@@ -192,7 +192,7 @@ describe("containerHelpers", () => {
 
       const resolved = await garden.resolveAction({ action, graph, log })
 
-      expect(helpers.getPublicImageId(resolved)).to.equal("module-a:" + resolved.versionString())
+      expect(helpers.getPublicImageId(resolved, log)).to.equal("module-a:" + resolved.versionString(log))
     })
   })
 

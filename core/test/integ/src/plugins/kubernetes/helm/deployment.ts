@@ -100,7 +100,7 @@ describe("helmDeploy", () => {
         expect(releaseStatus.detail.gardenMetadata).to.eql({
           actionName: deployName,
           projectName: garden.projectName,
-          version: action.versionString(),
+          version: action.versionString(actionLog),
           mode: "default",
         })
       })
@@ -139,7 +139,7 @@ describe("helmDeploy", () => {
       expect(releaseStatus.detail.gardenMetadata).to.eql({
         actionName: "api-module",
         projectName: garden.projectName,
-        version: action.versionString(),
+        version: action.versionString(actionLog),
         mode: "default",
       })
     })
@@ -177,7 +177,7 @@ describe("helmDeploy", () => {
       expect(status.detail.gardenMetadata).to.eql({
         actionName: "api",
         projectName: garden.projectName,
-        version: action.versionString(),
+        version: action.versionString(actionLog),
         mode: "sync",
       })
     })
@@ -358,7 +358,7 @@ describe("helmDeploy", () => {
       expect(releaseStatus.detail.gardenMetadata).to.eql({
         actionName: "api",
         projectName: gardenWithCloudApi.projectName,
-        version: action.versionString(),
+        version: action.versionString(actionLog),
         mode: "default",
       })
 

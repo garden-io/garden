@@ -18,6 +18,7 @@ import type {
 import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "@garden-io/core/build/src/actions/build.js"
 import type { ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config.js"
 import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
+import type { ActionLog } from "@garden-io/core/build/src/logger/log-entry.js"
 
 import fsExtra from "fs-extra"
 const { pathExists } = fsExtra
@@ -90,7 +91,11 @@ export async function detectProjectType(action: ResolvedBuildAction): Promise<Ji
   })
 }
 
-export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: JibModuleBuildSpec["projectType"]) {
+export function getBuildFlags(
+  log: ActionLog,
+  action: Resolved<JibBuildAction>,
+  projectType: JibModuleBuildSpec["projectType"]
+) {
   const { tarOnly, tarFormat, dockerBuild, extraFlags, buildArgs } = action.getSpec()
 
   let targetDir: string
@@ -117,7 +122,7 @@ export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: Jib
   }
 
   // Make sure the target directory is scoped by module name, in case there are multiple modules in a project
-  const basenameSuffix = `-${action.name}-${action.versionString()}`
+  const basenameSuffix = `-${action.name}-${action.versionString(log)}`
   const tarFilename = `jib-image${basenameSuffix}.tar`
 
   // TODO: don't assume action path is the project root
@@ -125,7 +130,7 @@ export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: Jib
   // jib-container builds are done from the source directory instead of the build staging directory.
   const tarPath = resolve(action.sourcePath(), targetDir, tarFilename)
 
-  const dockerBuildArgs = getDockerBuildArgs(action.versionString(), buildArgs)
+  const dockerBuildArgs = getDockerBuildArgs(action.versionString(log), buildArgs)
   const outputs = action.getOutputs()
   const imageId = outputs.deploymentImageId
 

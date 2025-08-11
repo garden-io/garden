@@ -259,7 +259,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   }
 
   getInputVersion(): string {
-    return this.action.versionString()
+    return this.action.versionString(this.log)
   }
 
   // Most tasks can just use these default methods.
@@ -478,7 +478,7 @@ export function logAndEmitGetStatusEvents<
 
     const level = this.force ? "debug" : "info"
     log[level](
-      `Getting status for ${this.action.kind} ${styledName} (type ${styles.highlight(this.action.type)}) at version ${this.action.versionString()}...`
+      `Getting status for ${this.action.kind} ${styledName} (type ${styles.highlight(this.action.type)}) at version ${this.action.versionString(log)}...`
     )
 
     // First we emit the "getting-status" event
@@ -490,6 +490,7 @@ export function logAndEmitGetStatusEvents<
         startedAt,
         sessionId: this.garden.sessionId,
         runtime: undefined, // Runtime is unknown at this point
+        log: this.log,
       })
     )
 
@@ -517,6 +518,7 @@ export function logAndEmitGetStatusEvents<
         force: this.force,
         sessionId: this.garden.sessionId,
         runtime: (result.detail ?? {}).runtime,
+        log: this.log,
       }) as Events[typeof eventName]
 
       this.garden.events.emit(eventName, donePayload)
@@ -536,6 +538,7 @@ export function logAndEmitGetStatusEvents<
           operation: methodName,
           sessionId: this.garden.sessionId,
           runtime: undefined, // Runtime is unknown as the getStatus handler failed
+          log: this.log,
         })
       )
 
@@ -579,7 +582,7 @@ export function logAndEmitProcessingEvents<
     const eventName = actionKindToEventNameMap[actionKind]
     const startedAt = new Date().toISOString()
     const log = this.log.createLog()
-    const version = this.action.versionString()
+    const version = this.action.versionString(log)
     const logStrings = actionLogStrings[this.action.kind]
     log.info(
       `${logStrings.running} ${styles.highlight(this.action.name)} (type ${styles.highlight(
@@ -602,6 +605,7 @@ export function logAndEmitProcessingEvents<
         force: this.force,
         sessionId: this.garden.sessionId,
         runtime: statusRuntime,
+        log: this.log,
       })
     )
 
@@ -618,6 +622,7 @@ export function logAndEmitProcessingEvents<
         sessionId: this.garden.sessionId,
         // process handler returns actual runtime; might fall back to other runtimes, if needed.
         runtime: result.detail?.runtime,
+        log: this.log,
       }) as Events[typeof eventName]
 
       this.garden.events.emit(eventName, donePayload)
@@ -638,6 +643,7 @@ export function logAndEmitProcessingEvents<
           operation: methodName,
           sessionId: this.garden.sessionId,
           runtime: statusRuntime,
+          log: this.log,
         })
       )
 

@@ -49,7 +49,7 @@ export class GetFilesCommand extends Command<Args, Opts> {
     const result = fromPairs(
       actions.map((a) => {
         const key = a.key()
-        const files = a.getFullVersion().files
+        const files = a.getFullVersion(log).files
 
         log.info("")
         log.info(styles.highlight(key))

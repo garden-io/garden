@@ -19,6 +19,6 @@ describe("BuildAction", () => {
     const moduleA = graph.getModule("module-a")
     const buildA = graph.getBuild("module-a")
 
-    expect(moduleA.version.versionString).to.eql(buildA.getFullVersion().versionString)
+    expect(moduleA.version.versionString).to.eql(buildA.getFullVersion(log).versionString)
   })
 })

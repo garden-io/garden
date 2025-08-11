@@ -53,7 +53,11 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       await this.ensureBuildContext(action)
     }
 
-    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
+    return {
+      ...status,
+      version: action.versionString(log),
+      executedAction: resolvedActionToExecuted(action, { status }),
+    }
   }
 
   @OtelTraced({
@@ -92,7 +96,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
 
       return {
         ...result,
-        version: action.versionString(),
+        version: action.versionString(log),
         executedAction: resolvedActionToExecuted(action, { status: result }),
       }
     } catch (err) {
@@ -109,7 +113,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
 
   private async buildStaging(action: ResolvedBuildAction<BuildActionConfig>) {
     const log = this.log
-    const files = action.getFullVersion().files
+    const files = action.getFullVersion(log).files
 
     if (files.length > 0) {
       log.verbose(`Syncing sources (${pluralize("file", files.length, true)})...`)

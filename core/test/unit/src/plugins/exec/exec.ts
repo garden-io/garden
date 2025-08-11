@@ -384,7 +384,7 @@ describe("exec plugin", () => {
         const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
         expect(res.detail).to.eql({
-          buildLog: action.versionString(),
+          buildLog: action.versionString(log),
           fresh: true,
           runtime: ACTION_RUNTIME_LOCAL,
         })
@@ -401,7 +401,7 @@ describe("exec plugin", () => {
         const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
         expect(res.detail).to.eql({
-          buildLog: action.versionString(),
+          buildLog: action.versionString(log),
           fresh: true,
           runtime: ACTION_RUNTIME_LOCAL,
         })
@@ -484,8 +484,8 @@ describe("exec plugin", () => {
           graph,
           silent: false,
         })
-        expect(res.outputs.log).to.equal(action.versionString())
-        expect(res.outputs.stdout).to.equal(action.versionString())
+        expect(res.outputs.log).to.equal(action.versionString(log))
+        expect(res.outputs.stdout).to.equal(action.versionString(log))
       })
     })
 
@@ -520,7 +520,7 @@ describe("exec plugin", () => {
           graph,
         })
 
-        expect(res.detail?.log).to.equal(action.versionString())
+        expect(res.detail?.log).to.equal(action.versionString(log))
       })
     })
 

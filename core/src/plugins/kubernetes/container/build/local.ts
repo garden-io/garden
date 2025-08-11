@@ -26,7 +26,7 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   const config = k8sCtx.provider.config
   const deploymentRegistry = config.deploymentRegistry
 
-  const outputs = k8sGetContainerBuildActionOutputs({ provider: k8sCtx.provider, action })
+  const outputs = k8sGetContainerBuildActionOutputs({ provider: k8sCtx.provider, action, log })
 
   const result: BuildStatusResult = {
     state: "not-ready",
@@ -77,7 +77,7 @@ export const localBuild: BuildHandler = async (params) => {
   const provider = ctx.provider as KubernetesProvider
   const base = params.base || buildContainer
 
-  const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+  const outputs = k8sGetContainerBuildActionOutputs({ provider, action, log })
   const localId = outputs.localImageId
   const remoteId = outputs.deploymentImageId
 
@@ -124,7 +124,7 @@ export const kubernetesContainerHelpers = {
     const { ctx, log, action } = params
     const provider = ctx.provider as KubernetesProvider
 
-    const { localImageId } = k8sGetContainerBuildActionOutputs({ provider, action })
+    const { localImageId } = k8sGetContainerBuildActionOutputs({ provider, action, log })
 
     if (provider.config.clusterType === "kind") {
       await loadImageToKind(localImageId, provider.config, log)

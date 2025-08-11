@@ -72,7 +72,7 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
     moduleName: action.moduleName(),
     testName: action.name,
     command,
-    version: action.versionString(),
+    version: action.versionString(log),
     success: commandResult.success,
     log: commandResult.outputLog,
     startedAt,

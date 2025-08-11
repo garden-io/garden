@@ -1,0 +1,8 @@
+kind: Test
+type: test
+name: test
+version:
+  excludeValues:
+    - ${var.hostname}
+spec:
+  command: [echo, "${var.hostname}"]

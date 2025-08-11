@@ -34,7 +34,7 @@ import { configureKubernetesModule } from "./module-config.js"
 import type { ExecBuildConfig } from "../../exec/build.js"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
-import type { ActionLog } from "../../../logger/log-entry.js"
+import type { ActionLog, Log } from "../../../logger/log-entry.js"
 import type { ActionMode, Resolved } from "../../../actions/types.js"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status.js"
 import type { ResolvedDeployAction } from "../../../actions/deploy.js"
@@ -190,6 +190,7 @@ function composeKubernetesDeployStatus({
   state,
   remoteResources,
   forwardablePorts,
+  log,
 }: {
   action: KubernetesDeployAction
   deployedMode: ActionMode
@@ -197,13 +198,14 @@ function composeKubernetesDeployStatus({
   remoteResources: KubernetesResource[]
   forwardablePorts: ForwardablePort[]
   provider: KubernetesProvider
+  log: Log
 }) {
   return {
     state: deployStateToActionState(state),
     detail: {
       forwardablePorts,
       state,
-      version: state === "ready" ? action.versionString() : undefined,
+      version: state === "ready" ? action.versionString(log) : undefined,
       detail: { remoteResources },
       mode: deployedMode,
       ingresses: getK8sIngresses(remoteResources),
@@ -216,15 +218,17 @@ function composeKubernetesDeployStatus({
 function isOutdated({
   action,
   deployedMetadata,
+  log,
 }: {
   action: ResolvedDeployAction
   deployedMetadata: ParsedMetadataManifestData
+  log: Log
 }): boolean {
   const spec = action.getSpec()
   const actionMode = action.mode()
   const deployedMode = deployedMetadata.mode
 
-  if (deployedMetadata.resolvedVersion !== action.versionString()) {
+  if (deployedMetadata.resolvedVersion !== action.versionString(log)) {
     return true
   } else if (actionMode === "sync" && spec.sync?.paths && deployedMode !== "sync") {
     return true
@@ -297,7 +301,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
 
   // Note: This is analogous to how we version check Helm charts, i.e. we don't check every resource individually.
   // Users can always force deploy, much like with Helm Deploys.
-  const metadataManifest = getMetadataManifest(action, defaultNamespace, [])
+  const metadataManifest = getMetadataManifest({ action, defaultNamespace, declaredManifests: [], log })
   const remoteMetadataResource = await getDeployedResource(ctx, provider, metadataManifest, log)
 
   if (!remoteMetadataResource) {
@@ -308,6 +312,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       remoteResources: [],
       forwardablePorts: [],
       provider,
+      log,
     })
   }
 
@@ -334,6 +339,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     const state: DeployState = isOutdated({
       action,
       deployedMetadata,
+      log,
     })
       ? "outdated"
       : resolveResourceStatuses(log, resourceStatuses)
@@ -345,6 +351,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       remoteResources,
       forwardablePorts,
       provider,
+      log,
     })
   } catch (error) {
     log.debug({ msg: `Failed querying for remote resources: ${error}` })
@@ -355,6 +362,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       remoteResources: [],
       forwardablePorts: [],
       provider,
+      log,
     })
   }
 }

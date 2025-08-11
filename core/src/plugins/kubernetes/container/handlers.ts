@@ -20,6 +20,7 @@ import type { GetModuleOutputsParams } from "../../../plugin/handlers/Module/get
 import { containerHelpers } from "../../container/helpers.js"
 import { getContainerModuleOutputs } from "../../container/container.js"
 import type { Resolved } from "../../../actions/types.js"
+import type { Log } from "../../../logger/log-entry.js"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   const { moduleConfig } = await params.base!(params)
@@ -55,11 +56,13 @@ export async function k8sGetContainerModuleOutputs(params: GetModuleOutputsParam
 export function k8sGetContainerBuildActionOutputs({
   provider,
   action,
+  log,
 }: {
   provider: KubernetesProvider
   action: Resolved<ContainerBuildAction>
+  log: Log
 }): ContainerBuildOutputs {
-  return containerHelpers.getBuildActionOutputs(action, provider.config.deploymentRegistry)
+  return containerHelpers.getBuildActionOutputs(action, provider.config.deploymentRegistry, log)
 }
 
 function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {

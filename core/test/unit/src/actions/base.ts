@@ -11,6 +11,8 @@ import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../src/constants.js"
 import type { ActionConfig, BaseActionConfig } from "../../../../src/actions/types.js"
 import type { NonVersionedActionConfigKey } from "../../../../src/actions/base.js"
 import { actionIsDisabled, getActionConfigVersion } from "../../../../src/actions/base.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { createActionLog } from "../../../../src/logger/log-entry.js"
 
 describe("getActionConfigVersion", () => {
   function minimalActionConfig(): ActionConfig {
@@ -25,6 +27,11 @@ describe("getActionConfigVersion", () => {
       spec: {},
     }
   }
+  const log = createActionLog({
+    log: getRootLogger().createLog(),
+    actionName: "foo",
+    actionKind: "Build",
+  })
 
   context("action config version does not change", () => {
     // Helper types for testing non-versioned config fields.
@@ -50,11 +57,11 @@ describe("getActionConfigVersion", () => {
       it(`on ${field} field modification`, () => {
         const config1 = minimalActionConfig()
         config1[field] = valuePair.leftValue
-        const version1 = getActionConfigVersion(config1)
+        const version1 = getActionConfigVersion(log, config1)
 
         const config2 = minimalActionConfig()
         config2[field] = valuePair.rightValue
-        const version2 = getActionConfigVersion(config2)
+        const version2 = getActionConfigVersion(log, config2)
 
         expect(version1).to.eql(version2)
       })
@@ -77,8 +84,8 @@ describe("getActionConfigVersion", () => {
       excludeValues: [hostnameB],
     }
 
-    const versionA = getActionConfigVersion(configA)
-    const versionB = getActionConfigVersion(configB)
+    const versionA = getActionConfigVersion(log, configA)
+    const versionB = getActionConfigVersion(log, configB)
 
     expect(versionA).to.equal(versionB)
   })

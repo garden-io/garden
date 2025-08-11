@@ -239,7 +239,7 @@ export class GetActionsCommand extends Command {
             .map((d) => d.key())
             .sort(),
           disabled: a.isDisabled(),
-          version: omit(a.getFullVersion(), "versionStringFull"),
+          version: omit(a.getFullVersion(log), "versionStringFull"),
           allowPublish: a.getConfig().allowPublish ?? undefined,
           publishId: a.getSpec("publishId") ?? undefined,
           moduleName: a.moduleName() ?? undefined,
