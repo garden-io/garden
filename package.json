@@ -65,6 +65,7 @@
     "node-jsonl": "^0.1.0",
     "npm-license-crawler": "^0.2.1",
     "prettier": "3.6.2",
+    "react": "^19.1.1",
     "replace-in-file": "^8.3.0",
     "semver": "^7.7.2",
     "shx": "^0.4.0",
