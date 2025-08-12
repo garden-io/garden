@@ -2,7 +2,9 @@ kind: Test
 type: test
 name: test
 version:
-  excludeValues:
-    - ${var.hostname}
+  excludeFields:
+    - [spec, env, HOSTNAME]
 spec:
-  command: [echo, "${var.hostname}"]
+  command: ["echo"]
+  env:
+    HOSTNAME: ${var.hostname}

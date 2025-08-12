@@ -95,9 +95,85 @@ describe("getActionConfigVersion", () => {
 
     expect(versionA).to.equal(versionB)
   })
+
+  describe("version.excludeFields", () => {
+    it("handles a direct object path match", () => {
+      const configA = minimalActionConfig()
+      configA.spec = { env: { HOSTNAME: "a.example.com" } }
+      configA.version = {
+        excludeFields: [["spec", "env", "HOSTNAME"]],
+      }
+
+      const configB = minimalActionConfig()
+      configB.spec = { env: { HOSTNAME: "b.example.com" } }
+      configB.version = configA.version
+
+      const versionA = getActionConfigVersion(log, configA)
+      const versionB = getActionConfigVersion(log, configB)
+
+      expect(versionA).to.equal(versionB)
+    })
+
+    it("handles version.excludeFields with numeric array field references", () => {
+      const configA = minimalActionConfig()
+      configA.spec = { array: [{ foo: "A" }] }
+      configA.version = {
+        excludeFields: [["spec", "array", 0, "foo"]],
+      }
+
+      const configB = minimalActionConfig()
+      configB.spec = { array: [{ foo: "B" }] }
+      configB.version = configA.version
+
+      const versionA = getActionConfigVersion(log, configA)
+      const versionB = getActionConfigVersion(log, configB)
+
+      expect(versionA).to.equal(versionB)
+    })
+
+    it("handles version.excludeFields with wildcard array field references", () => {
+      const configA = minimalActionConfig()
+      configA.spec = { array: [{ foo: "A" }] }
+      configA.version = {
+        excludeFields: [["spec", "array", "*", "foo"]],
+      }
+
+      const configB = minimalActionConfig()
+      configB.spec = { array: [{ foo: "B" }] }
+      configB.version = configA.version
+
+      const versionA = getActionConfigVersion(log, configA)
+      const versionB = getActionConfigVersion(log, configB)
+
+      expect(versionA).to.equal(versionB)
+    })
+
+    it("handles version.excludeFields with wildcard object field references", () => {
+      const configA = minimalActionConfig()
+      configA.spec = { array: [{ foo: "A" }] }
+      configA.version = {
+        excludeFields: [["spec", "*", "*", "foo"]],
+      }
+
+      const configB = minimalActionConfig()
+      configB.spec = { array: [{ foo: "B" }] }
+      configB.version = configA.version
+
+      const versionA = getActionConfigVersion(log, configA)
+      const versionB = getActionConfigVersion(log, configB)
+
+      expect(versionA).to.equal(versionB)
+    })
+  })
 })
 
 describe("replaceExcludeValues", () => {
+  const log = createActionLog({
+    log: getRootLogger().createLog(),
+    actionName: "foo",
+    actionKind: "Build",
+  })
+
   it("handles multiple replacements in the same string", () => {
     const config = minimalActionConfig()
     config.spec.hostname = "bla.foo.bar.foo"
@@ -105,14 +181,81 @@ describe("replaceExcludeValues", () => {
       excludeValues: ["foo"],
     }
 
-    const log = createActionLog({
-      log: getRootLogger().createLog(),
-      actionName: "foo",
-      actionKind: "Build",
-    })
     const replaced = replaceExcludeValues(config, log) as ActionConfig
 
     expect(replaced.spec.hostname).to.equal(`bla.${excludeValueReplacement}.bar.${excludeValueReplacement}`)
+  })
+
+  describe("version.excludeFields", () => {
+    it("handles a direct object path match", () => {
+      const config = minimalActionConfig()
+      config.spec = { env: { HOSTNAME: "a.example.com" } }
+      config.version = {
+        excludeFields: [["spec", "env", "HOSTNAME"]],
+      }
+
+      const replaced = replaceExcludeValues(config, log) as any
+
+      expect(replaced.spec).to.eql({ env: {} })
+    })
+
+    it("handles version.excludeFields with numeric array field references", () => {
+      const config = minimalActionConfig()
+      config.spec = { array: [{ foo: "A" }, { foo: "B" }] }
+      config.version = {
+        excludeFields: [["spec", "array", 0]],
+      }
+
+      const replaced = replaceExcludeValues(config, log) as any
+
+      expect(replaced.spec.array).to.eql([{ foo: "B" }])
+    })
+
+    it("handles version.excludeFields with key references under numeric array field references", () => {
+      const config = minimalActionConfig()
+      config.spec = { array: [{ foo: "A" }, { foo: "B" }] }
+      config.version = {
+        excludeFields: [["spec", "array", 0, "foo"]],
+      }
+
+      const replaced = replaceExcludeValues(config, log) as any
+
+      expect(replaced.spec.array).to.eql([{}, { foo: "B" }])
+    })
+
+    it("handles version.excludeFields with wildcard array field references", () => {
+      const config = minimalActionConfig()
+      config.spec = {
+        array: [
+          { foo: "A", bar: "A" },
+          { foo: "B", bar: "B" },
+        ],
+      }
+      config.version = {
+        excludeFields: [["spec", "array", "*", "foo"]],
+      }
+
+      const replaced = replaceExcludeValues(config, log) as any
+
+      expect(replaced.spec.array).to.eql([{ bar: "A" }, { bar: "B" }])
+    })
+
+    it("handles version.excludeFields with wildcard object field references", () => {
+      const config = minimalActionConfig()
+      config.spec = {
+        array: [
+          { foo: "A", bar: "A" },
+          { foo: "B", bar: "B" },
+        ],
+      }
+      config.version = {
+        excludeFields: [["spec", "array", "*", "*"]],
+      }
+
+      const replaced = replaceExcludeValues(config, log) as any
+
+      expect(replaced.spec).to.eql({ array: [{}, {}] })
+    })
   })
 })
 

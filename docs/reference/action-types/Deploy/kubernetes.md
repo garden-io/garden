@@ -254,11 +254,48 @@ Whether the varfile is optional.
 | -------- | -------- |
 | `object` | No       |
 
+### `version.excludeFields[]`
+
+[version](#version) > excludeFields
+
+Specify a list of config fields that should be ignored when computing the version hash for this action. Each item should be an array of strings, specifying the path to the field to ignore, e.g. `[spec, env, HOSTNAME]` would ignore `spec.env.HOSTNAME` in the configuration when computing the version.
+
+For example, you might have a field that naturally changes for every individual test or dev environment, such as a dynamic hostname. You could solve for that with something like this:
+
+```yaml
+version:
+  excludeFields:
+    - [spec, env, HOSTNAME]
+```
+
+Arrays can also be indexed with numeric indices, but you can also use wildcards to exclude specific fields on all objects in arrays. Example:
+
+```yaml
+kind: Test
+type: container
+...
+spec:
+  artifacts:
+    - source: foo
+      target: bar  # Gets excluded from the version calculation
+version:
+  excludeFields:
+    - [spec, artifacts, "*", target]
+```
+
+Only simple `"*"` wildcards are supported for the moment (i.e. you can't exclude by `"something*"` or use question marks for individual character matching).
+
+Note that it is very important not to specify overly broad exclusions here, as this may cause the version to change too rarely, which may cause build errors or tests to not run when they should.
+
+| Type           | Required |
+| -------------- | -------- |
+| `array[array]` | No       |
+
 ### `version.excludeValues[]`
 
 [version](#version) > excludeValues
 
-Specify one or more string values that should be ignored when computing the version hash for this action. You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
+Specify one or more configuration fields that should be ignored when computing the version hash for this action. You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
 
 For example, you might have a variable that naturally changes for every individual test or dev environment, such as a dynamic hostname. You could solve for that with something like this:
 
@@ -270,7 +307,9 @@ version:
 
 With the `hostname` variable being defined in the Project configuration.
 
-For each value specified under this field, every occurrence of that string value (even as part of a longer string) will be replaced when calculating the action version. The action configuration is not affected.
+For each value specified under this field, every occurrence of that string value (even as part of a longer string) will be replaced when calculating the action version. The action configuration (used when performing the action) is not affected.
+
+For instances when the value to replace may be overly broad (e.g. "api") it is generally better to use the `excludeFields` option, since that should be more surgical.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
