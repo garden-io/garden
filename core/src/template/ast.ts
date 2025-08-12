@@ -8,7 +8,12 @@
 
 import { isArray, isNumber, isString } from "lodash-es"
 import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
-import { ContextResolveError, getUnavailableReason, renderKeyPath } from "../config/template-contexts/base.js"
+import {
+  ContextCircularlyReferencesItself,
+  ContextResolveError,
+  getUnavailableReason,
+  renderKeyPath,
+} from "../config/template-contexts/base.js"
 import { ConfigurationError, InternalError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions/index.js"
 import type { EvaluateTemplateArgs } from "./types.js"
@@ -813,8 +818,8 @@ export class ContextLookupExpression extends TemplateExpression {
       throw new TemplateStringError({
         message: getUnavailableReason(result),
         loc: this.loc,
+        causedByCircularReferenceError: result.explanation.reason === "circular_reference",
         yamlSource,
-        lookupResult: result,
       })
     }
 
@@ -838,6 +843,7 @@ export class ContextLookupExpression extends TemplateExpression {
           loc: this.loc,
           yamlSource,
           wrappedErrors: [e],
+          causedByCircularReferenceError: e instanceof ContextCircularlyReferencesItself,
         })
       }
       // wrap configuration error into template string error for better ux
@@ -855,6 +861,7 @@ export class ContextLookupExpression extends TemplateExpression {
           loc: this.loc,
           yamlSource,
           wrappedErrors: [e],
+          causedByCircularReferenceError: e.causedByCircularReferenceError,
         })
       }
       throw e

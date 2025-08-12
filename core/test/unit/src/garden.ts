@@ -3569,7 +3569,7 @@ describe("Garden", () => {
       expect(module.spec.bla).to.equal("default")
     })
 
-    it("should correctly resolve template strings with $merge keys", async () => {
+    it("should correctly resolve template strings with merge operator", async () => {
       const test = createGardenPlugin({
         name: "test",
         createModuleTypes: [

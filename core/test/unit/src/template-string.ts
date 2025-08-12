@@ -2119,7 +2119,7 @@ describe("parse and evaluate template collections", () => {
     })
   })
 
-  it("should collapse $merge keys on objects", () => {
+  it("should collapse merge operator keys on objects", () => {
     const obj = {
       $merge: { a: "a", b: "b" },
       b: "B",
@@ -2137,7 +2137,7 @@ describe("parse and evaluate template collections", () => {
     })
   })
 
-  it("should collapse $merge keys based on position on object", () => {
+  it("should collapse merge operator keys based on position on object", () => {
     const obj = {
       b: "B",
       c: "c",
@@ -2155,7 +2155,7 @@ describe("parse and evaluate template collections", () => {
     })
   })
 
-  it("should resolve $merge keys before collapsing", () => {
+  it("should resolve merge operator before collapsing", () => {
     const obj = {
       $merge: "${obj}",
       b: "B",
@@ -2173,7 +2173,7 @@ describe("parse and evaluate template collections", () => {
     })
   })
 
-  it("should resolve $merge keys depth-first", () => {
+  it("should resolve merge operators depth-first", () => {
     const obj = {
       b: "B",
       c: "c",
@@ -2194,7 +2194,7 @@ describe("parse and evaluate template collections", () => {
     })
   })
 
-  it("should resolve $merge keys if one object is undefined but it can fall back to another object", () => {
+  it("should resolve merge operator if one object is undefined but it can fall back to another object", () => {
     const obj = {
       $merge: "${var.doesnotexist || var.obj}",
       c: "c",
@@ -2211,7 +2211,7 @@ describe("parse and evaluate template collections", () => {
     })
   })
 
-  it("should resolve $merge keys if a dependency cannot be resolved but there's a fallback", () => {
+  it("should resolve merge operator if a dependency cannot be resolved but there's a fallback", () => {
     const obj = {
       "key-value-array": {
         $forEach: "${inputs.merged-object || []}",
@@ -2251,7 +2251,7 @@ describe("parse and evaluate template collections", () => {
     })
   })
 
-  it("should ignore $merge keys if the object to be merged is undefined", () => {
+  it("should ignore merge operator if the object to be merged is undefined", () => {
     const context = new TestContext({ var: { obj: { a: "a", b: "b" } } })
 
     const parsed = parseTemplateCollection({
@@ -2638,7 +2638,7 @@ describe("parse and evaluate template collections", () => {
       })
     })
 
-    it("$merge should correctly merge objects with overlapping property names inside $forEach loop", () => {
+    it("merge operator should correctly merge objects with overlapping property names inside $forEach loop", () => {
       const services = [
         {
           "env-overrides": {},
