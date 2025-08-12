@@ -222,7 +222,7 @@
     "@types/write-file-atomic": "^4.0.3",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "@typescript-eslint/parser": "^6.16.0",
-    "chai": "^5.2.0",
+    "chai": "^5.2.1",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jsdoc": "^50.6.17",
