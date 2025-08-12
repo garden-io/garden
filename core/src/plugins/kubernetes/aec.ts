@@ -66,6 +66,7 @@ export function getAecAgentManifests({
               image: getAecAgentImage(imageOverride, localDevMode),
               imagePullPolicy: "Always", // FIXME: Update this once we have a stable and versioned image tag
               command: ["garden", "plugins", "kubernetes", "aec-agent", "--description", description],
+              workingDir: "/garden/static/kubernetes/aec-agent",
               resources: {
                 requests: {
                   cpu: "100m",
@@ -192,6 +193,10 @@ export function getAecAnnotations(ctx: KubernetesPluginContext) {
   }
 
   return {
+    // This may seem incorrect, but we want to transition from env/namespace terminology to env type/name.
+    [gardenAnnotationKey("environment-type")]: ctx.environmentName,
+    [gardenAnnotationKey("environment-name")]: ctx.namespace,
+
     [gardenAnnotationKey("last-deployed")]: new Date().toISOString(),
     [gardenAnnotationKey("aec-config")]: JSON.stringify(aecConfig || {}),
   }
