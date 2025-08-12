@@ -105,7 +105,7 @@
     "koa-websocket": "^7.0.0",
     "linewrap": "^0.2.1",
     "lodash-es": "^4.17.21",
-    "log-symbols": "^6.0.0",
+    "log-symbols": "^7.0.1",
     "lru-cache": "^11.1.0",
     "micromatch": "^4.0.8",
     "mimic-function": "^5.0.1",
