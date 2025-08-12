@@ -33,11 +33,14 @@ export class TemplateStringError extends GardenError {
   type = "template-string"
 
   loc: Location
+  yamlSource: ConfigSource
   originalMessage: string
   lookupResult?: ContextResolveOutputNotFound
 
+  causedByCircularReferenceError: boolean
+
   constructor(
-    params: GardenErrorParams & { loc: Location; yamlSource: ConfigSource; lookupResult?: ContextResolveOutputNotFound }
+    params: GardenErrorParams & { loc: Location; yamlSource: ConfigSource; causedByCircularReferenceError?: boolean }
   ) {
     // TODO: Use Location information from parser to point to the specific part
     let enriched = addYamlContext({ source: params.yamlSource, message: params.message })
@@ -56,7 +59,8 @@ export class TemplateStringError extends GardenError {
 
     super({ ...params, message: enriched })
     this.loc = params.loc
+    this.yamlSource = params.yamlSource
     this.originalMessage = params.message
-    this.lookupResult = params.lookupResult
+    this.causedByCircularReferenceError = params.causedByCircularReferenceError || false
   }
 }

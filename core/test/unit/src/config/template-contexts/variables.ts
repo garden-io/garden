@@ -9,10 +9,11 @@ import { expect } from "chai"
 import { VariablesContext } from "../../../../../src/config/template-contexts/variables.js"
 import { parseTemplateCollection } from "../../../../../src/template/templated-collections.js"
 import type { TestGarden } from "../../../../helpers.js"
-import { getDataDir, makeTestGarden } from "../../../../helpers.js"
+import { expectError, getDataDir, makeTestGarden } from "../../../../helpers.js"
 import { TestContext } from "./base.js"
 import { deepResolveContext } from "../../../../../src/config/template-contexts/base.js"
 import { resolveAction } from "../../../../../src/graph/actions.js"
+import { parseTemplateString } from "../../../../../src/template/templated-strings.js"
 
 describe("varfiles", () => {
   let garden: TestGarden
@@ -51,51 +52,321 @@ describe("varfiles", () => {
 describe("VariablesContext", () => {
   let garden: TestGarden
 
-  beforeEach(async () => {
-    garden = await makeTestGarden(getDataDir("test-projects", "variable-crossreferences"))
-  })
-
   afterEach(() => {
     garden.close()
   })
 
-  describe("General overview", () => {
-    it("enforces variable precedence", () => {
-      const config = {
-        variables: {
-          hello: "lowest precedence",
-        },
-      }
-
-      const varfile = {
-        hello: "elevated precedence",
-      }
-
-      garden.variableOverrides["hello"] = "most precedence"
-
-      const context = new TestContext({
-        var: VariablesContext.forTest({ garden, variablePrecedence: [config.variables, varfile] }),
-      })
-
-      expect(context.eval("${var.hello}")).to.eql("most precedence")
+  describe("testproject-variable-crossreferences", () => {
+    beforeEach(async () => {
+      garden = await makeTestGarden(getDataDir("test-projects", "variable-crossreferences"))
     })
 
-    it("allows for variables to reference variables from lower precedence level", () => {
-      const project = parseTemplateCollection({
-        value: {
+    describe("General overview", () => {
+      it("enforces variable precedence", () => {
+        const config = {
           variables: {
-            foo: "bar",
-            fruit: "banana",
+            hello: "lowest precedence",
           },
-        },
-        source: { path: [] },
+        }
+
+        const varfile = {
+          hello: "elevated precedence",
+        }
+
+        garden.variableOverrides["hello"] = "most precedence"
+
+        const context = new TestContext({
+          var: VariablesContext.forTest({ garden, variablePrecedence: [config.variables, varfile] }),
+        })
+
+        expect(context.eval("${var.hello}")).to.eql("most precedence")
       })
+
+      it("allows for variables to reference variables from lower precedence level", () => {
+        const project = parseTemplateCollection({
+          value: {
+            variables: {
+              foo: "bar",
+              fruit: "banana",
+            },
+          },
+          source: { path: [] },
+        })
+
+        const environment = parseTemplateCollection({
+          value: {
+            variables: {
+              foo: "${var.foo}",
+              favouriteFood: "${var.fruit}",
+            },
+          },
+          source: { path: [] },
+        })
+
+        const context = new TestContext({
+          var: VariablesContext.forTest({ garden, variablePrecedence: [project.variables, environment.variables] }),
+        })
+
+        expect(context.eval("${var}")).to.eql({
+          foo: "bar",
+          favouriteFood: "banana",
+          fruit: "banana",
+        })
+      })
+
+      it("allows for variables to reference each other in the same precedence level", () => {
+        const config = parseTemplateCollection({
+          value: {
+            variables: {
+              suffix: "world",
+              hello: "hello ${var.suffix}",
+            },
+          },
+          source: { path: [] },
+        })
+
+        const context = new TestContext({
+          var: VariablesContext.forTest({ garden, variablePrecedence: [config.variables] }),
+        })
+
+        expect(context.eval("${var.hello}")).to.eql("hello world")
+      })
+
+      it("for backwards-compatibility with 0.13, variables in parent context have precedence over cross-referenced variables", () => {
+        const project = parseTemplateCollection({
+          value: {
+            variables: {
+              suffix: "project",
+            },
+          },
+          source: { path: [] },
+        })
+        const action = parseTemplateCollection({
+          value: {
+            variables: {
+              suffix: "action", // <-- takes lower precedence than "project.variables.suffix" when cross-referencing in the same scope
+              hello: "hello ${var.suffix}",
+            },
+          },
+          source: { path: [] },
+        })
+
+        const context = new TestContext({
+          var: VariablesContext.forTest({ garden, variablePrecedence: [project.variables, action.variables] }),
+        })
+
+        expect(context.eval("${var.hello}")).to.eql("hello project")
+      })
+
+      /**
+       * @see ContextResolveOpts.isFinalContext
+       */
+      describe("ContextResolveOpts.isFinalContext", () => {
+        describe("merge operator in variables is unresolvable", () => {
+          const action = parseTemplateCollection({
+            value: {
+              variables: {
+                $merge: "${actions.build.foobar.var}",
+                hello: "world, I am here!",
+              },
+            },
+            source: { path: [] },
+          })
+
+          let finalContext: TestContext
+          let incompleteContext: TestContext
+
+          beforeEach(() => {
+            finalContext = new TestContext({
+              var: VariablesContext.forTest({ garden, variablePrecedence: [action.variables] }), // <-- isFinalContext defaults to true
+            })
+
+            incompleteContext = new TestContext({
+              var: VariablesContext.forTest({ garden, variablePrecedence: [action.variables], isFinalContext: false }), // <-- we indicate partial context
+            })
+          })
+
+          it("given a final context, a merge operation in variables causes lookup to fail", () => {
+            expect(() => finalContext.eval("${var.hello}")).to.throw("Could not find key") // <-- resolving hello fails
+          })
+
+          it("given an incomplete context, we ignore unresolvable merge operators", () => {
+            expect(incompleteContext.eval("${var.hello}")).to.eql("world, I am here!") // <-- resolving works in incompleteContext
+            expect(() => finalContext.eval("${var.doesNotExist}")).to.throw("Could not find key") // <-- will fail on non-existent keys
+          })
+
+          it("does not ignore resolvable merge operations", () => {
+            expect(incompleteContext.eval("${var.hello}")).to.eql("world, I am here!") // <-- resolving works in incompleteContext
+          })
+        })
+
+        describe("variables.$merge is resolvable but contains unresolvable keys", () => {
+          const action = parseTemplateCollection({
+            value: {
+              variables: {
+                $merge: {
+                  resolvable: "yes, I can be resolved.",
+                  unresolvable: "${actions.build.foobar.outputs}",
+                },
+                hello: "world, I am here!",
+              },
+            },
+            source: { path: [] },
+          })
+
+          let finalContext: TestContext
+          let incompleteContext: TestContext
+
+          beforeEach(() => {
+            finalContext = new TestContext({
+              var: VariablesContext.forTest({ garden, variablePrecedence: [action.variables] }), // <-- isFinalContext defaults to true
+            })
+
+            incompleteContext = new TestContext({
+              var: VariablesContext.forTest({ garden, variablePrecedence: [action.variables], isFinalContext: false }), // <-- we indicate partial context
+            })
+          })
+
+          it("will not fail when variables.$merge merely contains unresolvable keys, but all keys are known", () => {
+            expect(finalContext.eval("${var.hello}")).to.eql("world, I am here!")
+            expect(incompleteContext.eval("${var.hello}")).to.eql("world, I am here!")
+
+            expect(finalContext.eval("${var.resolvable}")).to.eql("yes, I can be resolved.")
+            expect(incompleteContext.eval("${var.resolvable}")).to.eql("yes, I can be resolved.")
+          })
+
+          it("should fail to resolve var.unresolvable even in the incompleteContext", () => {
+            expect(() => finalContext.eval("${var.unresolvable}")).to.throw("Could not find key")
+            expect(() => incompleteContext.eval("${var.unresolvable}")).to.throw("Could not find key")
+          })
+        })
+      })
+    })
+
+    describe("Project-level crossreferences", () => {
+      it("resolves the test project config correctly", () => {
+        expect(deepResolveContext("project + environment variables", garden.variables)).to.eql({
+          environmentLevel: {
+            hello: "hello world",
+            suffix: "world",
+          },
+          projectLevel: {
+            hello: "hello world",
+            suffix: "world",
+          },
+        })
+      })
+    })
+
+    describe("Action-level crossreferences", () => {
+      it("resolves the test action variables correctly", async () => {
+        const graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+
+        const dummy = await resolveAction({
+          garden,
+          graph,
+          action: graph.getActionByRef("build.test-1-dummy"),
+          log: garden.log,
+        })
+        expect(dummy.getResolvedVariables()).to.eql({
+          composeImageName: "busybox",
+          env: {
+            DT: "test-1",
+            FOO0: "bar0",
+          },
+          environmentLevel: {
+            hello: "hello world",
+            suffix: "world",
+          },
+          foo0: "bar0",
+          projectLevel: {
+            hello: "hello world",
+            suffix: "world",
+          },
+        })
+
+        const container = await resolveAction({
+          garden,
+          graph,
+          action: graph.getActionByRef("deploy.test-1-container"),
+          log: garden.log,
+        })
+        expect(container.getConfig().dependencies).to.eql([{ kind: "Build", name: "test-1-dummy" }])
+        expect(container.getResolvedVariables()).to.eql({
+          dependencies: ["build.test-1-dummy"],
+          composeImageName: "busybox",
+          env: {
+            DT: "test-1",
+            FOO0: "bar0",
+          },
+          environmentLevel: {
+            hello: "hello world",
+            suffix: "world",
+          },
+          foo0: "bar0",
+          projectLevel: {
+            hello: "hello world",
+            suffix: "world",
+          },
+        })
+
+        const standalone = await resolveAction({
+          garden,
+          graph,
+          action: graph.getActionByRef("deploy.standalone-container"),
+          log: garden.log,
+        })
+        expect(standalone.getConfig().dependencies).to.eql([{ kind: "Build", name: "test-1-dummy" }])
+        expect(standalone.getResolvedVariables()).to.eql({
+          dependencies: ["build.test-1-dummy"],
+          composeImageName: "busybox",
+          env: {
+            DT: "test-1",
+            FOO0: "bar0",
+          },
+          environmentLevel: {
+            hello: "hello world",
+            suffix: "world",
+          },
+          foo0: "bar0",
+          projectLevel: {
+            hello: "hello world",
+            suffix: "world",
+          },
+        })
+      })
+    })
+  })
+
+  describe("testproject-variable-crossreferences-merge", () => {
+    beforeEach(async () => {
+      garden = await makeTestGarden(getDataDir("test-projects", "variable-crossreferences-merge"))
+    })
+
+    it("should resolve the environment config with merge operator correctly", () => {
+      const resolved = deepResolveContext("project and environment variables", garden.variables)
+      expect(resolved).to.eql({
+        patch: {
+          foo: "bar",
+          bar: "baz",
+        },
+        foo: "bar",
+      })
+    })
+
+    it("allows for variables to merge in variables from a lower precedence level", () => {
+      const project = {
+        variables: {
+          patch: { a: "a-val" },
+          c: "c-val",
+        },
+      }
 
       const environment = parseTemplateCollection({
         value: {
           variables: {
-            foo: "${var.foo}",
-            favouriteFood: "${var.fruit}",
+            $merge: "${var.patch}",
+            c: "c-env-override",
           },
         },
         source: { path: [] },
@@ -105,232 +376,93 @@ describe("VariablesContext", () => {
         var: VariablesContext.forTest({ garden, variablePrecedence: [project.variables, environment.variables] }),
       })
 
+      expect(context.eval("${var.a}")).to.eql("a-val")
       expect(context.eval("${var}")).to.eql({
+        patch: {
+          a: "a-val",
+        },
+        a: "a-val",
+        c: "c-env-override",
+      })
+    })
+
+    it("falls back to project variables when cross-referencing is recursive", () => {
+      const projectVariables = {
+        foo: "fromProjectVariables",
+      }
+
+      const environmentVariables = {
+        foo: parseTemplateString({ rawTemplateString: "${var.foo}", source: { path: [] } }),
+      }
+
+      const context = new TestContext({
+        var: VariablesContext.forTest({ garden, variablePrecedence: [projectVariables, environmentVariables] }),
+      })
+
+      expect(context.eval("${var.foo}")).to.eql("fromProjectVariables")
+    })
+
+    it("throws a good error message when encountering a circular reference on the project-level", async () => {
+      const projectVariables = {
         foo: "bar",
-        favouriteFood: "banana",
-        fruit: "banana",
-      })
-    })
+      }
 
-    it("allows for variables to reference each other in the same precedence level", () => {
-      const config = parseTemplateCollection({
-        value: {
-          variables: {
-            suffix: "world",
-            hello: "hello ${var.suffix}",
-          },
-        },
-        source: { path: [] },
-      })
+      const environmentVariables = {
+        one: "one",
+        two: "two",
+        three: parseTemplateString({ rawTemplateString: "${var.three}", source: { path: [] } }),
+      }
 
       const context = new TestContext({
-        var: VariablesContext.forTest({ garden, variablePrecedence: [config.variables] }),
+        var: VariablesContext.forTest({ garden, variablePrecedence: [projectVariables, environmentVariables] }),
       })
 
-      expect(context.eval("${var.hello}")).to.eql("hello world")
+      await expectError(() => context.eval("${var.three}"), {
+        contains: "Could not find key three under var. Available keys: one, two, foo",
+      })
     })
 
-    it("for backwards-compatibility with 0.13, variables in parent context have precedence over cross-referenced variables", () => {
-      const project = parseTemplateCollection({
-        value: {
-          variables: {
-            suffix: "project",
-          },
+    it("throws a good error message when encountering a circular reference in a nested path on the project-level", async () => {
+      const projectVariables = {
+        nested: {
+          foo: "bar",
         },
-        source: { path: [] },
-      })
-      const action = parseTemplateCollection({
-        value: {
-          variables: {
-            suffix: "action", // <-- takes lower precedence than "project.variables.suffix" when cross-referencing in the same scope
-            hello: "hello ${var.suffix}",
-          },
+      }
+
+      const environmentVariables = {
+        one: "one",
+        nested: {
+          two: "two",
+          three: parseTemplateString({ rawTemplateString: "${var.nested.three}", source: { path: [] } }),
         },
-        source: { path: [] },
-      })
+      }
 
       const context = new TestContext({
-        var: VariablesContext.forTest({ garden, variablePrecedence: [project.variables, action.variables] }),
+        var: VariablesContext.forTest({ garden, variablePrecedence: [projectVariables, environmentVariables] }),
       })
 
-      expect(context.eval("${var.hello}")).to.eql("hello project")
-    })
-
-    /**
-     * @see ContextResolveOpts.isFinalContext
-     */
-    describe("ContextResolveOpts.isFinalContext", () => {
-      describe("variables.$merge is unresolvable", () => {
-        const action = parseTemplateCollection({
-          value: {
-            variables: {
-              $merge: "${actions.build.foobar.var}",
-              hello: "world, I am here!",
-            },
-          },
-          source: { path: [] },
-        })
-
-        let finalContext: TestContext
-        let incompleteContext: TestContext
-
-        beforeEach(() => {
-          finalContext = new TestContext({
-            var: VariablesContext.forTest({ garden, variablePrecedence: [action.variables] }), // <-- isFinalContext defaults to true
-          })
-
-          incompleteContext = new TestContext({
-            var: VariablesContext.forTest({ garden, variablePrecedence: [action.variables], isFinalContext: false }), // <-- we indicate partial context
-          })
-        })
-
-        it("given a final context, a $merge operation in variables causes lookup to fail", () => {
-          expect(() => finalContext.eval("${var.hello}")).to.throw("Could not find key") // <-- resolving hello fails
-        })
-
-        it("given an incomplete context, we ignore unresolvable $merge operators", () => {
-          expect(incompleteContext.eval("${var.hello}")).to.eql("world, I am here!") // <-- resolving works in incompleteContext
-          expect(() => finalContext.eval("${var.doesNotExist}")).to.throw("Could not find key") // <-- will fail on non-existent keys
-        })
-
-        it("does not ignore resolvable $merge operations", () => {
-          expect(incompleteContext.eval("${var.hello}")).to.eql("world, I am here!") // <-- resolving works in incompleteContext
-        })
-      })
-
-      describe("variables.$merge is resolvable but contains unresolvable keys", () => {
-        const action = parseTemplateCollection({
-          value: {
-            variables: {
-              $merge: {
-                resolvable: "yes, I can be resolved.",
-                unresolvable: "${actions.build.foobar.outputs}",
-              },
-              hello: "world, I am here!",
-            },
-          },
-          source: { path: [] },
-        })
-
-        let finalContext: TestContext
-        let incompleteContext: TestContext
-
-        beforeEach(() => {
-          finalContext = new TestContext({
-            var: VariablesContext.forTest({ garden, variablePrecedence: [action.variables] }), // <-- isFinalContext defaults to true
-          })
-
-          incompleteContext = new TestContext({
-            var: VariablesContext.forTest({ garden, variablePrecedence: [action.variables], isFinalContext: false }), // <-- we indicate partial context
-          })
-        })
-
-        it("will not fail when variables.$merge merely contains unresolvable keys, but all keys are known", () => {
-          expect(finalContext.eval("${var.hello}")).to.eql("world, I am here!")
-          expect(incompleteContext.eval("${var.hello}")).to.eql("world, I am here!")
-
-          expect(finalContext.eval("${var.resolvable}")).to.eql("yes, I can be resolved.")
-          expect(incompleteContext.eval("${var.resolvable}")).to.eql("yes, I can be resolved.")
-        })
-
-        it("should fail to resolve var.unresolvable even in the incompleteContext", () => {
-          expect(() => finalContext.eval("${var.unresolvable}")).to.throw("Could not find key")
-          expect(() => incompleteContext.eval("${var.unresolvable}")).to.throw("Could not find key")
-        })
+      await expectError(() => context.eval("${var.nested.three}"), {
+        contains: "Could not find key three under var.nested. Available keys: two, foo",
       })
     })
-  })
 
-  describe("Project-level crossreferences", () => {
-    it("resolves the test project config correctly", () => {
-      expect(deepResolveContext("project + environment variables", garden.variables)).to.eql({
-        environmentLevel: {
-          hello: "hello world",
-          suffix: "world",
-        },
-        projectLevel: {
-          hello: "hello world",
-          suffix: "world",
-        },
-      })
-    })
-  })
+    it("throws a good error message when encountering a circular reference part of the way down a nested path on the project-level", async () => {
+      const projectVariables = {
+        three: "three",
+      }
 
-  describe("Action-level crossreferences", () => {
-    it("resolves the test action variables correctly", async () => {
-      const graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+      const environmentVariables = {
+        one: "one",
+        two: "two",
+        nested: parseTemplateString({ rawTemplateString: "${var.nested}", source: { path: [] } }),
+      }
 
-      const dummy = await resolveAction({
-        garden,
-        graph,
-        action: graph.getActionByRef("build.test-1-dummy"),
-        log: garden.log,
-      })
-      expect(dummy.getResolvedVariables()).to.eql({
-        composeImageName: "busybox",
-        env: {
-          DT: "test-1",
-          FOO0: "bar0",
-        },
-        environmentLevel: {
-          hello: "hello world",
-          suffix: "world",
-        },
-        foo0: "bar0",
-        projectLevel: {
-          hello: "hello world",
-          suffix: "world",
-        },
+      const context = new TestContext({
+        var: VariablesContext.forTest({ garden, variablePrecedence: [projectVariables, environmentVariables] }),
       })
 
-      const container = await resolveAction({
-        garden,
-        graph,
-        action: graph.getActionByRef("deploy.test-1-container"),
-        log: garden.log,
-      })
-      expect(container.getConfig().dependencies).to.eql([{ kind: "Build", name: "test-1-dummy" }])
-      expect(container.getResolvedVariables()).to.eql({
-        dependencies: ["build.test-1-dummy"],
-        composeImageName: "busybox",
-        env: {
-          DT: "test-1",
-          FOO0: "bar0",
-        },
-        environmentLevel: {
-          hello: "hello world",
-          suffix: "world",
-        },
-        foo0: "bar0",
-        projectLevel: {
-          hello: "hello world",
-          suffix: "world",
-        },
-      })
-
-      const standalone = await resolveAction({
-        garden,
-        graph,
-        action: graph.getActionByRef("deploy.standalone-container"),
-        log: garden.log,
-      })
-      expect(standalone.getConfig().dependencies).to.eql([{ kind: "Build", name: "test-1-dummy" }])
-      expect(standalone.getResolvedVariables()).to.eql({
-        dependencies: ["build.test-1-dummy"],
-        composeImageName: "busybox",
-        env: {
-          DT: "test-1",
-          FOO0: "bar0",
-        },
-        environmentLevel: {
-          hello: "hello world",
-          suffix: "world",
-        },
-        foo0: "bar0",
-        projectLevel: {
-          hello: "hello world",
-          suffix: "world",
-        },
+      await expectError(() => context.eval("${var.nested.three}"), {
+        contains: "Could not find key nested under var. Available keys: three, one, two",
       })
     })
   })

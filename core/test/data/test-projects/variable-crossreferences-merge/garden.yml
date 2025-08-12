@@ -1,0 +1,17 @@
+apiVersion: garden.io/v2
+kind: Project
+name: variable-crossreferences-merge
+
+environments:
+  - name: local
+    variables:
+      $merge: ${var.patch}
+      patch:
+        bar: baz
+
+providers:
+  - name: test-plugin
+
+variables:
+  patch:
+    foo: bar
