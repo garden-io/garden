@@ -30,7 +30,7 @@
     "@types/minimist": "^1.2.5",
     "@types/mocha": "^10.0.7",
     "@types/node": "^22",
-    "chai": "^5.2.0",
+    "chai": "^5.2.1",
     "chalk": "^5.5.0",
     "dedent": "^1.5.3",
     "execa": "^8.0.1",
