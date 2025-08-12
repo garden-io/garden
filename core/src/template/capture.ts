@@ -38,7 +38,7 @@ export function capture<Input extends ParsedTemplate>(
 
 export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
   constructor(
-    private readonly wrapped: ParsedTemplate,
+    readonly wrapped: ParsedTemplate,
     private readonly context: ConfigContext,
     private readonly opts: ContextResolveOpts
   ) {

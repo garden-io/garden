@@ -223,9 +223,10 @@ describe("ConfigContext", () => {
       expect(resolveKey(c, ["nested", "key"])).to.eql({ found: true, resolved: "value" })
     })
 
-    it("should detect a self-reference when resolving a template string", async () => {
+    it("should return a not-found value when a self-reference is encountered", async () => {
       const c = new TestContext(parseTemplateCollection({ value: { key: "${key}" }, source: { path: [] } }))
-      await expectError(() => resolveKey(c, ["key"]), "template-string")
+      const res = resolveKey(c, ["key"])
+      expect(res.found).to.be.equal(false)
     })
 
     it("should detect a nested self-reference when resolving a template string", async () => {
@@ -234,7 +235,7 @@ describe("ConfigContext", () => {
       })
       const nested = new TestContext(parseTemplateCollection({ value: { key: "${nested.key}" }, source: { path: [] } }))
       c.addValues({ nested })
-      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
+      expect(resolveKey(c, ["nested", "key"]).found).to.eql(false)
     })
 
     it("should detect a circular reference when resolving a template string", async () => {
@@ -245,10 +246,10 @@ describe("ConfigContext", () => {
         parseTemplateCollection({ value: { key: "${nested.foo}", foo: "${nested.key}" }, source: { path: [] } })
       )
       c.addValues({ nested })
-      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
+      expect(resolveKey(c, ["nested", "key"]).found).to.eql(false)
     })
 
-    it("should detect a circular reference when resolving a nested template string", async () => {
+    it("should return a not-found value when a circular reference is detected in a nested template string", async () => {
       const c = new TestContext({
         foo: "bar",
       })
@@ -256,10 +257,10 @@ describe("ConfigContext", () => {
         parseTemplateCollection({ value: { key: "${nested.foo}", foo: "${'${nested.key}'}" }, source: { path: [] } })
       )
       c.addValues({ nested })
-      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
+      expect(resolveKey(c, ["nested", "key"]).found).to.eql(false)
     })
 
-    it("should detect a circular reference when nested template string resolves to self", async () => {
+    it("should detect a not-found when nested template string resolves to self", async () => {
       const c = new TestContext({
         foo: "bar",
       })
@@ -267,10 +268,7 @@ describe("ConfigContext", () => {
         parseTemplateCollection({ value: { key: "${'${nested.key}'}" }, source: { path: [] } })
       )
       c.addValues({ nested })
-      await expectError(() => resolveKey(c, ["nested", "key"]), {
-        contains:
-          "Invalid template string (${nested.key}) at path key: Circular reference detected when resolving key nested.key",
-      })
+      expect(resolveKey(c, ["nested", "key"]).found).to.eql(false)
     })
   })
 

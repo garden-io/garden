@@ -21,6 +21,7 @@ import { isMap } from "util/types"
 import { deline } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import type { ContextLookupReferenceFinding } from "../../template/analysis.js"
+import { TemplateStringError } from "../../template/errors.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -102,7 +103,7 @@ export type ContextResolveOutputNotFound = {
    * }
    */
   explanation: {
-    reason: "key_not_found" | "not_indexable"
+    reason: "key_not_found" | "circular_reference"
     key: string | number
     keyPath: (string | number)[]
     getAvailableKeys: () => (string | number)[]
@@ -110,10 +111,10 @@ export type ContextResolveOutputNotFound = {
   }
 }
 
-export type ContextResolveOutput =
+export type ContextResolveOutput<T = ResolvedTemplate> =
   | {
       found: true
-      resolved: ResolvedTemplate
+      resolved: T
     }
   | ContextResolveOutputNotFound
 
@@ -373,6 +374,7 @@ export class LayeredContext extends ConfigContext {
 
     for (const context of this.layers.toReversed()) {
       const resolved = context.resolve(args)
+
       if (resolved.found) {
         if (isTemplatePrimitive(resolved.resolved)) {
           return resolved
@@ -443,9 +445,20 @@ function traverseContext(
   params: ContextResolveParams & { rootContext: ConfigContext }
 ): ContextResolveOutput {
   const rootContext = params.rootContext
+
   if (value instanceof UnresolvedTemplateValue) {
-    const evaluated = value.evaluate({ context: rootContext, opts: params.opts })
-    return traverseContext(evaluated.resolved, params)
+    const res = evaluateAndHandleCircularReferences({
+      rootContext,
+      opts: params.opts,
+      value,
+      key: params.key[0],
+      keyPath: params.nodePath,
+      getAvailableKeys: () => [],
+    })
+    if (!res.found) {
+      return res
+    }
+    return traverseContext(res.resolved, params)
   }
 
   if (value instanceof ConfigContext) {
@@ -470,10 +483,13 @@ function traverseContext(
     let getAvailableKeys: () => (string | number)[]
     if (isMap(value)) {
       nextValue = value.get(nextKey) as CollectionOrValue<ConfigContext | ParsedTemplateValue>
-      getAvailableKeys = () => Array.from(value.keys()).filter((k) => typeof k === "string" || typeof k === "number")
+      getAvailableKeys = () =>
+        Array.from(value.keys())
+          .filter((k) => typeof k === "string" || typeof k === "number")
+          .filter((k) => k !== nextKey)
     } else {
       nextValue = value[nextKey]
-      getAvailableKeys = () => Object.keys(value).filter((k) => !k.startsWith("_"))
+      getAvailableKeys = () => Object.keys(value).filter((k) => !k.startsWith("_") && k !== nextKey)
     }
 
     if (nextValue === undefined) {
@@ -486,6 +502,21 @@ function traverseContext(
           getAvailableKeys,
         },
       }
+    }
+
+    if (nextValue instanceof UnresolvedTemplateValue) {
+      const res = evaluateAndHandleCircularReferences({
+        rootContext,
+        opts: params.opts,
+        value: nextValue,
+        key: nextKey,
+        keyPath: params.nodePath,
+        getAvailableKeys,
+      })
+      if (!res.found) {
+        return res
+      }
+      nextValue = res.resolved
     }
 
     const nodePath = [...params.nodePath, nextKey]
@@ -537,6 +568,50 @@ function traverseContext(
   return {
     found: true,
     resolved,
+  }
+}
+
+function evaluateAndHandleCircularReferences({
+  rootContext,
+  opts,
+  value,
+  key,
+  keyPath,
+  getAvailableKeys,
+}: {
+  rootContext: ConfigContext
+  opts: ContextResolveOpts
+  value: UnresolvedTemplateValue
+  key: string | number
+  keyPath: (string | number)[]
+  getAvailableKeys: () => (string | number)[]
+}): { found: true; resolved: ParsedTemplate } | ContextResolveOutputNotFound {
+  try {
+    return {
+      found: true,
+      resolved: value.evaluate({ context: rootContext, opts }).resolved,
+    }
+  } catch (e) {
+    // We return found=false instead of throwing to allow for backwards compatibility
+    // Older versions of garden didn't allow cross-references peer variables defined in the same scope
+    // This meant that the template `variables: { foo: "${var.foo}" }` was perfectly valid, and `var.foo`
+    // simply references the declaration in the parent scope (e.g. project-level vars), rather than itself.
+    // This means we need to treat circular references as if we didn't find the value, to preserve compatibility with such template code.
+    if (
+      e instanceof ContextCircularlyReferencesItself ||
+      (e instanceof TemplateStringError && e.causedByCircularReferenceError)
+    ) {
+      return {
+        found: false,
+        explanation: {
+          reason: "circular_reference",
+          key,
+          keyPath,
+          getAvailableKeys,
+        },
+      }
+    }
+    throw e
   }
 }
 
