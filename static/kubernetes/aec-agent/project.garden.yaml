@@ -1,0 +1,10 @@
+apiVersion: garden.io/v2
+kind: Project
+name: aec-agent
+
+environments:
+  - name: default
+
+providers:
+  - name: kubernetes
+    namespace: garden-system

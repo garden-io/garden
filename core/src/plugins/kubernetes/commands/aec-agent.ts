@@ -225,6 +225,23 @@ async function cleanupLoop({
     allNamespaces.items.map(async (ns) => {
       const namespaceName = ns.metadata?.name || "<unknown>"
       const nsLog = log.createLog({ origin: namespaceName })
+      const environmentType = ns.metadata?.annotations?.[gardenAnnotationKey("environment-type")]
+      const environmentName = ns.metadata?.annotations?.[gardenAnnotationKey("environment-name")]
+
+      if (!environmentType || !environmentName) {
+        const msg = `Missing environment type and/or name annotation, skipping`
+        nsLog.warn({ msg })
+        events.emit("aecAgentEnvironmentUpdate", {
+          aecAgentInfo,
+          environmentType: environmentType || "<missing>",
+          environmentName: environmentName || "<missing>",
+          statusDescription: msg,
+          inProgress: false,
+          error: true,
+          success: false,
+        })
+        return
+      }
 
       try {
         const result = await checkAndCleanupNamespace({
@@ -236,13 +253,16 @@ async function cleanupLoop({
           dryRun,
           aecAgentInfo,
           events,
+          environmentType,
+          environmentName,
         })
 
         // Skip sending events if the namespace is not configured for AEC
         if (result.aecConfigured) {
           events.emit("aecAgentEnvironmentUpdate", {
             aecAgentInfo,
-            environmentName: namespaceName,
+            environmentType,
+            environmentName,
             statusDescription: result.status,
             lastDeployed: result.lastDeployed?.toISOString(),
             matchedTriggers: result.matchedTriggers,
@@ -257,7 +277,8 @@ async function cleanupLoop({
         nsLog.error({ msg })
         events.emit("aecAgentEnvironmentUpdate", {
           aecAgentInfo,
-          environmentName: namespaceName,
+          environmentType,
+          environmentName,
           statusDescription: msg,
           inProgress: false,
           error: true,
@@ -293,6 +314,8 @@ export async function checkAndCleanupNamespace({
   dryRun,
   aecAgentInfo,
   events,
+  environmentType,
+  environmentName,
 }: {
   log: Log
   api: KubeApi
@@ -302,6 +325,8 @@ export async function checkAndCleanupNamespace({
   dryRun?: boolean
   aecAgentInfo: AecAgentInfo
   events: EventBus
+  environmentType: string
+  environmentName: string
 }): Promise<CheckAndCleanupResult> {
   const namespaceName = namespace.metadata?.name
 
@@ -542,7 +567,8 @@ export async function checkAndCleanupNamespace({
     if (!dryRun) {
       events.emit("aecAgentEnvironmentUpdate", {
         aecAgentInfo,
-        environmentName: namespaceName,
+        environmentType,
+        environmentName,
         lastDeployed: lastDeployed?.toISOString(),
         matchedTriggers,
         actionTriggered: "pause",
@@ -589,7 +615,8 @@ export async function checkAndCleanupNamespace({
     if (!dryRun) {
       events.emit("aecAgentEnvironmentUpdate", {
         aecAgentInfo,
-        environmentName: namespaceName,
+        environmentType,
+        environmentName,
         actionTriggered: "cleanup",
         statusDescription: "Cleaning up namespace...",
         inProgress: true,
