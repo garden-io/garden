@@ -1,4 +1,17 @@
 
+<a name="0.14.7"></a>
+## [0.14.7](https://github.com/garden-io/garden/compare/0.14.6...0.14.7) (2025-08-13)
+
+### Bug Fixes
+
+* improve error message on 5xx errors ([#7534](https://github.com/garden-io/garden/issues/7534)) ([7fb3c025d](https://github.com/garden-io/garden/commit/7fb3c025d))
+* **template:** do not throw circular reference error when resolving cross-references in the same scope ([#7550](https://github.com/garden-io/garden/issues/7550)) ([8b6509ccf](https://github.com/garden-io/garden/commit/8b6509ccf))
+
+### Features
+
+* **config:** add version.excludeFields to exclude config fields from… ([#7579](https://github.com/garden-io/garden/issues/7579)) ([c9ded5ce2](https://github.com/garden-io/garden/commit/c9ded5ce2))
+* **config:** add version.excludeValues to action configs ([#7572](https://github.com/garden-io/garden/issues/7572)) ([349f689b3](https://github.com/garden-io/garden/commit/349f689b3))
+
 <a name="0.14.6"></a>
 ## [0.14.6](https://github.com/garden-io/garden/compare/0.14.5...0.14.6) (2025-07-29)
 
