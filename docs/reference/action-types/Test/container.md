@@ -291,7 +291,7 @@ Note that it is very important not to specify overly broad exclusions here, as t
 
 [version](#version) > excludeValues
 
-Specify one or more configuration fields that should be ignored when computing the version hash for this action. You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
+Specify one or more string values that should be ignored when computing the version hash for this action. You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
 
 For example, you might have a variable that naturally changes for every individual test or dev environment, such as a dynamic hostname. You could solve for that with something like this:
 
@@ -305,7 +305,7 @@ With the `hostname` variable being defined in the Project configuration.
 
 For each value specified under this field, every occurrence of that string value (even as part of a longer string) will be replaced when calculating the action version. The action configuration (used when performing the action) is not affected.
 
-For instances when the value to replace may be overly broad (e.g. "api") it is generally better to use the `excludeFields` option, since that should be more surgical.
+For instances when the value to replace may be overly broad (e.g. "api") it is generally better to use the `excludeFields` option, since that can be applied more surgically.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |

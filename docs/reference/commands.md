@@ -1942,9 +1942,8 @@ actionConfigs:
         # change too rarely, which may cause build errors or tests to not run when they should.
         excludeFields:
 
-        # Specify one or more configuration fields that should be ignored when computing the version hash for this
-        # action. You may use template expressions here. This is useful to avoid dynamic values affecting cache
-        # versions.
+        # Specify one or more string values that should be ignored when computing the version hash for this action.
+        # You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
         #
         # For example, you might have a variable that naturally changes for every individual test or dev environment,
         # such as a dynamic hostname. You could solve for that with something like this:
@@ -1960,7 +1959,7 @@ actionConfigs:
         # the action) is not affected.
         #
         # For instances when the value to replace may be overly broad (e.g. "api") it is generally better to use the
-        # `excludeFields` option, since that should be more surgical.
+        # `excludeFields` option, since that can be applied more surgically.
         excludeValues:
 
       # The spec for the specific action type.
@@ -2213,9 +2212,8 @@ actionConfigs:
         # change too rarely, which may cause build errors or tests to not run when they should.
         excludeFields:
 
-        # Specify one or more configuration fields that should be ignored when computing the version hash for this
-        # action. You may use template expressions here. This is useful to avoid dynamic values affecting cache
-        # versions.
+        # Specify one or more string values that should be ignored when computing the version hash for this action.
+        # You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
         #
         # For example, you might have a variable that naturally changes for every individual test or dev environment,
         # such as a dynamic hostname. You could solve for that with something like this:
@@ -2231,7 +2229,7 @@ actionConfigs:
         # the action) is not affected.
         #
         # For instances when the value to replace may be overly broad (e.g. "api") it is generally better to use the
-        # `excludeFields` option, since that should be more surgical.
+        # `excludeFields` option, since that can be applied more surgically.
         excludeValues:
 
       # The spec for the specific action type.
@@ -2423,9 +2421,8 @@ actionConfigs:
         # change too rarely, which may cause build errors or tests to not run when they should.
         excludeFields:
 
-        # Specify one or more configuration fields that should be ignored when computing the version hash for this
-        # action. You may use template expressions here. This is useful to avoid dynamic values affecting cache
-        # versions.
+        # Specify one or more string values that should be ignored when computing the version hash for this action.
+        # You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
         #
         # For example, you might have a variable that naturally changes for every individual test or dev environment,
         # such as a dynamic hostname. You could solve for that with something like this:
@@ -2441,7 +2438,7 @@ actionConfigs:
         # the action) is not affected.
         #
         # For instances when the value to replace may be overly broad (e.g. "api") it is generally better to use the
-        # `excludeFields` option, since that should be more surgical.
+        # `excludeFields` option, since that can be applied more surgically.
         excludeValues:
 
       # The spec for the specific action type.
@@ -2633,9 +2630,8 @@ actionConfigs:
         # change too rarely, which may cause build errors or tests to not run when they should.
         excludeFields:
 
-        # Specify one or more configuration fields that should be ignored when computing the version hash for this
-        # action. You may use template expressions here. This is useful to avoid dynamic values affecting cache
-        # versions.
+        # Specify one or more string values that should be ignored when computing the version hash for this action.
+        # You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.
         #
         # For example, you might have a variable that naturally changes for every individual test or dev environment,
         # such as a dynamic hostname. You could solve for that with something like this:
@@ -2651,7 +2647,7 @@ actionConfigs:
         # the action) is not affected.
         #
         # For instances when the value to replace may be overly broad (e.g. "api") it is generally better to use the
-        # `excludeFields` option, since that should be more surgical.
+        # `excludeFields` option, since that can be applied more surgically.
         excludeValues:
 
       # The spec for the specific action type.

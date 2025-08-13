@@ -40,6 +40,9 @@ First, you need to prepare the release binaries and run some manual tests:
 3. Run `git log` to make sure that the latest commit is the expected one and there are no unwanted changes from `main` included in the release.
 4. Run `./scripts/release.ts patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
 5. Wait for the CI build job to get the binaries from the [GitHub Releases page](https://github.com/garden-io/garden/releases).
+6. Run the `dev` command in `examples/demo-project` and verify that no errors come up immediately.
+  * We don't have an end-to-end test that tests the interactive dev console. This would be a bit tricky to implement, since some regressions don't cause the console to crash, but to log an error message and then stay running but unresponsive.
+  * Until we implement such an automated test, this is a simple step to perform before a release.
 
 ### 2. Publish and announce
 
