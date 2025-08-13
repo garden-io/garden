@@ -44,7 +44,7 @@
     "lodash-es": "^4.17.21",
     "minimist": "^1.2.8",
     "mocha": "^11.7.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   },
   "scripts": {
     "build": "tsc --build . --verbose && npm run generate-docs",
