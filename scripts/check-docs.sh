@@ -4,8 +4,8 @@
 # export FORCE_COLOR=true
 
 # Needs to generate clean docs before we can validate they are up to date
-# npm run generate-docs
-git diff HEAD -- docs/ || (echo 'generated docs are not up-to-date! run \"npm run clean-build && npm run generate-docs\" and commit the changes.\n' && exit 1)
+npm run generate-docs
+git diff --quiet HEAD -- docs/ || (echo "generated docs are not up-to-date! run \"npm run clean-build && npm run generate-docs\" and commit the changes." && exit 1)
 
 # Use "|| true" so we don't exit on empty
 modified_docs=$(git diff --name-status main docs README.md) || true
