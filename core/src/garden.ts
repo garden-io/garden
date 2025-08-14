@@ -165,8 +165,15 @@ import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { getPathInfo } from "./vcs/git.js"
-import { getBackendType, getCloudDistributionName, getCloudDomain, getCloudLogSectionName } from "./cloud/util.js"
+import {
+  getBackendType,
+  getCloudDistributionName,
+  getCloudDomain,
+  getCloudLogSectionName,
+  useLegacyCloud,
+} from "./cloud/util.js"
 import { GrowCloudApi } from "./cloud/grow/api.js"
+import type { GrowCloudApiFactory } from "./cloud/grow/api.js"
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
@@ -197,7 +204,8 @@ export interface GardenOpts {
   parentSessionId: string | undefined
   variableOverrides?: PrimitiveMap
   // used in tests
-  overrideCloudApiFactory?: GardenCloudApiFactory
+  overrideCloudApiLegacyFactory?: GardenCloudApiFactory
+  overrideCloudApiFactory?: GrowCloudApiFactory
 }
 
 export interface GardenParams {
@@ -208,6 +216,7 @@ export interface GardenParams {
   cloudApiV2?: GrowCloudApi
   cloudDomain: string
   dotIgnoreFile: string
+  variablesFrom: string | string[]
   proxy: ProxyConfig
   environmentName: string
   resolvedDefaultNamespace: string | null
@@ -336,6 +345,7 @@ export class Garden {
   private readonly providerConfigs: UnresolvedProviderConfig[]
   public readonly workingCopyId: string
   public readonly dotIgnoreFile: string
+  public readonly variablesFrom: string | string[]
   public readonly proxy: ProxyConfig
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
@@ -379,6 +389,7 @@ export class Garden {
     this.secrets = params.secrets
     this.workingCopyId = params.workingCopyId
     this.dotIgnoreFile = params.dotIgnoreFile
+    this.variablesFrom = params.variablesFrom
     this.proxy = params.proxy
     this.moduleIncludePatterns = params.moduleIncludePatterns
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
@@ -1986,40 +1997,33 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
   }
 }
 
-function getCloudApiFactory(opts: GardenOpts) {
-  const overrideCloudApiFactory = opts.overrideCloudApiFactory
-  if (overrideCloudApiFactory) {
-    return overrideCloudApiFactory
-  }
+function getCloudApiLegacyFactory(opts: GardenOpts) {
+  return opts.overrideCloudApiLegacyFactory || GardenCloudApi.factory
+}
 
-  return GardenCloudApi.factory
+function getCloudApiFactory(opts: GardenOpts) {
+  return opts.overrideCloudApiFactory || GrowCloudApi.factory
 }
 
 type InitCloudApiParams = {
-  cloudApiFactory: GardenCloudApiFactory
+  cloudApiLegacyFactory: GardenCloudApiFactory
   cloudDomain: string
   globalConfigStore: GlobalConfigStore
   log: Log
   projectConfig: ProjectConfig | undefined
-  skipCloudConnect: boolean
 }
 
-async function initCloudApi({
-  cloudApiFactory,
+async function initCloudApiLegacy({
+  cloudApiLegacyFactory,
   cloudDomain,
   globalConfigStore,
   log,
   projectConfig,
-  skipCloudConnect,
 }: InitCloudApiParams): Promise<GardenCloudApi | undefined> {
-  if (skipCloudConnect) {
-    return undefined
-  }
-
   const { id: projectId, organizationId } = projectConfig || {}
 
   try {
-    return await cloudApiFactory({ log, cloudDomain, projectId, organizationId, globalConfigStore })
+    return await cloudApiLegacyFactory({ log, cloudDomain, projectId, organizationId, globalConfigStore })
   } catch (err) {
     if (err instanceof CloudApiTokenRefreshError) {
       const distroName = getCloudDistributionName(cloudDomain)
@@ -2047,15 +2051,23 @@ async function initCloudApi({
 
 type InitCloudApiParamsV2 = Pick<InitCloudApiParams, "cloudDomain" | "globalConfigStore" | "log"> & {
   organizationId: string
+  cloudApiFactory: GrowCloudApiFactory
 }
 
-async function initCloudApiV2({
+async function initCloudApi({
+  cloudApiFactory,
   cloudDomain,
   organizationId,
   globalConfigStore,
   log,
 }: InitCloudApiParamsV2): Promise<GrowCloudApi | undefined> {
-  return GrowCloudApi.factory({ cloudDomain, globalConfigStore, log, organizationId, projectId: undefined })
+  return cloudApiFactory({
+    cloudDomain,
+    globalConfigStore,
+    log,
+    organizationId,
+    projectId: undefined,
+  })
 }
 
 export const resolveGardenParams = profileAsync(async function _resolveGardenParams(
@@ -2089,43 +2101,56 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     await ensureDir(artifactsPath)
 
     const sessionId = opts.sessionId || uuidv4()
+    const cloudApiLegacyFactory = getCloudApiLegacyFactory(opts)
     const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
 
     const cloudBackendDomain = getCloudDomain(projectConfig)
 
-    const cloudApi = projectId
-      ? await initCloudApi({
-          cloudApiFactory,
-          cloudDomain: cloudBackendDomain,
-          globalConfigStore,
-          log,
-          projectConfig,
-          skipCloudConnect,
-        })
-      : undefined
+    let cloudApi: GardenCloudApi | undefined
+    let cloudApiV2: GrowCloudApi | undefined
+    const useLegacy = useLegacyCloud(projectConfig)
 
-    // Use this to interact with Cloud Backend V2
-    const cloudApiV2 = organizationId
-      ? await initCloudApiV2({
-          cloudDomain: cloudBackendDomain,
-          organizationId,
-          globalConfigStore,
-          log,
-        })
-      : undefined
+    if (useLegacy && projectId && !skipCloudConnect) {
+      cloudApi = await initCloudApiLegacy({
+        cloudApiLegacyFactory,
+        cloudDomain: cloudBackendDomain,
+        globalConfigStore,
+        log,
+        projectConfig,
+      })
+    } else if (organizationId && !useLegacy) {
+      cloudApiV2 = await initCloudApi({
+        cloudApiFactory,
+        cloudDomain: cloudBackendDomain,
+        organizationId,
+        globalConfigStore,
+        log,
+      })
+    }
 
     const loggedIn = !!cloudApi || !!cloudApiV2
 
-    const { secrets } = await initCloudProject({
-      cloudApi,
-      config: projectConfig,
-      log,
-      projectRoot,
-      environmentName,
-      commandName: opts.commandInfo.name,
-      skipCloudConnect,
-    })
+    let secrets: StringMap | {} = {}
+    if (cloudApi) {
+      const initRes = await initCloudProject({
+        cloudApi,
+        config: projectConfig,
+        log,
+        projectRoot,
+        environmentName,
+        commandName: opts.commandInfo.name,
+        skipCloudConnect,
+      })
+      secrets = initRes.secrets
+    } else if (cloudApiV2 && gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES) {
+      const cloudLog = log.createLog({ name: getCloudLogSectionName("Garden Cloud") })
+      secrets = await cloudApiV2.getVariables({
+        variablesFrom: projectConfig.variablesFrom,
+        environmentName,
+        log: cloudLog,
+      })
+    }
 
     const projectContext = new ProjectConfigContext({
       projectName,
@@ -2228,6 +2253,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       moduleExcludePatterns,
       workingCopyId,
       dotIgnoreFile: projectConfig.dotIgnoreFile,
+      variablesFrom: projectConfig.variablesFrom,
       proxy,
       log,
       gardenInitLog: opts.gardenInitLog,
@@ -2254,7 +2280,7 @@ async function initCloudProject({
   commandName,
   skipCloudConnect,
 }: {
-  cloudApi: GardenCloudApi | undefined
+  cloudApi: GardenCloudApi
   config: ProjectConfig
   log: Log
   projectRoot: string
@@ -2262,7 +2288,7 @@ async function initCloudProject({
   commandName: string
   skipCloudConnect: boolean
 }) {
-  if (!cloudApi || skipCloudConnect) {
+  if (skipCloudConnect) {
     return {
       secrets: {},
       cloudProject: undefined,
@@ -2398,6 +2424,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
     },
     defaultEnvironment: "",
     dotIgnoreFile: defaultDotIgnoreFile,
+    variablesFrom: [],
     environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],
     providers: [],
     variables: {},

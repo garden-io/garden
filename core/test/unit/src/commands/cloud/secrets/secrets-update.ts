@@ -92,7 +92,7 @@ describe("SecretsUpdateCommand", () => {
   it("should throw an error when run without arguments", async () => {
     const garden = await makeTestGarden(projectRoot, {
       config: createProjectConfig({ id: "fake-project-id" }),
-      overrideCloudApiFactory: FakeGardenCloudApi.factory,
+      overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
     })
     const log = garden.log
     const command = new SecretsUpdateCommand()
