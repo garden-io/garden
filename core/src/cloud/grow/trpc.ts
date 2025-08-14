@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CreateTRPCClient } from "@trpc/client"
-import { TRPCClientError } from "@trpc/client"
-import { createTRPCClient, httpLink, loggerLink } from "@trpc/client"
+import type { TRPCClient } from "@trpc/client"
+import { TRPCClientError, createTRPCClient, httpLink, loggerLink } from "@trpc/client"
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import superjson from "superjson"
 import type { AppRouter } from "./trpc-schema.js"
@@ -99,7 +98,7 @@ export function getNonAuthenticatedApiClient(trpcConfigParams: Omit<TrpcConfigPa
   return createTRPCClient<AppRouter>(getTrpcConfig({ ...trpcConfigParams, tokenGetter: undefined }))
 }
 
-export type ApiClient = CreateTRPCClient<AppRouter>
+export type ApiTrpcClient = TRPCClient<AppRouter>
 
 export function isAggregateError(err: Error): err is AggregateError {
   return err.constructor.name === "AggregateError"
