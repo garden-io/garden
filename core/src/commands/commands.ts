@@ -37,8 +37,9 @@ import { ToolsCommand } from "./tools.js"
 import { UnlinkCommand } from "./unlink/unlink.js"
 import { UpdateRemoteCommand } from "./update-remote/update-remote.js"
 import { UtilCommand } from "./util/util.js"
-import { ValidateCommand } from "./validate.js"
 import { UpCommand } from "./up.js"
+import { ValidateCommand } from "./validate.js"
+import { VariablesCommand } from "./variables/variables.js"
 import { VersionCommand } from "./version.js"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
@@ -72,6 +73,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new UpdateRemoteCommand(),
   new UtilCommand(),
   new ValidateCommand(),
+  new VariablesCommand(),
   new VersionCommand(),
 ]
 
