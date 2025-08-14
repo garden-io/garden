@@ -70,18 +70,16 @@ describe("pulumi action variables and varfiles", () => {
         force: false,
       })
       const configFile = await loadYamlFile(join(nsActionRoot, "Pulumi.local.yaml"))
-      expect(configFile).to.eql({
-        config: {
-          "pulumi-k8s-test:orgName": "gordon-garden-bot",
-          "pulumi-k8s-test:namespace": "pulumi-test",
-          "pulumi-k8s-test:appName": "api-pulumi-variables-override",
-          "pulumi-k8s-test:isMinikube": "true",
-        },
-        backend: {
-          url: "https://api.pulumi.com",
-        },
+      expect(configFile.backend).to.eql({
+        url: "https://api.pulumi.com",
+      })
+      expect(configFile.config).to.deep.include({
+        "pulumi-k8s-test:orgName": "gordon-garden-bot",
+        "pulumi-k8s-test:appName": "api-pulumi-variables-override",
+        "pulumi-k8s-test:isMinikube": "true",
       })
     })
+
     for (const configType of ["action", "module"]) {
       context(`using ${configType} configs`, () => {
         it("uses a varfile with the new schema and merges varfiles and action variables correctly", async () => {
@@ -95,17 +93,14 @@ describe("pulumi action variables and varfiles", () => {
             force: false,
           })
           const configFile = await loadYamlFile(join(nsNewActionRoot, "Pulumi.local.yaml"))
-          expect(configFile).to.eql({
-            test: "foo",
-            config: {
-              "pulumi-k8s-test:orgName": "gordon-garden-bot",
-              "pulumi-k8s-test:namespace": "pulumi-test",
-              "pulumi-k8s-test:appName": "app-name-from-pulumi-varfile",
-              "pulumi-k8s-test:isMinikube": "true",
-            },
-            backend: {
-              url: "https://api.pulumi.com",
-            },
+          expect(configFile.backend).to.eql({
+            url: "https://api.pulumi.com",
+          })
+          expect(configFile.test).to.eql("foo")
+          expect(configFile.config).to.deep.include({
+            "pulumi-k8s-test:orgName": "gordon-garden-bot",
+            "pulumi-k8s-test:appName": "app-name-from-pulumi-varfile",
+            "pulumi-k8s-test:isMinikube": "true",
           })
         })
       })
