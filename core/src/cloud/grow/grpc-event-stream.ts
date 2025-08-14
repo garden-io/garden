@@ -190,12 +190,11 @@ export class GrpcEventStream {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private handleLogEntry(logEntry: LogEntryEventPayload) {
     if (!this.shouldStreamLogEntries) {
       return
     }
-    // TODO: logs handling
+    this.handleEvent("logEntry", logEntry)
   }
 
   private async streamEvents() {
