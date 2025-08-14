@@ -68,10 +68,8 @@ describe("pulumi plugin handlers", () => {
         force: false,
       })
       const versionTag = await getStackVersionTag({ log: actionLog, ctx, provider, action })
+      // We do not inspect namespace name here, as we use generated unique values to avoid concurrency issues
       expect(status.state).to.eql("ready")
-
-      // The service outputs should include all pulumi stack outputs for the deployed stack.
-      expect(status.outputs?.namespace).to.eql("pulumi-test")
 
       // The deployed stack should have been tagged with the service version
       expect(versionTag).to.eql(action.versionString(actionLog))
