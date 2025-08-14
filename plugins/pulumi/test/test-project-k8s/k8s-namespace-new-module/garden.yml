@@ -9,7 +9,7 @@ cacheStatus: true
 allowDestroy: true
 pulumiVariables:
   pulumi-k8s-test:orgName: ${var.orgName}
-  pulumi-k8s-test:namespace: pulumi-test
+  pulumi-k8s-test:namespace: pulumi-test-${uuidv4()}
   pulumi-k8s-test:isMinikube: "true"
 
 
