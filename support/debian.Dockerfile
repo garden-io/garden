@@ -93,7 +93,7 @@ RUN ./google-cloud-sdk/bin/gcloud components install kubectl gke-gcloud-auth-plu
 # garden-azure-base
 #
 FROM garden-base-root as garden-azure-base
-ENV AZURE_CLI_VERSION=2.71.0
+ENV AZURE_CLI_VERSION=2.76.0
 
 RUN apt-get update
 RUN apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
