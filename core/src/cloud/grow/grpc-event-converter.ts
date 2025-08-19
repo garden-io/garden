@@ -8,10 +8,10 @@
 
 import type { GardenCliEvent } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import {
-  GardenCliEventSchema,
-  EventSchema,
   type Event as GrpcEventEnvelope,
+  EventSchema,
   EventType,
+  GardenCliEventSchema,
   GardenCliEventType,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import type { EventName as CoreEventName, EventPayload as CoreEventPayload } from "../../events/events.js"
@@ -39,6 +39,11 @@ import {
   GardenActionRunStartedSchema,
   GardenActionScannedSchema,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_action_pb.js"
+import type { LogEntryEventPayload } from "../legacy/restful-event-stream.js"
+import {
+  GardenActionLogChunkReceivedSchema,
+  GardenLogStream,
+} from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_logs_pb.js"
 
 const nextEventUlid = monotonicFactory()
 
@@ -99,6 +104,9 @@ export class GrpcEventConverter {
             | CoreEventPayload<"runStatus">,
         })
         break
+      case "logEntry":
+        events = this.handleLogEntry({ context, payload: payload as CoreEventPayload<"logEntry"> })
+        break
       default:
         // TODO: handle all event cases
         // name satisfies never // ensure all cases are handled
@@ -111,6 +119,30 @@ export class GrpcEventConverter {
     }
 
     return events
+  }
+
+  private handleLogEntry({
+    context,
+    payload,
+  }: {
+    context: GardenEventContext
+    payload: LogEntryEventPayload
+  }): GrpcEventEnvelope[] {
+    return [
+      // TODO: support SYSTEM_LOGS_EMITTED too
+      createGardenCliEvent(context, GardenCliEventType.ACTION_LOGS_RECEIVED, {
+        case: "actionLogsReceived",
+        value: create(GardenActionLogChunkReceivedSchema, {
+          // TODO: set actionUlid
+          // actionUlid: this.mapToUlid(payload.actionUlid, "actionUid", "actionUlid"),
+          loggedAt: timestampFromDate(new Date()),
+          // TODO: support stderr too
+          logStream: GardenLogStream.STDOUT,
+          // TODO: test this
+          logChunk: Uint8Array.from(payload.message.data),
+        }),
+      }),
+    ]
   }
 
   private handleActionStatus({
