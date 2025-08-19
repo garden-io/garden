@@ -28,7 +28,7 @@
     "@garden-io/garden-pulumi": "*",
     "@garden-io/garden-terraform": "*",
     "@scg82/exit-hook": "^3.4.1",
-    "chalk": "^5.4.1",
+    "chalk": "^5.5.0",
     "tar": "^6.2.1",
     "undici": "^7.13.0",
     "unzipper": "^0.12.3"
