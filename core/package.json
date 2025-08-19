@@ -175,7 +175,7 @@
     "@google-cloud/artifact-registry": "^4.2.0",
     "@stylistic/eslint-plugin": "^5.1.0",
     "@types/archiver": "^6.0.3",
-    "@types/async": "^3.2.24",
+    "@types/async": "^3.2.25",
     "@types/async-lock": "^1.4.2",
     "@types/chai": "^5.2.2",
     "@types/cross-spawn": "^6.0.6",
