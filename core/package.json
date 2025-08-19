@@ -211,7 +211,7 @@
     "@types/proper-lockfile": "^4.1.4",
     "@types/ps-tree": "^1.1.6",
     "@types/qs": "^6.14.0",
-    "@types/react": "^19.1.9",
+    "@types/react": "^19.1.10",
     "@types/sinon": "^17.0.4",
     "@types/split2": "^4.2.3",
     "@types/supertest": "^6.0.3",
