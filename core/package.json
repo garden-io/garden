@@ -26,7 +26,7 @@
   "types": "build/src/index.d.ts",
   "dependencies": {
     "@bufbuild/protobuf": "2.3.0",
-    "@buf/garden_grow-platform.bufbuild_es": "^2.3.0-20250618101837-010811843489.1",
+    "@buf/garden_grow-platform.bufbuild_es": "^2.3.0-20250814091935-8b9e8808496d.1",
     "@codenamize/codenamize": "^1.1.1",
     "@connectrpc/connect": "2.0.2",
     "@connectrpc/connect-node": "2.0.2",
