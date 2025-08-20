@@ -1388,10 +1388,6 @@ workflows:
       # k8s versions is tested, and that the most recent versions are broadly tested.
       # The kind tests are the cheapest to run so we use many of those,
       # but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      - test-microk8s:
-          name: vm-1.30-microk8s
-          requires: [build]
-          kubernetesVersion: "1.30"
       - test-k3s:
           name: vm-1.31-k3s
           requires: [build]
@@ -1405,6 +1401,10 @@ workflows:
           name: vm-1.32-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
+      - test-microk8s:
+          name: vm-1.33-microk8s
+          requires: [ build ]
+          kubernetesVersion: "1.33"
 
       - test-plugins:
           <<: *only-internal-prs

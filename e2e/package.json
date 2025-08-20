@@ -42,7 +42,7 @@
     "replace-in-file": "^8.3.0",
     "split2": "^4.2.0",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3",
+    "typescript": "^5.9.2",
     "username": "^7.0.0"
   },
   "scripts": {
