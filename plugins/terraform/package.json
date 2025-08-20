@@ -7,9 +7,9 @@
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",
-    "chalk": "^5.4.1",
+    "chalk": "^5.5.0",
     "execa": "^8.0.1",
-    "fs-extra": "^11.3.0",
+    "fs-extra": "^11.3.1",
     "lodash-es": "^4.17.21",
     "slash": "^5.1.0",
     "which": "^4.0.0"
