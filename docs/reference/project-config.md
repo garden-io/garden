@@ -104,7 +104,7 @@ environments:
     # and another trigger to fully clean up the environment after 1 week of inactivity or on a specific schedule as
     # the second trigger.
     #
-    # Note that this feature is only available for Garden Cloud users. Also note that the feature is currently in
+    # Note that this feature is only available for paid Garden Cloud users. Also note that the feature is currently in
     # beta, and is only available for specific providers, in particular the Kubernetes provider.
     #
     # Please refer to the [Automatic Environment Cleanup
@@ -129,6 +129,11 @@ environments:
 
             value:
 
+          # Specify a cron-like schedule for the automatic environment cleanup. Use this to specify a fixed cadence
+          # and time of day for the cleanup.
+          #
+          # Please refer to the [Automatic Environment Cleanup
+          # guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
           schedule:
             every:
 
@@ -476,7 +481,7 @@ You must specify at least one _trigger_, which defines the schedule or time of i
 
 If you specify multiple triggers and multiple are matched, the _last_ trigger matched in the list will be used. For example, you can specify a trigger to pause the environment after 1 day of inactivity as the first trigger, and another trigger to fully clean up the environment after 1 week of inactivity or on a specific schedule as the second trigger.
 
-Note that this feature is only available for Garden Cloud users. Also note that the feature is currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
+Note that this feature is only available for paid Garden Cloud users. Also note that the feature is currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
 
 Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
 
@@ -502,7 +507,7 @@ The triggers that will cause the automatic environment cleanup to be performed.
 
 | Type            | Required |
 | --------------- | -------- |
-| `array[object]` | No       |
+| `array[object]` | Yes      |
 
 ### `environments[].aec.triggers[].action`
 
@@ -546,6 +551,10 @@ Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io
 
 [environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > schedule
 
+Specify a cron-like schedule for the automatic environment cleanup. Use this to specify a fixed cadence and time of day for the cleanup.
+
+Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
+
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
@@ -556,7 +565,7 @@ Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io
 
 | Type     | Allowed Values                                                                                 | Required |
 | -------- | ---------------------------------------------------------------------------------------------- | -------- |
-| `string` | "weekday", "day", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" | Yes      |
+| `string` | "weekday", "day", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday" | Yes      |
 
 ### `environments[].aec.triggers[].schedule.hourOfDay`
 

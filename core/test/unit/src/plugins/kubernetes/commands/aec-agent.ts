@@ -72,6 +72,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.true
@@ -97,6 +99,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.true
@@ -123,6 +127,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.true
@@ -156,6 +162,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.true
@@ -181,6 +189,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.true
@@ -209,6 +219,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.true
@@ -232,6 +244,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.undefined
@@ -260,6 +274,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.undefined
@@ -292,6 +308,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.undefined
@@ -326,6 +344,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.undefined
@@ -361,6 +381,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.undefined
@@ -396,6 +418,8 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      environmentType: "dummy",
+      environmentName: "dummy",
     })
 
     expect(result.error).to.be.undefined
