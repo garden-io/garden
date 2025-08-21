@@ -510,13 +510,13 @@ export class AnalyticsHandler {
     let oldBackendCloudProject: CloudProject | undefined
     if (garden.isOldBackendAvailable()) {
       try {
-        oldBackendCloudUser = await garden.cloudApi.getProfile()
+        oldBackendCloudUser = await garden.cloudApiLegacy.getProfile()
       } catch (err) {
         log.debug(`Getting profile from API failed with error: ${err}`)
       }
       try {
         oldBackendCloudProject =
-          garden.projectId === undefined ? undefined : await garden.cloudApi.getProjectById(garden.projectId)
+          garden.projectId === undefined ? undefined : await garden.cloudApiLegacy.getProjectById(garden.projectId)
       } catch (err) {
         log.debug(`Getting project from API failed with error: ${err}`)
       }

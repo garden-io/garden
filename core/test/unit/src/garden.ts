@@ -689,7 +689,6 @@ describe("Garden", () => {
           log,
           cloudDomain: domain,
           projectId: "foo-",
-          organizationId: undefined,
           globalConfigStore,
         })
       }
@@ -749,8 +748,8 @@ describe("Garden", () => {
           overrideCloudApiLegacyFactory: overrideCloudApiFactory,
         })
 
-        expect(garden.cloudApi).to.exist
-        expect(garden.cloudApiV2).to.be.undefined
+        expect(garden.cloudApiLegacy).to.exist
+        expect(garden.cloudApi).to.be.undefined
         expect(garden.cloudDomain).to.eql(fakeCloudDomain)
         expect(garden.projectId).to.eql(projectId)
         expect(scope.isDone()).to.be.true
@@ -882,7 +881,6 @@ describe("Garden", () => {
           globalConfigStore,
           organizationId,
           authToken: "fake-auth-token",
-          projectId: undefined,
           __trpcClientOverrideForTesting: trpcClient,
         })
       }
@@ -897,8 +895,8 @@ describe("Garden", () => {
           overrideCloudApiFactory,
         })
 
-        expect(garden.cloudApiV2).to.exist
-        expect(garden.cloudApi).to.be.undefined
+        expect(garden.cloudApi).to.exist
+        expect(garden.cloudApiLegacy).to.be.undefined
       })
 
       it("should not attempt to fetch variables if feature flag not set", async () => {
@@ -911,8 +909,8 @@ describe("Garden", () => {
           overrideCloudApiFactory,
         })
 
-        expect(garden.cloudApiV2).to.exist
-        expect(garden.cloudApi).to.be.undefined
+        expect(garden.cloudApi).to.exist
+        expect(garden.cloudApiLegacy).to.be.undefined
         expect(garden.secrets).to.eql({})
       })
 

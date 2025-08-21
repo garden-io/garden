@@ -59,7 +59,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
     const nameFilter = opts["filter-names"] || []
     const userFilter = opts["filter-user-ids"] || []
 
-    const api = garden.cloudApi
+    const api = garden.cloudApiLegacy
     if (!api) {
       throw new ConfigurationError({ message: noApiMsg("list", "secrets") })
     }

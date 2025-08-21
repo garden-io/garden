@@ -17,7 +17,7 @@ import type { CommandInfo, EventNamespaceStatus } from "../plugin-context.js"
 import type { GraphResult } from "../graph/results.js"
 import type { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status.js"
 import type { ActionStatusPayload } from "./action-status-events.js"
-import type { AuthToken } from "../cloud/legacy/auth.js"
+import type { AuthToken } from "../cloud/common.js"
 
 interface EventContext {
   gardenKey?: string

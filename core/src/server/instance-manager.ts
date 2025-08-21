@@ -202,7 +202,7 @@ export class GardenInstanceManager {
       return cachedApi
     }
 
-    const api = garden.cloudApi
+    const api = garden.cloudApiLegacy
     this.cloudApis.set(cloudDomain, api)
 
     return api

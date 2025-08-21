@@ -72,7 +72,7 @@ async function retrieveAvailabilityFromCloud(params: {
   action: Resolved<ContainerBuildAction>
   config: CloudBuilderConfiguration
 }): Promise<CloudBuilderAvailabilityV2> {
-  if (params.ctx.cloudApiV2) {
+  if (params.ctx.cloudApi) {
     return new GrowCloudBuilderAvailabilityRetriever().get(params)
   } else {
     return new GardenCloudBuilderAvailabilityRetriever().get(params)
@@ -137,7 +137,7 @@ abstract class AbstractCloudBuilderAvailabilityRetriever<T extends CloudApi> {
 
 class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabilityRetriever<GardenCloudApi> {
   protected getCloudApi(ctx: PluginContext) {
-    return ctx.cloudApi
+    return ctx.cloudApiLegacy
   }
 
   protected async registerCloudBuild({
@@ -170,7 +170,7 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
 
 class GrowCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabilityRetriever<GrowCloudApi> {
   protected getCloudApi(ctx: PluginContext) {
-    return ctx.cloudApiV2
+    return ctx.cloudApi
   }
 
   protected async registerCloudBuild({
@@ -339,7 +339,7 @@ function isContainerBuilderEnabled({
 
   // container builder is enabled by default if you're logged in to the new backend
   // this already takes into account offline mode etc
-  const isEnabledByDefault = !!ctx.cloudApiV2
+  const isEnabledByDefault = !!ctx.cloudApi
 
   // container builder can be disabled explicitly in the config
   const explicitConfig = containerProviderConfig.gardenContainerBuilder?.enabled
@@ -353,7 +353,7 @@ function isContainerBuilderEnabled({
   }
 
   // if not logged in, let's not attempt retrieving the availability
-  const isLoggedIn = !!ctx.cloudApi || !!ctx.cloudApiV2
+  const isLoggedIn = !!ctx.cloudApiLegacy || !!ctx.cloudApi
   return isLoggedIn && isCloudBuilderEnabled
 }
 
