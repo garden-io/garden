@@ -297,7 +297,7 @@ export abstract class Command<
           !["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand
 
         if (!skipRegistration && garden.isOldBackendAvailable() && garden.projectId && this.streamEvents) {
-          cloudSession = await garden.cloudApi.registerSession({
+          cloudSession = await garden.cloudApiLegacy.registerSession({
             parentSessionId: parentSessionId || undefined,
             sessionId: garden.sessionId,
             projectId: garden.projectId,

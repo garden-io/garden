@@ -245,7 +245,7 @@ export class GrpcEventStream {
 
       const messages = nextAck.messages || []
       for (const msg of messages) {
-        const logMessage = `${this.garden.cloudApiV2.distroName} failed to process event ulid=${nextAck.eventUlid}: ${msg.text}`
+        const logMessage = `${this.garden.cloudApi.distroName} failed to process event ulid=${nextAck.eventUlid}: ${msg.text}`
 
         switch (msg.severity) {
           case IngestEventsResponse_Message_Severity.DEBUG:

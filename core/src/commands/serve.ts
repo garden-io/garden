@@ -151,7 +151,7 @@ export class ServeCommand<
     }
 
     if (defaultGarden && defaultGarden.isOldBackendAvailable()) {
-      const cloudApi = defaultGarden.cloudApi
+      const cloudApi = defaultGarden.cloudApiLegacy
       const effectiveGardenProjectConfig = defaultGarden.getProjectConfig()
 
       let projectId = effectiveGardenProjectConfig.id

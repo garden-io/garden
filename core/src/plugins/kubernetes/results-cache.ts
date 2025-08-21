@@ -57,14 +57,14 @@ export function createResultCache(ctx: PluginContext) {
 }
 
 export function createCacheStorage(ctx: PluginContext): CacheStorage<KubernetesCacheEntry> {
-  if (ctx.cloudApiV2) {
-    return new GrowCloudCacheStorage({ schemaVersion: currentResultSchemaVersion, cloudApi: ctx.cloudApiV2 })
+  if (ctx.cloudApi) {
+    return new GrowCloudCacheStorage({ schemaVersion: currentResultSchemaVersion, cloudApi: ctx.cloudApi })
   }
 
-  if (ctx.cloudApi && ctx.projectId) {
+  if (ctx.cloudApiLegacy && ctx.projectId) {
     return new GardenCloudCacheStorage({
       schemaVersion: currentResultSchemaVersion,
-      cloudApi: ctx.cloudApi,
+      cloudApi: ctx.cloudApiLegacy,
       projectId: ctx.projectId,
     })
   }

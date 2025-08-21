@@ -7,8 +7,8 @@
  */
 
 import type { Log } from "../../logger/log-entry.js"
-import type { GlobalConfigStore } from "../../config-store/global.js"
-import { isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore } from "./auth.js"
+import type { ClientAuthToken, GlobalConfigStore } from "../../config-store/global.js"
+import { isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore, revokeAuthToken } from "./auth.js"
 import type {
   ApiTrpcClient,
   CreateActionResultRequest,
@@ -27,7 +27,6 @@ import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
 import { getStoredAuthToken } from "../legacy/auth.js"
-import type { CloudApiFactoryParams, CloudApiParams } from "../legacy/api.js"
 import { deline } from "../../util/string.js"
 import { TRPCClientError } from "@trpc/client"
 import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
@@ -38,7 +37,7 @@ import type { ValueOf } from "../../util/util.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
-export type GrowCloudApiFactory = (params: CloudApiFactoryParams) => Promise<GrowCloudApi | undefined>
+export type GrowCloudApiFactory = (params: GrowCloudApiFactoryParams) => Promise<GrowCloudApi | undefined>
 
 export class GrowCloudError extends GardenError {
   readonly type = "garden-cloud-v2-error"
@@ -62,6 +61,24 @@ export class GrowCloudTRPCError extends GrowCloudError {
 }
 
 type Secret = ValueOf<RouterOutput["variableList"]["getValues"]>
+
+type GrowCloudApiParams = {
+  log: Log
+  domain: string
+  globalConfigStore: GlobalConfigStore
+  authToken: string
+  organizationId: string
+  __trpcClientOverrideForTesting?: ApiTrpcClient
+}
+
+interface GrowCloudApiFactoryParams {
+  log: Log
+  cloudDomain: string
+  globalConfigStore: GlobalConfigStore
+  organizationId: string
+  skipLogging?: boolean
+  __trpcClientOverrideForTesting?: ApiTrpcClient
+}
 
 /**
  * The Cloud API V2 client.
@@ -87,11 +104,7 @@ export class GrowCloudApi {
     organizationId,
     authToken,
     __trpcClientOverrideForTesting,
-  }: CloudApiParams & {
-    authToken: string
-    organizationId: string
-    __trpcClientOverrideForTesting?: ApiTrpcClient
-  }) {
+  }: GrowCloudApiParams) {
     this.log = log
     this.domain = domain
     this.organizationId = organizationId
@@ -126,12 +139,7 @@ export class GrowCloudApi {
     globalConfigStore,
     __trpcClientOverrideForTesting,
     skipLogging = false,
-  }: CloudApiFactoryParams & {
-    __trpcClientOverrideForTesting?: ApiTrpcClient
-  }): Promise<GrowCloudApi | undefined> {
-    if (!organizationId) {
-      return undefined
-    }
+  }: GrowCloudApiFactoryParams): Promise<GrowCloudApi | undefined> {
     const distroName = getCloudDistributionName(cloudDomain)
     const cloudLogSectionName = getCloudLogSectionName(distroName)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
@@ -159,7 +167,6 @@ export class GrowCloudApi {
         organizationId,
         globalConfigStore,
         authToken: gardenEnv.GARDEN_AUTH_TOKEN,
-        projectId: undefined,
         __trpcClientOverrideForTesting,
       })
     }
@@ -196,7 +203,6 @@ export class GrowCloudApi {
       organizationId,
       globalConfigStore,
       authToken,
-      projectId: undefined,
     })
     cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
     api.startInterval()
@@ -390,6 +396,10 @@ export class GrowCloudApi {
     )
 
     return secrets
+  }
+
+  async revokeToken(clientAuthToken: ClientAuthToken, log: Log) {
+    return await revokeAuthToken({ clientAuthToken, cloudDomain: this.domain, log })
   }
 
   // GRPC clients

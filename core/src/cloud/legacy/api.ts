@@ -145,8 +145,7 @@ export interface CloudApiFactoryParams {
   log: Log
   cloudDomain: string
   globalConfigStore: GlobalConfigStore
-  projectId: string | undefined
-  organizationId: string | undefined
+  projectId: string
   skipLogging?: boolean
 }
 
@@ -155,7 +154,7 @@ export type GardenCloudApiFactory = (params: CloudApiFactoryParams) => Promise<G
 export type CloudApiParams = {
   log: Log
   domain: string
-  projectId: string | undefined
+  projectId: string
   globalConfigStore: GlobalConfigStore
 }
 
@@ -834,7 +833,7 @@ export class GardenCloudApi {
     }
   }
 
-  async revokeToken(clientAuthToken: ClientAuthToken) {
+  async revokeToken(clientAuthToken: ClientAuthToken, _log: Log) {
     try {
       await this.post("token/logout", { headers: { Cookie: `rt=${clientAuthToken?.refreshToken}` } })
     } catch (err) {

@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { z } from "zod"
 import { TRPCClientError } from "@trpc/client"
 import { TRPCError } from "@trpc/server"
 import { getHTTPStatusCodeFromError } from "@trpc/server/http"
@@ -13,16 +14,56 @@ import type { ClientAuthToken, GlobalConfigStore } from "../../config-store/glob
 import type { Log } from "../../logger/log-entry.js"
 import { describeTRPCClientError, getNonAuthenticatedApiClient } from "./trpc.js"
 import { CloudApiTokenRefreshError } from "../legacy/api.js"
-import { CloudApiError } from "../../exceptions.js"
+import { CloudApiError, InternalError } from "../../exceptions.js"
 import { clearAuthToken, saveAuthToken } from "../legacy/auth.js"
 import { getCloudDistributionName } from "../util.js"
 import dedent from "dedent"
 import { handleServerNotices } from "./notices.js"
 import { GrowCloudTRPCError } from "./api.js"
+import type { AuthRedirectConfig, AuthToken } from "../common.js"
+import { renderZodError } from "../../config/zod.js"
 
 export function isTokenExpired(token: ClientAuthToken) {
   const now = new Date()
   return now > token.validity
+}
+
+const growCloudTokenSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  tokenValidity: z
+    .number()
+    .or(z.string())
+    .transform((value) => parseInt(value.toString(), 10)),
+  organizationId: z.string(),
+})
+
+export function getAuthRedirectConfig({
+  cloudDomain,
+  organizationId,
+}: {
+  cloudDomain: string
+  organizationId?: string
+}): AuthRedirectConfig {
+  const addOrganizationIdParam = !!organizationId ? `&organizationId=${organizationId}` : ""
+  return {
+    getLoginUrl: (port) => new URL(`/login?port=${port}${addOrganizationIdParam}`, cloudDomain).href,
+    successUrl: `${new URL("/confirm-cli-auth", cloudDomain).href}?cliLoginSuccess=true`,
+    extractAuthToken: (query): AuthToken => {
+      const token = growCloudTokenSchema.safeParse(query)
+      if (!token.success) {
+        throw new InternalError({ message: `"Invalid query parameters": ${renderZodError(token.error)}` })
+      }
+
+      return {
+        // Note that internally we use `token` as the key for the access token.
+        token: token.data.accessToken,
+        refreshToken: token.data.refreshToken,
+        tokenValidity: token.data.tokenValidity,
+        organizationId: token.data.organizationId,
+      }
+    },
+  }
 }
 
 /**

@@ -96,7 +96,7 @@ describe("GrpcEventStream", () => {
   beforeEach(async () => {
     log = getRootLogger().createLog()
     garden = (await makeTestGardenA()) as any
-    garden.cloudApiV2 = { organizationId: "fake-organization-id" } as any
+    garden.cloudApi = { organizationId: "fake-organization-id" } as any
     bufferedEventStream = new GrpcEventStream({
       log,
       garden,
