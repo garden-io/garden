@@ -62,7 +62,7 @@ export class GroupsListCommand extends Command<{}, Opts> {
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<Groups[]>> {
     const nameFilter = opts["filter-names"] || []
 
-    const api = garden.cloudApi
+    const api = garden.cloudApiLegacy
     if (!api) {
       throw new ConfigurationError({ message: noApiMsg("list", "users") })
     }

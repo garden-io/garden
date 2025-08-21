@@ -7,8 +7,8 @@
  */
 
 import type { Log } from "../../logger/log-entry.js"
-import type { GlobalConfigStore } from "../../config-store/global.js"
-import { isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore } from "./auth.js"
+import type { ClientAuthToken, GlobalConfigStore } from "../../config-store/global.js"
+import { isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore, revokeAuthToken } from "./auth.js"
 import type {
   ApiTrpcClient,
   CreateActionResultRequest,
@@ -26,8 +26,7 @@ import { CloudApiError, GardenError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
-import { getStoredAuthToken } from "../legacy/auth.js"
-import type { CloudApiFactoryParams, CloudApiParams } from "../legacy/api.js"
+import { getStoredAuthToken } from "../api-legacy/auth.js"
 import { deline } from "../../util/string.js"
 import { TRPCClientError } from "@trpc/client"
 import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
@@ -38,13 +37,13 @@ import type { ValueOf } from "../../util/util.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
-export type GrowCloudApiFactory = (params: CloudApiFactoryParams) => Promise<GrowCloudApi | undefined>
+export type GardenCloudApiFactory = (params: GardenCloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
 
-export class GrowCloudError extends GardenError {
-  readonly type = "garden-cloud-v2-error"
+export class GardenCloudError extends GardenError {
+  readonly type = "garden-cloud-error"
 }
 
-export class GrowCloudTRPCError extends GrowCloudError {
+export class GardenCloudTRPCError extends GardenCloudError {
   override readonly cause: TRPCClientError<InferrableClientTypes> | undefined
 
   constructor({ message, cause }: GardenErrorParams & { cause: TRPCClientError<InferrableClientTypes> }) {
@@ -54,7 +53,7 @@ export class GrowCloudTRPCError extends GrowCloudError {
 
   public static wrapTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
     const errorDesc = describeTRPCClientError(err)
-    return new GrowCloudTRPCError({
+    return new GardenCloudTRPCError({
       message: `Garden Cloud API call failed with error: ${errorDesc.short}`,
       cause: err,
     })
@@ -63,12 +62,30 @@ export class GrowCloudTRPCError extends GrowCloudError {
 
 type Secret = ValueOf<RouterOutput["variableList"]["getValues"]>
 
+type GardenCloudApiParams = {
+  log: Log
+  domain: string
+  globalConfigStore: GlobalConfigStore
+  authToken: string
+  organizationId: string
+  __trpcClientOverrideForTesting?: ApiTrpcClient
+}
+
+interface GardenCloudApiFactoryParams {
+  log: Log
+  cloudDomain: string
+  globalConfigStore: GlobalConfigStore
+  organizationId: string
+  skipLogging?: boolean
+  __trpcClientOverrideForTesting?: ApiTrpcClient
+}
+
 /**
- * The Cloud API V2 client.
+ * The Cloud API client for app.garden.io.
  *
  * Is only initialized if the user is actually logged.
  */
-export class GrowCloudApi {
+export class GardenCloudApi {
   private intervalId: ReturnType<typeof setInterval> | null = null // TODO: fix type here (getting tsc error)
   private readonly intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
 
@@ -87,11 +104,7 @@ export class GrowCloudApi {
     organizationId,
     authToken,
     __trpcClientOverrideForTesting,
-  }: CloudApiParams & {
-    authToken: string
-    organizationId: string
-    __trpcClientOverrideForTesting?: ApiTrpcClient
-  }) {
+  }: GardenCloudApiParams) {
     this.log = log
     this.domain = domain
     this.organizationId = organizationId
@@ -126,12 +139,7 @@ export class GrowCloudApi {
     globalConfigStore,
     __trpcClientOverrideForTesting,
     skipLogging = false,
-  }: CloudApiFactoryParams & {
-    __trpcClientOverrideForTesting?: ApiTrpcClient
-  }): Promise<GrowCloudApi | undefined> {
-    if (!organizationId) {
-      return undefined
-    }
+  }: GardenCloudApiFactoryParams): Promise<GardenCloudApi | undefined> {
     const distroName = getCloudDistributionName(cloudDomain)
     const cloudLogSectionName = getCloudLogSectionName(distroName)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
@@ -153,13 +161,12 @@ export class GrowCloudApi {
       }
 
       cloudFactoryLog.success(successMsg)
-      return new GrowCloudApi({
+      return new GardenCloudApi({
         log: cloudLog,
         domain: cloudDomain,
         organizationId,
         globalConfigStore,
         authToken: gardenEnv.GARDEN_AUTH_TOKEN,
-        projectId: undefined,
         __trpcClientOverrideForTesting,
       })
     }
@@ -190,13 +197,12 @@ export class GrowCloudApi {
     }
 
     // Start refresh interval if using JWT
-    const api = new GrowCloudApi({
+    const api = new GardenCloudApi({
       log: cloudLog,
       domain: cloudDomain,
       organizationId,
       globalConfigStore,
       authToken,
-      projectId: undefined,
     })
     cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
     api.startInterval()
@@ -306,7 +312,7 @@ export class GrowCloudApi {
         throw err
       }
 
-      throw GrowCloudTRPCError.wrapTRPCClientError(err)
+      throw GardenCloudTRPCError.wrapTRPCClientError(err)
     }
   }
 
@@ -335,7 +341,7 @@ export class GrowCloudApi {
         throw err
       }
 
-      throw GrowCloudTRPCError.wrapTRPCClientError(err)
+      throw GardenCloudTRPCError.wrapTRPCClientError(err)
     }
   }
 
@@ -366,7 +372,7 @@ export class GrowCloudApi {
       } catch (error) {
         if (error instanceof TRPCClientError) {
           log.error(`Fetching variables for variable list '${variableListId}' failed with API error: ${error.message}`)
-          throw GrowCloudTRPCError.wrapTRPCClientError(error)
+          throw GardenCloudTRPCError.wrapTRPCClientError(error)
         } else if (error instanceof Error) {
           log.error(
             `Fetching variables for variable list '${variableListId}' failed with ${error.name} error: ${error.message}`
@@ -390,6 +396,10 @@ export class GrowCloudApi {
     )
 
     return secrets
+  }
+
+  async revokeToken(clientAuthToken: ClientAuthToken, log: Log) {
+    return await revokeAuthToken({ clientAuthToken, cloudDomain: this.domain, log })
   }
 
   // GRPC clients

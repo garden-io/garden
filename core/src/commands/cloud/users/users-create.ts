@@ -93,7 +93,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       log: cmdLog,
     })
 
-    const api = garden.cloudApi
+    const api = garden.cloudApiLegacy
     if (!api) {
       throw new ConfigurationError({ message: noApiMsg("create", "users") })
     }

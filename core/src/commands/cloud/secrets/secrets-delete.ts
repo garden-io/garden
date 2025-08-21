@@ -16,7 +16,7 @@ import { Command } from "../../base.js"
 import type { ApiCommandError, DeleteResult } from "../helpers.js"
 import { confirmDelete, handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import { enumerate } from "../../../util/enumerate.js"
-import { handleSecretsUnavailableInNewBackend } from "../../../cloud/grow/secrets.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/api/secrets.js"
 
 export const secretsDeleteArgs = {
   ids: new StringsParameter({
@@ -58,7 +58,7 @@ export class SecretsDeleteCommand extends Command<Args> {
       return {}
     }
 
-    const api = garden.cloudApi
+    const api = garden.cloudApiLegacy
     if (!api) {
       throw new ConfigurationError({ message: noApiMsg("delete", "secrets") })
     }

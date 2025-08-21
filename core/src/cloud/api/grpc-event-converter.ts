@@ -357,7 +357,7 @@ export class GrpcEventConverter {
 
     return {
       clientVersion: this.garden.version,
-      organizationId: this.garden.cloudApiV2.organizationId,
+      organizationId: this.garden.cloudApi.organizationId,
       sessionUlid,
       commandUlid,
     }
