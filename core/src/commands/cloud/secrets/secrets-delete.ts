@@ -16,7 +16,7 @@ import { Command } from "../../base.js"
 import type { ApiCommandError, DeleteResult } from "../helpers.js"
 import { confirmDelete, handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import { enumerate } from "../../../util/enumerate.js"
-import { handleSecretsUnavailableInNewBackend } from "../../../cloud/grow/secrets.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/api/secrets.js"
 
 export const secretsDeleteArgs = {
   ids: new StringsParameter({

@@ -7,12 +7,12 @@
  */
 
 import { expect } from "chai"
-import type { LogEntryEventPayload, StreamEvent } from "../../../../src/cloud/legacy/restful-event-stream.js"
-import { RestfulEventStream } from "../../../../src/cloud/legacy/restful-event-stream.js"
+import type { LogEntryEventPayload, StreamEvent } from "../../../../src/cloud/api-legacy/restful-event-stream.js"
+import { RestfulEventStream } from "../../../../src/cloud/api-legacy/restful-event-stream.js"
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
 import { makeTestGardenA } from "../../../helpers.js"
 import { find, isMatch, range, repeat } from "lodash-es"
-import type { CloudSession, GardenCloudApi } from "../../../../src/cloud/legacy/api.js"
+import type { CloudSession, GardenCloudApiLegacy } from "../../../../src/cloud/api-legacy/api.js"
 
 function makeDummyRecord(sizeKb: number) {
   return { someKey: repeat("a", sizeKb * 1024) }
@@ -20,7 +20,7 @@ function makeDummyRecord(sizeKb: number) {
 
 const mockCloudSession: CloudSession = {
   // this api is never called in the tests below, all caller functions are overridden in the individual tests
-  api: {} as GardenCloudApi,
+  api: {} as GardenCloudApiLegacy,
   // we do not need any correct values of these for this test suite
   id: "fake-session-ulid",
   shortId: "fake-short-id",
