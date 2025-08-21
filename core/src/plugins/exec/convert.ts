@@ -38,6 +38,7 @@ export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>):
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior
         command: module.spec.build?.command,
+        statusCommand: module.spec.build?.statusCommand,
         env: module.spec.env,
       },
     }
@@ -133,6 +134,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior
         command: task.spec.command,
+        statusCommand: task.spec.statusCommand,
         artifacts: task.spec.artifacts,
         env: prepareEnv(task.spec.env),
       },
@@ -154,6 +156,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior
         command: test.spec.command,
+        statusCommand: test.spec.statusCommand,
         artifacts: test.spec.artifacts,
         env: prepareEnv(test.spec.env),
       },

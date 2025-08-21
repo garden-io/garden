@@ -182,6 +182,7 @@ export const execServiceSchema = () =>
 
 export interface ExecTestSpec extends BaseTestSpec {
   command: string[]
+  statusCommand?: string[]
   env: { [key: string]: string }
   artifacts?: ArtifactSpec[]
 }
@@ -200,6 +201,18 @@ export const execTestSchema = () =>
           `
         )
         .required(),
+      statusCommand: joi
+        .sparseArray()
+        .items(joi.string().allow(""))
+        .description(
+          dedent`
+          The command to run to check the status of the test.
+
+          If this is specified, it is run before the \`command\`. If the status command runs successfully and returns exit code of 0, the test is considered already complete and the \`command\` is not run. To indicate that the test is not complete, the status command should return a non-zero exit code.
+
+          ${execPathDoc}
+          `
+        ),
       env: joiEnvVars().description("Environment variables to set when running the command."),
       artifacts: artifactsSchema().description("A list of artifacts to copy after the test run."),
     })
@@ -208,6 +221,7 @@ export const execTestSchema = () =>
 export interface ExecTaskSpec extends BaseTaskSpec {
   artifacts?: ArtifactSpec[]
   command: string[]
+  statusCommand?: string[]
   env: { [key: string]: string }
 }
 
@@ -228,12 +242,25 @@ export const execTaskSpecSchema = createSchema({
         `
       )
       .required(),
+    statusCommand: joi
+      .sparseArray()
+      .items(joi.string().allow(""))
+      .description(
+        dedent`
+        The command to run to check the status of the task.
+
+        If this is specified, it is run before the \`command\`. If the status command runs successfully and returns exit code of 0, the task is considered already complete and the \`command\` is not run. To indicate that the task is not complete, the status command should return a non-zero exit code.
+
+        ${execPathDoc}
+        `
+      ),
     env: joiEnvVars().description("Environment variables to set when running the command."),
   }),
 })
 
 interface ExecModuleBuildSpec {
   command: string[]
+  statusCommand?: string[]
 }
 
 export interface ExecModuleSpec extends ModuleSpec {
@@ -259,6 +286,15 @@ export const execModuleBuildSpecSchema = createSchema({
       `
       )
       .example(["npm", "run", "build"]),
+    statusCommand: joiArray(joi.string()).description(
+      dedent`
+        The command to run to check the status of the build.
+
+        If this is specified, it is run before the build \`command\`. If the status command runs successfully and returns exit code of 0, the build is considered already complete and the \`command\` is not run. To indicate that the build is not complete, the status command should return a non-zero exit code.
+
+        ${execPathDoc}
+        `
+    ),
   }),
 })
 

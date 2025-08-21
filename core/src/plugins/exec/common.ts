@@ -16,7 +16,9 @@ import { exec } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { ResolvedExecAction } from "./config.js"
-import { RuntimeError } from "../../exceptions.js"
+import { isErrnoException, RuntimeError } from "../../exceptions.js"
+import { ACTION_RUNTIME_LOCAL } from "../../plugin/base.js"
+import type { ActionStatus } from "../../actions/types.js"
 
 export function getDefaultEnvVars(action: ResolvedExecAction, log: Log) {
   return {
@@ -69,13 +71,15 @@ export async function execRunCommand({
 
   const shell = !!action.getSpec().shell
   const { cmd, args } = convertCommandSpec(command, shell)
+  const cwd = action.getBuildPath()
 
   log.debug(`Running command: ${cmd}`)
+  log.debug(`Working directory: ${cwd}`)
 
   const result = await exec(cmd, args, {
     ...opts,
     shell,
-    cwd: action.getBuildPath(),
+    cwd,
     environment: envVars,
     stdout: outputStream,
     stderr: outputStream,
@@ -120,4 +124,61 @@ export async function copyArtifacts(
       }
     })
   )
+}
+
+export const execGetResultHandler = async ({
+  action,
+  log,
+  ctx,
+}: {
+  action: ResolvedExecAction
+  log: Log
+  ctx: PluginContext
+}) => {
+  const startedAt = new Date()
+  const statusCommand = action.getSpec().statusCommand
+
+  if (!statusCommand || statusCommand.length === 0) {
+    return {
+      state: "unknown" as ActionStatus["state"],
+      detail: { runtime: ACTION_RUNTIME_LOCAL, startedAt, completedAt: new Date(), log: "", success: true },
+      outputs: {},
+    }
+  }
+
+  try {
+    const result = await execRunCommand({ command: statusCommand, action, ctx, log })
+
+    return {
+      state: "ready" as const,
+      detail: {
+        runtime: ACTION_RUNTIME_LOCAL,
+        log: result.outputLog,
+        success: true,
+        startedAt,
+        completedAt: result.completedAt,
+      },
+      outputs: {},
+    }
+  } catch (err) {
+    if (!isExpectedStatusCommandError(err)) {
+      throw err
+    }
+
+    return {
+      state: "not-ready" as const,
+      detail: {
+        runtime: ACTION_RUNTIME_LOCAL,
+        startedAt,
+        completedAt: new Date(),
+        log: err.message,
+        success: true,
+      },
+      outputs: {},
+    }
+  }
+}
+
+export function isExpectedStatusCommandError(err: unknown): err is Error {
+  return err instanceof Error && !(isErrnoException(err) && (err.code === "EMFILE" || err.code === "ENOENT"))
 }

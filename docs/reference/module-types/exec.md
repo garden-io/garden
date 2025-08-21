@@ -65,6 +65,16 @@ build:
   # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
   command: []
 
+  # The command to run to check the status of the build.
+  #
+  # If this is specified, it is run before the build `command`. If the status command runs successfully and returns
+  # exit code of 0, the build is considered already complete and the `command` is not run. To indicate that the build
+  # is not complete, the status command should return a non-zero exit code.
+  #
+  # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+  # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+  statusCommand: []
+
 # If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
 # instead of in the Garden build directory (under .garden/build/<module-name>).
 #
@@ -302,6 +312,16 @@ tasks:
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     command:
 
+    # The command to run to check the status of the task.
+    #
+    # If this is specified, it is run before the `command`. If the status command runs successfully and returns exit
+    # code of 0, the task is considered already complete and the `command` is not run. To indicate that the task is
+    # not complete, the status command should return a non-zero exit code.
+    #
+    # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+    # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+    statusCommand:
+
     # Environment variables to set when running the command.
     env: {}
 
@@ -328,6 +348,16 @@ tests:
     # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     command:
+
+    # The command to run to check the status of the test.
+    #
+    # If this is specified, it is run before the `command`. If the status command runs successfully and returns exit
+    # code of 0, the test is considered already complete and the `command` is not run. To indicate that the test is
+    # not complete, the status command should return a non-zero exit code.
+    #
+    # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+    # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+    statusCommand:
 
     # Environment variables to set when running the command.
     env: {}
@@ -479,6 +509,21 @@ build:
     - run
     - build
 ```
+
+### `build.statusCommand[]`
+
+[build](#build) > statusCommand
+
+The command to run to check the status of the build.
+
+If this is specified, it is run before the build `command`. If the status command runs successfully and returns exit code of 0, the build is considered already complete and the `command` is not run. To indicate that the build is not complete, the status command should return a non-zero exit code.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 ### `local`
 
@@ -940,6 +985,21 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 | --------------- | -------- |
 | `array[string]` | Yes      |
 
+### `tasks[].statusCommand[]`
+
+[tasks](#tasks) > statusCommand
+
+The command to run to check the status of the task.
+
+If this is specified, it is run before the `command`. If the status command runs successfully and returns exit code of 0, the task is considered already complete and the `command` is not run. To indicate that the task is not complete, the status command should return a non-zero exit code.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `tasks[].env`
 
 [tasks](#tasks) > env
@@ -1013,6 +1073,21 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | Yes      |
+
+### `tests[].statusCommand[]`
+
+[tests](#tests) > statusCommand
+
+The command to run to check the status of the test.
+
+If this is specified, it is run before the `command`. If the status command runs successfully and returns exit code of 0, the test is considered already complete and the `command` is not run. To indicate that the test is not complete, the status command should return a non-zero exit code.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `tests[].env`
 

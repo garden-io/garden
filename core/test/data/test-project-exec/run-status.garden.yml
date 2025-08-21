@@ -1,0 +1,44 @@
+kind: Module
+name: module-run-status
+type: exec
+build:
+  command: [touch module-built.log && echo built]
+  statusCommand: [test -f module-built.log && echo already built]
+tasks:
+  - name: module-run-status-task
+    command: [touch module-task-done.log && echo task done]
+    statusCommand: [test -f module-task-done.log && echo already done]
+tests:
+  - name: unit
+    command: [touch module-test-done.log && echo test done]
+    statusCommand: [test -f module-test-done.log && echo already done]
+
+---
+
+kind: Build
+type: exec
+name: build-status
+spec:
+  shell: true
+  command: [touch build-done.log && echo build done]
+  statusCommand: [test -f build-done.log && echo already done]
+
+---
+
+kind: Run
+type: exec
+name: run-status
+spec:
+  shell: true
+  command: [touch run-done.log && echo run done]
+  statusCommand: [test -f run-done.log && echo already done]
+
+---
+
+kind: Test
+type: exec
+name: test-status
+spec:
+  shell: true
+  command: [touch test-done.log && echo test done]
+  statusCommand: [test -f test-done.log && echo already done]
