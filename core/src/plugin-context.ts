@@ -113,7 +113,7 @@ export const pluginContextSchema = createSchema({
     tools: joiStringMap(joi.object()),
     workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     cloudApi: joi.any().optional(),
-    cloudApiV2: joi.any().optional(),
+    cloudApiLegacy: joi.any().optional(),
   }),
   options: { presence: "required" },
 })

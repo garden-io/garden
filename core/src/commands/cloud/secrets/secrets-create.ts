@@ -16,8 +16,8 @@ import { PathParameter, StringParameter, StringsParameter } from "../../../cli/p
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
 import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
-import type { Secret } from "../../../cloud/legacy/api.js"
-import { handleSecretsUnavailableInNewBackend } from "../../../cloud/grow/secrets.js"
+import type { Secret } from "../../../cloud/api-legacy/api.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/api/secrets.js"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({

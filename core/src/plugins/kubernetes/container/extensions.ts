@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CloudBuilderAvailabilityV2 } from "../../../cloud/legacy/api.js"
+import type { CloudBuilderAvailabilityV2 } from "../../../cloud/api-legacy/api.js"
 import type { DeepPrimitiveMap } from "../../../config/common.js"
 import type {
   BuildActionExtension,

@@ -10,11 +10,11 @@ import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import { dedent } from "../util/string.js"
-import { clearAuthToken, getStoredAuthToken } from "../cloud/legacy/auth.js"
+import { clearAuthToken, getStoredAuthToken } from "../cloud/api-legacy/auth.js"
 import { getCloudDomain, useLegacyCloud } from "../cloud/util.js"
 import { findProjectConfigOrPrintInstructions } from "./helpers.js"
-import { GardenCloudApi } from "../cloud/legacy/api.js"
-import { GrowCloudApi } from "../cloud/grow/api.js"
+import { GardenCloudApiLegacy } from "../cloud/api-legacy/api.js"
+import { GardenCloudApi } from "../cloud/api/api.js"
 
 type Opts = {}
 
@@ -39,31 +39,31 @@ export class LogOutCommand extends Command<{}, Opts> {
     const cloudDomain = getCloudDomain(projectConfig)
     const globalConfigStore = garden.globalConfigStore
 
-    let cloudApi: GardenCloudApi | GrowCloudApi | undefined
-    if (useLegacyCloud(projectConfig) && projectId) {
-      cloudApi = await GardenCloudApi.factory({
-        log,
-        cloudDomain,
-        skipLogging: true,
-        globalConfigStore,
-        projectId,
-      })
-    } else if (organizationId) {
-      cloudApi = await GrowCloudApi.factory({
-        log,
-        cloudDomain,
-        skipLogging: true,
-        globalConfigStore,
-        organizationId,
-      })
-    }
-
-    if (!cloudApi) {
-      log.info({ msg: `You're already logged out from ${cloudDomain}.` })
-      return {}
-    }
-
     try {
+      let cloudApi: GardenCloudApiLegacy | GardenCloudApi | undefined
+      if (useLegacyCloud(projectConfig) && projectId) {
+        cloudApi = await GardenCloudApiLegacy.factory({
+          log,
+          cloudDomain,
+          skipLogging: true,
+          globalConfigStore,
+          projectId,
+        })
+      } else if (organizationId) {
+        cloudApi = await GardenCloudApi.factory({
+          log,
+          cloudDomain,
+          skipLogging: true,
+          globalConfigStore,
+          organizationId,
+        })
+      }
+
+      if (!cloudApi) {
+        log.info({ msg: `You're already logged out from ${cloudDomain}.` })
+        return {}
+      }
+
       const clientAuthToken = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
       // Shouldn't really happen if the cloudApi instance was initialised
       if (!clientAuthToken) {

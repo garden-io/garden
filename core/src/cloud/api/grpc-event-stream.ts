@@ -12,7 +12,7 @@ import { registerCleanupFunction, sleep } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { EventName, EventPayload, GardenEventAnyListener } from "../../events/events.js"
 import { LogLevel } from "../../logger/logger.js"
-import type { LogEntryEventPayload } from "../legacy/restful-event-stream.js"
+import type { LogEntryEventPayload } from "../api-legacy/restful-event-stream.js"
 import type {
   Event as GrpcEvent,
   GardenEventIngestionService,
@@ -27,7 +27,7 @@ import { ConnectError, type Client } from "@connectrpc/connect"
 import type { WritableIterable } from "@connectrpc/connect/protocol"
 import { createWritableIterable } from "@connectrpc/connect/protocol"
 
-import { GrowCloudError } from "./api.js"
+import { GardenCloudError } from "./api.js"
 import { describeGrpcEvent, GrpcEventConverter } from "./grpc-event-converter.js"
 import { create } from "@bufbuild/protobuf"
 import { InternalError } from "../../exceptions.js"
@@ -258,7 +258,7 @@ export class GrpcEventStream {
             this.log.warn(logMessage)
             break
           case IngestEventsResponse_Message_Severity.ERROR:
-            throw new GrowCloudError({
+            throw new GardenCloudError({
               message: logMessage,
             })
           case IngestEventsResponse_Message_Severity.UNSPECIFIED:
