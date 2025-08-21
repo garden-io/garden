@@ -83,6 +83,7 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
     output.detail.fresh = true
     output.detail.buildLog = result.outputLog
     success = result.success
+    output.outputs = result.outputs
   }
 
   if (output.detail?.buildLog) {
@@ -110,10 +111,11 @@ execBuild.addHandler("getStatus", async ({ action, log, ctx }) => {
 
   try {
     const result = await execRunCommand({ command: statusCommand, action, ctx, log })
+
     return {
       state: "ready" as const,
       detail: { runtime: ACTION_RUNTIME_LOCAL, buildLog: result.outputLog },
-      outputs: {},
+      outputs: result.outputs,
     }
   } catch (err) {
     if (!isExpectedStatusCommandError(err)) {

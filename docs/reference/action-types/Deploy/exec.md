@@ -379,6 +379,20 @@ If this is set to true, it is highly recommended to also define `statusCommand` 
 
 The command to run to perform the deployment.
 
+**Action outputs**
+
+Exec actions can write outputs to a JSON file or a directory. The action command is provided with the path to the outputs directory or JSON file via the `GARDEN_ACTION_OUTPUTS_PATH` or `GARDEN_ACTION_OUTPUTS_JSON_PATH` environment variables.
+
+If you write a JSON file to `<GARDEN_ACTION_OUTPUTS_JSON_PATH>` this file will be read and its contents will be used as the action outputs. Nested JSON objects are not supported. Only the top-level key-value pairs, where values are primitive types (string, number, boolean, null), will be used.
+
+You can also write outputs to files in the directory. In this scenario, each file with a valid identifier as a filename (this excludes paths starting with `.` for example) in the directory will be read and its filename will be added as the key in the action outputs, with the contents of the file as the value. Sub-directories are not supported and will be ignored. For example, if you write some string to `<GARDEN_ACTION_OUTPUTS_PATH>/my-output`, the action outputs will contain a `my-output` key with the value `<contents of my-output.txt>`.
+
+It is allowed to mix and match between the two approaches. In that scenario the JSON file will be read first, and any additional valid filenames in the directory will be added as additional action outputs, overriding keys in the JSON file if they overlap.
+
+Note that if you provide a `statusCommand`, the outputs will also be read from the directory after the status command is run. You'll need to ensure that the outputs are consistent between the status command and the command that is run, to avoid unexpected results.
+
+**Build field**
+
 Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
 
 | Type    | Required |
@@ -395,6 +409,20 @@ If this is not specified, the deployment is always reported as "unknown", so it'
 
 If `persistent: true`, Garden will run this command at an interval until it returns a zero exit code or times out.
 
+**Action outputs**
+
+Exec actions can write outputs to a JSON file or a directory. The action command is provided with the path to the outputs directory or JSON file via the `GARDEN_ACTION_OUTPUTS_PATH` or `GARDEN_ACTION_OUTPUTS_JSON_PATH` environment variables.
+
+If you write a JSON file to `<GARDEN_ACTION_OUTPUTS_JSON_PATH>` this file will be read and its contents will be used as the action outputs. Nested JSON objects are not supported. Only the top-level key-value pairs, where values are primitive types (string, number, boolean, null), will be used.
+
+You can also write outputs to files in the directory. In this scenario, each file with a valid identifier as a filename (this excludes paths starting with `.` for example) in the directory will be read and its filename will be added as the key in the action outputs, with the contents of the file as the value. Sub-directories are not supported and will be ignored. For example, if you write some string to `<GARDEN_ACTION_OUTPUTS_PATH>/my-output`, the action outputs will contain a `my-output` key with the value `<contents of my-output.txt>`.
+
+It is allowed to mix and match between the two approaches. In that scenario the JSON file will be read first, and any additional valid filenames in the directory will be added as additional action outputs, overriding keys in the JSON file if they overlap.
+
+Note that if you provide a `statusCommand`, the outputs will also be read from the directory after the status command is run. You'll need to ensure that the outputs are consistent between the status command and the command that is run, to avoid unexpected results.
+
+**Build field**
+
 Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
 
 | Type    | Required |
@@ -406,6 +434,20 @@ Note that if a Build is referenced in the `build` field, the command will be run
 [spec](#spec) > cleanupCommand
 
 Optionally set a command to clean the deployment up, e.g. when running `garden delete env`.
+
+**Action outputs**
+
+Exec actions can write outputs to a JSON file or a directory. The action command is provided with the path to the outputs directory or JSON file via the `GARDEN_ACTION_OUTPUTS_PATH` or `GARDEN_ACTION_OUTPUTS_JSON_PATH` environment variables.
+
+If you write a JSON file to `<GARDEN_ACTION_OUTPUTS_JSON_PATH>` this file will be read and its contents will be used as the action outputs. Nested JSON objects are not supported. Only the top-level key-value pairs, where values are primitive types (string, number, boolean, null), will be used.
+
+You can also write outputs to files in the directory. In this scenario, each file with a valid identifier as a filename (this excludes paths starting with `.` for example) in the directory will be read and its filename will be added as the key in the action outputs, with the contents of the file as the value. Sub-directories are not supported and will be ignored. For example, if you write some string to `<GARDEN_ACTION_OUTPUTS_PATH>/my-output`, the action outputs will contain a `my-output` key with the value `<contents of my-output.txt>`.
+
+It is allowed to mix and match between the two approaches. In that scenario the JSON file will be read first, and any additional valid filenames in the directory will be added as additional action outputs, overriding keys in the JSON file if they overlap.
+
+Note that if you provide a `statusCommand`, the outputs will also be read from the directory after the status command is run. You'll need to ensure that the outputs are consistent between the status command and the command that is run, to avoid unexpected results.
+
+**Build field**
 
 Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
 

@@ -1578,7 +1578,7 @@ export class Garden {
   /**
    * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
-  protected addRawActionConfig(config: BaseActionConfig) {
+  protected addRawActionConfig(config: BaseActionConfig, overwrite = false) {
     const parentTemplateName = config.internal.templateName
     this.log.silly(
       () =>
@@ -1587,7 +1587,7 @@ export class Garden {
     const key = actionReferenceToString(config)
     const existing = this.actionConfigs[config.kind][config.name]
 
-    if (existing) {
+    if (existing && !overwrite) {
       // Resolve the actual values of the `disabled` flag
       config.disabled = this.evaluateDisabledFlag(config)
       existing.disabled = this.evaluateDisabledFlag(existing)

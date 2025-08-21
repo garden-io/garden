@@ -32,7 +32,14 @@ import type { VcsHandler } from "../vcs/vcs.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
 import type { GraphResults } from "../graph/results.js"
 import { expect } from "chai"
-import type { ActionConfig, ActionConfigMap, ActionKind, ActionStatus, BaseActionConfig } from "../actions/types.js"
+import type {
+  ActionConfig,
+  ActionConfigMap,
+  ActionKind,
+  ActionStatus,
+  BaseActionConfig,
+  ResolvedAction,
+} from "../actions/types.js"
 import type { WrappedActionRouterHandlers } from "../router/base.js"
 import type {
   BuiltinArgs,
@@ -283,8 +290,8 @@ export class TestGarden extends Garden {
   /**
    * Public wrapper around this.addActionConfig()
    */
-  addAction(config: ActionConfig) {
-    this.addRawActionConfig(config)
+  addAction(config: ActionConfig, overwrite = false) {
+    this.addRawActionConfig(config, overwrite)
   }
 
   /**
@@ -311,6 +318,30 @@ export class TestGarden extends Garden {
       ...this.moduleConfigs,
       ...keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name"),
     }
+  }
+
+  async addAndResolveAction(ac: PartialActionConfig, overwrite = false): Promise<ResolvedAction> {
+    this.addAction(
+      {
+        spec: {},
+        ...ac,
+        // TODO: consider making `timeout` mandatory in `PartialActionConfig`.
+        //  It will require extra code changes in tests.
+        timeout: ac.timeout || 10,
+        internal: {
+          basePath: this.projectRoot,
+          ...ac.internal,
+        },
+      },
+      overwrite
+    )
+    const graph = await this.getConfigGraph({ log: this.log, emit: false })
+    const action = graph.getActionByKind(ac.kind, ac.name)
+    return this.resolveAction({
+      log: this.log,
+      action,
+      graph: await this.getResolvedConfigGraph({ log: this.log, emit: false }),
+    })
   }
 
   setPartialActionConfigs(actionConfigs: PartialActionConfig[]) {

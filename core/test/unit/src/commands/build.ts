@@ -57,6 +57,8 @@ describe("BuildCommand", () => {
         state: "ready",
         outputs: {
           log: "A",
+          stdout: "A",
+          stderr: "",
         },
         detail: { fresh: true, buildLog: "A" },
         version: versionA,
@@ -65,6 +67,8 @@ describe("BuildCommand", () => {
         state: "ready",
         outputs: {
           log: "B",
+          stdout: "B",
+          stderr: "",
         },
         detail: { fresh: true, buildLog: "B" },
         version: versionB,
