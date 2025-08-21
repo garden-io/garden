@@ -9,25 +9,61 @@
 import open from "open"
 import type { Server } from "http"
 import Koa from "koa"
-import type EventEmitter2 from "eventemitter2"
 import bodyParser from "koa-bodyparser"
 import Router from "koa-router"
 import getPort from "get-port"
 import cloneDeep from "fast-copy"
+import { isArray } from "lodash-es"
+import { z } from "zod"
 import type { Log } from "../../logger/log-entry.js"
 import { gardenEnv } from "../../constants.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../../config-store/global.js"
 import { dedent } from "../../util/string.js"
 import { InternalError } from "../../exceptions.js"
 import { add } from "date-fns"
-import type { ParsedUrlQuery } from "node:querystring"
+import { renderZodError } from "../../config/zod.js"
+import type { AuthRedirectConfig, AuthRedirectServerConfig, AuthToken } from "../common.js"
 
-export type AuthToken = {
-  token: string
-  refreshToken: string
-  tokenValidity: number
-  // TODO: Would be neater to do this with a union type, but this feels simpler for now.
-  organizationId?: string
+function getFirstValue(v: string | string[] | undefined | null) {
+  if (v === undefined || v === null) {
+    return undefined
+  }
+  return isArray(v) ? v[0] : v
+}
+
+const gardenCloudTokenSchema = z.object({
+  jwt: z.string().describe("JWT token"),
+  rt: z.string().describe("Refresh token"),
+  jwtVal: z
+    .number()
+    .or(z.string())
+    .transform((value) => parseInt(value.toString(), 10))
+    .describe("JWT token validity period"),
+})
+
+export function getAuthRedirectConfigLegacy(cloudDomain: string): AuthRedirectConfig {
+  return {
+    getLoginUrl: (port) => new URL(`/clilogin/${port}`, cloudDomain).href,
+    successUrl: new URL("/clilogin/success", cloudDomain).href,
+    extractAuthToken: (query): AuthToken => {
+      const rawToken = {
+        jwt: getFirstValue(query.jwt),
+        rt: getFirstValue(query.rt),
+        jwtVal: getFirstValue(query.jwtVal),
+      }
+
+      const token = gardenCloudTokenSchema.safeParse(rawToken)
+      if (!token.success) {
+        throw new InternalError({ message: `"Invalid query parameters": ${renderZodError(token.error)}` })
+      }
+
+      return {
+        token: token.data.jwt,
+        refreshToken: token.data.rt,
+        tokenValidity: token.data.jwtVal,
+      }
+    },
+  }
 }
 
 export async function saveAuthToken({
@@ -125,14 +161,6 @@ export const authTokenHeader =
   gardenEnv.GARDEN_AUTH_TOKEN && !gardenEnv.GARDEN_GE_SCHEDULED ? "x-ci-token" : "x-access-auth-token"
 
 export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
-
-export type AuthRedirectServerConfig = {
-  events: EventEmitter2.EventEmitter2
-  log: Log
-  getLoginUrl: (port: number) => string
-  successUrl: string
-  extractAuthToken: (query: ParsedUrlQuery) => AuthToken
-}
 
 // TODO: Add analytics tracking
 export class AuthRedirectServer {

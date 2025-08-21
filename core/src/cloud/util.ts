@@ -90,7 +90,7 @@ export function createCloudEventStream({
   opts,
 }: CreateCloudEventStreamParams): RestfulEventStream | GrpcEventStream | undefined {
   if (garden.isOldBackendAvailable()) {
-    const cloudApi = garden.cloudApi
+    const cloudApi = garden.cloudApiLegacy
     const cloudSession = cloudApi.getRegisteredSession(sessionId)
     if (!cloudSession) {
       log.debug(`Cannot find session ${sessionId}. No events will be sent to ${cloudApi.distroName}.`)
@@ -112,7 +112,7 @@ export function createCloudEventStream({
       log,
       garden,
       shouldStreamLogEntries: opts.shouldStreamLogs,
-      eventIngestionService: garden.cloudApiV2.eventIngestionService,
+      eventIngestionService: garden.cloudApi.eventIngestionService,
     })
   }
 

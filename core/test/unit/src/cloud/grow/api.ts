@@ -61,7 +61,6 @@ describe("GrowCloudApi", () => {
         globalConfigStore: garden.globalConfigStore,
         organizationId: "fake-organization-id",
         authToken: "fake-auth-token",
-        projectId: undefined,
         __trpcClientOverrideForTesting: makeFakeTrpcClient(),
       })
 
@@ -93,7 +92,6 @@ describe("GrowCloudApi", () => {
         globalConfigStore: garden.globalConfigStore,
         organizationId: "fake-organization-id",
         authToken: "fake-auth-token",
-        projectId: undefined,
         __trpcClientOverrideForTesting: makeFakeTrpcClient({
           variableList: {
             getValues: {
@@ -165,7 +163,6 @@ describe("GrowCloudApi", () => {
         globalConfigStore: garden.globalConfigStore,
         organizationId: "fake-organization-id",
         authToken: "fake-auth-token",
-        projectId: undefined,
         __trpcClientOverrideForTesting: makeFakeTrpcClient({
           variableList: {
             getValues: {
@@ -250,7 +247,6 @@ describe("GrowCloudApi", () => {
         globalConfigStore: garden.globalConfigStore,
         organizationId: "fake-organization-id",
         authToken: "fake-auth-token",
-        projectId: undefined,
         __trpcClientOverrideForTesting: makeFakeTrpcClient({
           variableList: {
             getValues: {

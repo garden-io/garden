@@ -442,7 +442,7 @@ export async function sendBuildReport({
       dockerMetadata,
     }
 
-    const growCloudApi = ctx.cloudApiV2
+    const growCloudApi = ctx.cloudApi
     if (!growCloudApi) {
       log.debug("Not sending build report to Garden Cloud v1 (Only sending to Garden Cloud v2)")
       return { timeSaved: 0 }
