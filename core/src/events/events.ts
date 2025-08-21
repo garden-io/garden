@@ -8,7 +8,7 @@
 
 import { omit } from "lodash-es"
 import EventEmitter2 from "eventemitter2"
-import type { LogEntryEventPayload } from "../cloud/legacy/restful-event-stream.js"
+import type { LogEntryEventPayload } from "../cloud/api-legacy/restful-event-stream.js"
 import type { DeployStatusForEventPayload } from "../types/service.js"
 import type { RunStatusForEventPayload } from "../plugin/base.js"
 import type { Omit, PickFromUnion } from "../util/util.js"

@@ -13,13 +13,13 @@ import { getHTTPStatusCodeFromError } from "@trpc/server/http"
 import type { ClientAuthToken, GlobalConfigStore } from "../../config-store/global.js"
 import type { Log } from "../../logger/log-entry.js"
 import { describeTRPCClientError, getNonAuthenticatedApiClient } from "./trpc.js"
-import { CloudApiTokenRefreshError } from "../legacy/api.js"
+import { CloudApiTokenRefreshError } from "../api-legacy/api.js"
 import { CloudApiError, InternalError } from "../../exceptions.js"
-import { clearAuthToken, saveAuthToken } from "../legacy/auth.js"
+import { clearAuthToken, saveAuthToken } from "../api-legacy/auth.js"
 import { getCloudDistributionName } from "../util.js"
 import dedent from "dedent"
 import { handleServerNotices } from "./notices.js"
-import { GrowCloudTRPCError } from "./api.js"
+import { GardenCloudTRPCError } from "./api.js"
 import type { AuthRedirectConfig, AuthToken } from "../common.js"
 import { renderZodError } from "../../config/zod.js"
 
@@ -106,7 +106,7 @@ export async function isTokenValid({
     if (err instanceof TRPCClientError) {
       const errorDesc = describeTRPCClientError(err)
       log.debug(errorDesc.detailed)
-      throw new GrowCloudTRPCError({
+      throw new GardenCloudTRPCError({
         message: `An error occurred while verifying client auth token with ${getCloudDistributionName(cloudDomain)}: ${errorDesc.short}`,
         cause: err,
       })

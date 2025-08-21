@@ -117,8 +117,8 @@ import {
   RemoteSourceConfigContext,
 } from "./config/template-contexts/project.js"
 import { TemplatableConfigContext } from "./config/template-contexts/templatable.js"
-import type { GardenCloudApiFactory } from "./cloud/legacy/api.js"
-import { GardenCloudApi } from "./cloud/legacy/api.js"
+import type { GardenCloudApiLegacyFactory } from "./cloud/api-legacy/api.js"
+import { GardenCloudApiLegacy } from "./cloud/api-legacy/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
 import { deepResolveContext, ErrorContext, type ContextWithSchema } from "./config/template-contexts/base.js"
@@ -172,8 +172,8 @@ import {
   getCloudLogSectionName,
   useLegacyCloud,
 } from "./cloud/util.js"
-import { GrowCloudApi } from "./cloud/grow/api.js"
-import type { GrowCloudApiFactory } from "./cloud/grow/api.js"
+import { GardenCloudApi } from "./cloud/api/api.js"
+import type { GardenCloudApiFactory } from "./cloud/api/api.js"
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
@@ -204,16 +204,16 @@ export interface GardenOpts {
   parentSessionId: string | undefined
   variableOverrides?: PrimitiveMap
   // used in tests
-  overrideCloudApiLegacyFactory?: GardenCloudApiFactory
-  overrideCloudApiFactory?: GrowCloudApiFactory
+  overrideCloudApiLegacyFactory?: GardenCloudApiLegacyFactory
+  overrideCloudApiFactory?: GardenCloudApiFactory
 }
 
 export interface GardenParams {
   artifactsPath: string
   vcsInfo: VcsInfo
   projectId?: string
-  cloudApiLegacy?: GardenCloudApi
-  cloudApi?: GrowCloudApi
+  cloudApiLegacy?: GardenCloudApiLegacy
+  cloudApi?: GardenCloudApi
   cloudDomain: string
   dotIgnoreFile: string
   variablesFrom: string | string[]
@@ -314,8 +314,8 @@ export class Garden {
   private emittedWarnings: Set<string>
 
   public readonly cloudDomain: string
-  public cloudApiLegacy?: GardenCloudApi
-  public cloudApi?: GrowCloudApi
+  public cloudApiLegacy?: GardenCloudApiLegacy
+  public cloudApi?: GardenCloudApi
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -533,7 +533,7 @@ export class Garden {
     return Object.assign(Object.create(Object.getPrototypeOf(this)), this)
   }
 
-  cloneForCommand(sessionId: string, cloudApiLegacy?: GardenCloudApi): Garden {
+  cloneForCommand(sessionId: string, cloudApiLegacy?: GardenCloudApiLegacy): Garden {
     // Make an instance clone to override anything that needs to be scoped to a specific command run
     // TODO: this could be made more elegant
     const garden = this.clone()
@@ -2032,12 +2032,12 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     const cloudBackendDomain = getCloudDomain(projectConfig)
 
-    let cloudApiLegacy: GardenCloudApi | undefined
-    let cloudApi: GrowCloudApi | undefined
+    let cloudApiLegacy: GardenCloudApiLegacy | undefined
+    let cloudApi: GardenCloudApi | undefined
     const useLegacy = useLegacyCloud(projectConfig)
 
     if (useLegacy && projectId && !skipCloudConnect) {
-      const apiFactory = opts.overrideCloudApiLegacyFactory || GardenCloudApi.factory
+      const apiFactory = opts.overrideCloudApiLegacyFactory || GardenCloudApiLegacy.factory
       cloudApiLegacy = await apiFactory({
         cloudDomain: cloudBackendDomain,
         globalConfigStore,
@@ -2045,7 +2045,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         projectId,
       })
     } else if (organizationId && !useLegacy) {
-      const apiFactory = opts.overrideCloudApiFactory || GrowCloudApi.factory
+      const apiFactory = opts.overrideCloudApiFactory || GardenCloudApi.factory
       cloudApi = await apiFactory({
         cloudDomain: cloudBackendDomain,
         organizationId,
@@ -2205,7 +2205,7 @@ async function initCloudProject({
   commandName,
   skipCloudConnect,
 }: {
-  cloudApiLegacy: GardenCloudApi
+  cloudApiLegacy: GardenCloudApiLegacy
   config: ProjectConfig
   log: Log
   projectRoot: string
@@ -2266,7 +2266,7 @@ async function getCloudProject({
   log,
   projectRoot,
 }: {
-  cloudApi: GardenCloudApi
+  cloudApi: GardenCloudApiLegacy
   config: ProjectConfig
   log: Log
   projectRoot: string

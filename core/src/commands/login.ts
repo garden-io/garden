@@ -13,7 +13,7 @@ import dedent from "dedent"
 import type { Log } from "../logger/log-entry.js"
 import { CloudApiError, ConfigurationError, InternalError, TimeoutError } from "../exceptions.js"
 import type { AuthToken } from "../cloud/common.js"
-import { AuthRedirectServer, getAuthRedirectConfigLegacy, saveAuthToken } from "../cloud/legacy/auth.js"
+import { AuthRedirectServer, getAuthRedirectConfigLegacy, saveAuthToken } from "../cloud/api-legacy/auth.js"
 import type { EventBus } from "../events/events.js"
 import { getCloudDomain, useLegacyCloud } from "../cloud/util.js"
 import { gardenEnv } from "../constants.js"
@@ -26,9 +26,9 @@ const { readFile, writeFile } = fsExtra
 import { relative } from "path"
 import { findProjectConfigOrPrintInstructions } from "./helpers.js"
 import { styles } from "../logger/styles.js"
-import { GrowCloudApi } from "../cloud/grow/api.js"
-import { GardenCloudApi } from "../cloud/legacy/api.js"
-import { getAuthRedirectConfig } from "../cloud/grow/auth.js"
+import { GardenCloudApi } from "../cloud/api/api.js"
+import { GardenCloudApiLegacy } from "../cloud/api-legacy/api.js"
+import { getAuthRedirectConfig } from "../cloud/api/auth.js"
 import type { AuthRedirectConfig } from "../cloud/common.js"
 
 const loginTimeoutSec = 60 * 60 // 1 hour should be enough to sign up and choose/create an organization
@@ -63,13 +63,13 @@ export class LoginCommand extends Command<{}, Opts> {
     const cloudDomain = getCloudDomain(projectConfig)
     const { id: projectId, organizationId } = projectConfig || {}
 
-    let cloudApi: GardenCloudApi | GrowCloudApi | undefined
+    let cloudApi: GardenCloudApiLegacy | GardenCloudApi | undefined
 
     try {
       // NOTE: The Cloud API is missing from the `Garden` class for commands
       // with `noProject = true` so we initialize it here.
       if (useLegacyCloud(projectConfig) && projectId) {
-        cloudApi = await GardenCloudApi.factory({
+        cloudApi = await GardenCloudApiLegacy.factory({
           log,
           cloudDomain,
           skipLogging: true,
@@ -77,7 +77,7 @@ export class LoginCommand extends Command<{}, Opts> {
           projectId,
         })
       } else if (organizationId) {
-        cloudApi = await GrowCloudApi.factory({
+        cloudApi = await GardenCloudApi.factory({
           log,
           cloudDomain,
           skipLogging: true,
