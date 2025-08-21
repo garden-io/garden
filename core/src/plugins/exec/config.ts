@@ -79,6 +79,14 @@ export const artifactsSchema = s
   .default([])
   .describe("A list of artifacts to copy after the run.")
 
+export const execStatusCommandSchema = s.array(s.string()).describe(sdk.util.dedent`
+  The command to run to check the status of the action.
+
+  If this is specified, it is run before the action's \`command\`. If the status command runs successfully and returns exit code of 0, the action is considered already complete and the \`command\` is not run. To indicate that the action is not complete, the status command should return a non-zero exit code.
+
+  If this is not specified, the status is always reported as "unknown", so specifying this can be useful to avoid running the action unnecessarily.
+`)
+
 export const execRunSpecSchema = execCommonSchema.extend({
   artifacts: artifactsSchema.optional(),
   command: s
@@ -91,6 +99,7 @@ export const execRunSpecSchema = execCommonSchema.extend({
       `
     )
     .example(["npm", "run", "build"]),
+  statusCommand: execStatusCommandSchema.optional(),
   env: s.envVars().default({}).describe(execEnvVarDoc),
 })
 

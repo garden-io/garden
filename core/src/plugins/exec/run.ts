@@ -11,7 +11,7 @@ import { renderMessageWithDivider } from "../../logger/util.js"
 import type { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType } from "../../plugin/sdk.js"
 import { sdk } from "../../plugin/sdk.js"
 import { styles } from "../../logger/styles.js"
-import { copyArtifacts, execRunCommand } from "./common.js"
+import { copyArtifacts, execGetResultHandler, execRunCommand } from "./common.js"
 import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
 import { InternalError } from "../../exceptions.js"
@@ -105,3 +105,5 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
 
   return result
 })
+
+execRun.addHandler("getResult", execGetResultHandler)

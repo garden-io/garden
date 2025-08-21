@@ -424,6 +424,20 @@ Example: `["npm","run","build"]`
 | ------- | ------- | -------- |
 | `array` | `[]`    | No       |
 
+### `spec.statusCommand[]`
+
+[spec](#spec) > statusCommand
+
+The command to run to check the status of the action.
+
+If this is specified, it is run before the action's `command`. If the status command runs successfully and returns exit code of 0, the action is considered already complete and the `command` is not run. To indicate that the action is not complete, the status command should return a non-zero exit code.
+
+If this is not specified, the status is always reported as "unknown", so specifying this can be useful to avoid running the action unnecessarily.
+
+| Type    | Required |
+| ------- | -------- |
+| `array` | No       |
+
 ### `spec.env`
 
 [spec](#spec) > env

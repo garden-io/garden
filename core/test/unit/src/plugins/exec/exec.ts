@@ -27,7 +27,7 @@ import { RunTask } from "../../../../../src/tasks/run.js"
 import { makeTestGarden } from "../../../../helpers.js"
 import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 import fsExtra from "fs-extra"
-const { pathExists, emptyDir, readFile, remove } = fsExtra
+const { pathExists, emptyDir, readFile, remove, mkdirp } = fsExtra
 import { TestTask } from "../../../../../src/tasks/test.js"
 import { dedent } from "../../../../../src/util/string.js"
 import { sleep } from "../../../../../src/util/util.js"
@@ -406,6 +406,62 @@ describe("exec plugin", () => {
           runtime: ACTION_RUNTIME_LOCAL,
         })
       })
+
+      it("should return 'ready' status if statusCommand returns zero exit code", async () => {
+        const action = graph.getBuild("build-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.shell = true
+        resolvedAction._config.spec.statusCommand = ["echo", "ready"]
+        await mkdirp(resolvedAction.getBuildPath())
+        const { result: res } = await actions.build.getStatus({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("ready")
+        expect(res.detail).to.eql({
+          buildLog: "ready",
+          runtime: ACTION_RUNTIME_LOCAL,
+        })
+      })
+
+      it("should return 'not-ready' status if statusCommand returns non-zero exit code", async () => {
+        const action = graph.getBuild("build-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.shell = true
+        resolvedAction._config.spec.statusCommand = ["exit 1"]
+        await mkdirp(resolvedAction.getBuildPath())
+        const { result: res } = await actions.build.getStatus({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("not-ready")
+      })
+
+      it("should return 'unknown' status if no statusCommand is set", async () => {
+        const action = graph.getBuild("build-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.statusCommand = undefined
+        const { result: res } = await actions.build.getStatus({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("unknown")
+      })
+
+      it("should return 'unknown' status if statusCommand is empty", async () => {
+        const action = graph.getBuild("build-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.statusCommand = []
+        const { result: res } = await actions.build.getStatus({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("unknown")
+      })
+
+      it("throws if status command is invalid", async () => {
+        const action = graph.getBuild("build-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.shell = false
+        resolvedAction._config.spec.statusCommand = ["jkghslfdkjghsdlfjkghsldjkgf"]
+        await expectError(
+          async () => await actions.build.getStatus({ log, action: resolvedAction, graph }),
+          (err) => expect(err.message).to.include("ENOENT")
+        )
+      })
     })
 
     describe("testExecModule", () => {
@@ -487,9 +543,59 @@ describe("exec plugin", () => {
         expect(res.outputs.log).to.equal(action.versionString(log))
         expect(res.outputs.stdout).to.equal(action.versionString(log))
       })
+
+      it("should return 'ready' status if statusCommand returns zero exit code", async () => {
+        const action = graph.getTest("test-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.shell = true
+        resolvedAction._config.spec.statusCommand = ["echo", "ready"]
+        const { result: res } = await actions.test.getResult({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("ready")
+      })
+
+      it("should return 'not-ready' status if statusCommand returns non-zero exit code", async () => {
+        const action = graph.getTest("test-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.shell = true
+        resolvedAction._config.spec.statusCommand = ["exit 1"]
+        const { result: res } = await actions.test.getResult({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("not-ready")
+      })
+
+      it("should return 'unknown' status if no statusCommand is set", async () => {
+        const action = graph.getTest("test-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.statusCommand = undefined
+        const { result: res } = await actions.test.getResult({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("unknown")
+      })
+
+      it("should return 'unknown' status if statusCommand is empty", async () => {
+        const action = graph.getTest("test-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.statusCommand = []
+        const { result: res } = await actions.test.getResult({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("unknown")
+      })
+
+      it("throws if status command is invalid", async () => {
+        const action = graph.getTest("test-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.shell = false
+        resolvedAction._config.spec.statusCommand = ["jkghslfdkjghsdlfjkghsldjkgf"]
+        await expectError(
+          async () => await actions.test.getResult({ log, action: resolvedAction, graph }),
+          (err) => expect(err.message).to.include("ENOENT")
+        )
+      })
     })
 
-    describe("runExecTask", () => {
+    describe("Run", () => {
       it("should run the task command in the action dir if local true", async () => {
         const actions = await garden.getActionRouter()
         const task = graph.getRun("pwd")
@@ -522,9 +628,59 @@ describe("exec plugin", () => {
 
         expect(res.detail?.log).to.equal(action.versionString(log))
       })
+
+      it("should return 'ready' status if statusCommand returns zero exit code", async () => {
+        const action = graph.getRun("run-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.shell = true
+        resolvedAction._config.spec.statusCommand = ["echo"]
+        const { result: res } = await actions.run.getResult({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("ready")
+      })
+
+      it("should return 'not-ready' status if statusCommand returns non-zero exit code", async () => {
+        const action = graph.getRun("run-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.shell = true
+        resolvedAction._config.spec.statusCommand = ["exit 1"]
+        const { result: res } = await actions.run.getResult({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("not-ready")
+      })
+
+      it("should return 'unknown' status if no statusCommand is set", async () => {
+        const action = graph.getRun("run-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.statusCommand = undefined
+        const { result: res } = await actions.run.getResult({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("unknown")
+      })
+
+      it("should return 'unknown' status if statusCommand is empty", async () => {
+        const action = graph.getRun("run-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.statusCommand = []
+        const { result: res } = await actions.run.getResult({ log, action: resolvedAction, graph })
+        expect(res.state).to.eql("unknown")
+      })
+
+      it("throws if status command is invalid", async () => {
+        const action = graph.getRun("run-status")
+        const actions = await garden.getActionRouter()
+        const resolvedAction = await garden.resolveAction({ action, log, graph })
+        resolvedAction._config.spec.shell = false
+        resolvedAction._config.spec.statusCommand = ["jkghslfdkjghsdlfjkghsldjkgf"]
+        await expectError(
+          async () => await actions.run.getResult({ log, action: resolvedAction, graph }),
+          (err) => expect(err.message).to.include("ENOENT")
+        )
+      })
     })
 
-    context("Deploys", () => {
+    context("Deploy", () => {
       let touchFilePath: string
 
       beforeEach(async () => {
@@ -998,6 +1154,7 @@ describe("exec plugin", () => {
         it("adds a Build action if build.command is set", async () => {
           const moduleA = "module-a"
           const buildCommand = ["echo", moduleA]
+          const statusCommand = ["echo", "ready"]
           garden.setPartialModuleConfigs([
             makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
               name: moduleA,
@@ -1005,6 +1162,7 @@ describe("exec plugin", () => {
               spec: {
                 build: {
                   command: buildCommand,
+                  statusCommand,
                 },
                 services: [],
                 tasks: [],
@@ -1027,6 +1185,7 @@ describe("exec plugin", () => {
           expect(build).to.exist
           expect(build.name).to.eql(moduleA)
           expect(build.spec.command).to.eql(buildCommand)
+          expect(build.spec.statusCommand).to.eql(statusCommand)
         })
 
         it("adds a Build action if build.dependencies[].copy is set and adds a copy field", async () => {
@@ -1290,6 +1449,7 @@ describe("exec plugin", () => {
           const buildCommandA = ["echo", moduleNameA]
           const taskNameA = "task-a"
           const commandA = ["echo", "run", taskNameA]
+          const statusCommandA = ["echo", "ready"]
           const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
@@ -1304,6 +1464,7 @@ describe("exec plugin", () => {
                 {
                   name: taskNameA,
                   command: commandA,
+                  statusCommand: statusCommandA,
                   dependencies: [],
                   disabled: false,
                   env: {},
@@ -1335,6 +1496,8 @@ describe("exec plugin", () => {
           expect(runA).to.exist
           expect(runA.build).to.eql(moduleNameA)
           expect(runA.dependencies).to.eql([])
+          expect(runA.spec.command).to.eql(commandA)
+          expect(runA.spec.statusCommand).to.eql(statusCommandA)
         })
 
         it("correctly maps a taskConfig to a Run with no build", async () => {
@@ -1346,6 +1509,7 @@ describe("exec plugin", () => {
           const moduleNameA = "module-a"
           const taskNameA = "task-a"
           const commandA = ["echo", "run", taskNameA]
+          const statusCommandA = ["echo", "ready"]
           const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
@@ -1359,6 +1523,7 @@ describe("exec plugin", () => {
                 {
                   name: taskNameA,
                   command: commandA,
+                  statusCommand: statusCommandA,
                   dependencies: [],
                   disabled: false,
                   env: {},
@@ -1393,6 +1558,8 @@ describe("exec plugin", () => {
           // no build name expected here
           expect(runA.build).to.not.exist
           expect(runA.dependencies).to.eql([])
+          expect(runA.spec.command).to.eql(commandA)
+          expect(runA.spec.statusCommand).to.eql(statusCommandA)
         })
 
         it("correctly maps a testConfig to a Test with a build", async () => {
@@ -1406,6 +1573,7 @@ describe("exec plugin", () => {
           const testNameA = "test-a"
           const convertedTestNameA = "module-a-test-a"
           const commandA = ["echo", "test", testNameA]
+          const statusCommandA = ["echo", "ready"]
           const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
@@ -1420,6 +1588,7 @@ describe("exec plugin", () => {
                 {
                   name: testNameA,
                   command: commandA,
+                  statusCommand: statusCommandA,
                   dependencies: [],
                   disabled: false,
                   env: {},
@@ -1451,6 +1620,8 @@ describe("exec plugin", () => {
           expect(testA).to.exist
           expect(testA.build).to.eql(moduleNameA)
           expect(testA.dependencies).to.eql([])
+          expect(testA.spec.command).to.eql(commandA)
+          expect(testA.spec.statusCommand).to.eql(statusCommandA)
         })
 
         it("correctly maps a testConfig to a Test with no build", async () => {
@@ -1463,6 +1634,7 @@ describe("exec plugin", () => {
           const testNameA = "test-a"
           const convertedTestNameA = "module-a-test-a"
           const commandA = ["echo", "test", testNameA]
+          const statusCommandA = ["echo", "ready"]
           const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
@@ -1477,6 +1649,7 @@ describe("exec plugin", () => {
                 {
                   name: testNameA,
                   command: commandA,
+                  statusCommand: statusCommandA,
                   dependencies: [],
                   disabled: false,
                   env: {},
@@ -1510,6 +1683,8 @@ describe("exec plugin", () => {
           // no build name expected here
           expect(testA.build).to.not.exist
           expect(testA.dependencies).to.eql([])
+          expect(testA.spec.command).to.eql(commandA)
+          expect(testA.spec.statusCommand).to.eql(statusCommandA)
         })
       })
     })

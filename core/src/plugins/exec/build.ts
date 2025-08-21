@@ -14,8 +14,14 @@ import type {
 } from "../../plugin/sdk.js"
 import { sdk } from "../../plugin/sdk.js"
 import { styles } from "../../logger/styles.js"
-import { execRunCommand } from "./common.js"
-import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
+import { execRunCommand, isExpectedStatusCommandError } from "./common.js"
+import {
+  execCommonSchema,
+  execEnvVarDoc,
+  execRuntimeOutputsSchema,
+  execStaticOutputsSchema,
+  execStatusCommandSchema,
+} from "./config.js"
 import { execProvider } from "./exec.js"
 import { ACTION_RUNTIME_LOCAL } from "../../plugin/base.js"
 
@@ -35,6 +41,7 @@ export const execBuildSpecSchema = execCommonSchema.extend({
       `
     )
     .example(["npm", "run", "build"]),
+  statusCommand: execStatusCommandSchema.optional(),
   env: s.envVars().default({}).describe(execEnvVarDoc),
 })
 
@@ -93,4 +100,30 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
   }
 
   return { ...output, state: success ? "ready" : "failed" }
+})
+
+execBuild.addHandler("getStatus", async ({ action, log, ctx }) => {
+  const statusCommand = action.getSpec().statusCommand
+  if (!statusCommand || statusCommand.length === 0) {
+    return { state: "unknown", detail: { runtime: ACTION_RUNTIME_LOCAL }, outputs: {} }
+  }
+
+  try {
+    const result = await execRunCommand({ command: statusCommand, action, ctx, log })
+    return {
+      state: "ready" as const,
+      detail: { runtime: ACTION_RUNTIME_LOCAL, buildLog: result.outputLog },
+      outputs: {},
+    }
+  } catch (err) {
+    if (!isExpectedStatusCommandError(err)) {
+      throw err
+    }
+
+    return {
+      state: "not-ready" as const,
+      detail: { runtime: ACTION_RUNTIME_LOCAL, buildLog: err.message },
+      outputs: {},
+    }
+  }
 })
