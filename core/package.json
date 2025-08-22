@@ -25,6 +25,7 @@
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.51.0",
     "@bufbuild/protobuf": "2.6.3",
     "@buf/garden_grow-platform.bufbuild_es": "^2.6.3-20250618101837-010811843489.1",
     "@codenamize/codenamize": "^1.1.1",
@@ -172,8 +173,13 @@
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@garden-io/platform-api-types": "1.1131.0",
+<<<<<<< HEAD
     "@google-cloud/artifact-registry": "^4.2.0",
     "@stylistic/eslint-plugin": "^5.1.0",
+=======
+    "@google-cloud/artifact-registry": "^4.1.0",
+    "@stylistic/eslint-plugin": "^4.2.0",
+>>>>>>> 07231790e (chore: save)
     "@types/archiver": "^6.0.3",
     "@types/async": "^3.2.25",
     "@types/async-lock": "^1.4.2",
@@ -223,8 +229,13 @@
     "@types/uuid": "^10.0.0",
     "@types/which": "^3.0.4",
     "@types/write-file-atomic": "^4.0.3",
+<<<<<<< HEAD
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
+=======
+    "@typescript-eslint/eslint-plugin": "^8.31.0",
+    "@typescript-eslint/parser": "^8.32.0",
+>>>>>>> 07231790e (chore: save)
     "chai": "^5.2.0",
     "eslint": "^9.30.1",
     "eslint-config-prettier": "^10.1.5",
