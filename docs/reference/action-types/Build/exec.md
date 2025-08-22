@@ -434,6 +434,8 @@ If this is specified, it is run before the action's `command`. If the status com
 
 If this is not specified, the status is always reported as "unknown", so specifying this can be useful to avoid running the action unnecessarily.
 
+Action outputs are also read from the directory after the status command is run (if the status is "ready"). If your action command writes outputs when run, you'll need to ensure that the outputs are consistent between the status command and the main command, to avoid unexpected results.
+
 | Type    | Required |
 | ------- | -------- |
 | `array` | No       |

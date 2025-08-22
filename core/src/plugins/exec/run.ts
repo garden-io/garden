@@ -80,11 +80,7 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
   const result = {
     state: runResultToActionState(detail),
     detail,
-    outputs: {
-      log: commandResult.outputLog,
-      stdout: commandResult.stdout,
-      stderr: commandResult.stderr,
-    },
+    outputs: commandResult.outputs,
   } as const
 
   if (!commandResult.success) {

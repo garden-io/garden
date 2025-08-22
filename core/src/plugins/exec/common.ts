@@ -9,7 +9,7 @@
 import { mapValues } from "lodash-es"
 import { join } from "path"
 import split2 from "split2"
-import type { PrimitiveMap } from "../../config/common.js"
+import { isPrimitive, type PrimitiveMap } from "../../config/common.js"
 import type { ArtifactSpec } from "../../config/validation.js"
 import type { ExecOpts } from "../../util/util.js"
 import { exec } from "../../util/util.js"
@@ -19,6 +19,16 @@ import type { ResolvedExecAction } from "./config.js"
 import { isErrnoException, RuntimeError } from "../../exceptions.js"
 import { ACTION_RUNTIME_LOCAL } from "../../plugin/base.js"
 import type { ActionStatus } from "../../actions/types.js"
+import tmp from "tmp-promise"
+import fsExtra from "fs-extra"
+import { isPlainObject } from "../../util/objects.js"
+import { isDirectory } from "../../util/fs.js"
+
+const { exists, readdir, readFile } = fsExtra
+
+export const execOutputsJsonFilename = ".outputs.json"
+const outputKeyRegex = /^[a-zA-Z][a-zA-Z0-9_\-]*$/i
+const disallowedOutputKeys = ["log", "stdout", "stderr"]
 
 export function getDefaultEnvVars(action: ResolvedExecAction, log: Log) {
   return {
@@ -64,11 +74,6 @@ export async function execRunCommand({
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
-  const envVars = {
-    ...getDefaultEnvVars(action, log),
-    ...(env ? mapValues(env, (v) => v + "") : {}),
-  }
-
   const shell = !!action.getSpec().shell
   const { cmd, args } = convertCommandSpec(command, shell)
   const cwd = action.getBuildPath()
@@ -76,24 +81,130 @@ export async function execRunCommand({
   log.debug(`Running command: ${cmd}`)
   log.debug(`Working directory: ${cwd}`)
 
-  const result = await exec(cmd, args, {
-    ...opts,
-    shell,
-    cwd,
-    environment: envVars,
-    stdout: outputStream,
-    stderr: outputStream,
-  })
+  const tmpDir = await tmp.dir({ prefix: "garden-exec-outputs-", unsafeCleanup: true })
 
-  // Comes from error object
-  const shortMessage = (result as any).shortMessage || ""
-
-  return {
-    ...result,
-    outputLog: ((result.stdout || "") + "\n" + (result.stderr || "") + "\n" + shortMessage).trim(),
-    completedAt: new Date(),
-    success: result.exitCode === 0,
+  const envVars = {
+    ...getDefaultEnvVars(action, log),
+    ...(env ? mapValues(env, (v) => v + "") : {}),
+    GARDEN_ACTION_OUTPUTS_PATH: tmpDir.path,
+    GARDEN_ACTION_JSON_OUTPUTS_PATH: join(tmpDir.path, execOutputsJsonFilename),
   }
+
+  log.debug(
+    `Environment variables: ${Object.entries(envVars)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(", ")}`
+  )
+
+  try {
+    const result = await exec(cmd, args, {
+      ...opts,
+      shell,
+      cwd,
+      environment: envVars,
+      stdout: outputStream,
+      stderr: outputStream,
+    })
+
+    const outputs = await readExecOutputs(log, tmpDir.path)
+
+    // Comes from error object
+    const shortMessage = (result as any).shortMessage || ""
+    const outputLog = ((result.stdout || "") + "\n" + (result.stderr || "") + "\n" + shortMessage).trim()
+
+    return {
+      ...result,
+      outputs: { ...outputs, log: outputLog, stdout: result.stdout, stderr: result.stderr },
+      outputLog,
+      completedAt: new Date(),
+      success: result.exitCode === 0,
+    }
+  } finally {
+    await tmpDir.cleanup()
+  }
+}
+
+export async function readExecOutputs(log: Log, outputsPath: string) {
+  const outputs: PrimitiveMap = {}
+
+  if (!(await exists(outputsPath))) {
+    log.warn(`Outputs directory ${outputsPath} does not exist, skipping`)
+    return outputs
+  }
+
+  log.verbose(`Reading outputs from ${outputsPath}`)
+
+  const outputsFiles = await readdir(outputsPath)
+
+  if (outputsFiles.includes(execOutputsJsonFilename)) {
+    const outputsJsonPath = join(outputsPath, execOutputsJsonFilename)
+
+    log.verbose(`Reading JSON outputs from ${outputsJsonPath}`)
+    const outputsJson = await readFile(outputsJsonPath, "utf8")
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let outputsParsed: any = {}
+
+    try {
+      outputsParsed = JSON.parse(outputsJson)
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        throw new RuntimeError({ message: `Outputs JSON file ${outputsJsonPath} is not a valid JSON object/map` })
+      }
+      throw err
+    }
+
+    if (!isPlainObject(outputsParsed)) {
+      throw new RuntimeError({ message: `Outputs JSON file ${outputsJsonPath} is not a valid JSON object/map` })
+    }
+
+    for (const [key, value] of Object.entries(outputsParsed)) {
+      if (disallowedOutputKeys.includes(key)) {
+        log.warn(`Outputs JSON file ${outputsJsonPath} contains disallowed key '${key}', skipping`)
+        continue
+      }
+
+      if (!key.match(outputKeyRegex)) {
+        log.warn(`Outputs JSON file ${outputsJsonPath} contains invalid key '${key}', skipping`)
+        continue
+      }
+
+      if (isPrimitive(value)) {
+        outputs[key] = value
+      } else {
+        log.warn(`Outputs JSON file ${outputsJsonPath} contains non-primitive value for key '${key}', skipping`)
+      }
+    }
+  }
+
+  for (const filename of outputsFiles) {
+    if (filename.startsWith(".")) {
+      continue
+    }
+
+    if (disallowedOutputKeys.includes(filename)) {
+      log.warn(`Outputs filename ${filename} is a disallowed key, skipping`)
+      continue
+    }
+
+    if (!filename.match(outputKeyRegex)) {
+      log.warn(`Outputs filename ${filename} is not a valid output key, skipping`)
+      continue
+    }
+
+    const filePath = join(outputsPath, filename)
+
+    if (await isDirectory(filePath)) {
+      log.warn(`Outputs filename ${filename} is a directory, skipping`)
+      continue
+    }
+
+    const fileContents = await readFile(filePath, "utf8")
+    // Trim trailing newline (allowing other whitespace)
+    outputs[filename] = fileContents.replace(/[\r|\n|\r\n]$/, "")
+  }
+
+  return outputs
 }
 
 export async function copyArtifacts(
@@ -158,7 +269,7 @@ export const execGetResultHandler = async ({
         startedAt,
         completedAt: result.completedAt,
       },
-      outputs: {},
+      outputs: result.outputs,
     }
   } catch (err) {
     if (!isExpectedStatusCommandError(err)) {

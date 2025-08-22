@@ -358,7 +358,7 @@ describe("exec plugin", () => {
       expect(await pathExists(join(_garden.artifactsPath, "test-outputs", "test-a.txt"))).to.be.true
     })
 
-    describe("build", () => {
+    describe("Build", () => {
       it("should run the build command in the action dir if local true", async () => {
         const action = graph.getBuild("module-local")
         const actions = await garden.getActionRouter()
@@ -462,9 +462,50 @@ describe("exec plugin", () => {
           (err) => expect(err.message).to.include("ENOENT")
         )
       })
+
+      it("should receive outputs from files", async () => {
+        const action = graph.getBuild("module-local")
+        const actions = await garden.getActionRouter()
+
+        action._config.spec.command = ["echo bar > $GARDEN_ACTION_OUTPUTS_PATH/foo"]
+        action._config.spec.shell = true
+
+        const resolvedAction = await garden.resolveAction({ log, graph, action })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
+
+        expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
+      })
+
+      it("should receive outputs from JSON file", async () => {
+        const action = graph.getBuild("module-local")
+        const actions = await garden.getActionRouter()
+
+        action._config.spec.command = ['echo \'{"foo": "bar"}\' > $GARDEN_ACTION_JSON_OUTPUTS_PATH']
+        action._config.spec.shell = true
+
+        const resolvedAction = await garden.resolveAction({ log, graph, action })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
+
+        expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
+      })
+
+      it("should receive outputs from status handler when status is ready", async () => {
+        const action = graph.getBuild("module-local")
+        const actions = await garden.getActionRouter()
+
+        const command = ['echo \'{"foo": "bar"}\' > $GARDEN_ACTION_JSON_OUTPUTS_PATH']
+        action._config.spec.command = command
+        action._config.spec.statusCommand = command
+        action._config.spec.shell = true
+
+        const resolvedAction = await garden.resolveAction({ log, graph, action })
+        const { result: res } = await actions.build.getStatus({ log, action: resolvedAction, graph })
+
+        expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
+      })
     })
 
-    describe("testExecModule", () => {
+    describe("Test", () => {
       it("should run the test command in the action dir if local true", async () => {
         const router = await garden.getActionRouter()
 
@@ -593,6 +634,104 @@ describe("exec plugin", () => {
           (err) => expect(err.message).to.include("ENOENT")
         )
       })
+
+      it("should receive outputs from files", async () => {
+        const router = await garden.getActionRouter()
+        const rawAction = (await actionFromConfig({
+          garden,
+          graph,
+          router,
+          log,
+          config: {
+            type: "exec",
+            kind: "Test",
+            name: "test",
+            dependencies: [],
+            disabled: false,
+            timeout: 1234,
+            spec: {
+              shell: true,
+              command: ["echo bar > $GARDEN_ACTION_OUTPUTS_PATH/foo"],
+            },
+            internal: {
+              basePath: garden.projectRoot,
+            },
+          } as TestActionConfig,
+          configsByKey: {},
+          linkedSources: {},
+          mode: "default",
+        })) as TestAction
+        const action = await garden.resolveAction({ action: rawAction, graph, log })
+        const { result: res } = await router.test.run({ log, action, graph, interactive: false, silent: false })
+
+        expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
+      })
+
+      it("should receive outputs from JSON file", async () => {
+        const router = await garden.getActionRouter()
+        const rawAction = (await actionFromConfig({
+          garden,
+          graph,
+          router,
+          log,
+          config: {
+            type: "exec",
+            kind: "Test",
+            name: "test",
+            dependencies: [],
+            disabled: false,
+            timeout: 1234,
+            spec: {
+              shell: true,
+              command: ['echo \'{"foo": "bar"}\' > $GARDEN_ACTION_JSON_OUTPUTS_PATH'],
+            },
+            internal: {
+              basePath: garden.projectRoot,
+            },
+          } as TestActionConfig,
+          configsByKey: {},
+          linkedSources: {},
+          mode: "default",
+        })) as TestAction
+        const action = await garden.resolveAction({ action: rawAction, graph, log })
+        const { result: res } = await router.test.run({ log, action, graph, interactive: false, silent: false })
+
+        expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
+      })
+
+      it("should receive outputs from status handler when status is ready", async () => {
+        const router = await garden.getActionRouter()
+        const command = ['echo \'{"foo": "bar"}\' > $GARDEN_ACTION_JSON_OUTPUTS_PATH']
+        const rawAction = (await actionFromConfig({
+          garden,
+          graph,
+          router,
+          log,
+          config: {
+            type: "exec",
+            kind: "Test",
+            name: "test",
+            dependencies: [],
+            disabled: false,
+            timeout: 1234,
+            spec: {
+              shell: true,
+              command,
+              statusCommand: command,
+            },
+            internal: {
+              basePath: garden.projectRoot,
+            },
+          } as TestActionConfig,
+          configsByKey: {},
+          linkedSources: {},
+          mode: "default",
+        })) as TestAction
+        const action = await garden.resolveAction({ action: rawAction, graph, log })
+        const { result: res } = await router.test.getResult({ log, action, graph })
+
+        expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
+      })
     })
 
     describe("Run", () => {
@@ -678,6 +817,61 @@ describe("exec plugin", () => {
           (err) => expect(err.message).to.include("ENOENT")
         )
       })
+
+      it("should receive outputs from files", async () => {
+        const actions = await garden.getActionRouter()
+        const task = graph.getRun("pwd")
+        const action = await garden.resolveAction({ action: task, graph, log })
+
+        action._config.spec.command = ["echo bar > $GARDEN_ACTION_OUTPUTS_PATH/foo"]
+        action._config.spec.shell = true
+
+        const { result: res } = await actions.run.run({
+          log,
+          action,
+          interactive: true,
+          graph,
+        })
+
+        expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
+      })
+
+      it("should receive outputs from JSON file", async () => {
+        const actions = await garden.getActionRouter()
+        const task = graph.getRun("pwd")
+        const action = await garden.resolveAction({ action: task, graph, log })
+
+        action._config.spec.command = ['echo \'{"foo": "bar"}\' > $GARDEN_ACTION_JSON_OUTPUTS_PATH']
+        action._config.spec.shell = true
+
+        const { result: res } = await actions.run.run({
+          log,
+          action,
+          interactive: true,
+          graph,
+        })
+
+        expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
+      })
+
+      it("should receive outputs from status handler when status is ready", async () => {
+        const actions = await garden.getActionRouter()
+        const task = graph.getRun("pwd")
+        const action = await garden.resolveAction({ action: task, graph, log })
+
+        const command = ['echo \'{"foo": "bar"}\' > $GARDEN_ACTION_JSON_OUTPUTS_PATH']
+        action._config.spec.command = command
+        action._config.spec.statusCommand = command
+        action._config.spec.shell = true
+
+        const { result: res } = await actions.run.getResult({
+          log,
+          action,
+          graph,
+        })
+
+        expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
+      })
     })
 
     context("Deploy", () => {
@@ -741,6 +935,80 @@ describe("exec plugin", () => {
             fail!
             `)
           )
+        })
+
+        it("should receive outputs from files", async () => {
+          const rawAction = graph.getDeploy("echo")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+
+          action._config.spec.deployCommand = ["echo bar > $GARDEN_ACTION_OUTPUTS_PATH/foo"]
+          action._config.spec.statusCommand = []
+          action._config.spec.shell = true
+
+          const { result: res } = await router.deploy.deploy({
+            force: false,
+            log,
+            action,
+            graph,
+          })
+
+          expect(res.state).to.eql("ready")
+
+          expect(res.outputs).to.eql({
+            foo: "bar",
+            log: "",
+            stdout: "",
+            stderr: "",
+          })
+        })
+
+        it("should receive outputs from JSON file", async () => {
+          const rawAction = graph.getDeploy("echo")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+
+          action._config.spec.deployCommand = ['echo \'{"foo": "bar"}\' > $GARDEN_ACTION_JSON_OUTPUTS_PATH']
+          action._config.spec.statusCommand = []
+          action._config.spec.shell = true
+
+          const { result: res } = await router.deploy.deploy({
+            force: false,
+            log,
+            action,
+            graph,
+          })
+
+          expect(res.outputs).to.eql({
+            foo: "bar",
+            log: "",
+            stdout: "",
+            stderr: "",
+          })
+        })
+
+        it("should receive outputs from status handler when status is ready", async () => {
+          const rawAction = graph.getDeploy("echo")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+
+          const command = ['echo \'{"foo": "bar"}\' > $GARDEN_ACTION_JSON_OUTPUTS_PATH']
+          action._config.spec.deployCommand = command
+          action._config.spec.statusCommand = command
+          action._config.spec.shell = true
+
+          const { result: res } = await router.deploy.getStatus({
+            log,
+            action,
+            graph,
+          })
+
+          expect(res.outputs).to.eql({
+            foo: "bar",
+            log: "",
+            stdout: "",
+            stderr: "",
+          })
         })
       })
 

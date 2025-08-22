@@ -28,7 +28,7 @@ import type { PluginContext } from "../../plugin-context.js"
 import {
   defaultStatusTimeout,
   execCommonSchema,
-  execPathDoc,
+  execCommonCommandDoc,
   execRuntimeOutputsSchema,
   execStaticOutputsSchema,
 } from "./config.js"
@@ -52,7 +52,7 @@ export const execDeployCommandSchema = s.sparseArray(s.string()).describe(
   dedent`
     The command to run to perform the deployment.
 
-    ${execPathDoc}
+    ${execCommonCommandDoc}
   `
 )
 
@@ -81,7 +81,7 @@ export const execDeploySpecSchema = execCommonSchema.extend({
 
       If \`persistent: true\`, Garden will run this command at an interval until it returns a zero exit code or times out.
 
-      ${execPathDoc}
+      ${execCommonCommandDoc}
       `
     ),
   cleanupCommand: s
@@ -91,7 +91,7 @@ export const execDeploySpecSchema = execCommonSchema.extend({
       dedent`
       Optionally set a command to clean the deployment up, e.g. when running \`garden delete env\`.
 
-      ${execPathDoc}
+      ${execCommonCommandDoc}
       `
     ),
   statusTimeout: s.number().default(defaultStatusTimeout).describe(dedent`
@@ -122,7 +122,7 @@ execDeploy.addHandler("getStatus", async (params) => {
   const { action, log, ctx } = params
   const { env, statusCommand } = action.getSpec()
 
-  if (statusCommand) {
+  if (statusCommand && statusCommand.length > 0) {
     const result = await execRunCommand({
       command: statusCommand,
       action,
@@ -141,9 +141,7 @@ execDeploy.addHandler("getStatus", async (params) => {
         version: action.versionString(log),
         detail: { statusCommandOutput: result.all },
       },
-      outputs: {
-        log: result.all || "",
-      },
+      outputs: result.outputs,
     }
   } else {
     const state = "unknown" as const
@@ -217,7 +215,7 @@ execDeploy.addHandler("deploy", async (params) => {
     return {
       state: actionState,
       detail: { state: deployState, detail: { deployCommandOutput: result.all } },
-      outputs: {},
+      outputs: result.outputs,
     }
   }
 })
@@ -264,6 +262,8 @@ export async function deployPersistentExecService({
   const startedAt = new Date()
 
   const spec = action.getSpec()
+
+  let outputs: PrimitiveMap = {}
 
   if (spec.statusCommand) {
     let ready = false
@@ -316,13 +316,14 @@ export async function deployPersistentExecService({
 
       lastStatusResult = result
       ready = result.exitCode === 0
+      outputs = result.outputs
     }
   }
 
   return {
     state: "ready",
     detail: { state: "ready", detail: { persistent: true, pid: proc.pid } },
-    outputs: {},
+    outputs,
   }
 }
 

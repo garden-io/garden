@@ -82,11 +82,7 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
   const result = {
     state: runResultToActionState(detail),
     detail,
-    outputs: {
-      log: commandResult.outputLog,
-      stdout: commandResult.stdout,
-      stderr: commandResult.stderr,
-    },
+    outputs: commandResult.outputs,
   } as const
 
   if (!commandResult.success) {
