@@ -1224,6 +1224,7 @@ workflows:
   version: 2
 
   commit:
+    max_auto_reruns: 3
     jobs:
       ### ALL BRANCHES ###
 
