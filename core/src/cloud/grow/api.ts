@@ -72,7 +72,7 @@ export class GrowCloudApi {
   public readonly domain: string
   public readonly organizationId: string
   public readonly distroName: string
-  private readonly api: ApiClient
+  public readonly api: ApiClient
   private readonly globalConfigStore: GlobalConfigStore
   private authToken: string
 
