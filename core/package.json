@@ -225,6 +225,7 @@
     "@types/write-file-atomic": "^4.0.3",
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
+    "0x": "^6.0.0",
     "chai": "^5.2.0",
     "eslint": "^9.30.1",
     "eslint-config-prettier": "^10.1.5",
@@ -266,6 +267,7 @@
     "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" npm run _integ --",
     "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only npm run _integ --",
     "test": "mocha",
+    "test:profile": "0x node_modules/mocha/bin/mocha.js",
     "test:silly": "GARDEN_LOGGER_TYPE=basic GARDEN_LOG_LEVEL=silly mocha"
   },
   "pkg": {

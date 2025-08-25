@@ -64,6 +64,7 @@ import type { GardenCloudApiFactory } from "../cloud/legacy/api.js"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
 import { uuidv4 } from "./random.js"
+import { Profile } from "./profiling.js"
 
 const { mkdirp, remove } = fsExtra
 
@@ -187,6 +188,7 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   overrideCloudApiFactory?: GardenCloudApiFactory
 }
 
+@Profile()
 export class TestGarden extends Garden {
   override events: TestEventBus
   // Overriding the type declarations of a few instance variables to allow reassignment in test code.

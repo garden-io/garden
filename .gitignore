@@ -4,6 +4,7 @@
 # Logs
 *.log
 npm-debug.log*
+*.0x
 
 # vendor dependencies
 node_modules
