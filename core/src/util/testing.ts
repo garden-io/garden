@@ -64,6 +64,7 @@ import type { GardenCloudApiFactory } from "../cloud/legacy/api.js"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
 import { uuidv4 } from "./random.js"
+import type { GrowCloudApiFactory } from "../cloud/grow/api.js"
 
 const { mkdirp, remove } = fsExtra
 
@@ -184,7 +185,8 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   remoteContainerAuth?: boolean
   clearConfigsOnScan?: boolean
   gitScanMode?: GitScanMode
-  overrideCloudApiFactory?: GardenCloudApiFactory
+  overrideCloudApiLegacyFactory?: GardenCloudApiFactory
+  overrideCloudApiFactory?: GrowCloudApiFactory
 }
 
 export class TestGarden extends Garden {

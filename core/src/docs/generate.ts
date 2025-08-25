@@ -91,6 +91,7 @@ export async function writeConfigReferenceDocs(
         },
         defaultEnvironment,
         dotIgnoreFile: defaultDotIgnoreFile,
+        variablesFrom: [],
         variables: {},
         environments: [
           {

@@ -273,7 +273,7 @@ describe("AnalyticsHandler", () => {
           name: "foo",
           id: "fake-project-id",
         }),
-        overrideCloudApiFactory: FakeGardenCloudApi.factory,
+        overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
       })
       // garden.cloudApi = FakeGardenCloudApi.factory({
       //   cloudDomain: garden.cloudDomain,

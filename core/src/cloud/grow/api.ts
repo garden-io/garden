@@ -10,7 +10,7 @@ import type { Log } from "../../logger/log-entry.js"
 import type { GlobalConfigStore } from "../../config-store/global.js"
 import { isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore } from "./auth.js"
 import type {
-  ApiClient,
+  ApiTrpcClient,
   CreateActionResultRequest,
   CreateActionResultResponse,
   DockerBuildReport,
@@ -18,6 +18,7 @@ import type {
   GetActionResultResponse,
   RegisterCloudBuildRequest,
   RegisterCloudBuildResponse,
+  RouterOutput,
 } from "./trpc.js"
 import { describeTRPCClientError, getAuthenticatedApiClient } from "./trpc.js"
 import type { GardenErrorParams } from "../../exceptions.js"
@@ -33,6 +34,7 @@ import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-im
 import { createGrpcTransport } from "@connectrpc/connect-node"
 import { createClient } from "@connectrpc/connect"
 import { GardenEventIngestionService } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
+import type { ValueOf } from "../../util/util.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -53,11 +55,13 @@ export class GrowCloudTRPCError extends GrowCloudError {
   public static wrapTRPCClientError(err: TRPCClientError<InferrableClientTypes>) {
     const errorDesc = describeTRPCClientError(err)
     return new GrowCloudTRPCError({
-      message: `An error occurred while calling Garden Backend: ${errorDesc.short}`,
+      message: `Garden Cloud API call failed with error: ${errorDesc.short}`,
       cause: err,
     })
   }
 }
+
+type Secret = ValueOf<RouterOutput["variableList"]["getValues"]>
 
 /**
  * The Cloud API V2 client.
@@ -72,7 +76,7 @@ export class GrowCloudApi {
   public readonly domain: string
   public readonly organizationId: string
   public readonly distroName: string
-  private readonly api: ApiClient
+  private readonly trpc: ApiTrpcClient
   private readonly globalConfigStore: GlobalConfigStore
   private authToken: string
 
@@ -82,9 +86,11 @@ export class GrowCloudApi {
     globalConfigStore,
     organizationId,
     authToken,
+    __trpcClientOverrideForTesting,
   }: CloudApiParams & {
     authToken: string
     organizationId: string
+    __trpcClientOverrideForTesting?: ApiTrpcClient
   }) {
     this.log = log
     this.domain = domain
@@ -94,7 +100,13 @@ export class GrowCloudApi {
 
     this.authToken = authToken
     const tokenGetter = () => this.authToken
-    this.api = getAuthenticatedApiClient({ hostUrl: domain, tokenGetter })
+    this.trpc = getAuthenticatedApiClient({ hostUrl: domain, tokenGetter })
+
+    // Hacky way to set a fake tRPC client in tests since depdendency injecting it is a little tricky
+    // due to the tokenGetter function which depends on class methods and needs to be set in the contructor.
+    if (__trpcClientOverrideForTesting) {
+      this.trpc = __trpcClientOverrideForTesting
+    }
   }
 
   /**
@@ -112,8 +124,11 @@ export class GrowCloudApi {
     cloudDomain,
     organizationId,
     globalConfigStore,
+    __trpcClientOverrideForTesting,
     skipLogging = false,
-  }: CloudApiFactoryParams): Promise<GrowCloudApi | undefined> {
+  }: CloudApiFactoryParams & {
+    __trpcClientOverrideForTesting?: ApiTrpcClient
+  }): Promise<GrowCloudApi | undefined> {
     if (!organizationId) {
       return undefined
     }
@@ -145,6 +160,7 @@ export class GrowCloudApi {
         globalConfigStore,
         authToken: gardenEnv.GARDEN_AUTH_TOKEN,
         projectId: undefined,
+        __trpcClientOverrideForTesting,
       })
     }
 
@@ -234,7 +250,7 @@ export class GrowCloudApi {
 
   async uploadDockerBuildReport(dockerBuildReport: DockerBuildReport) {
     try {
-      return this.api.dockerBuild.create.mutate({ ...dockerBuildReport, organizationId: this.organizationId })
+      return this.trpc.dockerBuild.create.mutate({ ...dockerBuildReport, organizationId: this.organizationId })
     } catch (err) {
       if (!(err instanceof TRPCClientError)) {
         throw err
@@ -250,7 +266,7 @@ export class GrowCloudApi {
     mtlsClientPublicKeyPEM,
   }: RegisterCloudBuildRequest): Promise<RegisterCloudBuildResponse> {
     try {
-      return await this.api.cloudBuilder.registerBuild.mutate({
+      return await this.trpc.cloudBuilder.registerBuild.mutate({
         organizationId: this.organizationId,
         platforms,
         mtlsClientPublicKeyPEM,
@@ -278,7 +294,7 @@ export class GrowCloudApi {
     cacheKey,
   }: GetActionResultRequest): Promise<GetActionResultResponse> {
     try {
-      return await this.api.actionCache.getEntry.query({
+      return await this.trpc.actionCache.getEntry.query({
         schemaVersion,
         organizationId: this.organizationId,
         actionRef,
@@ -304,7 +320,7 @@ export class GrowCloudApi {
     completedAt,
   }: CreateActionResultRequest): Promise<CreateActionResultResponse> {
     try {
-      return await this.api.actionCache.createEntry.mutate({
+      return await this.trpc.actionCache.createEntry.mutate({
         schemaVersion,
         organizationId: this.organizationId,
         actionRef,
@@ -321,6 +337,59 @@ export class GrowCloudApi {
 
       throw GrowCloudTRPCError.wrapTRPCClientError(err)
     }
+  }
+
+  async getVariables({
+    variablesFrom,
+    environmentName,
+    log,
+  }: {
+    variablesFrom: string | string[] | undefined
+    environmentName: string
+    log: Log
+  }) {
+    if (!variablesFrom) {
+      return {}
+    }
+    const variableListIds = typeof variablesFrom === "string" ? [variablesFrom] : variablesFrom
+
+    log.info(`Fetching remote variables`)
+    const reqs = variableListIds.map(async (variableListId, index) => {
+      log.debug(`Fetching remote variables for variableListId=${variableListId}`)
+      try {
+        const result = await this.trpc.variableList.getValues.query({
+          organizationId: this.organizationId,
+          variableListId,
+          gardenEnvironmentName: environmentName,
+        })
+        return { result, index, variableListId, success: true }
+      } catch (error) {
+        if (error instanceof TRPCClientError) {
+          log.error(`Fetching variables for variable list '${variableListId}' failed with API error: ${error.message}`)
+          throw GrowCloudTRPCError.wrapTRPCClientError(error)
+        } else if (error instanceof Error) {
+          log.error(
+            `Fetching variables for variable list '${variableListId}' failed with ${error.name} error: ${error.message}`
+          )
+          throw error
+        }
+
+        log.error(`Fetching variables for variable list '${variableListId}' failed with unknown error.`)
+        throw error
+      }
+    })
+
+    const allResults = (await Promise.all(reqs)).sort((r) => r.index)
+
+    const secrets = allResults.reduce(
+      (acc, value) => {
+        acc = { ...acc, ...value.result }
+        return acc
+      },
+      {} as { [key: string]: Secret }
+    )
+
+    return secrets
   }
 
   // GRPC clients
