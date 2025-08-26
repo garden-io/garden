@@ -45,7 +45,7 @@
     "@opentelemetry/semantic-conventions": "^1.36.0",
     "@scg82/exit-hook": "^3.4.1",
     "@segment/analytics-node": "^2.3.0",
-    "@trpc/client": "^11.4.4",
+    "@trpc/client": "^11.5.0",
     "@trpc/server": "^11.4.4",
     "@types/ws": "^8.18.1",
     "ajv": "^8.17.1",
