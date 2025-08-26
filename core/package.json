@@ -189,7 +189,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/json-merge-patch": "1.0.0",
     "@types/json-stringify-safe": "^5.0.3",
-    "@types/klaw": "^3.0.6",
+    "@types/klaw": "^3.0.7",
     "@types/koa": "^2.15.0",
     "@types/koa-bodyparser": "^4.3.12",
     "@types/koa-router": "^7.4.8",
