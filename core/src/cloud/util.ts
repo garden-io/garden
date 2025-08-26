@@ -72,6 +72,10 @@ export function getBackendType(projectConfig: ProjectConfig): "v1" | "v2" {
   return projectConfig.id ? "v1" : "v2"
 }
 
+export function useLegacyCloud(projectConfig: ProjectConfig) {
+  return getBackendType(projectConfig) === "v1"
+}
+
 interface CreateCloudEventStreamParams {
   sessionId: string
   log: Log

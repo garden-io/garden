@@ -303,7 +303,7 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
         globalConfigStore,
         // FakeCloudApi bypasses the login and returns mock project data
-        overrideCloudApiFactory: FakeGardenCloudApi.factory,
+        overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
       })
 
       // Mock this because login command calls it
@@ -323,7 +323,7 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
         globalConfigStore,
         // FakeCloudApi bypasses the login and returns mock project data
-        overrideCloudApiFactory: FakeGardenCloudApi.factory,
+        overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
       })
 
       // Mock this because login command calls it
