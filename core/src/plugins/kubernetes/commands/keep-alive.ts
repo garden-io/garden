@@ -76,7 +76,7 @@ export const keepAliveCommand: PluginCommand = {
             return { namespaceName: ns, skipped: msg }
           }
 
-          const updatedResource = await updateNamespaceAecAnnotations(ctx, api, ns)
+          const updatedResource = await updateNamespaceAecAnnotations({ ctx, api, namespace: ns })
 
           return { namespaceName: ns, updatedResource }
         } catch (e) {

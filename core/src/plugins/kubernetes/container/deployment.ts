@@ -21,7 +21,7 @@ import { createIngressResources } from "./ingress.js"
 import { createServiceResources } from "./service.js"
 import { waitForResources } from "../status/status.js"
 import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl.js"
-import { getAppNamespace } from "../namespace.js"
+import { getAppNamespace, updateNamespaceAecAnnotations } from "../namespace.js"
 import type { PluginContext } from "../../../plugin-context.js"
 import { KubeApi } from "../api.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
@@ -55,9 +55,10 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const imageId = getDeployedImageId(action)
 
   const status = await k8sGetContainerDeployStatus(params)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+
   const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
   if (specChangedResourceKeys.length > 0) {
-    const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
     await handleChangedSelector({
       action,
       specChangedResourceKeys,
@@ -72,6 +73,9 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   await deployContainerServiceRolling({ ...params, api, imageId })
 
   const postDeployStatus = await k8sGetContainerDeployStatus(params)
+
+  // Update the namespace AEC annotations
+  await updateNamespaceAecAnnotations({ ctx: k8sCtx, api, namespace, status: "none" })
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, postDeployStatus.detail?.forwardablePorts || [], log)

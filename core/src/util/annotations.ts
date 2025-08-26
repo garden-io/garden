@@ -16,6 +16,7 @@ export const gardenAnnotationKeys: { [key: string]: ZodSchema } = {
   "action-type": s.identifier(),
   "aec-config": s.string(),
   "aec-force": s.string(),
+  "aec-in-progress": s.string().datetime(),
   "aec-status": aecStatusSchema,
   "environment-type": s.string(), // i.e. "local", "dev", "prod" etc.
   "environment-name": s.string(), // i.e. the namespace name

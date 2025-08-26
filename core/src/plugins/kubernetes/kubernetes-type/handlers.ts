@@ -15,7 +15,12 @@ import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync.js"
 import { apply, deleteObjectsBySelector } from "../kubectl.js"
 import { streamK8sLogs } from "../logs.js"
-import { deleteNamespaces, getActionNamespace, getActionNamespaceStatus } from "../namespace.js"
+import {
+  deleteNamespaces,
+  getActionNamespace,
+  getActionNamespaceStatus,
+  updateNamespaceAecAnnotations,
+} from "../namespace.js"
 import { getForwardablePorts, killPortForwards } from "../port-forward.js"
 import { getK8sIngresses } from "../status/ingress.js"
 import type { ResourceStatus } from "../status/status.js"
@@ -450,6 +455,9 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
     })
   }
   const status = await getKubernetesDeployStatus(<any>params)
+
+  // Update the namespace AEC annotations
+  await updateNamespaceAecAnnotations({ ctx: k8sCtx, api, namespace, status: "none" })
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, status.detail?.forwardablePorts || [], log)

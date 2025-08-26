@@ -22,9 +22,12 @@ import { validateSchema } from "../../../config/validation.js"
 import { getAnnotationsForPausedWorkload } from "../aec.js"
 import type { V1Namespace } from "@kubernetes/client-node"
 import type { EventBus } from "../../../events/events.js"
+import { createServer } from "http"
+import { formatDistanceToNow } from "date-fns"
 
 const defaultCleanupInterval = 60000
 const defaultTtlSeconds = 60 * 60 * 24 // 24 hours
+export const aecAgentHealthCheckPort = 8999
 
 export const aecAgentCommand: PluginCommand = {
   name: "aec-agent",
@@ -38,6 +41,8 @@ export const aecAgentCommand: PluginCommand = {
   hidden: true,
 
   handler: async (params) => {
+    const { log } = params
+    log.info({ msg: "Starting AEC agent service" })
     try {
       const result = await handler(params)
       params.garden.events.emit("aecAgentStatus", {
@@ -62,7 +67,7 @@ export const aecAgentCommand: PluginCommand = {
         statusDescription: String(e),
       })
 
-      return { result: { error: e } }
+      throw e
     }
   },
 }
@@ -89,12 +94,15 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
     description: opts["description"],
   }
 
+  log.info({ msg: `AEC agent info: ${JSON.stringify(aecAgentInfo)}` })
+
   const dryRun = !!opts["dry-run"]
+  log.info({ msg: `Dry run: ${dryRun}` })
 
   for (const key of ["interval", "ttl"]) {
     if (opts[key]) {
       try {
-        opts[key] = parseInt(opts[key], 10)
+        opts[key] = parseInt(opts[key], 10) * 1000
       } catch (e) {
         log.error({ msg: `Invalid ${key}: ${opts[key]}` })
         return { result }
@@ -103,34 +111,37 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
   }
 
   const interval = opts["interval"] ?? defaultCleanupInterval
+  log.info({ msg: `Interval: ${interval}` })
   // Set to 0 to have the command exit after the first loop
   const ttl = opts["ttl"] ?? defaultTtlSeconds
+  log.info({ msg: `TTL: ${ttl}` })
 
   const api = await KubeApi.factory(log, ctx, provider)
+  log.info({ msg: `Kubernetes API initialized` })
 
   // TODO: Deduplicate this with the setup-aec command
   const cloudApi = garden.cloudApiV2
 
   if (!cloudApi) {
     if (garden.cloudApi) {
+      log.error({ msg: `Using legacy Cloud API` })
       throw new CloudApiError({
         message:
           "You must be logged in to app.garden.io to use this command. Single-tenant Garden Enterprise is currently not supported.",
       })
     }
 
+    log.error({ msg: `No Cloud API initialized` })
     throw new CloudApiError({
       message: "A valid Cloud API access token for app.garden.io is required to use this command.",
     })
   }
 
+  log.info({ msg: `Connecting to Garden Cloud (${cloudApi.domain})...` })
+
   const organization = await cloudApi.getOrganization()
 
-  if (organization.plan === "free") {
-    throw new CloudApiError({
-      message: `Your organization (${organization.name}) is on the Free plan. The AEC feature is currently only available on paid plans. Please upgrade your organization to continue.`,
-    })
-  }
+  log.info({ msg: `Organization: ${organization.name} (${organization.id})` })
 
   const account = await cloudApi.getCurrentAccount()
 
@@ -149,6 +160,20 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
     status: "running",
     statusDescription: "AEC agent service started",
   })
+
+  // Start a simple HTTP server for health checks
+  log.info({ msg: `Health check server port: ${aecAgentHealthCheckPort}` })
+  const server = createServer((_req, res) => {
+    res.end("OK")
+  })
+  server
+    .listen(aecAgentHealthCheckPort, () => {
+      log.info({ msg: "Health check server started" })
+    })
+    .on("error", (err) => {
+      log.error({ msg: `Health check server error: ${err}` })
+      throw err
+    })
 
   while (true) {
     const now = new Date()
@@ -182,8 +207,10 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
     }
 
     if (exit) {
+      log.info({ msg: "Exiting cleanup loop" })
       break
     }
+    log.debug({ msg: `Sleeping for ${interval}ms` })
     await sleep(interval)
   }
 
@@ -346,10 +373,12 @@ export async function checkAndCleanupNamespace({
   const aecConfigAnnotation = annotations[gardenAnnotationKey("aec-config")]
   const aecForceAnnotation = annotations[gardenAnnotationKey("aec-force")]
   const lastDeployedAnnotation = annotations[gardenAnnotationKey("last-deployed")]
+  const aecInProgressAnnotation = annotations[gardenAnnotationKey("aec-in-progress")]
 
   let aecStatus: AecStatus = "none"
   let lastDeployed: Date | null = null
   let aecConfigParsed: EnvironmentAecConfig | null = null
+  let aecInProgress: Date | null = null
 
   if (aecStatusAnnotation) {
     const result = validateAnnotation("aec-status", aecStatusAnnotation)
@@ -409,7 +438,21 @@ export async function checkAndCleanupNamespace({
     lastDeployed = new Date(result.data)
   }
 
-  const now = new Date()
+  if (aecInProgressAnnotation) {
+    const result = validateAnnotation("aec-in-progress", aecInProgressAnnotation)
+
+    if (result.error) {
+      const msg = `Invalid AEC in-progress annotation: ${result.error}`
+      log.error({ msg })
+      return {
+        namespace,
+        status: msg,
+        error: true,
+      }
+    }
+
+    aecInProgress = new Date(result.data)
+  }
 
   const stringStatus: string[] = []
   const status = () => stringStatus.join(" | ")
@@ -439,13 +482,8 @@ export async function checkAndCleanupNamespace({
   stringStatus.push(`Status: ${aecStatus}`)
 
   if (lastDeployed) {
-    // Log time since last deployed in HH:MM:SS format
-    // TODO: Use date-fns or similar to format the time
-    const timeSinceLastDeployed = now.getTime() - lastDeployed.getTime()
-    const hours = Math.floor(timeSinceLastDeployed / 3600000)
-    const minutes = Math.floor((timeSinceLastDeployed % 3600000) / 60000)
-    const seconds = Math.floor((timeSinceLastDeployed % 60000) / 1000)
-    stringStatus.push(`Last deployed ${hours}:${minutes}:${seconds} ago`)
+    // Log time since last deployed
+    stringStatus.push(`Last deployed ${formatDistanceToNow(lastDeployed)} ago`)
   } else {
     stringStatus.push("No last-deployed annotation")
   }
@@ -498,7 +536,7 @@ export async function checkAndCleanupNamespace({
     }
   }
 
-  if (aecStatus === "in-progress") {
+  if (aecInProgress) {
     const msg = `Cleanup already in progress, skipping`
     log.info({ msg })
     return {
@@ -649,7 +687,7 @@ async function markNamespaceAsInProgress({ api, namespaceName }: { api: KubeApi;
     body: {
       metadata: {
         annotations: {
-          [gardenAnnotationKey("aec-status")]: "in-progress",
+          [gardenAnnotationKey("aec-in-progress")]: new Date().toISOString(),
         },
       },
     },
@@ -679,80 +717,88 @@ export async function pauseWorkloadsInNamespace({
   // TODO: Filter on workloads that are deployed by Garden?
 
   // TODO: Do this in parallel and deduplicate some of the code
-  log.info({
-    msg: `Pausing ${deployments.items.length} Deployment(s): ${deployments.items
-      .map((d) => d.metadata.name)
-      .join(", ")}`,
-  })
-  await Promise.all(
-    deployments.items.map(async (deployment) => {
-      log.verbose({ msg: `Scaling down Deployment ${deployment.metadata.name}` })
-      await api.apps.patchNamespacedDeployment({
-        name: deployment.metadata.name,
-        namespace: namespaceName,
-        body: {
-          metadata: {
-            annotations: getAnnotationsForPausedWorkload(deployment),
+  if (deployments.items.length > 0) {
+    log.info({
+      msg: `Pausing ${deployments.items.length} Deployment(s): ${deployments.items
+        .map((d) => d.metadata.name)
+        .join(", ")}`,
+    })
+    await Promise.all(
+      deployments.items.map(async (deployment) => {
+        log.verbose({ msg: `Scaling down Deployment ${deployment.metadata.name}` })
+        await api.apps.patchNamespacedDeployment({
+          name: deployment.metadata.name,
+          namespace: namespaceName,
+          body: {
+            metadata: {
+              annotations: getAnnotationsForPausedWorkload(deployment),
+            },
+            spec: {
+              replicas: 0,
+            },
           },
-          spec: {
-            replicas: 0,
-          },
-        },
+        })
       })
-    })
-  )
+    )
+  }
 
-  log.info({
-    msg: `Pausing ${statefulSets.items.length} StatefulSet(s): ${statefulSets.items
-      .map((s) => s.metadata.name)
-      .join(", ")}`,
-  })
-  await Promise.all(
-    statefulSets.items.map(async (statefulSet) => {
-      log.verbose({ msg: `Scaling down StatefulSet ${statefulSet.metadata.name}` })
-      await api.apps.patchNamespacedStatefulSet({
-        name: statefulSet.metadata.name,
-        namespace: namespaceName,
-        body: {
-          metadata: {
-            annotations: getAnnotationsForPausedWorkload(statefulSet),
+  if (statefulSets.items.length > 0) {
+    log.info({
+      msg: `Pausing ${statefulSets.items.length} StatefulSet(s): ${statefulSets.items
+        .map((s) => s.metadata.name)
+        .join(", ")}`,
+    })
+    await Promise.all(
+      statefulSets.items.map(async (statefulSet) => {
+        log.verbose({ msg: `Scaling down StatefulSet ${statefulSet.metadata.name}` })
+        await api.apps.patchNamespacedStatefulSet({
+          name: statefulSet.metadata.name,
+          namespace: namespaceName,
+          body: {
+            metadata: {
+              annotations: getAnnotationsForPausedWorkload(statefulSet),
+            },
+            spec: {
+              replicas: 0,
+            },
           },
-          spec: {
-            replicas: 0,
-          },
-        },
+        })
       })
-    })
-  )
+    )
+  }
 
-  log.info({
-    msg: `Pausing ${replicaSets.length} ReplicaSets: ${replicaSets.map((r) => r.metadata.name).join(", ")}`,
-  })
-  await Promise.all(
-    replicaSets.map(async (replicaSet) => {
-      log.verbose({ msg: `Scaling down ReplicaSet ${replicaSet.metadata.name}` })
-      await api.apps.patchNamespacedReplicaSet({
-        name: replicaSet.metadata.name,
-        namespace: namespaceName,
-        body: {
-          metadata: {
-            annotations: getAnnotationsForPausedWorkload(replicaSet),
+  if (replicaSets.length > 0) {
+    log.info({
+      msg: `Pausing ${replicaSets.length} ReplicaSets: ${replicaSets.map((r) => r.metadata.name).join(", ")}`,
+    })
+    await Promise.all(
+      replicaSets.map(async (replicaSet) => {
+        log.verbose({ msg: `Scaling down ReplicaSet ${replicaSet.metadata.name}` })
+        await api.apps.patchNamespacedReplicaSet({
+          name: replicaSet.metadata.name,
+          namespace: namespaceName,
+          body: {
+            metadata: {
+              annotations: getAnnotationsForPausedWorkload(replicaSet),
+            },
+            spec: {
+              replicas: 0,
+            },
           },
-          spec: {
-            replicas: 0,
-          },
-        },
+        })
       })
-    })
-  )
+    )
+  }
 
-  log.info({
-    msg: `Removing ${pods.length} standalone Pod(s): ${pods.map((p) => p.metadata.name).join(", ")}`,
-  })
-  await Promise.all(
-    pods.map(async (pod) => {
-      log.verbose({ msg: `Removing pod ${pod.metadata.name}` })
-      await api.core.deleteNamespacedPod({ name: pod.metadata.name, namespace: namespaceName })
+  if (pods.length > 0) {
+    log.info({
+      msg: `Removing ${pods.length} standalone Pod(s): ${pods.map((p) => p.metadata.name).join(", ")}`,
     })
-  )
+    await Promise.all(
+      pods.map(async (pod) => {
+        log.verbose({ msg: `Removing pod ${pod.metadata.name}` })
+        await api.core.deleteNamespacedPod({ name: pod.metadata.name, namespace: namespaceName })
+      })
+    )
+  }
 }
