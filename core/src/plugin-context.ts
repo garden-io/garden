@@ -8,7 +8,7 @@
 
 import type { Garden } from "./garden.js"
 import type { EnvironmentConfig, SourceConfig } from "./config/project.js"
-import { environmentNameSchema, projectNameSchema, projectSourcesSchema } from "./config/project.js"
+import { environmentNameSchema, environmentSchema, projectNameSchema, projectSourcesSchema } from "./config/project.js"
 import type { BaseProviderConfig, Provider } from "./config/provider.js"
 import { providerSchema } from "./config/provider.js"
 import { deline } from "./util/string.js"
@@ -86,6 +86,7 @@ export const pluginContextSchema = createSchema({
       })
       .description("Information about the command being executed, if applicable."),
     environmentName: environmentNameSchema(),
+    environmentConfig: environmentSchema(),
     namespace: joiIdentifier().description("The active namespace."),
     events: joi.any().description("An event emitter, used for communication during handler execution."),
     gardenDirPath: joi.string().description(deline`
