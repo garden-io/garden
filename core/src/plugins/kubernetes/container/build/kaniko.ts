@@ -144,7 +144,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     kanikoNamespace = await getSystemNamespace(k8sCtx, provider, log)
   }
 
-  await ensureNamespace(api, k8sCtx, { name: kanikoNamespace }, log)
+  await ensureNamespace({ api, ctx: k8sCtx, namespace: { name: kanikoNamespace }, log })
 
   if (kanikoNamespace !== projectNamespace) {
     // Make sure the Kaniko Pod namespace has the auth secret ready

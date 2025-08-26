@@ -122,7 +122,7 @@ export const aecConfigSchema = createSchema({
   }),
 })
 
-export const aecStatusSchema = z.enum(["paused", "cleaned-up", "in-progress", "none"])
+export const aecStatusSchema = z.enum(["paused", "cleaned-up", "none"])
 
 export type AecStatus = z.infer<typeof aecStatusSchema>
 

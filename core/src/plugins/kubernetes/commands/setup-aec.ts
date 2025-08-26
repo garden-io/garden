@@ -19,6 +19,7 @@ import { apply } from "../kubectl.js"
 import { styles } from "../../../logger/styles.js"
 import type { KubernetesResource } from "../types.js"
 import chalk from "chalk"
+import { waitForResources } from "../status/status.js"
 
 interface Result {
   manifests?: KubernetesResource[]
@@ -51,10 +52,12 @@ export const setupAecCommand: PluginCommand = {
 
     if (localDevMode) {
       log.info({
-        msg: chalk.yellow.bold(dedent`
-          Running in local dev mode. This will bind mount the local repo into the AEC agent container, so you can make changes to the agent code and see them immediately.
-          Please make sure you've built the local dev image with \`npm run local-dev-image:build\` in the root of the repo.
-        `),
+        msg: chalk.yellow.bold(
+          dedent`
+            Running in local dev mode. This will bind mount the local repo into the AEC agent container, so you can make changes to the agent code and see them immediately.
+            Please make sure you've built the local dev image with \`npm run local-dev-image:build\` in the root of the repo.
+          ` + "\n"
+        ),
       })
     }
 
@@ -75,12 +78,6 @@ export const setupAecCommand: PluginCommand = {
     }
 
     const organization = await cloudApi.getOrganization()
-
-    if (organization.plan === "free") {
-      throw new CloudApiError({
-        message: `Your organization (${organization.name}) is on the Free plan. The AEC feature is currentlyonly available on paid plans. Please upgrade your organization to continue.`,
-      })
-    }
 
     const account = await cloudApi.getCurrentAccount()
 
@@ -108,6 +105,9 @@ export const setupAecCommand: PluginCommand = {
       serviceAccessToken: serviceAccount.token,
       systemNamespace,
       description: `projectId=${garden.projectId} context=${provider.config.context} namespace=${systemNamespace}`,
+      localDevMode,
+      cloudDomain: cloudApi.domain,
+      organizationId: organization.id,
     })
 
     log.info({
@@ -117,6 +117,16 @@ export const setupAecCommand: PluginCommand = {
     result.manifests = manifests
 
     await apply({ log, ctx, api, provider, manifests })
+
+    await waitForResources({
+      log,
+      ctx,
+      provider,
+      resources: manifests,
+      namespace: systemNamespace,
+      timeoutSec: 600,
+      waitForJobs: true,
+    })
 
     log.success("\nDone!")
 

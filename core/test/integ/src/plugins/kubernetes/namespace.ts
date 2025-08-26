@@ -70,7 +70,7 @@ describe("Kubernetes Namespace helpers", () => {
         labels: { floo: "blar" },
       }
 
-      const result = await ensureNamespace(api, ctx, namespace, log)
+      const result = await ensureNamespace({ api, ctx, namespace, log })
 
       const ns = result.remoteResource
 
@@ -109,7 +109,7 @@ describe("Kubernetes Namespace helpers", () => {
         annotations: { foo: "bar" },
       }
 
-      const result = await ensureNamespace(api, ctx, namespace, log)
+      const result = await ensureNamespace({ api, ctx, namespace, log })
 
       const ns = result.remoteResource
 
@@ -141,7 +141,7 @@ describe("Kubernetes Namespace helpers", () => {
         labels: { floo: "blar" },
       }
 
-      const result = await ensureNamespace(api, ctx, namespace, log)
+      const result = await ensureNamespace({ api, ctx, namespace, log })
 
       const ns = result.remoteResource
 
@@ -176,7 +176,7 @@ describe("Kubernetes Namespace helpers", () => {
         labels: { floo: "blar" },
       }
 
-      const result = await ensureNamespace(api, ctx, namespace, log)
+      const result = await ensureNamespace({ api, ctx, namespace, log })
 
       expect(result.created).to.be.false
       expect(result.patched).to.be.false
@@ -198,7 +198,7 @@ describe("Kubernetes Namespace helpers", () => {
         ],
       }
 
-      const result = await ensureNamespace(api, ctx, namespace, log)
+      const result = await ensureNamespace({ api, ctx, namespace, log })
 
       const ns = result.remoteResource
 

@@ -100,7 +100,7 @@ export class PluginsCommand extends Command<Args> {
         typeof command.title === "function"
           ? await command.title({ args: commandArgs, environmentName })
           : command.title
-      printHeader(log, title, "⚙️")
+      printHeader(log, "\n" + title, "⚙️")
     }
 
     const provider = await garden.resolveProvider({ log, name: args.plugin })
