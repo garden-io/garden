@@ -1463,6 +1463,7 @@ describe("Garden", () => {
               name: "foo",
               description: "foo",
               resolveGraph: false,
+              hidden: false,
               handler: () => ({ result: {} }),
             },
           ],
@@ -1474,12 +1475,14 @@ describe("Garden", () => {
             {
               name: "foo",
               description: "foo",
+              hidden: false,
               handler: () => ({ result: {} }),
               resolveGraph: false,
             },
             {
               name: "bar",
               description: "bar",
+              hidden: false,
               handler: () => ({ result: {} }),
               resolveGraph: false,
             },

@@ -86,7 +86,7 @@ export const pluginContextSchema = createSchema({
       })
       .description("Information about the command being executed, if applicable."),
     environmentName: environmentNameSchema(),
-    environmentConfig: environmentSchema(),
+    environmentConfig: environmentSchema().options({ presence: "optional" }),
     namespace: joiIdentifier().description("The active namespace."),
     events: joi.any().description("An event emitter, used for communication during handler execution."),
     gardenDirPath: joi.string().description(deline`
