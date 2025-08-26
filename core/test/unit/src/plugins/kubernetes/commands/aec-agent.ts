@@ -329,7 +329,7 @@ describe("checkAndCleanupNamespace", () => {
               },
             ],
           }),
-          "garden.io/aec-status": "in-progress",
+          "garden.io/aec-in-progress": new Date("2025-01-01").toISOString(),
           "garden.io/last-deployed": new Date("2025-01-01").toISOString(),
         },
       },
@@ -350,8 +350,6 @@ describe("checkAndCleanupNamespace", () => {
 
     expect(result.error).to.be.undefined
     expect(result.inProgress).to.be.true
-    expect(result.aecStatus).to.equal("in-progress")
-    expect(result.status).to.contain("in-progress")
   })
 
   it("pauses workloads if AEC is enabled and a pause trigger is matched", async () => {
@@ -423,7 +421,7 @@ describe("checkAndCleanupNamespace", () => {
     })
 
     expect(result.error).to.be.undefined
-    expect(result.aecStatus).to.equal("in-progress")
+    expect(result.aecStatus).to.equal("cleaned-up")
     expect(result.actionTriggered).to.equal("cleanup")
     expect(result.status).to.contain("Namespace deleted")
   })

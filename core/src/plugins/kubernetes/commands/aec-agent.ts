@@ -78,7 +78,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
   const provider = k8sCtx.provider
 
   const opts = minimist(args, {
-    string: ["interval", "ttl", "description"],
+    string: ["interval", "ttl", "description", "health-check-port"],
     boolean: ["dry-run"],
   })
 
@@ -99,7 +99,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
   const dryRun = !!opts["dry-run"]
   log.info({ msg: `Dry run: ${dryRun}` })
 
-  for (const key of ["interval", "ttl"]) {
+  for (const key of ["interval", "ttl", "health-check-port"]) {
     if (opts[key]) {
       try {
         opts[key] = parseInt(opts[key], 10) * 1000
@@ -108,6 +108,11 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
         return { result }
       }
     }
+  }
+
+  const healthCheckPort = opts["health-check-port"] ?? aecAgentHealthCheckPort
+  if (healthCheckPort <= 0) {
+    log.info({ msg: `Health check port is disabled` })
   }
 
   const interval = opts["interval"] ?? defaultCleanupInterval
@@ -162,18 +167,20 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
   })
 
   // Start a simple HTTP server for health checks
-  log.info({ msg: `Health check server port: ${aecAgentHealthCheckPort}` })
-  const server = createServer((_req, res) => {
-    res.end("OK")
-  })
-  server
-    .listen(aecAgentHealthCheckPort, () => {
-      log.info({ msg: "Health check server started" })
+  if (healthCheckPort > 0) {
+    log.info({ msg: `Health check server port: ${aecAgentHealthCheckPort}` })
+    const server = createServer((_req, res) => {
+      res.end("OK")
     })
-    .on("error", (err) => {
-      log.error({ msg: `Health check server error: ${err}` })
-      throw err
-    })
+    server
+      .listen(aecAgentHealthCheckPort, () => {
+        log.info({ msg: "Health check server started" })
+      })
+      .on("error", (err) => {
+        log.error({ msg: `Health check server error: ${err}` })
+        throw err
+      })
+  }
 
   while (true) {
     const now = new Date()

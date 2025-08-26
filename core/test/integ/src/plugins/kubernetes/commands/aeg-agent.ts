@@ -20,7 +20,7 @@ import pRetry from "p-retry"
 import { randomString } from "../../../../../../src/util/string.js"
 import type { PluginContext } from "../../../../../../src/plugin-context.js"
 import { GrowCloudApi } from "../../../../../../src/cloud/grow/api.js"
-import type { ApiClient } from "../../../../../../src/cloud/grow/trpc.js"
+import type { ApiTrpcClient } from "../../../../../../src/cloud/grow/trpc.js"
 
 describe("aec-agent command", () => {
   const testNamespaceName = "aec-agent-" + randomString(10)
@@ -78,14 +78,21 @@ describe("aec-agent command", () => {
         updatedAt: new Date(),
         avatarUrl: "https://example.com/avatar.png",
         organizations: [
-          { name: "foo", id: "baz", createdAt: new Date(), updatedAt: new Date(), role: "admin" as const },
+          {
+            name: "foo",
+            id: "baz",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            role: "admin" as const,
+            featureFlags: [],
+          },
         ],
       }
     }
   }
 
   // Setting TTL to 0 will cause the command to exit after the first loop
-  const args = ["--interval", "2000", "--ttl", "0", "--description", "integ test agent"]
+  const args = ["--interval", "2000", "--ttl", "0", "--description", "integ test agent", "--health-check-port", "0"]
 
   let garden: Garden
   let ctx: PluginContext
@@ -109,7 +116,7 @@ describe("aec-agent command", () => {
       authToken: "bar",
       organizationId: "baz",
       globalConfigStore: garden.globalConfigStore,
-      apiClient: {} as ApiClient,
+      __trpcClientOverrideForTesting: {} as ApiTrpcClient,
     })
   })
 
