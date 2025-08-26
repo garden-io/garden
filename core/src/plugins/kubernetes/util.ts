@@ -22,15 +22,7 @@ import type {
 import { isPodResource } from "./types.js"
 import { findByName } from "../../util/util.js"
 import { KubeApi, KubernetesError } from "./api.js"
-import {
-  base64,
-  dedent,
-  deline,
-  naturalList,
-  splitLast,
-  stableStringify,
-  truncate,
-} from "../../util/string.js"
+import { base64, dedent, deline, naturalList, splitLast, stableStringify, truncate } from "../../util/string.js"
 import { gardenAnnotationKey } from "../../util/annotations.js"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants.js"
 import type { ContainerEnvVars } from "../container/moduleConfig.js"
