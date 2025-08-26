@@ -535,9 +535,9 @@ Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io
 
 [environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > [afterLastUpdate](#environmentsaectriggersafterlastupdate) > unit
 
-| Type     | Allowed Values  | Required |
-| -------- | --------------- | -------- |
-| `string` | "hours", "days" | Yes      |
+| Type     | Allowed Values             | Required |
+| -------- | -------------------------- | -------- |
+| `string` | "hours", "days", "minutes" | Yes      |
 
 ### `environments[].aec.triggers[].afterLastUpdate.value`
 
