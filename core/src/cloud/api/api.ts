@@ -414,7 +414,7 @@ export class GardenCloudApi {
   }
 
   async getOrCreatServiceAccountAndToken({ accountId, name }: { accountId: string; name: string }) {
-    return await this.trpc.account.getOrCreateServiceAccount.mutate({
+    return await this.trpc.account.getOrCreateServiceAccountAndToken.mutate({
       organizationId: this.organizationId,
       accountId,
       name,

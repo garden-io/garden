@@ -228,7 +228,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           }
           meta: object
         }>
-        getOrCreateServiceAccount: import("@trpc/server").TRPCMutationProcedure<{
+        getOrCreateServiceAccountAndToken: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             organizationId: string
             accountId: string
