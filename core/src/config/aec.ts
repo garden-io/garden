@@ -12,7 +12,7 @@ import { DOCS_BASE_URL } from "../constants.js"
 import { joi, createSchema } from "./common.js"
 import z from "zod"
 
-const aecTtlUnits = ["hours", "days"] as const
+const aecTtlUnits = ["hours", "days", "minutes"] as const
 const daysString = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const
 const scheduleIntervals = ["weekday", "day", ...daysString] as const
 const aecActions = ["cleanup", "pause"] as const
@@ -198,6 +198,8 @@ function getTimeUnitMsec(unit: (typeof aecTtlUnits)[number]) {
       return 60 * 60 * 1000
     case "days":
       return 24 * 60 * 60 * 1000
+    case "minutes":
+      return 60 * 1000
   }
 }
 
