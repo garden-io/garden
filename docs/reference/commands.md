@@ -1382,6 +1382,37 @@ tasks:
     log:
 ```
 
+### garden diff
+
+**[EXPERIMENTAL] Compare the current working directory Garden project with the specified branch or commit.**
+
+**[EXPERIMENTAL] This command is still under development and may change in the future, including parameters and output format.**
+
+Compare the current working directory Garden project with the specified branch or commit.
+
+Use this to understand the impact of your changes on action versions.
+
+In most cases you should use this with the --resolve flag to ensure that the comparison is complete, but take caution as it may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the --action flag to only diff specific actions.
+
+Note that in the output, "A" (e.g. "version A") refers to the current working directory project, and "B" refers to the project at the specified branch or commit. When something is reported as "added" (such as an action, file, new lines in a config etc.), it means it's present in the current project but not in the comparison project. Similarly, "removed" means it's present in the comparison project but not in the current project.
+
+#### Usage
+
+    garden diff [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--commit` |  | string | A commit ID to compare with.
+  | `--branch` |  | string | A branch to compare with.
+  | `--diff-env` |  | string | Override the Garden environment for the comparison.
+  | `--diff-local-env` |  | array:tag | Override a local environment variable in the comparison (as templated using ${local.env.*}) with the specified value, formatted as &lt;VAR_NAME&gt;:&lt;VALUE&gt;, e.g. &quot;MY_VAR&#x3D;my-value&quot;. You can specify multiple variables by repeating the flag.
+  | `--diff-var` |  | array:tag | Override a variable in the comparison with the specified value, formatted as &lt;VAR_NAME&gt;:&lt;VALUE&gt;, e.g. &quot;MY_VAR&#x3D;my-value&quot;. Analogous to the --var global flag in the Garden CLI. You can specify multiple variables by repeating the flag.
+  | `--resolve` |  | boolean | Fully resolve each action before comparing. Note that this may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the --action flag to only diff specific actions.
+  | `--action` |  | array:string | Specify an action to diff, as &lt;kind&gt;.&lt;name&gt;. Can be specified multiple times. If none is specified, all actions will be diffed.
+
+
 ### garden exec
 
 **Executes a command (such as an interactive shell) in a running service.**

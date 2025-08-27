@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dotenv from "dotenv"
 import type { CommandResult, CommandParams, PrepareParams } from "./base.js"
 import { Command } from "./base.js"
 import { omit, sortBy } from "lodash-es"
@@ -15,7 +14,7 @@ import { LogLevel, parseLogLevel, VoidLogger } from "../logger/logger.js"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params.js"
 import { printHeader, renderDivider } from "../logger/util.js"
 import { dedent, deline, naturalList } from "../util/string.js"
-import { CommandError, ParameterError } from "../exceptions.js"
+import { CommandError } from "../exceptions.js"
 import type { LogsTagOrFilter } from "../monitors/logs.js"
 import { LogMonitor } from "../monitors/logs.js"
 import { styles } from "../logger/styles.js"
@@ -134,20 +133,7 @@ export class LogsCommand extends Command<Args, Opts> {
     }
 
     if (tag && tag.length > 0) {
-      const parameterErrorMsg = `Unable to parse the given --tag flags. Format should be key=value.`
-      try {
-        tagFilters = tag.map((tagGroup: string) => {
-          return tagGroup.split(",").map((t: string) => {
-            const parsed = Object.entries(dotenv.parse(t))[0]
-            if (!parsed) {
-              throw new ParameterError({ message: `${parameterErrorMsg}. Got: '${tag}'` })
-            }
-            return parsed
-          })
-        })
-      } catch {
-        throw new ParameterError({ message: `${parameterErrorMsg}. Got: '${tag}'` })
-      }
+      tagFilters = tag.map((group) => group.map((t) => [t.key, t.value]))
     }
 
     const graph = await garden.getConfigGraph({ log, emit: false, statusOnly: true })

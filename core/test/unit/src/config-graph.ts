@@ -504,6 +504,281 @@ describe("ConfigGraph (action-based configs)", () => {
       })
     })
   })
+
+  describe("findDependencyPaths", () => {
+    it("should find a direct dependency path", async () => {
+      const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+      tmpGarden.setPartialActionConfigs([
+        {
+          ...makeBuild("build-a"),
+        },
+        {
+          ...makeBuild("build-b"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-a" }],
+        },
+      ])
+
+      const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const paths = graph.findDependencyPaths("Build.build-b", "Build.build-a")
+
+      expect(paths).to.have.length(1)
+      expect(paths[0]).to.have.length(2)
+      expect(paths[0][0].name).to.equal("build-b")
+      expect(paths[0][1].name).to.equal("build-a")
+    })
+
+    it("should find a multi-step dependency path", async () => {
+      const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+      tmpGarden.setPartialActionConfigs([
+        {
+          ...makeBuild("build-a"),
+        },
+        {
+          ...makeBuild("build-b"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-a" }],
+        },
+        {
+          ...makeBuild("build-c"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-b" }],
+        },
+      ])
+
+      const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const paths = graph.findDependencyPaths("Build.build-c", "Build.build-a")
+
+      expect(paths).to.have.length(1)
+      expect(paths[0]).to.have.length(3)
+      expect(paths[0][0].name).to.equal("build-c")
+      expect(paths[0][1].name).to.equal("build-b")
+      expect(paths[0][2].name).to.equal("build-a")
+    })
+
+    it("should find paths across different action kinds", async () => {
+      const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+      tmpGarden.setPartialActionConfigs([
+        {
+          ...makeBuild("build-a"),
+        },
+        {
+          ...makeBuild("build-b"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-a" }],
+        },
+        {
+          ...makeBuild("build-c"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-b" }],
+        },
+        {
+          ...makeDeploy("deploy-a"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-c" }],
+        },
+      ])
+
+      const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const paths = graph.findDependencyPaths("Deploy.deploy-a", "Build.build-a")
+
+      expect(paths).to.have.length(1)
+      expect(paths[0]).to.have.length(4)
+      expect(paths[0][0].name).to.equal("deploy-a")
+      expect(paths[0][1].name).to.equal("build-c")
+      expect(paths[0][2].name).to.equal("build-b")
+      expect(paths[0][3].name).to.equal("build-a")
+    })
+
+    it("should return empty array when no path exists", async () => {
+      const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+      tmpGarden.setPartialActionConfigs([
+        {
+          ...makeBuild("build-a"),
+        },
+        {
+          ...makeRun("run-a"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-a" }],
+        },
+        {
+          ...makeDeploy("deploy-a"),
+        },
+      ])
+
+      const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const paths = graph.findDependencyPaths("Run.run-a", "Deploy.deploy-a")
+
+      expect(paths).to.have.length(0)
+    })
+
+    it("should return empty array when source and target are the same", async () => {
+      const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+      tmpGarden.setPartialActionConfigs([
+        {
+          ...makeBuild("build-a"),
+        },
+      ])
+
+      const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const paths = graph.findDependencyPaths("Build.build-a", "Build.build-a")
+
+      expect(paths).to.have.length(0)
+    })
+
+    it("should throw error for non-existent source action", async () => {
+      const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+      tmpGarden.setPartialActionConfigs([
+        {
+          ...makeBuild("build-a"),
+        },
+      ])
+
+      const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+
+      expect(() => {
+        graph.findDependencyPaths("Build.non-existent", "Build.build-a")
+      }).to.throw(GraphError, "Could not find source action Build.non-existent")
+    })
+
+    it("should throw error for non-existent target action", async () => {
+      const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+      tmpGarden.setPartialActionConfigs([
+        {
+          ...makeBuild("build-a"),
+        },
+      ])
+
+      const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+
+      expect(() => {
+        graph.findDependencyPaths("Build.build-a", "Build.non-existent")
+      }).to.throw(GraphError, "Could not find target action Build.non-existent")
+    })
+
+    it("should find multiple paths when they exist", async () => {
+      const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+      // Create a diamond-shaped dependency graph:
+      //   build-d
+      //   /     \
+      // build-b  build-c
+      //   \     /
+      //   build-a
+      tmpGarden.setPartialActionConfigs([
+        {
+          ...makeBuild("build-a"),
+        },
+        {
+          ...makeBuild("build-b"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-a" }],
+        },
+        {
+          ...makeBuild("build-c"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-a" }],
+        },
+        {
+          ...makeBuild("build-d"),
+          dependencies: [
+            { kind: "Build" as ActionKind, name: "build-b" },
+            { kind: "Build" as ActionKind, name: "build-c" },
+          ],
+        },
+      ])
+
+      const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const paths = graph.findDependencyPaths("Build.build-d", "Build.build-a")
+
+      expect(paths).to.have.length(2)
+
+      // Sort paths by the second node name for consistent testing
+      const sortedPaths = paths.sort((a, b) => a[1].name.localeCompare(b[1].name))
+
+      // First path: build-d -> build-b -> build-a
+      expect(sortedPaths[0]).to.have.length(3)
+      expect(sortedPaths[0][0].name).to.equal("build-d")
+      expect(sortedPaths[0][1].name).to.equal("build-b")
+      expect(sortedPaths[0][2].name).to.equal("build-a")
+
+      // Second path: build-d -> build-c -> build-a
+      expect(sortedPaths[1]).to.have.length(3)
+      expect(sortedPaths[1][0].name).to.equal("build-d")
+      expect(sortedPaths[1][1].name).to.equal("build-c")
+      expect(sortedPaths[1][2].name).to.equal("build-a")
+    })
+
+    it("should respect parameter order (from->to vs to->from)", async () => {
+      const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+      // Create the same diamond-shaped dependency graph:
+      //   build-d
+      //   /     \
+      // build-b  build-c
+      //   \     /
+      //   build-a
+      tmpGarden.setPartialActionConfigs([
+        {
+          ...makeBuild("build-a"),
+        },
+        {
+          ...makeBuild("build-b"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-a" }],
+        },
+        {
+          ...makeBuild("build-c"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-a" }],
+        },
+        {
+          ...makeBuild("build-d"),
+          dependencies: [
+            { kind: "Build" as ActionKind, name: "build-b" },
+            { kind: "Build" as ActionKind, name: "build-c" },
+          ],
+        },
+      ])
+
+      const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+
+      // Test: FROM build-d TO build-a (should find 2 paths)
+      const pathsDownward = graph.findDependencyPaths("Build.build-d", "Build.build-a")
+      expect(pathsDownward).to.have.length(2)
+
+      // Test: FROM build-a TO build-d (should find 0 paths - reverse direction)
+      // Dependencies flow from dependant to dependency, so there's no path from build-a to build-d
+      const pathsUpward = graph.findDependencyPaths("Build.build-a", "Build.build-d")
+      expect(pathsUpward).to.have.length(0)
+
+      // Test: FROM build-b TO build-d (should find 0 paths - reverse direction)
+      const pathsReverse = graph.findDependencyPaths("Build.build-b", "Build.build-d")
+      expect(pathsReverse).to.have.length(0)
+
+      // Test: FROM build-a TO build-b (should find 0 paths - reverse direction)
+      const pathsOpposite = graph.findDependencyPaths("Build.build-a", "Build.build-b")
+      expect(pathsOpposite).to.have.length(0)
+    })
+
+    it("should work with ActionReference objects", async () => {
+      const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+      tmpGarden.setPartialActionConfigs([
+        {
+          ...makeBuild("build-a"),
+        },
+        {
+          ...makeBuild("build-b"),
+          dependencies: [{ kind: "Build" as ActionKind, name: "build-a" }],
+        },
+      ])
+
+      const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const paths = graph.findDependencyPaths({ kind: "Build", name: "build-b" }, { kind: "Build", name: "build-a" })
+
+      expect(paths).to.have.length(1)
+      expect(paths[0]).to.have.length(2)
+      expect(paths[0][0].name).to.equal("build-b")
+      expect(paths[0][1].name).to.equal("build-a")
+    })
+  })
 })
 
 describe("ConfigGraph (module-based configs)", () => {

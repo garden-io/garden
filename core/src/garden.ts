@@ -203,6 +203,7 @@ export interface GardenOpts {
   plugins?: RegisterPluginParam[]
   sessionId: string
   parentSessionId: string | undefined
+  localEnvOverrides?: StringMap
   variableOverrides?: PrimitiveMap
   // used in tests
   overrideCloudApiLegacyFactory?: GardenCloudApiLegacyFactory
@@ -240,6 +241,7 @@ export interface GardenParams {
   projectSources?: SourceConfig[]
   providerConfigs: UnresolvedProviderConfig[]
   variables: VariablesContext
+  localEnvOverrides?: StringMap
   variableOverrides: DeepPrimitiveMap
   secrets: StringMap
   sessionId: string
@@ -332,6 +334,7 @@ export class Garden {
    */
   public readonly namespace: string
   public readonly variables: VariablesContext
+  public readonly localEnvOverrides: StringMap
   // Any variables passed via the `--var` CLI option (maintained here so that they can be used during module resolution
   // to override module variables and module varfiles).
   public readonly variableOverrides: DeepPrimitiveMap
@@ -386,6 +389,7 @@ export class Garden {
     this.projectSources = params.projectSources || []
     this.providerConfigs = params.providerConfigs
     this.variables = params.variables
+    this.localEnvOverrides = params.localEnvOverrides || {}
     this.variableOverrides = params.variableOverrides
     this.secrets = params.secrets
     this.workingCopyId = params.workingCopyId
@@ -1972,6 +1976,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
       vcsInfo,
       username: _username,
       commandInfo,
+      localEnvOverrides: opts.localEnvOverrides || {},
     }),
     opts: {},
   }) as string
@@ -2102,6 +2107,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       backendType: getBackendType(projectConfig),
       secrets,
       commandInfo,
+      localEnvOverrides: opts.localEnvOverrides || {},
     })
 
     projectConfig = resolveProjectConfig({
@@ -2125,6 +2131,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       cloudBackendDomain,
       secrets,
       commandInfo,
+      localEnvOverrides: opts.localEnvOverrides || {},
     })
 
     const { providers, production } = pickedEnv
@@ -2177,6 +2184,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       environmentName,
       resolvedDefaultNamespace: pickedEnv.defaultNamespace,
       namespace,
+      localEnvOverrides: opts.localEnvOverrides || {},
       variables,
       variableOverrides,
       secrets,

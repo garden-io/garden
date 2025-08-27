@@ -1,0 +1,61 @@
+apiVersion: garden.io/v2
+kind: Project
+name: test-project-diff
+environments:
+  - name: local
+variables:
+  build-a: build-a
+  build-b: build-b
+  deploy-a: deploy-a
+  test-a: test-a
+
+---
+
+kind: Workflow
+name: workflow-a
+steps:
+  - script: echo ${var.workflow-a}
+
+---
+
+kind: Build
+type: exec
+name: build-a
+spec:
+  command: ["echo", "${var.build-a}"]
+  env:
+    FOO: "${local.env.TEST_ENV_VAR_BUILD_A || 'A'}"
+
+---
+
+kind: Build
+type: exec
+name: build-b
+spec:
+  command: ["echo", "${var.build-b}"]
+  env:
+    FOO: "${local.env.TEST_ENV_VAR_BUILD_B || 'B'}"
+
+---
+
+kind: Deploy
+type: exec
+name: deploy-a
+dependencies:
+  - build.build-a
+spec:
+  deployCommand: ["echo", "${var.deploy-a}"]
+  statusCommand: ["echo", "${local.env.TEST_ENV_VAR_DEPLOY_A || 'A'}"]
+
+---
+
+kind: Test
+type: exec
+name: test-a
+dependencies:
+  - deploy.deploy-a
+spec:
+  command: ["echo", "${var.test-a}"]
+  env:
+    FOO: "${local.env.TEST_ENV_VAR_TEST_A || 'A'}"
+    NAMESPACE: "${environment.namespace}"

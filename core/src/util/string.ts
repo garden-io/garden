@@ -15,6 +15,7 @@ import type { Options as CliTruncateOptions } from "cli-truncate"
 import cliTruncate from "cli-truncate"
 import { getTerminalWidth } from "../logger/util.js"
 import wrapAnsi from "wrap-ansi"
+import { padEnd } from "lodash-es"
 
 // Exporting these here for convenience and ease of imports (otherwise we need to require modules instead of using
 // the import syntax, and it for some reason doesn't play nice with IDEs).
@@ -198,4 +199,13 @@ export function splitLast(s: string, delimiter: string) {
   }
 
   return [s.slice(0, lastIndex), s.slice(lastIndex + delimiter.length)]
+}
+
+export function indentLines(lines: string[], level: number) {
+  const prefix = padEnd("", level * 2, " ")
+  return lines.map((line) => prefix + line)
+}
+
+export function indentBlock(block: string, level: number) {
+  return indentLines(splitLines(block), level).join("\n")
 }

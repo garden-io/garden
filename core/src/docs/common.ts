@@ -85,11 +85,6 @@ export function flattenSchema(
   return items.filter((key) => !key.internal)
 }
 
-export function indent(lines: string[], level: number) {
-  const prefix = padEnd("", level * 2, " ")
-  return lines.map((line) => prefix + line)
-}
-
 export function renderMarkdownTable(data: { [heading: string]: string }) {
   const lengths = Object.entries(data).map(([k, v]) => max([k.length, v.length]))
   const paddedKeys = Object.keys(data).map((k, i) => padEnd(k, lengths[i], " "))

@@ -82,6 +82,7 @@ describe("resolveProjectConfig", () => {
           backendType: "v1",
           secrets: {},
           commandInfo,
+          localEnvOverrides: {},
         }),
       })
     await expectError(processConfigAction, {
@@ -113,6 +114,7 @@ describe("resolveProjectConfig", () => {
           backendType: "v1",
           secrets: {},
           commandInfo,
+          localEnvOverrides: {},
         }),
       })
     ).to.eql({
@@ -179,6 +181,7 @@ describe("resolveProjectConfig", () => {
             backendType: "v1",
             secrets: { foo: "banana" },
             commandInfo,
+            localEnvOverrides: {},
           }),
         })
       )
@@ -259,6 +262,7 @@ describe("resolveProjectConfig", () => {
             backendType: "v1",
             secrets: {},
             commandInfo,
+            localEnvOverrides: {},
           }),
         })
       )
@@ -323,6 +327,7 @@ describe("resolveProjectConfig", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
     })
 
@@ -362,6 +367,7 @@ describe("resolveProjectConfig", () => {
             backendType: "v1",
             secrets: {},
             commandInfo,
+            localEnvOverrides: {},
           }),
         })
       )
@@ -416,6 +422,7 @@ describe("resolveProjectConfig", () => {
           backendType: "v1",
           secrets: {},
           commandInfo,
+          localEnvOverrides: {},
         }),
       })
     ).to.eql({
@@ -455,6 +462,7 @@ describe("resolveProjectConfig", () => {
           backendType: "v1",
           secrets: {},
           commandInfo,
+          localEnvOverrides: {},
         }),
       })
     ).to.eql({
@@ -510,6 +518,7 @@ describe("resolveProjectConfig", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
     })
     expect(resolvedConfig).to.eql({
@@ -581,6 +590,7 @@ describe("pickEnvironment", () => {
             backendType: "v1",
             secrets: {},
             commandInfo,
+            localEnvOverrides: {},
           }),
           projectConfig: config,
           variableOverrides: {},
@@ -592,6 +602,7 @@ describe("pickEnvironment", () => {
           cloudBackendDomain,
           secrets: {},
           commandInfo,
+          localEnvOverrides: {},
         }),
       "parameter"
     )
@@ -615,6 +626,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
       projectConfig: config,
       variableOverrides: {},
@@ -626,6 +638,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const providerNames = res.providers.map((p) => p.name)
@@ -659,6 +672,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -671,6 +685,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     expect(omit(env, "providers", "variables")).to.eql({
@@ -740,6 +755,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -752,6 +768,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const variables = deepResolveContext("resolved env variables", result.variables)
@@ -805,6 +822,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -817,6 +835,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const variables = deepResolveContext("resolved env variables", result.variables)
@@ -865,6 +884,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -877,6 +897,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const variables = deepResolveContext("resolved env variables", result.variables)
@@ -925,6 +946,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -937,6 +959,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const variables = deepResolveContext("resolved env variables", result.variables)
@@ -986,6 +1009,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -998,6 +1022,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const variables = deepResolveContext("resolved env variables", result.variables)
@@ -1057,6 +1082,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -1069,6 +1095,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const variables = deepResolveContext("resolved env variables", result.variables)
@@ -1129,6 +1156,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -1141,6 +1169,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const variables = deepResolveContext("resolved env variables", result.variables)
@@ -1173,6 +1202,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -1185,6 +1215,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: { foo: "banana" },
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const variables = deepResolveContext("resolved env variables", result.variables)
@@ -1216,6 +1247,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -1228,6 +1260,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
   })
 
@@ -1251,6 +1284,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -1263,6 +1297,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const variables = deepResolveContext("resolved env variables", result.variables)
@@ -1323,6 +1358,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -1335,6 +1371,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     const variables = deepResolveContext("resolved env variables", result.variables)
@@ -1377,6 +1414,7 @@ describe("pickEnvironment", () => {
             backendType: "v1",
             secrets: {},
             commandInfo,
+            localEnvOverrides: {},
           }),
 
           projectConfig: config,
@@ -1389,6 +1427,7 @@ describe("pickEnvironment", () => {
           cloudBackendDomain,
           secrets: {},
           commandInfo,
+          localEnvOverrides: {},
         }),
       { contains: ["Error validating environment default", "defaultNamespace must be a string"] }
     )
@@ -1422,6 +1461,7 @@ describe("pickEnvironment", () => {
             backendType: "v1",
             secrets: {},
             commandInfo,
+            localEnvOverrides: {},
           }),
 
           projectConfig: config,
@@ -1434,6 +1474,7 @@ describe("pickEnvironment", () => {
           cloudBackendDomain,
           secrets: {},
           commandInfo,
+          localEnvOverrides: {},
         }),
       { contains: "Could not find varfile at path 'foo.env'" }
     )
@@ -1467,6 +1508,7 @@ describe("pickEnvironment", () => {
             backendType: "v1",
             secrets: {},
             commandInfo,
+            localEnvOverrides: {},
           }),
 
           projectConfig: config,
@@ -1479,6 +1521,7 @@ describe("pickEnvironment", () => {
           cloudBackendDomain,
           secrets: {},
           commandInfo,
+          localEnvOverrides: {},
         }),
       { contains: "Could not find varfile at path 'foo.env'" }
     )
@@ -1502,6 +1545,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -1514,6 +1558,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     expect(res.environmentName).to.equal("default")
@@ -1538,6 +1583,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -1550,6 +1596,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     expect(res.environmentName).to.equal("default")
@@ -1574,6 +1621,7 @@ describe("pickEnvironment", () => {
         backendType: "v1",
         secrets: {},
         commandInfo,
+        localEnvOverrides: {},
       }),
 
       projectConfig: config,
@@ -1586,6 +1634,7 @@ describe("pickEnvironment", () => {
       cloudBackendDomain,
       secrets: {},
       commandInfo,
+      localEnvOverrides: {},
     })
 
     expect(res.environmentName).to.equal("default")
@@ -1612,6 +1661,7 @@ describe("pickEnvironment", () => {
             backendType: "v1",
             secrets: {},
             commandInfo,
+            localEnvOverrides: {},
           }),
 
           projectConfig: config,
@@ -1624,6 +1674,7 @@ describe("pickEnvironment", () => {
           cloudBackendDomain,
           secrets: {},
           commandInfo,
+          localEnvOverrides: {},
         }),
       { contains: "Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>" }
     )
@@ -1650,6 +1701,7 @@ describe("pickEnvironment", () => {
             backendType: "v1",
             secrets: {},
             commandInfo,
+            localEnvOverrides: {},
           }),
           projectConfig: config,
           variableOverrides: {},
@@ -1661,6 +1713,7 @@ describe("pickEnvironment", () => {
           cloudBackendDomain,
           secrets: {},
           commandInfo,
+          localEnvOverrides: {},
         }),
       {
         contains:
