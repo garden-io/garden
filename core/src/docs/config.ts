@@ -16,7 +16,8 @@ import { get, isFunction, isString } from "lodash-es"
 import type { JoiDescription } from "../config/common.js"
 import { STATIC_DIR } from "../constants.js"
 import type { BaseKeyDescription, NormalizeOptions } from "./common.js"
-import { indent, renderMarkdownTable, convertMarkdownLinks, flattenSchema, isArrayType } from "./common.js"
+import { renderMarkdownTable, convertMarkdownLinks, flattenSchema, isArrayType } from "./common.js"
+import { indentLines } from "../util/string.js"
 import { JoiKeyDescription } from "./joi-schema.js"
 import { safeDumpYaml } from "../util/serialization.js"
 import stripAnsi from "strip-ansi"
@@ -217,7 +218,7 @@ export function renderSchemaDescriptionYaml(
           comment.push(`Example: ${example}`, "")
         } else {
           // Render example in a separate line
-          comment.push("Example:", ...indent(example.split("\n"), 1), "")
+          comment.push("Example:", ...indentLines(example.split("\n"), 1), "")
         }
       }
       renderRequired && comment.push(required ? "Required." : "Optional.")
@@ -247,7 +248,7 @@ export function renderSchemaDescriptionYaml(
 
     if (example && usingExampleForValue) {
       const levels = desc.type === "object" ? 2 : 1
-      formattedValue = isPrimitive || exceptionallyTreatAsPrimitive ? example : indent(example.split("\n"), levels)
+      formattedValue = isPrimitive || exceptionallyTreatAsPrimitive ? example : indentLines(example.split("\n"), levels)
     } else {
       // Non-primitive values get rendered in the line below, indented by one
       if (value === undefined) {
@@ -255,7 +256,7 @@ export function renderSchemaDescriptionYaml(
       } else if (isPrimitive || exceptionallyTreatAsPrimitive) {
         formattedValue = safeDumpYaml(value)
       } else {
-        formattedValue = indent(safeDumpYaml(value).trim().split("\n"), 1)
+        formattedValue = indentLines(safeDumpYaml(value).trim().split("\n"), 1)
       }
     }
 
@@ -299,9 +300,9 @@ export function renderSchemaDescriptionYaml(
         prefix = "#-"
       }
 
-      indented = indent([prefix + out[0], ...indent(out.slice(1), 1)], level - 1).map((line) => line.trimRight())
+      indented = indentLines([prefix + out[0], ...indentLines(out.slice(1), 1)], level - 1).map((line) => line.trimRight())
     } else {
-      indented = indent(out, level).map((line) => line.trimRight())
+      indented = indentLines(out, level).map((line) => line.trimRight())
     }
 
     return indented.join("\n")

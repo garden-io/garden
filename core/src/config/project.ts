@@ -7,7 +7,7 @@
  */
 
 import { dedent, deline, naturalList } from "../util/string.js"
-import type { DeepPrimitiveMap, Primitive, PrimitiveMap } from "./common.js"
+import type { DeepPrimitiveMap, Primitive, PrimitiveMap, StringMap } from "./common.js"
 import {
   createSchema,
   includeGuideLink,
@@ -595,6 +595,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   secrets,
   commandInfo,
   projectContext,
+  localEnvOverrides,
 }: {
   projectContext: ProjectConfigContext
   variableOverrides: DeepPrimitiveMap
@@ -607,6 +608,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   cloudBackendDomain: string
   secrets: PrimitiveMap
   commandInfo: CommandInfo
+  localEnvOverrides: StringMap
 }) {
   const { environments, name: projectName, path: projectRoot } = projectConfig
   const parsed = parseEnvironment(envString)
@@ -649,6 +651,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     backendType: getBackendType(projectConfig),
     secrets,
     commandInfo,
+    localEnvOverrides,
   })
 
   // resolve project variables incl. varfiles

@@ -65,6 +65,7 @@
     "dedent": "^1.6.0",
     "deline": "^1.0.4",
     "dependency-graph": "^0.11.0",
+    "diff": "^8.0.2",
     "directory-tree": "^3.5.2",
     "docker-file-parser": "^1.0.7",
     "dotenv": "^16.6.1",
