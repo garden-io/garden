@@ -286,6 +286,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     actions: [],
     moduleGraph,
     groups: groupConfigs,
+    excludeValuesFromActionVersions: await garden.getExcludeValuesForActionVersions(),
   })
 
   let batchNo = 1

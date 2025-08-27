@@ -236,6 +236,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       actions: [...resolvedDependencies, ...executedDependencies],
       moduleGraph: this.graph.moduleGraph,
       groups: this.graph.getGroups(),
+      excludeValuesFromActionVersions: this.graph.excludeValuesFromActionVersions,
     })
 
     const resolvedAction = actionToResolved(action, {

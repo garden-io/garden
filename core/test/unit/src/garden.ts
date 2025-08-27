@@ -85,6 +85,7 @@ import { VariablesContext } from "../../../src/config/template-contexts/variable
 import { GardenCloudApi, GardenCloudTRPCError } from "../../../src/cloud/api/api.js"
 import type { ApiTrpcClient } from "../../../src/cloud/api/trpc.js"
 import { TRPCClientError } from "@trpc/client"
+import { parseTemplateString } from "../../../src/template/templated-strings.js"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -534,6 +535,7 @@ describe("Garden", () => {
         },
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: [],
         variablesFrom: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
@@ -563,6 +565,7 @@ describe("Garden", () => {
         },
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: [],
         variablesFrom: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
@@ -592,6 +595,7 @@ describe("Garden", () => {
           },
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
+          excludeValuesFromActionVersions: [],
           variablesFrom: [],
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
           providers: [{ name: "foo" }],
@@ -610,6 +614,7 @@ describe("Garden", () => {
           },
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
+          excludeValuesFromActionVersions: [],
           variablesFrom: [],
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
           providers: [{ name: "foo" }],
@@ -4616,6 +4621,38 @@ describe("Garden", () => {
       expect(resolvedA.configVersion(gardenA.log)).to.equal(resolvedB.configVersion(gardenB.log))
     })
 
+    it("correctly handles project-level excludeValuesFromActionVersions", async () => {
+      const projectRoot = getDataDir("test-projects", "project-exclude-values")
+      const gardenA = await makeTestGarden(projectRoot, { environmentString: "a" })
+      const gardenB = await makeTestGarden(projectRoot, { environmentString: "b" })
+
+      const graphA = await gardenA.getConfigGraph({ log: gardenA.log, emit: false })
+      const graphB = await gardenB.getConfigGraph({ log: gardenB.log, emit: false })
+
+      const a = graphA.getTest("test")
+      const b = graphB.getTest("test")
+
+      const resolvedA = await resolveAction({
+        garden: gardenA,
+        graph: graphA,
+        log: gardenA.log,
+        action: a,
+      })
+      const resolvedB = await resolveAction({
+        garden: gardenB,
+        graph: graphB,
+        log: gardenB.log,
+        action: b,
+      })
+
+      // The spec.command field should have different values between environments
+      expect(resolvedA.getSpec().command).to.not.eql(resolvedB.getSpec().command)
+
+      // But the config versions should still resolve to the same
+      expect(a.configVersion(gardenA.log)).to.equal(b.configVersion(gardenB.log))
+      expect(resolvedA.configVersion(gardenA.log)).to.equal(resolvedB.configVersion(gardenB.log))
+    })
+
     it("correctly handles version.excludeFields", async () => {
       const projectRoot = getDataDir("test-projects", "version-exclude-fields")
       const gardenA = await makeTestGarden(projectRoot, { environmentString: "a" })
@@ -5677,6 +5714,128 @@ describe("Garden", () => {
         })
 
         expect(path).to.equal(linkedModulePath)
+      })
+    })
+  })
+
+  describe("getExcludeValuesForActionVersions", () => {
+    it("should return the exclude values from the project config", async () => {
+      const config: ProjectConfig = {
+        apiVersion: GardenApiVersion.v2,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        internal: {
+          basePath: pathFoo,
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: ["foo", "bar"],
+        variablesFrom: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentString: "default",
+      })
+
+      const excludeValues = await garden.getExcludeValuesForActionVersions()
+      expect(excludeValues).to.eql(["foo", "bar"])
+    })
+
+    it("should return an empty array if no exclude values are set", async () => {
+      const config: ProjectConfig = {
+        apiVersion: GardenApiVersion.v2,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        internal: {
+          basePath: pathFoo,
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: [],
+        variablesFrom: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentString: "default",
+      })
+
+      const excludeValues = await garden.getExcludeValuesForActionVersions()
+      expect(excludeValues).to.eql([])
+    })
+
+    it("should resolve the exclude values from the project config", async () => {
+      const config: ProjectConfig = {
+        apiVersion: GardenApiVersion.v2,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        internal: {
+          basePath: pathFoo,
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: [
+          parseTemplateString({ rawTemplateString: "${var.foo}", source: { yamlDoc: undefined, path: [] } }) as string,
+          parseTemplateString({
+            rawTemplateString: "${environment.namespace}",
+            source: { yamlDoc: undefined, path: [] },
+          }) as string,
+        ],
+        variablesFrom: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "bar" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentString: "default",
+      })
+
+      const excludeValues = await garden.getExcludeValuesForActionVersions()
+      expect(excludeValues).to.eql(["bar", "foo"])
+    })
+
+    it("throws if the exclude values has unresolvable template strings", async () => {
+      const config: ProjectConfig = {
+        apiVersion: GardenApiVersion.v2,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        internal: {
+          basePath: pathFoo,
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: [
+          parseTemplateString({
+            rawTemplateString: "${var.not-found}",
+            source: { yamlDoc: undefined, path: [] },
+          }) as string,
+        ],
+        variablesFrom: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "bar" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentString: "default",
+      })
+
+      await expectError(() => garden.getExcludeValuesForActionVersions(), {
+        contains: "could not find key not-found under var",
       })
     })
   })

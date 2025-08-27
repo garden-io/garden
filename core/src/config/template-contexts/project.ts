@@ -416,3 +416,5 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
     this.variables = this.var = variables
   }
 }
+
+export class ExcludeValuesFromActionVersionsContext extends RemoteSourceConfigContext {}

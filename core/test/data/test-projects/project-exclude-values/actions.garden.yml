@@ -1,0 +1,5 @@
+kind: Test
+type: test
+name: test
+spec:
+  command: [echo, "${var.hostname}"]

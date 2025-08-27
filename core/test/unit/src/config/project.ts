@@ -61,6 +61,7 @@ describe("resolveProjectConfig", () => {
         basePath: ".",
       },
       environments: [{ name: "default", defaultNamespace: null, variables: {} }],
+      excludeValuesFromActionVersions: [],
       providers: [{ name: "foo" }],
       variables: {},
     }
