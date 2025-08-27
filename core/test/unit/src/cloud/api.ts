@@ -7,64 +7,235 @@
  */
 
 import { expect } from "chai"
-import { getRootLogger } from "../../../../src/logger/logger.js"
-import { gardenEnv } from "../../../../src/constants.js"
-import { uuidv4 } from "../../../../src/util/random.js"
-import { randomString } from "../../../../src/util/string.js"
-import { GlobalConfigStore } from "../../../../src/config-store/global.js"
-import { clearAuthToken, getAuthToken, saveAuthToken } from "../../../../src/cloud/api-legacy/auth.js"
+import type { Garden } from "../../../../src/garden.js"
+import { expectError, makeTestGardenA } from "../../../helpers.js"
+import { GardenCloudApi } from "../../../../src/cloud/api/api.js"
+import type { ApiTrpcClient, RouterOutput } from "../../../../src/cloud/api/trpc.js"
+import type { DeepPartial } from "utility-types"
+import { TRPCClientError } from "@trpc/client"
+
+function makeFakeTrpcClient(overrides?: DeepPartial<ApiTrpcClient>): ApiTrpcClient {
+  const base: DeepPartial<ApiTrpcClient> = {
+    variableList: {
+      getValues: {
+        query: async () => {
+          return {
+            variableA: {
+              value: "variable-a-val",
+              isSecret: true,
+              scopedAccountId: null,
+              scopedGardenEnvironmentId: null,
+            },
+            variableB: {
+              value: "variable-b-val",
+              isSecret: true,
+              scopedAccountId: null,
+              scopedGardenEnvironmentId: null,
+            },
+          }
+        },
+      },
+    },
+  }
+  return { ...(base as unknown as ApiTrpcClient), ...(overrides as ApiTrpcClient) }
+}
 
 describe("GardenCloudApi", () => {
-  const log = getRootLogger().createLog()
-  const domain = "https://garden." + randomString()
-  const globalConfigStore = new GlobalConfigStore()
+  let garden: Garden
 
-  describe("getAuthToken", () => {
-    it("should return null when no auth token is present", async () => {
-      const savedToken = await getAuthToken(log, globalConfigStore, domain)
-      expect(savedToken).to.be.undefined
-    })
-
-    it("should return a saved auth token when one exists", async () => {
-      const testToken = {
-        token: uuidv4(),
-        refreshToken: uuidv4(),
-        tokenValidity: 9999,
-      }
-      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain })
-      const savedToken = await getAuthToken(log, globalConfigStore, domain)
-      expect(savedToken).to.eql(testToken.token)
-    })
-
-    it("should return the value of GARDEN_AUTH_TOKEN if it's present", async () => {
-      const tokenBackup = gardenEnv.GARDEN_AUTH_TOKEN
-      const testToken = "token-from-env"
-      gardenEnv.GARDEN_AUTH_TOKEN = testToken
-      try {
-        const savedToken = await getAuthToken(log, globalConfigStore, domain)
-        expect(savedToken).to.eql(testToken)
-      } finally {
-        gardenEnv.GARDEN_AUTH_TOKEN = tokenBackup
-      }
-    })
+  before(async () => {
+    garden = await makeTestGardenA()
   })
 
-  describe("clearAuthToken", () => {
-    it("should delete a saved auth token", async () => {
-      const testToken = {
-        token: uuidv4(),
-        refreshToken: uuidv4(),
-        tokenValidity: 9999,
-      }
-      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain })
-      await clearAuthToken(log, globalConfigStore, domain)
-      const savedToken = await getAuthToken(log, globalConfigStore, domain)
-      expect(savedToken).to.be.undefined
-    })
+  afterEach(async () => {
+    if (garden) {
+      garden.close()
+    }
+  })
 
-    it("should not throw an exception if no auth token exists", async () => {
-      await clearAuthToken(log, globalConfigStore, domain)
-      await clearAuthToken(log, globalConfigStore, domain)
+  describe("getVariables", () => {
+    it("should return variables from variable list", async () => {
+      const cloudApi = new GardenCloudApi({
+        log: garden.log,
+        domain: "https://example.com",
+        globalConfigStore: garden.globalConfigStore,
+        organizationId: "fake-organization-id",
+        authToken: "fake-auth-token",
+        __trpcClientOverrideForTesting: makeFakeTrpcClient(),
+      })
+
+      const variables = await cloudApi.getVariables({
+        variablesFrom: "varlist_a",
+        environmentName: "dev",
+        log: garden.log,
+      })
+
+      expect(variables).to.eql({
+        variableA: "variable-a-val",
+        variableB: "variable-b-val",
+      })
+    })
+    it("should handle multiple variable lists", async () => {
+      const cloudApi = new GardenCloudApi({
+        log: garden.log,
+        domain: "https://example.com",
+        globalConfigStore: garden.globalConfigStore,
+        organizationId: "fake-organization-id",
+        authToken: "fake-auth-token",
+        __trpcClientOverrideForTesting: makeFakeTrpcClient({
+          variableList: {
+            getValues: {
+              query: async (input) => {
+                if (input.variableListId === "varlist_a") {
+                  const res: RouterOutput["variableList"]["getValues"] = {
+                    variableA: {
+                      value: "variable-a-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedGardenEnvironmentId: null,
+                    },
+                    variableB: {
+                      value: "variable-b-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedGardenEnvironmentId: null,
+                    },
+                  }
+                  return res
+                } else {
+                  const res: RouterOutput["variableList"]["getValues"] = {
+                    variableC: {
+                      value: "variable-c-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedGardenEnvironmentId: null,
+                    },
+                  }
+                  return res
+                }
+              },
+            },
+          },
+        }),
+      })
+
+      const variables = await cloudApi.getVariables({
+        variablesFrom: ["varlist_a", "varlist_b"],
+        environmentName: "dev",
+        log: garden.log,
+      })
+
+      expect(variables).to.eql({
+        variableA: "variable-a-val",
+        variableB: "variable-b-val",
+        variableC: "variable-c-val",
+      })
+    })
+    it("should merge variables in list order", async () => {
+      const cloudApi = new GardenCloudApi({
+        log: garden.log,
+        domain: "https://example.com",
+        globalConfigStore: garden.globalConfigStore,
+        organizationId: "fake-organization-id",
+        authToken: "fake-auth-token",
+        __trpcClientOverrideForTesting: makeFakeTrpcClient({
+          variableList: {
+            getValues: {
+              query: async (input) => {
+                if (input.variableListId === "varlist_a") {
+                  const res: RouterOutput["variableList"]["getValues"] = {
+                    variableA: {
+                      value: "variable-a-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedGardenEnvironmentId: null,
+                    },
+                    variableB: {
+                      value: "variable-b-val-list_1",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedGardenEnvironmentId: null,
+                    },
+                  }
+                  return res
+                } else {
+                  const res: RouterOutput["variableList"]["getValues"] = {
+                    variableB: {
+                      value: "variable-b-val-list_2",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedGardenEnvironmentId: null,
+                    },
+                  }
+                  return res
+                }
+              },
+            },
+          },
+        }),
+      })
+
+      const varListBLast = await cloudApi.getVariables({
+        variablesFrom: ["varlist_a", "varlist_b"],
+        environmentName: "dev",
+        log: garden.log,
+      })
+      const varListALast = await cloudApi.getVariables({
+        variablesFrom: ["varlist_b", "varlist_a"],
+        environmentName: "dev",
+        log: garden.log,
+      })
+
+      expect(varListBLast).to.eql({
+        variableA: "variable-a-val",
+        variableB: "variable-b-val-list_2",
+      })
+      expect(varListALast).to.eql({
+        variableA: "variable-a-val",
+        variableB: "variable-b-val-list_1",
+      })
+    })
+    it("should throw if fetching variables from any list fails", async () => {
+      const cloudApi = new GardenCloudApi({
+        log: garden.log,
+        domain: "https://example.com",
+        globalConfigStore: garden.globalConfigStore,
+        organizationId: "fake-organization-id",
+        authToken: "fake-auth-token",
+        __trpcClientOverrideForTesting: makeFakeTrpcClient({
+          variableList: {
+            getValues: {
+              query: async (input) => {
+                if (input.variableListId === "varlist_a") {
+                  const res: RouterOutput["variableList"]["getValues"] = {
+                    variableA: {
+                      value: "variable-a-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedGardenEnvironmentId: null,
+                    },
+                  }
+                  return res
+                } else {
+                  throw new TRPCClientError("bad stuff")
+                }
+              },
+            },
+          },
+        }),
+      })
+
+      await expectError(
+        () =>
+          cloudApi.getVariables({
+            variablesFrom: ["varlist_a", "varlist_b"],
+            environmentName: "dev",
+            log: garden.log,
+          }),
+        (err) => {
+          expect(err.message).to.contain(`Garden Cloud API call failed with error`)
+        }
+      )
     })
   })
 })

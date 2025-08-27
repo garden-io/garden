@@ -14,12 +14,12 @@ import {
   GardenEventIngestionService,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import { create } from "@bufbuild/protobuf"
-import type { GardenWithNewBackend } from "../../../../../src/garden.js"
-import { GrpcEventStream } from "../../../../../src/cloud/api/grpc-event-stream.js"
-import type { Log } from "../../../../../src/logger/log-entry.js"
-import { getRootLogger } from "../../../../../src/logger/logger.js"
-import { makeTestGardenA } from "../../../../helpers.js"
-import { sleep } from "../../../../../src/util/util.js"
+import type { GardenWithNewBackend } from "../../../../src/garden.js"
+import { GrpcEventStream } from "../../../../src/cloud/api/grpc-event-stream.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { makeTestGardenA } from "../../../helpers.js"
+import { sleep } from "../../../../src/util/util.js"
 
 const receivedEvents = new Array<Event>()
 // if this is true, the mock backend will simulate failures.

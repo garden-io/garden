@@ -211,6 +211,8 @@ interface ProjectScan {
   git?: GitConfig
 }
 
+export type VariablesFromConfig = string | string[] | undefined
+
 export interface ProjectConfig extends BaseGardenResource {
   apiVersion: GardenApiVersion
   kind: "Project"
@@ -231,7 +233,7 @@ export interface ProjectConfig extends BaseGardenResource {
   sources?: SourceConfig[]
   varfile?: string
   variables: DeepPrimitiveMap
-  variablesFrom: string | string[]
+  variablesFrom: VariablesFromConfig
 }
 
 export const projectApiVersionSchema = memoize(() =>
@@ -843,4 +845,12 @@ export function parseEnvironment(env: string): ParsedEnvironment {
   } else {
     return { environment: split[1], namespace: split[0] }
   }
+}
+
+export function parseVariablesFromConfig(variablesFrom: VariablesFromConfig): string[] {
+  if (!variablesFrom) {
+    return []
+  }
+
+  return typeof variablesFrom === "string" ? [variablesFrom] : variablesFrom
 }
