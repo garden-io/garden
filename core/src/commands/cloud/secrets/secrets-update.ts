@@ -22,11 +22,11 @@ import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 import type {
   BulkCreateSecretRequest,
   BulkUpdateSecretRequest,
-  GardenCloudApi,
+  GardenCloudApiLegacy,
   Secret,
   SingleUpdateSecretRequest,
-} from "../../../cloud/legacy/api.js"
-import { handleSecretsUnavailableInNewBackend } from "../../../cloud/grow/secrets.js"
+} from "../../../cloud/api-legacy/api.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/api/secrets.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -130,7 +130,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       log: cmdLog,
     })
 
-    const api = garden.cloudApi
+    const api = garden.cloudApiLegacy
     if (!api) {
       throw new ConfigurationError({ message: noApiMsg("update", "secrets") })
     }
@@ -191,7 +191,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
 }
 
 async function prepareSecretsRequests(params: {
-  api: GardenCloudApi
+  api: GardenCloudApiLegacy
   environmentId: string | undefined
   environmentName: string | undefined
   log: Log

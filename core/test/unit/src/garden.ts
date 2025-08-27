@@ -68,7 +68,7 @@ import { TreeCache } from "../../../src/cache.js"
 import { omitUndefined } from "../../../src/util/objects.js"
 import { add } from "date-fns"
 import stripAnsi from "strip-ansi"
-import { GardenCloudApi } from "../../../src/cloud/legacy/api.js"
+import { GardenCloudApiLegacy } from "../../../src/cloud/api-legacy/api.js"
 import { GlobalConfigStore } from "../../../src/config-store/global.js"
 import { getRootLogger } from "../../../src/logger/logger.js"
 import { uuidv4 } from "../../../src/util/random.js"
@@ -82,8 +82,8 @@ import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 import { deepResolveContext } from "../../../src/config/template-contexts/base.js"
 import { VariablesContext } from "../../../src/config/template-contexts/variables.js"
-import { GrowCloudApi, GrowCloudTRPCError } from "../../../src/cloud/grow/api.js"
-import type { ApiTrpcClient } from "../../../src/cloud/grow/trpc.js"
+import { GardenCloudApi, GardenCloudTRPCError } from "../../../src/cloud/api/api.js"
+import type { ApiTrpcClient } from "../../../src/cloud/api/trpc.js"
 import { TRPCClientError } from "@trpc/client"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
@@ -685,11 +685,10 @@ describe("Garden", () => {
           refreshToken: "fake-refresh-token",
           validity: add(new Date(), { seconds: validityMs / 1000 }),
         })
-        return GardenCloudApi.factory({
+        return GardenCloudApiLegacy.factory({
           log,
           cloudDomain: domain,
           projectId: "foo-",
-          organizationId: undefined,
           globalConfigStore,
         })
       }
@@ -749,8 +748,8 @@ describe("Garden", () => {
           overrideCloudApiLegacyFactory: overrideCloudApiFactory,
         })
 
-        expect(garden.cloudApi).to.exist
-        expect(garden.cloudApiV2).to.be.undefined
+        expect(garden.cloudApiLegacy).to.exist
+        expect(garden.cloudApi).to.be.undefined
         expect(garden.cloudDomain).to.eql(fakeCloudDomain)
         expect(garden.projectId).to.eql(projectId)
         expect(scope.isDone()).to.be.true
@@ -876,13 +875,12 @@ describe("Garden", () => {
           refreshToken: "fake-refresh-token",
           validity: add(new Date(), { seconds: validityMs / 1000 }),
         })
-        return new GrowCloudApi({
+        return new GardenCloudApi({
           log,
           domain,
           globalConfigStore,
           organizationId,
           authToken: "fake-auth-token",
-          projectId: undefined,
           __trpcClientOverrideForTesting: trpcClient,
         })
       }
@@ -897,8 +895,8 @@ describe("Garden", () => {
           overrideCloudApiFactory,
         })
 
-        expect(garden.cloudApiV2).to.exist
-        expect(garden.cloudApi).to.be.undefined
+        expect(garden.cloudApi).to.exist
+        expect(garden.cloudApiLegacy).to.be.undefined
       })
 
       it("should not attempt to fetch variables if feature flag not set", async () => {
@@ -911,8 +909,8 @@ describe("Garden", () => {
           overrideCloudApiFactory,
         })
 
-        expect(garden.cloudApiV2).to.exist
-        expect(garden.cloudApi).to.be.undefined
+        expect(garden.cloudApi).to.exist
+        expect(garden.cloudApiLegacy).to.be.undefined
         expect(garden.secrets).to.eql({})
       })
 
@@ -1047,7 +1045,7 @@ describe("Garden", () => {
               expect(expectedLog[0].msg).to.eql(
                 `Fetching variables for variable list 'varlist_1' failed with API error: no bueno`
               )
-              expect(err).to.be.instanceof(GrowCloudTRPCError)
+              expect(err).to.be.instanceof(GardenCloudTRPCError)
             }
           )
 

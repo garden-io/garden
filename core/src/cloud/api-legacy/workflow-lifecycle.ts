@@ -45,7 +45,7 @@ export async function registerWorkflowRun({
   if (gardenEnv.GARDEN_GE_SCHEDULED) {
     requestData["workflowRunUid"] = gardenEnv.GARDEN_WORKFLOW_RUN_UID
   }
-  const cloudApi = garden.cloudApi
+  const cloudApi = garden.cloudApiLegacy
 
   // TODO: Use API types package here.
   let res: ApiFetchResponse<CreateWorkflowRunResponse>

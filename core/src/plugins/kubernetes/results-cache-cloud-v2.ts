@@ -15,13 +15,13 @@ import type { JsonObject } from "type-fest"
 import { actionReferenceToString } from "../../actions/base.js"
 import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
-import type { GrowCloudApi } from "../../cloud/grow/api.js"
-import { GrowCloudTRPCError } from "../../cloud/grow/api.js"
-import type { GetActionResultResponse } from "../../cloud/grow/trpc.js"
+import type { GardenCloudApi } from "../../cloud/api/api.js"
+import { GardenCloudTRPCError } from "../../cloud/api/api.js"
+import type { GetActionResultResponse } from "../../cloud/api/trpc.js"
 
 type GrowCloudCacheErrorParams = {
   message: string
-  cause: GrowCloudTRPCError | undefined
+  cause: GardenCloudTRPCError | undefined
 }
 
 class GrowCloudCacheError extends CacheStorageError {
@@ -46,9 +46,9 @@ class GrowCloudCacheError extends CacheStorageError {
 export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
   private readonly log: Log
   private readonly schemaVersion: SchemaVersion
-  private readonly cloudApi: GrowCloudApi
+  private readonly cloudApi: GardenCloudApi
 
-  constructor({ cloudApi, schemaVersion }: { schemaVersion: SchemaVersion; cloudApi: GrowCloudApi }) {
+  constructor({ cloudApi, schemaVersion }: { schemaVersion: SchemaVersion; cloudApi: GardenCloudApi }) {
     this.schemaVersion = schemaVersion
     this.cloudApi = cloudApi
     this.log = RootLogger.getInstance().createLog({ name: "garden-team-cache" })
@@ -75,7 +75,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
 
       return { found: true, result: data.result as JsonObject }
     } catch (e) {
-      if (!(e instanceof GrowCloudTRPCError)) {
+      if (!(e instanceof GardenCloudTRPCError)) {
         throw e
       }
 
@@ -108,7 +108,7 @@ export class GrowCloudCacheStorage implements CacheStorage<RunResult> {
       })
       return value
     } catch (e) {
-      if (!(e instanceof GrowCloudTRPCError)) {
+      if (!(e instanceof GardenCloudTRPCError)) {
         throw e
       }
 

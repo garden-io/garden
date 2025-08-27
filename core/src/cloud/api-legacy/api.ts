@@ -87,14 +87,14 @@ export interface BulkUpdateSecretRequest {
 }
 
 // TODO: Read this from the `api-types` package once the session registration logic has been released in Cloud.
-export interface CloudSessionResponse {
+interface CloudSessionResponse {
   environmentId: string
   namespaceId: string
   shortId: string
 }
 
 export interface CloudSession extends CloudSessionResponse {
-  api: GardenCloudApi
+  api: GardenCloudApiLegacy
   id: string
   projectId: string
 }
@@ -145,26 +145,25 @@ export interface CloudApiFactoryParams {
   log: Log
   cloudDomain: string
   globalConfigStore: GlobalConfigStore
-  projectId: string | undefined
-  organizationId: string | undefined
+  projectId: string
   skipLogging?: boolean
 }
 
-export type GardenCloudApiFactory = (params: CloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
+export type GardenCloudApiLegacyFactory = (params: CloudApiFactoryParams) => Promise<GardenCloudApiLegacy | undefined>
 
-export type CloudApiParams = {
+type CloudApiLegacyParams = {
   log: Log
   domain: string
-  projectId: string | undefined
+  projectId: string
   globalConfigStore: GlobalConfigStore
 }
 
 /**
- * The Garden Cloud / Enterprise API client.
+ * The legacy Garden Cloud / Enterprise API client.
  *
  * Can only be initialized if the user is actually logged in.
  */
-export class GardenCloudApi {
+export class GardenCloudApiLegacy {
   private intervalId: NodeJS.Timeout | null = null
   private readonly intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private _profile?: GetProfileResponse["data"]
@@ -180,7 +179,7 @@ export class GardenCloudApi {
   public readonly distroName: string
   private readonly globalConfigStore: GlobalConfigStore
 
-  constructor(params: CloudApiParams) {
+  constructor(params: CloudApiLegacyParams) {
     const { log, domain, projectId, globalConfigStore } = params
     this.log = log
     this.httpClient = new GardenCloudHttpClient(params)
@@ -208,7 +207,7 @@ export class GardenCloudApi {
     projectId,
     globalConfigStore,
     skipLogging = false,
-  }: CloudApiFactoryParams): Promise<GardenCloudApi | undefined> {
+  }: CloudApiFactoryParams): Promise<GardenCloudApiLegacy | undefined> {
     const distroName = getCloudDistributionName(cloudDomain)
     const cloudLogSectionName = getCloudLogSectionName(distroName)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
@@ -226,7 +225,7 @@ export class GardenCloudApi {
       return undefined
     }
 
-    const api = new GardenCloudApi({ log: cloudLog, projectId, domain: cloudDomain, globalConfigStore })
+    const api = new GardenCloudApiLegacy({ log: cloudLog, projectId, domain: cloudDomain, globalConfigStore })
     const tokenIsValid = await api.checkClientAuthToken()
 
     cloudFactoryLog.info("Authorizing...")
@@ -834,7 +833,7 @@ export class GardenCloudApi {
     }
   }
 
-  async revokeToken(clientAuthToken: ClientAuthToken) {
+  async revokeToken(clientAuthToken: ClientAuthToken, _log: Log) {
     try {
       await this.post("token/logout", { headers: { Cookie: `rt=${clientAuthToken?.refreshToken}` } })
     } catch (err) {

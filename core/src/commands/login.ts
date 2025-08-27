@@ -12,11 +12,10 @@ import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
 import type { Log } from "../logger/log-entry.js"
 import { CloudApiError, ConfigurationError, InternalError, TimeoutError } from "../exceptions.js"
-import type { AuthToken } from "../cloud/legacy/auth.js"
-import { AuthRedirectServer, saveAuthToken } from "../cloud/legacy/auth.js"
+import type { AuthToken } from "../cloud/common.js"
+import { AuthRedirectServer, getAuthRedirectConfigLegacy, saveAuthToken } from "../cloud/api-legacy/auth.js"
 import type { EventBus } from "../events/events.js"
-import { getCloudDomain } from "../cloud/util.js"
-import type { GardenBackend } from "../cloud/backend-base.js"
+import { getCloudDomain, useLegacyCloud } from "../cloud/util.js"
 import { gardenEnv } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import type { Document, ParsedNode } from "yaml"
@@ -27,7 +26,10 @@ const { readFile, writeFile } = fsExtra
 import { relative } from "path"
 import { findProjectConfigOrPrintInstructions } from "./helpers.js"
 import { styles } from "../logger/styles.js"
-import { gardenBackendFactory } from "../cloud/backend-factory.js"
+import { GardenCloudApi } from "../cloud/api/api.js"
+import { GardenCloudApiLegacy } from "../cloud/api-legacy/api.js"
+import { getAuthRedirectConfig } from "../cloud/api/auth.js"
+import type { AuthRedirectConfig } from "../cloud/common.js"
 
 const loginTimeoutSec = 60 * 60 // 1 hour should be enough to sign up and choose/create an organization
 
@@ -60,19 +62,30 @@ export class LoginCommand extends Command<{}, Opts> {
     const globalConfigStore = garden.globalConfigStore
     const cloudDomain = getCloudDomain(projectConfig)
     const { id: projectId, organizationId } = projectConfig || {}
-    const gardenBackend = gardenBackendFactory(projectConfig, { cloudDomain, projectId, organizationId })
+
+    let cloudApi: GardenCloudApiLegacy | GardenCloudApi | undefined
 
     try {
       // NOTE: The Cloud API is missing from the `Garden` class for commands
       // with `noProject = true` so we initialize it here.
-      const cloudApi = await gardenBackend.cloudApiFactory({
-        log,
-        cloudDomain,
-        skipLogging: true,
-        globalConfigStore,
-        projectId: projectConfig?.id,
-        organizationId: projectConfig?.organizationId,
-      })
+      if (useLegacyCloud(projectConfig) && projectId) {
+        cloudApi = await GardenCloudApiLegacy.factory({
+          log,
+          cloudDomain,
+          skipLogging: true,
+          globalConfigStore,
+          projectId,
+        })
+      } else if (organizationId) {
+        cloudApi = await GardenCloudApi.factory({
+          log,
+          cloudDomain,
+          skipLogging: true,
+          globalConfigStore,
+          organizationId,
+        })
+      }
+
       if (cloudApi) {
         log.success({ msg: `You're already logged in to ${cloudDomain}.` })
         cloudApi.close()
@@ -85,8 +98,12 @@ export class LoginCommand extends Command<{}, Opts> {
       }
     }
 
+    const authRedirectConfig = useLegacyCloud(projectConfig)
+      ? getAuthRedirectConfigLegacy(cloudDomain)
+      : getAuthRedirectConfig({ cloudDomain, organizationId })
+
     log.info({ msg: `Logging in to ${cloudDomain}...` })
-    const tokenResponse = await login(log, gardenBackend, garden.events)
+    const tokenResponse = await login({ log, authRedirectConfig, events: garden.events, cloudDomain })
     await saveAuthToken({
       log,
       globalConfigStore,
@@ -102,15 +119,25 @@ export class LoginCommand extends Command<{}, Opts> {
   }
 }
 
-export async function login(log: Log, gardenBackend: GardenBackend, events: EventBus): Promise<AuthToken> {
+export async function login({
+  log,
+  events,
+  authRedirectConfig,
+  cloudDomain,
+}: {
+  log: Log
+  events: EventBus
+  authRedirectConfig: AuthRedirectConfig
+  cloudDomain: string
+}): Promise<AuthToken> {
   // Start auth redirect server and wait for its redirect handler to receive the redirect and finish running.
   const server = new AuthRedirectServer({
     events,
     log,
-    ...gardenBackend.getAuthRedirectConfig(),
+    ...authRedirectConfig,
   })
 
-  log.debug(`Redirecting to ${gardenBackend.config.cloudDomain} login page...`)
+  log.debug(`Redirecting to ${cloudDomain} login page...`)
   const response = await new Promise<AuthToken>(async (resolve, reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
     await server.start()
@@ -200,7 +227,6 @@ async function rewriteProjectConfigFile(log: Log, projectConfigPath: string, org
   } catch (err) {
     // If the above fails for any reason, we log a helpful message to guide the user to setting the
     // organizationId in their project config manually.
-    const relPath = relative(process.cwd(), projectConfigPath)
     log.debug(
       `An error occurred while automatically setting organizationId in project config at path ${relPath}: ${err instanceof Error ? err.stack : err}`
     )

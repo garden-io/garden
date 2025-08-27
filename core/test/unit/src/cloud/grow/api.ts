@@ -9,8 +9,8 @@
 import { expect } from "chai"
 import type { Garden } from "../../../../../src/garden.js"
 import { expectError, makeTestGardenA } from "../../../../helpers.js"
-import { GrowCloudApi } from "../../../../../src/cloud/grow/api.js"
-import type { ApiTrpcClient, RouterOutput } from "../../../../../src/cloud/grow/trpc.js"
+import { GardenCloudApi } from "../../../../../src/cloud/api/api.js"
+import type { ApiTrpcClient, RouterOutput } from "../../../../../src/cloud/api/trpc.js"
 import type { DeepPartial } from "utility-types"
 import { TRPCClientError } from "@trpc/client"
 
@@ -55,17 +55,16 @@ describe("GrowCloudApi", () => {
 
   describe("getVariables", () => {
     it("should return variables from variable list", async () => {
-      const cloudApiV2 = new GrowCloudApi({
+      const cloudApi = new GardenCloudApi({
         log: garden.log,
         domain: "https://example.com",
         globalConfigStore: garden.globalConfigStore,
         organizationId: "fake-organization-id",
         authToken: "fake-auth-token",
-        projectId: undefined,
         __trpcClientOverrideForTesting: makeFakeTrpcClient(),
       })
 
-      const variables = await cloudApiV2.getVariables({
+      const variables = await cloudApi.getVariables({
         variablesFrom: "varlist_a",
         environmentName: "dev",
         log: garden.log,
@@ -87,13 +86,12 @@ describe("GrowCloudApi", () => {
       })
     })
     it("should handle multiple variable lists", async () => {
-      const cloudApiV2 = new GrowCloudApi({
+      const cloudApi = new GardenCloudApi({
         log: garden.log,
         domain: "https://example.com",
         globalConfigStore: garden.globalConfigStore,
         organizationId: "fake-organization-id",
         authToken: "fake-auth-token",
-        projectId: undefined,
         __trpcClientOverrideForTesting: makeFakeTrpcClient({
           variableList: {
             getValues: {
@@ -131,7 +129,7 @@ describe("GrowCloudApi", () => {
         }),
       })
 
-      const variables = await cloudApiV2.getVariables({
+      const variables = await cloudApi.getVariables({
         variablesFrom: ["varlist_a", "varlist_b"],
         environmentName: "dev",
         log: garden.log,
@@ -159,13 +157,12 @@ describe("GrowCloudApi", () => {
       })
     })
     it("should merge variables in list order", async () => {
-      const cloudApiV2 = new GrowCloudApi({
+      const cloudApi = new GardenCloudApi({
         log: garden.log,
         domain: "https://example.com",
         globalConfigStore: garden.globalConfigStore,
         organizationId: "fake-organization-id",
         authToken: "fake-auth-token",
-        projectId: undefined,
         __trpcClientOverrideForTesting: makeFakeTrpcClient({
           variableList: {
             getValues: {
@@ -203,12 +200,12 @@ describe("GrowCloudApi", () => {
         }),
       })
 
-      const varListBLast = await cloudApiV2.getVariables({
+      const varListBLast = await cloudApi.getVariables({
         variablesFrom: ["varlist_a", "varlist_b"],
         environmentName: "dev",
         log: garden.log,
       })
-      const varListALast = await cloudApiV2.getVariables({
+      const varListALast = await cloudApi.getVariables({
         variablesFrom: ["varlist_b", "varlist_a"],
         environmentName: "dev",
         log: garden.log,
@@ -244,13 +241,12 @@ describe("GrowCloudApi", () => {
       })
     })
     it("should throw if fetching variables from any list fails", async () => {
-      const cloudApiV2 = new GrowCloudApi({
+      const cloudApi = new GardenCloudApi({
         log: garden.log,
         domain: "https://example.com",
         globalConfigStore: garden.globalConfigStore,
         organizationId: "fake-organization-id",
         authToken: "fake-auth-token",
-        projectId: undefined,
         __trpcClientOverrideForTesting: makeFakeTrpcClient({
           variableList: {
             getValues: {
@@ -276,7 +272,7 @@ describe("GrowCloudApi", () => {
 
       await expectError(
         () =>
-          cloudApiV2.getVariables({
+          cloudApi.getVariables({
             variablesFrom: ["varlist_a", "varlist_b"],
             environmentName: "dev",
             log: garden.log,

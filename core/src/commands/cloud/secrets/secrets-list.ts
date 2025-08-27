@@ -17,7 +17,7 @@ import { StringsParameter } from "../../../cli/params.js"
 import { styles } from "../../../logger/styles.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
-import { handleSecretsUnavailableInNewBackend } from "../../../cloud/grow/secrets.js"
+import { handleSecretsUnavailableInNewBackend } from "../../../cloud/api/secrets.js"
 
 export const secretsListOpts = {
   "filter-envs": new StringsParameter({
@@ -59,7 +59,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
     const nameFilter = opts["filter-names"] || []
     const userFilter = opts["filter-user-ids"] || []
 
-    const api = garden.cloudApi
+    const api = garden.cloudApiLegacy
     if (!api) {
       throw new ConfigurationError({ message: noApiMsg("list", "secrets") })
     }

@@ -11,7 +11,7 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 import { Autocompleter } from "../cli/autocomplete.js"
 import { parseCliVarFlags } from "../cli/helpers.js"
 import type { ParameterObject, ParameterValues } from "../cli/params.js"
-import type { GardenCloudApi } from "../cloud/legacy/api.js"
+import type { GardenCloudApiLegacy } from "../cloud/api-legacy/api.js"
 import type { BuiltinArgs, Command } from "../commands/base.js"
 import { getBuiltinCommands, flattenCommands } from "../commands/commands.js"
 import { getCustomCommands } from "../commands/custom.js"
@@ -71,7 +71,7 @@ export class GardenInstanceManager {
   private readonly plugins: GardenPluginReference[]
   private readonly instances: Map<string, InstanceContext>
   private readonly projectRoots: Map<string, ProjectRootContext>
-  private readonly cloudApis: Map<string, GardenCloudApi>
+  private readonly cloudApis: Map<string, GardenCloudApiLegacy>
   private readonly lastRequested: Map<string, Date>
   private readonly lock: AsyncLock
   private readonly builtinCommands: Command[]
@@ -202,7 +202,7 @@ export class GardenInstanceManager {
       return cachedApi
     }
 
-    const api = garden.cloudApi
+    const api = garden.cloudApiLegacy
     this.cloudApis.set(cloudDomain, api)
 
     return api
@@ -395,7 +395,7 @@ export class GardenInstanceManager {
       gardenOpts
     )
 
-    let cloudApi: GardenCloudApi | undefined = undefined
+    let cloudApi: GardenCloudApiLegacy | undefined = undefined
     if (!command?.noProject) {
       cloudApi = await this.getCloudApi(garden)
     }

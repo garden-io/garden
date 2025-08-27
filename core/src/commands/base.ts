@@ -28,7 +28,7 @@ import type { SolveResult } from "../graph/solver.js"
 import { waitForOutputFlush } from "../process.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { GardenServer } from "../server/server.js"
-import type { CloudSession } from "../cloud/legacy/api.js"
+import type { CloudSession } from "../cloud/api-legacy/api.js"
 import type { DeployState, ForwardablePort, ServiceIngress } from "../types/service.js"
 import { deployStates, forwardablePortSchema, serviceIngressSchema } from "../types/service.js"
 import type { GraphResultMapWithoutTask, GraphResults, GraphResultWithoutTask } from "../graph/results.js"
@@ -297,7 +297,7 @@ export abstract class Command<
           !["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand
 
         if (!skipRegistration && garden.isOldBackendAvailable() && garden.projectId && this.streamEvents) {
-          cloudSession = await garden.cloudApi.registerSession({
+          cloudSession = await garden.cloudApiLegacy.registerSession({
             parentSessionId: parentSessionId || undefined,
             sessionId: garden.sessionId,
             projectId: garden.projectId,
