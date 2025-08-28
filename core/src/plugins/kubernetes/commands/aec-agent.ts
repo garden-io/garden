@@ -125,10 +125,10 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
   log.info({ msg: `Kubernetes API initialized` })
 
   // TODO: Deduplicate this with the setup-aec command
-  const cloudApi = garden.cloudApiV2
+  const cloudApi = garden.cloudApi
 
   if (!cloudApi) {
-    if (garden.cloudApi) {
+    if (garden.cloudApiLegacy) {
       log.error({ msg: `Using legacy Cloud API` })
       throw new CloudApiError({
         message:
