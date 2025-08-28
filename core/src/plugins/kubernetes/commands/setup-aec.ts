@@ -61,10 +61,10 @@ export const setupAecCommand: PluginCommand = {
       })
     }
 
-    const cloudApi = garden.cloudApiV2
+    const cloudApi = garden.cloudApi
 
     if (!cloudApi) {
-      if (garden.cloudApi) {
+      if (garden.cloudApiLegacy) {
         throw new CloudApiError({
           message:
             "You must be logged in to app.garden.io to use this command. Single-tenant Garden Enterprise is currently not supported.",

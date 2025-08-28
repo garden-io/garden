@@ -19,8 +19,8 @@ import { gardenAnnotationKey } from "../../../../../../src/util/annotations.js"
 import pRetry from "p-retry"
 import { randomString } from "../../../../../../src/util/string.js"
 import type { PluginContext } from "../../../../../../src/plugin-context.js"
-import { GrowCloudApi } from "../../../../../../src/cloud/grow/api.js"
-import type { ApiTrpcClient } from "../../../../../../src/cloud/grow/trpc.js"
+import { GardenCloudApi } from "../../../../../../src/cloud/api/api.js"
+import type { ApiTrpcClient } from "../../../../../../src/cloud/api/trpc.js"
 
 describe("aec-agent command", () => {
   const testNamespaceName = "aec-agent-" + randomString(10)
@@ -56,7 +56,7 @@ describe("aec-agent command", () => {
     },
   }
 
-  class MockCloudApi extends GrowCloudApi {
+  class MockCloudApi extends GardenCloudApi {
     override async getOrganization() {
       return {
         name: "foo",
@@ -109,10 +109,9 @@ describe("aec-agent command", () => {
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     api = await KubeApi.factory(garden.log, ctx, provider)
 
-    garden.cloudApiV2 = new MockCloudApi({
+    garden.cloudApi = new MockCloudApi({
       log: garden.log,
       domain: "https://grow.example.com",
-      projectId: "foo",
       authToken: "bar",
       organizationId: "baz",
       globalConfigStore: garden.globalConfigStore,
