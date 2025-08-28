@@ -205,7 +205,8 @@ describe("Kubernetes Namespace helpers", () => {
       expect(ns?.metadata.annotations?.[gardenAnnotationKey("aec-config")]).to.equal(
         JSON.stringify(ctx.environmentConfig.aec)
       )
-      expect(ns?.metadata.annotations?.[gardenAnnotationKey("last-deployed")]).to.exist
+      expect(ns?.metadata.annotations?.[gardenAnnotationKey("environment-type")]).to.equal("local")
+      expect(ns?.metadata.annotations?.[gardenAnnotationKey("environment-name")]).to.equal("default")
     })
   })
 })

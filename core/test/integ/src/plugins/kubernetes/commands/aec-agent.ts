@@ -16,46 +16,12 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
 import type { Provider } from "../../../../../../src/config/provider.js"
 import type { Garden } from "../../../../../../src/garden.js"
 import { gardenAnnotationKey } from "../../../../../../src/util/annotations.js"
-import pRetry from "p-retry"
 import { randomString } from "../../../../../../src/util/string.js"
 import type { PluginContext } from "../../../../../../src/plugin-context.js"
 import { GardenCloudApi } from "../../../../../../src/cloud/api/api.js"
 import type { ApiTrpcClient } from "../../../../../../src/cloud/api/trpc.js"
 
 describe("aec-agent command", () => {
-  const testNamespaceName = "aec-agent-" + randomString(10)
-
-  const dummyDeployment: V1Deployment = {
-    metadata: {
-      name: "dummy-deployment",
-      namespace: testNamespaceName,
-    },
-    spec: {
-      replicas: 1,
-      selector: {
-        matchLabels: {
-          app: "dummy-deployment",
-        },
-      },
-      template: {
-        metadata: {
-          labels: {
-            app: "dummy-deployment",
-          },
-        },
-        spec: {
-          containers: [
-            {
-              name: "dummy-container",
-              image: "busybox",
-              command: ["sleep", "infinity"],
-            },
-          ],
-        },
-      },
-    },
-  }
-
   class MockCloudApi extends GardenCloudApi {
     override async getOrganization() {
       return {
@@ -92,12 +58,15 @@ describe("aec-agent command", () => {
   }
 
   // Setting TTL to 0 will cause the command to exit after the first loop
-  const args = ["--interval", "2000", "--ttl", "0", "--description", "integ test agent", "--health-check-port", "0"]
+  const args = ["--interval", "2", "--ttl", "0", "--description", "integ test agent", "--health-check-port", "0"]
 
   let garden: Garden
   let ctx: PluginContext
   let provider: Provider<KubernetesConfig>
   let api: KubeApi
+
+  let testNamespaceName: string
+  let dummyDeployment: V1Deployment
 
   before(async () => {
     const root = getDataDir("test-projects", "container")
@@ -119,19 +88,41 @@ describe("aec-agent command", () => {
     })
   })
 
-  async function waitForNamespaceToBeGone() {
-    await pRetry(
-      async () => {
-        const namespaces = await api.core.listNamespace()
-        if (namespaces.items.find((n) => n.metadata?.name === testNamespaceName)) {
-          throw new Error("Namespace not deleted yet")
-        }
+  beforeEach(() => {
+    testNamespaceName = "aec-agent-" + randomString(10)
+    dummyDeployment = {
+      metadata: {
+        name: "dummy-deployment",
+        namespace: testNamespaceName,
       },
-      { maxTimeout: 10000, minTimeout: 500 }
-    )
-  }
+      spec: {
+        replicas: 1,
+        selector: {
+          matchLabels: {
+            app: "dummy-deployment",
+          },
+        },
+        template: {
+          metadata: {
+            labels: {
+              app: "dummy-deployment",
+            },
+          },
+          spec: {
+            containers: [
+              {
+                name: "dummy-container",
+                image: "busybox",
+                command: ["sleep", "infinity"],
+              },
+            ],
+          },
+        },
+      },
+    }
+  })
 
-  async function cleanup() {
+  afterEach(async () => {
     try {
       await api.core.deleteNamespace({
         name: testNamespaceName,
@@ -139,20 +130,13 @@ describe("aec-agent command", () => {
     } catch (e) {
       // Ignore
     }
-  }
-
-  beforeEach(async () => {
-    await cleanup()
   })
 
   after(async () => {
-    await cleanup()
     garden.close()
   })
 
   it("pauses workloads if AEC is enabled and a pause trigger is matched", async () => {
-    await waitForNamespaceToBeGone()
-
     const namespace: V1Namespace = {
       metadata: {
         name: testNamespaceName,
@@ -166,6 +150,8 @@ describe("aec-agent command", () => {
             ],
           }),
           "garden.io/last-deployed": new Date("2025-01-01").toISOString(),
+          [gardenAnnotationKey("environment-type")]: "test",
+          [gardenAnnotationKey("environment-name")]: "test",
         },
       },
     }
@@ -203,8 +189,6 @@ describe("aec-agent command", () => {
   })
 
   it("deletes namespace if AEC is enabled and a delete trigger is matched", async () => {
-    await waitForNamespaceToBeGone()
-
     const namespace: V1Namespace = {
       metadata: {
         name: testNamespaceName,
@@ -218,6 +202,8 @@ describe("aec-agent command", () => {
             ],
           }),
           "garden.io/last-deployed": new Date("2025-01-01").toISOString(),
+          [gardenAnnotationKey("environment-type")]: "test",
+          [gardenAnnotationKey("environment-name")]: "test",
         },
       },
     }
@@ -233,7 +219,5 @@ describe("aec-agent command", () => {
       args,
       graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
     })
-
-    await waitForNamespaceToBeGone()
   })
 })
