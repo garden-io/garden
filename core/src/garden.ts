@@ -1306,7 +1306,7 @@ export class Garden {
     })
   }
 
-  // @Memoize(() => true)
+  @pMemoizeDecorator()
   async getExcludeValuesForActionVersions(): Promise<string[]> {
     const context = new ExcludeValuesFromActionVersionsContext(this, this.variables)
     const source = { yamlDoc: this.projectConfig.internal.yamlDoc, path: ["excludeValuesFromActionVersions"] }
