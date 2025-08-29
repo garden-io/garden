@@ -219,14 +219,15 @@ export interface ProjectConfig extends BaseGardenResource {
   proxy?: ProxyConfig
   defaultEnvironment: string
   dotIgnoreFile: string
-  variablesFrom: string | string[]
   environments: EnvironmentConfig[]
+  excludeValuesFromActionVersions: string[]
   scan?: ProjectScan
   outputs?: OutputSpec[]
   providers: ParsedTemplate[]
   sources?: SourceConfig[]
   varfile?: string
   variables: DeepPrimitiveMap
+  variablesFrom: string | string[]
 }
 
 export const projectApiVersionSchema = memoize(() =>
@@ -383,6 +384,28 @@ export const projectSchema = createSchema({
     `
       )
       .example(".gitignore"),
+    excludeValuesFromActionVersions: joi
+      .sparseArray()
+      .items(joi.string())
+      .description(
+        dedent`
+        A list of string values that should be excluded when computing action versions.
+
+        Setting values here is equivalent to adding them to the \`version.excludeValues\` field on all actions in the project.
+
+        These values can be templated, and generally should be templated. A typical example is to exclude the namespace of the environment, or a hostname suffix used across many Deploy actions. For example:
+
+        \`\`\`yaml
+        excludeValuesFromActionVersions:
+          - "\${var.hostname-suffix}"  # resolving to something like "my-branch.dev.my-org.com"
+        \`\`\`
+
+        **Important:**
+        You should be careful to not make these values too broad, since the strings will be replaced for every field in all actions across the project when computing versions. For example, if a value here resolves to a short and generic string like "api", the string "api" will be replaced for every field in all actions across the project when computing versions. This could lead to unexpected issues like tests getting skipped when they shouldn't, deployments not updating etc.
+
+        However, something more specific like a branch name, commit hash, PR number etc., ideally with some specific prefix or suffix, is generally safer to do. That said, this field only affects version computation, not the actual action configuration when it's executed.
+      `
+      ),
     proxy: joi.object().keys({
       hostname: joi
         .string()
@@ -489,8 +512,16 @@ export function resolveProjectConfig({
   config: ProjectConfig
   context: ProjectConfigContext
 }): ProjectConfig {
-  // Resolve template strings for non-environment-specific fields (apart from `sources`).
-  const { variables = {}, environments = [], name, sources = [], providers = [], outputs = [] } = config
+  // Resolve template strings for non-environment-specific fields (apart from `sources` and `excludeValuesFromActionVersions`).
+  const {
+    variables = {},
+    environments = [],
+    name,
+    sources = [],
+    providers = [],
+    outputs = [],
+    excludeValuesFromActionVersions = [],
+  } = config
 
   let globalConfig: any
 
@@ -520,7 +551,8 @@ export function resolveProjectConfig({
       ...globalConfig,
       name,
       defaultEnvironment: defaultEnvironmentName,
-      // environments, providers and sources are validated later
+      // environments, providers, excludeValuesFromActionVersions and sources are validated later
+      excludeValuesFromActionVersions: [],
       environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-initial-load", variables: {} }],
       providers: [],
       sources: [],
@@ -540,6 +572,7 @@ export function resolveProjectConfig({
     sources,
     outputs,
     variables,
+    excludeValuesFromActionVersions,
   }
 
   config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)

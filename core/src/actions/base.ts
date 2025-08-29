@@ -637,7 +637,7 @@ export abstract class BaseAction<
    */
   @Memoize(() => true)
   configVersion(log: Log) {
-    return getActionConfigVersion(this.createLog(log), this._config)
+    return getActionConfigVersion(this.createLog(log), this._config, this.graph.excludeValuesFromActionVersions)
   }
 
   /**
@@ -1058,10 +1058,10 @@ export type NonVersionedActionConfigKey = keyof Pick<BaseActionConfig, (typeof n
 
 export const excludeValueReplacement = "!!!GARDEN-EXCLUDED!!!"
 
-export function replaceExcludeValues(config: BaseActionConfig, log: ActionLog) {
+export function replaceExcludeValues(config: BaseActionConfig, log: ActionLog, projectExcludeValues: string[]) {
   let configToHash: unknown = omit(config, ...nonVersionedActionConfigKeys)
 
-  const excludeValues = config.version?.excludeValues || []
+  const excludeValues = [...(config.version?.excludeValues || []), ...projectExcludeValues]
   const excludeValueRegexes = excludeValues.map((v) => new RegExp(v, "g"))
   const excludeFields = config.version?.excludeFields || []
 
@@ -1115,7 +1115,11 @@ export function replaceExcludeValues(config: BaseActionConfig, log: ActionLog) {
   return configToHash
 }
 
-export function getActionConfigVersion<C extends BaseActionConfig>(log: ActionLog, config: C) {
-  const configToHash = replaceExcludeValues(config, log)
+export function getActionConfigVersion<C extends BaseActionConfig>(
+  log: ActionLog,
+  config: C,
+  projectExcludeValues: string[]
+) {
+  const configToHash = replaceExcludeValues(config, log, projectExcludeValues)
   return versionStringPrefix + hashStrings([stableStringify(configToHash)])
 }

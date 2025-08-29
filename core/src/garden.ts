@@ -113,6 +113,7 @@ import { resolveConfigTemplate } from "./config/config-template.js"
 import type { TemplatedModuleConfig } from "./plugins/templated.js"
 import {
   DefaultEnvironmentContext,
+  ExcludeValuesFromActionVersionsContext,
   ProjectConfigContext,
   RemoteSourceConfigContext,
 } from "./config/template-contexts/project.js"
@@ -1301,7 +1302,20 @@ export class Garden {
       moduleGraph: graph.moduleGraph,
       // TODO: perhaps groups should be resolved here
       groups: graph.getGroups(),
+      excludeValuesFromActionVersions: await this.getExcludeValuesForActionVersions(),
     })
+  }
+
+  @pMemoizeDecorator()
+  async getExcludeValuesForActionVersions(): Promise<string[]> {
+    const context = new ExcludeValuesFromActionVersionsContext(this, this.variables)
+    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, path: ["excludeValuesFromActionVersions"] }
+    const evaluated = deepEvaluate(this.projectConfig.excludeValuesFromActionVersions, { context, opts: {} })
+    const resolved = validateSchema<string[]>(evaluated, joi.array().items(joi.string()), {
+      context: "excludeValuesFromActionVersions",
+      source,
+    })
+    return resolved
   }
 
   @OtelTraced({
@@ -2349,10 +2363,11 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
     },
     defaultEnvironment: "",
     dotIgnoreFile: defaultDotIgnoreFile,
-    variablesFrom: [],
+    excludeValuesFromActionVersions: [],
     environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],
     providers: [],
     variables: {},
+    variablesFrom: [],
   }
   gardenOpts.config = config
 

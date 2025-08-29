@@ -111,6 +111,7 @@ export class PluginsCommand extends Command<Args> {
       actions: [],
       moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       groups: [],
+      excludeValuesFromActionVersions: await garden.getExcludeValuesForActionVersions(),
     })
 
     // Commands can optionally ask for all the modules in the project/environment

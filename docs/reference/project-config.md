@@ -130,6 +130,28 @@ defaultEnvironment: ''
 # for details.
 dotIgnoreFile: .gardenignore
 
+# A list of string values that should be excluded when computing action versions.
+#
+# Setting values here is equivalent to adding them to the `version.excludeValues` field on all actions in the project.
+#
+# These values can be templated, and generally should be templated. A typical example is to exclude the namespace of
+# the environment, or a hostname suffix used across many Deploy actions. For example:
+#
+# excludeValuesFromActionVersions:
+#   - "${var.hostname-suffix}"  # resolving to something like "my-branch.dev.my-org.com"
+#
+# **Important:**
+# You should be careful to not make these values too broad, since the strings will be replaced for every field in all
+# actions across the project when computing versions. For example, if a value here resolves to a short and generic
+# string like "api", the string "api" will be replaced for every field in all actions across the project when
+# computing versions. This could lead to unexpected issues like tests getting skipped when they shouldn't, deployments
+# not updating etc.
+#
+# However, something more specific like a branch name, commit hash, PR number etc., ideally with some specific prefix
+# or suffix, is generally safer to do. That said, this field only affects version computation, not the actual action
+# configuration when it's executed.
+excludeValuesFromActionVersions:
+
 proxy:
   # The URL that Garden uses when creating port forwards. Defaults to "localhost".
   #
@@ -513,6 +535,28 @@ Example:
 ```yaml
 dotIgnoreFile: ".gitignore"
 ```
+
+### `excludeValuesFromActionVersions[]`
+
+A list of string values that should be excluded when computing action versions.
+
+Setting values here is equivalent to adding them to the `version.excludeValues` field on all actions in the project.
+
+These values can be templated, and generally should be templated. A typical example is to exclude the namespace of the environment, or a hostname suffix used across many Deploy actions. For example:
+
+```yaml
+excludeValuesFromActionVersions:
+  - "${var.hostname-suffix}"  # resolving to something like "my-branch.dev.my-org.com"
+```
+
+**Important:**
+You should be careful to not make these values too broad, since the strings will be replaced for every field in all actions across the project when computing versions. For example, if a value here resolves to a short and generic string like "api", the string "api" will be replaced for every field in all actions across the project when computing versions. This could lead to unexpected issues like tests getting skipped when they shouldn't, deployments not updating etc.
+
+However, something more specific like a branch name, commit hash, PR number etc., ideally with some specific prefix or suffix, is generally safer to do. That said, this field only affects version computation, not the actual action configuration when it's executed.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `proxy`
 
