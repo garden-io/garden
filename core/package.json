@@ -72,7 +72,7 @@
     "flatted": "^3.3.3",
     "fs-extra": "^11.3.0",
     "get-port": "^7.1.0",
-    "glob": "^11.0.1",
+    "glob": "^11.0.3",
     "global-agent": "^3.0.0",
     "got": "^14.4.7",
     "gray-matter": "^4.0.3",
