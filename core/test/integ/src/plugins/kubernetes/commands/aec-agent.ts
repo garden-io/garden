@@ -145,7 +145,7 @@ describe("aec-agent command", () => {
             triggers: [
               {
                 action: "pause",
-                afterLastUpdate: { unit: "days", value: 1 },
+                timeAfterLastUpdate: { unit: "days", value: 1 },
               },
             ],
           }),
@@ -197,7 +197,7 @@ describe("aec-agent command", () => {
             triggers: [
               {
                 action: "cleanup",
-                afterLastUpdate: { unit: "days", value: 1 },
+                timeAfterLastUpdate: { unit: "days", value: 1 },
               },
             ],
           }),

@@ -17,6 +17,7 @@ import { dedent } from "../../util/string.js"
 import type { AecStatus } from "../../config/aec.js"
 
 export const gardenAecAgentServiceAccountName = "aec_agent"
+export const gardenAecAgentDeploymentName = "garden-aec-agent"
 
 export function getAecAgentManifests({
   imageOverride,
@@ -35,7 +36,7 @@ export function getAecAgentManifests({
   cloudDomain: string
   organizationId: string
 }): KubernetesResource[] {
-  const serviceAccountName = "garden-aec-agent"
+  const serviceAccountName = gardenAecAgentDeploymentName
 
   if (localDevMode && process.env.GARDEN_SEA_EXTRACTED_ROOT) {
     throw new Error("Local dev mode is not supported when running a binary build")
@@ -149,10 +150,10 @@ export function getAecAgentManifests({
                   cat $PROJECT_CONFIG
                   echo "---\n"
 
-                  # TODO: Remove this to avoid echoing the token to the logs
-                  echo "--- kubeconfig ---"
-                  cat $KUBECONFIG
-                  echo "---\n"
+                  # Commented out to avoid echoing the token to the logs, uncomment to debug
+                  #echo "--- kubeconfig ---"
+                  #cat $KUBECONFIG
+                  #echo "---\n"
 
                   cd $PROJECT_ROOT
                   git init

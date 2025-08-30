@@ -32,7 +32,7 @@ export type EnvironmentAecConfig = {
 
 export type AecTrigger = {
   action: AecAction
-  afterLastUpdate?: {
+  timeAfterLastUpdate?: {
     unit: (typeof aecTtlUnits)[number]
     value: number
   }
@@ -80,16 +80,16 @@ const aecTriggerSchema = createSchema({
   description: dedent`
     Specify a trigger that will cause the automatic environment cleanup to be performed.
 
-    You must specify either \`afterLastUpdate\` or \`schedule\`.
+    You must specify either \`timeAfterLastUpdate\` or \`schedule\`.
   `,
-  xor: [["afterLastUpdate", "schedule"]],
+  xor: [["timeAfterLastUpdate", "schedule"]],
   keys: () => ({
     action: joi
       .string()
       .valid(...aecActions)
       .required()
       .description("The action to perform when the trigger is matched."),
-    afterLastUpdate: aecTtlSchema(),
+    timeAfterLastUpdate: aecTtlSchema(),
     schedule: aecScheduleSchema(),
   }),
 })
@@ -181,9 +181,9 @@ export function matchAecTriggers({
       }
 
       return true
-    } else if (trigger.afterLastUpdate) {
+    } else if (trigger.timeAfterLastUpdate) {
       const triggerTime = new Date(
-        lastDeployed.getTime() + trigger.afterLastUpdate.value * getTimeUnitMsec(trigger.afterLastUpdate.unit)
+        lastDeployed.getTime() + trigger.timeAfterLastUpdate.value * getTimeUnitMsec(trigger.timeAfterLastUpdate.unit)
       )
       return triggerTime.getTime() <= now.getTime()
     }
@@ -206,8 +206,8 @@ function getTimeUnitMsec(unit: (typeof aecTtlUnits)[number]) {
 export function describeTrigger(trigger: AecTrigger) {
   if (trigger.schedule) {
     return `Schedule: ${trigger.action} every ${trigger.schedule.every} at ${trigger.schedule.hourOfDay}:${trigger.schedule.minuteOfHour}`
-  } else if (trigger.afterLastUpdate) {
-    return `After last update: ${trigger.action} after ${trigger.afterLastUpdate.value} ${trigger.afterLastUpdate.unit}(s)`
+  } else if (trigger.timeAfterLastUpdate) {
+    return `After last update: ${trigger.action} after ${trigger.timeAfterLastUpdate.value} ${trigger.timeAfterLastUpdate.unit}(s)`
   } else {
     throw new Error("Invalid trigger")
   }

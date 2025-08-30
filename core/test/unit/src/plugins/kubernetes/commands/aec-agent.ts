@@ -54,7 +54,7 @@ describe("checkAndCleanupNamespace", () => {
             triggers: [
               {
                 action: "pause",
-                afterLastUpdate: { unit: "days", value: 1 },
+                timeAfterLastUpdate: { unit: "days", value: 1 },
               },
             ],
           }),
@@ -144,7 +144,7 @@ describe("checkAndCleanupNamespace", () => {
             triggers: [
               {
                 action: "pause",
-                afterLastUpdate: { unit: "days", value: 1 },
+                timeAfterLastUpdate: { unit: "days", value: 1 },
               },
             ],
           }),
@@ -291,7 +291,7 @@ describe("checkAndCleanupNamespace", () => {
             triggers: [
               {
                 action: "pause",
-                afterLastUpdate: { unit: "days", value: 1 },
+                timeAfterLastUpdate: { unit: "days", value: 1 },
               },
             ],
           }),
@@ -325,7 +325,7 @@ describe("checkAndCleanupNamespace", () => {
             triggers: [
               {
                 action: "pause",
-                afterLastUpdate: { unit: "days", value: 1 },
+                timeAfterLastUpdate: { unit: "days", value: 1 },
               },
             ],
           }),
@@ -361,7 +361,7 @@ describe("checkAndCleanupNamespace", () => {
             triggers: [
               {
                 action: "pause",
-                afterLastUpdate: { unit: "days", value: 1 },
+                timeAfterLastUpdate: { unit: "days", value: 1 },
               },
             ],
           }),
@@ -398,7 +398,7 @@ describe("checkAndCleanupNamespace", () => {
             triggers: [
               {
                 action: "cleanup",
-                afterLastUpdate: { unit: "days", value: 1 },
+                timeAfterLastUpdate: { unit: "days", value: 1 },
               },
             ],
           }),

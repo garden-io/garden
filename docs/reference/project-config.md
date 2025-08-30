@@ -124,7 +124,7 @@ environments:
           #
           # Please refer to the [Automatic Environment Cleanup
           # guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.
-          afterLastUpdate:
+          timeAfterLastUpdate:
             unit:
 
             value:
@@ -519,9 +519,9 @@ The action to perform when the trigger is matched.
 | -------- | ------------------ | -------- |
 | `string` | "cleanup", "pause" | Yes      |
 
-### `environments[].aec.triggers[].afterLastUpdate`
+### `environments[].aec.triggers[].timeAfterLastUpdate`
 
-[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > afterLastUpdate
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > timeAfterLastUpdate
 
 The time to live for the environment after the last update (i.e. the last time the environment was deployed or updated using `garden deploy`).
 
@@ -531,17 +531,17 @@ Please refer to the [Automatic Environment Cleanup guide](https://docs.garden.io
 | -------- | -------- |
 | `object` | No       |
 
-### `environments[].aec.triggers[].afterLastUpdate.unit`
+### `environments[].aec.triggers[].timeAfterLastUpdate.unit`
 
-[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > [afterLastUpdate](#environmentsaectriggersafterlastupdate) > unit
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > [timeAfterLastUpdate](#environmentsaectriggerstimeafterlastupdate) > unit
 
 | Type     | Allowed Values             | Required |
 | -------- | -------------------------- | -------- |
 | `string` | "hours", "days", "minutes" | Yes      |
 
-### `environments[].aec.triggers[].afterLastUpdate.value`
+### `environments[].aec.triggers[].timeAfterLastUpdate.value`
 
-[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > [afterLastUpdate](#environmentsaectriggersafterlastupdate) > value
+[environments](#environments) > [aec](#environmentsaec) > [triggers](#environmentsaectriggers) > [timeAfterLastUpdate](#environmentsaectriggerstimeafterlastupdate) > value
 
 | Type     | Required |
 | -------- | -------- |

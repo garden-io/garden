@@ -154,7 +154,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       ctx: k8sCtx,
       provider: k8sCtx.provider,
       waitForJobs: false, // should we also add a waitForJobs option to the HelmDeployAction?
-      actionName: action.key(),
+      logContext: action.key(),
       resources: manifests,
       log,
       timeoutSec: action.getConfig("timeout"),
@@ -274,7 +274,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       ctx,
       provider,
       waitForJobs: false, // should we also add a waitForJobs option to the HelmDeployAction?
-      actionName: action.key(),
+      logContext: action.key(),
       resources: updatedManifests, // We only wait for manifests updated for local / sync mode.
       log,
       timeoutSec: timeout,

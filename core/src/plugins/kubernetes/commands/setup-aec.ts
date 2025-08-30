@@ -9,21 +9,24 @@
 import type { KubernetesPluginContext } from "../config.js"
 import type { PluginCommand } from "../../../plugin/command.js"
 import { dedent } from "../../../util/string.js"
-import { KubeApi } from "../api.js"
+import { KubeApi, KubernetesError } from "../api.js"
 import { makeDocsLinkPlain } from "../../../docs/common.js"
 import minimist from "minimist"
 import { getSystemNamespace } from "../namespace.js"
-import { gardenAecAgentServiceAccountName, getAecAgentManifests } from "../aec.js"
+import { gardenAecAgentDeploymentName, gardenAecAgentServiceAccountName, getAecAgentManifests } from "../aec.js"
 import { CloudApiError } from "../../../exceptions.js"
 import { apply } from "../kubectl.js"
 import { styles } from "../../../logger/styles.js"
 import type { KubernetesResource } from "../types.js"
 import chalk from "chalk"
 import { waitForResources } from "../status/status.js"
+import type { Log } from "../../../logger/log-entry.js"
 
 interface Result {
   manifests?: KubernetesResource[]
 }
+
+const logContext = "setup-aec"
 
 export const setupAecCommand: PluginCommand = {
   name: "setup-aec",
@@ -88,6 +91,8 @@ export const setupAecCommand: PluginCommand = {
       })
     }
 
+    log = log.createLog({ name: logContext })
+
     log.info({ msg: `Acquiring service account and token for AEC agent` })
 
     const serviceAccount = await cloudApi.getOrCreatServiceAccountAndToken({
@@ -122,6 +127,7 @@ export const setupAecCommand: PluginCommand = {
       log,
       ctx,
       provider,
+      logContext,
       resources: manifests,
       namespace: systemNamespace,
       timeoutSec: 600,
@@ -132,4 +138,27 @@ export const setupAecCommand: PluginCommand = {
 
     return { result }
   },
+}
+
+export async function aecAgentUninstall(ctx: KubernetesPluginContext, log: Log) {
+  const k8sCtx = ctx as KubernetesPluginContext
+  const provider = k8sCtx.provider
+  const api = await KubeApi.factory(log, ctx, provider)
+  const namespace = await getSystemNamespace(ctx, provider, log)
+
+  log.info({
+    msg: `Uninstalling AEC agent (Deployment/${gardenAecAgentDeploymentName}) from namespace ${styles.highlight(namespace)}`,
+  })
+
+  try {
+    await api.apps.deleteNamespacedDeployment({ name: gardenAecAgentDeploymentName, namespace })
+  } catch (err) {
+    if (err instanceof KubernetesError) {
+      if (err.responseStatusCode !== 404) {
+        throw err
+      }
+    } else {
+      throw err
+    }
+  }
 }

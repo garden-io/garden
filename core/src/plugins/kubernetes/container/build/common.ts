@@ -462,7 +462,7 @@ export async function ensureUtilDeployment({
       ctx,
       provider,
       waitForJobs: false,
-      actionName: utilDeploymentName,
+      logContext: utilDeploymentName,
       resources: [deployment, service],
       log: buildUtilLog,
       timeoutSec: 600,
