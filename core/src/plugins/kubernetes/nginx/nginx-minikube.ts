@@ -25,7 +25,7 @@ export class MinikubeGardenIngressController extends GardenIngressComponent {
     await exec("minikube", ["addons", "enable", "ingress"])
     await waitForResources({
       // setting the action name to providers is necessary to display the logs in provider-section
-      actionName: "providers",
+      logContext: "providers",
       namespace: "ingress-nginx",
       waitForJobs: false,
       ctx,

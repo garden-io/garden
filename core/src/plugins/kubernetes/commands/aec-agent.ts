@@ -264,16 +264,17 @@ async function cleanupLoop({
 
       if (!environmentType || !environmentName) {
         const msg = `Missing environment type and/or name annotation, skipping`
-        nsLog.warn({ msg })
-        events.emit("aecAgentEnvironmentUpdate", {
-          aecAgentInfo,
-          environmentType: environmentType || "<missing>",
-          environmentName: environmentName || "<missing>",
-          statusDescription: msg,
-          inProgress: false,
-          error: true,
-          success: false,
-        })
+        nsLog.verbose({ msg })
+        // TODO: Uncomment this if we feel it's useful, skipping for now to avoid spamming events
+        // events.emit("aecAgentEnvironmentUpdate", {
+        //   aecAgentInfo,
+        //   environmentType: environmentType || "<missing>",
+        //   environmentName: environmentName || "<missing>",
+        //   statusDescription: msg,
+        //   inProgress: false,
+        //   error: true,
+        //   success: false,
+        // })
         return
       }
 
@@ -634,6 +635,7 @@ export async function checkAndCleanupNamespace({
             annotations: {
               // TODO: Make status more elaborate, include the trigger that matched and the time it was updated
               [gardenAnnotationKey("aec-status")]: "paused",
+              [gardenAnnotationKey("aec-in-progress")]: undefined,
             },
           },
         },

@@ -192,7 +192,7 @@ describe("Kubernetes Namespace helpers", () => {
       ctx.environmentConfig.aec = {
         triggers: [
           {
-            afterLastUpdate: { unit: "hours", value: 1 },
+            timeAfterLastUpdate: { unit: "hours", value: 1 },
             action: "pause",
           },
         ],

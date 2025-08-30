@@ -33,7 +33,7 @@ export class Microk8sGardenIngressController extends GardenIngressComponent {
     }
     await waitForResources({
       // setting the action name to providers is necessary to display the logs in provider-section
-      actionName: "providers",
+      logContext: "providers",
       namespace: "ingress",
       waitForJobs: false,
       ctx,

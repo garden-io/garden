@@ -260,7 +260,7 @@ interface WaitParams {
   namespace: string
   ctx: PluginContext
   provider: KubernetesProvider
-  actionName?: string
+  logContext?: string
   resources: KubernetesResource[]
   log: Log
   timeoutSec: number
@@ -277,7 +277,7 @@ export async function waitForResources({
   namespace,
   ctx,
   provider,
-  actionName,
+  logContext,
   resources,
   log,
   timeoutSec,
@@ -298,7 +298,7 @@ export async function waitForResources({
   const statusLine = log
     .createLog({
       // TODO: Avoid setting fallback, the action name should be known
-      name: actionName || "<kubernetes>",
+      name: logContext || "<kubernetes>",
       origin: "kubernetes",
     })
     .info(waitingMsg)
@@ -348,7 +348,7 @@ export async function waitForResources({
       emitLog(statusLogMsg)
 
       if (status.state === "unhealthy") {
-        let msg = `Error deploying ${actionName || "resources"}: ${status.lastMessage || statusMessage}`
+        let msg = `Error deploying ${logContext || "resources"}: ${status.lastMessage || statusMessage}`
 
         if (status.logs) {
           msg += "\n\n" + status.logs
@@ -383,7 +383,7 @@ export async function waitForResources({
 
     if (now - startTime > timeoutSec * 1000) {
       const deploymentErrMsg = deline`
-        Timed out waiting for ${actionName || "resources"} to deploy after ${timeoutSec} seconds
+        Timed out waiting for ${logContext || "resources"} to deploy after ${timeoutSec} seconds
       `
       emitLog(deploymentErrMsg)
       throw new DeploymentError({ message: deploymentErrMsg })

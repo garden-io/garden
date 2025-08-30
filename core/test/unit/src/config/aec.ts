@@ -17,7 +17,7 @@ describe("matchAecTriggers", () => {
     const results = matchAecTriggers({
       config: {
         disabled: true,
-        triggers: [{ action: "pause", afterLastUpdate: { unit: "hours", value: 1 } }],
+        triggers: [{ action: "pause", timeAfterLastUpdate: { unit: "hours", value: 1 } }],
       },
       // Would trip the trigger
       lastDeployed: new Date("2010-01-01T00:00:00"),
@@ -44,7 +44,7 @@ describe("matchAecTriggers", () => {
       },
       {
         action: "cleanup",
-        afterLastUpdate: { unit: "hours", value: 1 },
+        timeAfterLastUpdate: { unit: "hours", value: 1 },
       },
     ]
     const results = matchAecTriggers({
@@ -60,7 +60,7 @@ describe("matchAecTriggers", () => {
   it("only returns matching triggers", () => {
     const matchedTrigger: AecTrigger = {
       action: "cleanup",
-      afterLastUpdate: { unit: "hours", value: 1 },
+      timeAfterLastUpdate: { unit: "hours", value: 1 },
     }
     const results = matchAecTriggers({
       config: {
@@ -99,7 +99,7 @@ describe("matchAecTriggers", () => {
           },
           {
             action: "cleanup",
-            afterLastUpdate: { unit: "hours", value: 1 },
+            timeAfterLastUpdate: { unit: "hours", value: 1 },
           },
         ],
       },
@@ -201,11 +201,11 @@ describe("matchAecTriggers", () => {
     })
   })
 
-  describe("afterLastUpdate triggers", () => {
-    it("matches a afterLastUpdate trigger if the last update was more than the specified time ago", () => {
+  describe("timeAfterLastUpdate triggers", () => {
+    it("matches a timeAfterLastUpdate trigger if the last update was more than the specified time ago", () => {
       const trigger: AecTrigger = {
         action: "cleanup",
-        afterLastUpdate: { unit: "hours", value: 1 },
+        timeAfterLastUpdate: { unit: "hours", value: 1 },
       }
       const results = matchAecTriggers({
         config: { triggers: [trigger] },
@@ -218,7 +218,7 @@ describe("matchAecTriggers", () => {
     it("doesn't match if the last update was less than the specified time ago", () => {
       const trigger: AecTrigger = {
         action: "cleanup",
-        afterLastUpdate: { unit: "hours", value: 1 },
+        timeAfterLastUpdate: { unit: "hours", value: 1 },
       }
       const results = matchAecTriggers({
         config: { triggers: [trigger] },
