@@ -11,13 +11,15 @@ import type { PluginCommand } from "../../../plugin/command.js"
 import type { KubernetesResource } from "../types.js"
 import { createActionLog } from "../../../logger/log-entry.js"
 import { apply } from "../kubectl.js"
-import type { V1Deployment, V1ReplicaSet, V1StatefulSet } from "@kubernetes/client-node"
 import { dedent } from "../../../util/string.js"
 import { getDeployStatuses } from "../../../commands/get/get-status.js"
 import { KubeApi } from "../api.js"
 import { styles } from "../../../logger/styles.js"
+import type { PausableWorkload } from "../aec.js"
+import { isPausable, getPausedResourceManifest } from "../aec.js"
 
 type PauseResult = {
+  actionKey: string
   errors?: string[]
   skipped?: string
   updatedWorkloads?: PausableWorkload[]
@@ -66,6 +68,7 @@ export const pauseCommand: PluginCommand = {
 
     result = await Promise.all(
       deploys.map(async (action): Promise<PauseResult> => {
+        const actionKey = action.key()
         const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
         // Check the Deploy status
@@ -74,7 +77,7 @@ export const pauseCommand: PluginCommand = {
         if (!status) {
           const msg = `Could not get status for ${action.type} Deploy ${action.name}`
           actionLog.error({ msg })
-          return { errors: [msg] }
+          return { actionKey, errors: [msg] }
         }
 
         const deployState = status.detail?.state
@@ -83,15 +86,15 @@ export const pauseCommand: PluginCommand = {
         if (deployState === "missing") {
           const msg = `Deploy ${action.name} is not deployed, skipping`
           actionLog.info({ msg })
-          return { skipped: msg }
+          return { actionKey, skipped: msg }
         } else if (deployState === "deploying") {
           const msg = `Deploy ${action.name} is being deployed, skipping`
           actionLog.info({ msg })
-          return { skipped: msg }
+          return { actionKey, skipped: msg }
         } else if (deployState === "stopped") {
           const msg = `Deploy ${action.name} is stopped, skipping`
           actionLog.info({ msg })
-          return { skipped: msg }
+          return { actionKey, skipped: msg }
         }
 
         // If the Deploy is deployed, get the resources from the cluster
@@ -100,7 +103,7 @@ export const pauseCommand: PluginCommand = {
         if (resources.length === 0) {
           const msg = `Deploy ${action.name} has no resources, skipping`
           actionLog.info({ msg })
-          return { skipped: msg }
+          return { actionKey, skipped: msg }
         }
 
         // Filter to the workloads
@@ -110,7 +113,7 @@ export const pauseCommand: PluginCommand = {
         if (workloads.length === 0) {
           const msg = `Deploy ${action.name} has no workloads that can be paused, skipping`
           actionLog.info({ msg })
-          return { skipped: msg }
+          return { actionKey, skipped: msg }
         }
 
         // Update the workloads
@@ -146,7 +149,7 @@ export const pauseCommand: PluginCommand = {
           })
         )
 
-        return { errors, updatedWorkloads }
+        return { actionKey, errors, updatedWorkloads }
       })
     )
 
@@ -154,45 +157,4 @@ export const pauseCommand: PluginCommand = {
 
     return { result }
   },
-}
-
-type PausableWorkload =
-  | KubernetesResource<V1Deployment>
-  | KubernetesResource<V1StatefulSet>
-  | KubernetesResource<V1ReplicaSet>
-
-function isPausable(resource: KubernetesResource): resource is PausableWorkload {
-  return resource.kind === "Deployment" || resource.kind === "StatefulSet" || resource.kind === "ReplicaSet"
-}
-
-/**
- * Update the manifest for the specified resource in order to "pause" it.
- * Replicas are set to zero and annotations added.
- * For resources managed by Helm we add a special annotation that is then
- * checked when trying to redeploy a paused environment.
- * Otherwise, we invalidate the "garden.io/manifest-hash" annotation.
- */
-function getPausedResourceManifest<R extends PausableWorkload>(resource: R): R {
-  if (typeof resource.spec?.replicas !== "undefined") {
-    resource.spec.replicas = 0
-
-    if (resource.metadata) {
-      let updatedAnnotation = { ...resource.metadata?.annotations }
-      // We invalidate the garden manifest hash to trigger a redeploy at the
-      // next "garden deploy" run.
-      if (resource.metadata?.annotations?.["garden.io/manifest-hash"]) {
-        updatedAnnotation["garden.io/manifest-hash"] = "paused"
-      }
-
-      // If the resource is managed by Helm we add the "garden.io/aec-status": "paused" annotation
-      if (resource.metadata?.labels?.["app.kubernetes.io/managed-by"] === "Helm") {
-        updatedAnnotation = {
-          ...updatedAnnotation,
-          "garden.io/aec-status": "paused",
-        }
-      }
-      resource.metadata.annotations = updatedAnnotation
-    }
-  }
-  return resource
 }

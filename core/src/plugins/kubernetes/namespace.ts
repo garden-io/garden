@@ -15,7 +15,7 @@ import { getPackageVersion, sleep } from "../../util/util.js"
 import type { GetEnvironmentStatusParams } from "../../plugin/handlers/Provider/getEnvironmentStatus.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import type { Log } from "../../logger/log-entry.js"
-import { gardenAnnotationKey } from "../../util/string.js"
+import { gardenAnnotationKey } from "../../util/annotations.js"
 import dedent from "dedent"
 import type { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset.js"
@@ -24,6 +24,8 @@ import type { KubernetesServerResource, SupportedRuntimeAction } from "./types.j
 import type { Resolved } from "../../actions/types.js"
 import { BoundedCache } from "../../cache.js"
 import AsyncLock from "async-lock"
+import { getAecAnnotations, isAecEnabled } from "./aec.js"
+import type { AecStatus } from "../../config/aec.js"
 
 const GARDEN_VERSION = getPackageVersion()
 
@@ -53,18 +55,32 @@ const nsCreationLock = new AsyncLock()
  *
  * Returns the namespace resource if it was created or updated, or null if nothing was done.
  */
-export async function ensureNamespace(
-  api: KubeApi,
-  ctx: KubernetesPluginContext,
-  namespace: NamespaceConfig,
+export async function ensureNamespace({
+  api,
+  ctx,
+  namespace,
+  log,
+  disableAec,
+}: {
+  api: KubeApi
+  ctx: KubernetesPluginContext
+  namespace: NamespaceConfig
   log: Log
-): Promise<EnsureNamespaceResult> {
+  disableAec?: boolean
+}): Promise<EnsureNamespaceResult> {
+  const aecEnabled = !disableAec && isAecEnabled(ctx)
+
+  if (aecEnabled) {
+    namespace.annotations = { ...namespace.annotations, ...getAecAnnotations({ ctx }) }
+  }
+
   const result: EnsureNamespaceResult = { patched: false, created: false }
   await nsCreationLock.acquire(namespace.name, async () => {
     const providerUid = ctx.provider.uid
     const cache = nsCache.get(providerUid) || {}
 
-    if (!cache[namespace.name] || namespaceNeedsUpdate(cache[namespace.name].resource!, namespace)) {
+    // Always update the namespace if AEC is enabled
+    if (aecEnabled || !cache[namespace.name] || namespaceNeedsUpdate(cache[namespace.name].resource!, namespace)) {
       // FIXME: if passed `namespace: string` this will set cache[undefined]
       // This seems to require `namespace: { name: foo }` in project config contrary to docs
       cache[namespace.name] = { status: "pending" }
@@ -251,7 +267,7 @@ export async function getNamespaceStatus({
   const api = await KubeApi.factory(log, ctx, provider)
   let status: NamespaceStatus
   if (!skipCreate) {
-    const ensureNamespaceResult = await ensureNamespace(api, ctx, namespace, log)
+    const ensureNamespaceResult = await ensureNamespace({ api, ctx, namespace, log })
     // it still can be null if the namespace existed, but was not updated
     if (ensureNamespaceResult.remoteResource === undefined) {
       const remoteResource = await fetchNamespaceResource(api, namespace.name)
@@ -292,7 +308,7 @@ export async function getSystemNamespace(
   if (!api) {
     api = await KubeApi.factory(log, ctx, provider)
   }
-  await ensureNamespace(api, ctx, namespace, log)
+  await ensureNamespace({ api, ctx, namespace, log, disableAec: true })
 
   return namespace.name
 }
@@ -454,5 +470,28 @@ export async function getActionNamespaceStatus({
     override: namespace ? { name: namespace } : undefined,
     provider,
     skipCreate,
+  })
+}
+
+export async function updateNamespaceAecAnnotations({
+  ctx,
+  api,
+  namespace,
+  status,
+}: {
+  ctx: KubernetesPluginContext
+  api: KubeApi
+  namespace: string
+  status?: AecStatus
+}): Promise<KubernetesServerResource<V1Namespace> | undefined> {
+  const resource = await api.core.readNamespace({ name: namespace })
+
+  if (!resource) {
+    return
+  }
+
+  return api.core.patchNamespace({
+    name: namespace,
+    body: { metadata: { annotations: getAecAnnotations({ ctx, status, lastDeployed: new Date() }) } },
   })
 }

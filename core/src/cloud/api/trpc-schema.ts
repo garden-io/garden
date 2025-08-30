@@ -228,6 +228,25 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           }
           meta: object
         }>
+        getOrCreateServiceAccountAndToken: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            organizationId: string
+            accountId: string
+            name: string
+          }
+          output: {
+            account: {
+              name: string
+              id: string
+              createdAt: Date
+              updatedAt: Date
+              email: string
+              role: "admin" | "member"
+              isOwner: boolean
+            }
+            token: string
+          }
+        }>
       }>
     >
     actionCache: import("@trpc/server").TRPCBuiltRouter<

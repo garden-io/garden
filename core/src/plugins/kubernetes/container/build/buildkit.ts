@@ -250,7 +250,7 @@ export async function ensureBuildkit({
       ctx,
       provider,
       waitForJobs: false,
-      actionName: "garden-buildkit",
+      logContext: "garden-buildkit",
       resources: [manifest],
       log: deployLog,
       timeoutSec: 600,
