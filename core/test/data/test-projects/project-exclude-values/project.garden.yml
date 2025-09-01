@@ -1,0 +1,14 @@
+apiVersion: garden.io/v2
+kind: Project
+name: project-exclude-values
+environments:
+  - name: a
+    variables:
+      hostname: a.example.com
+  - name: b
+    variables:
+      hostname: b.example.com
+excludeValuesFromActionVersions:
+  - ${var.hostname}
+providers:
+  - name: test-plugin

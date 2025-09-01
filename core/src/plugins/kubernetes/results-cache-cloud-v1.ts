@@ -14,10 +14,10 @@ import { CloudApiError } from "../../exceptions.js"
 import { RootLogger } from "../../logger/logger.js"
 import type {
   CreateCachedActionRequest,
-  GardenCloudApi,
+  GardenCloudApiLegacy,
   GetCachedActionRequest,
   GetCachedActionResponse,
-} from "../../cloud/legacy/api.js"
+} from "../../cloud/api-legacy/api.js"
 import { actionReferenceToString } from "../../actions/base.js"
 import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
@@ -50,7 +50,7 @@ class GardenCloudCacheError extends CacheStorageError {
 export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
   private readonly log: Log
   private readonly schemaVersion: SchemaVersion
-  private readonly cloudApi: GardenCloudApi
+  private readonly cloudApi: GardenCloudApiLegacy
   private readonly projectId: string
   private organizationId: string | undefined
 
@@ -60,7 +60,7 @@ export class GardenCloudCacheStorage implements CacheStorage<RunResult> {
     projectId,
   }: {
     schemaVersion: SchemaVersion
-    cloudApi: GardenCloudApi
+    cloudApi: GardenCloudApiLegacy
     projectId: string
   }) {
     this.schemaVersion = schemaVersion

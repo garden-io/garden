@@ -63,11 +63,11 @@ describe("getActionConfigVersion", () => {
       it(`on ${field} field modification`, () => {
         const config1 = minimalActionConfig()
         config1[field] = valuePair.leftValue
-        const version1 = getActionConfigVersion(log, config1)
+        const version1 = getActionConfigVersion(log, config1, [])
 
         const config2 = minimalActionConfig()
         config2[field] = valuePair.rightValue
-        const version2 = getActionConfigVersion(log, config2)
+        const version2 = getActionConfigVersion(log, config2, [])
 
         expect(version1).to.eql(version2)
       })
@@ -90,8 +90,30 @@ describe("getActionConfigVersion", () => {
       excludeValues: [hostnameB],
     }
 
-    const versionA = getActionConfigVersion(log, configA)
-    const versionB = getActionConfigVersion(log, configB)
+    const versionA = getActionConfigVersion(log, configA, [])
+    const versionB = getActionConfigVersion(log, configB, [])
+
+    expect(versionA).to.equal(versionB)
+  })
+
+  it("adds project-level excludeValues to the action's excludeValues", () => {
+    const hostnameA = "a.example.com"
+
+    const configA = minimalActionConfig()
+    configA.spec.hostname = hostnameA
+    configA.version = {
+      excludeValues: [],
+    }
+
+    const hostnameB = "b.example.com"
+    const configB = minimalActionConfig()
+    configB.spec.hostname = hostnameB
+    configB.version = {
+      excludeValues: [],
+    }
+
+    const versionA = getActionConfigVersion(log, configA, [hostnameA])
+    const versionB = getActionConfigVersion(log, configB, [hostnameB])
 
     expect(versionA).to.equal(versionB)
   })
@@ -108,8 +130,8 @@ describe("getActionConfigVersion", () => {
       configB.spec = { env: { HOSTNAME: "b.example.com" } }
       configB.version = configA.version
 
-      const versionA = getActionConfigVersion(log, configA)
-      const versionB = getActionConfigVersion(log, configB)
+      const versionA = getActionConfigVersion(log, configA, [])
+      const versionB = getActionConfigVersion(log, configB, [])
 
       expect(versionA).to.equal(versionB)
     })
@@ -125,8 +147,8 @@ describe("getActionConfigVersion", () => {
       configB.spec = { array: [{ foo: "B" }] }
       configB.version = configA.version
 
-      const versionA = getActionConfigVersion(log, configA)
-      const versionB = getActionConfigVersion(log, configB)
+      const versionA = getActionConfigVersion(log, configA, [])
+      const versionB = getActionConfigVersion(log, configB, [])
 
       expect(versionA).to.equal(versionB)
     })
@@ -142,8 +164,8 @@ describe("getActionConfigVersion", () => {
       configB.spec = { array: [{ foo: "B" }] }
       configB.version = configA.version
 
-      const versionA = getActionConfigVersion(log, configA)
-      const versionB = getActionConfigVersion(log, configB)
+      const versionA = getActionConfigVersion(log, configA, [])
+      const versionB = getActionConfigVersion(log, configB, [])
 
       expect(versionA).to.equal(versionB)
     })
@@ -159,8 +181,8 @@ describe("getActionConfigVersion", () => {
       configB.spec = { array: [{ foo: "B" }] }
       configB.version = configA.version
 
-      const versionA = getActionConfigVersion(log, configA)
-      const versionB = getActionConfigVersion(log, configB)
+      const versionA = getActionConfigVersion(log, configA, [])
+      const versionB = getActionConfigVersion(log, configB, [])
 
       expect(versionA).to.equal(versionB)
     })
@@ -181,7 +203,19 @@ describe("replaceExcludeValues", () => {
       excludeValues: ["foo"],
     }
 
-    const replaced = replaceExcludeValues(config, log) as ActionConfig
+    const replaced = replaceExcludeValues(config, log, []) as ActionConfig
+
+    expect(replaced.spec.hostname).to.equal(`bla.${excludeValueReplacement}.bar.${excludeValueReplacement}`)
+  })
+
+  it("adds project-level excludeValues to the action's excludeValues", () => {
+    const config = minimalActionConfig()
+    config.spec.hostname = "bla.foo.bar.foo"
+    config.version = {
+      excludeValues: [],
+    }
+
+    const replaced = replaceExcludeValues(config, log, ["foo"]) as ActionConfig
 
     expect(replaced.spec.hostname).to.equal(`bla.${excludeValueReplacement}.bar.${excludeValueReplacement}`)
   })
@@ -194,7 +228,7 @@ describe("replaceExcludeValues", () => {
         excludeFields: [["spec", "env", "HOSTNAME"]],
       }
 
-      const replaced = replaceExcludeValues(config, log) as any
+      const replaced = replaceExcludeValues(config, log, []) as any
 
       expect(replaced.spec).to.eql({ env: {} })
     })
@@ -206,7 +240,7 @@ describe("replaceExcludeValues", () => {
         excludeFields: [["spec", "array", 0]],
       }
 
-      const replaced = replaceExcludeValues(config, log) as any
+      const replaced = replaceExcludeValues(config, log, []) as any
 
       expect(replaced.spec.array).to.eql([{ foo: "B" }])
     })
@@ -218,7 +252,7 @@ describe("replaceExcludeValues", () => {
         excludeFields: [["spec", "array", 0, "foo"]],
       }
 
-      const replaced = replaceExcludeValues(config, log) as any
+      const replaced = replaceExcludeValues(config, log, []) as any
 
       expect(replaced.spec.array).to.eql([{}, { foo: "B" }])
     })
@@ -235,7 +269,7 @@ describe("replaceExcludeValues", () => {
         excludeFields: [["spec", "array", "*", "foo"]],
       }
 
-      const replaced = replaceExcludeValues(config, log) as any
+      const replaced = replaceExcludeValues(config, log, []) as any
 
       expect(replaced.spec.array).to.eql([{ bar: "A" }, { bar: "B" }])
     })
@@ -252,7 +286,7 @@ describe("replaceExcludeValues", () => {
         excludeFields: [["spec", "array", "*", "*"]],
       }
 
-      const replaced = replaceExcludeValues(config, log) as any
+      const replaced = replaceExcludeValues(config, log, []) as any
 
       expect(replaced.spec).to.eql({ array: [{}, {}] })
     })

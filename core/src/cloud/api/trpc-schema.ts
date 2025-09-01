@@ -7,22 +7,22 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/consistent-type-imports */
-export declare const appRouter: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
   {
     ctx: any
     meta: object
-    errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+    errorShape: import("@trpc/server").TRPCErrorShape<object>
     transformer: true
   },
-  import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
-    account: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+  import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+    account: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         getCurrentAccount: import("@trpc/server").TRPCQueryProcedure<{
           input: void
           output: {
@@ -38,62 +38,71 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               createdAt: Date
               updatedAt: Date
               role: "admin" | "member"
+              featureFlags: ("variables" | "command-runs" | "private-container-builder")[]
             }[]
           } | null
+          meta: object
         }>
         register: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             name: string
             email: string
             password: string
-            organizationId?: string | undefined
             port?: number | undefined
+            organizationId?: string | undefined
             invitationToken?: string | undefined
           }
           output: {
             redirectTo: string
           }
+          meta: object
         }>
         authenticate: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             email: string
             password: string
-            organizationId?: string | undefined
             port?: number | undefined
+            organizationId?: string | undefined
             invitationToken?: string | undefined
           }
           output: {
             redirectTo: string
           }
+          meta: object
         }>
         clearSession: import("@trpc/server").TRPCMutationProcedure<{
           input: void
           output: {
             redirectTo: string
           }
+          meta: object
         }>
         oauthUrlRedirect: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             provider: "github"
-            organizationId?: string | undefined
             port?: number | undefined
+            organizationId?: string | undefined
             invitationToken?: string | undefined
           }
           output: {
             url: string
           }
+          meta: object
         }>
         cliAuthConfirmAccountAndOrganization: import("@trpc/server").TRPCQueryProcedure<{
           input: void
           output: void
+          meta: object
         }>
         githubOauthCallback: import("@trpc/server").TRPCQueryProcedure<{
           input: void
           output: void
+          meta: object
         }>
         acceptInvitation: import("@trpc/server").TRPCQueryProcedure<{
           input: void
           output: void
+          meta: object
         }>
         list: import("@trpc/server").TRPCQueryProcedure<{
           input: {
@@ -107,14 +116,15 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               id: string
               createdAt: Date
               updatedAt: Date
+              expiresAt: Date | null
               email: string
               role: "admin" | "member"
-              expiresAt: Date | null
               isOwner: boolean
               kind: "account" | "invitation"
             }[]
             nextCursor?: number | undefined
           }
+          meta: object
         }>
         get: import("@trpc/server").TRPCQueryProcedure<{
           input: {
@@ -130,6 +140,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             role: "admin" | "member"
             isOwner: boolean
           }
+          meta: object
         }>
         update: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -146,6 +157,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             role: "admin" | "member"
             isOwner: boolean
           }
+          meta: object
         }>
         remove: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -153,6 +165,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             accountId: string
           }
           output: void
+          meta: object
         }>
         updateProfile: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -171,8 +184,10 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               createdAt: Date
               updatedAt: Date
               role: "admin" | "member"
+              featureFlags: ("variables" | "command-runs" | "private-container-builder")[]
             }[]
           } | null
+          meta: object
         }>
         requestPasswordReset: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -181,6 +196,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           output: {
             success: boolean
           }
+          meta: object
         }>
         resetPassword: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -190,41 +206,64 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           output: {
             success: boolean
           }
+          meta: object
+        }>
+        getOrCreateServiceAccountAndToken: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            name: string
+            organizationId: string
+            accountId: string
+          }
+          output: {
+            account: {
+              name: string
+              id: string
+              createdAt: Date
+              updatedAt: Date
+              email: string
+              role: "admin" | "member"
+              isOwner: boolean
+            }
+            token: string
+          }
+          meta: object
         }>
       }>
     >
-    actionCache: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    actionCache: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         createEntry: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             organizationId: string
-            actionType: string
-            startedAt: string
-            completedAt: string
             schemaVersion: string
+            actionType: string
             actionRef: string
             cacheKey: string
+            startedAt: string
+            completedAt: string
             result?: unknown
           }
           output: {
             version: "v1"
           }
+          meta: object
         }>
         getEntry: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             organizationId: string
-            actionType: string
             schemaVersion: string
+            actionType: string
             actionRef: string
             cacheKey: string
           }
           output: {
+            version: "v1"
             data:
               | {
                   startedAt: string
@@ -237,19 +276,19 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                   notFoundReason: "no-result-exists" | "max-result-age-exceeded" | "max-hits-exceeded"
                   notFoundDescription: string
                 }
-            version: "v1"
           }
+          meta: object
         }>
       }>
     >
-    agentConfiguration: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    agentConfiguration: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             organizationId: string
@@ -257,8 +296,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             registries: Map<
               string,
               {
-                http: boolean
                 mirrors: string[]
+                http: boolean
                 insecure: boolean
               }
             >
@@ -271,17 +310,16 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               | {}
           }
           output: {
+            organizationId: string
+            description: string
             id: string
             createdAt: Date
             updatedAt: Date
-            organizationId: string
-            registrationToken: string
-            description: string
             registries: Map<
               string,
               {
-                http: boolean
                 mirrors: string[]
+                http: boolean
                 insecure: boolean
               }
             >
@@ -292,24 +330,26 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                   searchDomains: string[]
                 }
               | {}
+            registrationToken: string
           }
+          meta: object
         }>
         get: import("@trpc/server").TRPCQueryProcedure<{
           input: {
-            id: string
             organizationId: string
+            id: string
           }
           output: {
+            organizationId: string
+            description: string
             id: string
             createdAt: Date
             updatedAt: Date
-            organizationId: string
-            description: string
             registries: Map<
               string,
               {
-                http: boolean
                 mirrors: string[]
+                http: boolean
                 insecure: boolean
               }
             >
@@ -321,22 +361,23 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                 }
               | {}
           }
+          meta: object
         }>
         list: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             organizationId: string
           }
           output: {
+            organizationId: string
+            description: string
             id: string
             createdAt: Date
             updatedAt: Date
-            organizationId: string
-            description: string
             registries: Map<
               string,
               {
-                http: boolean
                 mirrors: string[]
+                http: boolean
                 insecure: boolean
               }
             >
@@ -348,17 +389,18 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                 }
               | {}
           }[]
+          meta: object
         }>
       }>
     >
-    agentInstance: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    agentInstance: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         listByConfigurationId: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             organizationId: string
@@ -369,15 +411,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             id: string
             createdAt: Date
             updatedAt: Date
-            platforms: {
-              os: string
-              architecture: string
-              osVersion: string
-              osFeatures: string[]
-              variant: string
-            }[]
             agentVersion: string
-            lastSeen: Date
             connectivity:
               | {
                   type: "tunnel"
@@ -386,7 +420,16 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                   type: "direct"
                   buildkitAddress: string
                 }
+            platforms: {
+              architecture: string
+              os: string
+              variant: string
+              osVersion: string
+              osFeatures: string[]
+            }[]
+            lastSeen: Date
           }[]
+          meta: object
         }>
         restart: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -394,23 +437,24 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             agentInstanceId: string
           }
           output: void
+          meta: object
         }>
       }>
     >
-    analytics: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    analytics: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         trackPageViewEvent: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             path: string
-            title: string
             userAgent: string
             url: string
+            title: string
             pathNameClean: string
             referrer: string
             prevPage?:
@@ -424,38 +468,40 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           output: {
             success: boolean
           }
+          meta: object
         }>
       }>
     >
-    billing: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    billing: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         currentPlan: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             organizationId: string
           }
           output: {
+            resolvedPlan: "free" | "trial" | "team" | "enterprise"
+            products: {
+              name: string
+              description: string | null
+              id: `prod_${string}`
+              metadata: Record<string, unknown>
+              defaultPrice?: `price_${string}` | undefined
+            }[]
             prices: {
               id: `price_${string}`
               product: `prod_${string}`
               metadata: Record<string, unknown>
+              unitAmount: number | null
+              unitAmountDecimal: string | null
               recurring: {
                 interval: "month" | "year" | "day" | "week"
               } | null
-              unitAmount: number | null
-              unitAmountDecimal: string | null
-            }[]
-            products: {
-              name: string
-              id: `prod_${string}`
-              description: string | null
-              metadata: Record<string, unknown>
-              defaultPrice?: `price_${string}` | undefined
             }[]
             billingProfile?:
               | {
@@ -482,6 +528,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               | undefined
             customerPortalUrl?: string | null | undefined
           }
+          meta: object
         }>
         createCheckoutSession: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -489,25 +536,28 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             interval: "month" | "year"
           }
           output: string | null
+          meta: object
         }>
         checkoutSessionSuccess: import("@trpc/server").TRPCQueryProcedure<{
           input: void
           output: void
+          meta: object
         }>
         checkoutSessionCancel: import("@trpc/server").TRPCQueryProcedure<{
           input: void
           output: void
+          meta: object
         }>
       }>
     >
-    cloudBuilder: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    cloudBuilder: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         registerBuild: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             organizationId: string
@@ -522,18 +572,19 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                   reason: string
                 }
               | {
+                  available: true
                   buildx: {
-                    clientCertificatePem: string
                     endpoints: {
                       platform: string
                       mtlsEndpoint: string
                       serverCaPem: string
                     }[]
+                    clientCertificatePem: string
                     privateKeyPem?: string | undefined
                   }
-                  available: true
                 }
           }
+          meta: object
         }>
         metrics: import("@trpc/server").TRPCQueryProcedure<{
           input: {
@@ -543,99 +594,128 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             end: Date
           }
           output: {
+            timeSeries: {
+              values: Record<string, (string | number)[]>
+              timestamps: number[]
+            }[]
             instance: {
               os: string
               virtualCpu: number
               memoryMegabytes: number
               machineArch: string
             } | null
-            timeSeries: {
-              values: Record<string, (string | number)[]>
-              timestamps: number[]
-            }[]
           }
+          meta: object
         }>
       }>
     >
-    commandRun: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    commandRun: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
-        create: import("@trpc/server").TRPCMutationProcedure<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        getFromEventStore: import("@trpc/server").TRPCQueryProcedure<{
           input: {
-            status: "unknown" | "error" | "active" | "success" | "cancelled"
             organizationId: string
+            id: string
+          }
+          output: {
+            status: "FAILED" | "SUCCEEDED" | "RUNNING"
+            organizationId: string
+            id: string
             startedAt: Date
             completedAt: Date | null
-            command: string
-            clientVersion: string
-            gitRepositoryUrl: string | null
-            gitBranchName: string | null
-            gitCommitHash: string | null
-            gitIsDirty: boolean | null
-          }
-          output: {
-            status: "unknown" | "error" | "active" | "success" | "cancelled"
-            id: string
-            createdAt: Date
-            updatedAt: Date
-            organizationId: string
-            startedAt: Date
-            completedAt: Date
-            accountId: string
-            command: string
-            clientVersion: string
-            gitRepositoryUrl: string
-            gitBranchName: string
-            gitCommitHash: string
-            gitIsDirty: boolean
-          }
-        }>
-        get: import("@trpc/server").TRPCQueryProcedure<{
-          input: {
-            commandRunId: string
-          }
-          output: {
-            commandRun: {
-              status: "unknown" | "error" | "active" | "success" | "cancelled"
-              id: string
-              createdAt: Date
-              updatedAt: Date
-              organizationId: string
-              startedAt: Date
-              completedAt: Date
-              accountId: string
-              command: string
-              clientVersion: string
-              gitRepositoryUrl: string
-              gitBranchName: string
-              gitCommitHash: string
-              gitIsDirty: boolean
+            version: string
+            commandUlid: string
+            sessionUlid: string
+            actorId: string
+            gitMetadata: {
+              gitRemotes: {
+                name: string
+                url: string
+              }[]
+              headRefName: string
+              headRefSha: string
+              repositoryRootDir: string
             }
-            actionRuns: {
-              id: string
-              createdAt: Date
-              updatedAt: Date
-              actionUid: string
-              actionName: string
-              actionType: string
-              actionVersion: string
-              actionVersionResolved: string | null
-              actionState: "unknown" | "getting-status" | "cached" | "not-ready" | "processing" | "failed" | "ready"
-              actionOutputs: Record<string, unknown>
-              startedAt: Date
-              completedAt: Date | null
-              force: boolean
-              durationMs: number | null
-              commandRunId: string
+            invocation: {
+              cwd: string
+              instruction: {
+                name: string
+                args: string[]
+              }
+            }
+            isCustomCommand: boolean
+            projectMetadata: {
+              environmentName: string
+              namespaceName: string
+              projectApiVersion: string
+              projectName: string
+              projectRootDir: string
+            }
+            actionStatus: {
+              type: string
+              status: "aborted" | "ready" | "cached" | "processing" | "failed" | "getting-status" | "queued"
+              name: string
+              organizationId: string
+              kind: string
+              version: string
+              commandUlid: string
+              sessionUlid: string
+              actorId: string
+              actionUlid: string
+              statusCompletedSuccess: boolean | null
+              statusCompletedNeedsRun: boolean | null
+              runCompletedSuccess: boolean | null
+              scannedAt: Date
+              dependencies: {
+                ref: {
+                  name: string
+                  kind: string
+                }
+                isExplicit: boolean
+              }[]
+              statusStartedAt: Date | null
+              statusCompletedAt: Date | null
+              runStartedAt: Date | null
+              runCompletedAt: Date | null
+              overallDurationSeconds: number | null
+              overallDuration: {
+                years: number
+                months: number
+                days: number
+                hours: number
+                minutes: number
+                seconds: number
+                milliseconds: number
+              } | null
+              runDuration: {
+                years: number
+                months: number
+                days: number
+                hours: number
+                minutes: number
+                seconds: number
+                milliseconds: number
+              } | null
+              statusDuration: {
+                years: number
+                months: number
+                days: number
+                hours: number
+                minutes: number
+                seconds: number
+                milliseconds: number
+              } | null
+              commandStatus: "FAILED" | "SUCCEEDED" | "RUNNING"
             }[]
           }
+          meta: object
         }>
-        list: import("@trpc/server").TRPCQueryProcedure<{
+        listFromEventStore: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             organizationId: string
             cursor?: number | undefined
@@ -650,23 +730,43 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           }
           output: {
             items: {
-              status: "unknown" | "error" | "active" | "success" | "cancelled"
-              id: string
-              createdAt: Date
-              updatedAt: Date
+              status: "FAILED" | "SUCCEEDED" | "RUNNING"
               organizationId: string
+              id: string
               startedAt: Date
-              completedAt: Date
-              accountId: string
-              command: string
-              clientVersion: string
-              gitRepositoryUrl: string
-              gitBranchName: string
-              gitCommitHash: string
-              gitIsDirty: boolean
+              completedAt: Date | null
+              version: string
+              commandUlid: string
+              sessionUlid: string
+              actorId: string
+              gitMetadata: {
+                gitRemotes: {
+                  name: string
+                  url: string
+                }[]
+                headRefName: string
+                headRefSha: string
+                repositoryRootDir: string
+              }
+              invocation: {
+                cwd: string
+                instruction: {
+                  name: string
+                  args: string[]
+                }
+              }
+              isCustomCommand: boolean
+              projectMetadata: {
+                environmentName: string
+                namespaceName: string
+                projectApiVersion: string
+                projectName: string
+                projectRootDir: string
+              }
             }[]
-            nextCursor: number | undefined
+            nextCursor?: number | undefined
           }
+          meta: object
         }>
         timelineChart: import("@trpc/server").TRPCQueryProcedure<{
           input: {
@@ -680,24 +780,24 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               | undefined
           }
           output: {
-            unknown: number
-            failed: number
-            timestamp: number
             active: number
-            cancelled: number
+            timestamp: number
+            failed: number
             successful: number
+            cancelled: number
           }[]
+          meta: object
         }>
       }>
     >
-    dockerBuild: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    dockerBuild: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             status: "success" | "failure"
@@ -709,8 +809,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               actual: "buildx" | "cloud-builder" | "garden-k8s-kaniko" | "garden-k8s-buildkit"
               preferred?:
                 | {
-                    fallbackReason: string
                     runtime: "buildx" | "cloud-builder" | "garden-k8s-kaniko" | "garden-k8s-buildkit"
+                    fallbackReason: string
                   }
                 | undefined
             }
@@ -726,6 +826,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               }
             }
             imageTags: string[]
+            dockerLogs?: unknown[] | undefined
             dockerMetadata?:
               | import("zod").objectInputType<
                   {
@@ -743,12 +844,12 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                         "strip",
                         import("zod").ZodTypeAny,
                         {
-                          buildType?: string | undefined
                           metadata?: Record<string, unknown> | undefined
+                          buildType?: string | undefined
                         },
                         {
-                          buildType?: string | undefined
                           metadata?: Record<string, unknown> | undefined
+                          buildType?: string | undefined
                         }
                       >
                     >
@@ -757,12 +858,12 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                   "passthrough"
                 >
               | undefined
-            dockerLogs?: unknown[] | undefined
           }
           output: {
             id: string
             timeSaved: number
           }
+          meta: object
         }>
         list: import("@trpc/server").TRPCQueryProcedure<{
           input: {
@@ -774,25 +875,26 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           output: {
             items: {
               status: "success" | "failure"
+              organizationId: string
               id: string
               createdAt: Date
               updatedAt: Date
-              organizationId: string
-              startedAt: Date
               accountId: string
+              startedAt: Date
+              accountName: string
               dockerRawjsonLogs: Record<string, unknown>[]
               actualRuntime: string
               sourceFilename: string | null
               sourceLanguage: string | null
               sourceData: string | null
-              accountName: string
               completedAt?: Date | null | undefined
+              platforms?: string[] | null | undefined
+              fallbackReason?: string | null | undefined
               dockerClientVersion?: string | null | undefined
               dockerServerVersion?: string | null | undefined
               builderImplicitName?: string | null | undefined
               builderIsDefault?: boolean | null | undefined
               builderDriver?: string | null | undefined
-              platforms?: string[] | null | undefined
               tags?: string[] | null | undefined
               imageManifestDigest?: string | null | undefined
               buildxBuildRef?: string | null | undefined
@@ -800,50 +902,51 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               cachedVertexDigests?: string[] | null | undefined
               timeSavedMs?: number | null | undefined
               preferredRuntime?: string | null | undefined
-              fallbackReason?: string | null | undefined
             }[]
             nextCursor?: number | undefined
           }
+          meta: object
         }>
         get: import("@trpc/server").TRPCQueryProcedure<{
           input: {
-            id: string
             organizationId: string
+            id: string
           }
           output: {
             status: "success" | "failure"
+            organizationId: string
             id: string
             createdAt: Date
             updatedAt: Date
-            organizationId: string
-            startedAt: Date
             accountId: string
+            startedAt: Date
+            accountName: string
             dockerRawjsonLogs: Record<string, unknown>[]
             actualRuntime: string
             sourceFilename: string | null
             sourceLanguage: string | null
             sourceData: string | null
-            accountName: string
             sourceCodeAsHtml: string | null
             cloudBuilderInfo: {
+              timeSeries: {
+                values: Record<string, (string | number)[]>
+                timestamps: number[]
+              }[]
               instance: {
                 os: string
                 virtualCpu: number
                 memoryMegabytes: number
                 machineArch: string
               } | null
-              timeSeries: {
-                values: Record<string, (string | number)[]>
-                timestamps: number[]
-              }[]
             } | null
             completedAt?: Date | null | undefined
+            platforms?: string[] | null | undefined
+            fallbackReason?: string | null | undefined
             dockerClientVersion?: string | null | undefined
             dockerServerVersion?: string | null | undefined
             builderImplicitName?: string | null | undefined
             builderIsDefault?: boolean | null | undefined
             builderDriver?: string | null | undefined
-            platforms?: string[] | null | undefined
             tags?: string[] | null | undefined
             imageManifestDigest?: string | null | undefined
             buildxBuildRef?: string | null | undefined
@@ -851,8 +954,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             cachedVertexDigests?: string[] | null | undefined
             timeSavedMs?: number | null | undefined
             preferredRuntime?: string | null | undefined
-            fallbackReason?: string | null | undefined
           }
+          meta: object
         }>
         statistics: import("@trpc/server").TRPCQueryProcedure<{
           input: {
@@ -866,19 +969,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               cpu: number
               memoryMb: number
             }
-            usage: {
-              total: {
-                buildCount: bigint
-                buildUnitMinutes: bigint
-                buildWallMinutes: bigint
-              }
-              perDay: {
-                date: string
-                buildCount: bigint
-                buildUnitMinutes: bigint
-                buildWallMinutes: bigint
-              }[]
-            }
+            totalTimeSavedMs: number
             limits: {
               concurrencyLimits: {
                 maxCpu: number
@@ -890,144 +981,32 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               }
               enabledPlatforms: string[]
             }
-            totalTimeSavedMs: number
+            usage: {
+              total: {
+                buildCount: bigint
+                buildWallMinutes: bigint
+                buildUnitMinutes: bigint
+              }
+              perDay: {
+                date: string
+                buildCount: bigint
+                buildWallMinutes: bigint
+                buildUnitMinutes: bigint
+              }[]
+            }
           }
+          meta: object
         }>
       }>
     >
-    events: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    invitation: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
-        process: import("@trpc/server").TRPCMutationProcedure<{
-          input: {
-            commandRunId: string
-            events: (
-              | {
-                  name: "commandInfo"
-                  timestamp: string
-                  payload: {
-                    name: string
-                    args: Record<string, string | number | boolean | (string | number | boolean | null)[] | null>
-                    opts: Record<string, string | number | boolean | (string | number | boolean | null)[] | null>
-                    projectName: string
-                    projectId: string
-                    coreVersion: string
-                    vcsBranch: string
-                    vcsCommitHash: string
-                    vcsOriginUrl: string
-                  }
-                  eventUid: string
-                }
-              | {
-                  name: "sessionCompleted"
-                  timestamp: string
-                  payload: {
-                    completedAt: Date
-                  }
-                  eventUid: string
-                }
-              | {
-                  name: "sessionFailed"
-                  timestamp: string
-                  payload: {
-                    completedAt: Date
-                  }
-                  eventUid: string
-                }
-              | {
-                  name: "sessionCancelled"
-                  timestamp: string
-                  payload: {
-                    completedAt: Date
-                  }
-                  eventUid: string
-                }
-              | {
-                  name: "deployStatus"
-                  timestamp: string
-                  payload: {
-                    status: {
-                      state: "unknown" | "getting-status" | "cached" | "not-ready" | "processing" | "failed" | "ready"
-                      ingresses?:
-                        | {
-                            path: string
-                            hostname: string
-                            protocol: "http" | "https"
-                            linkUrl?: string | undefined
-                            port?: number | undefined
-                          }[]
-                        | undefined
-                    }
-                    actionUid: string
-                    actionName: string
-                    actionType: string
-                    actionVersion: string
-                    actionState:
-                      | "unknown"
-                      | "getting-status"
-                      | "cached"
-                      | "not-ready"
-                      | "processing"
-                      | "failed"
-                      | "ready"
-                    actionOutputs: {}
-                    startedAt: Date
-                    force: boolean
-                    operation: "process" | "getStatus"
-                    sessionId: string
-                    actionVersionResolved?: string | undefined
-                    completedAt?: Date | undefined
-                  }
-                  eventUid: string
-                }
-              | {
-                  name: "runStatus"
-                  timestamp: string
-                  payload: {
-                    status: {
-                      state: "unknown" | "failed" | "outdated" | "running" | "succeeded" | "not-implemented"
-                    }
-                    actionUid: string
-                    actionName: string
-                    actionType: string
-                    actionVersion: string
-                    actionState:
-                      | "unknown"
-                      | "getting-status"
-                      | "cached"
-                      | "not-ready"
-                      | "processing"
-                      | "failed"
-                      | "ready"
-                    actionOutputs: {}
-                    startedAt: Date
-                    force: boolean
-                    operation: "process" | "getStatus"
-                    sessionId: string
-                    actionVersionResolved?: string | undefined
-                    completedAt?: Date | undefined
-                  }
-                  eventUid: string
-                }
-            )[]
-          }
-          output: {}[]
-        }>
-      }>
-    >
-    invitation: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
-      {
-        ctx: any
-        meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
-        transformer: true
-      },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         getByToken: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             token: string
@@ -1036,6 +1015,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             organizationName: string
             inviterName: string
           }
+          meta: object
         }>
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -1044,6 +1024,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             role: "admin" | "member"
           }
           output: void
+          meta: object
         }>
         sendMultiple: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -1053,6 +1034,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           output: {
             sentInvitationEmails: string[]
           }
+          meta: object
         }>
         resend: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -1062,6 +1044,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           output: {
             email: string
           }
+          meta: object
         }>
         rescind: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -1069,96 +1052,18 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             id: string
           }
           output: null
+          meta: object
         }>
       }>
     >
-    logEntry: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    organization: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
-        create: import("@trpc/server").TRPCMutationProcedure<{
-          input: {
-            commandRunId: string
-            logEntries: {
-              message: {
-                symbol: string | null
-                error: string | null
-                section: string | null
-                msg: string | null
-                rawMsg: string | null
-                dataFormat: "json" | "yaml" | null
-              }
-              level: "debug" | "info" | "warn" | "error" | "verbose" | "silly"
-              actionUid: string | null
-              actionName: string | null
-              timestamp: string
-              key: string
-            }[]
-          }
-          output: void
-        }>
-        getByCommandRunId: import("@trpc/server").TRPCQueryProcedure<{
-          input: {
-            commandRunId: string
-            section?: string | undefined
-            cursor?: number | undefined
-            perPage?: number | undefined
-            logLevels?: ("debug" | "info" | "warn" | "error" | "verbose" | "silly")[] | undefined
-          }
-          output: {
-            items: {
-              message: {
-                symbol: string | null
-                error: string | null
-                section: string | null
-                msg: string | null
-                rawMsg: string | null
-                dataFormat: "json" | "yaml" | null
-              }
-              level: "debug" | "info" | "warn" | "error" | "verbose" | "silly"
-              actionUid: string | null
-              actionName: string | null
-              timestamp: string
-              key: string
-            }[]
-            sections: string[]
-            nextCursor?: number | undefined
-          }
-        }>
-        getAll: import("@trpc/server").TRPCQueryProcedure<{
-          input: void
-          output: {
-            logEntries: {
-              message: {
-                symbol: string | null
-                error: string | null
-                section: string | null
-                msg: string | null
-                rawMsg: string | null
-                dataFormat: "json" | "yaml" | null
-              }
-              level: "debug" | "info" | "warn" | "error" | "verbose" | "silly"
-              actionUid: string | null
-              actionName: string | null
-              timestamp: string
-              key: string
-            }[]
-          }
-        }>
-      }>
-    >
-    organization: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
-      {
-        ctx: any
-        meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
-        transformer: true
-      },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             name: string
@@ -1170,6 +1075,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             updatedAt: Date
             plan: "free" | "trial" | "team" | "enterprise"
           }
+          meta: object
         }>
         getById: import("@trpc/server").TRPCQueryProcedure<{
           input: {
@@ -1184,6 +1090,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             activeUsersCount: number
             usedSeatsCount: number
           }
+          meta: object
         }>
         list: import("@trpc/server").TRPCQueryProcedure<{
           input: {
@@ -1200,6 +1107,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             }[]
             nextCursor?: number | undefined
           }
+          meta: object
         }>
         update: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -1213,23 +1121,49 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             updatedAt: Date
             plan: "free" | "trial" | "team" | "enterprise"
           }
+          meta: object
         }>
         hardDelete: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             organizationId: string
           }
           output: void
+          meta: object
+        }>
+        listFeatureFlags: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+          }
+          output: {
+            name: string
+            description: string
+            id: string
+            enabled: boolean
+            visible: boolean
+          }[]
+          meta: object
+        }>
+        updateFeatureFlag: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            organizationId: string
+            changes: {
+              flagId: string
+              state: boolean
+            }[]
+          }
+          output: void
+          meta: object
         }>
       }>
     >
-    token: import("@trpc/server/unstable-core-do-not-import").BuiltRouter<
+    token: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
         meta: object
-        errorShape: import("@trpc/server/unstable-core-do-not-import").TRPCErrorShape<object>
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
         transformer: true
       },
-      import("@trpc/server/unstable-core-do-not-import").DecorateCreateRouterOptions<{
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         verifyToken: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             token: string
@@ -1238,23 +1172,25 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             valid: boolean
             notices: {
               message: string
-              severity: "info" | "error" | "warning"
+              severity: "error" | "info" | "warning"
             }[]
           }
+          meta: object
         }>
         refreshToken: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             refreshToken: string
           }
           output: {
-            accessToken: string
-            refreshToken: string
-            tokenValidity: number
             notices: {
               message: string
-              severity: "info" | "error" | "warning"
+              severity: "error" | "info" | "warning"
             }[]
+            refreshToken: string
+            accessToken: string
+            tokenValidity: number
           }
+          meta: object
         }>
         revokeToken: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -1263,6 +1199,7 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           output: {
             revoked: true
           }
+          meta: object
         }>
         createAccessToken: import("@trpc/server").TRPCMutationProcedure<{
           input: {
@@ -1273,16 +1210,18 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             type: "access" | "refresh" | "web"
             createdAt: Date
             updatedAt: Date
-            accountId: string
             expiresAt: Date
+            accountId: string
             label: string | null
           }
+          meta: object
         }>
         deleteAccessToken: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             token: string
           }
           output: void
+          meta: object
         }>
         listAccessTokens: import("@trpc/server").TRPCQueryProcedure<{
           input: void
@@ -1291,10 +1230,11 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             type: "access" | "refresh" | "web"
             createdAt: Date
             updatedAt: Date
-            accountId: string
             expiresAt: Date
+            accountId: string
             label: string | null
           }[]
+          meta: object
         }>
         listTokens: import("@trpc/server").TRPCQueryProcedure<{
           input: {
@@ -1308,12 +1248,221 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               type: "access" | "refresh" | "web"
               createdAt: Date
               updatedAt: Date
-              accountId: string
               expiresAt: Date
+              accountId: string
               label: string | null
             }[]
             nextCursor?: number | undefined
           }
+          meta: object
+        }>
+      }>
+    >
+    variable: import("@trpc/server").TRPCBuiltRouter<
+      {
+        ctx: any
+        meta: object
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        transformer: true
+      },
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        create: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            value: string
+            name: string
+            organizationId: string
+            description: string | null
+            isSecret: boolean
+            scopedEnvironmentId: string | null
+            scopedAccountId: string | null
+            variableListId: string
+            expiresAt: Date | null
+            environmentName: string | null
+          }
+          output: {
+            id: string
+          }
+          meta: object
+        }>
+        update: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            organizationId: string
+            description: string | null
+            scopedEnvironmentId: string | null
+            scopedAccountId: string | null
+            expiresAt: Date | null
+            environmentName: string | null
+            variableId: string
+            value?: string | undefined
+          }
+          output: {
+            success: boolean
+          }
+          meta: object
+        }>
+        get: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+            variableId: string
+          }
+          output: {
+            name: string
+            organizationId: string
+            description: string | null
+            id: string
+            createdAt: Date
+            updatedAt: Date
+            isSecret: boolean
+            scopedEnvironmentId: string | null
+            scopedAccountId: string | null
+            createdByAccountId: string
+            expiresAt: Date | null
+            value: string
+            createdByName: string | null
+            environmentName: string | null
+            scopedAccountName: string | null
+          }
+          meta: object
+        }>
+        delete: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            organizationId: string
+            variableId: string
+          }
+          output: {
+            success: boolean
+          }
+          meta: object
+        }>
+      }>
+    >
+    variableList: import("@trpc/server").TRPCBuiltRouter<
+      {
+        ctx: any
+        meta: object
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        transformer: true
+      },
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        listEnvironments: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+            variableListId: string
+          }
+          output: {
+            name: string
+            description: string | null
+            id: string
+          }[]
+          meta: object
+        }>
+        getValues: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+            variableListId: string
+            gardenEnvironmentName: string
+          }
+          output: Record<
+            string,
+            {
+              value: string
+              isSecret: boolean
+              scopedEnvironmentId: string | null
+              scopedAccountId: string | null
+            }
+          >
+          meta: object
+        }>
+        create: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            name: string
+            organizationId: string
+            description: string
+          }
+          output: {
+            name: string
+            organizationId: string
+            description: string
+            id: string
+          }
+          meta: object
+        }>
+        delete: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            variableListId: string
+          }
+          output: {
+            success: boolean
+          }
+          meta: object
+        }>
+        get: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            variableListId: string
+          }
+          output: {
+            name: string
+            organizationId: string
+            description: string
+            id: string
+            createdAt: Date
+            updatedAt: Date
+          }
+          meta: object
+        }>
+        update: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            variableListId: string
+            name?: string | undefined
+            description?: string | undefined
+          }
+          output: {
+            success: boolean
+          }
+          meta: object
+        }>
+        list: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+          }
+          output: {
+            name: string
+            organizationId: string
+            description: string
+            id: `varlist_${string}`
+            createdAt: Date
+            updatedAt: Date
+          }[]
+          meta: object
+        }>
+        listVariables: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+            variableListId: string
+            cursor?: number | undefined
+            perPage?: number | undefined
+          }
+          output: {
+            items: {
+              name: string
+              organizationId: string
+              description: string | null
+              id: string
+              createdAt: Date
+              updatedAt: Date
+              isSecret: boolean
+              scopedEnvironmentId: string | null
+              scopedAccountId: string | null
+              createdByAccountId: string
+              expiresAt: Date | null
+              value: string
+              createdByName: string | null
+              environmentName: string | null
+              scopedAccountName: string | null
+            }[]
+            nextCursor: number | undefined
+          }
+          meta: object
         }>
       }>
     >

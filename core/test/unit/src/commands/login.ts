@@ -10,11 +10,11 @@ import { expect } from "chai"
 import * as td from "testdouble"
 import type { TempDirectory } from "../../../helpers.js"
 import { expectError, getDataDir, makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
-import { AuthRedirectServer, getStoredAuthToken, saveAuthToken } from "../../../../src/cloud/legacy/auth.js"
+import { AuthRedirectServer, getStoredAuthToken, saveAuthToken } from "../../../../src/cloud/api-legacy/auth.js"
 
 import { LoginCommand, rewriteProjectConfigYaml } from "../../../../src/commands/login.js"
 import { randomString } from "../../../../src/util/string.js"
-import { GardenCloudApi } from "../../../../src/cloud/legacy/api.js"
+import { GardenCloudApiLegacy } from "../../../../src/cloud/api-legacy/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import { gardenEnv } from "../../../../src/constants.js"
 import { getLogMessages } from "../../../../src/util/testing.js"
@@ -128,8 +128,8 @@ describe("LoginCommand", () => {
       tokenResponse: testToken,
       domain: garden.cloudDomain!,
     })
-    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
+    td.replace(GardenCloudApiLegacy.prototype, "checkClientAuthToken", async () => true)
+    td.replace(GardenCloudApiLegacy.prototype, "startInterval", async () => {})
 
     await command.action(loginCommandParams({ garden }))
 
@@ -221,8 +221,8 @@ describe("LoginCommand", () => {
       tokenResponse: testToken,
       domain: garden.cloudDomain!,
     })
-    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => false)
-    td.replace(GardenCloudApi.prototype, "refreshToken", async () => {
+    td.replace(GardenCloudApiLegacy.prototype, "checkClientAuthToken", async () => false)
+    td.replace(GardenCloudApiLegacy.prototype, "refreshToken", async () => {
       throw new Error("bummer")
     })
 
@@ -303,11 +303,11 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
         globalConfigStore,
         // FakeCloudApi bypasses the login and returns mock project data
-        overrideCloudApiFactory: FakeGardenCloudApi.factory,
+        overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
       })
 
       // Mock this because login command calls it
-      td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
+      td.replace(GardenCloudApiLegacy.prototype, "checkClientAuthToken", async () => true)
 
       await command.action(loginCommandParams({ garden }))
 
@@ -323,11 +323,11 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
         globalConfigStore,
         // FakeCloudApi bypasses the login and returns mock project data
-        overrideCloudApiFactory: FakeGardenCloudApi.factory,
+        overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
       })
 
       // Mock this because login command calls it
-      td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => false)
+      td.replace(GardenCloudApiLegacy.prototype, "checkClientAuthToken", async () => false)
 
       await expectError(async () => await command.action(loginCommandParams({ garden })), {
         contains: `The provided access token is expired or has been revoked for ${garden.cloudDomain}, please create a new one from the Garden Enterprise UI`,

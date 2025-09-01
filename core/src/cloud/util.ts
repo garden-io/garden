@@ -9,8 +9,8 @@ import type { ProjectConfig } from "../config/project.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Garden } from "../garden.js"
-import { RestfulEventStream } from "./legacy/restful-event-stream.js"
-import { GrpcEventStream } from "./grow/grpc-event-stream.js"
+import { RestfulEventStream } from "./api-legacy/restful-event-stream.js"
+import { GrpcEventStream } from "./api/grpc-event-stream.js"
 import { eventLogLevel } from "../logger/logger.js"
 
 export type GardenCloudDistroName = "Garden Enterprise" | "Garden Cloud"
@@ -72,6 +72,10 @@ export function getBackendType(projectConfig: ProjectConfig): "v1" | "v2" {
   return projectConfig.id ? "v1" : "v2"
 }
 
+export function useLegacyCloud(projectConfig: ProjectConfig) {
+  return getBackendType(projectConfig) === "v1"
+}
+
 interface CreateCloudEventStreamParams {
   sessionId: string
   log: Log
@@ -86,7 +90,7 @@ export function createCloudEventStream({
   opts,
 }: CreateCloudEventStreamParams): RestfulEventStream | GrpcEventStream | undefined {
   if (garden.isOldBackendAvailable()) {
-    const cloudApi = garden.cloudApi
+    const cloudApi = garden.cloudApiLegacy
     const cloudSession = cloudApi.getRegisteredSession(sessionId)
     if (!cloudSession) {
       log.debug(`Cannot find session ${sessionId}. No events will be sent to ${cloudApi.distroName}.`)
@@ -108,7 +112,7 @@ export function createCloudEventStream({
       log,
       garden,
       shouldStreamLogEntries: opts.shouldStreamLogs,
-      eventIngestionService: garden.cloudApiV2.eventIngestionService,
+      eventIngestionService: garden.cloudApi.eventIngestionService,
     })
   }
 

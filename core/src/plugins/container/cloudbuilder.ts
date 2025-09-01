@@ -19,9 +19,9 @@ import { tmpdir } from "node:os"
 import type {
   CloudBuilderAvailabilityV2,
   CloudBuilderAvailableV2,
-  GardenCloudApi,
+  GardenCloudApiLegacy,
   RegisterCloudBuilderBuildResponseData,
-} from "../../cloud/legacy/api.js"
+} from "../../cloud/api-legacy/api.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
 import { gardenEnv } from "../../constants.js"
@@ -33,8 +33,8 @@ import { containerHelpers } from "./helpers.js"
 import { hashString } from "../../util/util.js"
 import { stableStringify } from "../../util/string.js"
 import { homedir } from "os"
-import type { DockerBuildReport, RegisterCloudBuildResponse } from "../../cloud/grow/trpc.js"
-import type { GrowCloudApi } from "../../cloud/grow/api.js"
+import type { DockerBuildReport, RegisterCloudBuildResponse } from "../../cloud/api/trpc.js"
+import type { GardenCloudApi } from "../../cloud/api/api.js"
 
 const { mkdirp, rm, writeFile, stat } = fsExtra
 
@@ -72,7 +72,7 @@ async function retrieveAvailabilityFromCloud(params: {
   action: Resolved<ContainerBuildAction>
   config: CloudBuilderConfiguration
 }): Promise<CloudBuilderAvailabilityV2> {
-  if (params.ctx.cloudApiV2) {
+  if (params.ctx.cloudApi) {
     return new GrowCloudBuilderAvailabilityRetriever().get(params)
   } else {
     return new GardenCloudBuilderAvailabilityRetriever().get(params)
@@ -90,7 +90,7 @@ function makeVersionMismatchWarning({ isInClusterBuildingConfigured }: CloudBuil
     Run ${styles.command("garden self-update")} to update Garden to the latest version.`
 }
 
-type CloudApi = GardenCloudApi | GrowCloudApi
+type CloudApi = GardenCloudApiLegacy | GardenCloudApi
 type RegisterCloudBuildParams<T extends CloudApi> = {
   action: Resolved<ContainerBuildAction>
   cloudApi: T
@@ -135,9 +135,9 @@ abstract class AbstractCloudBuilderAvailabilityRetriever<T extends CloudApi> {
   }
 }
 
-class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabilityRetriever<GardenCloudApi> {
+class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabilityRetriever<GardenCloudApiLegacy> {
   protected getCloudApi(ctx: PluginContext) {
-    return ctx.cloudApi
+    return ctx.cloudApiLegacy
   }
 
   protected async registerCloudBuild({
@@ -145,7 +145,7 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
     cloudApi,
     ctx,
     publicKeyPem,
-  }: RegisterCloudBuildParams<GardenCloudApi>): Promise<RegisterCloudBuilderBuildResponseData> {
+  }: RegisterCloudBuildParams<GardenCloudApiLegacy>): Promise<RegisterCloudBuilderBuildResponseData> {
     if (ctx.projectId === undefined) {
       throw new InternalError({
         message: dedent`Invalid state: Project ID can't be undefined when using the backend v1`,
@@ -168,16 +168,16 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
   }
 }
 
-class GrowCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabilityRetriever<GrowCloudApi> {
+class GrowCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabilityRetriever<GardenCloudApi> {
   protected getCloudApi(ctx: PluginContext) {
-    return ctx.cloudApiV2
+    return ctx.cloudApi
   }
 
   protected async registerCloudBuild({
     action,
     cloudApi,
     publicKeyPem,
-  }: RegisterCloudBuildParams<GrowCloudApi>): Promise<RegisterCloudBuildResponse> {
+  }: RegisterCloudBuildParams<GardenCloudApi>): Promise<RegisterCloudBuildResponse> {
     return await cloudApi.registerCloudBuild({
       // if platforms are not set, we default to linux/amd64
       platforms: action.getSpec().platforms || ["linux/amd64"],
@@ -339,7 +339,7 @@ function isContainerBuilderEnabled({
 
   // container builder is enabled by default if you're logged in to the new backend
   // this already takes into account offline mode etc
-  const isEnabledByDefault = !!ctx.cloudApiV2
+  const isEnabledByDefault = !!ctx.cloudApi
 
   // container builder can be disabled explicitly in the config
   const explicitConfig = containerProviderConfig.gardenContainerBuilder?.enabled
@@ -353,7 +353,7 @@ function isContainerBuilderEnabled({
   }
 
   // if not logged in, let's not attempt retrieving the availability
-  const isLoggedIn = !!ctx.cloudApi || !!ctx.cloudApiV2
+  const isLoggedIn = !!ctx.cloudApiLegacy || !!ctx.cloudApi
   return isLoggedIn && isCloudBuilderEnabled
 }
 

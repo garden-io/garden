@@ -113,12 +113,13 @@ import { resolveConfigTemplate } from "./config/config-template.js"
 import type { TemplatedModuleConfig } from "./plugins/templated.js"
 import {
   DefaultEnvironmentContext,
+  ExcludeValuesFromActionVersionsContext,
   ProjectConfigContext,
   RemoteSourceConfigContext,
 } from "./config/template-contexts/project.js"
 import { TemplatableConfigContext } from "./config/template-contexts/templatable.js"
-import type { GardenCloudApiFactory } from "./cloud/legacy/api.js"
-import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/legacy/api.js"
+import type { GardenCloudApiLegacyFactory } from "./cloud/api-legacy/api.js"
+import { GardenCloudApiLegacy } from "./cloud/api-legacy/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
 import { deepResolveContext, ErrorContext, type ContextWithSchema } from "./config/template-contexts/base.js"
@@ -165,8 +166,15 @@ import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { getPathInfo } from "./vcs/git.js"
-import { getBackendType, getCloudDistributionName, getCloudDomain, getCloudLogSectionName } from "./cloud/util.js"
-import { GrowCloudApi } from "./cloud/grow/api.js"
+import {
+  getBackendType,
+  getCloudDistributionName,
+  getCloudDomain,
+  getCloudLogSectionName,
+  useLegacyCloud,
+} from "./cloud/util.js"
+import { GardenCloudApi } from "./cloud/api/api.js"
+import type { GardenCloudApiFactory } from "./cloud/api/api.js"
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
 import type { ResolvedTemplate } from "./template/types.js"
@@ -197,6 +205,7 @@ export interface GardenOpts {
   parentSessionId: string | undefined
   variableOverrides?: PrimitiveMap
   // used in tests
+  overrideCloudApiLegacyFactory?: GardenCloudApiLegacyFactory
   overrideCloudApiFactory?: GardenCloudApiFactory
 }
 
@@ -204,10 +213,11 @@ export interface GardenParams {
   artifactsPath: string
   vcsInfo: VcsInfo
   projectId?: string
+  cloudApiLegacy?: GardenCloudApiLegacy
   cloudApi?: GardenCloudApi
-  cloudApiV2?: GrowCloudApi
   cloudDomain: string
   dotIgnoreFile: string
+  variablesFrom: string | string[]
   proxy: ProxyConfig
   environmentName: string
   resolvedDefaultNamespace: string | null
@@ -258,8 +268,8 @@ interface ResolveProviderParams {
 }
 
 type GardenType = typeof Garden.prototype
-export type GardenWithOldBackend = GardenType & Required<Pick<GardenType, "cloudApi">>
-export type GardenWithNewBackend = GardenType & Required<Pick<GardenType, "cloudApiV2">>
+export type GardenWithOldBackend = GardenType & Required<Pick<GardenType, "cloudApiLegacy">>
+export type GardenWithNewBackend = GardenType & Required<Pick<GardenType, "cloudApi">>
 
 function getRegisteredPlugins(params: GardenParams): RegisterPluginParam[] {
   const projectApiVersion = params.projectConfig.apiVersion
@@ -305,8 +315,8 @@ export class Garden {
   private emittedWarnings: Set<string>
 
   public readonly cloudDomain: string
+  public cloudApiLegacy?: GardenCloudApiLegacy
   public cloudApi?: GardenCloudApi
-  public cloudApiV2?: GrowCloudApi
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -336,6 +346,7 @@ export class Garden {
   private readonly providerConfigs: UnresolvedProviderConfig[]
   public readonly workingCopyId: string
   public readonly dotIgnoreFile: string
+  public readonly variablesFrom: string | string[]
   public readonly proxy: ProxyConfig
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
@@ -379,6 +390,7 @@ export class Garden {
     this.secrets = params.secrets
     this.workingCopyId = params.workingCopyId
     this.dotIgnoreFile = params.dotIgnoreFile
+    this.variablesFrom = params.variablesFrom
     this.proxy = params.proxy
     this.moduleIncludePatterns = params.moduleIncludePatterns
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
@@ -393,8 +405,8 @@ export class Garden {
     this.nestedSessions = new Map()
 
     this.cloudDomain = params.cloudDomain
+    this.cloudApiLegacy = params.cloudApiLegacy
     this.cloudApi = params.cloudApi
-    this.cloudApiV2 = params.cloudApiV2
 
     this.asyncLock = new AsyncLock()
 
@@ -522,7 +534,7 @@ export class Garden {
     return Object.assign(Object.create(Object.getPrototypeOf(this)), this)
   }
 
-  cloneForCommand(sessionId: string, cloudApi?: GardenCloudApi): Garden {
+  cloneForCommand(sessionId: string, cloudApiLegacy?: GardenCloudApiLegacy): Garden {
     // Make an instance clone to override anything that needs to be scoped to a specific command run
     // TODO: this could be made more elegant
     const garden = this.clone()
@@ -534,8 +546,8 @@ export class Garden {
     garden.log.context.sessionId = sessionId
     garden.log.context.parentSessionId = parentSessionId
 
-    if (cloudApi) {
-      garden.cloudApi = cloudApi
+    if (cloudApiLegacy) {
+      garden.cloudApiLegacy = cloudApiLegacy
     }
 
     const parentEvents = garden.events
@@ -1290,7 +1302,20 @@ export class Garden {
       moduleGraph: graph.moduleGraph,
       // TODO: perhaps groups should be resolved here
       groups: graph.getGroups(),
+      excludeValuesFromActionVersions: await this.getExcludeValuesForActionVersions(),
     })
+  }
+
+  @pMemoizeDecorator()
+  async getExcludeValuesForActionVersions(): Promise<string[]> {
+    const context = new ExcludeValuesFromActionVersionsContext(this, this.variables)
+    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, path: ["excludeValuesFromActionVersions"] }
+    const evaluated = deepEvaluate(this.projectConfig.excludeValuesFromActionVersions, { context, opts: {} })
+    const resolved = validateSchema<string[]>(evaluated, joi.array().items(joi.string()), {
+      context: "excludeValuesFromActionVersions",
+      source,
+    })
+    return resolved
   }
 
   @OtelTraced({
@@ -1865,7 +1890,7 @@ export class Garden {
 
   /** Returns whether the user is logged in to the "old" Garden Cloud */
   public isOldBackendAvailable(): this is GardenWithOldBackend {
-    const oldBackendAvailable = !!this.cloudApi
+    const oldBackendAvailable = !!this.cloudApiLegacy
     if (getBackendType(this.projectConfig) === "v2" && oldBackendAvailable) {
       throw new InternalError({
         message: "Invalid state: should use backend v2, but logged in to backend v1",
@@ -1876,7 +1901,7 @@ export class Garden {
 
   /** Returns whether the user is logged in to the "new" Garden Cloud */
   public isNewBackendAvailable(): this is GardenWithNewBackend {
-    const newBackendAvailable = !!this.cloudApiV2
+    const newBackendAvailable = !!this.cloudApi
     if (getBackendType(this.projectConfig) === "v1" && newBackendAvailable) {
       throw new InternalError({
         message: "Invalid state: should use backend v1, but logged in to backend v2",
@@ -1886,7 +1911,7 @@ export class Garden {
   }
 
   public isLoggedIn(): boolean {
-    return !!this.cloudApi || !!this.cloudApiV2
+    return !!this.cloudApiLegacy || !!this.cloudApi
   }
 }
 
@@ -1986,78 +2011,6 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
   }
 }
 
-function getCloudApiFactory(opts: GardenOpts) {
-  const overrideCloudApiFactory = opts.overrideCloudApiFactory
-  if (overrideCloudApiFactory) {
-    return overrideCloudApiFactory
-  }
-
-  return GardenCloudApi.factory
-}
-
-type InitCloudApiParams = {
-  cloudApiFactory: GardenCloudApiFactory
-  cloudDomain: string
-  globalConfigStore: GlobalConfigStore
-  log: Log
-  projectConfig: ProjectConfig | undefined
-  skipCloudConnect: boolean
-}
-
-async function initCloudApi({
-  cloudApiFactory,
-  cloudDomain,
-  globalConfigStore,
-  log,
-  projectConfig,
-  skipCloudConnect,
-}: InitCloudApiParams): Promise<GardenCloudApi | undefined> {
-  if (skipCloudConnect) {
-    return undefined
-  }
-
-  const { id: projectId, organizationId } = projectConfig || {}
-
-  try {
-    return await cloudApiFactory({ log, cloudDomain, projectId, organizationId, globalConfigStore })
-  } catch (err) {
-    if (err instanceof CloudApiTokenRefreshError) {
-      const distroName = getCloudDistributionName(cloudDomain)
-
-      // TODO(0.14): Remove this warning, as login is required when connecting projects to Cloud.
-      log.warn(dedent`
-            The current ${distroName} session is not valid or it's expired.
-            Command results for this command run will not be available in ${distroName}.
-            To avoid losing command results and logs, please try logging back in by running \`garden login\`.
-            If this not a ${distroName} project you can ignore this warning.
-          `)
-
-      // Project is configured for cloud usage => fail early to force re-auth
-      if (projectId) {
-        throw err
-      }
-
-      return undefined
-    } else {
-      // unhandled error when creating the cloud api
-      throw err
-    }
-  }
-}
-
-type InitCloudApiParamsV2 = Pick<InitCloudApiParams, "cloudDomain" | "globalConfigStore" | "log"> & {
-  organizationId: string
-}
-
-async function initCloudApiV2({
-  cloudDomain,
-  organizationId,
-  globalConfigStore,
-  log,
-}: InitCloudApiParamsV2): Promise<GrowCloudApi | undefined> {
-  return GrowCloudApi.factory({ cloudDomain, globalConfigStore, log, organizationId, projectId: undefined })
-}
-
 export const resolveGardenParams = profileAsync(async function _resolveGardenParams(
   currentDirectory: string,
   opts: GardenOpts
@@ -2089,43 +2042,54 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     await ensureDir(artifactsPath)
 
     const sessionId = opts.sessionId || uuidv4()
-    const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
 
     const cloudBackendDomain = getCloudDomain(projectConfig)
 
-    const cloudApi = projectId
-      ? await initCloudApi({
-          cloudApiFactory,
-          cloudDomain: cloudBackendDomain,
-          globalConfigStore,
-          log,
-          projectConfig,
-          skipCloudConnect,
-        })
-      : undefined
+    let cloudApiLegacy: GardenCloudApiLegacy | undefined
+    let cloudApi: GardenCloudApi | undefined
+    const useLegacy = useLegacyCloud(projectConfig)
 
-    // Use this to interact with Cloud Backend V2
-    const cloudApiV2 = organizationId
-      ? await initCloudApiV2({
-          cloudDomain: cloudBackendDomain,
-          organizationId,
-          globalConfigStore,
-          log,
-        })
-      : undefined
+    if (useLegacy && projectId && !skipCloudConnect) {
+      const apiFactory = opts.overrideCloudApiLegacyFactory || GardenCloudApiLegacy.factory
+      cloudApiLegacy = await apiFactory({
+        cloudDomain: cloudBackendDomain,
+        globalConfigStore,
+        log,
+        projectId,
+      })
+    } else if (organizationId && !useLegacy) {
+      const apiFactory = opts.overrideCloudApiFactory || GardenCloudApi.factory
+      cloudApi = await apiFactory({
+        cloudDomain: cloudBackendDomain,
+        organizationId,
+        globalConfigStore,
+        log,
+      })
+    }
 
-    const loggedIn = !!cloudApi || !!cloudApiV2
+    const loggedIn = !!cloudApiLegacy || !!cloudApi
 
-    const { secrets } = await initCloudProject({
-      cloudApi,
-      config: projectConfig,
-      log,
-      projectRoot,
-      environmentName,
-      commandName: opts.commandInfo.name,
-      skipCloudConnect,
-    })
+    let secrets: StringMap | {} = {}
+    if (cloudApiLegacy) {
+      const initRes = await initCloudProject({
+        cloudApiLegacy,
+        config: projectConfig,
+        log,
+        projectRoot,
+        environmentName,
+        commandName: opts.commandInfo.name,
+        skipCloudConnect,
+      })
+      secrets = initRes.secrets
+    } else if (cloudApi && gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES) {
+      const cloudLog = log.createLog({ name: getCloudLogSectionName("Garden Cloud") })
+      secrets = await cloudApi.getVariables({
+        variablesFrom: projectConfig.variablesFrom,
+        environmentName,
+        log: cloudLog,
+      })
+    }
 
     const projectContext = new ProjectConfigContext({
       projectName,
@@ -2204,8 +2168,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       sessionId,
       parentSessionId: opts.parentSessionId,
       cloudDomain: cloudBackendDomain,
+      cloudApiLegacy,
       cloudApi,
-      cloudApiV2,
       projectId: projectConfig.id,
       projectConfig,
       projectRoot,
@@ -2228,6 +2192,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       moduleExcludePatterns,
       workingCopyId,
       dotIgnoreFile: projectConfig.dotIgnoreFile,
+      variablesFrom: projectConfig.variablesFrom,
       proxy,
       log,
       gardenInitLog: opts.gardenInitLog,
@@ -2246,7 +2211,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
  * to group together the relevant logs.
  */
 async function initCloudProject({
-  cloudApi,
+  cloudApiLegacy,
   config,
   log,
   projectRoot,
@@ -2254,7 +2219,7 @@ async function initCloudProject({
   commandName,
   skipCloudConnect,
 }: {
-  cloudApi: GardenCloudApi | undefined
+  cloudApiLegacy: GardenCloudApiLegacy
   config: ProjectConfig
   log: Log
   projectRoot: string
@@ -2262,14 +2227,14 @@ async function initCloudProject({
   commandName: string
   skipCloudConnect: boolean
 }) {
-  if (!cloudApi || skipCloudConnect) {
+  if (skipCloudConnect) {
     return {
       secrets: {},
       cloudProject: undefined,
     }
   }
 
-  const cloudDomain = cloudApi?.domain || getCloudDomain(config)
+  const cloudDomain = cloudApiLegacy?.domain || getCloudDomain(config)
   const distroName = getCloudDistributionName(cloudDomain)
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
@@ -2278,7 +2243,7 @@ async function initCloudProject({
   cloudLog.info(`Connecting project...`)
 
   const cloudProject = await getCloudProject({
-    cloudApi,
+    cloudApi: cloudApiLegacy,
     config,
     log: cloudLog,
     projectRoot,
@@ -2290,13 +2255,13 @@ async function initCloudProject({
     secrets = await wrapActiveSpan(
       "getSecrets",
       async () =>
-        await cloudApi.getSecrets({
+        await cloudApiLegacy.getSecrets({
           log: cloudLog,
           projectId: cloudProject!.id,
           environmentName,
         })
     )
-    cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
+    cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApiLegacy.domain}`)
   } catch (err) {
     cloudLog.error(`Fetching secrets failed with error: ${err}`)
   }
@@ -2315,7 +2280,7 @@ async function getCloudProject({
   log,
   projectRoot,
 }: {
-  cloudApi: GardenCloudApi
+  cloudApi: GardenCloudApiLegacy
   config: ProjectConfig
   log: Log
   projectRoot: string
@@ -2398,9 +2363,11 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
     },
     defaultEnvironment: "",
     dotIgnoreFile: defaultDotIgnoreFile,
+    excludeValuesFromActionVersions: [],
     environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],
     providers: [],
     variables: {},
+    variablesFrom: [],
   }
   gardenOpts.config = config
 

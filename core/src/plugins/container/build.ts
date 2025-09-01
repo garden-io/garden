@@ -27,13 +27,13 @@ import type { ActionLog, Log } from "../../logger/log-entry.js"
 import type { PluginContext } from "../../plugin-context.js"
 import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
-import type { CloudBuilderAvailableV2 } from "../../cloud/legacy/api.js"
+import type { CloudBuilderAvailableV2 } from "../../cloud/api-legacy/api.js"
 import { renderTimeDurationMs, spawn, type SpawnOutput } from "../../util/util.js"
 import { isSecret, type Secret } from "../../util/secrets.js"
 import { tmpdir } from "os"
 import { join } from "path"
 import { mkdtemp, readFile } from "fs/promises"
-import type { DockerBuildReport } from "../../cloud/grow/trpc.js"
+import type { DockerBuildReport } from "../../cloud/api/trpc.js"
 import type { ActionRuntime } from "../../plugin/base.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
@@ -442,7 +442,7 @@ export async function sendBuildReport({
       dockerMetadata,
     }
 
-    const growCloudApi = ctx.cloudApiV2
+    const growCloudApi = ctx.cloudApi
     if (!growCloudApi) {
       log.debug("Not sending build report to Garden Cloud v1 (Only sending to Garden Cloud v2)")
       return { timeSaved: 0 }

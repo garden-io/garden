@@ -33,6 +33,7 @@ import {
   testModuleVersion,
   testPlugin,
 } from "../../helpers.js"
+import type { DeepPartial } from "../../../src/util/util.js"
 import { exec, findByName, getNames } from "../../../src/util/util.js"
 import type { LinkedSource } from "../../../src/config-store/local.js"
 import type { ModuleVersion, TreeVersion } from "../../../src/vcs/vcs.js"
@@ -67,7 +68,7 @@ import { TreeCache } from "../../../src/cache.js"
 import { omitUndefined } from "../../../src/util/objects.js"
 import { add } from "date-fns"
 import stripAnsi from "strip-ansi"
-import { GardenCloudApi } from "../../../src/cloud/legacy/api.js"
+import { GardenCloudApiLegacy } from "../../../src/cloud/api-legacy/api.js"
 import { GlobalConfigStore } from "../../../src/config-store/global.js"
 import { getRootLogger } from "../../../src/logger/logger.js"
 import { uuidv4 } from "../../../src/util/random.js"
@@ -81,6 +82,10 @@ import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 import { deepResolveContext } from "../../../src/config/template-contexts/base.js"
 import { VariablesContext } from "../../../src/config/template-contexts/variables.js"
+import { GardenCloudApi, GardenCloudTRPCError } from "../../../src/cloud/api/api.js"
+import type { ApiTrpcClient } from "../../../src/cloud/api/trpc.js"
+import { TRPCClientError } from "@trpc/client"
+import { parseTemplateString } from "../../../src/template/templated-strings.js"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -530,6 +535,8 @@ describe("Garden", () => {
         },
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: [],
+        variablesFrom: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -558,6 +565,8 @@ describe("Garden", () => {
         },
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: [],
+        variablesFrom: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -586,6 +595,8 @@ describe("Garden", () => {
           },
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
+          excludeValuesFromActionVersions: [],
+          variablesFrom: [],
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
           providers: [{ name: "foo" }],
           variables: { foo: "default", bar: "something" },
@@ -603,6 +614,8 @@ describe("Garden", () => {
           },
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
+          excludeValuesFromActionVersions: [],
+          variablesFrom: [],
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
           providers: [{ name: "foo" }],
           variables: { foo: "default", bar: "something" },
@@ -665,7 +678,7 @@ describe("Garden", () => {
       })
     })
 
-    context("user is logged in", () => {
+    context("user is logged in to Garden Cloud legacy (v1, projectId is set)", () => {
       let configStoreTmpDir: tmp.DirectoryResult
       const log = getRootLogger().createLog()
 
@@ -677,14 +690,47 @@ describe("Garden", () => {
           refreshToken: "fake-refresh-token",
           validity: add(new Date(), { seconds: validityMs / 1000 }),
         })
-        return GardenCloudApi.factory({
+        return GardenCloudApiLegacy.factory({
           log,
           cloudDomain: domain,
           projectId: "foo-",
-          organizationId: undefined,
           globalConfigStore,
         })
       }
+      const fakeCloudDomain = "https://example.com"
+      const scope = nock(fakeCloudDomain)
+      const projectId = uuidv4()
+      const projectName = "test"
+      const envName = "default"
+
+      const cloudProject: ProjectResult = {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        relativePathInRepo: "",
+        status: ProjectStatus.Connected,
+        id: projectId,
+        name: projectName,
+        repositoryUrl: "",
+        organization: {
+          id: uuidv4(),
+          name: "test",
+        },
+        environments: [
+          {
+            id: uuidv4(),
+            name: envName,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            projectId,
+          },
+        ],
+      }
+      const config: ProjectConfig = createProjectConfig({
+        name: projectName,
+        id: projectId,
+        path: pathFoo,
+        domain: fakeCloudDomain, // <-- Domain is set
+      })
 
       before(async () => {
         configStoreTmpDir = await makeTempDir()
@@ -695,138 +741,102 @@ describe("Garden", () => {
         nock.cleanAll()
       })
 
-      context("projectId is set (Use Backend V1)", () => {
-        const fakeCloudDomain = "https://example.com"
-        const scope = nock(fakeCloudDomain)
-        const projectId = uuidv4()
-        const projectName = "test"
-        const envName = "default"
+      it("should use the correct API class, configured cloud domain, and fetch project", async () => {
+        scope.get("/api/token/verify").reply(200, {})
+        scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
 
-        const cloudProject: ProjectResult = {
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          relativePathInRepo: "",
-          status: ProjectStatus.Connected,
-          id: projectId,
-          name: projectName,
-          repositoryUrl: "",
-          organization: {
-            id: uuidv4(),
-            name: "test",
-          },
-          environments: [
-            {
-              id: uuidv4(),
-              name: envName,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              projectId,
-            },
-          ],
+        const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
+
+        const garden = await TestGarden.factory(pathFoo, {
+          config,
+          environmentString: envName,
+          overrideCloudApiLegacyFactory: overrideCloudApiFactory,
+        })
+
+        expect(garden.cloudApiLegacy).to.exist
+        expect(garden.cloudApi).to.be.undefined
+        expect(garden.cloudDomain).to.eql(fakeCloudDomain)
+        expect(garden.projectId).to.eql(projectId)
+        expect(scope.isDone()).to.be.true
+      })
+      it("should fetch secrets", async () => {
+        scope.get("/api/token/verify").reply(200, {})
+        scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
+        scope
+          .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
+          .reply(200, { data: { SECRET_KEY: "secret-val" } })
+
+        const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
+
+        const garden = await TestGarden.factory(pathFoo, {
+          config,
+          environmentString: envName,
+          overrideCloudApiLegacyFactory: overrideCloudApiFactory,
+        })
+
+        expect(garden.secrets).to.eql({ SECRET_KEY: "secret-val" })
+        expect(scope.isDone()).to.be.true
+      })
+      it("should throw if unable to fetch project", async () => {
+        scope.get("/api/token/verify").reply(200, {})
+        scope.get(`/api/projects/uid/${projectId}`).reply(500, {})
+        log.root["entries"] = []
+
+        const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
+
+        let error: Error | undefined
+        try {
+          await TestGarden.factory(pathFoo, {
+            config,
+            environmentString: envName,
+            overrideCloudApiLegacyFactory: overrideCloudApiFactory,
+            log,
+          })
+        } catch (err) {
+          if (err instanceof Error) {
+            error = err
+          }
         }
-        const config: ProjectConfig = createProjectConfig({
-          name: projectName,
-          id: projectId,
-          path: pathFoo,
-          domain: fakeCloudDomain, // <-- Domain is set
-        })
 
-        it("should use the configured cloud domain and fetch project", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
+        const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`Fetching project with ID=`))
 
-          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
+        expect(expectedLog.length).to.eql(1)
+        expect(expectedLog[0].level).to.eql(0)
+        const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
+        expect(cleanMsg).to.eql(
+          `Fetching project with ID=${projectId} failed with error: HTTPError: Response code 500 (Internal Server Error)`
+        )
+        expect(error).to.exist
+        expect(error!.message).to.eql("Response code 500 (Internal Server Error)")
+        expect(scope.isDone()).to.be.true
+      })
+      it("should throw a helpful error if project with ID can't be found", async () => {
+        scope.get("/api/token/verify").reply(200, {})
+        scope.get(`/api/projects/uid/${projectId}`).reply(404, {})
+        log.root["entries"] = []
 
-          const garden = await TestGarden.factory(pathFoo, {
+        const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
+
+        let error: Error | undefined
+        try {
+          await TestGarden.factory(pathFoo, {
             config,
             environmentString: envName,
-            overrideCloudApiFactory,
+            overrideCloudApiLegacyFactory: overrideCloudApiFactory,
+            log,
           })
-
-          expect(garden.cloudDomain).to.eql(fakeCloudDomain)
-          expect(garden.projectId).to.eql(projectId)
-          expect(scope.isDone()).to.be.true
-        })
-        it("should fetch secrets", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
-          scope
-            .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
-            .reply(200, { data: { SECRET_KEY: "secret-val" } })
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config,
-            environmentString: envName,
-            overrideCloudApiFactory,
-          })
-
-          expect(garden.secrets).to.eql({ SECRET_KEY: "secret-val" })
-          expect(scope.isDone()).to.be.true
-        })
-        it("should throw if unable to fetch project", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects/uid/${projectId}`).reply(500, {})
-          log.root["entries"] = []
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
-
-          let error: Error | undefined
-          try {
-            await TestGarden.factory(pathFoo, {
-              config,
-              environmentString: envName,
-              overrideCloudApiFactory,
-              log,
-            })
-          } catch (err) {
-            if (err instanceof Error) {
-              error = err
-            }
+        } catch (err) {
+          if (err instanceof Error) {
+            error = err
           }
+        }
 
-          const expectedLog = log.root
-            .getLogEntries()
-            .filter((l) => resolveMsg(l)?.includes(`Fetching project with ID=`))
+        const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`Project with ID=`))
 
-          expect(expectedLog.length).to.eql(1)
-          expect(expectedLog[0].level).to.eql(0)
-          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
-          expect(cleanMsg).to.eql(
-            `Fetching project with ID=${projectId} failed with error: HTTPError: Response code 500 (Internal Server Error)`
-          )
-          expect(error).to.exist
-          expect(error!.message).to.eql("Response code 500 (Internal Server Error)")
-          expect(scope.isDone()).to.be.true
-        })
-        it("should throw a helpful error if project with ID can't be found", async () => {
-          scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects/uid/${projectId}`).reply(404, {})
-          log.root["entries"] = []
-
-          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
-
-          let error: Error | undefined
-          try {
-            await TestGarden.factory(pathFoo, {
-              config,
-              environmentString: envName,
-              overrideCloudApiFactory,
-              log,
-            })
-          } catch (err) {
-            if (err instanceof Error) {
-              error = err
-            }
-          }
-
-          const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`Project with ID=`))
-
-          expect(expectedLog.length).to.eql(1)
-          expect(expectedLog[0].level).to.eql(0)
-          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "")
-          expect(cleanMsg).to.eql(dedent`
+        expect(expectedLog.length).to.eql(1)
+        expect(expectedLog[0].level).to.eql(0)
+        const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "")
+        expect(cleanMsg).to.eql(dedent`
             Project with ID=${projectId} was not found in Garden Enterprise
 
             Either the project has been deleted from Garden Enterprise or the ID in the project
@@ -836,14 +846,237 @@ describe("Garden", () => {
             You can view your existing projects at https://example.com/projects and
             see their ID on the Settings page for the respective project.\n
           `)
-          expect(error).to.exist
-          expect(error!.message).to.eql("Response code 404 (Not Found)")
-          expect(scope.isDone(), "not all APIs have been called").to.be.true
-        })
+        expect(error).to.exist
+        expect(error!.message).to.eql("Response code 404 (Not Found)")
+        expect(scope.isDone(), "not all APIs have been called").to.be.true
+      })
+    })
+    context("user is logged in to Garden Cloud (v2, organizationId is set)", () => {
+      const domain = "https://example.com"
+      const log = getRootLogger().createLog()
+      const envName = "default"
+      const organizationId = "fake-org-id"
+      const config: ProjectConfig = createProjectConfig({
+        apiVersion: GardenApiVersion.v2,
+        name: "test-project",
+        organizationId,
+        path: pathFoo,
+      })
+      let configStoreTmpDir: tmp.DirectoryResult
+
+      before(async () => {
+        configStoreTmpDir = await makeTempDir()
       })
 
-      context("projectId is NOT set (Use backend V2)", () => {
-        // TODO(0.14.1+): Add tests for the Backend V2
+      after(async () => {
+        await configStoreTmpDir.cleanup()
+      })
+
+      const makeCloudApi = async (trpcClient: ApiTrpcClient) => {
+        const globalConfigStore = new GlobalConfigStore(configStoreTmpDir.path)
+        const validityMs = 604800000
+        await globalConfigStore.set("clientAuthTokens", domain, {
+          token: "fake-token",
+          refreshToken: "fake-refresh-token",
+          validity: add(new Date(), { seconds: validityMs / 1000 }),
+        })
+        return new GardenCloudApi({
+          log,
+          domain,
+          globalConfigStore,
+          organizationId,
+          authToken: "fake-auth-token",
+          __trpcClientOverrideForTesting: trpcClient,
+        })
+      }
+
+      it("should use the correct cloud API class", async () => {
+        const fakeTrpcClient = {} as ApiTrpcClient
+        const overrideCloudApiFactory = async () => await makeCloudApi(fakeTrpcClient)
+
+        const garden = await TestGarden.factory(pathFoo, {
+          config,
+          environmentString: envName,
+          overrideCloudApiFactory,
+        })
+
+        expect(garden.cloudApi).to.exist
+        expect(garden.cloudApiLegacy).to.be.undefined
+      })
+
+      it("should not attempt to fetch variables if feature flag not set", async () => {
+        const fakeTrpcClient = {} as ApiTrpcClient
+        const overrideCloudApiFactory = async () => await makeCloudApi(fakeTrpcClient)
+
+        const garden = await TestGarden.factory(pathFoo, {
+          config,
+          environmentString: envName,
+          overrideCloudApiFactory,
+        })
+
+        expect(garden.cloudApi).to.exist
+        expect(garden.cloudApiLegacy).to.be.undefined
+        expect(garden.secrets).to.eql({})
+      })
+
+      // TODO: Remove this context block once variables are GA
+      context("GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true", () => {
+        const originalVal = gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES
+        before(() => {
+          gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES = true
+        })
+        after(() => {
+          gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES = originalVal
+        })
+
+        it("should have an empty secrets map if 'variablesFrom' is not set", async () => {
+          const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
+            variableList: {
+              getValues: {
+                query: async () => {
+                  return {
+                    variableA: {
+                      value: "variable-a-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedEnvironmentId: null,
+                    },
+                  }
+                },
+              },
+            },
+          }
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeTrpcClient as ApiTrpcClient)
+
+          const garden = await TestGarden.factory(pathFoo, {
+            config, // variablesFrom is not set
+            environmentString: envName,
+            overrideCloudApiFactory,
+          })
+
+          expect(garden.secrets).to.eql({})
+        })
+
+        it("should fetch variables if 'variablesFrom' is set", async () => {
+          const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
+            variableList: {
+              getValues: {
+                query: async () => {
+                  return {
+                    variableA: {
+                      value: "variable-a-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedEnvironmentId: null,
+                    },
+                    variableB: {
+                      value: "variable-b-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedEnvironmentId: null,
+                    },
+                  }
+                },
+              },
+            },
+          }
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeTrpcClient as ApiTrpcClient)
+
+          const garden = await TestGarden.factory(pathFoo, {
+            config: {
+              ...config,
+              variablesFrom: "varlist_1",
+            },
+            environmentString: envName,
+            overrideCloudApiFactory,
+          })
+
+          expect(garden.secrets).to.eql({
+            variableA: {
+              value: "variable-a-val",
+              isSecret: true,
+              scopedAccountId: null,
+              scopedEnvironmentId: null,
+            },
+            variableB: {
+              value: "variable-b-val",
+              isSecret: true,
+              scopedAccountId: null,
+              scopedEnvironmentId: null,
+            },
+          })
+        })
+        it("should log an error and throw if fetching variables fails", async () => {
+          const fakeTrpcClientThatThrowsTrpcError: DeepPartial<ApiTrpcClient> = {
+            variableList: {
+              getValues: {
+                query: async () => {
+                  throw new TRPCClientError("no bueno")
+                },
+              },
+            },
+          }
+          const fakeTrpcClientThatThrowsError: DeepPartial<ApiTrpcClient> = {
+            variableList: {
+              getValues: {
+                query: async () => {
+                  throw new Error("no bueno")
+                },
+              },
+            },
+          }
+          const overrideCloudApiFactoryThrowTrpcError = async () =>
+            await makeCloudApi(fakeTrpcClientThatThrowsTrpcError as ApiTrpcClient)
+
+          const overrideCloudApiFactoryThrowError = async () =>
+            await makeCloudApi(fakeTrpcClientThatThrowsError as ApiTrpcClient)
+
+          getRootLogger()["entries"] = []
+
+          await expectError(
+            () =>
+              TestGarden.factory(pathFoo, {
+                config: {
+                  ...config,
+                  variablesFrom: "varlist_1",
+                },
+                environmentString: envName,
+                overrideCloudApiFactory: overrideCloudApiFactoryThrowTrpcError,
+              }),
+            (err) => {
+              const expectedLog = getRootLogger()
+                .getLogEntries()
+                .filter((l) => resolveMsg(l)?.includes(`Fetching variables for variable list 'varlist_1' failed`))
+              expect(expectedLog[0].msg).to.eql(
+                `Fetching variables for variable list 'varlist_1' failed with API error: no bueno`
+              )
+              expect(err).to.be.instanceof(GardenCloudTRPCError)
+            }
+          )
+
+          getRootLogger()["entries"] = []
+
+          await expectError(
+            () =>
+              TestGarden.factory(pathFoo, {
+                config: {
+                  ...config,
+                  variablesFrom: "varlist_1",
+                },
+                environmentString: envName,
+                overrideCloudApiFactory: overrideCloudApiFactoryThrowError,
+              }),
+            (err) => {
+              const expectedLog = getRootLogger()
+                .getLogEntries()
+                .filter((l) => resolveMsg(l)?.includes(`Fetching variables for variable list 'varlist_1' failed`))
+              expect(expectedLog[0].msg).to.eql(
+                `Fetching variables for variable list 'varlist_1' failed with Error error: no bueno`
+              )
+              expect(err).to.be.instanceof(Error)
+            }
+          )
+        })
       })
     })
   })
@@ -4388,6 +4621,38 @@ describe("Garden", () => {
       expect(resolvedA.configVersion(gardenA.log)).to.equal(resolvedB.configVersion(gardenB.log))
     })
 
+    it("correctly handles project-level excludeValuesFromActionVersions", async () => {
+      const projectRoot = getDataDir("test-projects", "project-exclude-values")
+      const gardenA = await makeTestGarden(projectRoot, { environmentString: "a" })
+      const gardenB = await makeTestGarden(projectRoot, { environmentString: "b" })
+
+      const graphA = await gardenA.getConfigGraph({ log: gardenA.log, emit: false })
+      const graphB = await gardenB.getConfigGraph({ log: gardenB.log, emit: false })
+
+      const a = graphA.getTest("test")
+      const b = graphB.getTest("test")
+
+      const resolvedA = await resolveAction({
+        garden: gardenA,
+        graph: graphA,
+        log: gardenA.log,
+        action: a,
+      })
+      const resolvedB = await resolveAction({
+        garden: gardenB,
+        graph: graphB,
+        log: gardenB.log,
+        action: b,
+      })
+
+      // The spec.command field should have different values between environments
+      expect(resolvedA.getSpec().command).to.not.eql(resolvedB.getSpec().command)
+
+      // But the config versions should still resolve to the same
+      expect(a.configVersion(gardenA.log)).to.equal(b.configVersion(gardenB.log))
+      expect(resolvedA.configVersion(gardenA.log)).to.equal(resolvedB.configVersion(gardenB.log))
+    })
+
     it("correctly handles version.excludeFields", async () => {
       const projectRoot = getDataDir("test-projects", "version-exclude-fields")
       const gardenA = await makeTestGarden(projectRoot, { environmentString: "a" })
@@ -5449,6 +5714,128 @@ describe("Garden", () => {
         })
 
         expect(path).to.equal(linkedModulePath)
+      })
+    })
+  })
+
+  describe("getExcludeValuesForActionVersions", () => {
+    it("should return the exclude values from the project config", async () => {
+      const config: ProjectConfig = {
+        apiVersion: GardenApiVersion.v2,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        internal: {
+          basePath: pathFoo,
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: ["foo", "bar"],
+        variablesFrom: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentString: "default",
+      })
+
+      const excludeValues = await garden.getExcludeValuesForActionVersions()
+      expect(excludeValues).to.eql(["foo", "bar"])
+    })
+
+    it("should return an empty array if no exclude values are set", async () => {
+      const config: ProjectConfig = {
+        apiVersion: GardenApiVersion.v2,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        internal: {
+          basePath: pathFoo,
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: [],
+        variablesFrom: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentString: "default",
+      })
+
+      const excludeValues = await garden.getExcludeValuesForActionVersions()
+      expect(excludeValues).to.eql([])
+    })
+
+    it("should resolve the exclude values from the project config", async () => {
+      const config: ProjectConfig = {
+        apiVersion: GardenApiVersion.v2,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        internal: {
+          basePath: pathFoo,
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: [
+          parseTemplateString({ rawTemplateString: "${var.foo}", source: { yamlDoc: undefined, path: [] } }) as string,
+          parseTemplateString({
+            rawTemplateString: "${environment.namespace}",
+            source: { yamlDoc: undefined, path: [] },
+          }) as string,
+        ],
+        variablesFrom: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "bar" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentString: "default",
+      })
+
+      const excludeValues = await garden.getExcludeValuesForActionVersions()
+      expect(excludeValues).to.eql(["bar", "foo"])
+    })
+
+    it("throws if the exclude values has unresolvable template strings", async () => {
+      const config: ProjectConfig = {
+        apiVersion: GardenApiVersion.v2,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        internal: {
+          basePath: pathFoo,
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        excludeValuesFromActionVersions: [
+          parseTemplateString({
+            rawTemplateString: "${var.not-found}",
+            source: { yamlDoc: undefined, path: [] },
+          }) as string,
+        ],
+        variablesFrom: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "bar" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentString: "default",
+      })
+
+      await expectError(() => garden.getExcludeValuesForActionVersions(), {
+        contains: "could not find key not-found under var",
       })
     })
   })

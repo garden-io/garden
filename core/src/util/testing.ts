@@ -60,10 +60,11 @@ import { createReadStream, createWriteStream } from "fs"
 import got from "got"
 import { createHash } from "node:crypto"
 import { pipeline } from "node:stream/promises"
-import type { GardenCloudApiFactory } from "../cloud/legacy/api.js"
+import type { GardenCloudApiLegacyFactory } from "../cloud/api-legacy/api.js"
 import { parseTemplateCollection } from "../template/templated-collections.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
 import { uuidv4 } from "./random.js"
+import type { GardenCloudApiFactory } from "../cloud/api/api.js"
 
 const { mkdirp, remove } = fsExtra
 
@@ -184,6 +185,7 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   remoteContainerAuth?: boolean
   clearConfigsOnScan?: boolean
   gitScanMode?: GitScanMode
+  overrideCloudApiLegacyFactory?: GardenCloudApiLegacyFactory
   overrideCloudApiFactory?: GardenCloudApiFactory
 }
 

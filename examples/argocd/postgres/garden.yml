@@ -16,6 +16,9 @@ values:
   auth:
     # This should, of course, not be used in production
     postgresPassword: postgres
+  # hrmpf (https://github.com/bitnami/containers/issues/83267)
+  image:
+    repository: bitnamilegacy/postgresql
 
 tasks:
   - name: db-init

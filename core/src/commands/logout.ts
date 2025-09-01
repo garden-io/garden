@@ -10,10 +10,11 @@ import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import { dedent } from "../util/string.js"
-import { clearAuthToken, getStoredAuthToken } from "../cloud/legacy/auth.js"
-import { getCloudDomain } from "../cloud/util.js"
+import { clearAuthToken, getStoredAuthToken } from "../cloud/api-legacy/auth.js"
+import { getCloudDomain, useLegacyCloud } from "../cloud/util.js"
 import { findProjectConfigOrPrintInstructions } from "./helpers.js"
-import { gardenBackendFactory } from "../cloud/backend-factory.js"
+import { GardenCloudApiLegacy } from "../cloud/api-legacy/api.js"
+import { GardenCloudApi } from "../cloud/api/api.js"
 
 type Opts = {}
 
@@ -37,16 +38,41 @@ export class LogOutCommand extends Command<{}, Opts> {
 
     const cloudDomain = getCloudDomain(projectConfig)
     const globalConfigStore = garden.globalConfigStore
-    const gardenBackend = gardenBackendFactory(projectConfig, { cloudDomain, projectId, organizationId })
 
     try {
+      let cloudApi: GardenCloudApiLegacy | GardenCloudApi | undefined
+      if (useLegacyCloud(projectConfig) && projectId) {
+        cloudApi = await GardenCloudApiLegacy.factory({
+          log,
+          cloudDomain,
+          skipLogging: true,
+          globalConfigStore,
+          projectId,
+        })
+      } else if (organizationId) {
+        cloudApi = await GardenCloudApi.factory({
+          log,
+          cloudDomain,
+          skipLogging: true,
+          globalConfigStore,
+          organizationId,
+        })
+      }
+
+      if (!cloudApi) {
+        log.info({ msg: `You're already logged out from ${cloudDomain}.` })
+        return {}
+      }
+
       const clientAuthToken = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
+      // Shouldn't really happen if the cloudApi instance was initialised
       if (!clientAuthToken) {
         log.info({ msg: `You're already logged out from ${cloudDomain}.` })
         return {}
       }
 
-      await gardenBackend.revokeToken({ clientAuthToken, globalConfigStore, log })
+      await cloudApi.revokeToken(clientAuthToken, log)
+
       log.success(`Successfully logged out from ${cloudDomain}.`)
     } catch (err) {
       const msg = dedent`

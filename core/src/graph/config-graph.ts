@@ -94,17 +94,20 @@ export abstract class BaseConfigGraph<
 
   readonly moduleGraph: ModuleGraph
   readonly environmentName: string
+  readonly excludeValuesFromActionVersions: string[]
 
   constructor({
     environmentName,
     actions,
     moduleGraph,
     groups,
+    excludeValuesFromActionVersions,
   }: {
     environmentName: string
     actions: Action[]
     moduleGraph: ModuleGraph
     groups: GroupConfig[]
+    excludeValuesFromActionVersions: string[]
   }) {
     this.environmentName = environmentName
     this.dependencyGraph = {}
@@ -116,6 +119,7 @@ export abstract class BaseConfigGraph<
     }
     this.groups = {}
     this.moduleGraph = moduleGraph
+    this.excludeValuesFromActionVersions = excludeValuesFromActionVersions
 
     for (const action of actions) {
       this.addActionInternal(action)
@@ -467,6 +471,7 @@ export abstract class BaseConfigGraph<
       actions: this.getActions(),
       moduleGraph: this.moduleGraph,
       groups: Object.values(this.groups),
+      excludeValuesFromActionVersions: this.excludeValuesFromActionVersions,
     })
   }
 

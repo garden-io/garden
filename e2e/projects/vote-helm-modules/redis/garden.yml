@@ -8,3 +8,8 @@ version: "16.13.1"
 values:
   auth:
     enabled: false
+  image:
+    repository: bitnamilegacy/redis
+  kubectl:
+    image:
+      repository: bitnamilegacy/kubectl

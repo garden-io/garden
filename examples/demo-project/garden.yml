@@ -9,9 +9,9 @@ environments:
     defaultNamespace: ${var.userId}
 providers:
   - name: local-kubernetes
-    environments: [ local ]
+    environments: [local]
   - name: kubernetes
-    environments: [ remote ]
+    environments: [remote]
     # Replace the below values as appropriate
     context: gke_garden-ci_europe-west1-b_core-ci
     namespace: ${project.name}-testing-${var.userId}

@@ -113,6 +113,8 @@ export const getDefaultProjectConfig = (): ProjectConfig =>
     },
     defaultEnvironment,
     dotIgnoreFile: defaultDotIgnoreFile,
+    excludeValuesFromActionVersions: [],
+    variablesFrom: [],
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "test-plugin" }],
     variables: {},

@@ -15,7 +15,7 @@ import {
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import { create } from "@bufbuild/protobuf"
 import type { GardenWithNewBackend } from "../../../../../src/garden.js"
-import { GrpcEventStream } from "../../../../../src/cloud/grow/grpc-event-stream.js"
+import { GrpcEventStream } from "../../../../../src/cloud/api/grpc-event-stream.js"
 import type { Log } from "../../../../../src/logger/log-entry.js"
 import { getRootLogger } from "../../../../../src/logger/logger.js"
 import { makeTestGardenA } from "../../../../helpers.js"
@@ -96,7 +96,7 @@ describe("GrpcEventStream", () => {
   beforeEach(async () => {
     log = getRootLogger().createLog()
     garden = (await makeTestGardenA()) as any
-    garden.cloudApiV2 = { organizationId: "fake-organization-id" } as any
+    garden.cloudApi = { organizationId: "fake-organization-id" } as any
     bufferedEventStream = new GrpcEventStream({
       log,
       garden,

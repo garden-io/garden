@@ -130,6 +130,28 @@ defaultEnvironment: ''
 # for details.
 dotIgnoreFile: .gardenignore
 
+# A list of string values that should be excluded when computing action versions.
+#
+# Setting values here is equivalent to adding them to the `version.excludeValues` field on all actions in the project.
+#
+# These values can be templated, and generally should be templated. A typical example is to exclude the namespace of
+# the environment, or a hostname suffix used across many Deploy actions. For example:
+#
+# excludeValuesFromActionVersions:
+#   - "${var.hostname-suffix}"  # resolving to something like "my-branch.dev.my-org.com"
+#
+# **Important:**
+# You should be careful to not make these values too broad, since the strings will be replaced for every field in all
+# actions across the project when computing versions. For example, if a value here resolves to a short and generic
+# string like "api", the string "api" will be replaced for every field in all actions across the project when
+# computing versions. This could lead to unexpected issues like tests getting skipped when they shouldn't, deployments
+# not updating etc.
+#
+# However, something more specific like a branch name, commit hash, PR number etc., ideally with some specific prefix
+# or suffix, is generally safer to do. That said, this field only affects version computation, not the actual action
+# configuration when it's executed.
+excludeValuesFromActionVersions:
+
 proxy:
   # The URL that Garden uses when creating port forwards. Defaults to "localhost".
   #
@@ -227,6 +249,15 @@ varfile: garden.env
 # Key/value map of variables to configure for all environments. Keys may contain letters and numbers. Any values are
 # permitted, including arrays and objects of any nesting.
 variables: {}
+
+# EXPERIMENTAL: This is an experimental feature that requires setting "GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true"
+# and enabling variables for your organization in Garden Cloud (currenty only available in early access).
+# Specify a variable list (or array of variable lists) from which to load variables/secrets. The lists and their
+# variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).
+# If an array of variable lists is provided, the variable are merged in the order of the lists (so the value from a
+# variable in a list that appears later in the array overwrites the value of a variable from an earlier list if they
+# have the same name).
+variablesFrom: []
 ```
 
 ## Configuration Keys
@@ -505,6 +536,28 @@ Example:
 dotIgnoreFile: ".gitignore"
 ```
 
+### `excludeValuesFromActionVersions[]`
+
+A list of string values that should be excluded when computing action versions.
+
+Setting values here is equivalent to adding them to the `version.excludeValues` field on all actions in the project.
+
+These values can be templated, and generally should be templated. A typical example is to exclude the namespace of the environment, or a hostname suffix used across many Deploy actions. For example:
+
+```yaml
+excludeValuesFromActionVersions:
+  - "${var.hostname-suffix}"  # resolving to something like "my-branch.dev.my-org.com"
+```
+
+**Important:**
+You should be careful to not make these values too broad, since the strings will be replaced for every field in all actions across the project when computing versions. For example, if a value here resolves to a short and generic string like "api", the string "api" will be replaced for every field in all actions across the project when computing versions. This could lead to unexpected issues like tests getting skipped when they shouldn't, deployments not updating etc.
+
+However, something more specific like a branch name, commit hash, PR number etc., ideally with some specific prefix or suffix, is generally safer to do. That said, this field only affects version computation, not the actual action configuration when it's executed.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `proxy`
 
 | Type     | Required |
@@ -738,4 +791,20 @@ Key/value map of variables to configure for all environments. Keys may contain l
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
+
+### `variablesFrom`
+
+EXPERIMENTAL: This is an experimental feature that requires setting "GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true" and enabling variables for your organization in Garden Cloud (currenty only available in early access).
+Specify a variable list (or array of variable lists) from which to load variables/secrets. The lists and their variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).
+If an array of variable lists is provided, the variable are merged in the order of the lists (so the value from a variable in a list that appears later in the array overwrites the value of a variable from an earlier list if they have the same name).
+
+| Type                      | Default | Required |
+| ------------------------- | ------- | -------- |
+| `string \| array[string]` | `[]`    | No       |
+
+Example:
+
+```yaml
+variablesFrom: "varlist_abc"
+```
 

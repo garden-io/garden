@@ -17,7 +17,7 @@ import { GardenInstanceManager } from "../server/instance-manager.js"
 import { sleep } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
 import { findProjectConfig } from "../config/base.js"
-import { CloudApiTokenRefreshError } from "../cloud/legacy/api.js"
+import { CloudApiTokenRefreshError } from "../cloud/api-legacy/api.js"
 import { uuidv4 } from "../util/random.js"
 import type { Garden } from "../garden.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
@@ -151,7 +151,7 @@ export class ServeCommand<
     }
 
     if (defaultGarden && defaultGarden.isOldBackendAvailable()) {
-      const cloudApi = defaultGarden.cloudApi
+      const cloudApi = defaultGarden.cloudApiLegacy
       const effectiveGardenProjectConfig = defaultGarden.getProjectConfig()
 
       let projectId = effectiveGardenProjectConfig.id

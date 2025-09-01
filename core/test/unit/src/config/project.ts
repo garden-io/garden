@@ -56,10 +56,12 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/", // the path does not matter in this test suite
       defaultEnvironment: "default",
       dotIgnoreFile: defaultDotIgnoreFile,
+      variablesFrom: [],
       internal: {
         basePath: ".",
       },
       environments: [{ name: "default", defaultNamespace: null, variables: {} }],
+      excludeValuesFromActionVersions: [],
       providers: [{ name: "foo" }],
       variables: {},
     }

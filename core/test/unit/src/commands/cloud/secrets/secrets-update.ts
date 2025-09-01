@@ -15,7 +15,7 @@ import {
 } from "../../../../../../src/commands/cloud/secrets/secrets-update.js"
 import { deline } from "../../../../../../src/util/string.js"
 import { createProjectConfig, expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
-import type { Secret, SingleUpdateSecretRequest } from "../../../../../../src/cloud/legacy/api.js"
+import type { Secret, SingleUpdateSecretRequest } from "../../../../../../src/cloud/api-legacy/api.js"
 import { FakeGardenCloudApi } from "../../../../../helpers/api.js"
 
 describe("SecretsUpdateCommand", () => {
@@ -92,7 +92,7 @@ describe("SecretsUpdateCommand", () => {
   it("should throw an error when run without arguments", async () => {
     const garden = await makeTestGarden(projectRoot, {
       config: createProjectConfig({ id: "fake-project-id" }),
-      overrideCloudApiFactory: FakeGardenCloudApi.factory,
+      overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
     })
     const log = garden.log
     const command = new SecretsUpdateCommand()
