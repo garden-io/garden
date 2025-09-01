@@ -113,12 +113,13 @@ export class GardenCloudApi {
 
     this.authToken = authToken
     const tokenGetter = () => this.authToken
-    this.trpc = getAuthenticatedApiClient({ hostUrl: domain, tokenGetter })
 
     // Hacky way to set a fake tRPC client in tests since depdendency injecting it is a little tricky
     // due to the tokenGetter function which depends on class methods and needs to be set in the contructor.
     if (__trpcClientOverrideForTesting) {
       this.trpc = __trpcClientOverrideForTesting
+    } else {
+      this.trpc = getAuthenticatedApiClient({ hostUrl: domain, tokenGetter })
     }
   }
 
@@ -400,6 +401,24 @@ export class GardenCloudApi {
 
   async revokeToken(clientAuthToken: ClientAuthToken, log: Log) {
     return await revokeAuthToken({ clientAuthToken, cloudDomain: this.domain, log })
+  }
+
+  async getCurrentAccount() {
+    return await this.trpc.account.getCurrentAccount.query()
+  }
+
+  async getOrganization() {
+    return await this.trpc.organization.getById.query({
+      organizationId: this.organizationId,
+    })
+  }
+
+  async getOrCreatServiceAccountAndToken({ accountId, name }: { accountId: string; name: string }) {
+    return await this.trpc.account.getOrCreateServiceAccountAndToken.mutate({
+      organizationId: this.organizationId,
+      accountId,
+      name,
+    })
   }
 
   // GRPC clients

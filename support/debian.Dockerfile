@@ -51,6 +51,7 @@ ENV HOME=/home/gardenuser
 RUN useradd -ms /bin/bash $USER
 USER $USER
 
+
 FROM garden-base-$VARIANT as garden-base
 
 # Note: This Dockerfile is run with dist/linux-amd64 as the context root
@@ -178,3 +179,37 @@ COPY --chown=$USER:root --from=garden-azure-base /usr/bin/az /usr/bin/az
 COPY --chown=$USER:root --from=garden-azure-base /opt/az /opt/az
 COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/local/bin/kubelogin
+
+
+################### LOCAL DEV IMAGE ###################
+
+FROM garden-base-root as garden-local-dev
+
+ENV PATH /garden/bin:$PATH
+ENV GARDEN_DISABLE_ANALYTICS=true
+ENV GARDEN_DISABLE_VERSION_CHECK=true
+
+# Expect to be run in repo root (generally then volume mounted at runtime)
+ADD --chown=$USER:root . /garden
+
+# Pre-fetch tools
+RUN garden util fetch-tools --all --garden-image-build
+
+################### END LOCAL DEV IMAGE ###################
+
+
+################### K8S AEC AGENT IMAGE ###################
+
+FROM garden-base-rootless as garden-k8s-aec-agent
+
+ENV PATH /garden/bin:$PATH
+
+# Note: This Dockerfile is run with dist/linux-amd64 as the context root
+ADD --chown=$USER:root . /garden
+
+# Pre-fetch tools
+WORKDIR $HOME
+RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_SEA_DEBUG=1 garden --help > /dev/null
+RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true cd /garden/static/kubernetes/aec-agent && garden util fetch-tools --garden-image-build
+
+################### END K8S AEC AGENT IMAGE ###################

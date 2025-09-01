@@ -10,6 +10,7 @@ import type { PluginCommand } from "../../../plugin/command.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { ingressControllerUninstall } from "../nginx/ingress-controller.js"
 import { styles } from "../../../logger/styles.js"
+import { aecAgentUninstall } from "./setup-aec.js"
 
 export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",
@@ -23,8 +24,12 @@ export const uninstallGardenServices: PluginCommand = {
     const k8sCtx = <KubernetesPluginContext>ctx
 
     if (k8sCtx.provider.config.setupIngressController === "nginx") {
+      log.info({ msg: `Uninstalling Nginx ingress controller` })
       await ingressControllerUninstall(k8sCtx, log)
     }
+
+    // Clean up AEC agent if it's installed
+    await aecAgentUninstall(k8sCtx, log)
 
     log.success({ msg: "\nDone!", showDuration: false })
 

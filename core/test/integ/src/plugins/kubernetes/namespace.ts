@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { randomString, gardenAnnotationKey } from "../../../../../src/util/string.js"
+import { randomString } from "../../../../../src/util/string.js"
+import { gardenAnnotationKey } from "../../../../../src/util/annotations.js"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
@@ -69,7 +70,7 @@ describe("Kubernetes Namespace helpers", () => {
         labels: { floo: "blar" },
       }
 
-      const result = await ensureNamespace(api, ctx, namespace, log)
+      const result = await ensureNamespace({ api, ctx, namespace, log })
 
       const ns = result.remoteResource
 
@@ -108,7 +109,7 @@ describe("Kubernetes Namespace helpers", () => {
         annotations: { foo: "bar" },
       }
 
-      const result = await ensureNamespace(api, ctx, namespace, log)
+      const result = await ensureNamespace({ api, ctx, namespace, log })
 
       const ns = result.remoteResource
 
@@ -140,7 +141,7 @@ describe("Kubernetes Namespace helpers", () => {
         labels: { floo: "blar" },
       }
 
-      const result = await ensureNamespace(api, ctx, namespace, log)
+      const result = await ensureNamespace({ api, ctx, namespace, log })
 
       const ns = result.remoteResource
 
@@ -175,10 +176,37 @@ describe("Kubernetes Namespace helpers", () => {
         labels: { floo: "blar" },
       }
 
-      const result = await ensureNamespace(api, ctx, namespace, log)
+      const result = await ensureNamespace({ api, ctx, namespace, log })
 
       expect(result.created).to.be.false
       expect(result.patched).to.be.false
+    })
+
+    it("should add AEC annotations if the environment config has AEC enabled", async () => {
+      const namespace = {
+        name: namespaceName,
+        annotations: { foo: "bar" },
+        labels: { floo: "blar" },
+      }
+
+      ctx.environmentConfig.aec = {
+        triggers: [
+          {
+            timeAfterLastUpdate: { unit: "hours", value: 1 },
+            action: "pause",
+          },
+        ],
+      }
+
+      const result = await ensureNamespace({ api, ctx, namespace, log })
+
+      const ns = result.remoteResource
+
+      expect(ns?.metadata.annotations?.[gardenAnnotationKey("aec-config")]).to.equal(
+        JSON.stringify(ctx.environmentConfig.aec)
+      )
+      expect(ns?.metadata.annotations?.[gardenAnnotationKey("environment-type")]).to.equal("local")
+      expect(ns?.metadata.annotations?.[gardenAnnotationKey("environment-name")]).to.equal("default")
     })
   })
 })

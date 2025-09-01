@@ -42,7 +42,7 @@ export class KindGardenIngressController extends GardenIngressComponent {
 
     await waitForResources({
       // setting the action name to providers is necessary to display the logs in provider-section
-      actionName: "providers",
+      logContext: "providers",
       namespace,
       waitForJobs: false,
       ctx,

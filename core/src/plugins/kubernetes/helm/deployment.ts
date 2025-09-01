@@ -19,7 +19,7 @@ import {
 import { apply, deleteResources } from "../kubectl.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getForwardablePorts, killPortForwards } from "../port-forward.js"
-import { getActionNamespace, getActionNamespaceStatus } from "../namespace.js"
+import { getActionNamespace, getActionNamespaceStatus, updateNamespaceAecAnnotations } from "../namespace.js"
 import { configureSyncMode } from "../sync.js"
 import { KubeApi } from "../api.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
@@ -154,7 +154,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       ctx: k8sCtx,
       provider: k8sCtx.provider,
       waitForJobs: false, // should we also add a waitForJobs option to the HelmDeployAction?
-      actionName: action.key(),
+      logContext: action.key(),
       resources: manifests,
       log,
       timeoutSec: action.getConfig("timeout"),
@@ -263,6 +263,9 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     await apply({ log, ctx, api, provider, manifests: updatedManifests, namespace })
   }
 
+  // Update the namespace AEC annotations
+  await updateNamespaceAecAnnotations({ ctx: k8sCtx, api, namespace, status: "none" })
+
   // FIXME: we should get these resources from the cluster, and not use the manifests from the local `helm template`
   // command, because they may be legitimately inconsistent.
   if (updatedManifests.length) {
@@ -271,7 +274,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       ctx,
       provider,
       waitForJobs: false, // should we also add a waitForJobs option to the HelmDeployAction?
-      actionName: action.key(),
+      logContext: action.key(),
       resources: updatedManifests, // We only wait for manifests updated for local / sync mode.
       log,
       timeoutSec: timeout,

@@ -12,7 +12,8 @@ import type { KubernetesConfig, KubernetesPluginContext } from "../../../../../s
 import { KubeApi, KubernetesError } from "../../../../../src/plugins/kubernetes/api.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../helpers.js"
 import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace.js"
-import { randomString, gardenAnnotationKey } from "../../../../../src/util/string.js"
+import { randomString } from "../../../../../src/util/string.js"
+import { gardenAnnotationKey } from "../../../../../src/util/annotations.js"
 import type { V1ConfigMap } from "@kubernetes/client-node"
 import { KubeConfig } from "@kubernetes/client-node"
 import type { KubernetesResource, KubernetesPod } from "../../../../../src/plugins/kubernetes/types.js"
@@ -111,7 +112,7 @@ describe("KubeApi", () => {
           namespace,
           ctx,
           provider,
-          actionName: "exec-test",
+          logContext: "exec-test",
           waitForJobs: true,
           resources: [pod],
           log: garden.log,
@@ -147,7 +148,7 @@ describe("KubeApi", () => {
           ctx,
           provider,
           waitForJobs: true,
-          actionName: "exec-test",
+          logContext: "exec-test",
           resources: [pod],
           log: garden.log,
           timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
@@ -182,7 +183,7 @@ describe("KubeApi", () => {
           ctx,
           provider,
           waitForJobs: true,
-          actionName: "exec-test",
+          logContext: "exec-test",
           resources: [pod],
           log: garden.log,
           timeoutSec: KUBECTL_DEFAULT_TIMEOUT,

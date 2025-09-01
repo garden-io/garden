@@ -32,7 +32,7 @@ export class GardenDefaultBackend extends GardenIngressComponent {
     await waitForResources({
       // this is necessary to display the logs in provider-section
       // because the function waitForResources uses actionName as a new Log name
-      actionName: "providers",
+      logContext: "providers",
       namespace,
       waitForJobs: false,
       ctx,

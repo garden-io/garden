@@ -27,7 +27,8 @@ import {
   syncSourcePathSchema,
   syncTargetPathSchema,
 } from "../container/moduleConfig.js"
-import { dedent, deline, gardenAnnotationKey } from "../../util/string.js"
+import { dedent, deline } from "../../util/string.js"
+import { gardenAnnotationKey } from "../../util/annotations.js"
 import cloneDeep from "fast-copy"
 import { kebabCase, keyBy, omit, set } from "lodash-es"
 import { getResourceContainer, getResourceKey, getResourcePodSpec, getTargetResource } from "./util.js"

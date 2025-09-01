@@ -1,0 +1,14 @@
+# Used for the local dev image
+.garden/
+.git
+.github
+.vscode
+.vscode-server
+.vscode-server-insiders
+.vscode-server-insiders
+.circleci
+.history
+
+dist/
+garden-sea/
+tmp/
