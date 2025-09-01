@@ -45,6 +45,7 @@ export interface ActionSourceSpec {
 }
 
 export interface ActionVersionConfig {
+  excludeDependencies?: ActionReference[]
   excludeFields?: (string | number)[][]
   excludeValues?: string[]
 }

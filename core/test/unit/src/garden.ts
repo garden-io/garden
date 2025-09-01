@@ -4592,6 +4592,38 @@ describe("Garden", () => {
       expect(b.isDisabled()).to.be.true
     })
 
+    it("correctly handles version.excludeDependencies", async () => {
+      const projectRoot = getDataDir("test-projects", "version-exclude-dependencies")
+      let garden = await makeTestGarden(projectRoot, {})
+
+      let graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+
+      let resolvedRun = graph.getRun("prepare")
+      let resolvedTest = graph.getTest("test")
+
+      const versionRunA = resolvedRun.getFullVersion(garden.log)
+      const versionTestA = resolvedTest.getFullVersion(garden.log)
+
+      // Add a file to affect the Run version
+      await writeFile(join(garden.projectRoot, "test2.log"), "bar")
+
+      garden = await makeTestGarden(projectRoot, {})
+      graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+
+      resolvedRun = graph.getRun("prepare")
+      resolvedTest = graph.getTest("test")
+
+      const versionRunB = resolvedRun.getFullVersion(garden.log)
+      const versionTestB = resolvedTest.getFullVersion(garden.log)
+
+      expect(versionRunA.versionString).to.not.equal(versionRunB.versionString)
+      expect(versionTestA.versionString).to.equal(versionTestB.versionString)
+      expect(versionTestA.dependencyVersions["build.test"]).to.exist
+      expect(versionTestA.dependencyVersions["run.prepare"]).to.not.exist
+      expect(versionTestB.dependencyVersions["build.test"]).to.exist
+      expect(versionTestB.dependencyVersions["run.prepare"]).to.not.exist
+    })
+
     it("correctly handles version.excludeValues", async () => {
       const projectRoot = getDataDir("test-projects", "version-exclude-values")
       const gardenA = await makeTestGarden(projectRoot, { environmentString: "a" })

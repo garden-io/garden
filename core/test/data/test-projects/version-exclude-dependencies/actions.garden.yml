@@ -1,0 +1,26 @@
+kind: Build
+type: test
+name: test
+include: []
+spec:
+  command: ["echo"]
+---
+kind: Run
+type: test
+name: prepare
+include: ["*.log"]
+spec:
+  command: ["echo"]
+---
+kind: Test
+type: test
+name: test
+include: []
+dependencies:
+  - run.prepare
+  - build.test
+version:
+  excludeDependencies:
+    - run.prepare
+spec:
+  command: ["echo"]

@@ -1,0 +1,7 @@
+apiVersion: garden.io/v2
+kind: Project
+name: version-exclude-dependencies
+environments:
+  - name: default
+providers:
+  - name: test-plugin
