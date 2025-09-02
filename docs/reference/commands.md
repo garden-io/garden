@@ -35,6 +35,24 @@ The following option flags can be used with any of the CLI commands:
   | `--version` |  | boolean | Show the current CLI version.
   | `--help` |  | boolean | Show help
 
+### garden agent
+
+**[EXPERIMENTAL] DevOps AI assistant powered by Anthropic's Claude**
+
+An interactive DevOps AI assistant that helps you create and improve:
+- Kubernetes manifests
+- Container builds and Dockerfiles
+- Garden configurations
+- Terraform infrastructure
+
+The agent will scan your project structure and provide context-aware assistance.
+
+#### Usage
+
+    garden agent 
+
+
+
 ### garden build
 
 **Perform your Builds.**
@@ -6316,6 +6334,30 @@ Useful for diagnosing slow init performance for projects with lots of actions an
 #### Usage
 
     garden util profile-project 
+
+
+
+### garden util ai-config-gen
+
+**[EXPERIMENTAL] Generate Garden config files using Anthropic's Claude AI**
+
+Generate Garden config files using Anthropic's Claude AI.
+
+Currently this requires you to have an Anthropic API key set in the environment variable ANTHROPIC_API_KEY. You can get an API key from https://console.anthropic.com/api-keys. You will also need some credits in your Anthropic account.
+
+The command also currently assumes that you have some flavor of Kubernetes running locally, such as Minikube, Docker Desktop, Orbstack etc.
+
+NOTE: THIS IS AN EXPERIMENTAL FEATURE.
+
+#### Usage
+
+    garden util ai-config-gen [names] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | Names of items to generate config for (e.g. service names, directories)
 
 
 
