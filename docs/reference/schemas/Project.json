@@ -191,6 +191,125 @@
                 ]
               }
             }
+          },
+          "aec": {
+            "type": "object",
+            "description": "Configuration for the Automatic Environment Cleanup feature.\n\nYou must specify at least one _trigger_, which defines the schedule or time of inactivity that will cause the automatic environment cleanup to be performed, as well as the type of action to perform (pause or cleanup).\n\nIf you specify multiple triggers and multiple are matched, the _last_ trigger matched in the list will be used. For example, you can specify a trigger to pause the environment after 1 day of inactivity as the first trigger, and another trigger to fully clean up the environment after 1 week of inactivity or on a specific schedule as the second trigger.\n\nNote that this feature is only available for paid Garden Cloud users. Also note that the feature is currently in beta, and is only available for specific providers, in particular the Kubernetes provider.\n\nPlease refer to the [Automatic Environment Cleanup guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.",
+            "properties": {
+              "disabled": {
+                "type": "boolean",
+                "description": "Set to true to disable automatic environment cleanup. It may be useful to template this value in, in some scenarios.",
+                "default": false
+              },
+              "triggers": {
+                "type": "array",
+                "description": "The triggers that will cause the automatic environment cleanup to be performed.",
+                "items": {
+                  "type": "object",
+                  "description": "Specify a trigger that will cause the automatic environment cleanup to be performed.\n\nYou must specify either `timeAfterLastUpdate` or `schedule`.",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "description": "The action to perform when the trigger is matched.",
+                      "enum": [
+                        "cleanup",
+                        "pause"
+                      ]
+                    },
+                    "timeAfterLastUpdate": {
+                      "type": "object",
+                      "description": "The time to live for the environment after the last update (i.e. the last time the environment was deployed or updated using `garden deploy`).\n\nPlease refer to the [Automatic Environment Cleanup guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.",
+                      "properties": {
+                        "unit": {
+                          "type": "string",
+                          "enum": [
+                            "hours",
+                            "days",
+                            "minutes"
+                          ]
+                        },
+                        "value": {
+                          "type": "number",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "unit",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "schedule": {
+                      "type": "object",
+                      "description": "Specify a cron-like schedule for the automatic environment cleanup. Use this to specify a fixed cadence and time of day for the cleanup.\n\nPlease refer to the [Automatic Environment Cleanup guide](https://docs.garden.io/cedar-0.14/guides/automatic-environment-cleanup) for details.",
+                      "properties": {
+                        "every": {
+                          "type": "string",
+                          "enum": [
+                            "weekday",
+                            "day",
+                            "sunday",
+                            "monday",
+                            "tuesday",
+                            "wednesday",
+                            "thursday",
+                            "friday",
+                            "saturday"
+                          ]
+                        },
+                        "hourOfDay": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 23
+                        },
+                        "minuteOfHour": {
+                          "type": "number",
+                          "default": 0,
+                          "minimum": 0,
+                          "maximum": 59
+                        }
+                      },
+                      "required": [
+                        "hourOfDay"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "action"
+                  ],
+                  "additionalProperties": false,
+                  "if": {
+                    "propertyNames": {
+                      "enum": [
+                        "timeAfterLastUpdate",
+                        "schedule"
+                      ]
+                    },
+                    "minProperties": 2
+                  },
+                  "then": false,
+                  "else": {
+                    "oneOf": [
+                      {
+                        "required": [
+                          "timeAfterLastUpdate"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "schedule"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "required": [
+              "triggers"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -219,6 +338,10 @@
       ],
       "description": "Specify a filename that should be used as \".ignore\" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for actions and action sources.\nNote that this take precedence over the project `scan.include` field, and action `include` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.\nSee the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.",
       "default": ".gardenignore"
+    },
+    "excludeValuesFromActionVersions": {
+      "type": "array",
+      "description": "A list of string values that should be excluded when computing action versions.\n\nSetting values here is equivalent to adding them to the `version.excludeValues` field on all actions in the project.\n\nThese values can be templated, and generally should be templated. A typical example is to exclude the namespace of the environment, or a hostname suffix used across many Deploy actions. For example:\n\n```yaml\nexcludeValuesFromActionVersions:\n  - \"${var.hostname-suffix}\"  # resolving to something like \"my-branch.dev.my-org.com\"\n```\n\n**Important:**\nYou should be careful to not make these values too broad, since the strings will be replaced for every field in all actions across the project when computing versions. For example, if a value here resolves to a short and generic string like \"api\", the string \"api\" will be replaced for every field in all actions across the project when computing versions. This could lead to unexpected issues like tests getting skipped when they shouldn't, deployments not updating etc.\n\nHowever, something more specific like a branch name, commit hash, PR number etc., ideally with some specific prefix or suffix, is generally safer to do. That said, this field only affects version computation, not the actual action configuration when it's executed."
     },
     "proxy": {
       "type": "object",
@@ -369,6 +492,28 @@
           ]
         }
       }
+    },
+    "variablesFrom": {
+      "examples": [
+        "varlist_abc",
+        [
+          "varlist_abc",
+          "varlist_def"
+        ]
+      ],
+      "description": "EXPERIMENTAL: This is an experimental feature that requires setting \"GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true\" and enabling variables for your organization in Garden Cloud (currenty only available in early access).\nSpecify a variable list (or array of variable lists) from which to load variables/secrets. The lists and their variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).\nIf an array of variable lists is provided, the variable are merged in the order of the lists (so the value from a variable in a list that appears later in the array overwrites the value of a variable from an earlier list if they have the same name).",
+      "default": [],
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
     }
   },
   "required": [
