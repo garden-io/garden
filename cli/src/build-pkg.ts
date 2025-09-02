@@ -21,13 +21,12 @@ import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
 import type { Entry } from "unzipper"
 import unzipper from "unzipper"
+import tar from "tar"
+import { isDirectory } from "@garden-io/core/build/src/util/fs.js"
 
 // Temporary workaround for NodeJS / DOM type conflict
 // See https://github.com/DefinitelyTyped/DefinitelyTyped/issues/60924
 import { fetch } from "undici"
-
-import tar from "tar"
-import { isDirectory } from "@garden-io/core/src/util/fs.js"
 
 const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const gardenSeaDir = resolve(repoRoot, "garden-sea")
