@@ -150,11 +150,6 @@ export function getAecAgentManifests({
                   cat $PROJECT_CONFIG
                   echo "---\n"
 
-                  # Commented out to avoid echoing the token to the logs, uncomment to debug
-                  #echo "--- kubeconfig ---"
-                  #cat $KUBECONFIG
-                  #echo "---\n"
-
                   cd $PROJECT_ROOT
                   git init
 
