@@ -1392,9 +1392,11 @@ Compare the current working directory Garden project with the specified branch o
 
 Use this to understand the impact of your changes on action versions.
 
-In most cases you should use this with the --resolve flag to ensure that the comparison is complete, but take caution as it may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the --action flag to only diff specific actions.
+In most cases you should use this with the `--resolve` flag to ensure that the comparison is complete, but take caution as it may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the `--action` flag to only diff specific actions.
 
 Note that in the output, "A" (e.g. "version A") refers to the current working directory project, and "B" refers to the project at the specified branch or commit. When something is reported as "added" (such as an action, file, new lines in a config etc.), it means it's present in the current project but not in the comparison project. Similarly, "removed" means it's present in the comparison project but not in the current project.
+
+When setting the `--diff-X` flags, the values will be overridden in the comparison project (B). If you want to change variables or set a different environment in the _current_ project (A), you can use the normal `--var`, `--env` etc. flags. For example, if you want to test the impact of overriding a variable value for both sides, you can use the `--var` flag to override the value in the current project (A), and then use the `--diff-var` flag to override the value in the comparison project (B), e.g. `--diff-var some-var=foo --var some-var=bar`.
 
 #### Usage
 

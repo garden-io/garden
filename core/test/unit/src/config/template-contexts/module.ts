@@ -30,6 +30,8 @@ describe("ModuleConfigContext", () => {
     const modules = graph.getModules()
     module = graph.getModule("module-b")
 
+    garden.localEnvOverrides.TEST_VARIABLE = "foo"
+
     c = new ModuleConfigContext({
       garden,
       resolvedProviders: keyBy(await garden.resolveProviders({ log: garden.log }), "name"),
@@ -45,7 +47,6 @@ describe("ModuleConfigContext", () => {
   })
 
   it("should resolve local env variables", async () => {
-    process.env.TEST_VARIABLE = "foo"
     expect(c.resolve({ nodePath: [], key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
       found: true,
       resolved: "foo",
@@ -156,16 +157,15 @@ describe("WorkflowConfigContext", () => {
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { someSecret: "someSecretValue" }
+    garden.localEnvOverrides.TEST_VARIABLE = "foo"
     c = new WorkflowConfigContext(garden, garden.variables)
   })
 
   it("should resolve local env variables", async () => {
-    process.env.TEST_VARIABLE = "foo"
     expect(c.resolve({ nodePath: [], key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
       found: true,
       resolved: "foo",
     })
-    delete process.env.TEST_VARIABLE
   })
 
   it("should resolve the local platform", async () => {

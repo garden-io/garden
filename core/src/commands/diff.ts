@@ -79,6 +79,7 @@ interface FileDiff {
 }
 
 interface WorkflowDiff {
+  name: string
   status: DiffStatus
   rawConfigDiff: string | null
 }
@@ -138,15 +139,17 @@ export class DiffCommand extends Command<Args, Opts, DiffResult> {
   help = "[EXPERIMENTAL] Compare the current working directory Garden project with the specified branch or commit."
 
   override description = dedent`
-    **[EXPERIMENTAL] This command is still under development and may change in the future, including parameters and output format.**
+**[EXPERIMENTAL] This command is still under development and may change in the future, including parameters and output format.**
 
-    Compare the current working directory Garden project with the specified branch or commit.
+Compare the current working directory Garden project with the specified branch or commit.
 
-    Use this to understand the impact of your changes on action versions.
+Use this to understand the impact of your changes on action versions.
 
-    In most cases you should use this with the --resolve flag to ensure that the comparison is complete, but take caution as it may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the --action flag to only diff specific actions.
+In most cases you should use this with the \`--resolve\` flag to ensure that the comparison is complete, but take caution as it may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the \`--action\` flag to only diff specific actions.
 
-    Note that in the output, "A" (e.g. "version A") refers to the current working directory project, and "B" refers to the project at the specified branch or commit. When something is reported as "added" (such as an action, file, new lines in a config etc.), it means it's present in the current project but not in the comparison project. Similarly, "removed" means it's present in the comparison project but not in the current project.
+Note that in the output, "A" (e.g. "version A") refers to the current working directory project, and "B" refers to the project at the specified branch or commit. When something is reported as "added" (such as an action, file, new lines in a config etc.), it means it's present in the current project but not in the comparison project. Similarly, "removed" means it's present in the comparison project but not in the current project.
+
+When setting the \`--diff-X\` flags, the values will be overridden in the comparison project (B). If you want to change variables or set a different environment in the _current_ project (A), you can use the normal \`--var\`, \`--env\` etc. flags. For example, if you want to test the impact of overriding a variable value for both sides, you can use the \`--var\` flag to override the value in the current project (A), and then use the \`--diff-var\` flag to override the value in the comparison project (B), e.g. \`--diff-var some-var=foo --var some-var=bar\`.
   `
 
   override arguments = diffArgs
@@ -231,7 +234,7 @@ export class DiffCommand extends Command<Args, Opts, DiffResult> {
     if (opts.branch) {
       log.info({ msg: "Comparing with branch " + chalk.white.bold(opts.branch) })
       try {
-        await gitCli.exec("show-ref", "--verify", "--quiet", "refs/heads/" + opts.branch)
+        await gitCli.exec("ls-remote", "--heads", "origin", opts.branch)
         commitish = opts.branch
       } catch (e) {
         throw new ParameterError({ message: "Could not find branch " + chalk.white.bold(opts.branch) })
@@ -422,7 +425,9 @@ async function actionDiffPreliminary({
 
   const rawConfigDiff = await computeRawConfigDiff(log, configB, configA)
   if (rawConfigDiff) {
-    diffDescriptions.push(chalk.underline("Configuration modified directly") + `:\n${indentBlock(rawConfigDiff, 1)}`)
+    diffDescriptions.push(
+      chalk.underline("Configuration file modified directly") + `:\n${indentBlock(rawConfigDiff, 1)}`
+    )
   }
 
   // Resolved config
@@ -478,8 +483,8 @@ async function actionDiffPreliminary({
 
   if (versionChanges.length > 0) {
     const versionChangeStr =
-      chalk.underline("Dependency version changes:") +
-      "\n" +
+      chalk.underline("Dependency version changes") +
+      ":\n" +
       versionChanges
         .map((v) => {
           if (v.status === "added") {
@@ -917,7 +922,7 @@ async function compareWorkflows(log: Log, gardenA: Garden, gardenB: Garden): Pro
   for (const configRawA of workflowConfigsRawA) {
     const configRawB = workflowConfigsRawB.find((w) => w.name === configRawA.name)
     if (!configRawB) {
-      workflowDiffs.push({ status: "added", rawConfigDiff: null })
+      workflowDiffs.push({ name: configRawA.name, status: "added", rawConfigDiff: null })
       log.info({
         msg: chalk.bold(`\nWorkflow ${configRawA.name} added`),
       })
@@ -945,6 +950,7 @@ async function compareWorkflows(log: Log, gardenA: Garden, gardenB: Garden): Pro
     }
 
     workflowDiffs.push({
+      name: configRawA.name,
       status,
       rawConfigDiff,
     })
@@ -952,7 +958,7 @@ async function compareWorkflows(log: Log, gardenA: Garden, gardenB: Garden): Pro
 
   for (const configRawB of workflowConfigsRawB) {
     if (!workflowConfigsRawA.find((w) => w.name === configRawB.name)) {
-      workflowDiffs.push({ status: "removed", rawConfigDiff: null })
+      workflowDiffs.push({ name: configRawB.name, status: "removed", rawConfigDiff: null })
       log.info({
         msg: chalk.bold(`\nWorkflow ${configRawB.name} removed`),
       })

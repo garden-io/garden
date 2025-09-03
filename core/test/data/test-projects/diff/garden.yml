@@ -8,6 +8,8 @@ variables:
   build-b: build-b
   deploy-a: deploy-a
   test-a: test-a
+providers:
+  - name: exec
 
 ---
 

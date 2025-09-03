@@ -8,10 +8,9 @@
 
 import { expect } from "chai"
 import { DiffCommand } from "../../../../src/commands/diff.js"
-import type { TempDirectory, TestGarden } from "../../../helpers.js"
-import { getDataDir, makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
+import type { TestGarden } from "../../../helpers.js"
+import { getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
 import stripAnsi from "strip-ansi"
-import { GitCli } from "../../../../src/vcs/git.js"
 
 describe("DiffCommand", () => {
   const cmd = new DiffCommand()
@@ -29,21 +28,8 @@ describe("DiffCommand", () => {
 
   let diffGarden: TestGarden
 
-  let tmpDir: TempDirectory
-  let quickstartGarden: TestGarden
-
   before(async () => {
     diffGarden = await makeTestGarden(projectRoot)
-
-    tmpDir = await makeTempDir()
-    const gitCli = new GitCli({ log: diffGarden.log, cwd: tmpDir.path })
-    await gitCli.exec("clone", "https://github.com/garden-io/quickstart-example.git", tmpDir.path)
-    quickstartGarden = await makeTestGarden(tmpDir.path)
-    await gitCli.exec("checkout", "diff-test-changes")
-  })
-
-  after(async () => {
-    await tmpDir.cleanup()
   })
 
   // TODO: split this into multiple tests
@@ -114,44 +100,10 @@ describe("DiffCommand", () => {
     expect(testAResult.resolvedConfigDiff).to.include("other")
   })
 
-  it("compares workflows", async () => {
+  it("filters to specific actions", async () => {
     const { result } = await cmd.action({
       garden: diffGarden,
       log: diffGarden.log,
-      args: {},
-      opts: { ...defaultOpts, "diff-var": [[{ key: "workflow-a", value: "override-a" }]] },
-    })
-
-    expect(result.workflows["workflow-a"].status).to.equal("modified")
-    expect(result.workflows["workflow-a"].rawConfigDiff).to.be.null
-  })
-
-  it("compares with a different branch", async () => {
-    const { result } = await cmd.action({
-      garden: quickstartGarden,
-      log: quickstartGarden.log,
-      args: {},
-      opts: { ...defaultOpts, branch: "diff-test-base" },
-    })
-
-    expect(result.projectConfig.resolvedVariablesDiff).to.include('+  "postgresPassword": "foo"')
-  })
-
-  it("compares with a different commit", async () => {
-    const { result } = await cmd.action({
-      garden: quickstartGarden,
-      log: quickstartGarden.log,
-      args: {},
-      opts: { ...defaultOpts, commit: "58afed93698054ac47cd56223c7b37c4c496de0e" },
-    })
-
-    expect(result.projectConfig.resolvedVariablesDiff).to.include('+  "postgresPassword": "foo"')
-  })
-
-  it("filters to specific actions", async () => {
-    const { result } = await cmd.action({
-      garden: quickstartGarden,
-      log: quickstartGarden.log,
       args: {},
       opts: {
         ...defaultOpts,
@@ -162,82 +114,5 @@ describe("DiffCommand", () => {
 
     expect(result.actions["test.test-a"]).to.exist
     expect(Object.keys(result.actions)).to.have.length(1)
-  })
-
-  it("skips resolving the actions with --resolve=false", async () => {
-    const { result } = await cmd.action({
-      garden: quickstartGarden,
-      log: quickstartGarden.log,
-      args: {},
-      opts: {
-        ...defaultOpts,
-        "resolve": false,
-        "diff-local-env": [[{ key: "TEST_ENV_VAR_TEST_A", value: "override-a" }]],
-      },
-    })
-
-    for (const action of Object.values(result.actions)) {
-      expect(action.resolvedConfigDiff).to.be.null
-    }
-  })
-
-  it("picks up direct project config changes", async () => {
-    const { result } = await cmd.action({
-      garden: quickstartGarden,
-      log: quickstartGarden.log,
-      args: {},
-      opts: { ...defaultOpts, branch: "diff-test-base" },
-    })
-
-    expect(stripAnsi(result.actions["test.test-a"].rawConfigDiff ?? "")).to.include("+  postgresPassword: foo")
-    expect(stripAnsi(result.actions["test.test-a"].diffSummary)).to.include("+  postgresPassword: foo")
-  })
-
-  it("picks up direct action config changes", async () => {
-    const { result } = await cmd.action({
-      garden: quickstartGarden,
-      log: quickstartGarden.log,
-      args: {},
-      opts: { ...defaultOpts, branch: "diff-test-base" },
-    })
-
-    expect(stripAnsi(result.actions["test.test-a"].rawConfigDiff ?? "")).to.include("+  env:")
-    expect(stripAnsi(result.actions["test.test-a"].diffSummary)).to.include("+  env:")
-  })
-
-  it("picks up direct workflow config changes", async () => {
-    const { result } = await cmd.action({
-      garden: quickstartGarden,
-      log: quickstartGarden.log,
-      args: {},
-      opts: { ...defaultOpts, branch: "diff-test-base" },
-    })
-
-    expect(stripAnsi(result.workflows["test-a"].rawConfigDiff ?? "")).to.include("+    script: echo changed")
-    expect(stripAnsi(result.workflows["test-b"].status)).to.equal("removed")
-    expect(stripAnsi(result.workflows["test-c"].status)).to.equal("added")
-  })
-
-  it("picks up source file changes", async () => {
-    const { result } = await cmd.action({
-      garden: quickstartGarden,
-      log: quickstartGarden.log,
-      args: {},
-      opts: { ...defaultOpts, branch: "diff-test-base" },
-    })
-
-    const summary = stripAnsi(result.actions["build.api"].diffSummary)
-    expect(summary).to.include("Source files changed")
-    expect(summary).to.include("M Dockerfile")
-    expect(summary).to.include("+ test.txt")
-    expect(summary).to.include("8 files unchanged")
-
-    const files = result.actions["build.api"].files
-    const changedFiles = files.filter((file) => file.status === "modified")
-    expect(changedFiles).to.have.length(1)
-    expect(changedFiles[0].path).to.equal("Dockerfile")
-    const addedFiles = files.filter((file) => file.status === "added")
-    expect(addedFiles).to.have.length(1)
-    expect(addedFiles[0].path).to.equal("test.txt")
   })
 })

@@ -24,11 +24,11 @@ describe("WorkflowConfigContext", () => {
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { someSecret: "someSecretValue" }
+    garden.localEnvOverrides.TEST_VARIABLE = "foo"
     c = new WorkflowConfigContext(garden, garden.variables)
   })
 
   it("should resolve local env variables", async () => {
-    process.env.TEST_VARIABLE = "foo"
     expect(c.resolve({ nodePath: [], key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
       found: true,
       resolved: "foo",

@@ -300,7 +300,9 @@ export function renderSchemaDescriptionYaml(
         prefix = "#-"
       }
 
-      indented = indentLines([prefix + out[0], ...indentLines(out.slice(1), 1)], level - 1).map((line) => line.trimRight())
+      indented = indentLines([prefix + out[0], ...indentLines(out.slice(1), 1)], level - 1).map((line) =>
+        line.trimRight()
+      )
     } else {
       indented = indentLines(out, level).map((line) => line.trimRight())
     }
