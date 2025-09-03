@@ -1910,6 +1910,24 @@ actionConfigs:
           optional:
 
       version:
+        # Specify a list of dependencies that should be ignored when computing the version hash for this action.
+        #
+        # Generally, the versions of all dependencies (both implicit and explicitly specified) are used when computing
+        # the version hash for this action.
+        # However, there are cases where you might want to exclude certain dependencies from the version hash.
+        #
+        # For example, you might have a dependency that naturally changes for every individual test or dev
+        # environment, such as a setup script that runs before the test. You could solve for that with something like
+        # this:
+        #
+        # version:
+        #   excludeDependencies:
+        #     - run.setup
+        #
+        # Where `run.setup` refers to a Run action named `setup`. You can also use the full action reference for each
+        # dependency to exclude, e.g. `{ kind: "Run", name: "setup" }`.
+        excludeDependencies:
+
         # Specify a list of config fields that should be ignored when computing the version hash for this action. Each
         # item should be an array of strings, specifying the path to the field to ignore, e.g. `[spec, env, HOSTNAME]`
         # would ignore `spec.env.HOSTNAME` in the configuration when computing the version.
@@ -2180,6 +2198,24 @@ actionConfigs:
           optional:
 
       version:
+        # Specify a list of dependencies that should be ignored when computing the version hash for this action.
+        #
+        # Generally, the versions of all dependencies (both implicit and explicitly specified) are used when computing
+        # the version hash for this action.
+        # However, there are cases where you might want to exclude certain dependencies from the version hash.
+        #
+        # For example, you might have a dependency that naturally changes for every individual test or dev
+        # environment, such as a setup script that runs before the test. You could solve for that with something like
+        # this:
+        #
+        # version:
+        #   excludeDependencies:
+        #     - run.setup
+        #
+        # Where `run.setup` refers to a Run action named `setup`. You can also use the full action reference for each
+        # dependency to exclude, e.g. `{ kind: "Run", name: "setup" }`.
+        excludeDependencies:
+
         # Specify a list of config fields that should be ignored when computing the version hash for this action. Each
         # item should be an array of strings, specifying the path to the field to ignore, e.g. `[spec, env, HOSTNAME]`
         # would ignore `spec.env.HOSTNAME` in the configuration when computing the version.
@@ -2389,6 +2425,24 @@ actionConfigs:
           optional:
 
       version:
+        # Specify a list of dependencies that should be ignored when computing the version hash for this action.
+        #
+        # Generally, the versions of all dependencies (both implicit and explicitly specified) are used when computing
+        # the version hash for this action.
+        # However, there are cases where you might want to exclude certain dependencies from the version hash.
+        #
+        # For example, you might have a dependency that naturally changes for every individual test or dev
+        # environment, such as a setup script that runs before the test. You could solve for that with something like
+        # this:
+        #
+        # version:
+        #   excludeDependencies:
+        #     - run.setup
+        #
+        # Where `run.setup` refers to a Run action named `setup`. You can also use the full action reference for each
+        # dependency to exclude, e.g. `{ kind: "Run", name: "setup" }`.
+        excludeDependencies:
+
         # Specify a list of config fields that should be ignored when computing the version hash for this action. Each
         # item should be an array of strings, specifying the path to the field to ignore, e.g. `[spec, env, HOSTNAME]`
         # would ignore `spec.env.HOSTNAME` in the configuration when computing the version.
@@ -2598,6 +2652,24 @@ actionConfigs:
           optional:
 
       version:
+        # Specify a list of dependencies that should be ignored when computing the version hash for this action.
+        #
+        # Generally, the versions of all dependencies (both implicit and explicitly specified) are used when computing
+        # the version hash for this action.
+        # However, there are cases where you might want to exclude certain dependencies from the version hash.
+        #
+        # For example, you might have a dependency that naturally changes for every individual test or dev
+        # environment, such as a setup script that runs before the test. You could solve for that with something like
+        # this:
+        #
+        # version:
+        #   excludeDependencies:
+        #     - run.setup
+        #
+        # Where `run.setup` refers to a Run action named `setup`. You can also use the full action reference for each
+        # dependency to exclude, e.g. `{ kind: "Run", name: "setup" }`.
+        excludeDependencies:
+
         # Specify a list of config fields that should be ignored when computing the version hash for this action. Each
         # item should be an array of strings, specifying the path to the field to ignore, e.g. `[spec, env, HOSTNAME]`
         # would ignore `spec.env.HOSTNAME` in the configuration when computing the version.

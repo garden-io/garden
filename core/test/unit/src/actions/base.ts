@@ -14,10 +14,14 @@ import {
   actionIsDisabled,
   excludeValueReplacement,
   getActionConfigVersion,
+  getFullActionVersion,
   replaceExcludeValues,
 } from "../../../../src/actions/base.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { createActionLog } from "../../../../src/logger/log-entry.js"
+import type { TestGarden } from "../../../helpers.js"
+import { makeTempGarden } from "../../../helpers.js"
+import type tmp from "tmp-promise"
 
 function minimalActionConfig(): ActionConfig {
   return {
@@ -31,6 +35,90 @@ function minimalActionConfig(): ActionConfig {
     spec: {},
   }
 }
+
+describe("getFullActionVersion", () => {
+  let garden: TestGarden
+  let tmpDir: tmp.DirectoryResult
+
+  beforeEach(async () => {
+    const res = await makeTempGarden()
+    garden = res.garden
+    tmpDir = res.tmpDir
+  })
+
+  afterEach(async () => {
+    await tmpDir.cleanup()
+  })
+
+  it("returns dependency versions", async () => {
+    const log = garden.log
+
+    garden.setPartialActionConfigs([
+      {
+        kind: "Build",
+        name: "foo",
+        type: "test",
+      },
+      {
+        kind: "Run",
+        name: "prepare",
+        type: "test",
+      },
+      {
+        kind: "Test",
+        name: "test",
+        type: "test",
+        dependencies: [
+          { kind: "Run", name: "prepare" },
+          { kind: "Build", name: "foo" },
+        ],
+      },
+    ])
+
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const action = graph.getTest("test")
+    const version = getFullActionVersion(action.createLog(log), graph, action)
+
+    expect(version.dependencyVersions["build.foo"]).to.exist
+    expect(version.dependencyVersions["run.prepare"]).to.exist
+  })
+
+  it("excludes dependencies specified in version.excludeDependencies", async () => {
+    const log = garden.log
+
+    garden.setPartialActionConfigs([
+      {
+        kind: "Build",
+        name: "foo",
+        type: "test",
+      },
+      {
+        kind: "Run",
+        name: "prepare",
+        type: "test",
+      },
+      {
+        kind: "Test",
+        name: "test",
+        type: "test",
+        dependencies: [
+          { kind: "Run", name: "prepare" },
+          { kind: "Build", name: "foo" },
+        ],
+        version: {
+          excludeDependencies: [{ kind: "Run", name: "prepare" }],
+        },
+      },
+    ])
+
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const action = graph.getTest("test")
+    const version = getFullActionVersion(action.createLog(log), graph, action)
+
+    expect(version.dependencyVersions["build.foo"]).to.exist
+    expect(version.dependencyVersions["run.prepare"]).to.not.exist
+  })
+})
 
 describe("getActionConfigVersion", () => {
   const log = createActionLog({
