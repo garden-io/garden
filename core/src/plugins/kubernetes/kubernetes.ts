@@ -50,6 +50,7 @@ import { pauseCommand } from "./commands/pause.js"
 import { keepAliveCommand } from "./commands/keep-alive.js"
 import { aecAgentCommand } from "./commands/aec-agent.js"
 import { setupAecCommand } from "./commands/setup-aec.js"
+import { aecLogsCommand } from "./commands/aec-logs.js"
 
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 5
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 20
@@ -158,6 +159,7 @@ export const gardenPlugin = () => {
     outputsSchema,
     commands: [
       aecAgentCommand,
+      aecLogsCommand,
       cleanupClusterRegistry,
       cleanupUtilDeployment,
       uninstallGardenServices,

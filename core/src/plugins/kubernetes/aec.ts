@@ -72,7 +72,7 @@ export function getAecAgentManifests({
           automountServiceAccountToken: true, // <-- This enables mounting the Kubernetes API token
           containers: [
             {
-              name: serviceAccountName,
+              name: "aec-agent",
               image: getAecAgentImage(imageOverride, localDevMode),
               imagePullPolicy: localDevMode ? "IfNotPresent" : "Always", // FIXME: Update this once we have a stable and versioned image tag
               // command: ["garden", "plugins", "kubernetes", "aec-agent", "--", "--description", description],
@@ -149,11 +149,6 @@ export function getAecAgentManifests({
                   echo "--- project.garden.yaml ---"
                   cat $PROJECT_CONFIG
                   echo "---\n"
-
-                  # Commented out to avoid echoing the token to the logs, uncomment to debug
-                  #echo "--- kubeconfig ---"
-                  #cat $KUBECONFIG
-                  #echo "---\n"
 
                   cd $PROJECT_ROOT
                   git init
