@@ -486,7 +486,7 @@ export const kubernetesConfigBase = () =>
             Please see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for caveats when using this mode.
             `
             ),
-          nodeSelector: joiStringMap(joi.string())
+          nodeSelector: joiStringMap(joi.string().allow(""))
             .description(
               dedent`
             Exposes the \`nodeSelector\` field on the PodSpec of the BuildKit deployment. This allows you to constrain the BuildKit daemon to only run on particular nodes.
@@ -540,7 +540,7 @@ export const kubernetesConfigBase = () =>
               Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
             `
             ),
-          nodeSelector: joiStringMap(joi.string()).description(
+          nodeSelector: joiStringMap(joi.string().allow("")).description(
             dedent`
             Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under \`util.nodeSelector\`.
 
@@ -565,7 +565,7 @@ export const kubernetesConfigBase = () =>
             annotations: annotationsSchema().description(
               "Specify annotations to apply to each garden-util pod and deployments."
             ),
-            nodeSelector: joiStringMap(joi.string()).description(
+            nodeSelector: joiStringMap(joi.string().allow("")).description(
               "Specify the nodeSelector constraints for each garden-util pod."
             ),
           }),
@@ -606,7 +606,7 @@ export const kubernetesConfigBase = () =>
       tlsCertificates: joiSparseArray(tlsCertificateSchema())
         .unique("name")
         .description("One or more certificates to use for ingress."),
-      systemNodeSelector: joiStringMap(joi.string())
+      systemNodeSelector: joiStringMap(joi.string().empty(""))
         .description(
           dedent`
         Exposes the \`nodeSelector\` field on the PodSpec of system services. This allows you to constrain the system services to only run on particular nodes.
