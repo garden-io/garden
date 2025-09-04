@@ -351,11 +351,15 @@ export class EnvironmentParameter extends StringOption {
   override type = "string"
   override schema = joi.environment()
 
-  constructor({ help = "The environment (and optionally namespace) to work against.", required = false } = {}) {
+  constructor({
+    help = "The environment (and optionally namespace) to work against.",
+    required = false,
+    aliases = ["e"],
+  } = {}) {
     super({
       help,
       required,
-      aliases: ["e"],
+      aliases,
       getSuggestions: ({ configDump }) => {
         return configDump.allEnvironmentNames
       },

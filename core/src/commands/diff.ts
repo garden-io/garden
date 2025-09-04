@@ -48,6 +48,7 @@ const diffOpts = {
   }),
   "diff-env": new EnvironmentParameter({
     help: "Override the Garden environment for the comparison.",
+    aliases: [],
   }),
   "diff-local-env": new TagsOption({
     help: 'Override a local environment variable in the comparison (as templated using ${local.env.*}) with the specified value, formatted as <VAR_NAME>:<VALUE>, e.g. "MY_VAR=my-value". You can specify multiple variables by repeating the flag.',
