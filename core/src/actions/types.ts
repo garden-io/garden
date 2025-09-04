@@ -144,6 +144,7 @@ export interface ActionStatusMap<T extends BaseAction = BaseAction> {
 
 export interface ActionDependencyAttributes {
   explicit: boolean // Set to true if action config explicitly states the dependency
+  // TODO: also indicate _which_ outputs are required
   needsStaticOutputs: boolean // Set to true if action cannot be resolved without resolving the dependency
   needsExecutedOutputs: boolean // Set to true if action cannot be resolved without the dependency executed
 }

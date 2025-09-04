@@ -13,13 +13,7 @@ import { LogsCommand } from "../../../../src/commands/logs.js"
 import type { ProjectConfig } from "../../../../src/config/project.js"
 import type { GardenPluginSpec } from "../../../../src/plugin/plugin.js"
 import { TestGarden } from "../../../../src/util/testing.js"
-import {
-  createProjectConfig,
-  customizedTestPlugin,
-  expectError,
-  makeTempDir,
-  withDefaultGlobalOpts,
-} from "../../../helpers.js"
+import { createProjectConfig, customizedTestPlugin, makeTempDir, withDefaultGlobalOpts } from "../../../helpers.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
 import { formatForTerminal } from "../../../../src/logger/renderers.js"
 import { resolveMsg, type LogEntry } from "../../../../src/logger/log-entry.js"
@@ -465,29 +459,12 @@ describe("LogsCommand", () => {
       garden.setPartialActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
-      const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api"] } }))
+      const res = await command.action(
+        makeCommandParams({ garden, opts: { tag: [[{ key: "container", value: "api" }]] } })
+      )
 
       expect(filterByTag(res.result!, "api").length).to.eql(2)
       expect(filterByTag(res.result!, "frontend").length).to.eql(0)
-    })
-
-    it("should throw when passed an invalid --tag filter", async () => {
-      const getServiceLogsHandler = async ({ onLogEntry }: GetDeployLogsParams) => {
-        onLogEntry({
-          tags: { container: "api-main" },
-          name: "api",
-          msg: logMsg,
-          timestamp: new Date(),
-        })
-        return {}
-      }
-      const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin(getServiceLogsHandler) })
-      garden.setPartialActionConfigs(actionConfigsForTags())
-
-      const command = new LogsCommand()
-      await expectError(() => command.action(makeCommandParams({ garden, opts: { tag: ["*-main"] } })), {
-        contains: "Unable to parse the given --tag flags. Format should be key=value.",
-      })
     })
 
     it("should AND together tag filters in a given --tag option instance", async () => {
@@ -516,7 +493,19 @@ describe("LogsCommand", () => {
       garden.setPartialActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
-      const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api,myTag=1"] } }))
+      const res = await command.action(
+        makeCommandParams({
+          garden,
+          opts: {
+            tag: [
+              [
+                { key: "container", value: "api" },
+                { key: "myTag", value: "1" },
+              ],
+            ],
+          },
+        })
+      )
 
       const matching = filterByTag(res.result!, "api")
       expect(matching.length).to.eql(2) // The same log line is emitted for each service in this test setup (here: 2)
@@ -557,7 +546,18 @@ describe("LogsCommand", () => {
 
       const command = new LogsCommand()
       const res = await command.action(
-        makeCommandParams({ garden, opts: { tag: ["container=api,myTag=1", "container=frontend"] } })
+        makeCommandParams({
+          garden,
+          opts: {
+            tag: [
+              [
+                { key: "container", value: "api" },
+                { key: "myTag", value: "1" },
+              ],
+              [{ key: "container", value: "frontend" }],
+            ],
+          },
+        })
       )
 
       const apiMatching = filterByTag(res.result!, "api")
@@ -602,7 +602,9 @@ describe("LogsCommand", () => {
       garden.setPartialActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
-      const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=*-main"] } }))
+      const res = await command.action(
+        makeCommandParams({ garden, opts: { tag: [[{ key: "container", value: "*-main" }]] } })
+      )
 
       expect(filterByTag(res.result!, "api-main").length).to.eql(2)
       expect(filterByTag(res.result!, "frontend-main").length).to.eql(2)

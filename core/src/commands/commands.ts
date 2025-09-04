@@ -40,6 +40,7 @@ import { UtilCommand } from "./util/util.js"
 import { ValidateCommand } from "./validate.js"
 import { UpCommand } from "./up.js"
 import { VersionCommand } from "./version.js"
+import { DiffCommand } from "./diff.js"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
@@ -50,6 +51,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new DeleteCommand(),
   new DeployCommand(),
   new DevCommand(),
+  new DiffCommand(),
   new ExecCommand(),
   new GetCommand(),
   new LinkCommand(),

@@ -391,6 +391,86 @@ export abstract class BaseConfigGraph<
     return this.nodesToActions(nodes)
   }
 
+  /**
+   * Finds all dependency paths between two actions.
+   *
+   * Note that the paramter order matters. The first parameter should be the dependant and the second parameter should
+   * be the (potentially transitive) dependency.
+   *
+   * @param fromDependant - The source action reference (kind.name format or ActionReference object)
+   * @param toDependency - The target action reference (kind.name format or ActionReference object)
+   * @param filter - Optional filter function to exclude certain nodes from paths
+   * @returns Array of paths, where each path is an array of actions from source to target
+   */
+  findDependencyPaths(
+    fromDependant: ActionReference | string,
+    toDependency: ActionReference | string,
+    filter?: DependencyRelationFilterFn
+  ): A[][] {
+    const fromRef = typeof fromDependant === "string" ? parseActionReference(fromDependant) : fromDependant
+    const toRef = typeof toDependency === "string" ? parseActionReference(toDependency) : toDependency
+
+    const fromNode = this.dependencyGraph[nodeKey(fromRef.kind, fromRef.name)]
+    const toNode = this.dependencyGraph[nodeKey(toRef.kind, toRef.name)]
+
+    if (!fromNode) {
+      throw new GraphError({
+        message: `Could not find source action ${fromRef.kind}.${fromRef.name}`,
+      })
+    }
+
+    if (!toNode) {
+      throw new GraphError({
+        message: `Could not find target action ${toRef.kind}.${toRef.name}`,
+      })
+    }
+
+    const paths: ConfigGraphNode[][] = []
+    const visited = new Set<string>()
+
+    const findPaths = (currentNode: ConfigGraphNode, targetNode: ConfigGraphNode, currentPath: ConfigGraphNode[]) => {
+      const currentKey = nodeKey(currentNode.kind, currentNode.name)
+      const targetKey = nodeKey(targetNode.kind, targetNode.name)
+
+      // If we've already visited this node in the current path, skip to avoid cycles
+      if (visited.has(currentKey)) {
+        return
+      }
+
+      // Add current node to the path and mark as visited
+      const newPath = [...currentPath, currentNode]
+      visited.add(currentKey)
+
+      // If we've reached the target and the path has more than one node, add this path to results
+      if (currentKey === targetKey && newPath.length > 1) {
+        paths.push([...newPath])
+      } else if (currentKey !== targetKey) {
+        // Continue searching through dependencies only if we haven't reached the target
+        for (const dependency of currentNode.dependencies) {
+          // Apply filter if provided
+          if (filter && !filter(dependency)) {
+            continue
+          }
+
+          // Skip disabled nodes (except Build actions)
+          if (dependency.kind !== "Build" && dependency.disabled) {
+            continue
+          }
+
+          findPaths(dependency, targetNode, newPath)
+        }
+      }
+
+      // Remove current node from visited set for other paths
+      visited.delete(currentKey)
+    }
+
+    findPaths(fromNode, toNode, [])
+
+    // Convert node paths to action paths
+    return paths.map((path) => path.map((node) => <A>(<unknown>this.actions[node.kind][node.name])))
+  }
+
   private getDependencyNodes({
     kind,
     name,

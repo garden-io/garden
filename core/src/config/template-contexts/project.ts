@@ -7,7 +7,7 @@
  */
 
 import { isEmpty } from "lodash-es"
-import type { PrimitiveMap, DeepPrimitiveMap } from "../common.js"
+import type { PrimitiveMap, DeepPrimitiveMap, StringMap } from "../common.js"
 import { joiIdentifierMap, joiStringMap, joiPrimitive, joiVariables } from "../common.js"
 import { joi } from "../common.js"
 import { deline, dedent } from "../../util/string.js"
@@ -90,11 +90,21 @@ class LocalContext extends ContextWithSchema {
   )
   public readonly usernameLowerCase?: string
 
-  constructor(artifactsPath: string, projectRoot: string, username?: string) {
+  constructor({
+    artifactsPath,
+    projectRoot,
+    username,
+    localEnvOverrides,
+  }: {
+    artifactsPath: string
+    projectRoot: string
+    username?: string
+    localEnvOverrides?: StringMap
+  }) {
     super()
     this.artifactsPath = artifactsPath
     this.arch = process.arch
-    this.env = process.env
+    this.env = { ...process.env, ...localEnvOverrides }
     this.platform = process.platform
     this.projectPath = projectRoot
     this.username = username
@@ -246,6 +256,7 @@ export interface DefaultEnvironmentContextParams {
   username?: string
   commandInfo: CommandInfo
   vcsInfo: VcsInfo
+  localEnvOverrides: StringMap
 }
 
 /**
@@ -278,9 +289,10 @@ export class DefaultEnvironmentContext extends ContextWithSchema {
     vcsInfo,
     username,
     commandInfo,
+    localEnvOverrides,
   }: DefaultEnvironmentContextParams) {
     super()
-    this.local = new LocalContext(artifactsPath, projectRoot, username)
+    this.local = new LocalContext({ artifactsPath, projectRoot, username, localEnvOverrides })
     this.datetime = new DatetimeContext()
     this.git = new VcsContext(vcsInfo)
     this.project = new ProjectContext(projectName)
@@ -409,6 +421,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
       variables,
+      localEnvOverrides: garden.localEnvOverrides,
     })
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
