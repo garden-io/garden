@@ -123,7 +123,7 @@ describe.skip("ensureBuildkit", () => {
         await api.apps.deleteNamespacedDeployment({ name: buildkitDeploymentName, namespace })
       } catch {}
 
-      const nodeSelector = { "kubernetes.io/os": "linux" }
+      const nodeSelector = { "kubernetes.io/os": "linux", "node-role.kubernetes.io/garden": "" }
 
       provider.config.clusterBuildkit = { nodeSelector, cache: defaultConfig }
 
