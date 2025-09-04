@@ -9,7 +9,7 @@
 import type { CommandResult, CommandParams } from "../base.js"
 import { Command, suggestedCommandSchema } from "../base.js"
 import type { ConfigDump } from "../../garden.js"
-import { environmentNameSchema, projectSourceSchema } from "../../config/project.js"
+import { environmentNameSchema, getVariablesFromBaseSchema, projectSourceSchema } from "../../config/project.js"
 import { joiIdentifier, joiVariables, joiArray, joi, joiStringMap } from "../../config/common.js"
 import { providerConfigBaseSchema, providerSchema } from "../../config/provider.js"
 import { moduleConfigSchema } from "../../config/module.js"
@@ -52,10 +52,7 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
         "A list of all configured providers in the environment."
       ),
       variables: joiVariables().description("All configured project variables in the environment."),
-      variablesFrom: joi
-        .alternatives()
-        .try(joi.string(), joi.array().items(joi.string()))
-        .description("The 'variablesFrom' config"),
+      variablesFrom: getVariablesFromBaseSchema().description("The 'variablesFrom' config"),
       actionConfigs: joi
         .object()
         .keys({

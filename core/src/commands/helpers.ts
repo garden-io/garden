@@ -28,6 +28,7 @@ import pluralize from "pluralize"
 import { CommandError, toGardenError } from "../exceptions.js"
 import type { CommandResult } from "./base.js"
 import type { Garden } from "../garden.js"
+import { makeDocsLinkPlain } from "../docs/common.js"
 
 const { readFile } = fsExtra
 
@@ -304,4 +305,14 @@ export async function readInputKeyValueResources({
         No ${resourceName}(s) provided. Either provide ${resourceName}(s) directly to the command or via the --from-file flag.
       `,
   })
+}
+
+export function getCloudListCommandBaseDescription(resource: string) {
+  return dedent`
+    List the ${resource} that belong to this Garden Cloud organization (i.e. in https://app.garden.io). Only relevant
+    for projects that are connected to Garden Cloud and have an \`organizationId\` set in the project configuration.
+
+    See the [Connecting a project guide](${makeDocsLinkPlain`guides/connecting-project`}) to learn more about
+    connecting projects to Garden Cloud.
+  `
 }

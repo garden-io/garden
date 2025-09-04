@@ -298,12 +298,15 @@ varfile: garden.env
 variables: {}
 
 # EXPERIMENTAL: This is an experimental feature that requires setting "GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true"
-# and enabling variables for your organization in Garden Cloud (currenty only available in early access).
+# and enabling variables for your organization in Garden Cloud (currenty only
+# available in early access).
+#
 # Specify a variable list (or array of variable lists) from which to load variables/secrets. The lists and their
 # variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).
+#
 # If an array of variable lists is provided, the variable are merged in the order of the lists (so the value from a
-# variable in a list that appears later in the array overwrites the value of a variable from an earlier list if they
-# have the same name).
+# variable in a list that appears later in the array overwrites the value of a
+# variable from an earlier list if they have the same name).
 variablesFrom: []
 ```
 
@@ -953,9 +956,13 @@ Key/value map of variables to configure for all environments. Keys may contain l
 
 ### `variablesFrom`
 
-EXPERIMENTAL: This is an experimental feature that requires setting "GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true" and enabling variables for your organization in Garden Cloud (currenty only available in early access).
+EXPERIMENTAL: This is an experimental feature that requires setting "GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true" and enabling variables for your organization in Garden Cloud (currenty only
+available in early access).
+
 Specify a variable list (or array of variable lists) from which to load variables/secrets. The lists and their variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).
-If an array of variable lists is provided, the variable are merged in the order of the lists (so the value from a variable in a list that appears later in the array overwrites the value of a variable from an earlier list if they have the same name).
+
+If an array of variable lists is provided, the variable are merged in the order of the lists (so the value from a variable in a list that appears later in the array overwrites the value of a
+variable from an earlier list if they have the same name).
 
 | Type                      | Default | Required |
 | ------------------------- | ------- | -------- |

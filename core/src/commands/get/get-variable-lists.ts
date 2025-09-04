@@ -13,7 +13,8 @@ import { dedent, renderTable } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { joi, joiArray } from "../../config/common.js"
 import { ConfigurationError } from "../../exceptions.js"
-import { noApiMsg, throwIfLegacyCloud } from "../helpers.js"
+import { getCloudListCommandBaseDescription, noApiMsg, throwIfLegacyCloud } from "../helpers.js"
+import { makeDocsLinkPlain } from "../../docs/common.js"
 
 const getVariableListsOpts = {}
 
@@ -25,7 +26,17 @@ export class GetVariableListsCommand extends Command<{}, Opts> {
   emoji = "☁️"
 
   override description = dedent`
-    List the variable lists for this organization.
+    ${getCloudListCommandBaseDescription("variable lists")}
+
+    Variable lists are used to group together remote variables and this command can be used to get
+    the variable list IDs that are needed for the \`garden create remote-variables\` command.
+
+    Examples:
+        garden get variable-lists                 # list variable lists and pretty print results
+        garden get variable-lists --output json   # returns variable lists as a JSON object, useful for scripting
+
+    See the [Variables and Templating guide](${makeDocsLinkPlain`features/variables-and-templating`}) for more information.
+
   `
 
   override options = getVariableListsOpts

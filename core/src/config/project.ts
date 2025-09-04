@@ -327,6 +327,8 @@ const projectOutputSchema = createSchema({
   }),
 })
 
+export const getVariablesFromBaseSchema = () => joi.alternatives().try(joi.string(), joi.array().items(joi.string()))
+
 export const projectSchema = createSchema({
   name: "Project",
   description:
@@ -460,11 +462,9 @@ export const projectSchema = createSchema({
     variables: joiVariables().description(
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
-    variablesFrom: joi
-      .alternatives()
-      .try(joi.string(), joi.array().items(joi.string()))
+    variablesFrom: getVariablesFromBaseSchema()
       .description(
-        deline`
+        dedent`
       EXPERIMENTAL: This is an experimental feature that requires setting "GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true" and enabling variables for your organization in Garden Cloud (currenty only
       available in early access).
 

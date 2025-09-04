@@ -23,6 +23,7 @@ import type { LinkedSource } from "../config-store/local.js"
 import type { GardenApiVersion } from "../constants.js"
 import type { ResolvedTemplate } from "../template/types.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
+import { naturalList } from "../util/string.js"
 
 // TODO: split this file
 
@@ -32,6 +33,7 @@ export type { ActionVersion } from "../vcs/vcs.js"
 
 export const actionKinds: ActionKind[] = ["Build", "Deploy", "Run", "Test"]
 export const actionKindsLower = actionKinds.map((k) => k.toLowerCase())
+export const getActionKindsNaturalList = () => naturalList(actionKindsLower, { trailingWord: "or", quote: true })
 
 interface SourceRepositorySpec {
   url: string

@@ -19,10 +19,10 @@ import type { DeepPrimitiveMap, PrimitiveMap } from "../../config/common.js"
 import type { ResolvedTemplate } from "../../template/types.js"
 import type { RouterOutput } from "../../cloud/api/trpc.js"
 import { ConfigurationError, ParameterError } from "../../exceptions.js"
-import type { ActionKind, BaseActionConfig } from "../../actions/types.js"
+import { getActionKindsNaturalList, type ActionKind, type BaseActionConfig } from "../../actions/types.js"
 import { loadVarfile } from "../../config/base.js"
 import { getVarfileData } from "../../config/template-contexts/variables.js"
-import { joi, joiArray } from "../../config/common.js"
+import { joi, joiArray, parseActionReference } from "../../config/common.js"
 import type { Log } from "../../logger/log-entry.js"
 import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params.js"
 import { filterDisableFromConfigDump } from "./helpers.js"
@@ -44,7 +44,7 @@ const variablesListOpts = {
   "filter-actions": new StringsParameter({
     help: dedent`
       Filter by action using <actionKind>.<actionName>. You may specify multiple names, separated by spaces. For
-      example: \`--filter-action "Build.api,Deploy.api"\`
+      example \`--filter-actions build.api --filter-actions deploy.api"\` (or \`--filter-actions build.api,deploy.api\`).
     `,
     spread: true,
   }),
@@ -77,17 +77,18 @@ export class GetVariablesCommand extends Command<{}, Opts> {
   emoji = "✔️"
 
   override description = dedent`
-    List variables in this project, including remote variables and variables from varfiles. This is useful
-    for groking where variables are set and what value they resolve to when using template strings.
+    List variables in this project, both those those defined in the project configuration and in individual actions, and including remote variables
+    and variables from varfiles. This is useful for seeing where variables are set and what value they resolve to when using template strings.
 
     Note that by default, template strings are not resolved for action-level variables. To resolve all template
     strings, use the \`--resolve=full\` option. Note that this may trigger actions being executed in case a given
     action references the runtime output of another in its \`variables\` field.
 
     Examples:
-        garden variables list  # list all variables
-        garden variables list --resolve full # list all variables and resolve template strings, including runtime outputs
-        garden variables list --filter-actions build.api,deploy.api # list variables for the Build api and Deploy api actions
+        garden variables list                                                         # list all variables and pretty print results
+        garden variables list --resolve full                                          # list all variables and resolve template strings, including runtime outputs
+        garden variables list --filter-actions build.api --filtera-actions deploy.api # list variables for the Build api and Deploy api actions
+        garden variables list --output json                                           # return variables as a JSON object, useful for scripting
 
   `
 
@@ -126,14 +127,19 @@ export class GetVariablesCommand extends Command<{}, Opts> {
       const filtered = filterDisableFromConfigDump(config)
       config.actionConfigs = filtered.actionConfigs
     }
-    const filterOnActions = (opts["filter-actions"] || []).map((filter: string) => {
-      const [kind, name] = filter.split(".")
-      if (!kind || !name) {
+
+    const filterOnActions = (opts["filter-actions"] || []).map((actionRef: string) => {
+      try {
+        const parsed = parseActionReference(actionRef)
+        return parsed
+      } catch (_err) {
         throw new ParameterError({
-          message: `Invalid --filter-action parameter. Expected format <actionKind>.<actionName> but got ${filter}.`,
+          message: dedent`
+            Invalid --filter-action parameter. Expected format <kind>.<name> where <kind> is one of ${getActionKindsNaturalList()} and <name> is
+            a valid name of an action but got ${actionRef}.
+          `,
         })
       }
-      return { kind, name }
     })
 
     const variableListIds = parseVariablesFromConfig(config.variablesFrom)

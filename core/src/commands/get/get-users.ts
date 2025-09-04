@@ -13,7 +13,7 @@ import { dedent, renderTable } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { joi, joiArray } from "../../config/common.js"
 import { ConfigurationError } from "../../exceptions.js"
-import { noApiMsg, throwIfLegacyCloud } from "../helpers.js"
+import { getCloudListCommandBaseDescription, noApiMsg, throwIfLegacyCloud } from "../helpers.js"
 
 const getUsersOpts = {}
 
@@ -25,7 +25,11 @@ export class GetUsersCommand extends Command<{}, Opts> {
   emoji = "👤"
 
   override description = dedent`
-    List the users for this organization.
+    ${getCloudListCommandBaseDescription("users")}
+
+    Examples:
+        garden get users                # list users and pretty print results
+        garden get users --output json  # returns users as a JSON object, useful for scripting
   `
 
   override options = getUsersOpts

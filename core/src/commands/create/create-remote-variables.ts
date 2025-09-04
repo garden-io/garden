@@ -12,7 +12,7 @@ import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources, throwIfLegacyCloud } from "../helpers.js"
 import { dedent } from "../../util/string.js"
-import { PathParameter, StringParameter, StringsParameter, BooleanParameter } from "../../cli/params.js"
+import { PathParameter, StringParameter, StringsParameter, BooleanParameter, StringOption } from "../../cli/params.js"
 import { joi, joiArray } from "../../config/common.js"
 import { makeDocsLinkPlain } from "../../docs/common.js"
 
@@ -33,12 +33,12 @@ export const createRemoteVariablesArgs = {
 }
 
 export const createRemoteVariablesOpts = {
-  "scope-to-user-id": new StringParameter({
+  "scope-to-user-id": new StringOption({
     help: dedent`
       Scope the variable to a user with the given ID. User scoped variables must be scoped to an environment as well.
     `,
   }),
-  "scope-to-env": new StringParameter({
+  "scope-to-env": new StringOption({
     help: dedent`
       Scope the variable to an environment. Note that this does not default to the environment
       that the command runs in (i.e. the one set via the --env flag) and that you need to set this explicitly if
@@ -54,10 +54,10 @@ export const createRemoteVariablesOpts = {
     help: "Store the variable as an encrypted secret. Defaults to true.",
     defaultValue: true,
   }),
-  "description": new StringParameter({
+  "description": new StringOption({
     help: "Description for the variable.",
   }),
-  "expires-at": new StringParameter({
+  "expires-at": new StringOption({
     help: "ISO 8601 date string for when the variable expires.",
   }),
 }
@@ -84,18 +84,18 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
   override description = dedent`
     Create remote variables in Garden Cloud. Variables belong to variable lists, which you can get via the
     \`garden get variable-lists\` command, and can optionally be scoped to an environment,
-    or an environment and a user.
+    or an environment and a user. The variable lists themselves are also created in Garden Cloud.
 
     To scope variables to a user, you will need the user's ID which you can get from the
     \`garden get users\` command.
 
-    You can optionally read the variables from a file.
+    You can optionally read the variables from a .env formatted file using --from-file.
 
     Examples:
         garden create remote-variables varlist_123 DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two variables
         garden create remote-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci    # create a variable and scope it to the ci environment
         garden create remote-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci --scope-to-user <user-id>  # create a variable and scope it to the ci environment and user
-        garden create remote-variables varlist_123 --from-file /path/to/variables.txt  # create variables from the key value pairs in the variables.txt file
+        garden create remote-variables varlist_123 --from-file /path/to/variables.env  # create variables from the key value pairs in the variables.env file
         garden create remote-variables varlist_123 SECRET_KEY=my-secret --secret=false  # create a non-secret variable
 
     See the [Variables and Templating guide](${makeDocsLinkPlain`features/variables-and-templating`}) for more information.
@@ -132,12 +132,12 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
       throw new ConfigurationError({ message: noApiMsg("create", "variables") })
     }
 
-    const envName = opts["scope-to-env"] as string | undefined
-    const userId = opts["scope-to-user-id"] as string | undefined
-    const variablesFilePath = opts["from-file"] as string | undefined
-    const isSecret = opts["secret"] as boolean | undefined
-    const description = opts["description"] as string | undefined
-    const expiresAt = opts["expires-at"] as string | undefined
+    const envName = opts["scope-to-env"]
+    const userId = opts["scope-to-user-id"]
+    const variablesFilePath = opts["from-file"]
+    const isSecret = opts["secret"]
+    const description = opts["description"]
+    const expiresAt = opts["expires-at"]
     const variableListId = args["variable-list-id"]
 
     if (userId !== undefined && !envName) {
