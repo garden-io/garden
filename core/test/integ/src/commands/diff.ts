@@ -13,6 +13,7 @@ import { makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../hel
 import stripAnsi from "strip-ansi"
 import { GitCli } from "../../../../src/vcs/git.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
+import { join } from "node:path"
 
 describe("DiffCommand", () => {
   const cmd = new DiffCommand()
@@ -143,5 +144,36 @@ describe("DiffCommand", () => {
     const addedFiles = files.filter((file) => file.status === "added")
     expect(addedFiles).to.have.length(1)
     expect(addedFiles[0].path).to.equal("test.txt")
+  })
+
+  context("with a project root in a repo subdirectory", () => {
+    let tmpDirSub: TempDirectory
+    let garden: TestGarden
+
+    before(async () => {
+      tmpDirSub = await makeTempDir()
+      let gitCli = new GitCli({ log, cwd: tmpDirSub.path })
+      await gitCli.exec("clone", "https://github.com/garden-io/quickstart-example.git", tmpDirSub.path)
+      gitCli = new GitCli({ log, cwd: tmpDirSub.path })
+      await gitCli.exec("checkout", "diff-test-sub-base")
+      await gitCli.exec("checkout", "diff-test-sub-changes")
+      const projectRoot = join(tmpDirSub.path, "project")
+      garden = await makeTestGarden(projectRoot, { noTempDir: true, noCache: true })
+    })
+
+    after(async () => {
+      await tmpDirSub.cleanup()
+    })
+
+    it("compares with a different branch", async () => {
+      const { result } = await cmd.action({
+        garden,
+        log: garden.log,
+        args: {},
+        opts: { ...defaultOpts, branch: "diff-test-sub-base" },
+      })
+
+      expect(stripAnsi(result.projectConfig.resolvedVariablesDiff ?? "")).to.include('+  "postgresPassword": "foo"')
+    })
   })
 })

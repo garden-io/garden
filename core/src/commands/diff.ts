@@ -32,7 +32,7 @@ import fsExtra from "fs-extra"
 import { deepResolveContext } from "../config/template-contexts/base.js"
 import { sanitizeValue } from "../util/logging.js"
 import stringWidth from "string-width"
-import { relative } from "path"
+import { relative, resolve, sep } from "path"
 const { readFile } = fsExtra
 
 // TODO: Break this out into smaller files
@@ -217,6 +217,7 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
 
     const gitCli = new GitCli({ log, cwd: gardenA.projectRoot })
     const repoRoot = await gitCli.getRepositoryRoot()
+    const projectRootRelative = relative(repoRoot, gardenA.projectRoot)
 
     // Check if the reference is a branch
     let commitish: string | null = null
@@ -257,7 +258,7 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
       // TODO: ensure cleanup of the temporary directory
       const tmpDir = await tmp.dir({ prefix: "garden-diff-" })
       await gitCli.exec("clone", repoRoot, tmpDir.path)
-      projectRootB = tmpDir.path
+      projectRootB = resolve(tmpDir.path, ...projectRootRelative.split(sep))
 
       const gitCliClone = new GitCli({ log, cwd: tmpDir.path })
       await gitCliClone.exec("checkout", commitish)
