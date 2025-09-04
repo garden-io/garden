@@ -565,7 +565,7 @@ export const kubernetesConfigBase = () =>
             annotations: annotationsSchema().description(
               "Specify annotations to apply to each garden-util pod and deployments."
             ),
-            nodeSelector: joiStringMap(joi.string().empty("")).description(
+            nodeSelector: joiStringMap(joi.string().allow("")).description(
               "Specify the nodeSelector constraints for each garden-util pod."
             ),
           }),
