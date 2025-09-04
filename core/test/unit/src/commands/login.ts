@@ -21,7 +21,7 @@ import { getLogMessages } from "../../../../src/util/testing.js"
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
 import type { Garden } from "../../../../src/index.js"
-import { FakeGardenCloudApi } from "../../../helpers/api.js"
+import { FakeGardenCloudApiLegacy } from "../../../helpers/api.js"
 import dedent from "dedent"
 import { uuidv4 } from "../../../../src/util/random.js"
 
@@ -303,7 +303,7 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
         globalConfigStore,
         // FakeCloudApi bypasses the login and returns mock project data
-        overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
+        overrideCloudApiLegacyFactory: FakeGardenCloudApiLegacy.factory,
       })
 
       // Mock this because login command calls it
@@ -323,7 +323,7 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {}, rawArgs: [], isCustomCommand: true },
         globalConfigStore,
         // FakeCloudApi bypasses the login and returns mock project data
-        overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
+        overrideCloudApiLegacyFactory: FakeGardenCloudApiLegacy.factory,
       })
 
       // Mock this because login command calls it

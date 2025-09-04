@@ -15,13 +15,13 @@ const Ajv = ajvPackage.default
 import addFormatsPackage from "ajv-formats"
 
 const addFormats = addFormatsPackage.default
-import { splitLast, deline, dedent, naturalList, titleize } from "../util/string.js"
+import { splitLast, deline, dedent, titleize } from "../util/string.js"
 import cloneDeep from "fast-copy"
 import { isArray, isPlainObject, isString, mapValues, memoize } from "lodash-es"
 import { joiPathPlaceholder } from "./validation.js"
 import { GardenApiVersion } from "../constants.js"
 import type { ActionKind } from "../actions/types.js"
-import { actionKinds, actionKindsLower } from "../actions/types.js"
+import { actionKinds, actionKindsLower, getActionKindsNaturalList } from "../actions/types.js"
 import { ConfigurationError, InternalError } from "../exceptions.js"
 import type { ConfigContextType } from "./template-contexts/base.js"
 import { z } from "zod"
@@ -528,15 +528,13 @@ export interface ActionReference<K extends ActionKind = ActionKind> {
 }
 
 const actionRefParseError = (reference: any) => {
-  const validActionKinds = naturalList(actionKindsLower, { trailingWord: "or", quote: true })
-
   const refStr = JSON.stringify(reference)
 
   return new ConfigurationError({
     message: deline`
       Could not parse ${refStr} as a valid action reference.
       An action reference should be a "<kind>.<name>" string, where <kind> is one of
-      ${validActionKinds} and <name> is a valid name of an action. You may also specify
+      ${getActionKindsNaturalList()} and <name> is a valid name of an action. You may also specify
       an object with separate kind and name fields.`,
   })
 }

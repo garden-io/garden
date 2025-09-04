@@ -1795,9 +1795,12 @@ providers:
         # Set to true if the link should open in a new browser tab/window.
         newWindow:
 
-# All configured variables in the environment.
+# All configured project variables in the environment.
 variables:
   <name>:
+
+# The 'variablesFrom' config
+variablesFrom:
 
 # All action configs in the project.
 actionConfigs:
@@ -4374,6 +4377,92 @@ Note that this may include sensitive data, depending on the provider and your co
   | `workflows` | No | Specify workflow(s) to list. You may specify multiple workflows, separated by spaces.
 
 
+
+### garden get variables
+
+**Get variables**
+
+List variables in this project, both those those defined in the project configuration and in individual actions, and including remote variables
+and variables from varfiles. This is useful for seeing where variables are set and what value they resolve to when using template strings.
+
+Note that by default, template strings are not resolved for action-level variables. To resolve all template
+strings, use the `--resolve=full` option. Note that this may trigger actions being executed in case a given
+action references the runtime output of another in its `variables` field.
+
+Examples:
+    garden variables list                                                         # list all variables and pretty print results
+    garden variables list --resolve full                                          # list all variables and resolve template strings, including runtime outputs
+    garden variables list --filter-actions build.api --filtera-actions deploy.api # list variables for the Build api and Deploy api actions
+    garden variables list --output json                                           # return variables as a JSON object, useful for scripting
+
+#### Usage
+
+    garden get variables [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--resolve` |  | `full` `partial`  | Choose level of resolution of variables. Defaults to &#x60;partial&#x60; which means that template strings in
+action-level variables are not resolved and the raw template string is returned. Use &#x60;--resolve&#x3D;full&#x60;
+to resolve the full value but note that this may trigger actions being executed in case a given action
+references the runtime output of another in its &#x60;variables&#x60; field.
+  | `--exclude-disabled` |  | boolean | Exclude disabled actions and from output.
+  | `--filter-actions` |  | array:string | Filter by action using &lt;actionKind&gt;.&lt;actionName&gt;. You may specify multiple names, separated by spaces. For
+example &#x60;--filter-actions build.api --filter-actions deploy.api&quot;&#x60; (or &#x60;--filter-actions build.api,deploy.api&#x60;).
+
+#### Outputs
+
+```yaml
+# A list of variables
+variables:
+  - name:
+
+    value:
+
+    source:
+
+    isSecret:
+
+    details:
+
+    action:
+
+    path:
+```
+
+### garden get users
+
+**Get users**
+
+List the users that belong to this Garden Cloud organization (i.e. in https://app.garden.io). Only relevant
+for projects that are connected to Garden Cloud and have an `organizationId` set in the project configuration.
+
+See the [Connecting a project guide](https://docs.garden.io/cedar-0.14/guides/connecting-project) to learn more about
+connecting projects to Garden Cloud.
+
+Examples:
+    garden get users                # list users and pretty print results
+    garden get users --output json  # returns users as a JSON object, useful for scripting
+
+#### Usage
+
+    garden get users 
+
+
+#### Outputs
+
+```yaml
+# A list of users
+users:
+  - name:
+
+    id:
+
+    email:
+
+    role:
+```
 
 ### garden link source
 

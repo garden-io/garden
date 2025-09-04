@@ -82,10 +82,11 @@ import { serialiseUnresolvedTemplates } from "../../../src/template/types.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 import { deepResolveContext } from "../../../src/config/template-contexts/base.js"
 import { VariablesContext } from "../../../src/config/template-contexts/variables.js"
-import { GardenCloudApi, GardenCloudTRPCError } from "../../../src/cloud/api/api.js"
+import { GardenCloudTRPCError } from "../../../src/cloud/api/api.js"
 import type { ApiTrpcClient } from "../../../src/cloud/api/trpc.js"
 import { TRPCClientError } from "@trpc/client"
 import { parseTemplateString } from "../../../src/template/templated-strings.js"
+import { makeFakeCloudApi } from "../../helpers/api.js"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -682,7 +683,7 @@ describe("Garden", () => {
       let configStoreTmpDir: tmp.DirectoryResult
       const log = getRootLogger().createLog()
 
-      const makeCloudApi = async (domain: string) => {
+      const makeCloudApiLegacy = async (domain: string) => {
         const globalConfigStore = new GlobalConfigStore(configStoreTmpDir.path)
         const validityMs = 604800000
         await globalConfigStore.set("clientAuthTokens", domain, {
@@ -745,7 +746,7 @@ describe("Garden", () => {
         scope.get("/api/token/verify").reply(200, {})
         scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
 
-        const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
+        const overrideCloudApiFactory = async () => await makeCloudApiLegacy(fakeCloudDomain)
 
         const garden = await TestGarden.factory(pathFoo, {
           config,
@@ -766,7 +767,7 @@ describe("Garden", () => {
           .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
           .reply(200, { data: { SECRET_KEY: "secret-val" } })
 
-        const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
+        const overrideCloudApiFactory = async () => await makeCloudApiLegacy(fakeCloudDomain)
 
         const garden = await TestGarden.factory(pathFoo, {
           config,
@@ -782,7 +783,7 @@ describe("Garden", () => {
         scope.get(`/api/projects/uid/${projectId}`).reply(500, {})
         log.root["entries"] = []
 
-        const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
+        const overrideCloudApiFactory = async () => await makeCloudApiLegacy(fakeCloudDomain)
 
         let error: Error | undefined
         try {
@@ -815,7 +816,7 @@ describe("Garden", () => {
         scope.get(`/api/projects/uid/${projectId}`).reply(404, {})
         log.root["entries"] = []
 
-        const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
+        const overrideCloudApiFactory = async () => await makeCloudApiLegacy(fakeCloudDomain)
 
         let error: Error | undefined
         try {
@@ -852,7 +853,6 @@ describe("Garden", () => {
       })
     })
     context("user is logged in to Garden Cloud (v2, organizationId is set)", () => {
-      const domain = "https://example.com"
       const log = getRootLogger().createLog()
       const envName = "default"
       const organizationId = "fake-org-id"
@@ -872,27 +872,14 @@ describe("Garden", () => {
         await configStoreTmpDir.cleanup()
       })
 
-      const makeCloudApi = async (trpcClient: ApiTrpcClient) => {
-        const globalConfigStore = new GlobalConfigStore(configStoreTmpDir.path)
-        const validityMs = 604800000
-        await globalConfigStore.set("clientAuthTokens", domain, {
-          token: "fake-token",
-          refreshToken: "fake-refresh-token",
-          validity: add(new Date(), { seconds: validityMs / 1000 }),
-        })
-        return new GardenCloudApi({
-          log,
-          domain,
-          globalConfigStore,
-          organizationId,
-          authToken: "fake-auth-token",
-          __trpcClientOverrideForTesting: trpcClient,
-        })
-      }
-
       it("should use the correct cloud API class", async () => {
         const fakeTrpcClient = {} as ApiTrpcClient
-        const overrideCloudApiFactory = async () => await makeCloudApi(fakeTrpcClient)
+        const overrideCloudApiFactory = async () =>
+          await makeFakeCloudApi({
+            trpcClient: fakeTrpcClient,
+            configStoreTmpDir,
+            log,
+          })
 
         const garden = await TestGarden.factory(pathFoo, {
           config,
@@ -906,7 +893,12 @@ describe("Garden", () => {
 
       it("should not attempt to fetch variables if feature flag not set", async () => {
         const fakeTrpcClient = {} as ApiTrpcClient
-        const overrideCloudApiFactory = async () => await makeCloudApi(fakeTrpcClient)
+        const overrideCloudApiFactory = async () =>
+          await makeFakeCloudApi({
+            trpcClient: fakeTrpcClient,
+            configStoreTmpDir,
+            log,
+          })
 
         const garden = await TestGarden.factory(pathFoo, {
           config,
@@ -946,7 +938,12 @@ describe("Garden", () => {
               },
             },
           }
-          const overrideCloudApiFactory = async () => await makeCloudApi(fakeTrpcClient as ApiTrpcClient)
+          const overrideCloudApiFactory = async () =>
+            await makeFakeCloudApi({
+              trpcClient: fakeTrpcClient as ApiTrpcClient,
+              configStoreTmpDir,
+              log,
+            })
 
           const garden = await TestGarden.factory(pathFoo, {
             config, // variablesFrom is not set
@@ -980,7 +977,12 @@ describe("Garden", () => {
               },
             },
           }
-          const overrideCloudApiFactory = async () => await makeCloudApi(fakeTrpcClient as ApiTrpcClient)
+          const overrideCloudApiFactory = async () =>
+            await makeFakeCloudApi({
+              trpcClient: fakeTrpcClient as ApiTrpcClient,
+              configStoreTmpDir,
+              log,
+            })
 
           const garden = await TestGarden.factory(pathFoo, {
             config: {
@@ -992,18 +994,8 @@ describe("Garden", () => {
           })
 
           expect(garden.secrets).to.eql({
-            variableA: {
-              value: "variable-a-val",
-              isSecret: true,
-              scopedAccountId: null,
-              scopedEnvironmentId: null,
-            },
-            variableB: {
-              value: "variable-b-val",
-              isSecret: true,
-              scopedAccountId: null,
-              scopedEnvironmentId: null,
-            },
+            variableA: "variable-a-val",
+            variableB: "variable-b-val",
           })
         })
         it("should log an error and throw if fetching variables fails", async () => {
@@ -1026,10 +1018,18 @@ describe("Garden", () => {
             },
           }
           const overrideCloudApiFactoryThrowTrpcError = async () =>
-            await makeCloudApi(fakeTrpcClientThatThrowsTrpcError as ApiTrpcClient)
+            await makeFakeCloudApi({
+              trpcClient: fakeTrpcClientThatThrowsTrpcError as ApiTrpcClient,
+              configStoreTmpDir,
+              log,
+            })
 
           const overrideCloudApiFactoryThrowError = async () =>
-            await makeCloudApi(fakeTrpcClientThatThrowsError as ApiTrpcClient)
+            await makeFakeCloudApi({
+              trpcClient: fakeTrpcClientThatThrowsError as ApiTrpcClient,
+              configStoreTmpDir,
+              log,
+            })
 
           getRootLogger()["entries"] = []
 

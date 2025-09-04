@@ -18,7 +18,6 @@ import type {
   GetActionResultResponse,
   RegisterCloudBuildRequest,
   RegisterCloudBuildResponse,
-  RouterOutput,
 } from "./trpc.js"
 import { describeTRPCClientError, getAuthenticatedApiClient } from "./trpc.js"
 import type { GardenErrorParams } from "../../exceptions.js"
@@ -33,7 +32,7 @@ import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-im
 import { createGrpcTransport } from "@connectrpc/connect-node"
 import { createClient } from "@connectrpc/connect"
 import { GardenEventIngestionService } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
-import type { ValueOf } from "../../util/util.js"
+import { parseVariablesFromConfig } from "../../config/project.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -59,8 +58,6 @@ export class GardenCloudTRPCError extends GardenCloudError {
     })
   }
 }
-
-type Secret = ValueOf<RouterOutput["variableList"]["getValues"]>
 
 type GardenCloudApiParams = {
   log: Log
@@ -93,7 +90,7 @@ export class GardenCloudApi {
   public readonly domain: string
   public readonly organizationId: string
   public readonly distroName: string
-  private readonly trpc: ApiTrpcClient
+  public readonly trpc: ApiTrpcClient
   private readonly globalConfigStore: GlobalConfigStore
   private authToken: string
 
@@ -355,10 +352,10 @@ export class GardenCloudApi {
     environmentName: string
     log: Log
   }) {
-    if (!variablesFrom) {
+    const variableListIds = parseVariablesFromConfig(variablesFrom)
+    if (variableListIds.length === 0) {
       return {}
     }
-    const variableListIds = typeof variablesFrom === "string" ? [variablesFrom] : variablesFrom
 
     log.info(`Fetching remote variables`)
     const reqs = variableListIds.map(async (variableListId, index) => {
@@ -388,15 +385,14 @@ export class GardenCloudApi {
 
     const allResults = (await Promise.all(reqs)).sort((r) => r.index)
 
-    const secrets = allResults.reduce(
-      (acc, value) => {
-        acc = { ...acc, ...value.result }
-        return acc
-      },
-      {} as { [key: string]: Secret }
-    )
+    const variables = allResults.reduce<Record<string, string>>((acc, value) => {
+      for (const [key, entry] of Object.entries(value.result)) {
+        acc[key] = entry.value
+      }
+      return acc
+    }, {})
 
-    return secrets
+    return variables
   }
 
   async revokeToken(clientAuthToken: ClientAuthToken, log: Log) {
