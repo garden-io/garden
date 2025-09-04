@@ -14,8 +14,9 @@ import { printHeader } from "../../../logger/util.js"
 import { dedent, deline, renderTable } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command, CommandGroup } from "../../base.js"
-import { noApiMsg, applyFilter } from "../helpers.js"
+import { applyFilter } from "../helpers.js"
 import { styles } from "../../../logger/styles.js"
+import { noApiMsg, throwIfNotLegacyCloud } from "../../helpers.js"
 
 // TODO: Add created at and updated at timestamps. Need to add it to the API response first.
 interface Groups {
@@ -60,6 +61,8 @@ export class GroupsListCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<Groups[]>> {
+    throwIfNotLegacyCloud(garden)
+
     const nameFilter = opts["filter-names"] || []
 
     const api = garden.cloudApiLegacy

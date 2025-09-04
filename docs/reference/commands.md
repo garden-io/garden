@@ -1382,6 +1382,59 @@ tasks:
     log:
 ```
 
+### garden diff
+
+**[EXPERIMENTAL] Compare the current working directory Garden project with the specified branch or commit.**
+
+**[EXPERIMENTAL] This command is still under development and may change in the future, including parameters and output format.**
+
+Compare the current working directory Garden project with the specified branch/commit, or with other differences (all specified via `--b-X` flags).
+
+Use this to understand the impact of your changes on action versions.
+
+In the output, "A" (e.g. "version A") refers to the current working directory project, and "B" refers to the project at the specified branch or commit. When something is reported as "added" (such as an action, file, new lines in a config etc.), it means it's present in the current project but not in the comparison project. Similarly, "removed" means it's present in the comparison project but not in the current project.
+
+The different `--b-X` flags define the comparison project (B). At least one of these flags must be specified, and they can be combined in any number of ways.
+
+When setting the `--b-X` flags, the values will be overridden in the comparison project (B). If you want to change variables or set a different environment in the _current_ project (A), you can use the normal `--var`, `--env` etc. flags. For example, if you want to test the impact of overriding a variable value for both sides, you can use the `--var` flag to override the value in the current project (A), and then use the `--b-var` flag to override the value in the comparison project (B), e.g. `--b-var some-var=foo --var some-var=bar`.
+
+In most cases you should use this with the `--resolve` flag to ensure that the comparison is complete, but take caution as it may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the `--action` flag to only diff specific actions.
+
+Examples:
+# compare the current default environment to the ci environment (assuming one is defined in the project configuration)
+garden diff --b-env ci
+# compare the current default environment to the ci environment and fully resolve values for a complete comparison (note that this may trigger actions being executed)
+garden diff --b-env ci --resolve
+# compare the staging env to the ci env
+garden diff --env staging --b-env ci
+# compare the current branch to other-branch (using the default environment in both cases)
+garden diff --b-branch other-branch
+# compare the current branch's default environment to other-branch's ci environment
+garden diff --b-branch other-branch --b-env ci
+# compare the resolved api Build action between the default environment and ci
+garden diff --b-env ci --action build.api --resolve
+# compare the current default environment to the ci environment and override the HOSTNAME variable in the ci environment
+garden diff --b-env ci --b-var HOSTNAME=remote.acme
+# compare the current default environment to the ci environment and override the HOSTNAME variable in both environments
+garden diff --var HOSTNAME=local.acme --b-env ci --b-var HOSTNAME=remote.acme
+
+#### Usage
+
+    garden diff [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--b-commit` |  | string | Check out the specified commit in the comparison project (B).
+  | `--b-branch` |  | string | Check out the specified branch in the comparison project (B).
+  | `--b-env` |  | string | Override the Garden environment for the comparison project (B).
+  | `--b-local-env-var` |  | array:tag | Override a local environment variable in the comparison project (B), as templated using ${local.env.*}, with the specified value. This should be formatted as &lt;VAR_NAME&gt;:&lt;VALUE&gt;, e.g. &quot;MY_VAR&#x3D;my-value&quot;. You can specify multiple variables by repeating the flag.
+  | `--b-var` |  | array:tag | Override a Garden variable in the comparison project (B) with the specified value, formatted as &lt;VAR_NAME&gt;:&lt;VALUE&gt;, e.g. &quot;MY_VAR&#x3D;my-value&quot;. Analogous to the --var global flag in the Garden CLI. You can specify multiple variables by repeating the flag.
+  | `--resolve` |  | boolean | Fully resolve each action before comparing. Note that this may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the --action flag to only diff specific actions.
+  | `--action` |  | array:string | Specify an action to diff, as &lt;kind&gt;.&lt;name&gt;. Can be specified multiple times. If none is specified, all actions will be compared.
+
+
 ### garden exec
 
 **Executes a command (such as an interactive shell) in a running service.**
@@ -1795,9 +1848,12 @@ providers:
         # Set to true if the link should open in a new browser tab/window.
         newWindow:
 
-# All configured variables in the environment.
+# All configured project variables in the environment.
 variables:
   <name>:
+
+# The 'variablesFrom' config
+variablesFrom:
 
 # All action configs in the project.
 actionConfigs:
@@ -4374,6 +4430,92 @@ Note that this may include sensitive data, depending on the provider and your co
   | `workflows` | No | Specify workflow(s) to list. You may specify multiple workflows, separated by spaces.
 
 
+
+### garden get variables
+
+**Get variables**
+
+List variables in this project, both those those defined in the project configuration and in individual actions, and including remote variables
+and variables from varfiles. This is useful for seeing where variables are set and what value they resolve to when using template strings.
+
+Note that by default, template strings are not resolved for action-level variables. To resolve all template
+strings, use the `--resolve=full` option. Note that this may trigger actions being executed in case a given
+action references the runtime output of another in its `variables` field.
+
+Examples:
+    garden variables list                                                         # list all variables and pretty print results
+    garden variables list --resolve full                                          # list all variables and resolve template strings, including runtime outputs
+    garden variables list --filter-actions build.api --filtera-actions deploy.api # list variables for the Build api and Deploy api actions
+    garden variables list --output json                                           # return variables as a JSON object, useful for scripting
+
+#### Usage
+
+    garden get variables [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--resolve` |  | `full` `partial`  | Choose level of resolution of variables. Defaults to &#x60;partial&#x60; which means that template strings in
+action-level variables are not resolved and the raw template string is returned. Use &#x60;--resolve&#x3D;full&#x60;
+to resolve the full value but note that this may trigger actions being executed in case a given action
+references the runtime output of another in its &#x60;variables&#x60; field.
+  | `--exclude-disabled` |  | boolean | Exclude disabled actions and from output.
+  | `--filter-actions` |  | array:string | Filter by action using &lt;actionKind&gt;.&lt;actionName&gt;. You may specify multiple names, separated by spaces. For
+example &#x60;--filter-actions build.api --filter-actions deploy.api&quot;&#x60; (or &#x60;--filter-actions build.api,deploy.api&#x60;).
+
+#### Outputs
+
+```yaml
+# A list of variables
+variables:
+  - name:
+
+    value:
+
+    source:
+
+    isSecret:
+
+    details:
+
+    action:
+
+    path:
+```
+
+### garden get users
+
+**Get users**
+
+List the users that belong to this Garden Cloud organization (i.e. in https://app.garden.io). Only relevant
+for projects that are connected to Garden Cloud and have an `organizationId` set in the project configuration.
+
+See the [Connecting a project guide](https://docs.garden.io/cedar-0.14/guides/connecting-project) to learn more about
+connecting projects to Garden Cloud.
+
+Examples:
+    garden get users                # list users and pretty print results
+    garden get users --output json  # returns users as a JSON object, useful for scripting
+
+#### Usage
+
+    garden get users 
+
+
+#### Outputs
+
+```yaml
+# A list of users
+users:
+  - name:
+
+    id:
+
+    email:
+
+    role:
+```
 
 ### garden link source
 

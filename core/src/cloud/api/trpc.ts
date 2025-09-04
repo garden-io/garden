@@ -7,7 +7,7 @@
  */
 
 import type { TRPCClient } from "@trpc/client"
-import { TRPCClientError, createTRPCClient, httpLink, loggerLink } from "@trpc/client"
+import { TRPCClientError, createTRPCClient, httpLink, loggerLink, retryLink } from "@trpc/client"
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import superjson from "superjson"
 import type { AppRouter } from "./trpc-schema.js"
@@ -49,6 +49,19 @@ function getTrpcConfig({ hostUrl, tokenGetter }: TrpcConfigParams) {
     links: [
       loggerLink({
         enabled: () => false,
+      }),
+      retryLink({
+        retry(opts) {
+          if (opts.error.data && opts.error.data.code !== "INTERNAL_SERVER_ERROR") {
+            return false
+          }
+          if (opts.op.type !== "query") {
+            return false
+          }
+          return opts.attempts <= 3
+        },
+        // Double every attempt, with max of 30 seconds (starting at 1 second)
+        retryDelayMs: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       }),
       httpLink({
         transformer: superjson,

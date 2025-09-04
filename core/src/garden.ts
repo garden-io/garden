@@ -26,6 +26,7 @@ import type {
   OutputSpec,
   ProxyConfig,
   UnresolvedProviderConfig,
+  VariablesFromConfig,
 } from "./config/project.js"
 import {
   resolveProjectConfig,
@@ -203,6 +204,7 @@ export interface GardenOpts {
   plugins?: RegisterPluginParam[]
   sessionId: string
   parentSessionId: string | undefined
+  localEnvOverrides?: StringMap
   variableOverrides?: PrimitiveMap
   // used in tests
   overrideCloudApiLegacyFactory?: GardenCloudApiLegacyFactory
@@ -217,7 +219,7 @@ export interface GardenParams {
   cloudApi?: GardenCloudApi
   cloudDomain: string
   dotIgnoreFile: string
-  variablesFrom: string | string[]
+  variablesFrom: VariablesFromConfig
   proxy: ProxyConfig
   environmentName: string
   resolvedDefaultNamespace: string | null
@@ -240,6 +242,7 @@ export interface GardenParams {
   projectSources?: SourceConfig[]
   providerConfigs: UnresolvedProviderConfig[]
   variables: VariablesContext
+  localEnvOverrides?: StringMap
   variableOverrides: DeepPrimitiveMap
   secrets: StringMap
   sessionId: string
@@ -332,6 +335,7 @@ export class Garden {
    */
   public readonly namespace: string
   public readonly variables: VariablesContext
+  public readonly localEnvOverrides: StringMap
   // Any variables passed via the `--var` CLI option (maintained here so that they can be used during module resolution
   // to override module variables and module varfiles).
   public readonly variableOverrides: DeepPrimitiveMap
@@ -346,7 +350,7 @@ export class Garden {
   private readonly providerConfigs: UnresolvedProviderConfig[]
   public readonly workingCopyId: string
   public readonly dotIgnoreFile: string
-  public readonly variablesFrom: string | string[]
+  public readonly variablesFrom: VariablesFromConfig
   public readonly proxy: ProxyConfig
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
@@ -358,6 +362,7 @@ export class Garden {
   public readonly commandInfo: CommandInfo
   public readonly monitors: MonitorManager
   public readonly nestedSessions: Map<string, Garden>
+  public readonly apiVersion: GardenApiVersion
 
   /**
    * Used internally for introspection
@@ -386,6 +391,7 @@ export class Garden {
     this.projectSources = params.projectSources || []
     this.providerConfigs = params.providerConfigs
     this.variables = params.variables
+    this.localEnvOverrides = params.localEnvOverrides || {}
     this.variableOverrides = params.variableOverrides
     this.secrets = params.secrets
     this.workingCopyId = params.workingCopyId
@@ -407,6 +413,7 @@ export class Garden {
     this.cloudDomain = params.cloudDomain
     this.cloudApiLegacy = params.cloudApiLegacy
     this.cloudApi = params.cloudApi
+    this.apiVersion = params.projectConfig.apiVersion
 
     this.asyncLock = new AsyncLock()
 
@@ -1788,7 +1795,8 @@ export class Garden {
   }
 
   /**
-   * This dumps the full project configuration including all modules.
+   * This dumps the full project configuration (including all modules) but filters out internal fields and the raw project config.
+   *
    * Set includeDisabled=true to include disabled modules, services, tasks and tests.
    * Set partial=true to avoid resolving providers. If set, includeDisabled is implicitly true.
    */
@@ -1807,6 +1815,58 @@ export class Garden {
     resolveProviders?: boolean
     resolveWorkflows?: boolean
   }): Promise<ConfigDump> {
+    const configDump = await this.dumpConfigWithInteralFields({
+      log,
+      graph,
+      includeDisabled,
+      resolveGraph,
+      resolveProviders,
+      resolveWorkflows,
+    })
+
+    const filteredActionConfigs = <ActionConfigMapForDump>(
+      mapValues(configDump.actionConfigs, (configsForKind) => mapValues(configsForKind, omitInternal))
+    )
+
+    return omit(
+      {
+        ...configDump,
+        providers: configDump.providers.map((p) => {
+          // Providers are types Provider | unknown. Not sure why.
+          if (typeof p === "object" && p !== null && "projectConfig" in p) {
+            return omitInternal(p)
+          }
+          return p
+        }),
+        actionConfigs: filteredActionConfigs,
+        moduleConfigs: configDump.moduleConfigs.map(omitInternal),
+        workflowConfigs: sortBy(configDump.workflowConfigs.map(omitInternal), "name"),
+      },
+      "projectConfig"
+    )
+  }
+
+  /**
+   * Dump the full project configuration (including all modules) with internal fields and the raw project config.
+   *
+   * Set includeDisabled=true to include disabled modules, services, tasks and tests.
+   * Set partial=true to avoid resolving providers. If set, includeDisabled is implicitly true.
+   */
+  public async dumpConfigWithInteralFields({
+    log,
+    graph,
+    includeDisabled = false,
+    resolveGraph = true,
+    resolveProviders = true,
+    resolveWorkflows = true,
+  }: {
+    log: Log
+    graph?: ConfigGraph
+    includeDisabled?: boolean
+    resolveGraph?: boolean
+    resolveProviders?: boolean
+    resolveWorkflows?: boolean
+  }): Promise<ConfigDumpWithInternalFields> {
     let providers: (unknown | OmitInternalConfig<Provider>)[] = []
     let moduleConfigs: ModuleConfig[]
     let workflowConfigs: WorkflowConfig[]
@@ -1816,11 +1876,10 @@ export class Garden {
       Run: {},
       Test: {},
     }
-
     await this.scanAndAddConfigs()
 
     if (resolveProviders) {
-      providers = Object.values(await this.resolveProviders({ log })).map((c) => omitInternal(c))
+      providers = Object.values(await this.resolveProviders({ log }))
     } else {
       providers = this.getUnresolvedProviderConfigs().map((p) => serialiseUnresolvedTemplates(p.unresolvedConfig))
     }
@@ -1851,10 +1910,6 @@ export class Garden {
 
     const allEnvironmentNames = this.projectConfig.environments.map((c) => c.name)
 
-    const filteredActionConfigs = <ActionConfigMapForDump>(
-      mapValues(actionConfigs, (configsForKind) => mapValues(configsForKind, omitInternal))
-    )
-
     return {
       environmentName: this.environmentName,
       allAvailablePlugins: this.getUnresolvedProviderConfigs().map((p) => p.name),
@@ -1862,15 +1917,17 @@ export class Garden {
       namespace: this.namespace,
       providers,
       variables: deepResolveContext("project variables", this.variables),
-      actionConfigs: filteredActionConfigs,
-      moduleConfigs: moduleConfigs.map(omitInternal),
-      workflowConfigs: sortBy(workflowConfigs.map(omitInternal), "name"),
+      actionConfigs,
+      moduleConfigs,
+      workflowConfigs: sortBy(workflowConfigs, "name"),
       projectName: this.projectName,
       projectRoot: this.projectRoot,
       projectId: this.projectId,
       domain: this.cloudDomain,
       sources: this.projectSources,
       suggestedCommands: await this.getSuggestedCommands(),
+      variablesFrom: this.projectConfig.variablesFrom,
+      projectConfig: this.projectConfig,
     }
   }
 
@@ -1972,6 +2029,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
       vcsInfo,
       username: _username,
       commandInfo,
+      localEnvOverrides: opts.localEnvOverrides || {},
     }),
     opts: {},
   }) as string
@@ -2070,7 +2128,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     const loggedIn = !!cloudApiLegacy || !!cloudApi
 
-    let secrets: StringMap | {} = {}
+    let secrets: StringMap = {}
     if (cloudApiLegacy) {
       const initRes = await initCloudProject({
         cloudApiLegacy,
@@ -2102,6 +2160,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       backendType: getBackendType(projectConfig),
       secrets,
       commandInfo,
+      localEnvOverrides: opts.localEnvOverrides || {},
     })
 
     projectConfig = resolveProjectConfig({
@@ -2125,6 +2184,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       cloudBackendDomain,
       secrets,
       commandInfo,
+      localEnvOverrides: opts.localEnvOverrides || {},
     })
 
     const { providers, production } = pickedEnv
@@ -2177,6 +2237,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       environmentName,
       resolvedDefaultNamespace: pickedEnv.defaultNamespace,
       namespace,
+      localEnvOverrides: opts.localEnvOverrides || {},
       variables,
       variableOverrides,
       secrets,
@@ -2374,22 +2435,34 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   return DummyGarden.factory(root, { skipCloudConnect: true, ...gardenOpts })
 }
 
-export interface ConfigDump {
+interface BaseConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
   allAvailablePlugins: string[]
   namespace: string
-  providers: (OmitInternalConfig<Provider> | unknown)[]
   variables: ResolvedTemplate
-  actionConfigs: ActionConfigMapForDump
-  moduleConfigs: OmitInternalConfig<ModuleConfig>[]
-  workflowConfigs: OmitInternalConfig<WorkflowConfig>[]
   projectName: string
   projectRoot: string
   projectId?: string
   domain?: string
   sources: SourceConfig[]
   suggestedCommands: SuggestedCommand[]
+  variablesFrom: VariablesFromConfig
+}
+
+export interface ConfigDumpWithInternalFields extends BaseConfigDump {
+  providers: (Provider | unknown)[]
+  actionConfigs: ActionConfigMap
+  moduleConfigs: ModuleConfig[]
+  workflowConfigs: WorkflowConfig[]
+  projectConfig: ProjectConfig
+}
+
+export interface ConfigDump extends BaseConfigDump {
+  providers: (OmitInternalConfig<Provider> | unknown)[]
+  actionConfigs: ActionConfigMapForDump
+  moduleConfigs: OmitInternalConfig<ModuleConfig>[]
+  workflowConfigs: OmitInternalConfig<WorkflowConfig>[]
 }
 
 export interface GetConfigGraphParams {

@@ -605,13 +605,20 @@ export abstract class BaseAction<
     return false
   }
 
-  getDependency<K extends ActionKind>(ref: ActionReference<K>, opts?: GetActionOpts) {
+  getDependencyReference(ref: ActionReference) {
     for (const dep of this.dependencies) {
       if (actionRefMatches(dep, ref)) {
-        return <PickTypeByKind<K, BuildAction, DeployAction, RunAction, TestAction>>this.graph.getActionByRef(ref, opts)
+        return dep
       }
     }
+    return null
+  }
 
+  getDependency<K extends ActionKind>(ref: ActionReference<K>, opts?: GetActionOpts) {
+    const dep = this.getDependencyReference(ref)
+    if (dep) {
+      return <PickTypeByKind<K, BuildAction, DeployAction, RunAction, TestAction>>this.graph.getActionByRef(ref, opts)
+    }
     return null
   }
 

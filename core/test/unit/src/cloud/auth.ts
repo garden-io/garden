@@ -13,8 +13,66 @@ import { createProjectConfig, expectError, expectFuzzyMatch, makeTempDir, TestGa
 import type tmp from "tmp-promise"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings.js"
 import { uuidv4 } from "../../../../src/util/random.js"
+import { randomString } from "../../../../src/util/string.js"
+import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import { enforceLogin } from "../../../../src/cloud/enforce-login.js"
+import { clearAuthToken, getAuthToken, saveAuthToken } from "../../../../src/cloud/api-legacy/auth.js"
+import { gardenEnv } from "../../../../src/constants.js"
 
+describe("auth helpers", () => {
+  const log = getRootLogger().createLog()
+  const domain = "https://garden." + randomString()
+  const globalConfigStore = new GlobalConfigStore()
+
+  describe("getAuthToken", () => {
+    it("should return null when no auth token is present", async () => {
+      const savedToken = await getAuthToken(log, globalConfigStore, domain)
+      expect(savedToken).to.be.undefined
+    })
+
+    it("should return a saved auth token when one exists", async () => {
+      const testToken = {
+        token: uuidv4(),
+        refreshToken: uuidv4(),
+        tokenValidity: 9999,
+      }
+      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain })
+      const savedToken = await getAuthToken(log, globalConfigStore, domain)
+      expect(savedToken).to.eql(testToken.token)
+    })
+
+    it("should return the value of GARDEN_AUTH_TOKEN if it's present", async () => {
+      const tokenBackup = gardenEnv.GARDEN_AUTH_TOKEN
+      const testToken = "token-from-env"
+      gardenEnv.GARDEN_AUTH_TOKEN = testToken
+      try {
+        const savedToken = await getAuthToken(log, globalConfigStore, domain)
+        expect(savedToken).to.eql(testToken)
+      } finally {
+        gardenEnv.GARDEN_AUTH_TOKEN = tokenBackup
+      }
+    })
+  })
+
+  describe("clearAuthToken", () => {
+    it("should delete a saved auth token", async () => {
+      const testToken = {
+        token: uuidv4(),
+        refreshToken: uuidv4(),
+        tokenValidity: 9999,
+      }
+      await saveAuthToken({ log, globalConfigStore, tokenResponse: testToken, domain })
+      await clearAuthToken(log, globalConfigStore, domain)
+      const savedToken = await getAuthToken(log, globalConfigStore, domain)
+      expect(savedToken).to.be.undefined
+    })
+
+    it("should not throw an exception if no auth token exists", async () => {
+      await clearAuthToken(log, globalConfigStore, domain)
+      await clearAuthToken(log, globalConfigStore, domain)
+    })
+  })
+})
 describe("enforceLogin", () => {
   let tmpDir: tmp.DirectoryResult
   let pathFoo: string

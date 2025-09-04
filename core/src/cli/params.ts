@@ -23,6 +23,7 @@ import { gardenEnv } from "../constants.js"
 import { envSupportsEmoji } from "../logger/util.js"
 import type { ConfigDump } from "../garden.js"
 import { styles } from "../logger/styles.js"
+import dotenv from "dotenv"
 
 export const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -305,20 +306,44 @@ export class BooleanParameter extends Parameter<boolean> {
   }
 }
 
+export interface Tag {
+  key: string
+  value: string
+}
+
 /**
  * Similar to `StringsOption`, but doesn't split individual option values on `,`
  */
-export class TagsOption extends Parameter<string[] | undefined> {
+export class TagsOption extends Parameter<Tag[][] | undefined> {
   type = "array:tag"
-  schema = joi.array().items(joi.string())
+  schema = joi.array().items(joi.array().items(joi.object().keys({ key: joi.string(), value: joi.string() })))
 
-  override coerce(input?: string | string[]): string[] {
+  override coerce(input?: string | string[]): Tag[][] {
     if (!input) {
       return []
     } else if (!isArray(input)) {
       input = [input]
     }
-    return input
+
+    const parameterErrorMsg = `Unable to parse the given input. Format should be key=value.`
+    const output: Tag[][] = []
+    try {
+      for (const tagGroup of input) {
+        const tags: Tag[] = []
+        for (const t of tagGroup.split(",")) {
+          const parsed = Object.entries(dotenv.parse(t))[0]
+          if (!parsed) {
+            throw new ParameterError({ message: `${parameterErrorMsg}. Got: '${t}'` })
+          }
+          tags.push({ key: parsed[0], value: parsed[1] })
+        }
+        output.push(tags)
+      }
+    } catch {
+      throw new ParameterError({ message: `${parameterErrorMsg}. Got: '${input}'` })
+    }
+
+    return output
   }
 }
 
@@ -326,11 +351,15 @@ export class EnvironmentParameter extends StringOption {
   override type = "string"
   override schema = joi.environment()
 
-  constructor({ help = "The environment (and optionally namespace) to work against.", required = false } = {}) {
+  constructor({
+    help = "The environment (and optionally namespace) to work against.",
+    required = false,
+    aliases = ["e"],
+  } = {}) {
     super({
       help,
       required,
-      aliases: ["e"],
+      aliases,
       getSuggestions: ({ configDump }) => {
         return configDump.allEnvironmentNames
       },

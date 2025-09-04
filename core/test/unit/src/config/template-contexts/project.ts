@@ -94,6 +94,7 @@ describe("ProjectConfigContext", () => {
       backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+      localEnvOverrides: {},
     })
     expect(c.resolve({ nodePath: [], key: ["local", "env", "TEST_VARIABLE"], opts: {} })).to.eql({
       found: true,
@@ -114,6 +115,7 @@ describe("ProjectConfigContext", () => {
       backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+      localEnvOverrides: {},
     })
     expect(c.resolve({ nodePath: [], key: ["git", "branch"], opts: {} })).to.eql({
       found: true,
@@ -133,6 +135,7 @@ describe("ProjectConfigContext", () => {
       backendType: "v1",
       secrets: { foo: "banana" },
       commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+      localEnvOverrides: {},
     })
     expect(c.resolve({ nodePath: [], key: ["secrets", "foo"], opts: {} })).to.eql({
       found: true,
@@ -153,6 +156,7 @@ describe("ProjectConfigContext", () => {
         backendType: "v1",
         secrets: { foo: "banana" },
         commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+        localEnvOverrides: {},
       })
 
       const result = c.resolve({ nodePath: [], key: ["secrets", "bar"], opts: {} })
@@ -175,6 +179,7 @@ describe("ProjectConfigContext", () => {
           backendType: "v1",
           secrets: {}, // <-----
           commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+          localEnvOverrides: {},
         })
 
         const result = c.resolve({ nodePath: [], key: ["secrets", "bar"], opts: {} })
@@ -197,6 +202,7 @@ describe("ProjectConfigContext", () => {
           backendType: "v1",
           secrets: { foo: "banana " }, // <-----
           commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+          localEnvOverrides: {},
         })
 
         const result = c.resolve({ nodePath: [], key: ["secrets", "bar"], opts: {} })
@@ -220,6 +226,7 @@ describe("ProjectConfigContext", () => {
       backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+      localEnvOverrides: {},
     })
     const key = "fiaogsyecgbsjyawecygaewbxrbxajyrgew"
 
@@ -241,6 +248,7 @@ describe("ProjectConfigContext", () => {
       backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+      localEnvOverrides: {},
     })
 
     const result = c.resolve({ nodePath: [], key: ["var", "foo"], opts: {} })
@@ -261,6 +269,7 @@ describe("ProjectConfigContext", () => {
       backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+      localEnvOverrides: {},
     })
     expect(c.resolve({ nodePath: [], key: ["local", "arch"], opts: {} })).to.eql({
       found: true,
@@ -280,6 +289,7 @@ describe("ProjectConfigContext", () => {
       backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+      localEnvOverrides: {},
     })
     expect(c.resolve({ nodePath: [], key: ["local", "platform"], opts: {} })).to.eql({
       found: true,
@@ -299,6 +309,7 @@ describe("ProjectConfigContext", () => {
       backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+      localEnvOverrides: {},
     })
     expect(c.resolve({ nodePath: [], key: ["local", "username"], opts: {} })).to.eql({
       found: true,
@@ -322,6 +333,7 @@ describe("ProjectConfigContext", () => {
       backendType: "v1",
       secrets: {},
       commandInfo: { name: "test", args: {}, opts: {}, rawArgs: [], isCustomCommand: false },
+      localEnvOverrides: {},
     })
     expect(c.resolve({ nodePath: [], key: ["command", "name"], opts: {} })).to.eql({
       found: true,
@@ -347,6 +359,7 @@ describe("ProjectConfigContext", () => {
         rawArgs: ["--sync", "my-service"],
         isCustomCommand: false,
       },
+      localEnvOverrides: {},
     })
 
     const result = legacyResolveTemplateString({
@@ -358,6 +371,7 @@ describe("ProjectConfigContext", () => {
 
   it("should resolve command params (negative)", () => {
     const c = new ProjectConfigContext({
+      localEnvOverrides: {},
       projectName: "some-project",
       projectRoot: "/tmp",
       artifactsPath: "/tmp",
