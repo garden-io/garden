@@ -154,6 +154,23 @@ When setting the \`--b-X\` flags, the values will be overridden in the compariso
 
 In most cases you should use this with the \`--resolve\` flag to ensure that the comparison is complete, but take caution as it may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the \`--action\` flag to only diff specific actions.
 
+Examples:
+    # compare the current default environment to the ci environment (assuming one is defined in the project configuration)
+    garden diff --b-env ci
+    # compare the current default environment to the ci environment and fully resolve values for a complete comparison (note that this may trigger actions being executed)
+    garden diff --b-env ci --resolve
+    # compare the staging env to the ci env
+    garden diff --env staging --b-env ci
+    # compare the current branch to other-branch (using the default environment in both cases)
+    garden diff --b-branch other-branch
+    # compare the current branch's default environment to other-branch's ci environment
+    garden diff --b-branch other-branch --b-env ci
+    # compare the resolved api Build action between the default environment and ci
+    garden diff --b-env ci --action build.api --resolve
+    # compare the current default environment to the ci environment and override the HOSTNAME variable in the ci environment
+    garden diff --b-env ci --b-var HOSTNAME=remote.acme
+    # compare the current default environment to the ci environment and override the HOSTNAME variable in both environments
+    garden diff --var HOSTNAME=local.acme --b-env ci --b-var HOSTNAME=remote.acme
   `
 
   override arguments = diffArgs
