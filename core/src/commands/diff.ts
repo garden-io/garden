@@ -15,7 +15,7 @@ import { BooleanParameter, EnvironmentParameter, StringOption, StringsParameter,
 import tmp from "tmp-promise"
 import { GitCli } from "../vcs/git.js"
 import { ParameterError } from "../exceptions.js"
-import type { ActionReference, DeepPrimitiveMap, StringMap } from "../config/common.js"
+import type { ActionReference, DeepPrimitiveMap, PrimitiveMap, StringMap } from "../config/common.js"
 import { parseActionReference } from "../config/common.js"
 import type { ConfigGraph, RenderedNode } from "../graph/config-graph.js"
 import type { ActionDependency, ActionKind, ActionVersion } from "../actions/types.js"
@@ -164,40 +164,32 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
   async action({ garden: gardenA, log, args, opts }: CommandParams<Args, Opts>) {
     log.info("")
 
+    log.info(
+      describeConfiguration({
+        label: "Current project (A)",
+        variableOverrides: gardenA.opts.variableOverrides || {},
+        environmentString: `${gardenA.namespace}.${gardenA.environmentName}`,
+        localEnvOverrides: gardenA.opts.localEnvOverrides || {},
+      }) + "\n"
+    )
+
     let missingDiffParams = true
 
-    let environmentB = `${gardenA.environmentName}.${gardenA.namespace}`
     if (opts["diff-env"]) {
-      environmentB = opts["diff-env"]
-      log.info({
-        msg: "Comparing with environment: " + environmentB,
-      })
       missingDiffParams = false
     }
+
+    const comparisonEnv = opts["diff-env"] || `${gardenA.namespace}.${gardenA.environmentName}`
 
     let localEnvOverrides: StringMap = {}
     if (opts["diff-local-env"]) {
       localEnvOverrides = fromPairs(opts["diff-local-env"].flatMap((group) => group.map((t) => [t.key, t.value])))
-      log.info({
-        msg:
-          "Overriding local environment variables for comparison: " +
-          Object.entries(localEnvOverrides)
-            .map(([k, v]) => `${k}=${v}`)
-            .join("\n - "),
-      })
       missingDiffParams = false
     }
 
     let variableOverrides: StringMap = {}
     if (opts["diff-var"]) {
       variableOverrides = fromPairs(opts["diff-var"].flatMap((group) => group.map((t) => [t.key, t.value])))
-      log.info({
-        msg:
-          "Overriding variables for comparison: " +
-          Object.entries(variableOverrides)
-            .map(([k, v]) => `${k}=${v}`)
-            .join("\n  - "),
-      })
       missingDiffParams = false
     }
 
@@ -206,14 +198,6 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
         message:
           "No diff parameters specified. Please specify one or more of --branch, --commit, --diff-env, --diff-local-env, --diff-var.",
       })
-    }
-
-    const actionsFilter = opts.action
-
-    if (actionsFilter) {
-      // Validate the actions
-      actionsFilter.map(parseActionReference)
-      log.info({ msg: "Filtering to actions: " + actionsFilter.join(", ") })
     }
 
     const gitCli = new GitCli({ log, cwd: gardenA.projectRoot })
@@ -226,7 +210,30 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
 
     if (opts.branch && opts.commit) {
       throw new ParameterError({ message: "Cannot specify both branch and commit" })
-    } else if (opts.branch || opts.commit) {
+    }
+
+    log.info(
+      "vs.\n\n" +
+        describeConfiguration({
+          label: "Comparison project (B)",
+          environmentString: comparisonEnv,
+          variableOverrides: gardenA.opts.variableOverrides || {},
+          localEnvOverrides: gardenA.opts.localEnvOverrides || {},
+          branch: opts.branch,
+          commit: opts.commit,
+        }) +
+        "\n"
+    )
+
+    const actionsFilter = opts.action
+
+    if (actionsFilter) {
+      // Validate the actions
+      actionsFilter.map(parseActionReference)
+      log.info({ msg: "Filtering to actions: " + actionsFilter.join(", ") })
+    }
+
+    if (opts.branch || opts.commit) {
       log.info({ msg: "Fetching repo origin" })
 
       // Fetch the repo origin
@@ -279,8 +286,6 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
     }
 
     // Resolve the actions in the temporary project
-    const comparisonEnv = opts["diff-env"] || `${gardenA.namespace}.${gardenA.environmentName}`
-
     const gardenB = await Garden.factory(projectRootB, {
       environmentString: comparisonEnv,
       commandInfo: {
@@ -1048,4 +1053,48 @@ function diffObjects(objA: object, objB: object): string | null {
 
 function getSeparatorBar(width: number = 40) {
   return styles.accent(repeat("─", width))
+}
+
+interface DescribeConfigurationOptions {
+  label: string
+  variableOverrides?: PrimitiveMap
+  environmentString: string
+  localEnvOverrides: StringMap
+  branch?: string | undefined
+  commit?: string | undefined
+}
+
+function describeConfiguration({
+  label,
+  environmentString,
+  variableOverrides,
+  localEnvOverrides,
+  branch,
+  commit,
+}: DescribeConfigurationOptions) {
+  let output = `${chalk.bold(label)}:\n` + getSeparatorBar(60) + "\n"
+
+  output += `Environment: ${chalk.bold(environmentString)}\n`
+
+  if (branch) {
+    output += `Branch: ${chalk.bold(branch)}\n`
+  }
+
+  if (commit) {
+    output += `Commit: ${commit}\n`
+  }
+
+  if (Object.keys(variableOverrides || {}).length > 0) {
+    output += `Variable overrides:\n${Object.entries(variableOverrides || {})
+      .map(([k, v]) => `- ${k}=${v}`)
+      .join("\n")}\n`
+  }
+
+  if (Object.keys(localEnvOverrides || {}).length > 0) {
+    output += `Local environment variable overrides:\n${Object.entries(localEnvOverrides || {})
+      .map(([k, v]) => `- ${k}=${v}`)
+      .join("\n")}\n`
+  }
+
+  return output + getSeparatorBar(60)
 }
