@@ -40,28 +40,28 @@ const { readFile } = fsExtra
 const diffArgs = {}
 
 const diffOpts = {
-  "commit": new StringOption({
-    help: "A commit ID to compare with.",
+  "b-commit": new StringOption({
+    help: "Check out the specified commit in the comparison project (B).",
   }),
-  "branch": new StringOption({
-    help: "A branch to compare with.",
+  "b-branch": new StringOption({
+    help: "Check out the specified branch in the comparison project (B).",
   }),
-  "diff-env": new EnvironmentParameter({
-    help: "Override the Garden environment for the comparison.",
+  "b-env": new EnvironmentParameter({
+    help: "Override the Garden environment for the comparison project (B).",
     aliases: [],
   }),
-  "diff-local-env": new TagsOption({
-    help: 'Override a local environment variable in the comparison (as templated using ${local.env.*}) with the specified value, formatted as <VAR_NAME>:<VALUE>, e.g. "MY_VAR=my-value". You can specify multiple variables by repeating the flag.',
+  "b-local-env-var": new TagsOption({
+    help: 'Override a local environment variable in the comparison project (B), as templated using ${local.env.*}, with the specified value. This should be formatted as <VAR_NAME>:<VALUE>, e.g. "MY_VAR=my-value". You can specify multiple variables by repeating the flag.',
   }),
-  "diff-var": new TagsOption({
-    help: 'Override a variable in the comparison with the specified value, formatted as <VAR_NAME>:<VALUE>, e.g. "MY_VAR=my-value". Analogous to the --var global flag in the Garden CLI. You can specify multiple variables by repeating the flag.',
+  "b-var": new TagsOption({
+    help: 'Override a Garden variable in the comparison project (B) with the specified value, formatted as <VAR_NAME>:<VALUE>, e.g. "MY_VAR=my-value". Analogous to the --var global flag in the Garden CLI. You can specify multiple variables by repeating the flag.',
   }),
   "resolve": new BooleanParameter({
     help: "Fully resolve each action before comparing. Note that this may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the --action flag to only diff specific actions.",
     defaultValue: false,
   }),
   "action": new StringsParameter({
-    help: "Specify an action to diff, as <kind>.<name>. Can be specified multiple times. If none is specified, all actions will be diffed.",
+    help: "Specify an action to diff, as <kind>.<name>. Can be specified multiple times. If none is specified, all actions will be compared.",
     defaultValue: undefined,
   }),
   // TODO: Support comparing with a directory path
@@ -142,15 +142,18 @@ export class DiffCommand extends Command<Args, Opts, DiffResult> {
   override description = dedent`
 **[EXPERIMENTAL] This command is still under development and may change in the future, including parameters and output format.**
 
-Compare the current working directory Garden project with the specified branch or commit.
+Compare the current working directory Garden project with the specified branch/commit, or with other differences (all specified via \`--b-X\` flags).
 
 Use this to understand the impact of your changes on action versions.
 
+In the output, "A" (e.g. "version A") refers to the current working directory project, and "B" refers to the project at the specified branch or commit. When something is reported as "added" (such as an action, file, new lines in a config etc.), it means it's present in the current project but not in the comparison project. Similarly, "removed" means it's present in the comparison project but not in the current project.
+
+The different \`--b-X\` flags define the comparison project (B). At least one of these flags must be specified, and they can be combined in any number of ways.
+
+When setting the \`--b-X\` flags, the values will be overridden in the comparison project (B). If you want to change variables or set a different environment in the _current_ project (A), you can use the normal \`--var\`, \`--env\` etc. flags. For example, if you want to test the impact of overriding a variable value for both sides, you can use the \`--var\` flag to override the value in the current project (A), and then use the \`--b-var\` flag to override the value in the comparison project (B), e.g. \`--b-var some-var=foo --var some-var=bar\`.
+
 In most cases you should use this with the \`--resolve\` flag to ensure that the comparison is complete, but take caution as it may result in actions being executed during resolution (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, you may want to avoid this option or use the \`--action\` flag to only diff specific actions.
 
-Note that in the output, "A" (e.g. "version A") refers to the current working directory project, and "B" refers to the project at the specified branch or commit. When something is reported as "added" (such as an action, file, new lines in a config etc.), it means it's present in the current project but not in the comparison project. Similarly, "removed" means it's present in the comparison project but not in the current project.
-
-When setting the \`--diff-X\` flags, the values will be overridden in the comparison project (B). If you want to change variables or set a different environment in the _current_ project (A), you can use the normal \`--var\`, \`--env\` etc. flags. For example, if you want to test the impact of overriding a variable value for both sides, you can use the \`--var\` flag to override the value in the current project (A), and then use the \`--diff-var\` flag to override the value in the comparison project (B), e.g. \`--diff-var some-var=foo --var some-var=bar\`.
   `
 
   override arguments = diffArgs
@@ -173,30 +176,36 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
       }) + "\n"
     )
 
+    const bEnv = opts["b-env"]
+    const bLocalEnvOverrides = opts["b-local-env-var"]
+    const bVariableOverrides = opts["b-var"]
+    const bBranch = opts["b-branch"]
+    const bCommit = opts["b-commit"]
+
     let missingDiffParams = true
 
-    if (opts["diff-env"]) {
+    if (bEnv) {
       missingDiffParams = false
     }
 
-    const comparisonEnv = opts["diff-env"] || `${gardenA.namespace}.${gardenA.environmentName}`
+    const comparisonEnv = bEnv || `${gardenA.namespace}.${gardenA.environmentName}`
 
     let localEnvOverrides: StringMap = {}
-    if (opts["diff-local-env"]) {
-      localEnvOverrides = fromPairs(opts["diff-local-env"].flatMap((group) => group.map((t) => [t.key, t.value])))
+    if (bLocalEnvOverrides) {
+      localEnvOverrides = fromPairs(bLocalEnvOverrides.flatMap((group) => group.map((t) => [t.key, t.value])))
       missingDiffParams = false
     }
 
     let variableOverrides: StringMap = {}
-    if (opts["diff-var"]) {
-      variableOverrides = fromPairs(opts["diff-var"].flatMap((group) => group.map((t) => [t.key, t.value])))
+    if (bVariableOverrides) {
+      variableOverrides = fromPairs(bVariableOverrides.flatMap((group) => group.map((t) => [t.key, t.value])))
       missingDiffParams = false
     }
 
-    if (missingDiffParams && !opts.branch && !opts.commit) {
+    if (missingDiffParams && !bBranch && !bCommit) {
       throw new ParameterError({
         message:
-          "No diff parameters specified. Please specify one or more of --branch, --commit, --diff-env, --diff-local-env, --diff-var.",
+          "No diff parameters specified. Please specify one or more of --branch, --commit, --b-env, --b-local-env, --b-var.",
       })
     }
 
@@ -208,7 +217,7 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
     let commitish: string | null = null
     let projectRootB = gardenA.projectRoot
 
-    if (opts.branch && opts.commit) {
+    if (bBranch && bCommit) {
       throw new ParameterError({ message: "Cannot specify both branch and commit" })
     }
 
@@ -219,8 +228,8 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
           environmentString: comparisonEnv,
           variableOverrides: gardenA.opts.variableOverrides || {},
           localEnvOverrides: gardenA.opts.localEnvOverrides || {},
-          branch: opts.branch,
-          commit: opts.commit,
+          branch: bBranch,
+          commit: bCommit,
         }) +
         "\n"
     )
@@ -233,28 +242,28 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
       log.info({ msg: "Filtering to actions: " + actionsFilter.join(", ") })
     }
 
-    if (opts.branch || opts.commit) {
+    if (bBranch || bCommit) {
       log.info({ msg: "Fetching repo origin" })
 
       // Fetch the repo origin
       await gitCli.exec("fetch", "origin")
     }
 
-    if (opts.branch) {
-      log.info({ msg: "Comparing with branch " + chalk.white.bold(opts.branch) })
+    if (bBranch) {
+      log.info({ msg: "Comparing with branch " + chalk.white.bold(bBranch) })
       try {
-        await gitCli.exec("ls-remote", "--heads", "origin", opts.branch)
-        commitish = opts.branch
+        await gitCli.exec("ls-remote", "--heads", "origin", bBranch)
+        commitish = bBranch
       } catch (e) {
-        throw new ParameterError({ message: "Could not find branch " + chalk.white.bold(opts.branch) })
+        throw new ParameterError({ message: "Could not find branch " + chalk.white.bold(bBranch) })
       }
-    } else if (opts.commit) {
-      log.info({ msg: "Comparing with commit " + chalk.white.bold(opts.commit) })
+    } else if (bCommit) {
+      log.info({ msg: "Comparing with commit " + chalk.white.bold(bCommit) })
       try {
-        await gitCli.exec("rev-parse", "--verify", opts.commit)
-        commitish = opts.commit
+        await gitCli.exec("rev-parse", "--verify", bCommit)
+        commitish = bCommit
       } catch (e) {
-        throw new ParameterError({ message: "Could not find commit " + chalk.white.bold(opts.commit) })
+        throw new ParameterError({ message: "Could not find commit " + chalk.white.bold(bCommit) })
       }
     }
 
@@ -324,7 +333,7 @@ When setting the \`--diff-X\` flags, the values will be overridden in the compar
     // Compare actions (first pass)
     const actionsPreliminary: ActionDiffPreliminary[] = await Promise.all(
       toposortedActions.map((node) =>
-        actionDiffPreliminary({ log, gardenA, gardenB, graphA, graphB, node, resolve: opts.resolve })
+        actionDiffPreliminary({ log, gardenA, gardenB, graphA, graphB, node, resolveAction: opts.resolve })
       )
     )
 
@@ -384,7 +393,7 @@ async function actionDiffPreliminary({
   graphA,
   graphB,
   node,
-  resolve,
+  resolveAction,
 }: {
   log: Log
   gardenA: Garden
@@ -392,7 +401,7 @@ async function actionDiffPreliminary({
   graphA: ConfigGraph
   graphB: ConfigGraph
   node: RenderedNode
-  resolve: boolean
+  resolveAction: boolean
 }): Promise<ActionDiffPreliminary> {
   const actionA = graphA.getActionByRef({ kind: node.kind, name: node.name })
 
@@ -441,7 +450,7 @@ async function actionDiffPreliminary({
   let resolvedConfigDiff: string | null = null
 
   // Note: It would be possible to resolve configs that don't require any execution, as an enhancement
-  if (resolve) {
+  if (resolveAction) {
     log.debug({ msg: "Comparing resolved configs" })
     const projectExcludeValuesA = await gardenA.getExcludeValuesForActionVersions()
     const projectExcludeValuesB = await gardenB.getExcludeValuesForActionVersions()
@@ -1081,7 +1090,7 @@ function describeConfiguration({
   }
 
   if (commit) {
-    output += `Commit: ${commit}\n`
+    output += `Commit: ${chalk.bold(commit)}\n`
   }
 
   if (Object.keys(variableOverrides || {}).length > 0) {

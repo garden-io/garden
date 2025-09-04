@@ -18,11 +18,11 @@ import { join } from "node:path"
 describe("DiffCommand", () => {
   const cmd = new DiffCommand()
   const defaultOpts = withDefaultGlobalOpts({
-    "commit": undefined,
-    "branch": undefined,
-    "diff-env": undefined,
-    "diff-local-env": undefined,
-    "diff-var": undefined,
+    "b-commit": undefined,
+    "b-branch": undefined,
+    "b-env": undefined,
+    "b-local-env-var": undefined,
+    "b-var": undefined,
     // Note: Defaulting to --resolve=true to ensure that the actions are fully resolved before comparing.
     "resolve": true,
     "action": undefined,
@@ -52,7 +52,7 @@ describe("DiffCommand", () => {
       garden: quickstartGarden,
       log: quickstartGarden.log,
       args: {},
-      opts: { ...defaultOpts, branch: "diff-test-base" },
+      opts: { ...defaultOpts, "b-branch": "diff-test-base" },
     })
 
     expect(stripAnsi(result.projectConfig.resolvedVariablesDiff ?? "")).to.include('+  "postgresPassword": "foo"')
@@ -63,7 +63,7 @@ describe("DiffCommand", () => {
       garden: quickstartGarden,
       log: quickstartGarden.log,
       args: {},
-      opts: { ...defaultOpts, commit: "58afed93698054ac47cd56223c7b37c4c496de0e" },
+      opts: { ...defaultOpts, "b-commit": "58afed93698054ac47cd56223c7b37c4c496de0e" },
     })
 
     expect(stripAnsi(result.projectConfig.resolvedVariablesDiff ?? "")).to.include('+  "postgresPassword": "foo"')
@@ -77,7 +77,7 @@ describe("DiffCommand", () => {
       opts: {
         ...defaultOpts,
         "resolve": false,
-        "diff-local-env": [[{ key: "TEST_ENV_VAR_TEST_A", value: "override-a" }]],
+        "b-local-env-var": [[{ key: "TEST_ENV_VAR_TEST_A", value: "override-a" }]],
       },
     })
 
@@ -91,7 +91,7 @@ describe("DiffCommand", () => {
       garden: quickstartGarden,
       log: quickstartGarden.log,
       args: {},
-      opts: { ...defaultOpts, branch: "diff-test-base" },
+      opts: { ...defaultOpts, "b-branch": "diff-test-base" },
     })
 
     expect(stripAnsi(result.projectConfig.rawConfigDiff ?? "")).to.include("+  postgresPassword: foo")
@@ -102,7 +102,7 @@ describe("DiffCommand", () => {
       garden: quickstartGarden,
       log: quickstartGarden.log,
       args: {},
-      opts: { ...defaultOpts, branch: "diff-test-base" },
+      opts: { ...defaultOpts, "b-branch": "diff-test-base" },
     })
 
     expect(stripAnsi(result.actions["test.unit-vote"].rawConfigDiff ?? "")).to.include("+  env:")
@@ -115,7 +115,7 @@ describe("DiffCommand", () => {
       garden: quickstartGarden,
       log: quickstartGarden.log,
       args: {},
-      opts: { ...defaultOpts, branch: "diff-test-base" },
+      opts: { ...defaultOpts, "b-branch": "diff-test-base" },
     })
 
     expect(stripAnsi(result.workflows["test-a"].rawConfigDiff ?? "")).to.include("+    script: echo changed")
@@ -128,7 +128,7 @@ describe("DiffCommand", () => {
       garden: quickstartGarden,
       log: quickstartGarden.log,
       args: {},
-      opts: { ...defaultOpts, branch: "diff-test-base" },
+      opts: { ...defaultOpts, "b-branch": "diff-test-base" },
     })
 
     const summary = stripAnsi(result.actions["build.api"].diffSummary)
@@ -170,7 +170,7 @@ describe("DiffCommand", () => {
         garden,
         log: garden.log,
         args: {},
-        opts: { ...defaultOpts, branch: "diff-test-sub-base" },
+        opts: { ...defaultOpts, "b-branch": "diff-test-sub-base" },
       })
 
       expect(stripAnsi(result.projectConfig.resolvedVariablesDiff ?? "")).to.include('+  "postgresPassword": "foo"')

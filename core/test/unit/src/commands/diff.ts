@@ -16,11 +16,11 @@ describe("DiffCommand", () => {
   const cmd = new DiffCommand()
   const projectRoot = getDataDir("test-projects", "diff")
   const defaultOpts = withDefaultGlobalOpts({
-    "commit": undefined,
-    "branch": undefined,
-    "diff-env": undefined,
-    "diff-local-env": undefined,
-    "diff-var": undefined,
+    "b-commit": undefined,
+    "b-branch": undefined,
+    "b-env": undefined,
+    "b-local-env-var": undefined,
+    "b-var": undefined,
     // Note: Defaulting to --resolve=true to ensure that the actions are fully resolved before comparing.
     "resolve": true,
     "action": undefined,
@@ -38,7 +38,7 @@ describe("DiffCommand", () => {
       garden: diffGarden,
       log: diffGarden.log,
       args: {},
-      opts: { ...defaultOpts, "diff-var": [[{ key: "build-a", value: "override-a" }]] },
+      opts: { ...defaultOpts, "b-var": [[{ key: "build-a", value: "override-a" }]] },
     })
 
     expect(result.projectConfig.status).to.equal("unchanged")
@@ -76,7 +76,7 @@ describe("DiffCommand", () => {
       args: {},
       opts: {
         ...defaultOpts,
-        "diff-local-env": [[{ key: "TEST_ENV_VAR_TEST_A", value: "override-a" }]],
+        "b-local-env-var": [[{ key: "TEST_ENV_VAR_TEST_A", value: "override-a" }]],
       },
     })
 
@@ -91,7 +91,7 @@ describe("DiffCommand", () => {
       garden: diffGarden,
       log: diffGarden.log,
       args: {},
-      opts: { ...defaultOpts, "diff-env": "other.local" },
+      opts: { ...defaultOpts, "b-env": "other.local" },
     })
 
     const testAResult = result.actions["test.test-a"]
@@ -108,7 +108,7 @@ describe("DiffCommand", () => {
       opts: {
         ...defaultOpts,
         "action": ["test.test-a"],
-        "diff-local-env": [[{ key: "TEST_ENV_VAR_TEST_A", value: "override-a" }]],
+        "b-local-env-var": [[{ key: "TEST_ENV_VAR_TEST_A", value: "override-a" }]],
       },
     })
 
