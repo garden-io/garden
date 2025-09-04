@@ -486,7 +486,7 @@ export const kubernetesConfigBase = () =>
             Please see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for caveats when using this mode.
             `
             ),
-          nodeSelector: joiStringMap(joi.string().empty(""))
+          nodeSelector: joiStringMap(joi.string().allow(""))
             .description(
               dedent`
             Exposes the \`nodeSelector\` field on the PodSpec of the BuildKit deployment. This allows you to constrain the BuildKit daemon to only run on particular nodes.
