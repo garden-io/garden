@@ -1,0 +1,535 @@
+{
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "array",
+      "examples": [
+        [
+          "/bin/sh",
+          "-c"
+        ]
+      ],
+      "description": "The command/entrypoint to run the container with."
+    },
+    "args": {
+      "type": "array",
+      "examples": [
+        [
+          "npm",
+          "start"
+        ]
+      ],
+      "description": "The arguments (on top of the `command`, i.e. entrypoint) to run the container with."
+    },
+    "env": {
+      "type": "object",
+      "examples": [
+        [
+          {
+            "MY_VAR": "some-value",
+            "MY_SECRET_VAR": {
+              "secretRef": {
+                "name": "my-secret",
+                "key": "some-key"
+              }
+            }
+          },
+          {}
+        ]
+      ],
+      "description": "Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.",
+      "properties": {
+        "/^(?!garden)[a-z_][a-z0-9_\\.]*$/i": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "description": "A reference to a secret, that should be applied to the environment variable. Note that this secret must already be defined in the provider.",
+              "properties": {
+                "secretRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the secret to refer to."
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The key to read from in the referenced secret. May be required for some providers."
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(?!garden)[a-z_][a-z0-9_\\.]*$/": {
+          "anyOf": [
+            {
+              "description": "Number, string or boolean",
+              "anyOf": [
+                {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "description": "A reference to a secret, that should be applied to the environment variable. Note that this secret must already be defined in the provider.",
+              "properties": {
+                "secretRef": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the secret to refer to."
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The key to read from in the referenced secret. May be required for some providers."
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "cpu": {
+      "type": "object",
+      "default": {
+        "min": 10,
+        "max": 1000
+      },
+      "properties": {
+        "min": {
+          "type": "number",
+          "description": "The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)",
+          "default": 10
+        },
+        "max": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.",
+          "default": 1000,
+          "minimum": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "memory": {
+      "type": "object",
+      "default": {
+        "min": 90,
+        "max": 1024
+      },
+      "properties": {
+        "min": {
+          "type": "number",
+          "description": "The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)",
+          "default": 90
+        },
+        "max": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.",
+          "default": 1024,
+          "minimum": 64
+        }
+      },
+      "additionalProperties": false
+    },
+    "volumes": {
+      "type": "array",
+      "description": "List of volumes that should be mounted when starting the container.\n\nNote: If neither `hostPath` nor `action` is specified,\nan empty ephemeral volume is created and mounted when deploying the container.",
+      "default": []
+    },
+    "privileged": {
+      "type": "boolean",
+      "description": "If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false."
+    },
+    "addCapabilities": {
+      "type": "array",
+      "description": "POSIX capabilities to add when running the container."
+    },
+    "dropCapabilities": {
+      "type": "array",
+      "description": "POSIX capabilities to remove when running the container."
+    },
+    "tty": {
+      "type": "boolean",
+      "description": "Specify if containers in this action have TTY support enabled (which implies having stdin support enabled).",
+      "default": false
+    },
+    "deploymentStrategy": {
+      "type": "string",
+      "description": "Specifies the container's deployment strategy.",
+      "default": "RollingUpdate",
+      "enum": [
+        "RollingUpdate",
+        "Recreate"
+      ]
+    },
+    "annotations": {
+      "type": "object",
+      "examples": [
+        {
+          "nginx.ingress.kubernetes.io/proxy-body-size": "0"
+        }
+      ],
+      "description": "Annotations to attach to the service _(note: May not be applicable to all providers)_.\n\nWhen using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can generally specify the annotations intended for both Pods or Services here, and the ones that don't apply on either side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will be safely ignored there, and vice versa).",
+      "properties": {
+        "/.+/": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        ".+": {
+          "type": "string"
+        }
+      }
+    },
+    "daemon": {
+      "type": "boolean",
+      "description": "Whether to run the service as a daemon (to ensure exactly one instance runs per node). May not be supported by all providers.",
+      "default": false
+    },
+    "sync": {
+      "type": "object",
+      "description": "Specifies which files or directories to sync to which paths inside the running containers of the service when it's in sync mode, and overrides for the container command and/or arguments.\n\nSync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.\n\nSee the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more information.",
+      "properties": {
+        "args": {
+          "type": "array",
+          "description": "Override the default container arguments when in sync mode."
+        },
+        "command": {
+          "type": "array",
+          "description": "Override the default container command (i.e. entrypoint) when in sync mode."
+        },
+        "paths": {
+          "type": "array",
+          "description": "Specify one or more source files or directories to automatically sync with the running container.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "examples": [
+                  "src"
+                ],
+                "description": "Path to a local directory to be synchronized with the target.\nThis should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path.\nIf a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a delimiter, as Windows-style paths with back slashes (`\\`) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.\nDefaults to the Deploy action's config's directory if no value is provided.",
+                "default": "."
+              },
+              "target": {
+                "type": "posixPath",
+                "examples": [
+                  "/app/src"
+                ],
+                "description": "POSIX-style absolute path to sync to inside the container. The root path (i.e. \"/\") is not allowed.",
+                "not": {
+                  "type": "posixPath",
+                  "enum": [
+                    "/"
+                  ]
+                }
+              },
+              "exclude": {
+                "type": "array",
+                "examples": [
+                  [
+                    "dist/**/*",
+                    "*.log"
+                  ]
+                ],
+                "description": "Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.\n\n`.git` directories and `.garden` directories are always ignored.",
+                "items": {
+                  "type": "posixPath"
+                }
+              },
+              "mode": {
+                "type": "string",
+                "description": "The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details.",
+                "default": "one-way-safe",
+                "enum": [
+                  "one-way",
+                  "one-way-safe",
+                  "one-way-replica",
+                  "one-way-reverse",
+                  "one-way-replica-reverse",
+                  "two-way",
+                  "two-way-safe",
+                  "two-way-resolved"
+                ]
+              },
+              "defaultFileMode": {
+                "type": "number",
+                "description": "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.",
+                "default": 420,
+                "minimum": 0,
+                "maximum": 511
+              },
+              "defaultDirectoryMode": {
+                "type": "number",
+                "description": "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.",
+                "default": 493,
+                "minimum": 0,
+                "maximum": 511
+              },
+              "defaultOwner": {
+                "description": "Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.",
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "defaultGroup": {
+                "description": "Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.",
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "target"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "localMode": {
+      "type": "object",
+      "description": "This feature has been deleted.",
+      "properties": {
+        "ports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "local": {
+                "type": "integer"
+              },
+              "remote": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "command": {
+          "type": "array"
+        },
+        "restart": {
+          "type": "object",
+          "properties": {
+            "delayMsec": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "image": {
+      "type": "string",
+      "description": "Specify an image ID to deploy. Should be a valid Docker image identifier. Required."
+    },
+    "ingresses": {
+      "type": "array",
+      "examples": [
+        [
+          {
+            "path": "/api",
+            "port": "http"
+          }
+        ]
+      ],
+      "description": "List of ingress endpoints that the service exposes.",
+      "default": []
+    },
+    "healthCheck": {
+      "type": "object",
+      "description": "Specify how the service's health should be checked after deploying.",
+      "properties": {
+        "httpGet": {
+          "type": "object",
+          "description": "Set this to check the service's health by making an HTTP request.",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "The path of the service's health check endpoint.",
+              "format": "uri"
+            },
+            "port": {
+              "type": "string",
+              "description": "The name of the port where the service's health check endpoint should be available."
+            },
+            "scheme": {
+              "type": "string",
+              "default": "HTTP"
+            }
+          },
+          "required": [
+            "path",
+            "port"
+          ],
+          "additionalProperties": false
+        },
+        "command": {
+          "type": "array",
+          "description": "Set this to check the service's health by running a command in its container."
+        },
+        "tcpPort": {
+          "type": "string",
+          "description": "Set this to check the service's health by checking if this TCP port is accepting connections."
+        },
+        "readinessTimeoutSeconds": {
+          "type": "number",
+          "description": "The maximum number of seconds to wait until the readiness check counts as failed.",
+          "default": 3,
+          "minimum": 1
+        },
+        "livenessTimeoutSeconds": {
+          "type": "number",
+          "description": "The maximum number of seconds to wait until the liveness check counts as failed.",
+          "default": 3,
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "propertyNames": {
+          "enum": [
+            "httpGet",
+            "command",
+            "tcpPort"
+          ]
+        },
+        "minProperties": 2
+      },
+      "then": false,
+      "else": {
+        "oneOf": [
+          {
+            "required": [
+              "httpGet"
+            ]
+          },
+          {
+            "required": [
+              "command"
+            ]
+          },
+          {
+            "required": [
+              "tcpPort"
+            ]
+          }
+        ]
+      }
+    },
+    "hotReload": {
+      "type": [
+        "array",
+        "boolean",
+        "number",
+        "object",
+        "string",
+        "null"
+      ]
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "The maximum duration (in seconds) to wait for resources to deploy and become healthy.",
+      "default": 300
+    },
+    "limits": {
+      "type": "object",
+      "description": "Specify resource limits for the service.",
+      "properties": {
+        "cpu": {
+          "type": "number",
+          "description": "The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)",
+          "minimum": 10
+        },
+        "memory": {
+          "type": "number",
+          "description": "The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)",
+          "minimum": 64
+        }
+      },
+      "additionalProperties": false
+    },
+    "ports": {
+      "type": "array",
+      "description": "List of ports that the service container exposes.",
+      "default": []
+    },
+    "replicas": {
+      "type": "integer",
+      "description": "The number of instances of the service to deploy. Defaults to 3 for environments configured with `production: true`, otherwise 1.\nNote: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true` or if the provider doesn't support multiple replicas."
+    }
+  },
+  "required": [
+    "image"
+  ],
+  "additionalProperties": false
+}

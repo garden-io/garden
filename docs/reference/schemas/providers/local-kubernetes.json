@@ -1,0 +1,764 @@
+{
+  "$ref": "#/$defs/providerConfig",
+  "$defs": {
+    "providerConfig": {
+      "type": "object",
+      "description": "The provider configuration for the local-kubernetes plugin.",
+      "properties": {
+        "dependencies": {
+          "type": "array",
+          "examples": [
+            [
+              "exec"
+            ]
+          ],
+          "description": "List other providers that should be resolved before this one.",
+          "default": []
+        },
+        "environments": {
+          "type": "array",
+          "examples": [
+            [
+              "dev",
+              "stage"
+            ]
+          ],
+          "description": "If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.",
+          "items": {
+            "type": "string",
+            "description": "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63 characters.",
+            "pattern": "^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+          }
+        },
+        "preInit": {
+          "type": "object",
+          "properties": {
+            "runScript": {
+              "type": "string",
+              "description": "A script to run before the provider is initialized. This is useful for performing any provider-specific setup outside of Garden. For example, you can use this to perform authentication, such as authenticating with a Kubernetes cluster provider.\nThe script will always be run from the project root directory.\nNote that provider statuses are cached, so this script will generally only be run once, but you can force a re-run by setting `--force-refresh` on any Garden command that uses the provider."
+            }
+          },
+          "additionalProperties": false
+        },
+        "utilImageRegistryDomain": {
+          "type": "string",
+          "description": "The container registry domain that should be used for pulling Garden utility images (such as the\nimage used in the Kubernetes sync utility Pod).\n\nIf you have your own Docker Hub registry mirror, you can set the domain here and the utility images\nwill be pulled from there. This can be useful to e.g. avoid Docker Hub rate limiting.\n\nOtherwise the utility images are pulled directly from Docker Hub by default.",
+          "default": "docker.io"
+        },
+        "buildMode": {
+          "type": "string",
+          "description": "Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.\n\nFor more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/cedar-0.14/kubernetes-plugins/guides/in-cluster-building).",
+          "default": "local-docker",
+          "enum": [
+            "local-docker",
+            "kaniko",
+            "cluster-buildkit"
+          ]
+        },
+        "clusterBuildkit": {
+          "type": "object",
+          "description": "Configuration options for the `cluster-buildkit` build mode.",
+          "properties": {
+            "cache": {
+              "type": "array",
+              "description": "Use the `cache` configuration to customize the default cluster-buildkit cache behaviour.\n\nThe default value is:\n```yaml\nclusterBuildkit:\n  cache:\n    - type: registry\n      mode: auto\n```\n\nFor every build, this will\n- import cached layers from a docker image tag named `_buildcache`\n- when the build is finished, upload cache information to `_buildcache`\n\nFor registries that support it, `mode: auto` (the default) will enable the buildkit `mode=max`\noption.\n\nSee the following table for details on our detection mechanism:\n\n| Registry Name                   | Registry Domain                    | Assumed `mode=max` support |\n|---------------------------------|------------------------------------|------------------------------|\n| AWS Elastic Container Registry  | `dkr.ecr.<region>.amazonaws.com` | Yes (with `image-manifest=true`) |\n| Google Cloud Artifact Registry  | `pkg.dev`                        | Yes                          |\n| Azure Container Registry        | `azurecr.io`                     | Yes                          |\n| GitHub Container Registry       | `ghcr.io`                        | Yes                          |\n| DockerHub                       | `hub.docker.com`                 | Yes                          |\n| Any other registry              |                                    | No                           |\n\nIn case you need to override the defaults for your registry, you can do it like so:\n\n```yaml\nclusterBuildkit:\n  cache:\n    - type: registry\n      mode: max\n```\n\nWhen you add multiple caches, we will make sure to pass the `--import-cache` options to buildkit in the same\norder as provided in the cache configuration. This is because buildkit will not actually use all imported caches\nfor every build, but it will stick with the first cache that yields a cache hit for all the following layers.\n\nAn example for this is the following:\n\n```yaml\nclusterBuildkit:\n  cache:\n    - type: registry\n      tag: _buildcache-${slice(kebabCase(git.branch), \"0\", \"30\")}\n    - type: registry\n      tag: _buildcache-main\n      export: false\n```\n\nUsing this cache configuration, every build will first look for a cache specific to your feature branch.\nIf it does not exist yet, it will import caches from the main branch builds (`_buildcache-main`).\nWhen the build is finished, it will only export caches to your feature branch, and avoid polluting the `main` branch caches.\nA configuration like that may improve your cache hit rate and thus save time.\n\nIf you need to disable caches completely you can achieve that with the following configuration:\n\n```yaml\nclusterBuildkit:\n  cache: []\n```",
+              "default": [
+                {
+                  "type": "registry",
+                  "mode": "auto",
+                  "tag": "_buildcache",
+                  "export": true
+                }
+              ],
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "description": "Use the Docker registry configured at `deploymentRegistry` to retrieve and store buildkit cache information.\n\nSee also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)",
+                    "const": "registry"
+                  },
+                  "registry": {
+                    "type": "object",
+                    "description": "The registry from which the cache should be imported from, or which it should be exported to.\n\nIf not specified, use the configured `deploymentRegistry` in your kubernetes provider config.\n\nImportant: You must make sure `imagePullSecrets` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured `namespace`).",
+                    "properties": {
+                      "hostname": {
+                        "type": "string",
+                        "examples": [
+                          "gcr.io"
+                        ],
+                        "description": "The hostname (and optionally port, if not the default port) of the registry."
+                      },
+                      "port": {
+                        "type": "integer",
+                        "description": "The port where the registry listens on, if not the default."
+                      },
+                      "namespace": {
+                        "type": "string",
+                        "examples": [
+                          "my-project"
+                        ],
+                        "description": "The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>"
+                      },
+                      "insecure": {
+                        "type": "boolean",
+                        "description": "Set to true to allow insecure connections to the registry (without SSL).",
+                        "default": false
+                      }
+                    },
+                    "required": [
+                      "hostname"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "mode": {
+                    "type": "string",
+                    "description": "This is the buildkit cache mode to be used.\n\nThe value `inline` ensures that garden is using the buildkit option `--export-cache inline`. Cache information will be inlined and co-located with the Docker image itself.\n\nThe values `min` and `max` ensure that garden passes the `mode=max` or `mode=min` modifiers to the buildkit `--export-cache` option. Cache manifests will only be\nstored stored in the configured `tag`.\n\n`auto` is the same as `max` for some registries that are known to support it. Garden will fall back to `inline` for all other registries.\n See the [clusterBuildkit cache option](#providersclusterbuildkitcache) for a description of the detection mechanism.\n\nSee also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)",
+                    "default": "auto",
+                    "enum": [
+                      "auto",
+                      "min",
+                      "max",
+                      "inline"
+                    ]
+                  },
+                  "tag": {
+                    "type": "string",
+                    "description": "This is the Docker registry tag name buildkit should use for the registry build cache. Default is `_buildcache`\n\n**NOTE**: `tag` can only be used together with the `registry` cache type",
+                    "default": "_buildcache"
+                  },
+                  "export": {
+                    "type": "boolean",
+                    "description": "If this is false, only pass the `--import-cache` option to buildkit, and not the `--export-cache` option. Defaults to true.",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "rootless": {
+              "type": "boolean",
+              "description": "Enable rootless mode for the cluster-buildkit daemon, which runs the daemon with decreased privileges.\nPlease see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for caveats when using this mode.",
+              "default": false
+            },
+            "nodeSelector": {
+              "type": "object",
+              "examples": [
+                {
+                  "disktype": "ssd"
+                }
+              ],
+              "description": "Exposes the `nodeSelector` field on the PodSpec of the BuildKit deployment. This allows you to constrain the BuildKit daemon to only run on particular nodes.\n\n[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.",
+              "properties": {
+                "/.+/": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "patternProperties": {
+                ".+": {
+                  "type": "string"
+                }
+              }
+            },
+            "tolerations": {
+              "type": "array",
+              "description": "Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds.",
+              "default": []
+            },
+            "annotations": {
+              "type": "object",
+              "examples": [
+                {
+                  "cluster-autoscaler.kubernetes.io/safe-to-evict": "false"
+                }
+              ],
+              "description": "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers.",
+              "properties": {
+                "/.+/": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "patternProperties": {
+                ".+": {
+                  "type": "string"
+                }
+              }
+            },
+            "serviceAccountAnnotations": {
+              "type": "object",
+              "examples": [
+                {
+                  "eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"
+                }
+              ],
+              "description": "Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building.",
+              "properties": {
+                "/.+/": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "patternProperties": {
+                ".+": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "jib": {
+          "type": "object",
+          "description": "Setting related to Jib image builds.",
+          "properties": {
+            "pushViaCluster": {
+              "type": "boolean",
+              "description": "In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g. if you don't have connectivity or access from where Garden is being run. In that case, set this flag to true, but do note that the build will take considerably take longer to complete! Only applies when using in-cluster building.",
+              "default": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "kaniko": {
+          "type": "object",
+          "description": "Configuration options for the `kaniko` build mode.",
+          "properties": {
+            "extraFlags": {
+              "type": "array",
+              "description": "Specify extra flags to use when building the container image with kaniko. Flags set on `container` Builds take precedence over these."
+            },
+            "image": {
+              "type": "string",
+              "description": "Change the kaniko image (repository/image:tag) to use when building in kaniko mode.",
+              "default": "gcr.io/kaniko-project/executor:v1.11.0-debug@sha256:32ba2214921892c2fa7b5f9c4ae6f8f026538ce6b2105a93a36a8b5ee50fe517"
+            },
+            "namespace": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace."
+            },
+            "nodeSelector": {
+              "type": "object",
+              "description": "Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under `util.nodeSelector`.\n\n[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.",
+              "properties": {
+                "/.+/": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "patternProperties": {
+                ".+": {
+                  "type": "string"
+                }
+              }
+            },
+            "tolerations": {
+              "type": "array",
+              "description": "Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds. The same tolerations will be used for each util pod unless they are specifically set under `util.tolerations`",
+              "default": []
+            },
+            "annotations": {
+              "type": "object",
+              "examples": [
+                {
+                  "cluster-autoscaler.kubernetes.io/safe-to-evict": "false"
+                }
+              ],
+              "description": "Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. The same annotations will be used for each util pod unless they are specifically set under `util.annotations`",
+              "properties": {
+                "/.+/": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "patternProperties": {
+                ".+": {
+                  "type": "string"
+                }
+              }
+            },
+            "serviceAccountAnnotations": {
+              "type": "object",
+              "examples": [
+                {
+                  "eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"
+                }
+              ],
+              "description": "Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building.",
+              "properties": {
+                "/.+/": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "patternProperties": {
+                ".+": {
+                  "type": "string"
+                }
+              }
+            },
+            "util": {
+              "type": "object",
+              "properties": {
+                "tolerations": {
+                  "type": "array",
+                  "description": "Specify tolerations to apply to each garden-util pod.",
+                  "default": []
+                },
+                "annotations": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "cluster-autoscaler.kubernetes.io/safe-to-evict": "false"
+                    }
+                  ],
+                  "description": "Specify annotations to apply to each garden-util pod and deployments.",
+                  "properties": {
+                    "/.+/": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "patternProperties": {
+                    ".+": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "nodeSelector": {
+                  "type": "object",
+                  "description": "Specify the nodeSelector constraints for each garden-util pod.",
+                  "properties": {
+                    "/.+/": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "patternProperties": {
+                    ".+": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "defaultHostname": {
+          "type": "string",
+          "examples": [
+            "api.mydomain.com"
+          ],
+          "description": "A default hostname to use when no hostname is explicitly configured for a service."
+        },
+        "sync": {
+          "type": "object",
+          "description": "Configuration options for code synchronization.",
+          "properties": {
+            "defaults": {
+              "type": "object",
+              "description": "Specifies default settings for syncs (e.g. for `container`, `kubernetes` and `helm` services).\n\nThese are overridden/extended by the settings of any individual sync specs.\n\nSync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.\n\nSee the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for more information.",
+              "properties": {
+                "exclude": {
+                  "type": "array",
+                  "examples": [
+                    [
+                      "dist/**/*",
+                      "*.log"
+                    ]
+                  ],
+                  "description": "Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.\n\nAny exclusion patterns defined in individual sync specs will be applied in addition to these patterns.\n\n`.git` directories and `.garden` directories are always ignored.",
+                  "items": {
+                    "type": "posixPath"
+                  }
+                },
+                "fileMode": {
+                  "type": "number",
+                  "description": "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0o644 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.",
+                  "default": 420,
+                  "minimum": 0,
+                  "maximum": 511
+                },
+                "directoryMode": {
+                  "type": "number",
+                  "description": "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0o755 (user can read/write, everyone else can read). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.",
+                  "default": 493,
+                  "minimum": 0,
+                  "maximum": 511
+                },
+                "owner": {
+                  "description": "Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.",
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "group": {
+                  "description": "Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.",
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "forceSsl": {
+          "type": "boolean",
+          "description": "Require SSL on all `container` Deploys. If set to true, an error is raised when no certificate is available for a configured hostname on a `container`Deploy.",
+          "default": false
+        },
+        "gardenSystemNamespace": {
+          "type": "string",
+          "description": "Override the garden-system namespace name. This option is mainly used for testing.\nIn most cases you should leave the default value.",
+          "default": "garden-system"
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "description": "References to `docker-registry` secrets to use for authenticating with remote registries when pulling\nimages. This is necessary if you reference private images in your action configuration, and is required\nwhen configuring a remote Kubernetes environment with buildMode=local.",
+          "default": []
+        },
+        "copySecrets": {
+          "type": "array",
+          "description": "References to secrets you need to have copied into all namespaces deployed to. These secrets will be\nensured to exist in the namespace before deploying any service.",
+          "default": []
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource requests and limits for the in-cluster builder..",
+          "default": {
+            "builder": {
+              "limits": {
+                "cpu": 4000,
+                "memory": 8192
+              },
+              "requests": {
+                "cpu": 100,
+                "memory": 512
+              }
+            },
+            "util": {
+              "limits": {
+                "cpu": 256,
+                "memory": 512
+              },
+              "requests": {
+                "cpu": 256,
+                "memory": 512
+              }
+            }
+          },
+          "properties": {
+            "builder": {
+              "type": "object",
+              "description": "Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're using when configuring this.\n\nWhen `buildMode` is `kaniko`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.\n\nWhen `buildMode` is `cluster-buildkit`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.",
+              "default": {
+                "limits": {
+                  "cpu": 4000,
+                  "memory": 8192
+                },
+                "requests": {
+                  "cpu": 100,
+                  "memory": 512
+                }
+              },
+              "properties": {
+                "limits": {
+                  "type": "object",
+                  "default": {
+                    "cpu": 4000,
+                    "memory": 8192
+                  },
+                  "properties": {
+                    "cpu": {
+                      "type": "integer",
+                      "examples": [
+                        4000
+                      ],
+                      "description": "CPU limit in millicpu.",
+                      "default": 4000
+                    },
+                    "memory": {
+                      "type": "integer",
+                      "examples": [
+                        8192
+                      ],
+                      "description": "Memory limit in megabytes.",
+                      "default": 8192
+                    },
+                    "ephemeralStorage": {
+                      "type": "integer",
+                      "examples": [
+                        8192
+                      ],
+                      "description": "Ephemeral storage limit in megabytes."
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "requests": {
+                  "type": "object",
+                  "default": {
+                    "cpu": 100,
+                    "memory": 512
+                  },
+                  "properties": {
+                    "cpu": {
+                      "type": "integer",
+                      "examples": [
+                        100
+                      ],
+                      "description": "CPU request in millicpu.",
+                      "default": 100
+                    },
+                    "memory": {
+                      "type": "integer",
+                      "examples": [
+                        512
+                      ],
+                      "description": "Memory request in megabytes.",
+                      "default": 512
+                    },
+                    "ephemeralStorage": {
+                      "type": "integer",
+                      "examples": [
+                        8192
+                      ],
+                      "description": "Ephemeral storage request in megabytes."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "util": {
+              "type": "object",
+              "description": "Resource requests and limits for the util pod for in-cluster builders.\nThis pod is used to get, start, stop and inquire the status of the builds.\n\nThis pod is created in each garden namespace.",
+              "default": {
+                "limits": {
+                  "cpu": 256,
+                  "memory": 512
+                },
+                "requests": {
+                  "cpu": 256,
+                  "memory": 512
+                }
+              },
+              "properties": {
+                "limits": {
+                  "type": "object",
+                  "default": {
+                    "cpu": 256,
+                    "memory": 512
+                  },
+                  "properties": {
+                    "cpu": {
+                      "type": "integer",
+                      "examples": [
+                        256
+                      ],
+                      "description": "CPU limit in millicpu.",
+                      "default": 256
+                    },
+                    "memory": {
+                      "type": "integer",
+                      "examples": [
+                        512
+                      ],
+                      "description": "Memory limit in megabytes.",
+                      "default": 512
+                    },
+                    "ephemeralStorage": {
+                      "type": "integer",
+                      "examples": [
+                        8192
+                      ],
+                      "description": "Ephemeral storage limit in megabytes."
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "requests": {
+                  "type": "object",
+                  "default": {
+                    "cpu": 256,
+                    "memory": 512
+                  },
+                  "properties": {
+                    "cpu": {
+                      "type": "integer",
+                      "examples": [
+                        256
+                      ],
+                      "description": "CPU request in millicpu.",
+                      "default": 256
+                    },
+                    "memory": {
+                      "type": "integer",
+                      "examples": [
+                        512
+                      ],
+                      "description": "Memory request in megabytes.",
+                      "default": 512
+                    },
+                    "ephemeralStorage": {
+                      "type": "integer",
+                      "examples": [
+                        8192
+                      ],
+                      "description": "Ephemeral storage request in megabytes."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "sync": {
+              "type": [
+                "array",
+                "boolean",
+                "number",
+                "object",
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "tlsCertificates": {
+          "type": "array",
+          "description": "One or more certificates to use for ingress.",
+          "default": []
+        },
+        "systemNodeSelector": {
+          "type": "object",
+          "examples": [
+            {
+              "disktype": "ssd"
+            }
+          ],
+          "description": "Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain the system services to only run on particular nodes.\n\n[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.",
+          "properties": {
+            "/.+/": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "type": "string"
+            }
+          }
+        },
+        "name": {
+          "type": "string",
+          "examples": [
+            "local-kubernetes"
+          ],
+          "description": "The name of the provider plugin to use.",
+          "default": "local-kubernetes",
+          "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$"
+        },
+        "context": {
+          "type": "string",
+          "examples": [
+            "my-dev-context"
+          ],
+          "description": "The kubectl context to use to connect to the Kubernetes cluster."
+        },
+        "namespace": {
+          "description": "Specify which namespace to deploy services to (defaults to the project name). Note that the framework generates other namespaces as well with this name as a prefix.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.",
+                  "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$",
+                  "maxLength": 63
+                },
+                "annotations": {
+                  "type": "object",
+                  "examples": [
+                    {
+                      "cluster-autoscaler.kubernetes.io/safe-to-evict": "false"
+                    }
+                  ],
+                  "description": "Map of annotations to apply to the namespace when creating it.",
+                  "properties": {
+                    "/.+/": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "patternProperties": {
+                    ".+": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "labels": {
+                  "type": "object",
+                  "description": "Map of labels to apply to the namespace when creating it.",
+                  "properties": {
+                    "/.+/": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "patternProperties": {
+                    ".+": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "string",
+              "description": "A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.",
+              "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$",
+              "maxLength": 63
+            }
+          ]
+        },
+        "setupIngressController": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Set this to null or false to skip installing/enabling the `nginx` ingress controller.",
+          "default": "nginx"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

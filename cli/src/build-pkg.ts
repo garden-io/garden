@@ -21,12 +21,12 @@ import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
 import type { Entry } from "unzipper"
 import unzipper from "unzipper"
+import tar from "tar"
+import { isDirectory } from "@garden-io/core/build/src/util/fs.js"
 
 // Temporary workaround for NodeJS / DOM type conflict
 // See https://github.com/DefinitelyTyped/DefinitelyTyped/issues/60924
 import { fetch } from "undici"
-
-import tar from "tar"
 
 const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const gardenSeaDir = resolve(repoRoot, "garden-sea")
@@ -488,6 +488,16 @@ async function pkgCommon({ targetName, spec }: { targetName: string; spec: Targe
   if (spec.os === "macos") {
     await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents", "fsevents.node"), resolve(targetPath, "fsevents.node"))
   }
+
+  // Copy docs directory, only including .md and .json files
+  await copy(resolve(repoRoot, "docs"), resolve(targetPath, "docs"), {
+    filter: async (src) => {
+      if (await isDirectory(src)) {
+        return true
+      }
+      return src.toLowerCase().endsWith(".md") || src.toLowerCase().endsWith(".json")
+    },
+  })
 
   await zipAndHash({
     targetDir: distTmpDir,

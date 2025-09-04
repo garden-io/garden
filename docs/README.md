@@ -149,6 +149,8 @@
   * [`pulumi`](./reference/module-types/pulumi.md)
   * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
+* [Schemas](./reference/schemas/action-type-specs)
+  * [Action Type Specs](./reference/schemas/action-type-specs/Build)
 
 ## Misc
 

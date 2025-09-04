@@ -18,7 +18,7 @@ import { keyBy } from "lodash-es"
 import fsExtra from "fs-extra"
 import { moduleTypes, renderModuleTypeReference } from "./module-type.js"
 import { renderProviderReference } from "./provider.js"
-import { defaultEnvironment, defaultNamespace } from "../config/project.js"
+import { defaultEnvironment, defaultNamespace, projectSchema } from "../config/project.js"
 import type { GardenPluginReference, GardenPluginSpec } from "../plugin/plugin.js"
 import { workflowConfigSchema } from "../config/workflow.js"
 import { configTemplateSchema } from "../config/config-template.js"
@@ -34,8 +34,11 @@ import dedent from "dedent"
 import { getDeprecations } from "../util/deprecations.js"
 import { isErrnoException } from "../exceptions.js"
 import { uuidv4 } from "../util/random.js"
+import { joiToJsonSchema } from "./json-schema.js"
+import { getActionSchema } from "../graph/actions.js"
+import { joi } from "../config/common.js"
 
-const { writeFileSync, readFile, writeFile, mkdirp } = fsExtra
+const { readFile, writeFile, mkdirp } = fsExtra
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -114,6 +117,19 @@ export async function writeConfigReferenceDocs(
   const pluginsByName = keyBy(allPlugins, "name")
   const providersReadme = ["---", "order: 1", "title: Providers", "---", "", "# Providers", ""]
 
+  const schemasRoot = resolve(docsRoot, "reference", "schemas")
+  const providerSchemasRoot = resolve(schemasRoot, "providers")
+  const actionTypeSpecSchemasRoot = resolve(schemasRoot, "action-type-specs")
+
+  await mkdirp(providerSchemasRoot)
+  await mkdirp(actionTypeSpecSchemasRoot)
+
+  // Output project config schema
+  const projectConfigSchemaPath = resolve(schemasRoot, "Project.json")
+  const projectConfigSchema = joiToJsonSchema(projectSchema())
+  console.log("->", projectConfigSchemaPath)
+  await writeFile(projectConfigSchemaPath, projectConfigSchema)
+
   for (const plugin of allPlugins) {
     const name = plugin.name
 
@@ -123,14 +139,28 @@ export async function writeConfigReferenceDocs(
 
     const path = resolve(providerDir, `${name}.md`)
     console.log("->", path)
-    writeFileSync(path, renderProviderReference(name, plugin, pluginsByName))
+    await writeFile(path, renderProviderReference(name, plugin, pluginsByName))
+
+    if (plugin.configSchema) {
+      const schemaPath = resolve(providerSchemasRoot, `${name}.json`)
+      const jsonSchema = joiToJsonSchema(plugin.configSchema)
+      console.log("->", schemaPath)
+      await writeFile(schemaPath, jsonSchema)
+    }
+
+    if (plugin.outputsSchema) {
+      const schemaPath = resolve(providerSchemasRoot, `${name}.outputs.json`)
+      const jsonSchema = joiToJsonSchema(plugin.outputsSchema)
+      console.log("->", schemaPath)
+      await writeFile(schemaPath, jsonSchema)
+    }
   }
 
   for (const provider of providers) {
     providersReadme.push(`* [\`${provider.name}\`](./${provider.name}.md)`)
   }
 
-  writeFileSync(resolve(providerDir, `README.md`), providersReadme.join("\n"))
+  await writeFile(resolve(providerDir, `README.md`), providersReadme.join("\n"))
   pMemoizeClearAll()
 
   // Render action types
@@ -142,6 +172,16 @@ export async function writeConfigReferenceDocs(
 
   for (const [kind, types] of Object.entries(actionTypeDefinitions)) {
     actionsReadme.push(`* [${kind}](./${kind}/README.md)`)
+
+    const kindSchemaRoot = resolve(actionTypeSpecSchemasRoot, kind)
+    await mkdirp(kindSchemaRoot)
+
+    // Output common fields for the action kind
+    const kindSchemaPath = resolve(schemasRoot, `${kind}.json`)
+    const kindSchema = joiToJsonSchema(getActionSchema(kind as ActionKind))
+    console.log("->", kindSchemaPath)
+    await writeFile(kindSchemaPath, kindSchema)
+
     for (const [type, definition] of Object.entries(types)) {
       const dir = resolve(actionTypeDir, kind)
       await mkdirp(dir)
@@ -150,6 +190,18 @@ export async function writeConfigReferenceDocs(
       console.log("->", path)
       if (!!definition) {
         await writeFile(path, renderActionTypeReference(kind as ActionKind, type, definition.spec))
+
+        // Output JSON schema for the action type spec field
+        const schemaPath = resolve(kindSchemaRoot, `${type}.json`)
+        const jsonSchema = joiToJsonSchema(definition.spec.schema)
+        console.log("->", schemaPath)
+        await writeFile(schemaPath, jsonSchema)
+
+        // Output JSON schema for the action type outputs
+        const outputsSchemaPath = resolve(kindSchemaRoot, `${type}.outputs.json`)
+        const outputsSchema = joiToJsonSchema(definition.spec.outputsSchema || joi.object().default({}))
+        console.log("->", outputsSchemaPath)
+        await writeFile(outputsSchemaPath, outputsSchema)
       }
 
       actionsReadme.push(`  * [\`${type}\`](./${kind}/${type}.md)`)
@@ -187,12 +239,12 @@ export async function writeConfigReferenceDocs(
     const path = resolve(moduleTypeDir, `${name}.md`)
 
     console.log("->", path)
-    writeFileSync(path, renderModuleTypeReference(name, moduleTypeDefinitions))
+    await writeFile(path, renderModuleTypeReference(name, moduleTypeDefinitions))
 
     moduleReadme.push(`* [\`${name}\`](./${name}.md)`)
   }
 
-  writeFileSync(resolve(moduleTypeDir, `README.md`), moduleReadme.join("\n"))
+  await writeFile(resolve(moduleTypeDir, `README.md`), moduleReadme.join("\n"))
   pMemoizeClearAll()
 
   // Render other config file references

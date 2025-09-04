@@ -1,0 +1,57 @@
+{
+  "$ref": "#/$defs/providerConfig",
+  "$defs": {
+    "providerConfig": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "examples": [
+            "local-kubernetes"
+          ],
+          "description": "The name of the provider plugin to use.",
+          "pattern": "^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$"
+        },
+        "dependencies": {
+          "type": "array",
+          "examples": [
+            [
+              "exec"
+            ]
+          ],
+          "description": "List other providers that should be resolved before this one.",
+          "default": []
+        },
+        "environments": {
+          "type": "array",
+          "examples": [
+            [
+              "dev",
+              "stage"
+            ]
+          ],
+          "description": "If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.",
+          "items": {
+            "type": "string",
+            "description": "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63 characters.",
+            "pattern": "^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+          }
+        },
+        "preInit": {
+          "type": "object",
+          "properties": {
+            "runScript": {
+              "type": "string",
+              "description": "A script to run before the provider is initialized. This is useful for performing any provider-specific setup outside of Garden. For example, you can use this to perform authentication, such as authenticating with a Kubernetes cluster provider.\nThe script will always be run from the project root directory.\nNote that provider statuses are cached, so this script will generally only be run once, but you can force a re-run by setting `--force-refresh` on any Garden command that uses the provider."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

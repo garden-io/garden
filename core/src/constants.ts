@@ -25,6 +25,7 @@ export const GARDEN_CORE_ROOT = !!extractedRoot
   : resolve(moduleDirName, "..", "..")
 export const GARDEN_CLI_ROOT = resolve(GARDEN_CORE_ROOT, "..", "cli")
 export const STATIC_DIR = !!extractedRoot ? resolve(extractedRoot, "static") : resolve(GARDEN_CORE_ROOT, "..", "static")
+export const DOCS_DIR = !!extractedRoot ? resolve(extractedRoot, "docs") : resolve(GARDEN_CORE_ROOT, "..", "docs")
 export const DEFAULT_GARDEN_DIR_NAME = ".garden"
 export const CACHE_DIR_NAME = "cache"
 export const MUTAGEN_DIR_NAME = "mutagen"

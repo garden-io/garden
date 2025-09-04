@@ -1,0 +1,187 @@
+{
+  "type": "object",
+  "properties": {
+    "localId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Specify an image ID to use when building locally, instead of the default of using the action name. Must be a valid Docker image identifier. **Note that the image _tag_ is always set to the action version.**"
+    },
+    "publishId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Specify an image ID to use when publishing the image (via the `garden publish` command), instead of the default of using the action name. Must be a valid Docker image identifier."
+    },
+    "targetStage": {
+      "type": "string",
+      "description": "For multi-stage Dockerfiles, specify which image/stage to build (see https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details)."
+    },
+    "buildArgs": {
+      "type": "object",
+      "description": "Specify build arguments to use when building the container image.\n\nNote: Garden will always set a `GARDEN_ACTION_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the module/build version at build time.",
+      "properties": {
+        "/.+/": {
+          "description": "Number, string or boolean",
+          "anyOf": [
+            {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        ".+": {
+          "description": "Number, string or boolean",
+          "anyOf": [
+            {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        }
+      }
+    },
+    "platforms": {
+      "type": "array",
+      "description": "Specify the platforms to build the image for. This is useful when building multi-platform images.\nThe format is `os/arch`, e.g. `linux/amd64`, `linux/arm64`, etc."
+    },
+    "secrets": {
+      "type": "object",
+      "examples": [
+        {
+          "mytoken": "supersecret"
+        }
+      ],
+      "description": "Secret values that can be mounted in the Dockerfile, but do not become part of the image filesystem or image manifest. This is useful e.g. for private registry auth tokens.\n\nBuild arguments and environment variables are inappropriate for secrets, as they persist in the final image.\n\nThe secret can later be consumed in the Dockerfile like so:\n```\n  RUN --mount=type=secret,id=mytoken TOKEN=$(cat /run/secrets/mytoken) ...\n```\n\nSee also https://docs.docker.com/build/building/secrets/",
+      "properties": {
+        "/.+/": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        ".+": {
+          "type": "string"
+        }
+      }
+    },
+    "dockerfile": {
+      "type": "posixPath",
+      "description": "POSIX-style name of a Dockerfile, relative to the action's source root.",
+      "default": "Dockerfile"
+    },
+    "hotReload": {
+      "type": [
+        "array",
+        "boolean",
+        "number",
+        "object",
+        "string",
+        "null"
+      ]
+    },
+    "projectType": {
+      "type": "string",
+      "description": "The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the action root), but in some cases you may need to specify it.",
+      "default": "auto",
+      "enum": [
+        "gradle",
+        "maven",
+        "jib",
+        "auto",
+        "mavend"
+      ]
+    },
+    "jdkVersion": {
+      "type": "integer",
+      "description": "The JDK version to use.\n\nThe chosen version will be downloaded by Garden and used to define `JAVA_HOME` environment variable for Gradle and Maven.\n\nTo use an arbitrary JDK distribution, please use the `jdkPath` configuration option.",
+      "default": 11,
+      "enum": [
+        8,
+        11,
+        13,
+        17,
+        21
+      ]
+    },
+    "jdkPath": {
+      "type": "string",
+      "examples": [
+        "${local.env.JAVA_HOME}"
+      ],
+      "description": "The JDK home path. This **always overrides** the JDK defined in `jdkVersion`.\n\nThe value will be used as `JAVA_HOME` environment variable for Gradle and Maven."
+    },
+    "dockerBuild": {
+      "type": "boolean",
+      "description": "Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target).",
+      "default": false
+    },
+    "tarOnly": {
+      "type": "boolean",
+      "description": "Don't load or push the resulting image to a Docker daemon or registry, only build it as a tar file.",
+      "default": false
+    },
+    "tarFormat": {
+      "type": "string",
+      "description": "Specify the image format in the resulting tar file. Only used if `tarOnly: true`.",
+      "default": "docker",
+      "enum": [
+        "docker",
+        "oci"
+      ]
+    },
+    "gradlePath": {
+      "type": "string",
+      "description": "Defines the location of the custom executable Gradle binary.\n\nIf not provided, then the Gradle binary available in the working directory will be used.\nIf no Gradle binary found in the working dir, then Gradle 7.5.1 will be downloaded and used.\n\n**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Gradle.\nTo ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`."
+    },
+    "mavenPath": {
+      "type": "string",
+      "description": "Defines the location of the custom executable Maven binary.\n\nIf not provided, then Maven 3.8.8 will be downloaded and used.\n\n**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven.\nTo ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`."
+    },
+    "mavenPhases": {
+      "type": "array",
+      "description": "Defines the Maven phases to be executed during the Garden build step.",
+      "default": [
+        "compile"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "mavendPath": {
+      "type": "string",
+      "description": "Defines the location of the custom executable Maven Daemon binary.\n\nIf not provided, then Maven Daemon 0.9.0 will be downloaded and used.\n\n**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven Daemon.\nTo ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`."
+    },
+    "concurrentMavenBuilds": {
+      "type": "boolean",
+      "description": "[EXPERIMENTAL] Enable/disable concurrent Maven and Maven Daemon builds.\n\nNote! Concurrent builds can be unstable. This option is disabled by default.\nThis option must be configured for each Build action individually.",
+      "default": false
+    },
+    "extraFlags": {
+      "type": "array",
+      "description": "Specify extra flags to pass to maven/gradle when building the container image."
+    }
+  },
+  "additionalProperties": false
+}
