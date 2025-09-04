@@ -540,7 +540,7 @@ export const kubernetesConfigBase = () =>
               Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
             `
             ),
-          nodeSelector: joiStringMap(joi.string().empty("")).description(
+          nodeSelector: joiStringMap(joi.string().allow("")).description(
             dedent`
             Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under \`util.nodeSelector\`.
 
