@@ -47,6 +47,8 @@ import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
 import { getBackendType } from "../cloud/util.js"
+import type { EnvironmentAecConfig } from "./aec.js"
+import { aecConfigSchema } from "./aec.js"
 
 export const defaultProjectVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -67,6 +69,7 @@ export interface EnvironmentConfig {
   varfile?: string
   variables: DeepPrimitiveMap
   production?: boolean
+  aec?: EnvironmentAecConfig
 }
 
 export const environmentNameSchema = memoize(() =>
@@ -124,6 +127,7 @@ export const environmentSchema = createSchema({
           over variables defined in the top-level \`variables\` field, but may also reference the top-level variables in
           template strings.
         `),
+    aec: aecConfigSchema(),
   }),
 })
 
@@ -207,6 +211,8 @@ interface ProjectScan {
   git?: GitConfig
 }
 
+export type VariablesFromConfig = string | string[] | undefined
+
 export interface ProjectConfig extends BaseGardenResource {
   apiVersion: GardenApiVersion
   kind: "Project"
@@ -227,7 +233,7 @@ export interface ProjectConfig extends BaseGardenResource {
   sources?: SourceConfig[]
   varfile?: string
   variables: DeepPrimitiveMap
-  variablesFrom: string | string[]
+  variablesFrom: VariablesFromConfig
 }
 
 export const projectApiVersionSchema = memoize(() =>
@@ -320,6 +326,8 @@ const projectOutputSchema = createSchema({
       .example("${actions.build.my-build.outputs.deployment-image-name}"),
   }),
 })
+
+export const getVariablesFromBaseSchema = () => joi.alternatives().try(joi.string(), joi.array().items(joi.string()))
 
 export const projectSchema = createSchema({
   name: "Project",
@@ -454,11 +462,9 @@ export const projectSchema = createSchema({
     variables: joiVariables().description(
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
-    variablesFrom: joi
-      .alternatives()
-      .try(joi.string(), joi.array().items(joi.string()))
+    variablesFrom: getVariablesFromBaseSchema()
       .description(
-        deline`
+        dedent`
       EXPERIMENTAL: This is an experimental feature that requires setting "GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true" and enabling variables for your organization in Garden Cloud (currenty only
       available in early access).
 
@@ -839,4 +845,12 @@ export function parseEnvironment(env: string): ParsedEnvironment {
   } else {
     return { environment: split[1], namespace: split[0] }
   }
+}
+
+export function parseVariablesFromConfig(variablesFrom: VariablesFromConfig): string[] {
+  if (!variablesFrom) {
+    return []
+  }
+
+  return typeof variablesFrom === "string" ? [variablesFrom] : variablesFrom
 }

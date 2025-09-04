@@ -475,7 +475,7 @@ export async function findProjectConfig({
   return
 }
 
-type LoadedVarfile = { data: PrimitiveMap; source: ConfigSource }
+export type LoadedVarfile = { data: PrimitiveMap; source: ConfigSource }
 const loadVarfileCache = new LRUCache<string, Promise<LoadedVarfile>>({
   max: 10000,
   ttl: 30000,

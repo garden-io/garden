@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type tmp from "tmp-promise"
 import { expect } from "chai"
 import type { SecretResult as CloudApiSecretResult } from "@garden-io/platform-api-types"
 import {
@@ -14,11 +15,15 @@ import {
   getSecretsToUpdateByName,
 } from "../../../../../../src/commands/cloud/secrets/secrets-update.js"
 import { deline } from "../../../../../../src/util/string.js"
-import { createProjectConfig, expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
+import { createProjectConfig, expectError, getDataDir, makeTempDir, makeTestGarden } from "../../../../../helpers.js"
 import type { Secret, SingleUpdateSecretRequest } from "../../../../../../src/cloud/api-legacy/api.js"
-import { FakeGardenCloudApi } from "../../../../../helpers/api.js"
+import { FakeGardenCloudApiLegacy, makeFakeCloudApi } from "../../../../../helpers/api.js"
+import type { ApiTrpcClient } from "../../../../../../src/cloud/api/trpc.js"
+import { getRootLogger } from "../../../../../../src/logger/logger.js"
 
 describe("SecretsUpdateCommand", () => {
+  let configStoreTmpDir: tmp.DirectoryResult
+  const log = getRootLogger().createLog()
   const projectRoot = getDataDir("test-project-b")
   const allSecrets: CloudApiSecretResult[] = [
     {
@@ -69,9 +74,25 @@ describe("SecretsUpdateCommand", () => {
     },
   ]
 
-  it("should throw an error when using the backend v2 as secrets are not supported", async () => {
-    const garden = await makeTestGarden(projectRoot, { config: createProjectConfig({ organizationId: "fake-org-id" }) })
-    const log = garden.log
+  before(async () => {
+    configStoreTmpDir = await makeTempDir()
+  })
+
+  after(async () => {
+    await configStoreTmpDir.cleanup()
+  })
+
+  it("should throw an error if jOT using legacy Garden Cloud", async () => {
+    const overrideCloudApiFactory = async () =>
+      await makeFakeCloudApi({
+        trpcClient: {} as ApiTrpcClient,
+        configStoreTmpDir,
+        log,
+      })
+    const garden = await makeTestGarden(projectRoot, {
+      config: createProjectConfig({ organizationId: "fake-org-id" }),
+      overrideCloudApiFactory,
+    })
     const command = new SecretsUpdateCommand()
 
     await expectError(
@@ -84,7 +105,7 @@ describe("SecretsUpdateCommand", () => {
           opts: {} as any,
         }),
       (err) => {
-        expect(err.message).to.include("This version of Garden does not support secrets")
+        expect(err.message).to.include("Looks like you're logged into Garden Cloud")
       }
     )
   })
@@ -92,7 +113,7 @@ describe("SecretsUpdateCommand", () => {
   it("should throw an error when run without arguments", async () => {
     const garden = await makeTestGarden(projectRoot, {
       config: createProjectConfig({ id: "fake-project-id" }),
-      overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
+      overrideCloudApiLegacyFactory: FakeGardenCloudApiLegacy.factory,
     })
     const log = garden.log
     const command = new SecretsUpdateCommand()

@@ -9,7 +9,7 @@
 import type { CommandResult, CommandParams } from "../base.js"
 import { Command, suggestedCommandSchema } from "../base.js"
 import type { ConfigDump } from "../../garden.js"
-import { environmentNameSchema, projectSourceSchema } from "../../config/project.js"
+import { environmentNameSchema, getVariablesFromBaseSchema, projectSourceSchema } from "../../config/project.js"
 import { joiIdentifier, joiVariables, joiArray, joi, joiStringMap } from "../../config/common.js"
 import { providerConfigBaseSchema, providerSchema } from "../../config/provider.js"
 import { moduleConfigSchema } from "../../config/module.js"
@@ -20,6 +20,7 @@ import { buildActionConfigSchema } from "../../actions/build.js"
 import { deployActionConfigSchema } from "../../actions/deploy.js"
 import { runActionConfigSchema } from "../../actions/run.js"
 import { testActionConfigSchema } from "../../actions/test.js"
+import { filterDisableFromConfigDump } from "./helpers.js"
 
 export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({
@@ -50,7 +51,8 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
       providers: joiArray(joi.alternatives(providerSchema(), providerConfigBaseSchema())).description(
         "A list of all configured providers in the environment."
       ),
-      variables: joiVariables().description("All configured variables in the environment."),
+      variables: joiVariables().description("All configured project variables in the environment."),
+      variablesFrom: getVariablesFromBaseSchema().description("The 'variablesFrom' config"),
       actionConfigs: joi
         .object()
         .keys({
@@ -91,28 +93,11 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
       resolveWorkflows: !partial,
     })
 
-    // Also filter out service, task, and test configs
     if (opts["exclude-disabled"]) {
-      const filteredModuleConfigs = config.moduleConfigs.map((moduleConfig) => {
-        const filteredConfig = {
-          ...moduleConfig,
-          serviceConfigs: moduleConfig.serviceConfigs.filter((c) => !c.disabled),
-          taskConfigs: moduleConfig.taskConfigs.filter((c) => !c.disabled),
-          testConfigs: moduleConfig.testConfigs.filter((c) => !c.disabled),
-        }
-        return filteredConfig
-      })
+      const filtered = filterDisableFromConfigDump(config)
 
-      config.moduleConfigs = filteredModuleConfigs
-
-      for (const configs of Object.values(config.actionConfigs)) {
-        // TODO: work out why c resolves as any
-        for (const [key, c] of Object.entries(configs)) {
-          if (c.disabled) {
-            delete configs[key]
-          }
-        }
-      }
+      config.moduleConfigs = filtered.moduleConfigs
+      config.actionConfigs = filtered.actionConfigs
     }
 
     // TODO: do a nicer print of this by default

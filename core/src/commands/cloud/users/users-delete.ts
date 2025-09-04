@@ -14,8 +14,9 @@ import { dedent, deline } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
 import type { ApiCommandError, DeleteResult } from "../helpers.js"
-import { confirmDelete, handleBulkOperationResult, noApiMsg } from "../helpers.js"
+import { confirmDelete } from "../helpers.js"
 import { enumerate } from "../../../util/enumerate.js"
+import { handleBulkOperationResult, noApiMsg, throwIfNotLegacyCloud } from "../../helpers.js"
 
 export const usersDeleteArgs = {
   ids: new StringsParameter({
@@ -45,6 +46,8 @@ export class UsersDeleteCommand extends Command<Args> {
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
+    throwIfNotLegacyCloud(garden)
+
     const usersToDelete = args.ids || []
     if (usersToDelete.length === 0) {
       throw new CommandError({

@@ -11,13 +11,13 @@ import { printHeader } from "../../../logger/util.js"
 import { dedent, deline, renderTable } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import { applyFilter, noApiMsg } from "../helpers.js"
+import { applyFilter } from "../helpers.js"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
 import { styles } from "../../../logger/styles.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
-import { handleSecretsUnavailableInNewBackend } from "../../../cloud/api/secrets.js"
+import { noApiMsg, throwIfNotLegacyCloud } from "../../helpers.js"
 
 export const secretsListOpts = {
   "filter-envs": new StringsParameter({
@@ -53,7 +53,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<SecretResult[]>> {
-    handleSecretsUnavailableInNewBackend(garden)
+    throwIfNotLegacyCloud(garden, "garden get variables")
 
     const envFilter = opts["filter-envs"] || []
     const nameFilter = opts["filter-names"] || []

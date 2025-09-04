@@ -28,7 +28,6 @@ spec:
       port: http
 
 ---
-
 kind: Run
 name: backend-run-task
 type: container

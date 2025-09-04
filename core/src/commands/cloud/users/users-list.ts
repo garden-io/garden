@@ -13,12 +13,13 @@ import { printHeader } from "../../../logger/util.js"
 import { dedent, deline, renderTable } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import { applyFilter, noApiMsg } from "../helpers.js"
+import { applyFilter } from "../helpers.js"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
 import { styles } from "../../../logger/styles.js"
 import type { UserResult } from "./user-helpers.js"
 import { makeUserFromResponse } from "./user-helpers.js"
+import { noApiMsg, throwIfNotLegacyCloud } from "../../helpers.js"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
@@ -50,6 +51,8 @@ export class UsersListCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<UserResult[]>> {
+    throwIfNotLegacyCloud(garden, "garden get users")
+
     const nameFilter = opts["filter-names"] || []
     const groupFilter = opts["filter-groups"] || []
 

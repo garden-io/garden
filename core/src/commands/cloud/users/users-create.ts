@@ -17,13 +17,18 @@ import { printHeader } from "../../../logger/util.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
 import type { ApiCommandError } from "../helpers.js"
-import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringsParameter } from "../../../cli/params.js"
 import { chunk } from "lodash-es"
 import pMap from "p-map"
 import type { UserResult } from "./user-helpers.js"
 import { makeUserFromResponse } from "./user-helpers.js"
+import {
+  handleBulkOperationResult,
+  noApiMsg,
+  readInputKeyValueResources,
+  throwIfNotLegacyCloud,
+} from "../../helpers.js"
 
 // This is the limit set by the API.
 const MAX_USERS_PER_REQUEST = 100
@@ -81,6 +86,8 @@ export class UsersCreateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {
+    throwIfNotLegacyCloud(garden)
+
     const addToGroups: string[] = opts["add-to-groups"] || []
     const usersFilePath = opts["from-file"] as string | undefined
 

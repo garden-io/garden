@@ -1,0 +1,48 @@
+apiVersion: garden.io/v2
+kind: Project
+name: test
+organizationId: "fake-org-id"
+environments:
+  - name: local
+
+variablesFrom:
+  - fake-varlist
+
+varfile: ./project-varfile.env
+variables:
+  userId: ${kebabCase("my_user_id")}
+  secretVar: ${secrets.SECRET_VAR}
+  nested:
+    foo: bar
+  array: [foo, bar]
+  deepNested:
+    foo:
+      bar: bas
+
+---
+kind: Run
+name: my-run
+type: exec
+spec:
+  command: ["/bin/sh", "-c", "echo hello from run action"]
+
+variables:
+  ingressPath: /hello
+
+---
+kind: Run
+name: my-run-2
+type: exec
+spec:
+  command: [""]
+
+dependencies:
+  - run.my-run
+
+varfiles:
+  - ./action-varfile.env
+variables:
+  ingressPath: /hello
+  foo: "baz"
+  actionVarfileVarToOverwrite: "action-var"
+  runtimeVar: ${actions.run.my-run.outputs.log}

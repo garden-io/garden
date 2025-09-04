@@ -19,7 +19,7 @@ import {
   createProjectConfig,
 } from "../../../helpers.js"
 import {
-  FakeGardenCloudApi,
+  FakeGardenCloudApiLegacy,
   apiProjectName,
   apiRemoteOriginUrl,
   apiProjectId,
@@ -273,7 +273,7 @@ describe("AnalyticsHandler", () => {
           name: "foo",
           id: "fake-project-id",
         }),
-        overrideCloudApiLegacyFactory: FakeGardenCloudApi.factory,
+        overrideCloudApiLegacyFactory: FakeGardenCloudApiLegacy.factory,
       })
       // garden.cloudApi = FakeGardenCloudApi.factory({
       //   cloudDomain: garden.cloudDomain,

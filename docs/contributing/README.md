@@ -132,3 +132,30 @@ Check out our [release process guide](../../RELEASE_PROCESS.md) for more details
 ## Changelog
 
 We keep a changelog under [CHANGELOG.md](../../CHANGELOG.md) that gets updated on every release. For pre-releases, we include every pre-release tag in that release cycle in the changelog. So if we're releasing, say, `0.12.6-3`, the changelog will include entries for `0.12.6-0`, `0.12.6-1`, `0.12.6-2`, assuming those tags exist. Once we make a proper release, we remove the pre-release tags so that the changelog only shows changes between `0.12.5` and `0.12.6`. A changelog with the pre-releases is of course always available in our Git history.
+
+## Developing and testing specific features
+
+### AEC
+
+To test and develop the AEC feature for Kubernetes, you need to follow these steps:
+
+1. Start OrbStack or similar with a local Kubernetes cluster enabled.
+2. From the Core repo root, run `npm run local-dev-image:build`. This builds the development image which runs the AEC agent.
+3. Log into Garden Cloud with an example project of your choice, configured for `local-kubernetes`.
+4. From the example project directory, run `garden plugins local-kubernetes setup-aec -- --local-dev`
+5. Optionally, run `garden plugins local-kubernetes aec-logs -- --follow` to stream logs from the agent deployment.
+
+Then you can configure your example project for AEC to test the functionality. For example:
+
+```yaml
+kind: Project
+environments:
+  - name: default
+    aec:
+      triggers:
+        - action: pause
+          timeAfterLastUpdate:
+            unit: minutes
+            value: 1
+...
+```

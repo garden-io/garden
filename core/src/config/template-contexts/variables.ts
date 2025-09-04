@@ -277,7 +277,7 @@ function makeVariableRootContext(description: string, contents: ConfigContext) {
   })
 }
 
-const getVarfileData = (varfile: Varfile) => {
+export const getVarfileData = (varfile: Varfile) => {
   const path = typeof varfile === "string" ? varfile : varfile.path
   const optional = typeof varfile === "string" ? false : varfile.optional
   return { path, optional }

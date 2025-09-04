@@ -14,7 +14,6 @@ import { printHeader } from "../../../logger/util.js"
 import { dedent, deline } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
@@ -26,7 +25,12 @@ import type {
   Secret,
   SingleUpdateSecretRequest,
 } from "../../../cloud/api-legacy/api.js"
-import { handleSecretsUnavailableInNewBackend } from "../../../cloud/api/secrets.js"
+import {
+  handleBulkOperationResult,
+  noApiMsg,
+  readInputKeyValueResources,
+  throwIfNotLegacyCloud,
+} from "../../helpers.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -105,7 +109,12 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
-    handleSecretsUnavailableInNewBackend(garden)
+    throwIfNotLegacyCloud(garden)
+
+    const api = garden.cloudApiLegacy
+    if (!api) {
+      throw new ConfigurationError({ message: noApiMsg("update", "secrets") })
+    }
 
     // Apparently TS thinks that optional params are always defined so we need to cast them to their
     // true type here.
@@ -129,11 +138,6 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       resourceName: "secret",
       log: cmdLog,
     })
-
-    const api = garden.cloudApiLegacy
-    if (!api) {
-      throw new ConfigurationError({ message: noApiMsg("update", "secrets") })
-    }
 
     const typedInputSecrets: Secret[] = inputSecrets.map(([key, value]): Secret => ({ name: key, value }))
 

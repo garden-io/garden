@@ -10,14 +10,18 @@ import { CloudApiError, CommandError, ConfigurationError } from "../../../except
 import { printHeader } from "../../../logger/util.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
 import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 import type { Secret } from "../../../cloud/api-legacy/api.js"
-import { handleSecretsUnavailableInNewBackend } from "../../../cloud/api/secrets.js"
+import {
+  handleBulkOperationResult,
+  noApiMsg,
+  readInputKeyValueResources,
+  throwIfNotLegacyCloud,
+} from "../../helpers.js"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -74,7 +78,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
-    handleSecretsUnavailableInNewBackend(garden)
+    throwIfNotLegacyCloud(garden, "garden create remote-variables")
 
     // Apparently TS thinks that optional params are always defined so we need to cast them to their
     // true type here.

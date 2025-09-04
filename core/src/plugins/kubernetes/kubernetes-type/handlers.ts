@@ -9,13 +9,18 @@
 import { isEmpty, omit, partition, uniq } from "lodash-es"
 import type { ModuleActionHandlers } from "../../../plugin/plugin.js"
 import type { DeployState, ForwardablePort, ServiceStatus } from "../../../types/service.js"
-import { gardenAnnotationKey } from "../../../util/string.js"
+import { gardenAnnotationKey } from "../../../util/annotations.js"
 import { KubeApi } from "../api.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync.js"
 import { apply, deleteObjectsBySelector } from "../kubectl.js"
 import { streamK8sLogs } from "../logs.js"
-import { deleteNamespaces, getActionNamespace, getActionNamespaceStatus } from "../namespace.js"
+import {
+  deleteNamespaces,
+  getActionNamespace,
+  getActionNamespaceStatus,
+  updateNamespaceAecAnnotations,
+} from "../namespace.js"
 import { getForwardablePorts, killPortForwards } from "../port-forward.js"
 import { getK8sIngresses } from "../status/ingress.js"
 import type { ResourceStatus } from "../status/status.js"
@@ -403,7 +408,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       namespace,
       ctx,
       provider,
-      actionName: action.key(),
+      logContext: action.key(),
       resources: namespaceManifests,
       log,
       timeoutSec: action.getConfig("timeout"),
@@ -442,7 +447,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       namespace,
       ctx,
       provider,
-      actionName: action.key(),
+      logContext: action.key(),
       resources: preparedManifests,
       log,
       timeoutSec: action.getConfig("timeout"),
@@ -450,6 +455,9 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
     })
   }
   const status = await getKubernetesDeployStatus(<any>params)
+
+  // Update the namespace AEC annotations
+  await updateNamespaceAecAnnotations({ ctx: k8sCtx, api, namespace, status: "none" })
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, status.detail?.forwardablePorts || [], log)

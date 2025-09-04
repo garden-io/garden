@@ -25,6 +25,9 @@ import { GetActionsCommand } from "./get-actions.js"
 import { GetDeploysCommand } from "./get-deploys.js"
 import { GetBuildsCommand } from "./get-builds.js"
 import { GetFilesCommand } from "./get-files.js"
+import { GetVariablesCommand } from "./get-variables.js"
+import { GetUsersCommand } from "./get-users.js"
+import { GetVariableListsCommand } from "./get-variable-lists.js"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -49,5 +52,8 @@ export class GetCommand extends CommandGroup {
     GetTestResultCommand,
     GetDebugInfoCommand,
     GetWorkflowsCommand,
+    GetVariablesCommand,
+    GetUsersCommand,
+    GetVariableListsCommand,
   ]
 }

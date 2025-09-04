@@ -261,6 +261,27 @@ export const baseActionConfigSchema = createSchema({
     version: joi
       .object()
       .keys({
+        excludeDependencies: joi
+          .sparseArray()
+          .items(joi.actionReference())
+          .description(
+            dedent`
+            Specify a list of dependencies that should be ignored when computing the version hash for this action.
+
+            Generally, the versions of all dependencies (both implicit and explicitly specified) are used when computing the version hash for this action.
+            However, there are cases where you might want to exclude certain dependencies from the version hash.
+
+            For example, you might have a dependency that naturally changes for every individual test or dev environment, such as a setup script that runs before the test. You could solve for that with something like this:
+
+            \`\`\`yaml
+            version:
+              excludeDependencies:
+                - run.setup
+            \`\`\`
+
+            Where \`run.setup\` refers to a Run action named \`setup\`. You can also use the full action reference for each dependency to exclude, e.g. \`{ kind: "Run", name: "setup" }\`.
+            `
+          ),
         excludeFields: joi
           .array()
           .items(joi.array().items(joi.string()))
@@ -601,31 +622,7 @@ export abstract class BaseAction<
   // Note: Making this name verbose so that people don't accidentally use this instead of versionString()
   @Memoize(() => true)
   getFullVersion(log: Log): ActionVersion {
-    const depPairs: string[][] = []
-    const actionLog = this.createLog(log)
-    this.dependencies.forEach((d) => {
-      const action = this.graph.getActionByRef(d, { includeDisabled: true })
-      if (!action.isDisabled()) {
-        depPairs.push([action.key(), action.versionString(actionLog)])
-      }
-    })
-    const sortedDeps = sortBy(depPairs, (pair) => pair[0])
-    const dependencyVersions = fromPairs(depPairs)
-
-    const configVersion = this.configVersion(actionLog)
-    const sourceVersion = this._treeVersion.contentHash
-    const fullHash = fullHashStrings([configVersion, sourceVersion, ...flatten(sortedDeps)])
-    const versionString = versionStringPrefix + fullHash.slice(0, SHORT_VERSION_HASH_LENGTH)
-    const versionStringFull = versionStringPrefix + fullHash
-
-    return {
-      configVersion,
-      sourceVersion,
-      versionString,
-      versionStringFull,
-      dependencyVersions,
-      files: this._treeVersion.files,
-    }
+    return getFullActionVersion(this.createLog(log), this.graph, this)
   }
 
   treeVersion() {
@@ -1122,4 +1119,38 @@ export function getActionConfigVersion<C extends BaseActionConfig>(
 ) {
   const configToHash = replaceExcludeValues(config, log, projectExcludeValues)
   return versionStringPrefix + hashStrings([stableStringify(configToHash)])
+}
+
+export function getFullActionVersion(log: ActionLog, graph: ConfigGraph, action: BaseAction) {
+  const depPairs: string[][] = []
+
+  const excludeDependencies = (action._config.version?.excludeDependencies || []).map(actionReferenceToString)
+  const dependencies = action.getDependencyReferences()
+
+  dependencies.forEach((d) => {
+    const depAction = graph.getActionByRef(d, { includeDisabled: true })
+    const key = depAction.key()
+    if (!depAction.isDisabled() && !excludeDependencies.includes(key)) {
+      depPairs.push([key, depAction.versionString(log)])
+    }
+  })
+
+  const sortedDeps = sortBy(depPairs, (pair) => pair[0])
+  const dependencyVersions = fromPairs(depPairs)
+
+  const configVersion = action.configVersion(log)
+  const treeVersion = action.treeVersion()
+  const sourceVersion = treeVersion.contentHash
+  const fullHash = fullHashStrings([configVersion, sourceVersion, ...flatten(sortedDeps)])
+  const versionString = versionStringPrefix + fullHash.slice(0, SHORT_VERSION_HASH_LENGTH)
+  const versionStringFull = versionStringPrefix + fullHash
+
+  return {
+    configVersion,
+    sourceVersion,
+    versionString,
+    versionStringFull,
+    dependencyVersions,
+    files: treeVersion.files,
+  }
 }
