@@ -1852,8 +1852,8 @@ providers:
 variables:
   <name>:
 
-# The 'variablesFrom' config
-variablesFrom:
+# The 'remoteVariables' config
+remoteVariables:
 
 # All action configs in the project.
 actionConfigs:

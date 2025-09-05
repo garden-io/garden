@@ -32,7 +32,8 @@ import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-im
 import { createGrpcTransport } from "@connectrpc/connect-node"
 import { createClient } from "@connectrpc/connect"
 import { GardenEventIngestionService } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
-import { parseVariablesFromConfig } from "../../config/project.js"
+import type { RemoteVariablesConfig } from "../../config/project.js"
+import { getVarlistIdsFromRemoteVarsConfig } from "../../config/project.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -344,15 +345,15 @@ export class GardenCloudApi {
   }
 
   async getVariables({
-    variablesFrom,
+    remoteVariables,
     environmentName,
     log,
   }: {
-    variablesFrom: string | string[] | undefined
+    remoteVariables: RemoteVariablesConfig
     environmentName: string
     log: Log
   }) {
-    const variableListIds = parseVariablesFromConfig(variablesFrom)
+    const variableListIds = getVarlistIdsFromRemoteVarsConfig(remoteVariables)
     if (variableListIds.length === 0) {
       return {}
     }
