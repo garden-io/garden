@@ -211,7 +211,18 @@ interface ProjectScan {
   git?: GitConfig
 }
 
-export type VariablesFromConfig = string | string[] | undefined
+interface RemoteVarsSourceGardenCloud {
+  source: "garden-cloud"
+  varlist: string
+}
+/**
+ * We support short-hand configuration for remote variables which treats the source as Garden Cloud. Specifically:
+ *
+ *  - a string value is treated as a single Garden Cloud varlist ID
+ *  - an array of strings is treated as a list of Garden Cloud varlist IDs
+ *  - an array of objects can refer to different remote variable sources that are each handled appropriately
+ */
+export type RemoteVariablesConfig = string | string[] | RemoteVarsSourceGardenCloud[] | undefined
 
 export interface ProjectConfig extends BaseGardenResource {
   apiVersion: GardenApiVersion
@@ -233,7 +244,7 @@ export interface ProjectConfig extends BaseGardenResource {
   sources?: SourceConfig[]
   varfile?: string
   variables: DeepPrimitiveMap
-  variablesFrom: VariablesFromConfig
+  remoteVariables: RemoteVariablesConfig
 }
 
 export const projectApiVersionSchema = memoize(() =>
@@ -327,7 +338,21 @@ const projectOutputSchema = createSchema({
   }),
 })
 
-export const getVariablesFromBaseSchema = () => joi.alternatives().try(joi.string(), joi.array().items(joi.string()))
+// The remote variable schema supports one of:
+//  - string, treated as a Garden Cloud varlist ID
+//  - array of strings, treated as a list of Garden Cloud varlist IDs
+//  - array of objects, treated as a list of different remote var configs
+export const getRemoteVariablesBaseSchema = () =>
+  joi.alternatives().try(
+    joi.string(),
+    joi.array().items(joi.string()),
+    joi.array().items(
+      joi.object().keys({
+        source: joi.string().valid("garden-cloud").required(),
+        varlist: joi.string().required(),
+      })
+    )
+  )
 
 export const projectSchema = createSchema({
   name: "Project",
@@ -462,7 +487,7 @@ export const projectSchema = createSchema({
     variables: joiVariables().description(
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
-    variablesFrom: getVariablesFromBaseSchema()
+    remoteVariables: getRemoteVariablesBaseSchema()
       .description(
         dedent`
       EXPERIMENTAL: This is an experimental feature that requires setting "GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true" and enabling variables for your organization in Garden Cloud (currenty only
@@ -850,10 +875,36 @@ export function parseEnvironment(env: string): ParsedEnvironment {
   }
 }
 
-export function parseVariablesFromConfig(variablesFrom: VariablesFromConfig): string[] {
-  if (!variablesFrom) {
+function isStringArray(arr: (string | RemoteVarsSourceGardenCloud)[]): arr is string[] {
+  return arr.length === 0 || typeof arr[0] === "string"
+}
+
+/**
+ * Returns a list of varlist IDs from the remote variables config.
+ *
+ * Remote variables default to Garden Cloud as the source so if the user only supplies a string
+ * or an array of strings it's treated as varlist IDs.
+ */
+export function getVarlistIdsFromRemoteVarsConfig(remoteVars: RemoteVariablesConfig): string[] {
+  if (remoteVars === undefined) {
     return []
   }
 
-  return typeof variablesFrom === "string" ? [variablesFrom] : variablesFrom
+  if (typeof remoteVars === "string") {
+    return [remoteVars]
+  }
+
+  if (Array.isArray(remoteVars)) {
+    if (remoteVars.length === 0) {
+      return []
+    }
+
+    if (isStringArray(remoteVars)) {
+      return remoteVars
+    } else {
+      return remoteVars.map((config) => config.varlist)
+    }
+  }
+
+  return []
 }

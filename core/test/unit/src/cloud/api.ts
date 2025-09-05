@@ -65,7 +65,7 @@ describe("GardenCloudApi", () => {
       })
 
       const variables = await cloudApi.getVariables({
-        variablesFrom: "varlist_a",
+        remoteVariables: "varlist_a",
         environmentName: "dev",
         log: garden.log,
       })
@@ -120,7 +120,72 @@ describe("GardenCloudApi", () => {
       })
 
       const variables = await cloudApi.getVariables({
-        variablesFrom: ["varlist_a", "varlist_b"],
+        remoteVariables: ["varlist_a", "varlist_b"],
+        environmentName: "dev",
+        log: garden.log,
+      })
+
+      expect(variables).to.eql({
+        variableA: "variable-a-val",
+        variableB: "variable-b-val",
+        variableC: "variable-c-val",
+      })
+    })
+    it("should handle the verbose remote variable config", async () => {
+      const cloudApi = new GardenCloudApi({
+        log: garden.log,
+        domain: "https://example.com",
+        globalConfigStore: garden.globalConfigStore,
+        organizationId: "fake-organization-id",
+        authToken: "fake-auth-token",
+        __trpcClientOverrideForTesting: makeFakeTrpcClient({
+          variableList: {
+            getValues: {
+              query: async (input) => {
+                if (input.variableListId === "varlist_a") {
+                  const res: RouterOutput["variableList"]["getValues"] = {
+                    variableA: {
+                      value: "variable-a-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedGardenEnvironmentId: null,
+                    },
+                    variableB: {
+                      value: "variable-b-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedGardenEnvironmentId: null,
+                    },
+                  }
+                  return res
+                } else {
+                  const res: RouterOutput["variableList"]["getValues"] = {
+                    variableC: {
+                      value: "variable-c-val",
+                      isSecret: true,
+                      scopedAccountId: null,
+                      scopedGardenEnvironmentId: null,
+                    },
+                  }
+                  return res
+                }
+              },
+            },
+          },
+        }),
+      })
+
+      const variables = await cloudApi.getVariables({
+        remoteVariables: [
+          {
+            source: "garden-cloud",
+            varlist: "varlist_a",
+          },
+          {
+            source: "garden-cloud",
+            varlist: "varlist_b",
+          },
+        ],
         environmentName: "dev",
         log: garden.log,
       })
@@ -176,12 +241,12 @@ describe("GardenCloudApi", () => {
       })
 
       const varListBLast = await cloudApi.getVariables({
-        variablesFrom: ["varlist_a", "varlist_b"],
+        remoteVariables: ["varlist_a", "varlist_b"],
         environmentName: "dev",
         log: garden.log,
       })
       const varListALast = await cloudApi.getVariables({
-        variablesFrom: ["varlist_b", "varlist_a"],
+        remoteVariables: ["varlist_b", "varlist_a"],
         environmentName: "dev",
         log: garden.log,
       })
@@ -228,7 +293,7 @@ describe("GardenCloudApi", () => {
       await expectError(
         () =>
           cloudApi.getVariables({
-            variablesFrom: ["varlist_a", "varlist_b"],
+            remoteVariables: ["varlist_a", "varlist_b"],
             environmentName: "dev",
             log: garden.log,
           }),

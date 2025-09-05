@@ -14,7 +14,7 @@ import { dedent, renderTable } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { flatten, omit, uniqBy } from "lodash-es"
 import type { GardenCloudApi } from "../../cloud/api/api.js"
-import { defaultProjectVarfilePath, parseVariablesFromConfig } from "../../config/project.js"
+import { defaultProjectVarfilePath, getVarlistIdsFromRemoteVarsConfig } from "../../config/project.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "../../config/common.js"
 import type { ResolvedTemplate } from "../../template/types.js"
 import type { RouterOutput } from "../../cloud/api/trpc.js"
@@ -142,7 +142,7 @@ export class GetVariablesCommand extends Command<{}, Opts> {
       }
     })
 
-    const variableListIds = parseVariablesFromConfig(config.variablesFrom)
+    const variableListIds = getVarlistIdsFromRemoteVarsConfig(config.remoteVariables)
     const remoteVariables =
       garden.cloudApi && variableListIds.length > 0
         ? await getRemoteVariables({ api: garden.cloudApi, variableListIds, log })

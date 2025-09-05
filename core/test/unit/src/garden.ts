@@ -537,7 +537,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: [],
-        variablesFrom: [],
+        remoteVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -567,7 +567,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: [],
-        variablesFrom: [],
+        remoteVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -597,7 +597,7 @@ describe("Garden", () => {
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
           excludeValuesFromActionVersions: [],
-          variablesFrom: [],
+          remoteVariables: [],
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
           providers: [{ name: "foo" }],
           variables: { foo: "default", bar: "something" },
@@ -616,7 +616,7 @@ describe("Garden", () => {
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
           excludeValuesFromActionVersions: [],
-          variablesFrom: [],
+          remoteVariables: [],
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
           providers: [{ name: "foo" }],
           variables: { foo: "default", bar: "something" },
@@ -921,7 +921,7 @@ describe("Garden", () => {
           gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES = originalVal
         })
 
-        it("should have an empty secrets map if 'variablesFrom' is not set", async () => {
+        it("should have an empty secrets map if 'remoteVariables' is not set", async () => {
           const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
             variableList: {
               getValues: {
@@ -946,7 +946,7 @@ describe("Garden", () => {
             })
 
           const garden = await TestGarden.factory(pathFoo, {
-            config, // variablesFrom is not set
+            config, // remoteVariables is not set
             environmentString: envName,
             overrideCloudApiFactory,
           })
@@ -954,7 +954,7 @@ describe("Garden", () => {
           expect(garden.secrets).to.eql({})
         })
 
-        it("should fetch variables if 'variablesFrom' is set", async () => {
+        it("should fetch variables if 'remoteVariables' is set", async () => {
           const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
             variableList: {
               getValues: {
@@ -987,7 +987,7 @@ describe("Garden", () => {
           const garden = await TestGarden.factory(pathFoo, {
             config: {
               ...config,
-              variablesFrom: "varlist_1",
+              remoteVariables: "varlist_1",
             },
             environmentString: envName,
             overrideCloudApiFactory,
@@ -1038,7 +1038,7 @@ describe("Garden", () => {
               TestGarden.factory(pathFoo, {
                 config: {
                   ...config,
-                  variablesFrom: "varlist_1",
+                  remoteVariables: "varlist_1",
                 },
                 environmentString: envName,
                 overrideCloudApiFactory: overrideCloudApiFactoryThrowTrpcError,
@@ -1061,7 +1061,7 @@ describe("Garden", () => {
               TestGarden.factory(pathFoo, {
                 config: {
                   ...config,
-                  variablesFrom: "varlist_1",
+                  remoteVariables: "varlist_1",
                 },
                 environmentString: envName,
                 overrideCloudApiFactory: overrideCloudApiFactoryThrowError,
@@ -5766,7 +5766,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: ["foo", "bar"],
-        variablesFrom: [],
+        remoteVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -5793,7 +5793,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: [],
-        variablesFrom: [],
+        remoteVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -5826,7 +5826,7 @@ describe("Garden", () => {
             source: { yamlDoc: undefined, path: [] },
           }) as string,
         ],
-        variablesFrom: [],
+        remoteVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "bar" },
@@ -5858,7 +5858,7 @@ describe("Garden", () => {
             source: { yamlDoc: undefined, path: [] },
           }) as string,
         ],
-        variablesFrom: [],
+        remoteVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "bar" },
