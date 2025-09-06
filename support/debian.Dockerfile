@@ -97,7 +97,7 @@ FROM garden-base-root as garden-azure-base
 ENV AZURE_CLI_VERSION=2.76.0
 
 RUN apt-get update
-RUN apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
+RUN apt-get install ca-certificates curl apt-transport-https lsb-release gnupg -y
 RUN mkdir -p /etc/apt/keyrings
 RUN curl -sLS https://packages.microsoft.com/keys/microsoft.asc | \
     gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null
@@ -105,7 +105,7 @@ RUN chmod go+r /etc/apt/keyrings/microsoft.gpg
 RUN echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | \
     tee /etc/apt/sources.list.d/azure-cli.list
 RUN apt-get update
-RUN apt-get install azure-cli=${AZURE_CLI_VERSION}-1~bookworm
+RUN apt-get install azure-cli=${AZURE_CLI_VERSION}-1~bookworm -y
 RUN az aks install-cli
 
 #

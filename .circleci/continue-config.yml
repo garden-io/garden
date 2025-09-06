@@ -688,6 +688,7 @@ jobs:
       - *attach-workspace
       - run:
           name: Create a release on GitHub. If the release is a pre-release we publish it right away, otherwise we make a draft.
+          # NOTE: The GITHUB_TOKEN expires 2026-09-07
           command: |
             VERSION="$(cat package.json | jq -r .version)"
             PRERELEASE=""
@@ -1395,7 +1396,7 @@ workflows:
           k3sVersion: v1.31.1+k3s1
       - test-minikube:
           name: vm-1.31-minikube
-          requires: [ build ]
+          requires: [build]
           kubernetesVersion: "v1.31.0"
           minikubeVersion: "v1.34.0"
       - test-kind:
@@ -1404,7 +1405,7 @@ workflows:
           kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
       - test-microk8s:
           name: vm-1.33-microk8s
-          requires: [ build ]
+          requires: [build]
           kubernetesVersion: "1.33"
 
       - test-plugins:
