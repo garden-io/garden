@@ -222,8 +222,8 @@ async function release() {
     If this is not a pre-release, create a pull request for ${branchName} on Github by visiting:
       https://github.com/garden-io/garden/pull/new/${branchName}\n
 
-    Please refer to our contributing docs for the next steps:
-    https://github.com/garden-io/garden/blob/main/CONTRIBUTING.md
+    Please refer to our release process docs for the next steps:
+    https://github.com/garden-io/garden/blob/main/RELEASE_PROCESS.md
   `)
   }
 }
