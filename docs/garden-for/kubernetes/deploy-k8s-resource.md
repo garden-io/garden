@@ -55,7 +55,7 @@ kind: Deploy
 type: kubernetes
 name: api
 spec:
-  files:
+  manifestFiles:
     - ./manifests/Deployment.yaml
     - ./manifests/Ingress.yaml
     - ./manifests/Service.yaml
@@ -68,7 +68,7 @@ kind: Deploy
 type: kubernetes
 name: api
 spec:
-  files:
+  manifestFiles:
     - ./manifests/*
 ```
 
@@ -100,7 +100,7 @@ kind: Deploy
 type: kubernetes
 name: api
 spec:
-  files:
+  manifestFiles:
     - ./manifests/${environment.name}/Deployment.yaml
     - ./manifests/${environment.name}/Ingress.yaml
     - ./manifests/${environment.name}/Service.yaml
@@ -131,7 +131,7 @@ name: api
 source:
   path: ../ # <--- Garden will now treat the parent directory as the action source path
 spec:
-  files:
+  manifestFiles:
     - ./manifests/Deployment.yaml # <--- Reference the manifests relative to the source path
     - ./manifests/Ingress.yaml
     - ./manifests/Service.yaml
@@ -279,7 +279,7 @@ spec:
       kind: Deployment # <--- The kind of the resource to patch
       patch:
         spec:
-          replicas: "${environment.name == 'dev' ? 1 : 3}" # <-- Set replicas depending on environment
+          replicas: "${environment.name == 'dev' ? 1 : 3}" # <--- Set replicas depending on environment
           template:
             spec:
               containers:
@@ -289,6 +289,42 @@ spec:
 ```
 
 The benefit of this approach is that you don't need to make any changes to your existing manifests.
+
+Here's one more example where we iterate over a list of variables defined in Garden config and set them as environment variables for a given container:
+
+```yaml
+kind: Build
+type: container
+name: api
+---
+kind: Deploy
+type: kubernetes
+name: api
+
+variables:
+  apiEnv: # <--- Garden variables that we'll set as K8s container env vars
+    DATABASE_PASSWORD: ${remoteVars.DATABASE_PASSWORD} # <--- A secret variable stored in Garden Cloud
+    NODE_ENV: development
+    PORT: ${var.API_PORT} # <--- A shared variable that's set in the project config that we reference here
+
+spec:
+  manifestFiles: [my-manifests.yml]
+  patchResources:
+    - name: api
+      kind: Deployment
+      patch:
+        spec:
+          template:
+            spec:
+              containers:
+                - name: api
+                  env:
+                    $forEach: ${var.apiEnv} # <--- Iterate over the values of ${var.apiEnv} variable...
+                    $filter: "${item.value ? true : false}" # <--- ...optionally filter out empty values since Kubernetes doesn't support it...
+                    $return: # <--- ...return them as valid Kubernetes name/value pairs
+                      name: ${item.key}
+                      value: ${string(item.value)}
+```
 
 If you'd rather use template strings in the manifests, you can do that as well as described in the [referencing container images](#option-2-using-garden-template-strings) section above.
 
