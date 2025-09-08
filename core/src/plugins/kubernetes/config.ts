@@ -43,6 +43,8 @@ import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultUtilImageRegistryDomain, defaultSystemNamespace } from "./constants.js"
 import type { LocalKubernetesClusterType } from "./local/config.js"
 import type { ActionKind } from "../../plugin/action-types.js"
+import type { SyncMode } from "../container/config.js"
+import { syncModeSchema } from "../container/config.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -116,6 +118,7 @@ export type KubernetesClusterType = LocalKubernetesClusterType
 export interface KubernetesConfig extends BaseProviderConfig {
   utilImageRegistryDomain: string
   buildMode: ContainerBuildMode
+  buildSyncMode?: SyncMode
   clusterBuildkit?: {
     cache: ClusterBuildkitCacheConfig[]
     rootless?: boolean
@@ -402,6 +405,19 @@ export const kubernetesConfigBase = () =>
     .keys({
       utilImageRegistryDomain: utilImageRegistryDomainSpec,
       buildMode: buildModeSchema(),
+      buildSyncMode: syncModeSchema()
+        .default("one-way-replica")
+        .description(
+          dedent`
+            The sync mode to use for build synchronization (when syncing files to the cluster for in-cluster builds).
+            
+            This affects how files are synchronized to the \`.garden/build\` directory during container builds.
+            The default is \`one-way-replica\` which is fast but may leave empty directories when files are moved or deleted.
+            Use \`two-way-resolved\` to ensure empty directories are properly cleaned up.
+            
+            See the [Code Synchronization guide](https://docs.garden.io/cedar-0.14/guides/code-synchronization) for details on sync modes.
+          `
+        ),
       clusterBuildkit: joi
         .object()
         .keys({
