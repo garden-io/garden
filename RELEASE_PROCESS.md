@@ -53,12 +53,13 @@ Once the release CI job is done, a draft release will appear in GitHub. That dra
   - Run `./scripts/draft-release-notes.ts <previous-tag> <current-tag>`, the filename with the draft notes will be printed in the console
   - Open the draft file (it's named `release-notes-${version}-draft.md`, e.g. `release-notes-0.12.38-draft.md`) and resolve all suggested TODO items
 3. Click the **Publish release** button.
-4. Make a pull request for the branch that was pushed by the script and make sure it's merged as soon as possible.
+4. Check out the branch created by the release script (will be called `release-<version>`).
 5. Update the [`CHANGELOG.md`](./CHANGELOG.md) if manual changes in the release nodes were necessary (e.g. removing commits that were reverted).
 6. Run `npm install` and commit the updated `package-lock.json`.
-7. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
-8. Check the `update-homebrew` GitHub Action run successfully and merge the relevant PR in the [homebrew repo](https://github.com/garden-io/homebrew-garden/pulls). **Use regular merge with the merge commit.**
-9. Install the Homebrew package and make sure it works okay:
+7. Push the changes from steps 5 and 6 into the release branch. Make a pull request for the branch that was pushed by the script and make sure it's merged as soon as possible.
+8. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
+9. Check the `update-homebrew` GitHub Action run successfully and merge the relevant PR in the [homebrew repo](https://github.com/garden-io/homebrew-garden/pulls). **Use regular merge with the merge commit.**
+10. Install the Homebrew package and make sure it works okay:
     - `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
-    - Run `$(brew --prefix garden-cli)/bin/garden dev` (to make sure you're using the packaged release) in an example project and see if all looks well.
-10. Prepare the release announcement and publish it in our channels (Discord and Twitter). If not possible, delegate the task to an available contributor.
+    - Run `$(brew --prefix garden-cli)/bin/garden dev` and run the `version` command in the console (to make sure you're using the packaged release). Do a quick manual test in an example project and see if all looks OK.
+11. Prepare the release announcement and publish it in our channels (Discord and Twitter). If not possible, delegate the task to an available contributor.
