@@ -1,4 +1,21 @@
 
+<a name="0.14.8"></a>
+## [0.14.8](https://github.com/garden-io/garden/compare/0.14.7...0.14.8) (2025-09-06)
+
+### Bug Fixes
+
+* deal with Bitnami's infuriating rug-pull ([#7654](https://github.com/garden-io/garden/issues/7654)) ([711da5d88](https://github.com/garden-io/garden/commit/711da5d88))
+* **config:** allow empty string for nodeSelector values ([#7677](https://github.com/garden-io/garden/issues/7677)) ([a7290a98e](https://github.com/garden-io/garden/commit/a7290a98e))
+
+### Features
+
+* garden diff command, to compare action versions between branches/commits ([#7670](https://github.com/garden-io/garden/issues/7670)) ([2e199400b](https://github.com/garden-io/garden/commit/2e199400b))
+* **config:** add version.excludeDependencies to action config ([#7658](https://github.com/garden-io/garden/issues/7658)) ([6f22a5c67](https://github.com/garden-io/garden/commit/6f22a5c67))
+* **config:** add project-level excludeValuesFromActionVersions field ([#7653](https://github.com/garden-io/garden/issues/7653)) ([3fc5f48b7](https://github.com/garden-io/garden/commit/3fc5f48b7))
+* **core:** add utility commands for variables ([#7674](https://github.com/garden-io/garden/issues/7674)) ([28049d145](https://github.com/garden-io/garden/commit/28049d145))
+* **exec:** support arbitratry outputs from exec actions ([#7630](https://github.com/garden-io/garden/issues/7630)) ([908111bc2](https://github.com/garden-io/garden/commit/908111bc2))
+* **exec:** add statusCommand for more efficient exec Build/Test/Run actions ([#7629](https://github.com/garden-io/garden/issues/7629)) ([9749b8cc3](https://github.com/garden-io/garden/commit/9749b8cc3))
+
 <a name="0.14.7"></a>
 ## [0.14.7](https://github.com/garden-io/garden/compare/0.14.6...0.14.7) (2025-08-13)
 
