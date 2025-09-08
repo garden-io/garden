@@ -317,6 +317,26 @@ export const baseActionConfigSchema = createSchema({
             Note that it is very important not to specify overly broad exclusions here, as this may cause the version to change too rarely, which may cause build errors or tests to not run when they should.
           `
           ),
+        excludeFiles: joiSparseArray(joi.string()).description(
+          dedent`
+            Specify one or more file paths that should be ignored when computing the version hash for this action.
+
+            Specify in the same format as the \`include\` field. You may use glob patterns here.
+
+            For example, you might have a file that naturally changes for every build, such as a compiled binary (that isn't deterministic down to the byte), that you need to have in the build but shouldn't affect the version. You could solve for that with something like this:
+
+            \`\`\`yaml
+            include:
+              - src/**/*
+              - some/compiled/binary
+            version:
+              excludeFiles:
+                - some/compiled/binary
+            \`\`\`
+
+            Note that when you use this, you do need to make sure that other files or config fields do affect the version appropriately. Otherwise you might run into issues where builds are not updated or tests are not run when they should be.
+          `
+        ),
         excludeValues: joiSparseArray(joi.string()).description(
           dedent`
             Specify one or more string values that should be ignored when computing the version hash for this action. You may use template expressions here. This is useful to avoid dynamic values affecting cache versions.

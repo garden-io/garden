@@ -4624,6 +4624,36 @@ describe("Garden", () => {
       expect(versionTestB.dependencyVersions["run.prepare"]).to.not.exist
     })
 
+    it("correctly handles version.excludeFiles", async () => {
+      const projectRoot = getDataDir("test-projects", "version-exclude-files")
+      let garden = await makeTestGarden(projectRoot, {})
+
+      let graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+
+      let resolvedTest = graph.getTest("test")
+
+      const modifiedFilePath = join(garden.projectRoot, "test2.log")
+      await remove(modifiedFilePath)
+
+      const versionTestA = resolvedTest.getFullVersion(garden.log)
+
+      // Add a file to affect the Run version
+      await writeFile(modifiedFilePath, "bar")
+
+      garden = await makeTestGarden(projectRoot, {})
+      garden.clearCaches()
+      graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+
+      resolvedTest = graph.getTest("test")
+
+      const versionTestB = resolvedTest.getFullVersion(garden.log)
+
+      // Should have same source version
+      expect(versionTestA.sourceVersion).to.equal(versionTestB.sourceVersion)
+      // But different files
+      expect(versionTestA.files).to.not.eql(versionTestB.files)
+    })
+
     it("correctly handles version.excludeValues", async () => {
       const projectRoot = getDataDir("test-projects", "version-exclude-values")
       const gardenA = await makeTestGarden(projectRoot, { environmentString: "a" })
