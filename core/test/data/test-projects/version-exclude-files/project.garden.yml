@@ -1,0 +1,7 @@
+apiVersion: garden.io/v2
+kind: Project
+name: version-exclude-files
+environments:
+  - name: local
+providers:
+  - name: test-plugin
