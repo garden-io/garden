@@ -292,6 +292,7 @@ export interface Events {
 
   // AEC events
   aecAgentStatus: {
+    timestamp: string
     aecAgentInfo: AecAgentInfo
     status: "running" | "stopped" | "error"
     statusDescription: string
@@ -300,6 +301,7 @@ export interface Events {
 }
 
 export interface AecAgentEnvironmentUpdate {
+  timestamp: string
   aecAgentInfo: AecAgentInfo
   projectId: string
   environmentType: string

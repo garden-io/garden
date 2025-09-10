@@ -46,6 +46,7 @@ export const aecAgentCommand: PluginCommand = {
     try {
       const result = await handler(params)
       params.garden.events.emit("aecAgentStatus", {
+        timestamp: new Date().toISOString(),
         aecAgentInfo: {
           pluginName: params.ctx.provider.name,
           environmentType: params.ctx.environmentName,
@@ -58,6 +59,7 @@ export const aecAgentCommand: PluginCommand = {
     } catch (e) {
       // Catch unexpected errors and emit event to Cloud
       params.garden.events.emit("aecAgentStatus", {
+        timestamp: new Date().toISOString(),
         aecAgentInfo: {
           pluginName: params.ctx.provider.name,
           environmentType: params.ctx.environmentName,
@@ -161,6 +163,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
   let lastLoopStart = startTime
 
   garden.events.emit("aecAgentStatus", {
+    timestamp: new Date().toISOString(),
     aecAgentInfo,
     status: "running",
     statusDescription: "AEC agent service started",
@@ -206,6 +209,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
       })
       // Note: A stopped status is emitted after returning
       garden.events.emit("aecAgentStatus", {
+        timestamp: new Date().toISOString(),
         aecAgentInfo,
         status: "running",
         statusDescription: msg,
@@ -248,6 +252,7 @@ async function cleanupLoop({
 
   // Send heartbeat to Cloud
   events.emit("aecAgentStatus", {
+    timestamp: new Date().toISOString(),
     aecAgentInfo,
     status: "running",
     statusDescription: "Checking namespaces...",
@@ -297,6 +302,7 @@ async function cleanupLoop({
         // Skip sending events if the namespace is not configured for AEC
         if (result.aecConfigured) {
           events.emit("aecAgentEnvironmentUpdate", {
+            timestamp: new Date().toISOString(),
             aecAgentInfo,
             projectId,
             environmentType,
@@ -314,6 +320,7 @@ async function cleanupLoop({
         const msg = `Unexpected error: ${e}`
         nsLog.error({ msg })
         events.emit("aecAgentEnvironmentUpdate", {
+          timestamp: new Date().toISOString(),
           aecAgentInfo,
           projectId,
           environmentType,
@@ -619,6 +626,7 @@ export async function checkAndCleanupNamespace({
 
     if (!dryRun) {
       events.emit("aecAgentEnvironmentUpdate", {
+        timestamp: new Date().toISOString(),
         aecAgentInfo,
         projectId,
         environmentType,
@@ -669,6 +677,7 @@ export async function checkAndCleanupNamespace({
 
     if (!dryRun) {
       events.emit("aecAgentEnvironmentUpdate", {
+        timestamp: new Date().toISOString(),
         aecAgentInfo,
         projectId,
         environmentType,
