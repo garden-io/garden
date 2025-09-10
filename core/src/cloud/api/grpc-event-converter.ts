@@ -99,6 +99,12 @@ export class GrpcEventConverter {
             | CoreEventPayload<"runStatus">,
         })
         break
+      case "aecAgentEnvironmentUpdate":
+        events = this.handleAecAgentEnvironmentUpdate({
+          context,
+          payload: payload as CoreEventPayload<"aecAgentEnvironmentUpdate">,
+        })
+        break
       default:
         // TODO: handle all event cases
         // name satisfies never // ensure all cases are handled
@@ -111,6 +117,30 @@ export class GrpcEventConverter {
     }
 
     return events
+  }
+
+  private handleAecAgentEnvironmentUpdate({
+    context,
+    payload,
+  }: {
+    context: GardenEventContext
+    payload: CoreEventPayload<"aecAgentEnvironmentUpdate">
+  }): GrpcEventEnvelope[] {
+    return [
+      createGardenCliEvent(context, GardenCliEventType.AEC_AGENT_ENVIRONMENT_UPDATE, {
+        case: "aecAgentEnvironmentUpdate",
+        value: create(GardenAecAgentEnvironmentUpdateSchema, {
+          aecAgentInfo: this.mapToUlid(payload.aecAgentInfo.aecAgentInfo, "aecAgentInfo", "aecAgentInfoUlid"),
+
+          environmentType: payload.environmentType,
+          environmentName: payload.environmentName,
+          statusDescription: payload.statusDescription,
+          inProgress: payload.inProgress,
+          error: payload.error,
+          success: payload.success,
+        }),
+      }),
+    ]
   }
 
   private handleActionStatus({

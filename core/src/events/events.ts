@@ -301,6 +301,7 @@ export interface Events {
 
 export interface AecAgentEnvironmentUpdate {
   aecAgentInfo: AecAgentInfo
+  projectId: string
   environmentType: string
   environmentName: string
   matchedTriggers?: AecTrigger[]

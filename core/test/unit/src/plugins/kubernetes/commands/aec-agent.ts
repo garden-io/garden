@@ -41,6 +41,7 @@ describe("checkAndCleanupNamespace", () => {
     environmentType: "dummy",
     pluginName: "dummy",
   }
+  const projectId = "dummy"
 
   const events = new EventBus()
 
@@ -72,6 +73,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -99,6 +101,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -127,6 +130,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -162,6 +166,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -189,6 +194,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -219,6 +225,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -244,6 +251,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -274,6 +282,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -308,6 +317,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -344,6 +354,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -379,6 +390,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })
@@ -416,6 +428,7 @@ describe("checkAndCleanupNamespace", () => {
       dryRun: true,
       aecAgentInfo,
       events,
+      projectId,
       environmentType: "dummy",
       environmentName: "dummy",
     })

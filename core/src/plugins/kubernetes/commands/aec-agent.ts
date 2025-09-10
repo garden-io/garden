@@ -259,11 +259,12 @@ async function cleanupLoop({
     allNamespaces.items.map(async (ns) => {
       const namespaceName = ns.metadata?.name || "<unknown>"
       const nsLog = log.createLog({ origin: namespaceName })
+      const projectId = ns.metadata?.annotations?.[gardenAnnotationKey("project-id")]
       const environmentType = ns.metadata?.annotations?.[gardenAnnotationKey("environment-type")]
       const environmentName = ns.metadata?.annotations?.[gardenAnnotationKey("environment-name")]
 
-      if (!environmentType || !environmentName) {
-        const msg = `Missing environment type and/or name annotation, skipping`
+      if (!projectId || !environmentType || !environmentName) {
+        const msg = `Missing project ID, environment type and/or name annotation, skipping`
         nsLog.verbose({ msg })
         // TODO: Uncomment this if we feel it's useful, skipping for now to avoid spamming events
         // events.emit("aecAgentEnvironmentUpdate", {
@@ -288,6 +289,7 @@ async function cleanupLoop({
           dryRun,
           aecAgentInfo,
           events,
+          projectId,
           environmentType,
           environmentName,
         })
@@ -296,6 +298,7 @@ async function cleanupLoop({
         if (result.aecConfigured) {
           events.emit("aecAgentEnvironmentUpdate", {
             aecAgentInfo,
+            projectId,
             environmentType,
             environmentName,
             statusDescription: result.status,
@@ -312,6 +315,7 @@ async function cleanupLoop({
         nsLog.error({ msg })
         events.emit("aecAgentEnvironmentUpdate", {
           aecAgentInfo,
+          projectId,
           environmentType,
           environmentName,
           statusDescription: msg,
@@ -328,6 +332,7 @@ async function cleanupLoop({
 
 interface CheckAndCleanupResult {
   namespace: V1Namespace
+  projectId?: string
   status: string
   aecConfigured?: boolean
   aecStatus?: AecStatus
@@ -349,6 +354,7 @@ export async function checkAndCleanupNamespace({
   dryRun,
   aecAgentInfo,
   events,
+  projectId,
   environmentType,
   environmentName,
 }: {
@@ -360,6 +366,7 @@ export async function checkAndCleanupNamespace({
   dryRun?: boolean
   aecAgentInfo: AecAgentInfo
   events: EventBus
+  projectId: string
   environmentType: string
   environmentName: string
 }): Promise<CheckAndCleanupResult> {
@@ -613,6 +620,7 @@ export async function checkAndCleanupNamespace({
     if (!dryRun) {
       events.emit("aecAgentEnvironmentUpdate", {
         aecAgentInfo,
+        projectId,
         environmentType,
         environmentName,
         lastDeployed: lastDeployed?.toISOString(),
@@ -662,6 +670,7 @@ export async function checkAndCleanupNamespace({
     if (!dryRun) {
       events.emit("aecAgentEnvironmentUpdate", {
         aecAgentInfo,
+        projectId,
         environmentType,
         environmentName,
         actionTriggered: "cleanup",
