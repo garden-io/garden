@@ -13,7 +13,6 @@ import { GetVariablesCommand } from "../../../../../src/commands/get/get-variabl
 import type { ApiTrpcClient } from "../../../../../src/cloud/api/trpc.js"
 import { getRootLogger } from "../../../../../src/logger/logger.js"
 import type { DeepPartial } from "../../../../../src/util/util.js"
-import { gardenEnv } from "../../../../../src/constants.js"
 import { makeFakeCloudApi } from "../../../../helpers/api.js"
 
 function makeFakeTrpcClient(overrides?: DeepPartial<ApiTrpcClient>): ApiTrpcClient {
@@ -66,20 +65,16 @@ function makeFakeTrpcClient(overrides?: DeepPartial<ApiTrpcClient>): ApiTrpcClie
 
 describe("GetVariablesCommand", () => {
   const varProjectRoot = getDataDir("test-projects", "get-variables-command")
-  // TODO: Remove this once variables are GA
-  const originalEnvVal = gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES
   let configStoreTmpDir: tmp.DirectoryResult
   const command = new GetVariablesCommand()
   const log = getRootLogger().createLog()
 
   before(async () => {
-    gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES = true
     configStoreTmpDir = await makeTempDir()
   })
 
   after(async () => {
     await configStoreTmpDir.cleanup()
-    gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES = originalEnvVal
   })
 
   it("returns all variables for project, leaving action-level template strings unresolved", async () => {
