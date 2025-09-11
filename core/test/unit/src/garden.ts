@@ -911,93 +911,83 @@ describe("Garden", () => {
         expect(garden.secrets).to.eql({})
       })
 
-      // TODO: Remove this context block once variables are GA
-      context("GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true", () => {
-        const originalVal = gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES
-        before(() => {
-          gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES = true
-        })
-        after(() => {
-          gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES = originalVal
-        })
-
-        it("should have an empty secrets map if 'remoteVariables' is not set", async () => {
-          const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
-            variableList: {
-              getValues: {
-                query: async () => {
-                  return {
-                    variableA: {
-                      value: "variable-a-val",
-                      isSecret: true,
-                      scopedAccountId: null,
-                      scopedEnvironmentId: null,
-                    },
-                  }
-                },
+      it("should have an empty secrets map if 'remoteVariables' is not set", async () => {
+        const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
+          variableList: {
+            getValues: {
+              query: async () => {
+                return {
+                  variableA: {
+                    value: "variable-a-val",
+                    isSecret: true,
+                    scopedAccountId: null,
+                    scopedEnvironmentId: null,
+                  },
+                }
               },
             },
-          }
-          const overrideCloudApiFactory = async () =>
-            await makeFakeCloudApi({
-              trpcClient: fakeTrpcClient as ApiTrpcClient,
-              configStoreTmpDir,
-              log,
-            })
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config, // remoteVariables is not set
-            environmentString: envName,
-            overrideCloudApiFactory,
+          },
+        }
+        const overrideCloudApiFactory = async () =>
+          await makeFakeCloudApi({
+            trpcClient: fakeTrpcClient as ApiTrpcClient,
+            configStoreTmpDir,
+            log,
           })
 
-          expect(garden.secrets).to.eql({})
+        const garden = await TestGarden.factory(pathFoo, {
+          config, // remoteVariables is not set
+          environmentString: envName,
+          overrideCloudApiFactory,
         })
 
-        it("should fetch variables if 'remoteVariables' is set", async () => {
-          const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
-            variableList: {
-              getValues: {
-                query: async () => {
-                  return {
-                    variableA: {
-                      value: "variable-a-val",
-                      isSecret: true,
-                      scopedAccountId: null,
-                      scopedEnvironmentId: null,
-                    },
-                    variableB: {
-                      value: "variable-b-val",
-                      isSecret: true,
-                      scopedAccountId: null,
-                      scopedEnvironmentId: null,
-                    },
-                  }
-                },
+        expect(garden.secrets).to.eql({})
+      })
+
+      it("should fetch variables if 'remoteVariables' is set", async () => {
+        const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
+          variableList: {
+            getValues: {
+              query: async () => {
+                return {
+                  variableA: {
+                    value: "variable-a-val",
+                    isSecret: true,
+                    scopedAccountId: null,
+                    scopedEnvironmentId: null,
+                  },
+                  variableB: {
+                    value: "variable-b-val",
+                    isSecret: true,
+                    scopedAccountId: null,
+                    scopedEnvironmentId: null,
+                  },
+                }
               },
             },
-          }
-          const overrideCloudApiFactory = async () =>
-            await makeFakeCloudApi({
-              trpcClient: fakeTrpcClient as ApiTrpcClient,
-              configStoreTmpDir,
-              log,
-            })
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config: {
-              ...config,
-              remoteVariables: "varlist_1",
-            },
-            environmentString: envName,
-            overrideCloudApiFactory,
+          },
+        }
+        const overrideCloudApiFactory = async () =>
+          await makeFakeCloudApi({
+            trpcClient: fakeTrpcClient as ApiTrpcClient,
+            configStoreTmpDir,
+            log,
           })
 
-          expect(garden.secrets).to.eql({
-            variableA: "variable-a-val",
-            variableB: "variable-b-val",
-          })
+        const garden = await TestGarden.factory(pathFoo, {
+          config: {
+            ...config,
+            remoteVariables: "varlist_1",
+          },
+          environmentString: envName,
+          overrideCloudApiFactory,
         })
+
+        expect(garden.secrets).to.eql({
+          variableA: "variable-a-val",
+          variableB: "variable-b-val",
+        })
+
         it("should log an error and throw if fetching variables fails", async () => {
           const fakeTrpcClientThatThrowsTrpcError: DeepPartial<ApiTrpcClient> = {
             variableList: {

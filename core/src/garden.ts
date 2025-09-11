@@ -2140,7 +2140,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         skipCloudConnect,
       })
       secrets = initRes.secrets
-    } else if (cloudApi && gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES) {
+    } else if (cloudApi) {
       const cloudLog = log.createLog({ name: getCloudLogSectionName("Garden Cloud") })
       secrets = await cloudApi.getVariables({
         remoteVariables: projectConfig.remoteVariables,

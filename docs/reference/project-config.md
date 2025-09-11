@@ -297,8 +297,8 @@ varfile: garden.env
 # permitted, including arrays and objects of any nesting.
 variables: {}
 
-# EXPERIMENTAL: This is an experimental feature that requires setting "GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true"
-# and enabling variables for your organization in Garden Cloud (currenty only
+# EXPERIMENTAL: This is an experimental feature that requires enabling variables for your organization in Garden Cloud
+# (currenty only
 # available in early access).
 #
 # Specify a variable list (or array of variable lists) from which to load variables/secrets. The lists and their
@@ -956,7 +956,7 @@ Key/value map of variables to configure for all environments. Keys may contain l
 
 ### `remoteVariables`
 
-EXPERIMENTAL: This is an experimental feature that requires setting "GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true" and enabling variables for your organization in Garden Cloud (currenty only
+EXPERIMENTAL: This is an experimental feature that requires enabling variables for your organization in Garden Cloud (currenty only
 available in early access).
 
 Specify a variable list (or array of variable lists) from which to load variables/secrets. The lists and their variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).
