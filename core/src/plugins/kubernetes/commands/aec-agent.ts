@@ -24,6 +24,7 @@ import type { V1Namespace } from "@kubernetes/client-node"
 import type { EventBus } from "../../../events/events.js"
 import { createServer } from "http"
 import { formatDistanceToNow } from "date-fns"
+import { createCloudEventStream } from "../../../cloud/util.js"
 
 const defaultCleanupInterval = 60000
 const defaultTtlSeconds = 60 * 60 * 24 // 24 hours
@@ -157,6 +158,18 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
     throw new CloudApiError({
       message: "You must be logged in to Garden Cloud to use this command.",
     })
+  }
+
+  const cloudEventStream = createCloudEventStream({
+    sessionId: garden.sessionId,
+    log,
+    garden,
+    opts: { shouldStreamEvents: true, shouldStreamLogs: false },
+  })
+  if (cloudEventStream) {
+    log.info("Streaming events to Cloud API")
+  } else {
+    log.warn("Unable to stream events to Cloud API")
   }
 
   const startTime = new Date()
