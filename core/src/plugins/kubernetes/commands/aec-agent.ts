@@ -572,7 +572,7 @@ export async function checkAndCleanupNamespace({
   }
 
   if (aecInProgress) {
-    const msg = `Cleanup already in progress, skipping`
+    const msg = `Cleanup already in progress since ${formatDistanceToNow(aecInProgress)}, skipping`
     log.info({ msg })
     return {
       namespace,
@@ -664,7 +664,7 @@ export async function checkAndCleanupNamespace({
             annotations: {
               // TODO: Make status more elaborate, include the trigger that matched and the time it was updated
               [gardenAnnotationKey("aec-status")]: "paused",
-              [gardenAnnotationKey("aec-in-progress")]: undefined,
+              [gardenAnnotationKey("aec-in-progress")]: null,
             },
           },
         },
