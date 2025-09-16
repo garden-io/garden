@@ -347,9 +347,8 @@ export function getAecAnnotations({
     [gardenAnnotationKey("aec-config")]: JSON.stringify(aecConfig || {}),
   }
 
-  if (ctx.projectId) {
-    annotations[gardenAnnotationKey("project-id")] = ctx.projectId
-  }
+  // Project ID isn't necessarily set in the config, so we use the project name as a fallback
+  annotations[gardenAnnotationKey("project-id")] = ctx.projectId || ctx.projectName
 
   if (status) {
     annotations[gardenAnnotationKey("aec-status")] = status
