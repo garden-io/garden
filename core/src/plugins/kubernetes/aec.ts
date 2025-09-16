@@ -153,7 +153,7 @@ export function getAecAgentManifests({
                   cd $PROJECT_ROOT
                   git init
 
-                  garden plugins kubernetes aec-agent -- ${localDevMode ? "--interval 10 --ttl 300" : ""} --description "$AGENT_DESCRIPTION" 2>&1 | tee /tmp/aec-agent.log
+                  garden plugins kubernetes aec-agent -- ${localDevMode ? "--interval 30 --ttl 300" : ""} --description "$AGENT_DESCRIPTION" 2>&1 | tee /tmp/aec-agent.log
                 `,
               ],
               workingDir: "/garden/static/kubernetes/aec-agent",
