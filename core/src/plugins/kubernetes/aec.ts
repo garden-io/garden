@@ -342,13 +342,11 @@ export function getAecAnnotations({
   const annotations = {
     // This may seem incorrect, but we want to transition from env/namespace terminology to env type/name.
     [gardenAnnotationKey("environment-type")]: ctx.environmentName,
-    [gardenAnnotationKey("environment-type")]: ctx.environmentName,
     [gardenAnnotationKey("environment-name")]: ctx.namespace,
+    // Project ID isn't necessarily set in the config, so we use the project name as a fallback
+    [gardenAnnotationKey("project-id")]: ctx.projectId || ctx.projectName || "<missing>",
     [gardenAnnotationKey("aec-config")]: JSON.stringify(aecConfig || {}),
   }
-
-  // Project ID isn't necessarily set in the config, so we use the project name as a fallback
-  annotations[gardenAnnotationKey("project-id")] = ctx.projectId || ctx.projectName
 
   if (status) {
     annotations[gardenAnnotationKey("aec-status")] = status
