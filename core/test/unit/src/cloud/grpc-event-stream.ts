@@ -142,6 +142,51 @@ describe("GrpcEventStream", () => {
     expect(event.eventData.value).to.be.an("object")
   })
 
+  it("should send AEC agent status event", async () => {
+    garden.events.emit("aecAgentStatus", {
+      timestamp: new Date().toISOString(),
+      aecAgentInfo: {
+        pluginName: "fake-plugin-name",
+        environmentType: "fake-environment-type",
+        description: "fake-description",
+      },
+      status: "running",
+      statusDescription: "fake-status-description",
+    })
+    await bufferedEventStream.close()
+    expect(receivedEvents.length).to.equal(1)
+    const event = receivedEvents[0]
+    expect(event.eventUlid).to.be.a("string")
+    expect(event.eventData).to.be.an("object")
+    expect(event.eventData).to.have.property("case", "gardenCli")
+    expect(event.eventData.value).to.be.an("object")
+  })
+
+  it("should send AEC environment update event", async () => {
+    garden.events.emit("aecAgentEnvironmentUpdate", {
+      timestamp: new Date().toISOString(),
+      aecAgentInfo: {
+        pluginName: "fake-plugin-name",
+        environmentType: "fake-environment-type",
+        description: "fake-description",
+      },
+      projectId: "fake-project-id",
+      environmentType: "fake-environment-type",
+      environmentName: "fake-environment-name",
+      statusDescription: "fake-status-description",
+      inProgress: false,
+      error: false,
+      success: false,
+    })
+    await bufferedEventStream.close()
+    expect(receivedEvents.length).to.equal(1)
+    const event = receivedEvents[0]
+    expect(event.eventUlid).to.be.a("string")
+    expect(event.eventData).to.be.an("object")
+    expect(event.eventData).to.have.property("case", "gardenCli")
+    expect(event.eventData.value).to.be.an("object")
+  })
+
   it("should send events in the correct order even when facing transient failures", async () => {
     // Simulate unreliable backend
     simulateUnreliableBackend = true
