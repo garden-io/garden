@@ -58,7 +58,17 @@ describe("aec-agent command", () => {
   }
 
   // Setting TTL to 0 will cause the command to exit after the first loop
-  const args = ["--interval", "2", "--ttl", "0", "--description", "integ test agent", "--health-check-port", "0"]
+  const args = [
+    "--interval",
+    "2",
+    "--ttl",
+    "0",
+    "--description",
+    "integ test agent",
+    "--health-check-port",
+    "0",
+    "--no-stream",
+  ]
 
   let garden: Garden
   let ctx: PluginContext

@@ -25,6 +25,8 @@ import type { EventBus } from "../../../events/events.js"
 import { createServer } from "http"
 import { formatDistanceToNow } from "date-fns"
 import { createCloudEventStream } from "../../../cloud/util.js"
+import type { RestfulEventStream } from "../../../cloud/api-legacy/restful-event-stream.js"
+import type { GrpcEventStream } from "../../../cloud/api/grpc-event-stream.js"
 
 const defaultCleanupInterval = 60000
 const defaultTtlSeconds = 60 * 60 * 24 // 24 hours
@@ -82,7 +84,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
 
   const opts = minimist(args, {
     string: ["interval", "ttl", "description", "health-check-port"],
-    boolean: ["dry-run"],
+    boolean: ["dry-run", "no-stream"],
   })
 
   if (!opts["description"]) {
@@ -160,12 +162,17 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
     })
   }
 
-  const cloudEventStream = createCloudEventStream({
-    sessionId: garden.sessionId,
-    log,
-    garden,
-    opts: { shouldStreamEvents: true, shouldStreamLogs: false },
-  })
+  let cloudEventStream: RestfulEventStream | GrpcEventStream | undefined
+
+  if (!opts["no-stream"]) {
+    cloudEventStream = createCloudEventStream({
+      sessionId: garden.sessionId,
+      log,
+      garden,
+      opts: { shouldStreamEvents: true, shouldStreamLogs: false },
+    })
+  }
+
   if (cloudEventStream) {
     log.info("Streaming events to Cloud API")
   } else {
