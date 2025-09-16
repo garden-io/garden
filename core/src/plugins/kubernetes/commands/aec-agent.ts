@@ -84,7 +84,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
 
   const opts = minimist(args, {
     string: ["interval", "ttl", "description", "health-check-port"],
-    boolean: ["dry-run", "no-stream"],
+    boolean: ["dry-run", "disable-events"],
   })
 
   if (!opts["description"]) {
@@ -164,7 +164,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
 
   let cloudEventStream: RestfulEventStream | GrpcEventStream | undefined
 
-  if (!opts["no-stream"]) {
+  if (!opts["disable-events"]) {
     cloudEventStream = createCloudEventStream({
       sessionId: garden.sessionId,
       log,

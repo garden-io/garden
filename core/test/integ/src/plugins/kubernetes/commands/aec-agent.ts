@@ -67,7 +67,7 @@ describe("aec-agent command", () => {
     "integ test agent",
     "--health-check-port",
     "0",
-    "--no-stream",
+    "--disable-events",
   ]
 
   let garden: Garden
@@ -162,6 +162,7 @@ describe("aec-agent command", () => {
           "garden.io/last-deployed": new Date("2025-01-01").toISOString(),
           [gardenAnnotationKey("environment-type")]: "test",
           [gardenAnnotationKey("environment-name")]: "test",
+          [gardenAnnotationKey("project-id")]: "test",
         },
       },
     }
@@ -214,6 +215,7 @@ describe("aec-agent command", () => {
           "garden.io/last-deployed": new Date("2025-01-01").toISOString(),
           [gardenAnnotationKey("environment-type")]: "test",
           [gardenAnnotationKey("environment-name")]: "test",
+          [gardenAnnotationKey("project-id")]: "test",
         },
       },
     }
