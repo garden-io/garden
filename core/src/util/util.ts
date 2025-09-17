@@ -265,6 +265,7 @@ export interface SpawnOpts {
   stderr?: Writable
   tty?: boolean
   wait?: boolean
+  log?: Log
 }
 
 export interface SpawnOutput {
@@ -296,6 +297,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     stderr,
     tty,
     wait = true,
+    log,
   } = opts
 
   const stdio = tty ? "inherit" : "pipe"
@@ -355,7 +357,11 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
     if (timeout > 0) {
       _timeout = setTimeout(() => {
-        proc.kill("SIGKILL")
+        try {
+          proc.kill("SIGKILL")
+        } catch (err) {
+          log?.warn(`Error killing process after timeout: ${err}`)
+        }
         reject(new TimeoutError({ message: `${cmd} timed out after ${timeout} seconds.` }))
       }, timeout * 1000)
     }
