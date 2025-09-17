@@ -205,8 +205,8 @@ export const regctlCliSpec: PluginToolSpec = {
   ],
 }
 
-const progressToolVersion = "0.0.1"
-const progressToolSpec: PluginToolSpec = {
+const progressToolVersion = "0.0.2"
+export const progressToolSpec: PluginToolSpec = {
   name: "standalone-progressui",
   version: progressToolVersion,
   description: "Helper that utilizes the buildkit library to parse docker logs from progress json output.",
@@ -216,31 +216,31 @@ const progressToolSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-darwin-arm64`,
-      sha256: "633b74d5c37b53757322184e8e453e9982e0615356047e14637d437fa85f0653",
+      sha256: "9a3dd4d744b457ff7dd600447ba600f1f0e251b16abdf86145c92a83476c5838",
     },
     {
       platform: "darwin",
       architecture: "amd64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-darwin-amd64`,
-      sha256: "f3d156ecd0ad307e54caa0abe2fe2b42b2b69eb78ff546ff949921b6e232b92c",
+      sha256: "2dc89287ebb0e476c5b7ede96a5386a04c6248f90ac2bf96f652758f1a733a19",
     },
     {
       platform: "linux",
       architecture: "arm64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-linux-arm64`,
-      sha256: "20a4991f1efc2aae0cca359308feba7e6361a2f92941fdad1f7f14137d94eb6c",
+      sha256: "7122d684d38cfc79c40b695d92529df050058607e85393beafc48ea6fe3185cc",
     },
     {
       platform: "linux",
       architecture: "amd64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-linux-amd64`,
-      sha256: "f3b8534b57939688d5f1ab11d8999d6854b08eef43af1619b641a51bd5f7c8bd",
+      sha256: "7742d7aa3c7a005e37ba949228694f8559d7079ebdc5906cffbdb22eacef3122",
     },
     {
       platform: "windows",
       architecture: "amd64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-windows-amd64`,
-      sha256: "c83935be933413ecedb92fb6a70c235670598059dab0d12cc9b4bb0b0f652d25",
+      sha256: "8376b40f7c989214187633fb28a6daf8f9def86869c0a7048fbdb92a596644f5",
     },
   ],
 }
