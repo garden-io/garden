@@ -65,7 +65,7 @@ describe("GardenCloudApi", () => {
       })
 
       const variables = await cloudApi.getVariables({
-        remoteVariables: "varlist_a",
+        importVariables: "varlist_a",
         environmentName: "dev",
         log: garden.log,
       })
@@ -120,7 +120,7 @@ describe("GardenCloudApi", () => {
       })
 
       const variables = await cloudApi.getVariables({
-        remoteVariables: ["varlist_a", "varlist_b"],
+        importVariables: ["varlist_a", "varlist_b"],
         environmentName: "dev",
         log: garden.log,
       })
@@ -176,7 +176,7 @@ describe("GardenCloudApi", () => {
       })
 
       const variables = await cloudApi.getVariables({
-        remoteVariables: [
+        importVariables: [
           {
             source: "garden-cloud",
             varlist: "varlist_a",
@@ -241,12 +241,12 @@ describe("GardenCloudApi", () => {
       })
 
       const varListBLast = await cloudApi.getVariables({
-        remoteVariables: ["varlist_a", "varlist_b"],
+        importVariables: ["varlist_a", "varlist_b"],
         environmentName: "dev",
         log: garden.log,
       })
       const varListALast = await cloudApi.getVariables({
-        remoteVariables: ["varlist_b", "varlist_a"],
+        importVariables: ["varlist_b", "varlist_a"],
         environmentName: "dev",
         log: garden.log,
       })
@@ -293,7 +293,7 @@ describe("GardenCloudApi", () => {
       await expectError(
         () =>
           cloudApi.getVariables({
-            remoteVariables: ["varlist_a", "varlist_b"],
+            importVariables: ["varlist_a", "varlist_b"],
             environmentName: "dev",
             log: garden.log,
           }),

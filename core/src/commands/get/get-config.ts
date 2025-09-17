@@ -52,7 +52,7 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
         "A list of all configured providers in the environment."
       ),
       variables: joiVariables().description("All configured project variables in the environment."),
-      remoteVariables: getRemoteVariablesBaseSchema().description("The 'remoteVariables' config"),
+      importVariables: getRemoteVariablesBaseSchema().description("The 'importVariables' config"),
       actionConfigs: joi
         .object()
         .keys({

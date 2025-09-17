@@ -142,8 +142,8 @@ export class GetVariablesCommand extends Command<{}, Opts> {
       }
     })
 
-    const variableListIds = getVarlistIdsFromRemoteVarsConfig(config.remoteVariables)
-    const remoteVariables =
+    const variableListIds = getVarlistIdsFromRemoteVarsConfig(config.importVariables)
+    const importVariables =
       garden.cloudApi && variableListIds.length > 0
         ? await getRemoteVariables({ api: garden.cloudApi, variableListIds, log })
         : []
@@ -163,7 +163,7 @@ export class GetVariablesCommand extends Command<{}, Opts> {
 
     const projectVarsWithMetadata = getVariablesMetadata({
       variables: config.variables,
-      remoteVariables,
+      importVariables,
       varfilesData: projectVarfilesData,
       rawVariables: config.projectConfig.internal.yamlDoc?.contents?.toJSON()["variables"] || {},
       projectRoot: config.projectRoot,
@@ -204,7 +204,7 @@ export class GetVariablesCommand extends Command<{}, Opts> {
 
           return getVariablesMetadata({
             variables: actionVars,
-            remoteVariables,
+            importVariables,
             rawVariables: action.internal.yamlDoc?.contents?.toJSON()["variables"] || {},
             varfilesData: actionVarfilesData,
             projectRoot: config.projectRoot,
@@ -286,14 +286,14 @@ interface VarfileData {
  */
 function getVariablesMetadata({
   variables,
-  remoteVariables,
+  importVariables,
   varfilesData = [],
   rawVariables,
   projectRoot,
   filename,
 }: {
   variables: ResolvedTemplate
-  remoteVariables: RemoteVariable[]
+  importVariables: RemoteVariable[]
   varfilesData?: VarfileData[]
   rawVariables: DeepPrimitiveMap
   projectRoot: string
@@ -310,7 +310,7 @@ function getVariablesMetadata({
     if (remoteVarMatch) {
       local = false
       const secretName = remoteVarMatch[1]
-      const remoteVar = remoteVariables.find((v) => v.name === secretName)
+      const remoteVar = importVariables.find((v) => v.name === secretName)
 
       if (!remoteVar) {
         // This should already have thrown

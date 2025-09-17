@@ -211,7 +211,7 @@ interface ProjectScan {
   git?: GitConfig
 }
 
-interface RemoteVarsSourceGardenCloud {
+interface ImportVarsSourceGardenCloud {
   source: "garden-cloud"
   varlist: string
 }
@@ -222,7 +222,7 @@ interface RemoteVarsSourceGardenCloud {
  *  - an array of strings is treated as a list of Garden Cloud varlist IDs
  *  - an array of objects can refer to different remote variable sources that are each handled appropriately
  */
-export type RemoteVariablesConfig = string | string[] | RemoteVarsSourceGardenCloud[] | undefined
+export type ImportVariablesConfig = string | string[] | ImportVarsSourceGardenCloud[] | undefined
 
 export interface ProjectConfig extends BaseGardenResource {
   apiVersion: GardenApiVersion
@@ -244,7 +244,7 @@ export interface ProjectConfig extends BaseGardenResource {
   sources?: SourceConfig[]
   varfile?: string
   variables: DeepPrimitiveMap
-  remoteVariables: RemoteVariablesConfig
+  importVariables: ImportVariablesConfig
 }
 
 export const projectApiVersionSchema = memoize(() =>
@@ -487,7 +487,7 @@ export const projectSchema = createSchema({
     variables: joiVariables().description(
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
-    remoteVariables: getRemoteVariablesBaseSchema()
+    importVariables: getRemoteVariablesBaseSchema()
       .description(
         dedent`
       EXPERIMENTAL: This is an experimental feature that requires enabling variables for your organization in Garden Cloud (currenty only
@@ -875,7 +875,7 @@ export function parseEnvironment(env: string): ParsedEnvironment {
   }
 }
 
-function isStringArray(arr: (string | RemoteVarsSourceGardenCloud)[]): arr is string[] {
+function isStringArray(arr: (string | ImportVarsSourceGardenCloud)[]): arr is string[] {
   return arr.length === 0 || typeof arr[0] === "string"
 }
 
@@ -885,7 +885,7 @@ function isStringArray(arr: (string | RemoteVarsSourceGardenCloud)[]): arr is st
  * Remote variables default to Garden Cloud as the source so if the user only supplies a string
  * or an array of strings it's treated as varlist IDs.
  */
-export function getVarlistIdsFromRemoteVarsConfig(remoteVars: RemoteVariablesConfig): string[] {
+export function getVarlistIdsFromRemoteVarsConfig(remoteVars: ImportVariablesConfig): string[] {
   if (remoteVars === undefined) {
     return []
   }

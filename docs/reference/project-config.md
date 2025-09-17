@@ -307,7 +307,7 @@ variables: {}
 # If an array of variable lists is provided, the variable are merged in the order of the lists (so the value from a
 # variable in a list that appears later in the array overwrites the value of a
 # variable from an earlier list if they have the same name).
-remoteVariables: []
+importVariables: []
 ```
 
 ## Configuration Keys
@@ -954,7 +954,7 @@ Key/value map of variables to configure for all environments. Keys may contain l
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-### `remoteVariables`
+### `importVariables`
 
 EXPERIMENTAL: This is an experimental feature that requires enabling variables for your organization in Garden Cloud (currenty only
 available in early access).
@@ -971,6 +971,6 @@ variable from an earlier list if they have the same name).
 Example:
 
 ```yaml
-remoteVariables: "varlist_abc"
+importVariables: "varlist_abc"
 ```
 

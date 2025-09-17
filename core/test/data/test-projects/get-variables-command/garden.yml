@@ -5,7 +5,7 @@ organizationId: "fake-org-id"
 environments:
   - name: local
 
-remoteVariables:
+importVariables:
   - fake-varlist
 
 varfile: ./project-varfile.env
