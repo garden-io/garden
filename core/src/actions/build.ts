@@ -33,6 +33,7 @@ import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
 import type { ResolvedTemplate } from "../template/types.js"
 import type { Log } from "../logger/log-entry.js"
+import { ACTION_RUNTIME_LOCAL, type ActionRuntime } from "../plugin/base.js"
 
 export interface BuildCopyFrom {
   build: string
@@ -209,6 +210,7 @@ export class ResolvedBuildAction<
   private readonly executedDependencies: ExecutedAction[]
   private readonly resolvedDependencies: ResolvedAction[]
   override _staticOutputs: StaticOutputs
+  private _runtime: ActionRuntime
 
   constructor(params: ResolvedActionWrapperParams<C>) {
     super(params)
@@ -221,6 +223,8 @@ export class ResolvedBuildAction<
     this._staticOutputs = params.staticOutputs
     this._config.spec = params.spec
     this._config.internal.inputs = params.inputs
+    // This is the default. It may be overridden by a getOutputs plugin handler and assigned here by ResolveActionTask
+    this._runtime = ACTION_RUNTIME_LOCAL
   }
 
   getExecutedDependencies() {
@@ -252,6 +256,10 @@ export class ResolvedBuildAction<
 
   getResolvedVariables(): Record<string, ResolvedTemplate> {
     return this.params.resolvedVariables
+  }
+
+  getRuntime(): ActionRuntime {
+    return this._runtime
   }
 }
 

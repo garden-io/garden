@@ -118,9 +118,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       }
     },
   })
-  async process({
-    dependencyResults,
-  }: ActionTaskProcessParams<T, ResolveActionResults<T>>): Promise<ResolveActionResults<T>> {
+  async process({ dependencyResults }: ActionTaskProcessParams<T>): Promise<ResolveActionResults<T>> {
     const action = this.action
     const config = action.getConfig() as BaseActionConfig
 
@@ -253,7 +251,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     // Get outputs and assign to the resolved action
     const router = await this.garden.getActionRouter()
-    const { outputs: staticOutputs } = await router.getActionOutputs({
+    const { outputs: staticOutputs, runtime } = await router.getActionOutputs({
       action: resolvedAction,
       graph: this.graph,
       log: this.log,
@@ -271,6 +269,9 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     // TODO: avoid this private assignment
     resolvedAction["_staticOutputs"] = staticOutputs
+    if (runtime) {
+      resolvedAction["_runtime"] = runtime
+    }
 
     return {
       state: "ready",

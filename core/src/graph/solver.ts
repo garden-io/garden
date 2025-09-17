@@ -446,8 +446,24 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
         // See what is missing to fulfill the request, or resolve
         const task = request.task
+
+        if (task.force) {
+          this.log.silly(() => `Request ${request.getKey()} is force=true, processing.`)
+          const processNode = this.getNode({ type: "process", task, statusOnly: request.statusOnly })
+          const result = this.getPendingResult(processNode)
+
+          if (result) {
+            this.log.silly(() => `Request ${request.getKey()} has been processed.`)
+            this.completeTask({ ...result, node: request })
+          } else {
+            this.log.silly(() => `Request ${request.getKey()} is force=true, but no result found.`)
+            this.ensurePendingNode(processNode, request)
+          }
+          continue
+        }
+
         const statusNode = this.getNode({ type: "status", task, statusOnly: request.statusOnly })
-        const status = this.getPendingResult(statusNode) as GraphResult<ValidResultType>
+        const status = this.getPendingResult(statusNode) as GraphResult<ValidResultType> | undefined
 
         if (status?.aborted || status?.error) {
           // Status is either aborted or failed
@@ -461,7 +477,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           // We're not forcing, and we don't have the status yet, so we ensure that's pending
           this.log.silly(() => `Request ${request.getKey()} is missing its status.`)
           this.ensurePendingNode(statusNode, request)
-        } else if (status.result?.state === "ready" && !task.force) {
+        } else if (status?.result?.state === "ready") {
           this.log.silly(() => `Request ${request.getKey()} has ready status and force=false, no need to process.`)
           this.completeTask({ ...status, node: request })
         } else {
@@ -474,7 +490,8 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             this.log.silly(() => `Request ${request.getKey()} has been processed.`)
             this.completeTask({ ...result, node: request })
           } else {
-            this.log.silly(() => `Request ${request.getKey()} should be processed. Status: ${resultToString(status)}`)
+            const statusString = status ? resultToString(status) : "<none>"
+            this.log.silly(() => `Request ${request.getKey()} should be processed. Status: ${statusString}`)
             this.ensurePendingNode(processNode, request)
           }
         }

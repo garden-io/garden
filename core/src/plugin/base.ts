@@ -129,6 +129,28 @@ export type ActionRuntime =
       fallbackReason: string
     }
 
+const actionRuntimeKindSchema = joi.string().allow("local", "remote")
+
+export const actionRuntimeSchema = () =>
+  joi
+    .object()
+    .keys({
+      actual: joi
+        .object()
+        .keys({
+          kind: actionRuntimeKindSchema.required(),
+        })
+        .required(),
+      preferred: joi
+        .object()
+        .keys({
+          kind: actionRuntimeKindSchema.required(),
+        })
+        .optional(),
+      fallbackReason: joi.string().optional(),
+    })
+    .with("preferred", "fallbackReason")
+
 export type ActionRuntimeKind = ActionRuntimeLocal | ActionRuntimeRemote
 
 export type ActionRuntimeLocal = {

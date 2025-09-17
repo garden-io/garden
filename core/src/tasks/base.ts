@@ -35,7 +35,7 @@ import {
   makeActionGetStatusPayload,
 } from "../events/util.js"
 import { styles } from "../logger/styles.js"
-import type { ActionRuntime } from "../plugin/base.js"
+import { ACTION_RUNTIME_LOCAL, type ActionRuntime } from "../plugin/base.js"
 import { deline } from "../util/string.js"
 
 export function makeBaseKey(type: string, name: string) {
@@ -223,10 +223,8 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
 
 export type ActionTaskStatusParams<_ extends Action> = TaskProcessParams
 
-export interface ActionTaskProcessParams<T extends Action, S extends ValidResultType>
-  extends ActionTaskStatusParams<T> {
-  status: S | null
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ActionTaskProcessParams<T extends Action> extends ActionTaskStatusParams<T> {}
 
 export abstract class BaseActionTask<T extends Action, O extends ValidResultType> extends BaseTask<O> {
   action: T
@@ -252,7 +250,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
   abstract override getStatus(params: ActionTaskStatusParams<T>): null | Promise<O | null>
 
-  abstract override process(params: ActionTaskProcessParams<T, O>): Promise<O>
+  abstract override process(params: ActionTaskProcessParams<T>): Promise<O>
 
   getName() {
     return this.action.name
@@ -567,9 +565,7 @@ export function logAndEmitProcessingEvents<
 >(
   _target: ExecuteActionTask<A>,
   methodName: "process",
-  descriptor: TypedPropertyDescriptor<
-    (...args: [ActionTaskProcessParams<A, R>]) => Promise<R & ExecuteActionOutputs<A>>
-  >
+  descriptor: TypedPropertyDescriptor<(...args: [ActionTaskProcessParams<A>]) => Promise<R & ExecuteActionOutputs<A>>>
 ) {
   const method = descriptor.value
 
@@ -577,7 +573,7 @@ export function logAndEmitProcessingEvents<
     throw new RuntimeError({ message: "No method to decorate" })
   }
 
-  descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskProcessParams<A, R>]) {
+  descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskProcessParams<A>]) {
     const actionKind = this.action.kind.toLowerCase() as Lowercase<A["kind"]>
     const eventName = actionKindToEventNameMap[actionKind]
     const startedAt = new Date().toISOString()
@@ -590,11 +586,11 @@ export function logAndEmitProcessingEvents<
       )}) at version ${styles.highlight(version)}...`
     )
 
-    // getStatus handler returns planned runtime
-    // status and detail might be null
-    const status = args[0].status ?? undefined
-    const statusDetail = status?.detail ?? undefined
-    const statusRuntime: ActionRuntime | undefined = statusDetail?.runtime
+    let runtime: ActionRuntime = ACTION_RUNTIME_LOCAL
+
+    if (this.action.isResolved()) {
+      runtime = this.action.getRuntime()
+    }
 
     // First we emit the "processing" event
     this.garden.events.emit(
@@ -604,7 +600,7 @@ export function logAndEmitProcessingEvents<
         action: this.action,
         force: this.force,
         sessionId: this.garden.sessionId,
-        runtime: statusRuntime,
+        runtime,
         log: this.log,
       })
     )
@@ -642,7 +638,7 @@ export function logAndEmitProcessingEvents<
           force: this.force,
           operation: methodName,
           sessionId: this.garden.sessionId,
-          runtime: statusRuntime,
+          runtime,
           log: this.log,
         })
       )
@@ -679,7 +675,7 @@ export abstract class ExecuteActionTask<
 
   abstract override getStatus(params: ActionTaskStatusParams<T>): Promise<O & ExecuteActionOutputs<T>>
 
-  abstract override process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
+  abstract override process(params: ActionTaskProcessParams<T>): Promise<O & ExecuteActionOutputs<T>>
 }
 
 export type TaskResultType<T extends BaseTask<ValidResultType>> =

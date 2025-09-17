@@ -184,6 +184,22 @@ describe("GraphSolver", () => {
     expect(result!.outputs["processed"]).to.equal(false)
   })
 
+  it("processes task without checking status if force=true", async () => {
+    const processedBatches: string[][] = []
+    garden["solver"].on("process", (event) => {
+      processedBatches.push(event.keys)
+    })
+
+    const task = makeTask({ state: undefined, force: true })
+    const { result } = await processTask(task, { throwOnError: true })
+
+    expect(processedBatches).to.eql([["test.task-a:process"]])
+
+    expect(result).to.exist
+    expect(result!.result?.state).to.equal("ready")
+    expect(result!.outputs["processed"]).to.equal(true)
+  })
+
   it("processes task if it's status is ready and force=true", async () => {
     const task = makeTask({ state: "ready", force: true })
     const { result } = await processTask(task, { throwOnError: true })

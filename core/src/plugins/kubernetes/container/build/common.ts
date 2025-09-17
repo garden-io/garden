@@ -223,6 +223,7 @@ export async function skopeoBuildStatus({
   })
 
   const runtime: ActionRuntime = {
+    ...action.getRuntime(),
     actual: {
       kind: "remote",
       type: "plugin",

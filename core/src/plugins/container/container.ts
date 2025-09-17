@@ -57,6 +57,7 @@ import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
 import type { ConfigureActionConfigParams } from "../../plugin/handlers/base/configure.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { styles } from "../../logger/styles.js"
+import { cloudBuilder } from "./cloudbuilder.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
@@ -522,9 +523,11 @@ export const gardenPlugin = () =>
           staticOutputsSchema: containerBuildOutputsSchema(),
           schema: containerBuildSpecSchema(),
           handlers: {
-            async getOutputs({ action, log }) {
-              // TODO: figure out why this cast is needed here
+            async getOutputs({ ctx, action, log }) {
+              const availability = await cloudBuilder.getAvailability(ctx, action)
               return {
+                runtime: cloudBuilder.getActionRuntime(ctx, availability),
+                // TODO: figure out why this cast is needed here
                 outputs: getContainerBuildActionOutputs(action, log) as unknown as DeepPrimitiveMap,
               }
             },

@@ -92,7 +92,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
     },
   })
   @(logAndEmitProcessingEvents<RunAction>)
-  async process({ dependencyResults }: ActionTaskProcessParams<RunAction, GetRunResult>) {
+  async process({ dependencyResults }: ActionTaskProcessParams<RunAction>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const taskLog = this.log.createLog()
     const actions = await this.garden.getActionRouter()

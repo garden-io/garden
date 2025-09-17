@@ -2492,7 +2492,7 @@ describe("Garden", () => {
 
     it("should allow providers to reference each others' outputs", async () => {
       const testA = createGardenPlugin({
-        name: "test-a",
+        name: "test-a-with-outputs",
         handlers: {
           prepareEnvironment: async () => {
             return {
@@ -2506,19 +2506,22 @@ describe("Garden", () => {
       })
 
       const testB = createGardenPlugin({
-        name: "test-b",
+        name: "test-b-with-reference",
       })
 
       const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        providers: [{ name: "test-a" }, { name: "test-b", foo: "${providers.test-a.outputs.foo}" }],
+        providers: [
+          { name: "test-a-with-outputs" },
+          { name: "test-b-with-reference", foo: "${providers.test-a-with-outputs.outputs.foo}" },
+        ],
       })
 
       const plugins = [testA, testB]
-      const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
+      const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins, noCache: true })
 
-      const providerB = await garden.resolveProvider({ log: garden.log, name: "test-b" })
+      const providerB = await garden.resolveProvider({ log: garden.log, name: "test-b-with-reference" })
 
       expect(providerB.config["foo"]).to.equal("bar")
     })
