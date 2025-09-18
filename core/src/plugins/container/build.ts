@@ -124,6 +124,9 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
         ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line, ...logEventContext, level: "warn" })
       })
   })
+  progressuiProcess.stdin?.on("error", () => {
+    progressuiFailed = true
+  })
   progressuiProcess.on("error", (err) => {
     log.warn(`Error from BuildKit log parser: ${err}`)
     progressuiFailed = true
@@ -138,6 +141,9 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   const dockerLogs: DockerBuildReport[] = []
   const dockerErrorLogs: string[] = []
   const outputStream = split2()
+  outputStream.on("error", () => {
+    // Ignore
+  })
 
   outputStream.on("data", (line: Buffer) => {
     if (!progressuiFailed && progressuiProcess.stdin && !progressuiProcess.stdin.writable) {
