@@ -2714,6 +2714,14 @@ Alias for deploymentImageId, for backward compatibility.
 | -------- |
 | `string` |
 
+### `${modules.<module-name>.outputs.deployment-image-tag}`
+
+Alias for deploymentImageTag, for backward compatibility.
+
+| Type     |
+| -------- |
+| `string` |
+
 
 ### Service Outputs
 
