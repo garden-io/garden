@@ -586,6 +586,11 @@ export const gardenPlugin = () =>
                 )
               }
 
+              if (config.include === undefined && config.exclude === undefined) {
+                // No reason to include files by default since the spec.image field is required and is enough to version the action
+                config.include = []
+              }
+
               return { config, supportedModes: { sync: !!spec.sync } satisfies ActionModes }
             },
 
@@ -655,7 +660,14 @@ export const gardenPlugin = () =>
           schema: containerRunActionSchema(),
           runtimeOutputsSchema: containerRunOutputSchema(),
           handlers: {
-            // Implemented by other providers (e.g. kubernetes)
+            async configure({ config }) {
+              if (config.include === undefined && config.exclude === undefined) {
+                // No reason to include files by default since the spec.image field is required and is enough to version the action
+                config.include = []
+              }
+              return { config, supportedModes: { sync: false } satisfies ActionModes }
+            },
+
             async validate({ action }) {
               validateRuntimeCommon(action)
               return {}
@@ -674,6 +686,14 @@ export const gardenPlugin = () =>
           schema: containerTestActionSchema(),
           runtimeOutputsSchema: containerTestOutputSchema(),
           handlers: {
+            async configure({ config }) {
+              if (config.include === undefined && config.exclude === undefined) {
+                // No reason to include files by default since the spec.image field is required and is enough to version the action
+                config.include = []
+              }
+              return { config, supportedModes: { sync: false } satisfies ActionModes }
+            },
+
             // Implemented by other providers (e.g. kubernetes)
             async validate({ action }) {
               validateRuntimeCommon(action)
