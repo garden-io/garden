@@ -33,7 +33,7 @@ import type { ActionKind } from "../plugin/action-types.js"
 import pathIsInside from "path-is-inside"
 import { actionOutputsSchema } from "../plugin/handlers/base/base.js"
 import type { GraphResult, GraphResults } from "../graph/results.js"
-import type { RunResult } from "../plugin/base.js"
+import { ACTION_RUNTIME_LOCAL, type ActionRuntime, type RunResult } from "../plugin/base.js"
 import { Memoize } from "typescript-memoize"
 import { flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash-es"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
@@ -843,6 +843,8 @@ export interface ResolvedActionExtension<
   getVariablesContext(): VariablesContext
 
   getResolvedVariables(): Record<string, ResolvedTemplate>
+
+  getRuntime(): ActionRuntime
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
@@ -862,6 +864,7 @@ export abstract class ResolvedRuntimeAction<
   private readonly resolvedDependencies: ResolvedAction[]
 
   override _staticOutputs: StaticOutputs
+  private _runtime: ActionRuntime
 
   constructor(params: ResolvedActionWrapperParams<Config>) {
     super(params)
@@ -880,6 +883,8 @@ export abstract class ResolvedRuntimeAction<
     }
     this._config.spec = params.spec
     this._config.internal.inputs = params.inputs
+    // This is the default. It may be overridden by a getOutputs plugin handler and assigned here by ResolveActionTask
+    this._runtime = ACTION_RUNTIME_LOCAL
   }
 
   /**
@@ -933,6 +938,10 @@ export abstract class ResolvedRuntimeAction<
 
   getResolvedVariables(): Record<string, ResolvedTemplate> {
     return this.params.resolvedVariables
+  }
+
+  getRuntime(): ActionRuntime {
+    return this._runtime
   }
 }
 

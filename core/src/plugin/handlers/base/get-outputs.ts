@@ -7,8 +7,8 @@
  */
 
 import { deline } from "../../../util/string.js"
-import type { PluginActionParamsBase } from "../../base.js"
-import { actionParamsSchema } from "../../base.js"
+import type { ActionRuntime, PluginActionParamsBase } from "../../base.js"
+import { actionParamsSchema, actionRuntimeSchema } from "../../base.js"
 import type { DeepPrimitiveMap } from "../../../config/common.js"
 import { joi, joiVariables } from "../../../config/common.js"
 import { templateStringLiteral } from "../../../docs/common.js"
@@ -22,6 +22,7 @@ export interface GetActionOutputsParams<T extends BaseAction> extends PluginActi
 
 export interface GetActionOutputsResult {
   outputs: DeepPrimitiveMap
+  runtime?: ActionRuntime
 }
 
 export const actionOutputsSchema = () =>
@@ -42,5 +43,6 @@ export class GetActionOutputs<T extends BaseAction = BaseAction> extends ActionT
   resultSchema = () =>
     joi.object().keys({
       outputs: actionOutputsSchema(),
+      runtime: actionRuntimeSchema().optional(),
     })
 }

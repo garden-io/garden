@@ -108,7 +108,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     },
   })
   @(logAndEmitProcessingEvents<TestAction>)
-  async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
+  async process({ dependencyResults }: ActionTaskProcessParams<TestAction>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
     const router = await this.garden.getActionRouter()

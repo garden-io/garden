@@ -72,7 +72,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     },
   })
   @(logAndEmitProcessingEvents<BuildAction>)
-  async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
+  async process({ dependencyResults }: ActionTaskProcessParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
 
