@@ -880,6 +880,7 @@ export type ContainerBuildOutputs = {
   "localImageId": string
   "deploymentImageName": string
   "deploymentImageId": string
+  "deploymentImageTag": string
 
   // Aliases, for backwards compatibility.
   // TODO: remove in 0.14
@@ -887,6 +888,7 @@ export type ContainerBuildOutputs = {
   "local-image-id": string
   "deployment-image-name": string
   "deployment-image-id": string
+  "deployment-image-tag": string
 }
 
 export const containerBuildOutputSchemaKeys = memoize(() => ({
@@ -910,6 +912,11 @@ export const containerBuildOutputSchemaKeys = memoize(() => ({
     .required()
     .description("The full ID of the image (incl. tag/version) that the Build will use during deployment.")
     .example("my-deployment-registry.io/my-org/my-build:v-abf3f8dca"),
+  "deploymentImageTag": joi
+    .string()
+    .required()
+    .description("The version tag of the image that the Build will use during deployment.")
+    .example("v-abf3f8dca"),
 
   // Aliases
   "local-image-name": joi.string().required().description("Alias for localImageName, for backward compatibility."),
@@ -922,6 +929,10 @@ export const containerBuildOutputSchemaKeys = memoize(() => ({
     .string()
     .required()
     .description("Alias for deploymentImageId, for backward compatibility."),
+  "deployment-image-tag": joi
+    .string()
+    .required()
+    .description("Alias for deploymentImageTag, for backward compatibility."),
 }))
 
 export const containerBuildOutputsSchema = createSchema({

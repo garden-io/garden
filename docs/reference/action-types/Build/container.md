@@ -681,6 +681,20 @@ Example:
 my-variable: ${actions.build.my-build.outputs.deploymentImageId}
 ```
 
+### `${actions.build.<name>.outputs.deploymentImageTag}`
+
+The version tag of the image that the Build will use during deployment.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${actions.build.my-build.outputs.deploymentImageTag}
+```
+
 ### `${actions.build.<name>.outputs.local-image-name}`
 
 Alias for localImageName, for backward compatibility.
@@ -708,6 +722,14 @@ Alias for deploymentImageName, for backward compatibility.
 ### `${actions.build.<name>.outputs.deployment-image-id}`
 
 Alias for deploymentImageId, for backward compatibility.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${actions.build.<name>.outputs.deployment-image-tag}`
+
+Alias for deploymentImageTag, for backward compatibility.
 
 | Type     |
 | -------- |

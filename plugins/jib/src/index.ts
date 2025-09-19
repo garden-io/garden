@@ -416,6 +416,7 @@ export const gardenPlugin = () =>
                 "local-image-id": localImageId,
                 "deployment-image-name": deploymentImageName,
                 "deployment-image-id": deploymentImageId,
+                "deployment-image-tag": tag,
               },
             }
           },

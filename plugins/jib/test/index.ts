@@ -62,6 +62,7 @@ describe("jib-container", function () {
         "deployment-image-name": image,
         "local-image-id": image + ":" + module.version.versionString,
         "local-image-name": image,
+        "deployment-image-tag": module.version.versionString,
       })
     })
   })
