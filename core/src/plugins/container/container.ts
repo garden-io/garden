@@ -205,7 +205,7 @@ export const regctlCliSpec: PluginToolSpec = {
   ],
 }
 
-const progressToolVersion = "0.0.2"
+const progressToolVersion = "0.0.3"
 export const progressToolSpec: PluginToolSpec = {
   name: "standalone-progressui",
   version: progressToolVersion,
@@ -216,31 +216,31 @@ export const progressToolSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-darwin-arm64`,
-      sha256: "9a3dd4d744b457ff7dd600447ba600f1f0e251b16abdf86145c92a83476c5838",
+      sha256: "72f088c81e1da380e04117af01ebb73b9de0aa3e7058608bc722c9553fa2a411",
     },
     {
       platform: "darwin",
       architecture: "amd64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-darwin-amd64`,
-      sha256: "2dc89287ebb0e476c5b7ede96a5386a04c6248f90ac2bf96f652758f1a733a19",
+      sha256: "eea41c72f27892bc92f0c0d87381533b0de98df83dcdfe611d41caa5ec4fb69e",
     },
     {
       platform: "linux",
       architecture: "arm64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-linux-arm64`,
-      sha256: "7122d684d38cfc79c40b695d92529df050058607e85393beafc48ea6fe3185cc",
+      sha256: "22f9a301687d3ff686ba2f337ce43cfcc98e1ae983b1218362bdb81d37010b15",
     },
     {
       platform: "linux",
       architecture: "amd64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-linux-amd64`,
-      sha256: "7742d7aa3c7a005e37ba949228694f8559d7079ebdc5906cffbdb22eacef3122",
+      sha256: "5758e868b7b0fc3be485025ea82ee1e70da00bc1428fec3b7aab7b9864d0ebec",
     },
     {
       platform: "windows",
       architecture: "amd64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-windows-amd64`,
-      sha256: "8376b40f7c989214187633fb28a6daf8f9def86869c0a7048fbdb92a596644f5",
+      sha256: "b4da9f96039ed46b9e1253258600a06cd27bc4a9d3a0bae79cd77cbea463ba52",
     },
   ],
 }
