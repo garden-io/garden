@@ -137,6 +137,60 @@ describe("config templates", () => {
         contains: `Inputs schema at 'invalid.json' for ConfigTemplate test has type string, but should be "object".`,
       })
     })
+
+    it("handles the inputs field", async () => {
+      const config: ConfigTemplateResource = {
+        ...defaults,
+        inputs: {
+          foo: { type: "string", default: "bar" },
+          baz: { type: "number", default: 123 },
+          qux: { type: "boolean", default: true },
+        },
+      }
+      const resolved = await resolveConfigTemplate(garden, config)
+      expect(resolved.inputsSchema).to.exist
+      expect((<any>resolved.inputsSchema)._rules[0].args.jsonSchema.schema).to.eql({
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          foo: { type: "string", default: "bar" },
+          baz: { type: "number", default: 123 },
+          qux: { type: "boolean", default: true },
+        },
+        required: [],
+      })
+    })
+
+    it("makes the inputs fields required if no default value is provided", async () => {
+      const config: ConfigTemplateResource = {
+        ...defaults,
+        inputs: {
+          foo: { type: "string" },
+        },
+      }
+      const resolved = await resolveConfigTemplate(garden, config)
+      expect(resolved.inputsSchema).to.exist
+      expect((<any>resolved.inputsSchema)._rules[0].args.jsonSchema.schema).to.eql({
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          foo: { type: "string" },
+        },
+        required: ["foo"],
+      })
+    })
+
+    it("throws if inputs field has a default value of the wrong type", async () => {
+      const config: ConfigTemplateResource = {
+        ...defaults,
+        inputs: {
+          foo: { type: "string", default: 123 },
+        },
+      }
+      await expectError(() => resolveConfigTemplate(garden, config), {
+        contains: `Input foo for ConfigTemplate test has default value 123 of type number, but should be of type string.`,
+      })
+    })
   })
 
   describe("renderConfigTemplate", () => {
