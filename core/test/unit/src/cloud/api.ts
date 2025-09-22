@@ -65,7 +65,7 @@ describe("GardenCloudApi", () => {
       })
 
       const variables = await cloudApi.getVariables({
-        importVariables: "varlist_a",
+        importVariables: [{ from: "garden-cloud", list: "varlist_a" }],
         environmentName: "dev",
         log: garden.log,
       })
@@ -120,7 +120,10 @@ describe("GardenCloudApi", () => {
       })
 
       const variables = await cloudApi.getVariables({
-        importVariables: ["varlist_a", "varlist_b"],
+        importVariables: [
+          { from: "garden-cloud", list: "varlist_a" },
+          { from: "garden-cloud", list: "varlist_b" },
+        ],
         environmentName: "dev",
         log: garden.log,
       })
@@ -178,12 +181,12 @@ describe("GardenCloudApi", () => {
       const variables = await cloudApi.getVariables({
         importVariables: [
           {
-            source: "garden-cloud",
-            varlist: "varlist_a",
+            from: "garden-cloud",
+            list: "varlist_a",
           },
           {
-            source: "garden-cloud",
-            varlist: "varlist_b",
+            from: "garden-cloud",
+            list: "varlist_b",
           },
         ],
         environmentName: "dev",
@@ -241,12 +244,18 @@ describe("GardenCloudApi", () => {
       })
 
       const varListBLast = await cloudApi.getVariables({
-        importVariables: ["varlist_a", "varlist_b"],
+        importVariables: [
+          { from: "garden-cloud", list: "varlist_a" },
+          { from: "garden-cloud", list: "varlist_b" },
+        ],
         environmentName: "dev",
         log: garden.log,
       })
       const varListALast = await cloudApi.getVariables({
-        importVariables: ["varlist_b", "varlist_a"],
+        importVariables: [
+          { from: "garden-cloud", list: "varlist_b" },
+          { from: "garden-cloud", list: "varlist_a" },
+        ],
         environmentName: "dev",
         log: garden.log,
       })
@@ -293,7 +302,10 @@ describe("GardenCloudApi", () => {
       await expectError(
         () =>
           cloudApi.getVariables({
-            importVariables: ["varlist_a", "varlist_b"],
+            importVariables: [
+              { from: "garden-cloud", list: "varlist_a" },
+              { from: "garden-cloud", list: "varlist_b" },
+            ],
             environmentName: "dev",
             log: garden.log,
           }),

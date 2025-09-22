@@ -977,7 +977,7 @@ describe("Garden", () => {
         const garden = await TestGarden.factory(pathFoo, {
           config: {
             ...config,
-            importVariables: "varlist_1",
+            importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
           },
           environmentString: envName,
           overrideCloudApiFactory,
@@ -1028,7 +1028,7 @@ describe("Garden", () => {
               TestGarden.factory(pathFoo, {
                 config: {
                   ...config,
-                  importVariables: "varlist_1",
+                  importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
                 },
                 environmentString: envName,
                 overrideCloudApiFactory: overrideCloudApiFactoryThrowTrpcError,
@@ -1051,7 +1051,7 @@ describe("Garden", () => {
               TestGarden.factory(pathFoo, {
                 config: {
                   ...config,
-                  importVariables: "varlist_1",
+                  importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
                 },
                 environmentString: envName,
                 overrideCloudApiFactory: overrideCloudApiFactoryThrowError,
