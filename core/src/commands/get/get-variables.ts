@@ -26,6 +26,7 @@ import { joi, joiArray, parseActionReference } from "../../config/common.js"
 import type { Log } from "../../logger/log-entry.js"
 import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params.js"
 import { filterDisableFromConfigDump } from "./helpers.js"
+import type { EmptyObject } from "type-fest"
 
 const variablesListOpts = {
   "resolve": new ChoicesParameter({
@@ -71,7 +72,7 @@ type RemoteVariable = RouterOutput["variableList"]["listVariables"]["items"][0] 
   variableListId: string
 }
 
-export class GetVariablesCommand extends Command<{}, Opts> {
+export class GetVariablesCommand extends Command<EmptyObject, Opts> {
   name = "variables"
   help = "Get variables"
   emoji = "✔️"
@@ -85,10 +86,10 @@ export class GetVariablesCommand extends Command<{}, Opts> {
     action references the runtime output of another in its \`variables\` field.
 
     Examples:
-        garden variables list                                                         # list all variables and pretty print results
-        garden variables list --resolve full                                          # list all variables and resolve template strings, including runtime outputs
-        garden variables list --filter-actions build.api --filtera-actions deploy.api # list variables for the Build api and Deploy api actions
-        garden variables list --output json                                           # return variables as a JSON object, useful for scripting
+        garden get variables                                                         # list all variables and pretty print results
+        garden get variables --resolve full                                          # list all variables and resolve template strings, including runtime outputs
+        garden get variables --filter-actions build.api --filter-actions deploy.api  # list variables for the Build api and Deploy api actions
+        garden get variables --output json                                           # return variables as a JSON object, useful for scripting
 
   `
 
@@ -145,7 +146,7 @@ export class GetVariablesCommand extends Command<{}, Opts> {
     const variableListIds = getVarlistIdsFromRemoteVarsConfig(config.importVariables)
     const importVariables =
       garden.cloudApi && variableListIds.length > 0
-        ? await getRemoteVariables({ api: garden.cloudApi, variableListIds, log })
+        ? await getCloudVariables({ api: garden.cloudApi, variableListIds, log })
         : []
 
     const projectVarfilesData: VarfileData[] = []
@@ -233,7 +234,7 @@ export class GetVariablesCommand extends Command<{}, Opts> {
   }
 }
 
-async function getRemoteVariables({
+async function getCloudVariables({
   api,
   variableListIds,
   log,

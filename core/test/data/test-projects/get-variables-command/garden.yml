@@ -6,7 +6,8 @@ environments:
   - name: local
 
 importVariables:
-  - fake-varlist
+  - from: garden-cloud
+    list: fake-varlist
 
 varfile: ./project-varfile.env
 variables:
