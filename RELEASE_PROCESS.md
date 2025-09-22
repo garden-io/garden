@@ -27,7 +27,7 @@ and does the following:
 - Commits the changes, tags the commit, and pushes the tag and branch.
 - Pushing the tag triggers a CI process that creates the release artifacts and publishes them to GitHub. If the release is not a pre-release, we create a draft instead of actually publishing.
 
-## Steps
+## Release steps
 
 To make a new release, set your current working directory to the garden root directory and follow the steps below.
 
@@ -63,3 +63,10 @@ Once the release CI job is done, a draft release will appear in GitHub. That dra
     - `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
     - Run `$(brew --prefix garden-cli)/bin/garden dev` and run the `version` command in the console (to make sure you're using the packaged release). Do a quick manual test in an example project and see if all looks OK.
 11. Prepare the release announcement and publish it in our channels (Discord and Twitter). If not possible, delegate the task to an available contributor.
+
+## Misc
+
+### Homebrew PR creation
+
+The `release-homebrew` job triggered on a new release (see [publish-release.yaml](.github/workflows/publish-release.yml)) will create a PR on the [Homebrew repository](https://www.github.com/garden-io/homebrew-garden). The token used to do so is stored as a secret in the Garden repository's [Action Secrets](https://github.com/garden-io/garden/settings/secrets/actions) section, under the name `COMMITTER_TOKEN`.
+Currently the owner of the token is the [gordon-garden-bot](https://github.com/gordon-garden-bot) account.
