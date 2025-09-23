@@ -1114,12 +1114,26 @@ export class Garden {
       graphResults,
     })
 
+    // Allow modules to depend on Deploy and Run actions
+    const allowedRuntimeActions: Set<string> = new Set()
+    for (const kind of ["Deploy", "Run"] as ActionKind[]) {
+      for (const name in this.actionConfigs[kind]) {
+        const key = actionReferenceToString({ kind, name })
+        allowedRuntimeActions.add(key)
+      }
+    }
+
     const { resolvedModules, skipped } = await resolver.resolve({ actionsFilter })
 
     // Validate the module dependency structure. This will throw on failure.
     const router = await this.getActionRouter()
     const moduleTypes = await this.getModuleTypes()
-    const moduleGraph = new ModuleGraph({ modules: resolvedModules, moduleTypes, skippedKeys: skipped })
+    const moduleGraph = new ModuleGraph({
+      modules: resolvedModules,
+      moduleTypes,
+      skippedKeys: skipped,
+      allowedRuntimeActions,
+    })
 
     // Require include/exclude on modules if their paths overlap
     const overlaps = detectModuleOverlap({
@@ -1139,7 +1153,8 @@ export class Garden {
       this,
       graphLog,
       resolvedModules,
-      moduleGraph
+      moduleGraph,
+      allowedRuntimeActions
     )
 
     // Get action configs

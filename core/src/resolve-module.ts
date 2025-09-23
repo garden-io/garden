@@ -25,10 +25,10 @@ import type { GardenModule, ModuleConfigMap, ModuleMap, ModuleTypeMap } from "./
 import { getModuleTypeBases, moduleFromConfig } from "./types/module.js"
 import type { BuildDependencyConfig, ModuleConfig } from "./config/module.js"
 import { moduleConfigSchema } from "./config/module.js"
-import { Profile, profileAsync } from "./util/profiling.js"
+import { Profile } from "./util/profiling.js"
 import { getLinkedSources } from "./util/ext-source-util.js"
 import type { ActionReference, DeepPrimitiveMap } from "./config/common.js"
-import { allowUnknown } from "./config/common.js"
+import { allowUnknown, parseActionReference } from "./config/common.js"
 import type { ProviderMap } from "./config/provider.js"
 import { DependencyGraph } from "./graph/common.js"
 import fsExtra from "fs-extra"
@@ -62,6 +62,7 @@ import { deepMap, isPlainObject } from "./util/objects.js"
 import { InputContext } from "./config/template-contexts/input.js"
 import { VariablesContext } from "./config/template-contexts/variables.js"
 import { reportDeprecatedFeatureUsage } from "./util/deprecations.js"
+import chalk from "chalk"
 
 const { mkdirp, readFile } = fsExtra
 
@@ -907,12 +908,14 @@ export function findGroupConfig(result: ConvertModulesResult, groupName: string)
 export function findActionConfigInGroup(group: GroupConfig, kind: ActionKind, name: string) {
   return group.actions.find((a) => a.kind === kind && a.name === name)
 }
+// export const convertModules = profileAsync(async function convertModules(
 
-export const convertModules = profileAsync(async function convertModules(
+export async function convertModules(
   garden: Garden,
   log: Log,
   modules: GardenModule[],
-  graph: ModuleGraph
+  graph: ModuleGraph,
+  dependenciesPassthrough: Set<string>
 ): Promise<ConvertModulesResult> {
   const allServices = keyBy(graph.getServices(), "name")
   const allTasks = keyBy(graph.getTasks(), "name")
@@ -952,6 +955,11 @@ export const convertModules = profileAsync(async function convertModules(
             resolved.push({ kind: "Deploy", name: d })
           } else if (allTasks[d]) {
             resolved.push({ kind: "Run", name: d })
+          } else if (dependenciesPassthrough.has(d)) {
+            resolved.push(parseActionReference(d))
+          } else {
+            // This maybe should be an error, but don't want to risk it in case there's some case we hadn't considered
+            log.warn(chalk.yellow(`Unknown dependency ${d} found in module ${module.name}`))
           }
         }
 
@@ -1097,7 +1105,7 @@ export const convertModules = profileAsync(async function convertModules(
   }
 
   return { groups, actions }
-})
+}
 
 export function makeDummyBuild({
   module,

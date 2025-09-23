@@ -37,7 +37,7 @@ describe("graph common", () => {
           spec: {},
         },
       ]
-      expect(() => detectMissingDependencies(moduleConfigs)).to.throw()
+      expect(() => detectMissingDependencies({ moduleConfigs })).to.throw()
     })
 
     it("should return an error when a service dependency is missing", async () => {
@@ -64,7 +64,7 @@ describe("graph common", () => {
           spec: {},
         },
       ]
-      expect(() => detectMissingDependencies(moduleConfigs)).to.throw()
+      expect(() => detectMissingDependencies({ moduleConfigs })).to.throw()
     })
 
     it("should return an error when a task dependency is missing", async () => {
@@ -92,7 +92,7 @@ describe("graph common", () => {
           spec: {},
         },
       ]
-      expect(() => detectMissingDependencies(moduleConfigs)).to.throw()
+      expect(() => detectMissingDependencies({ moduleConfigs })).to.throw()
     })
 
     it("should return an error when a test dependency is missing", async () => {
@@ -119,7 +119,7 @@ describe("graph common", () => {
           spec: {},
         },
       ]
-      expect(() => detectMissingDependencies(moduleConfigs)).to.throw()
+      expect(() => detectMissingDependencies({ moduleConfigs })).to.throw()
     })
 
     it("should return null when no dependencies are missing", async () => {
@@ -138,7 +138,7 @@ describe("graph common", () => {
           spec: {},
         },
       ]
-      expect(() => detectMissingDependencies(moduleConfigs)).to.not.throw
+      expect(() => detectMissingDependencies({ moduleConfigs })).to.not.throw
     })
   })
 

@@ -1409,7 +1409,7 @@ describe("exec plugin", () => {
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
           const module = tmpGraph.getModule(moduleA)
 
-          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph, new Set())
           expect(result.groups).to.exist
 
           const group = findGroupConfig(result, moduleA)!
@@ -1442,7 +1442,7 @@ describe("exec plugin", () => {
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
           const module = tmpGraph.getModule(moduleA)
 
-          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph, new Set())
           expect(result.groups).to.exist
 
           const group = findGroupConfig(result, moduleA)!
@@ -1512,7 +1512,7 @@ describe("exec plugin", () => {
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
           const moduleB = tmpGraph.getModule(moduleNameB)
 
-          const result = await convertModules(garden, garden.log, [moduleB], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [moduleB], tmpGraph.moduleGraph, new Set())
           expect(result.groups).to.exist
 
           const groupB = findGroupConfig(result, moduleNameB)!
@@ -1575,7 +1575,7 @@ describe("exec plugin", () => {
             const moduleA = "module-a"
             const tmpGraph = await getGraph(moduleA, true)
             const module = tmpGraph.getModule(moduleA)
-            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph, new Set())
 
             assertBuildAtSource(module.name, result, true)
           })
@@ -1584,7 +1584,7 @@ describe("exec plugin", () => {
             const moduleA = "module-a"
             const tmpGraph = await getGraph(moduleA, false)
             const module = tmpGraph.getModule(moduleA)
-            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph, new Set())
 
             assertBuildAtSource(module.name, result, false)
           })
@@ -1633,7 +1633,7 @@ describe("exec plugin", () => {
           const moduleA = tmpGraph.getModule(moduleNameA)
 
           // this will use `serviceConfigs` defined in modules
-          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph, new Set())
           expect(result.groups).to.exist
 
           const groupA = findGroupConfig(result, moduleNameA)!
@@ -1690,7 +1690,7 @@ describe("exec plugin", () => {
           const moduleA = tmpGraph.getModule(moduleNameA)
 
           // this will use `serviceConfigs` defined in modules
-          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph, new Set())
           expect(result.groups).to.exist
 
           const groupA = findGroupConfig(result, moduleNameA)!
@@ -1750,7 +1750,7 @@ describe("exec plugin", () => {
           const moduleA = tmpGraph.getModule(moduleNameA)
 
           // this will use `taskConfigs` defined in modules
-          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph, new Set())
           expect(result.groups).to.exist
 
           const groupA = findGroupConfig(result, moduleNameA)!
@@ -1811,7 +1811,7 @@ describe("exec plugin", () => {
           const moduleA = tmpGraph.getModule(moduleNameA)
 
           // this will use `taskConfigs` defined in modules
-          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph, new Set())
           expect(result.groups).to.exist
 
           const groupA = findGroupConfig(result, moduleNameA)!
@@ -1874,7 +1874,7 @@ describe("exec plugin", () => {
           const moduleA = tmpGraph.getModule(moduleNameA)
 
           // this will use `testConfigs` defined in modules
-          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph, new Set())
           expect(result.groups).to.exist
 
           const groupA = findGroupConfig(result, moduleNameA)!
@@ -1936,7 +1936,7 @@ describe("exec plugin", () => {
           const moduleA = tmpGraph.getModule(moduleNameA)
 
           // this will use `testConfigs` defined in modules
-          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph, new Set())
           expect(result.groups).to.exist
 
           const groupA = findGroupConfig(result, moduleNameA)!

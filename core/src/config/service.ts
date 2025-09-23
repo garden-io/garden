@@ -24,9 +24,11 @@ export interface CommonServiceSpec {
 export const serviceOutputsSchema = joiVariables()
 
 export const dependenciesSchema = memoize(() =>
-  joiSparseArray(joiIdentifier()).description(deline`
+  joiSparseArray(joi.alternatives().try(joiIdentifier(), joi.actionReference().returnString())).description(deline`
     The names of any services that this service depends on at runtime, and the names of any
     tasks that should be executed before this service is deployed.
+
+    You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in template strings.
   `)
 )
 

@@ -69,8 +69,9 @@ The general flow of the Garden runtime is as follows:
 
 However, there are some caveats:
 
-- Modules cannot depend on actions
-- Modules cannot reference actions
+- Modules cannot depend on actions, with the following exception (as of release 0.14.9):
+  - Services and tasks defined in modules may depend on Deploy and Run actions. They can however not reference those actions in template strings.
+- Modules cannot reference actions in template strings.
 - Actions can reference and depend on modules, by referencing the actions that are generated from modules.
 - Deploy actions should explicitly add their corresponding Build action to their `dependency` array (see examples below)
 - Deploy `container` actions should explicitly reference the output of their corresponding Build action in the `spec.image` field (see examples below)
