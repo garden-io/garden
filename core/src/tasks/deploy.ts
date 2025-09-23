@@ -110,25 +110,21 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     },
   })
   @(logAndEmitProcessingEvents<DeployAction>)
-  async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
+  async process({ dependencyResults }: ActionTaskProcessParams<DeployAction>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const log = this.log.createLog()
     const version = action.versionString(log)
 
     const router = await this.garden.getActionRouter()
 
-    try {
-      const output = await router.deploy.deploy({
-        graph: this.graph,
-        action,
-        log,
-        force: this.force,
-        events: this.events,
-      })
-      status = output.result
-    } catch (err) {
-      throw err
-    }
+    const output = await router.deploy.deploy({
+      graph: this.graph,
+      action,
+      log,
+      force: this.force,
+      events: this.events,
+    })
+    const status = output.result
 
     const executedAction = resolvedActionToExecuted(action, { status })
 

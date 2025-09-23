@@ -87,7 +87,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     return null
   }
 
-  async process({ dependencyResults }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
+  async process({ dependencyResults }: ActionTaskProcessParams<DeployAction>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
     let status: DeployStatus

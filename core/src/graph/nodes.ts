@@ -290,13 +290,13 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     const statusTask = this.getNode("status", this.task)
     const statusResult = this.getDependencyResult(statusTask) as GraphResult<any>
 
-    if (statusResult === undefined) {
+    if (statusResult === undefined && !this.task.force) {
       // Status is still missing
       return [statusTask]
     }
 
     // Either forcing, or status is not ready
-    const processDeps = this.task.getProcessDependencies({ status: statusResult.result })
+    const processDeps = this.task.getProcessDependencies({ status: statusResult?.result || null })
     return processDeps.map((task) => this.getNode("process", task))
   }
 
@@ -307,13 +307,13 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     // TODO: make this more type-safe
     const statusResult = this.getDependencyResult(statusTask) as GraphResultFromTask<T>
 
-    if (statusResult === undefined) {
+    if (statusResult === undefined && !this.task.force) {
       throw new InternalError({
         message: `Attempted to execute ${this.describe()} before resolving status.`,
       })
     }
 
-    const status = statusResult.result
+    const status = statusResult?.result || null
 
     if (!this.task.force && status?.state === "ready") {
       return status
@@ -323,7 +323,6 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
 
     try {
       const processResult: TaskResultType<T> = await this.task.process({
-        status,
         dependencyResults,
         statusOnly: this.statusOnly,
       })
