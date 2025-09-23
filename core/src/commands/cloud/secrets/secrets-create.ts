@@ -78,7 +78,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
-    throwIfNotLegacyCloud(garden, "garden create remote-variables")
+    throwIfNotLegacyCloud(garden, "garden create cloud-variables")
 
     // Apparently TS thinks that optional params are always defined so we need to cast them to their
     // true type here.

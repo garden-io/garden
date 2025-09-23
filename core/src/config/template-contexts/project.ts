@@ -21,10 +21,17 @@ import type { VariablesContext } from "./variables.js"
 import { getBackendType, getCloudDistributionName } from "../../cloud/util.js"
 import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/api/secrets.js"
 
+// TODO: Mark as deprecated
 const secretsSchema = joiStringMap(joi.string().description("The secret's value."))
   .description("A map of all secrets for this project in the current environment.")
   .meta({
     keyPlaceholder: "<secret-name>",
+  })
+
+const importVariablesSchema = joiStringMap(joi.string().description("The variable's value."))
+  .description("A map of all imported variables via the `importVariables` field.")
+  .meta({
+    keyPlaceholder: "<variable-name>",
   })
 
 class LocalContext extends ContextWithSchema {
@@ -317,6 +324,10 @@ export interface ProjectConfigContextParams extends DefaultEnvironmentContextPar
 export class ProjectConfigContext extends DefaultEnvironmentContext {
   @schema(secretsSchema)
   public readonly secrets: PrimitiveMap
+
+  @schema(importVariablesSchema)
+  public readonly imported: PrimitiveMap
+
   private readonly _cloudBackendDomain: string
   private readonly _backendType: "v1" | "v2"
   private readonly _loggedIn: boolean
@@ -325,12 +336,13 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
     super(params)
     this._loggedIn = params.loggedIn
     this.secrets = params.secrets
+    this.imported = params.secrets
     this._cloudBackendDomain = params.cloudBackendDomain
     this._backendType = params.backendType
   }
 
   override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
-    if (key[0] !== "secrets") {
+    if (key[0] !== "secrets" && key[0] !== "importVariables") {
       return ""
     }
 
@@ -385,10 +397,14 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
   @schema(secretsSchema)
   public override secrets: PrimitiveMap
 
+  @schema(importVariablesSchema)
+  public override imported: PrimitiveMap
+
   constructor(params: EnvironmentConfigContextParams) {
     super(params)
     this.variables = this.var = params.variables
     this.secrets = params.secrets
+    this.imported = params.secrets
   }
 }
 

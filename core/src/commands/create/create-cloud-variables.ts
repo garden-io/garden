@@ -16,7 +16,7 @@ import { PathParameter, StringParameter, StringsParameter, BooleanParameter, Str
 import { joi, joiArray } from "../../config/common.js"
 import { makeDocsLinkPlain } from "../../docs/common.js"
 
-export const createRemoteVariablesArgs = {
+export const createCloudVariablesArgs = {
   "variable-list-id": new StringParameter({
     help: dedent`
       The ID of the variable list to create the variables in. You can use the \`garden get variable-list\` to
@@ -32,7 +32,7 @@ export const createRemoteVariablesArgs = {
   }),
 }
 
-export const createRemoteVariablesOpts = {
+export const createCloudVariablesOpts = {
   "scope-to-user-id": new StringOption({
     help: dedent`
       Scope the variable to a user with the given ID. User scoped variables must be scoped to an environment as well.
@@ -62,8 +62,8 @@ export const createRemoteVariablesOpts = {
   }),
 }
 
-type Args = typeof createRemoteVariablesArgs
-type Opts = typeof createRemoteVariablesOpts
+type Args = typeof createCloudVariablesArgs
+type Opts = typeof createCloudVariablesOpts
 
 interface VariableResult {
   id: string
@@ -76,10 +76,12 @@ interface VariableResult {
   environmentName: string | null
 }
 
-export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
-  name = "remote-variables"
+export class CreateCloudVariablesCommand extends Command<Args, Opts> {
+  name = "cloud-variables"
   help = "Create remote variables in Garden Cloud."
   emoji = "☁️"
+
+  override aliases = ["remote-variables"]
 
   override description = dedent`
     Create remote variables in Garden Cloud. Variables belong to variable lists, which you can get via the
@@ -92,17 +94,17 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
     You can optionally read the variables from a .env formatted file using --from-file.
 
     Examples:
-        garden create remote-variables varlist_123 DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two variables
-        garden create remote-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci    # create a variable and scope it to the ci environment
-        garden create remote-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci --scope-to-user <user-id>  # create a variable and scope it to the ci environment and user
-        garden create remote-variables varlist_123 --from-file /path/to/variables.env  # create variables from the key value pairs in the variables.env file
-        garden create remote-variables varlist_123 SECRET_KEY=my-secret --secret=false  # create a non-secret variable
+        garden create cloud-variables varlist_123 DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two variables
+        garden create cloud-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci    # create a variable and scope it to the ci environment
+        garden create cloud-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci --scope-to-user <user-id>  # create a variable and scope it to the ci environment and user
+        garden create cloud-variables varlist_123 --from-file /path/to/variables.env  # create variables from the key value pairs in the variables.env file
+        garden create cloud-variables varlist_123 SECRET_KEY=my-secret --secret=false  # create a non-secret variable
 
     See the [Variables and Templating guide](${makeDocsLinkPlain`features/variables-and-templating`}) for more information.
   `
 
-  override arguments = createRemoteVariablesArgs
-  override options = createRemoteVariablesOpts
+  override arguments = createCloudVariablesArgs
+  override options = createCloudVariablesOpts
   override hidden = true
 
   override printHeader({ log }) {

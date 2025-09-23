@@ -92,7 +92,7 @@ export async function writeConfigReferenceDocs(
         defaultEnvironment,
         dotIgnoreFile: defaultDotIgnoreFile,
         excludeValuesFromActionVersions: [],
-        remoteVariables: [],
+        importVariables: [],
         variables: {},
         environments: [
           {

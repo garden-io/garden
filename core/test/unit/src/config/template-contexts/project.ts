@@ -253,7 +253,7 @@ describe("ProjectConfigContext", () => {
 
     const result = c.resolve({ nodePath: [], key: ["var", "foo"], opts: {} })
     expectFuzzyMatch(getUnavailableReason(result), [
-      "Could not find key var. Available keys: local, command, datetime, project, git, secrets.",
+      "Could not find key var. Available keys: local, command, datetime, project, git, secrets, imported.",
     ])
   })
 

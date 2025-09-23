@@ -5,8 +5,9 @@ organizationId: "fake-org-id"
 environments:
   - name: local
 
-remoteVariables:
-  - fake-varlist
+importVariables:
+  - from: garden-cloud
+    list: fake-varlist
 
 varfile: ./project-varfile.env
 variables:
