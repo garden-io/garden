@@ -70,6 +70,7 @@
 * [Code Synchronization](./features/code-synchronization.md)
 * [Custom Commands](./features/custom-commands.md)
 * [Remote Sources](./features/remote-sources.md)
+* [Matrix templates](./features/matrix-templates.md)
 
 ## Guides
 

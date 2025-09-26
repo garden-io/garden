@@ -1725,6 +1725,13 @@ describe("parse and evaluate template strings", () => {
         )
       })
     })
+
+    context("range", () => {
+      it("generates a list of numbers in the specified range", () => {
+        const res = legacyResolveTemplateString({ string: "${range(1, 5)}", context: new TestContext({}) })
+        expect(res).to.eql([1, 2, 3, 4, 5])
+      })
+    })
   })
 
   context("array literals", () => {

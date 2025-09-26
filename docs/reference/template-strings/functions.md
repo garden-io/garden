@@ -164,6 +164,16 @@ Examples:
 * `${modifyDateUtc("2021-03-01T00:00:00Z", 0, "months")}` -> `"2021-01-01T00:00:00.000Z"`
 * `${modifyDateUtc("2021-01-01T00:00:00Z", 2024, "years")}` -> `"2024-01-01T00:00:00.000Z"`
 
+## range
+
+Generates a list of numbers in the specified range (inclusively).
+
+Usage: `range(first, last)`
+
+Examples:
+
+* `${range(1, 5)}` -> `[1,2,3,4,5]`
+
 ## replace
 
 Replaces all occurrences of a given substring in a string.

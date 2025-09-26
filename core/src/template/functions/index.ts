@@ -9,7 +9,18 @@
 import { v4 as uuidv4 } from "uuid"
 import { createHash } from "node:crypto"
 import { GardenError } from "../../exceptions.js"
-import { camelCase, escapeRegExp, isArrayLike, isEmpty, isString, kebabCase, keyBy, mapValues, trim } from "lodash-es"
+import {
+  camelCase,
+  escapeRegExp,
+  isArrayLike,
+  isEmpty,
+  isString,
+  kebabCase,
+  keyBy,
+  mapValues,
+  range,
+  trim,
+} from "lodash-es"
 import type { JoiDescription, Primitive } from "../../config/common.js"
 import { joi, joiPrimitive } from "../../config/common.js"
 import type Joi from "@hapi/joi"
@@ -221,6 +232,17 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     outputSchema: joi.string(),
     exampleArguments: [{ input: ["Some String"], output: "some string" }],
     fn: (str: string) => str.toLowerCase(),
+  },
+  {
+    name: "range",
+    description: "Generates a list of numbers in the specified range (inclusively).",
+    arguments: {
+      first: joi.number().required().description("The first number in the range."),
+      last: joi.number().required().description("The last number in the range (inclusive)."),
+    },
+    outputSchema: joi.array().items(joi.number()),
+    exampleArguments: [{ input: [1, 5], output: [1, 2, 3, 4, 5] }],
+    fn: (first: number, last: number) => range(first, last + 1),
   },
   {
     name: "replace",

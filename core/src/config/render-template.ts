@@ -39,6 +39,12 @@ import { serialiseUnresolvedTemplates, UnresolvedTemplateValue } from "../templa
 import { isArray, isPlainObject } from "../util/objects.js"
 import { InputContext } from "./template-contexts/input.js"
 import { getBackendType } from "../cloud/util.js"
+import { duplicatesByKey } from "../util/util.js"
+import { makeDocsLinkPlain } from "../docs/common.js"
+
+const templateCautionMessage = dedent`
+Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference other actions, modules or runtime variables. See the [environment configuration context reference](./template-strings/environments.md) to see template strings that are safe to use for inputs used to generate config identifiers.
+`
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -55,9 +61,25 @@ export const renderTemplateConfigSchema = createSchema({
       dedent`
       A map of inputs to pass to the ${configTemplateKind}. These must match the inputs schema of the ${configTemplateKind}.
 
-      Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference other actions, modules or runtime variables. See the [environment configuration context reference](./template-strings/environments.md) to see template strings that are safe to use for inputs used to generate config identifiers.
+      ${templateCautionMessage}
       `
     ),
+    matrix: joi
+      .object()
+      .pattern(/.+/, joi.array().description("A list of values to pass to the input."))
+      .description(
+        dedent`
+        Render this template multiple times, for each combination of the inputs.
+
+        Each key should be the name of an input, and the value should be a list of values to pass to the input.
+
+        If the \`inputs\` is also provided, the values in the \`matrix\` will be overridden by the values in the \`inputs\` field. You can combine the two fields if there are more inputs than just the ones specified in the \`matrix\` field, and you want to specify some inputs that should not be overridden.
+
+        See the [Matrix templates guide](${makeDocsLinkPlain("features/matrix-templates.md")}) for more information.
+
+        ${templateCautionMessage}
+        `
+      ),
   }),
 })
 
@@ -66,6 +88,7 @@ export interface RenderTemplateConfig extends BaseGardenResource {
   disabled?: boolean
   template: string
   inputs?: DeepPrimitiveMap
+  matrix?: Record<string, unknown[]>
 }
 
 // TODO(deprecation): deprecate in 0.14 and remove in 0.15
@@ -164,12 +187,70 @@ export async function renderConfigTemplate({
     const availableTemplates = Object.keys(templates)
     throw new ConfigurationError({
       message: deline`
-        Render ${resolved.name} references template ${resolved.template} which cannot be found.
+        ${renderTemplateKind} ${resolved.name} references template ${resolved.template} which cannot be found.
         Available templates: ${naturalList(availableTemplates)}
       `,
     })
   }
 
+  const modules: ModuleConfig[] = []
+  const configs: TemplatableConfig[] = []
+
+  if (resolved.matrix && Object.keys(resolved.matrix).length > 0) {
+    // Go through all combinations of the matrix
+    const arrays = Object.entries(resolved.matrix).map(([key, values]) => values.map((v) => ({ key, value: v })))
+    const combos = arrays.length === 1 ? arrays : (cartesianProduct(arrays) as typeof arrays)
+
+    for (const combo of combos) {
+      const inputs = { ...resolved.inputs }
+      for (const { key, value } of combo) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        inputs[key] = value as any
+      }
+      const res = await renderWithInputs({
+        garden,
+        log,
+        config: { ...config, inputs },
+        template,
+        resolved: { ...resolved, inputs },
+      })
+      modules.push(...res.modules)
+      configs.push(...res.configs)
+    }
+  } else {
+    const res = await renderWithInputs({ garden, log, config, template, resolved })
+    modules.push(...res.modules)
+    configs.push(...res.configs)
+  }
+
+  // Check for duplicate config names by kind and name
+  const duplicatedConfigs = duplicatesByKey(
+    [...modules, ...configs].map((c) => ({ ...c, key: `${c.kind}.${c.name}` })),
+    "key"
+  )
+  if (duplicatedConfigs.length > 0) {
+    const names = duplicatedConfigs.map((c) => c.value)
+    throw new ConfigurationError({
+      message: `Found duplicate config names after rendering ${renderTemplateKind} ${resolved.name}: ${names.join(", ")}. Please ensure that the config names in the ${template.name} ${configTemplateKind} are unique for each kind, by using input template strings in the \`name\` field on the templated configs.`,
+    })
+  }
+
+  return { resolved, modules, configs }
+}
+
+async function renderWithInputs({
+  garden,
+  log,
+  config,
+  template,
+  resolved,
+}: {
+  garden: Garden
+  log: Log
+  config: RenderTemplateConfig
+  template: ConfigTemplateConfig
+  resolved: RenderTemplateConfig
+}) {
   // Prepare modules and resolve templated names
   const context = new RenderTemplateConfigContext({
     ...garden,
@@ -186,7 +267,7 @@ export async function renderConfigTemplate({
 
   const configs = await renderConfigs({ garden, log, template, context, renderConfig: resolved })
 
-  return { resolved, modules, configs }
+  return { modules, configs }
 }
 
 async function renderModules({
@@ -375,4 +456,8 @@ async function renderConfigs({
       return resource
     })
   )
+}
+
+function cartesianProduct(arrays: unknown[][]) {
+  return arrays.reduce((a, b) => a.flatMap((d) => b.map((e) => [d, e].flat())))
 }

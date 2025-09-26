@@ -37,6 +37,23 @@ template:
 # reference](./template-strings/environments.md) to see template strings that are safe to use for inputs used to
 # generate config identifiers.
 inputs:
+
+# Render this template multiple times, for each combination of the inputs.
+#
+# Each key should be the name of an input, and the value should be a list of values to pass to the input.
+#
+# If the `inputs` is also provided, the values in the `matrix` will be overridden by the values in the `inputs` field.
+# You can combine the two fields if there are more inputs than just the ones specified in the `matrix` field, and you
+# want to specify some inputs that should not be overridden.
+#
+# See the [Matrix templates guide](../../features/matrix-templates.md.md) for more information.
+#
+# Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting
+# config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference
+# other actions, modules or runtime variables. See the [environment configuration context
+# reference](./template-strings/environments.md) to see template strings that are safe to use for inputs used to
+# generate config identifiers.
+matrix:
 ```
 
 ## Configuration Keys
@@ -75,6 +92,22 @@ The ConfigTemplate to render.
 ### `inputs`
 
 A map of inputs to pass to the ConfigTemplate. These must match the inputs schema of the ConfigTemplate.
+
+Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference other actions, modules or runtime variables. See the [environment configuration context reference](./template-strings/environments.md) to see template strings that are safe to use for inputs used to generate config identifiers.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `matrix`
+
+Render this template multiple times, for each combination of the inputs.
+
+Each key should be the name of an input, and the value should be a list of values to pass to the input.
+
+If the `inputs` is also provided, the values in the `matrix` will be overridden by the values in the `inputs` field. You can combine the two fields if there are more inputs than just the ones specified in the `matrix` field, and you want to specify some inputs that should not be overridden.
+
+See the [Matrix templates guide](../../features/matrix-templates.md.md) for more information.
 
 Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference other actions, modules or runtime variables. See the [environment configuration context reference](./template-strings/environments.md) to see template strings that are safe to use for inputs used to generate config identifiers.
 

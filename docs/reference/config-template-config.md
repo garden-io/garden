@@ -23,8 +23,14 @@ kind: ConfigTemplate
 # The name of the template.
 name:
 
-# Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is
-# provided all inputs will be accepted.
+# A map of inputs to pass to the template. Use this if the inputs are simple strings, numbers or booleans. If the
+# inputs are more complex, use the `inputsSchemaPath` field instead. You can only use one of the two fields, not both
+# at the same time.
+inputs:
+
+# Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. Use this if
+# the inputs are more complex than simple strings, numbers or booleans. If neither this nor the `inputs` field is
+# provided all inputs will be accepted without validation (not recommended).
 inputsSchemaPath:
 
 # A list of modules this template will output. The schema for each is the same as when you create modules normally in
@@ -233,9 +239,17 @@ The name of the template.
 | -------- | -------- |
 | `string` | No       |
 
+### `inputs`
+
+A map of inputs to pass to the template. Use this if the inputs are simple strings, numbers or booleans. If the inputs are more complex, use the `inputsSchemaPath` field instead. You can only use one of the two fields, not both at the same time.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `inputsSchemaPath`
 
-Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided all inputs will be accepted.
+Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. Use this if the inputs are more complex than simple strings, numbers or booleans. If neither this nor the `inputs` field is provided all inputs will be accepted without validation (not recommended).
 
 | Type        | Required |
 | ----------- | -------- |
