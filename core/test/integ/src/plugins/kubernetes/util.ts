@@ -158,7 +158,7 @@ describe("util", () => {
     const modules = helmGraph.getModules()
     const graph = helmGraph
     const router = await helmGarden.getActionRouter()
-    const { actions } = await convertModules(helmGarden, helmGarden.log, modules, graph.moduleGraph)
+    const { actions } = await convertModules(helmGarden, helmGarden.log, modules, graph.moduleGraph, new Set())
 
     const tasks = await Promise.all(
       actions.map(async (rawAction) => {

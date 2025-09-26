@@ -1716,6 +1716,8 @@ providers:
 
             # The names of any services that this service depends on at runtime, and the names of any tasks that
             # should be executed before this service is deployed.
+            # You may also depend on Deploy and Run actions, but please note that you cannot reference those actions
+            # in template strings.
             dependencies:
 
             # Set this to `true` to disable the service. You can use this with conditional template strings to
@@ -1750,6 +1752,8 @@ providers:
 
             # The names of any tasks that must be executed, and the names of any services that must be running, before
             # this task is executed.
+            # You may also depend on Deploy and Run actions, but please note that you cannot reference those actions
+            # in template strings.
             dependencies:
 
             # Set this to `true` to disable the task. You can use this with conditional template strings to
@@ -3019,6 +3023,8 @@ moduleConfigs:
 
         # The names of any services that this service depends on at runtime, and the names of any tasks that should be
         # executed before this service is deployed.
+        # You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in
+        # template strings.
         dependencies:
 
         # Set this to `true` to disable the service. You can use this with conditional template strings to
@@ -3052,6 +3058,8 @@ moduleConfigs:
 
         # The names of any tasks that must be executed, and the names of any services that must be running, before
         # this task is executed.
+        # You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in
+        # template strings.
         dependencies:
 
         # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
@@ -3571,6 +3579,8 @@ modules:
 
         # The names of any services that this service depends on at runtime, and the names of any tasks that should be
         # executed before this service is deployed.
+        # You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in
+        # template strings.
         dependencies:
 
         # Set this to `true` to disable the service. You can use this with conditional template strings to
@@ -3604,6 +3614,8 @@ modules:
 
         # The names of any tasks that must be executed, and the names of any services that must be running, before
         # this task is executed.
+        # You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in
+        # template strings.
         dependencies:
 
         # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable

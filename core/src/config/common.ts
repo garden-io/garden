@@ -192,6 +192,8 @@ interface ActionReferenceSchema extends Joi.AnySchema {
   kind(kind: ActionKind): this
 
   name(type: string): this
+
+  returnString(): this
 }
 
 export interface Schema extends Joi.Root {
@@ -720,6 +722,7 @@ joi = joi.extend({
   flags: {
     kind: { default: undefined },
     name: { default: undefined },
+    returnString: { default: false },
   },
   messages: {
     validation: "<not used>",
@@ -735,6 +738,10 @@ joi = joi.extend({
         const error = opts.error("wrongKind")
         error.message += ` Expected '${expectedKind}', got '${value.kind}'`
         return { value, errors: error }
+      }
+
+      if (opts.schema.$_getFlag("returnString")) {
+        return { value: `${value.kind.toLowerCase()}.${value.name}` }
       }
 
       return { value }
@@ -779,6 +786,15 @@ joi = joi.extend({
       },
       validate(value) {
         // Note: This is currently only advisory, and must be validated elsewhere!
+        return value
+      },
+    },
+    returnString: {
+      method() {
+        return this.$_setFlag("returnString", true)
+      },
+      validate(value) {
+        // This is validated above ^
         return value
       },
     },
