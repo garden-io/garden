@@ -151,17 +151,23 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
       log.warn("BuildKit log parser process is not writable, falling back to error logs")
       return
     }
-    if (!progressuiFailed && progressuiProcess.stdin && progressuiProcess.stdin.writable) {
+
+    let isValidJson = false
+    try {
+      const jsonLogLine = JSON.parse(line.toString())
+      dockerLogs.push(jsonLogLine)
+      isValidJson = true
+    } catch (_error) {
+      dockerErrorLogs.push(line.toString())
+    }
+
+    // Progress UI expects valid JSON
+    if (!progressuiFailed && progressuiProcess.stdin && progressuiProcess.stdin.writable && isValidJson) {
       try {
         progressuiProcess.stdin.write(line + "\n")
       } catch (err) {
         log.warn(`Error writing to BuildKit log parser: ${err}`)
       }
-    }
-    try {
-      dockerLogs.push(JSON.parse(line.toString()))
-    } catch (_error) {
-      dockerErrorLogs.push(line.toString())
     }
   })
   const timeout = action.getConfig("timeout")
