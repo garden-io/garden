@@ -1856,8 +1856,11 @@ providers:
 variables:
   <name>:
 
-# The 'remoteVariables' config
-remoteVariables:
+# The 'importVariables' config
+importVariables:
+  - from:
+
+    list:
 
 # All action configs in the project.
 actionConfigs:
@@ -4535,10 +4538,10 @@ strings, use the `--resolve=full` option. Note that this may trigger actions bei
 action references the runtime output of another in its `variables` field.
 
 Examples:
-    garden variables list                                                         # list all variables and pretty print results
-    garden variables list --resolve full                                          # list all variables and resolve template strings, including runtime outputs
-    garden variables list --filter-actions build.api --filtera-actions deploy.api # list variables for the Build api and Deploy api actions
-    garden variables list --output json                                           # return variables as a JSON object, useful for scripting
+    garden get variables                                                         # list all variables and pretty print results
+    garden get variables --resolve full                                          # list all variables and resolve template strings, including runtime outputs
+    garden get variables --filter-actions build.api --filter-actions deploy.api  # list variables for the Build api and Deploy api actions
+    garden get variables --output json                                           # return variables as a JSON object, useful for scripting
 
 #### Usage
 

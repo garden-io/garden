@@ -305,6 +305,22 @@ The secret's value.
 | -------- |
 | `string` |
 
+### `${imported.*}`
+
+A map of all imported variables via the `importVariables` field.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${imported.<variable-name>}`
+
+The variable's value.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration.

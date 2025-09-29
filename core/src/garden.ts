@@ -26,7 +26,7 @@ import type {
   OutputSpec,
   ProxyConfig,
   UnresolvedProviderConfig,
-  RemoteVariablesConfig,
+  ImportVariablesConfig,
 } from "./config/project.js"
 import {
   resolveProjectConfig,
@@ -219,7 +219,7 @@ export interface GardenParams {
   cloudApi?: GardenCloudApi
   cloudDomain: string
   dotIgnoreFile: string
-  remoteVariables: RemoteVariablesConfig
+  importVariables: ImportVariablesConfig
   proxy: ProxyConfig
   environmentName: string
   resolvedDefaultNamespace: string | null
@@ -350,7 +350,7 @@ export class Garden {
   private readonly providerConfigs: UnresolvedProviderConfig[]
   public readonly workingCopyId: string
   public readonly dotIgnoreFile: string
-  public readonly remoteVariables: RemoteVariablesConfig
+  public readonly importVariables: ImportVariablesConfig
   public readonly proxy: ProxyConfig
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
@@ -396,7 +396,7 @@ export class Garden {
     this.secrets = params.secrets
     this.workingCopyId = params.workingCopyId
     this.dotIgnoreFile = params.dotIgnoreFile
-    this.remoteVariables = params.remoteVariables
+    this.importVariables = params.importVariables
     this.proxy = params.proxy
     this.moduleIncludePatterns = params.moduleIncludePatterns
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
@@ -1941,7 +1941,7 @@ export class Garden {
       domain: this.cloudDomain,
       sources: this.projectSources,
       suggestedCommands: await this.getSuggestedCommands(),
-      remoteVariables: this.projectConfig.remoteVariables,
+      importVariables: this.projectConfig.importVariables,
       projectConfig: this.projectConfig,
     }
   }
@@ -2158,7 +2158,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     } else if (cloudApi) {
       const cloudLog = log.createLog({ name: getCloudLogSectionName("Garden Cloud") })
       secrets = await cloudApi.getVariables({
-        remoteVariables: projectConfig.remoteVariables,
+        importVariables: projectConfig.importVariables,
         environmentName,
         log: cloudLog,
       })
@@ -2268,7 +2268,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       moduleExcludePatterns,
       workingCopyId,
       dotIgnoreFile: projectConfig.dotIgnoreFile,
-      remoteVariables: projectConfig.remoteVariables,
+      importVariables: projectConfig.importVariables,
       proxy,
       log,
       gardenInitLog: opts.gardenInitLog,
@@ -2443,7 +2443,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
     environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],
     providers: [],
     variables: {},
-    remoteVariables: [],
+    importVariables: [],
   }
   gardenOpts.config = config
 
@@ -2462,7 +2462,7 @@ interface BaseConfigDump {
   domain?: string
   sources: SourceConfig[]
   suggestedCommands: SuggestedCommand[]
-  remoteVariables: RemoteVariablesConfig
+  importVariables: ImportVariablesConfig
 }
 
 export interface ConfigDumpWithInternalFields extends BaseConfigDump {
