@@ -9,6 +9,8 @@ You can create customized templates for actions and workflows, and render them u
 
 Config templates can be defined within a project, or in a separate repository that can be shared across multiple projects (using remote sources).
 
+You can also use [Matrix templates](./matrix-templates.md) to create multiple variations of actions in a compact form.
+
 ## How it works
 
 We'll use the [`templated-k8s-container example`](../../examples/templated-k8s-container) to illustrate how templates work. This example has a `k8s-container` template, that generates one `Build` action of type `container` for building an image, and one `Deploy` action of type `kubernetes` for deploying that image. A template like this is useful to customize the Kubernetes manifests for your services, but of course it's just one simple example of what you could do.
@@ -140,6 +142,7 @@ Garden will then scan that repo when starting up, and you can reference the temp
 
 ## Further reading
 
+- [Matrix templates](./matrix-templates.md).
 - [ConfigTemplate reference docs](../reference/config-template-config.md).
 - [RenderTemplate reference docs](../reference/render-template-config.md).
 - [`templated-k8s-container example`](../../examples/templated-k8s-container).

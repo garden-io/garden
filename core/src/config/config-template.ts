@@ -47,7 +47,23 @@ interface TemplatedModuleSpec extends Partial<BaseModuleSpec> {
   type: string
 }
 
+export type InputValue = {
+  type: "string" | "number" | "boolean"
+  default?: string | number | boolean
+  description?: string
+}
+
+const inputValueSchema = joi.object().keys({
+  type: joi.string().valid("string", "number", "boolean").required(),
+  default: joi
+    .alternatives()
+    .try(joi.string().allow(""), joi.number(), joi.boolean())
+    .description("The default value for the input. Must match the type. If not provided, the input will be required."),
+  description: joi.string().description("A description of the input."),
+})
+
 export interface ConfigTemplateResource extends BaseGardenResource {
+  inputs?: Record<string, InputValue>
   inputsSchemaPath?: string
   modules?: TemplatedModuleSpec[]
   configs?: TemplatableConfigWithPath[]
@@ -119,6 +135,29 @@ export async function resolveConfigTemplate(
         message: `Inputs schema at '${validated.inputsSchemaPath}' for ${configTemplateKind} ${validated.name} has type ${type}, but should be "object".`,
       })
     }
+  } else if (validated.inputs) {
+    // Validate the inputs field
+    const required: string[] = []
+
+    for (const k in validated.inputs) {
+      const v = validated.inputs[k]
+      if (v.default !== undefined && v.default !== null) {
+        if (typeof v.default !== v.type) {
+          throw new ConfigurationError({
+            message: `Input ${k} for ${configTemplateKind} ${validated.name} has default value ${v.default} of type ${typeof v.default}, but should be of type ${v.type}.`,
+          })
+        }
+      } else {
+        required.push(k)
+      }
+    }
+
+    inputsJsonSchema = {
+      type: "object",
+      additionalProperties: false,
+      properties: validated.inputs,
+      required,
+    }
   }
 
   const defaultValues = {}
@@ -152,11 +191,17 @@ export const configTemplateSchema = createSchema({
 
     internal: baseInternalFieldsSchema,
 
+    inputs: joi
+      .object()
+      .pattern(/.+/, inputValueSchema)
+      .description(
+        "A map of inputs to pass to the template. Use this if the inputs are simple strings, numbers or booleans. If the inputs are more complex, use the `inputsSchemaPath` field instead. You can only use one of the two fields, not both at the same time."
+      ),
     inputsSchemaPath: joi
       .posixPath()
       .relativeOnly()
       .description(
-        "Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided all inputs will be accepted."
+        "Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. Use this if the inputs are more complex than simple strings, numbers or booleans. If neither this nor the `inputs` field is provided all inputs will be accepted without validation (not recommended)."
       ),
     // TODO(deprecation): deprecate in 0.14 and remove in 0.15
     modules: joi
@@ -193,6 +238,7 @@ export const configTemplateSchema = createSchema({
         `
       ),
   }),
+  oxor: [["inputs", "inputsSchemaPath"]],
 })
 
 const moduleSchema = createSchema({
