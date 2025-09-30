@@ -1,4 +1,4 @@
 jq 1.6
 nodejs 22.17.1
 kubectl 1.33.3
-helm 3.18.4
+helm 3.19.0
