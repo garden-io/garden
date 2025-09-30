@@ -1,4 +1,27 @@
 
+<a name="0.14.9"></a>
+## [0.14.9](https://github.com/garden-io/garden/compare/0.14.8...0.14.9) (2025-09-30)
+
+### Bug Fixes
+
+* **cloudbuild:** attempt to prevent uncaught exception crash during build ([#7713](https://github.com/garden-io/garden/issues/7713)) ([cd93902b7](https://github.com/garden-io/garden/commit/cd93902b7))
+* **container:** one more safeguard to prevent EPIPE error ([#7720](https://github.com/garden-io/garden/issues/7720)) ([a2f55a85a](https://github.com/garden-io/garden/commit/a2f55a85a))
+* **core:** only send valid JSON lines to progressui ([#7732](https://github.com/garden-io/garden/issues/7732)) ([d3f2d2662](https://github.com/garden-io/garden/commit/d3f2d2662))
+* **k8s:** don't log tar availability check output to console ([#7719](https://github.com/garden-io/garden/issues/7719)) ([60beac713](https://github.com/garden-io/garden/commit/60beac713))
+
+### Features
+
+* allow module-based services+tasks to depend on Deploy+Run actions ([#7730](https://github.com/garden-io/garden/issues/7730)) ([ae0e5e7cc](https://github.com/garden-io/garden/commit/ae0e5e7cc))
+* **core:** add `version.excludeFiles` field ([#7689](https://github.com/garden-io/garden/issues/7689)) ([8715b59e2](https://github.com/garden-io/garden/commit/8715b59e2))
+* **template:** support matrix actions via RenderTemplate ([#7725](https://github.com/garden-io/garden/issues/7725)) ([2acbc68cb](https://github.com/garden-io/garden/commit/2acbc68cb))
+
+### Improvements
+
+* default to `include:[]` for container Deploy/Test/Run actions ([#7717](https://github.com/garden-io/garden/issues/7717)) ([525c89c48](https://github.com/garden-io/garden/commit/525c89c48))
+* **container:** better error handling in docker build logs ([#7724](https://github.com/garden-io/garden/issues/7724)) ([da09b1705](https://github.com/garden-io/garden/commit/da09b1705))
+* **container:** use updated and more resilient buildkit log parser ([#7716](https://github.com/garden-io/garden/issues/7716)) ([04f89541a](https://github.com/garden-io/garden/commit/04f89541a))
+* **k8s:** support interactive mode on kubernetes-exec Test actions ([#7714](https://github.com/garden-io/garden/issues/7714)) ([9b9ba1d6e](https://github.com/garden-io/garden/commit/9b9ba1d6e))
+
 <a name="0.14.8"></a>
 ## [0.14.8](https://github.com/garden-io/garden/compare/0.14.7...0.14.8) (2025-09-06)
 
