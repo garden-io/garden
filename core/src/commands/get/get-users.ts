@@ -14,12 +14,21 @@ import { styles } from "../../logger/styles.js"
 import { joi, joiArray } from "../../config/common.js"
 import { ConfigurationError } from "../../exceptions.js"
 import { getCloudListCommandBaseDescription, noApiMsg, throwIfLegacyCloud } from "../helpers.js"
+import { BooleanParameter } from "../../cli/params.js"
+import type { EmptyObject } from "type-fest"
+import type { RouterOutput } from "../../cloud/api/trpc.js"
 
-const getUsersOpts = {}
+const getUsersOpts = {
+  "current-user": new BooleanParameter({
+    help: "Only show the current user.",
+  }),
+}
+
+type User = RouterOutput["account"]["list"]["items"][0]
 
 type Opts = typeof getUsersOpts
 
-export class GetUsersCommand extends Command<{}, Opts> {
+export class GetUsersCommand extends Command<EmptyObject, Opts> {
   name = "users"
   help = "Get users"
   emoji = "👤"
@@ -28,8 +37,9 @@ export class GetUsersCommand extends Command<{}, Opts> {
     ${getCloudListCommandBaseDescription("users")}
 
     Examples:
-        garden get users                # list users and pretty print results
-        garden get users --output json  # returns users as a JSON object, useful for scripting
+        garden get users                    # list users and pretty print results
+        garden get users --current-user     # show only the current user
+        garden get users --output json      # returns users as a JSON object, useful for scripting
   `
 
   override options = getUsersOpts
@@ -46,18 +56,23 @@ export class GetUsersCommand extends Command<{}, Opts> {
           id: joi.string(),
           email: joi.string(),
           role: joi.string(),
+          isCurrent: joi.boolean().description("Whether this is the current user."),
         })
       ).description("A list of users"),
     })
 
-  async action({ garden, log }: CommandParams<{}, Opts>): Promise<CommandResult> {
+  async action({ garden, log, opts }: CommandParams<EmptyObject, Opts>): Promise<CommandResult> {
     throwIfLegacyCloud(garden, "garden cloud users list")
 
     if (!garden.cloudApi) {
       throw new ConfigurationError({ message: noApiMsg("get", "users") })
     }
 
-    const allUsers: any[] = []
+    log.debug("Fetching current account")
+    const currentAccount = await garden.cloudApi.getCurrentAccount()
+    const currentUserId = currentAccount?.id
+
+    const allUsers: User[] = []
     let cursor: number | undefined = undefined
 
     do {
@@ -71,16 +86,22 @@ export class GetUsersCommand extends Command<{}, Opts> {
       cursor = response.nextCursor
     } while (cursor)
 
-    const users = allUsers.map((user) => ({
+    let users = allUsers.map((user) => ({
       name: user.name || user.email,
       id: user.id,
       email: user.email,
       role: user.role,
+      isCurrent: user.id === currentUserId,
     }))
+
+    if (opts["current-user"]) {
+      users = users.filter((u) => u.isCurrent)
+    }
 
     const heading = ["Name", "ID", "Email", "Role"].map((s) => styles.bold(s))
     const rows: string[][] = users.map((u) => {
-      return [u.name, u.id, u.email, u.role]
+      const nameDisplay = u.isCurrent ? `${u.name} ${styles.primary("(current)")}` : u.name
+      return [nameDisplay, u.id, u.email, u.role]
     })
 
     log.info("")

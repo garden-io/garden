@@ -105,7 +105,6 @@ export class CreateCloudVariablesCommand extends Command<Args, Opts> {
 
   override arguments = createCloudVariablesArgs
   override options = createCloudVariablesOpts
-  override hidden = true
 
   override printHeader({ log }) {
     printHeader(log, "Create remote variables", "☁️")
