@@ -44,7 +44,6 @@ export class GetVariableListsCommand extends Command<{}, Opts> {
   override printHeader({ log }) {
     printHeader(log, "Get variable lists", "☁️")
   }
-  override hidden = true
 
   override outputsSchema = () =>
     joi.object().keys({

@@ -724,6 +724,78 @@ Examples:
   | `--name` |  | string | Name of the project (defaults to current directory name).
 
 
+### garden create cloud-variables
+
+**Create remote variables in Garden Cloud.**
+
+Create remote variables in Garden Cloud. Variables belong to variable lists, which you can get via the
+`garden get variable-lists` command, and can optionally be scoped to an environment,
+or an environment and a user. The variable lists themselves are also created in Garden Cloud.
+
+To scope variables to a user, you will need the user's ID which you can get from the
+`garden get users` command.
+
+You can optionally read the variables from a .env formatted file using --from-file.
+
+Examples:
+    garden create cloud-variables varlist_123 DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two variables
+    garden create cloud-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci    # create a variable and scope it to the ci environment
+    garden create cloud-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci --scope-to-user <user-id>  # create a variable and scope it to the ci environment and user
+    garden create cloud-variables varlist_123 --from-file /path/to/variables.env  # create variables from the key value pairs in the variables.env file
+    garden create cloud-variables varlist_123 SECRET_KEY=my-secret --secret=false  # create a non-secret variable
+
+See the [Variables and Templating guide](https://docs.garden.io/cedar-0.14/features/variables-and-templating) for more information.
+
+#### Usage
+
+    garden create cloud-variables [variable-list-id] [variables] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `variable-list-id` | No | The ID of the variable list to create the variables in. You can use the &#x60;garden get variable-list&#x60; to
+look up the variable list IDs.
+  | `variables` | No | The names and values of the variables to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple
+variable name/value pairs, separated by spaces. Note that you can also leave this empty
+and have Garden read the variables from file.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--scope-to-user-id` |  | string | Scope the variable to a user with the given ID. User scoped variables must be scoped to an environment as well.
+  | `--scope-to-env` |  | string | Scope the variable to an environment. Note that this does not default to the environment
+that the command runs in (i.e. the one set via the --env flag) and that you need to set this explicitly if
+you want to create an environment scoped variable.
+  | `--from-file` |  | path | Read the variables from the file at the given path. The file should have standard &quot;dotenv&quot;
+format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+  | `--secret` |  | boolean | Store the variable as an encrypted secret. Defaults to true.
+  | `--description` |  | string | Description for the variable.
+  | `--expires-at` |  | string | ISO 8601 date string for when the variable expires.
+
+#### Outputs
+
+```yaml
+# A list of created variables
+variables:
+  - id:
+
+    name:
+
+    value:
+
+    description:
+
+    isSecret:
+
+    expiresAt:
+
+    scopedAccountId:
+
+    environmentName:
+```
+
 ### garden cleanup namespace
 
 **Deletes a running namespace.**
@@ -976,6 +1048,37 @@ When this flag is not used, all services in the project are cleaned up simultane
     version:
 
   version:
+```
+
+### garden cleanup remote-variables
+
+**Delete remote variables from Garden Cloud.**
+
+Delete remote variables in Garden Cloud. You will need the IDs of the variables you want to delete,
+which you can get from the `garden get remote-variables` command.
+
+Examples:
+    garden delete remote-variables <ID 1> <ID 2> <ID 3>   # delete the remote variables with the given IDs.
+
+#### Usage
+
+    garden cleanup remote-variables [ids] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `ids` | No | The ID(s) of the cloud variables to delete.
+
+
+#### Outputs
+
+```yaml
+# A list of deleted variables
+variables:
+  - id:
+
+    success:
 ```
 
 ### garden deploy
@@ -4590,13 +4693,19 @@ See the [Connecting a project guide](https://docs.garden.io/cedar-0.14/guides/co
 connecting projects to Garden Cloud.
 
 Examples:
-    garden get users                # list users and pretty print results
-    garden get users --output json  # returns users as a JSON object, useful for scripting
+    garden get users                    # list users and pretty print results
+    garden get users --current-user     # show only the current user
+    garden get users --output json      # returns users as a JSON object, useful for scripting
 
 #### Usage
 
-    garden get users 
+    garden get users [options]
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--current-user` |  | boolean | Only show the current user.
 
 #### Outputs
 
@@ -4610,6 +4719,94 @@ users:
     email:
 
     role:
+
+    # Whether this is the current user.
+    isCurrent:
+```
+
+### garden get variable-lists
+
+**Get variable lists**
+
+List the variable lists that belong to this Garden Cloud organization (i.e. in https://app.garden.io). Only relevant
+for projects that are connected to Garden Cloud and have an `organizationId` set in the project configuration.
+
+See the [Connecting a project guide](https://docs.garden.io/cedar-0.14/guides/connecting-project) to learn more about
+connecting projects to Garden Cloud.
+
+Variable lists are used to group together remote variables and this command can be used to get
+the variable list IDs that are needed for the `garden create cloud-variables` command.
+
+Examples:
+    garden get variable-lists                 # list variable lists and pretty print results
+    garden get variable-lists --output json   # returns variable lists as a JSON object, useful for scripting
+
+See the [Variables and Templating guide](https://docs.garden.io/cedar-0.14/features/variables-and-templating) for more information.
+
+#### Usage
+
+    garden get variable-lists 
+
+
+#### Outputs
+
+```yaml
+# A list of variable lists
+variableLists:
+  - name:
+
+    id:
+
+    description:
+```
+
+### garden get remote-variables
+
+**Get remote variables from Garden Cloud**
+
+List the remote variables that belong to this Garden Cloud organization (i.e. in https://app.garden.io). Only relevant
+for projects that are connected to Garden Cloud and have an `organizationId` set in the project configuration.
+
+See the [Connecting a project guide](https://docs.garden.io/cedar-0.14/guides/connecting-project) to learn more about
+connecting projects to Garden Cloud.
+
+List all remote variables for the variable lists configured in this project. This is useful for
+seeing the IDs of remote variables (e.g. for use with the `garden delete remote-variables` command)
+and for viewing cloud-specific information such as scoping and expiration.
+
+Examples:
+    garden get remote-variables                 # list remote variables and pretty print results
+    garden get remote-variables --output json   # returns remote variables as a JSON object, useful for scripting
+
+See the [Variables and Templating guide](https://docs.garden.io/cedar-0.14/features/variables-and-templating) for more information.
+
+#### Usage
+
+    garden get remote-variables 
+
+
+#### Outputs
+
+```yaml
+# A list of remote variables
+variables:
+  - name:
+
+    id:
+
+    value:
+
+    isSecret:
+
+    variableListName:
+
+    environmentScope:
+
+    userScope:
+
+    expiresAt:
+
+    description:
 ```
 
 ### garden link source
