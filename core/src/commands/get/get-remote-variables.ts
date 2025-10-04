@@ -86,24 +86,20 @@ export class GetRemoteVariablesCommand extends Command<EmptyObject, Opts> {
     garden,
     log,
   }: CommandParams<EmptyObject, Opts>): Promise<CommandResult<{ variables: RemoteVariable[] }>> {
-    throwIfLegacyCloud(garden, "garden cloud variables list")
+    throwIfLegacyCloud(garden, "garden cloud secrets list")
 
     if (!garden.cloudApi) {
       throw new ConfigurationError({ message: noApiMsg("get", "cloud variables") })
     }
 
-    const config = await garden.dumpConfigWithInteralFields({
-      log,
-      includeDisabled: false,
-      resolveGraph: false,
-      resolveProviders: false,
-      resolveWorkflows: false,
-    })
-
-    const variableListIds = getVarlistIdsFromRemoteVarsConfig(config.importVariables)
+    const variableListIds = getVarlistIdsFromRemoteVarsConfig(garden.importVariables)
 
     if (variableListIds.length === 0) {
-      log.info("No variable lists configured in this project.")
+      log.info(dedent`
+        No remote variables are imported in this project. Remote variables are imported via the "importVariables" field in the project configuration.
+
+        See the [Variables and Templating guide](${makeDocsLinkPlain`features/variables-and-templating`}) for more information.
+`)
       return { result: { variables: [] } }
     }
 
