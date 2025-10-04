@@ -724,7 +724,7 @@ Examples:
   | `--name` |  | string | Name of the project (defaults to current directory name).
 
 
-### garden create cloud-variables
+### garden create remote-variables
 
 **Create remote variables in Garden Cloud.**
 
@@ -738,17 +738,17 @@ To scope variables to a user, you will need the user's ID which you can get from
 You can optionally read the variables from a .env formatted file using --from-file.
 
 Examples:
-    garden create cloud-variables varlist_123 DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two variables
-    garden create cloud-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci    # create a variable and scope it to the ci environment
-    garden create cloud-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci --scope-to-user <user-id>  # create a variable and scope it to the ci environment and user
-    garden create cloud-variables varlist_123 --from-file /path/to/variables.env  # create variables from the key value pairs in the variables.env file
-    garden create cloud-variables varlist_123 SECRET_KEY=my-secret --secret=false  # create a non-secret variable
+    garden create remote-variables varlist_123 DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two variables
+    garden create remote-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci    # create a variable and scope it to the ci environment
+    garden create remote-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci --scope-to-user <user-id>  # create a variable and scope it to the ci environment and user
+    garden create remote-variables varlist_123 --from-file /path/to/variables.env  # create variables from the key value pairs in the variables.env file
+    garden create remote-variables varlist_123 SECRET_KEY=my-secret --secret=false  # create a non-secret variable
 
 See the [Variables and Templating guide](https://docs.garden.io/cedar-0.14/features/variables-and-templating) for more information.
 
 #### Usage
 
-    garden create cloud-variables [variable-list-id] [variables] [options]
+    garden create remote-variables [variable-list-id] [variables] [options]
 
 #### Arguments
 
