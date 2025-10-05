@@ -8,11 +8,11 @@
 
 import { CommandGroup } from "../base.js"
 import { CreateProjectCommand } from "./create-project.js"
-import { CreateCloudVariablesCommand } from "./create-cloud-variables.js"
+import { CreateRemoteVariablesCommand } from "./create-remote-variables.js"
 
 export class CreateCommand extends CommandGroup {
   name = "create"
   help = "Create resources, e.g. remote variables, projects, etc."
 
-  subCommands = [CreateProjectCommand, CreateCloudVariablesCommand]
+  subCommands = [CreateProjectCommand, CreateRemoteVariablesCommand]
 }
