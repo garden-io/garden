@@ -25,6 +25,7 @@ import { parseTemplateCollection } from "../../../../src/template/templated-coll
 import { serialiseUnresolvedTemplates, UnresolvedTemplateValue } from "../../../../src/template/types.js"
 import { deepEvaluate } from "../../../../src/template/evaluate.js"
 import { VariablesContext } from "../../../../src/config/template-contexts/variables.js"
+import { parseTemplateString } from "../../../../src/template/templated-strings.js"
 
 describe("config templates", () => {
   let garden: TestGarden
@@ -135,6 +136,60 @@ describe("config templates", () => {
       }
       await expectError(() => resolveConfigTemplate(garden, config), {
         contains: `Inputs schema at 'invalid.json' for ConfigTemplate test has type string, but should be "object".`,
+      })
+    })
+
+    it("handles the inputs field", async () => {
+      const config: ConfigTemplateResource = {
+        ...defaults,
+        inputs: {
+          foo: { type: "string", default: "bar" },
+          baz: { type: "number", default: 123 },
+          qux: { type: "boolean", default: true },
+        },
+      }
+      const resolved = await resolveConfigTemplate(garden, config)
+      expect(resolved.inputsSchema).to.exist
+      expect((<any>resolved.inputsSchema)._rules[0].args.jsonSchema.schema).to.eql({
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          foo: { type: "string", default: "bar" },
+          baz: { type: "number", default: 123 },
+          qux: { type: "boolean", default: true },
+        },
+        required: [],
+      })
+    })
+
+    it("makes the inputs fields required if no default value is provided", async () => {
+      const config: ConfigTemplateResource = {
+        ...defaults,
+        inputs: {
+          foo: { type: "string" },
+        },
+      }
+      const resolved = await resolveConfigTemplate(garden, config)
+      expect(resolved.inputsSchema).to.exist
+      expect((<any>resolved.inputsSchema)._rules[0].args.jsonSchema.schema).to.eql({
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          foo: { type: "string" },
+        },
+        required: ["foo"],
+      })
+    })
+
+    it("throws if inputs field has a default value of the wrong type", async () => {
+      const config: ConfigTemplateResource = {
+        ...defaults,
+        inputs: {
+          foo: { type: "string", default: 123 },
+        },
+      }
+      await expectError(() => resolveConfigTemplate(garden, config), {
+        contains: `Input foo for ConfigTemplate test has default value 123 of type number, but should be of type string.`,
       })
     })
   })
@@ -251,7 +306,7 @@ describe("config templates", () => {
         template: "foo",
       }
       await expectError(() => renderConfigTemplate({ garden, log, config, templates }), {
-        contains: "Render test references template foo which cannot be found. Available templates: test",
+        contains: "RenderTemplate test references template foo which cannot be found. Available templates: test",
       })
     })
 
@@ -530,6 +585,146 @@ describe("config templates", () => {
           "Note that if a template string is used for the name, kind, type or apiversion of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.",
         ],
       })
+    })
+
+    it("throws if a module name is duplicated after rendering", async () => {
+      const _templates = {
+        test: {
+          ...template,
+          modules: [
+            {
+              type: "test",
+              name: "foo",
+            },
+            {
+              type: "test",
+              name: "foo",
+            },
+          ],
+        },
+      }
+      const config: RenderTemplateConfig = cloneDeep(defaults)
+      config.inputs = { foo: "bar" }
+      await expectError(() => renderConfigTemplate({ garden, log, config, templates: _templates }), {
+        contains: "Found duplicate config names after rendering RenderTemplate test: Module.foo",
+      })
+    })
+
+    it("throws if an action name is duplicated with the same kind after rendering", async () => {
+      const _templates: any = {
+        test: {
+          ...template,
+          configs: [
+            {
+              kind: "Test" as const,
+              name: "foo",
+              type: "test",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+              spec: {},
+            },
+            {
+              kind: "Test" as const,
+              name: "foo",
+              type: "test",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+              spec: {},
+            },
+          ],
+        },
+      }
+      const config: RenderTemplateConfig = cloneDeep(defaults)
+      config.inputs = { foo: "bar" }
+      await expectError(() => renderConfigTemplate({ garden, log, config, templates: _templates }), {
+        contains: "Found duplicate config names after rendering RenderTemplate test: Test.foo",
+      })
+    })
+
+    it("renders all combinations when the matrix field is provided", async () => {
+      const _templates: any = {
+        test: {
+          ...template,
+          configs: [
+            {
+              kind: "Test" as const,
+              name: parseTemplateString({
+                rawTemplateString: "foo-${inputs.a}-${inputs.b}-${inputs.c}",
+                source: { path: [] },
+              }),
+              type: "test",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+              spec: {},
+            },
+          ],
+        },
+      }
+      const config: RenderTemplateConfig = cloneDeep(defaults)
+      config.matrix = {
+        a: ["a1", "a2", "a3"],
+        b: ["b1", "b2"],
+        c: ["c1", "c2", "c3"],
+      }
+      const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
+      expect(resolved.configs.length).to.equal(2 * 3 * 3)
+      expect(resolved.configs.map((c) => c.name)).to.eql([
+        "foo-a1-b1-c1",
+        "foo-a1-b1-c2",
+        "foo-a1-b1-c3",
+        "foo-a1-b2-c1",
+        "foo-a1-b2-c2",
+        "foo-a1-b2-c3",
+        "foo-a2-b1-c1",
+        "foo-a2-b1-c2",
+        "foo-a2-b1-c3",
+        "foo-a2-b2-c1",
+        "foo-a2-b2-c2",
+        "foo-a2-b2-c3",
+        "foo-a3-b1-c1",
+        "foo-a3-b1-c2",
+        "foo-a3-b1-c3",
+        "foo-a3-b2-c1",
+        "foo-a3-b2-c2",
+        "foo-a3-b2-c3",
+      ])
+    })
+
+    it("combines the inputs field with the matrix field", async () => {
+      const _templates: any = {
+        test: {
+          ...template,
+          configs: [
+            {
+              kind: "Test" as const,
+              name: parseTemplateString({
+                rawTemplateString: "foo-${inputs.a}-${inputs.b}-${inputs.c}",
+                source: { path: [] },
+              }),
+              type: "test",
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+              spec: {},
+            },
+          ],
+        },
+      }
+      const config: RenderTemplateConfig = cloneDeep(defaults)
+      config.inputs = {
+        a: "a1",
+        b: "overridden",
+        c: "overridden",
+      }
+      config.matrix = {
+        b: ["b1", "b2"],
+        c: ["c1", "c2", "c3"],
+      }
+      const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
+      expect(resolved.configs.length).to.equal(2 * 3)
+      expect(resolved.configs.map((c) => c.name)).to.eql([
+        "foo-a1-b1-c1",
+        "foo-a1-b1-c2",
+        "foo-a1-b1-c3",
+        "foo-a1-b2-c1",
+        "foo-a1-b2-c2",
+        "foo-a1-b2-c3",
+      ])
     })
   })
 })

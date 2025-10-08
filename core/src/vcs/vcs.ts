@@ -19,7 +19,7 @@ import type { ModuleConfig } from "../config/module.js"
 import { serializeConfig } from "../config/module.js"
 import type { Log } from "../logger/log-entry.js"
 import { dedent, splitLast } from "../util/string.js"
-import { fixedProjectExcludes } from "../util/fs.js"
+import { fixedProjectExcludes, matchPath } from "../util/fs.js"
 import type { TreeCache } from "../cache.js"
 import { pathToCacheContext } from "../cache.js"
 import type { ServiceConfig } from "../config/service.js"
@@ -280,14 +280,20 @@ export abstract class VcsHandler {
           // Don't include the config file in the file list
           .filter((f) => !configPath || f.path !== configPath)
 
+        let filesToHash = files
+        const versionExcludeFiles = getVersionExcludeFiles(config)
+        if (versionExcludeFiles.length > 0) {
+          filesToHash = files.filter((f) => matchPath(relative(path, f.path), undefined, versionExcludeFiles))
+        }
+
         let stringsForContentHash: string[]
         if (configPath) {
           // Include the relative path to the file to account for the file being renamed or moved around within the
           // config path (e.g. renaming).
           const configDir = dirname(configPath)
-          stringsForContentHash = files.map((f) => `${relative(configDir, f.path)}-${f.hash}`)
+          stringsForContentHash = filesToHash.map((f) => `${relative(configDir, f.path)}-${f.hash}`)
         } else {
-          stringsForContentHash = files.map((f) => f.hash)
+          stringsForContentHash = filesToHash.map((f) => f.hash)
         }
         result.contentHash = hashStrings(stringsForContentHash)
         result.files = files.map((f) => f.path)
@@ -483,6 +489,21 @@ export function getSourcePath(config: ModuleConfig | BaseActionConfig) {
     return getActionSourcePath(basePath, config)
   } else {
     return config.path
+  }
+}
+
+/**
+ * Get the list of files to exclude from the version hash for the given config.
+ *
+ * @param config The config to get the exclude files for.
+ * @returns The list of files to exclude from the version hash.
+ */
+export function getVersionExcludeFiles(config: ModuleConfig | BaseActionConfig) {
+  if (isActionConfig(config)) {
+    return config.version?.excludeFiles || []
+  } else {
+    // TODO: Support this for modules as well
+    return []
   }
 }
 

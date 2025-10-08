@@ -7,7 +7,7 @@ tocTitle: "`jib-container` Build"
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.14.8/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.14.9/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -277,6 +277,31 @@ Note that it is very important not to specify overly broad exclusions here, as t
 | Type           | Required |
 | -------------- | -------- |
 | `array[array]` | No       |
+
+### `version.excludeFiles[]`
+
+[version](#version) > excludeFiles
+
+Specify one or more file paths that should be ignored when computing the version hash for this action.
+
+Specify in the same format as the `include` field. You may use glob patterns here.
+
+For example, you might have a file that naturally changes for every build, such as a compiled binary (that isn't deterministic down to the byte), that you need to have in the build but shouldn't affect the version. You could solve for that with something like this:
+
+```yaml
+include:
+  - src/**/*
+  - some/compiled/binary
+version:
+  excludeFiles:
+    - some/compiled/binary
+```
+
+Note that when you use this, you do need to make sure that other files or config fields do affect the version appropriately. Otherwise you might run into issues where builds are not updated or tests are not run when they should be.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 ### `version.excludeValues[]`
 

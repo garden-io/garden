@@ -175,6 +175,8 @@ varfile:
 
 # The names of any services that this service depends on at runtime, and the names of any tasks that should be
 # executed before this service is deployed.
+# You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in template
+# strings.
 dependencies: []
 
 # If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete namespace` or `garden
@@ -520,10 +522,11 @@ varfile: "my-module.env"
 ### `dependencies[]`
 
 The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
+You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in template strings.
 
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `array[alternatives]` | `[]`    | No       |
 
 ### `allowDestroy`
 

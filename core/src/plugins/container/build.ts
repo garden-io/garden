@@ -98,6 +98,12 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   }
 
   const progressui = ctx.tools["container.standalone-progressui"]
+
+  let done = false
+  let progressuiFailed = false
+
+  // TODO: More robust error handling in progressui code (located elsewhere)
+  // TODO: Try to restart the process if it fails
   const progressuiProcess = await progressui.spawn({ log })
   progressuiProcess.stdout?.on("data", (data: Buffer) => {
     data
@@ -108,17 +114,60 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
         ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line, ...logEventContext })
       })
   })
+  progressuiProcess.stderr?.on("data", (data: Buffer) => {
+    data
+      .toString()
+      .trim()
+      .split("\n")
+      .forEach((line) => {
+        log.warn(`BuildKit log parser error: ${line}`)
+        ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line, ...logEventContext, level: "warn" })
+      })
+  })
+  progressuiProcess.stdin?.on("error", () => {
+    progressuiFailed = true
+  })
+  progressuiProcess.on("error", (err) => {
+    log.warn(`Error from BuildKit log parser: ${err}`)
+    progressuiFailed = true
+  })
+  progressuiProcess.on("close", (code) => {
+    if (!done && code !== 0) {
+      log.warn(`BuildKit log parser process closed with code: ${code}`)
+    }
+    progressuiFailed = true
+  })
+
   const dockerLogs: DockerBuildReport[] = []
   const dockerErrorLogs: string[] = []
   const outputStream = split2()
+  outputStream.on("error", () => {
+    // Ignore
+  })
+
   outputStream.on("data", (line: Buffer) => {
-    if (progressuiProcess.stdin) {
-      progressuiProcess.stdin.write(line + "\n")
+    if (!progressuiFailed && progressuiProcess.stdin && !progressuiProcess.stdin.writable) {
+      progressuiFailed = true
+      log.warn("BuildKit log parser process is not writable, falling back to error logs")
+      return
     }
+
+    let isValidJson = false
     try {
-      dockerLogs.push(JSON.parse(line.toString()))
+      const jsonLogLine = JSON.parse(line.toString())
+      dockerLogs.push(jsonLogLine)
+      isValidJson = true
     } catch (_error) {
       dockerErrorLogs.push(line.toString())
+    }
+
+    // Progress UI expects valid JSON
+    if (!progressuiFailed && progressuiProcess.stdin && progressuiProcess.stdin.writable && isValidJson) {
+      try {
+        progressuiProcess.stdin.write(line + "\n")
+      } catch (err) {
+        log.warn(`Error writing to BuildKit log parser: ${err}`)
+      }
     }
   })
   const timeout = action.getConfig("timeout")
@@ -148,6 +197,14 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
       dockerLogs,
       dockerErrorLogs,
     })
+  }
+
+  // Clean up the progressui process
+  try {
+    done = true
+    progressuiProcess.kill()
+  } catch (err) {
+    // Ignore
   }
 
   return {

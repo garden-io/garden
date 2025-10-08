@@ -81,6 +81,8 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
   help = "Create remote variables in Garden Cloud."
   emoji = "☁️"
 
+  override aliases = ["cloud-variables"]
+
   override description = dedent`
     Create remote variables in Garden Cloud. Variables belong to variable lists, which you can get via the
     \`garden get variable-lists\` command, and can optionally be scoped to an environment,
@@ -103,7 +105,6 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
 
   override arguments = createRemoteVariablesArgs
   override options = createRemoteVariablesOpts
-  override hidden = true
 
   override printHeader({ log }) {
     printHeader(log, "Create remote variables", "☁️")

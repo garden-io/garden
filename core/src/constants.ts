@@ -116,9 +116,4 @@ export const gardenEnv = {
     .required(false)
     .default("false")
     .asBool(),
-  GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES: env
-    .get("GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES")
-    .required(false)
-    .default("false")
-    .asBool(),
 }

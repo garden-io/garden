@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/core",
-  "version": "0.14.8",
+  "version": "0.14.9",
   "description": "A full-featured development framework for containers and serverless",
   "type": "module",
   "repository": {
@@ -25,8 +25,8 @@
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
   "dependencies": {
-    "@bufbuild/protobuf": "2.6.3",
-    "@buf/garden_grow-platform.bufbuild_es": "^2.6.3-20250618101837-010811843489.1",
+    "@bufbuild/protobuf": "2.8.0",
+    "@buf/garden_grow-platform.bufbuild_es": "2.8.0-20250916142245-2420a337ce6a.1",
     "@codenamize/codenamize": "^1.1.1",
     "@connectrpc/connect": "2.0.4",
     "@connectrpc/connect-node": "2.0.4",

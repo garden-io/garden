@@ -5,7 +5,7 @@ order: 3
 
 # 3. Set Up Ingress, TLS and DNS
 
-By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../../reference/providers/kubernetes.md#providerssetupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/). You can find an example for [using Garden with Istio](https://github.com/garden-io/garden/tree/0.14.8/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/0.14.8/examples).
+By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../../reference/providers/kubernetes.md#providerssetupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/). You can find an example for [using Garden with Istio](https://github.com/garden-io/garden/tree/0.14.9/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/0.14.9/examples).
 
 You'll also need to point one or more DNS entries to your cluster, and configure a TLS certificate for the hostnames
 you will expose for ingress.

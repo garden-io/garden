@@ -214,10 +214,12 @@ const helpers = {
       localImageId,
       deploymentImageName,
       deploymentImageId,
+      "deploymentImageTag": version.versionString,
       "local-image-name": localImageName,
       "local-image-id": localImageId,
       "deployment-image-name": deploymentImageName,
       "deployment-image-id": deploymentImageId,
+      "deployment-image-tag": version.versionString,
     }
   },
 

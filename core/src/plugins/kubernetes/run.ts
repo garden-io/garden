@@ -578,8 +578,6 @@ async function runWithArtifacts({
         command: ["sh", "-c", "tar --help"],
         containerName: mainContainerName,
         log,
-        stdout,
-        stderr,
         // Anything above 10 minutes for this would be unusual
         timeoutSec: 600,
         buffer: true,

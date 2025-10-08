@@ -74,7 +74,7 @@ export const kubernetesExecRunDefinition = (): RunActionDefinition<KubernetesExe
   handlers: {
     run: async (params) => {
       const { ctx, log, action } = params
-      const result = await readAndExec({ ctx, log, action })
+      const result = await readAndExec({ ctx, log, action, interactive: false })
       // Note: We don't store a result for this action type, since there's no clear underlying version to use.
       return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
     },
@@ -105,8 +105,8 @@ export const kubernetesExecTestDefinition = (): TestActionDefinition<KubernetesE
   runtimeOutputsSchema: kubernetesRunOutputsSchema(),
   handlers: {
     run: async (params) => {
-      const { ctx, log, action } = params
-      const result = await readAndExec({ ctx, log, action })
+      const { ctx, log, action, interactive } = params
+      const result = await readAndExec({ ctx, log, action, interactive })
       // Note: We don't store a result for this action type, since there's no clear underlying version to use.
       return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
     },
@@ -126,10 +126,12 @@ async function readAndExec({
   ctx,
   log,
   action,
+  interactive,
 }: {
   ctx: PluginContext
   log: Log
   action: Resolved<KubernetesExecRunAction | KubernetesExecTestAction>
+  interactive: boolean
 }): Promise<RunResult> {
   const { resource, command } = action.getSpec()
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -178,7 +180,7 @@ async function readAndExec({
     workload: target,
     containerName: resource.containerName,
     command,
-    interactive: false,
+    interactive,
     streamLogs: true,
   })
   const completedAt = new Date()

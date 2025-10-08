@@ -36,7 +36,7 @@ import * as td from "testdouble"
 import fsExtra from "fs-extra"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
 import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs.js"
-import type { BaseActionConfig } from "../../../../src/actions/types.js"
+import type { ActionConfig, BaseActionConfig } from "../../../../src/actions/types.js"
 import { TreeCache } from "../../../../src/cache.js"
 import { getHashedFilterParams } from "../../../../src/vcs/git-repo.js"
 import { VariablesContext } from "../../../../src/config/template-contexts/variables.js"
@@ -238,6 +238,50 @@ describe("VcsHandler", () => {
       const cachedResult = handlerA["cache"].get(gardenA.log, cacheKey)
 
       expect(result).to.eql(cachedResult)
+    })
+
+    it("should exclude files specified in the version.excludeFiles field", async () => {
+      const graph = await gardenA.getResolvedConfigGraph({ log: gardenA.log, emit: false })
+      const action = graph.getTest("module-a-unit")
+      const actionConfig = action.getConfig() as ActionConfig
+
+      actionConfig.include = ["foo.txt"]
+
+      const versionA = await handlerA.getTreeVersion({
+        log: gardenA.log,
+        projectName: gardenA.projectName,
+        config: actionConfig,
+        force: true,
+      })
+      // foo.txt doesn't exist yet
+      expect(versionA.files).to.eql([])
+
+      const fooFilePath = join(action.sourcePath(), "foo.txt")
+      handlerA.getFiles = async () => [{ path: fooFilePath, hash: "foo" }]
+
+      const versionB = await handlerA.getTreeVersion({
+        log: gardenA.log,
+        projectName: gardenA.projectName,
+        config: actionConfig,
+        force: true,
+      })
+      expect(versionB.files).to.eql([fooFilePath])
+
+      actionConfig.version = { excludeFiles: ["*.txt"] }
+
+      const versionC = await handlerA.getTreeVersion({
+        log: gardenA.log,
+        projectName: gardenA.projectName,
+        config: actionConfig,
+        force: true,
+      })
+
+      expect(versionC.files).to.eql([fooFilePath])
+
+      // A should differ from B because foo.txt is included in B
+      expect(versionA.contentHash).to.not.equal(versionB.contentHash)
+      // A should be same as C because foo.txt is excluded in C
+      expect(versionA.contentHash).to.equal(versionC.contentHash)
     })
   })
 })

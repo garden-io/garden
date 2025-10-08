@@ -58,7 +58,17 @@ describe("aec-agent command", () => {
   }
 
   // Setting TTL to 0 will cause the command to exit after the first loop
-  const args = ["--interval", "2", "--ttl", "0", "--description", "integ test agent", "--health-check-port", "0"]
+  const args = [
+    "--interval",
+    "2",
+    "--ttl",
+    "0",
+    "--description",
+    "integ test agent",
+    "--health-check-port",
+    "0",
+    "--disable-events",
+  ]
 
   let garden: Garden
   let ctx: PluginContext
@@ -152,6 +162,7 @@ describe("aec-agent command", () => {
           "garden.io/last-deployed": new Date("2025-01-01").toISOString(),
           [gardenAnnotationKey("environment-type")]: "test",
           [gardenAnnotationKey("environment-name")]: "test",
+          [gardenAnnotationKey("project-id")]: "test",
         },
       },
     }
@@ -204,6 +215,7 @@ describe("aec-agent command", () => {
           "garden.io/last-deployed": new Date("2025-01-01").toISOString(),
           [gardenAnnotationKey("environment-type")]: "test",
           [gardenAnnotationKey("environment-name")]: "test",
+          [gardenAnnotationKey("project-id")]: "test",
         },
       },
     }

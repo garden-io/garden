@@ -27,6 +27,7 @@ export const gardenAnnotationKeys: { [key: string]: ZodSchema } = {
   "mode": s.string(),
   "module": s.string(),
   "module-version": s.string(),
+  "project-id": s.string(),
   "service": s.string(),
   "task": s.string(),
   "test": s.string(),

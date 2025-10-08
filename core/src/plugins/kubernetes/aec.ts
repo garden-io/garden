@@ -153,7 +153,7 @@ export function getAecAgentManifests({
                   cd $PROJECT_ROOT
                   git init
 
-                  garden plugins kubernetes aec-agent -- ${localDevMode ? "--interval 10 --ttl 300" : ""} --description "$AGENT_DESCRIPTION" 2>&1 | tee /tmp/aec-agent.log
+                  garden plugins kubernetes aec-agent -- ${localDevMode ? "--interval 30 --ttl 300" : ""} --description "$AGENT_DESCRIPTION" 2>&1 | tee /tmp/aec-agent.log
                 `,
               ],
               workingDir: "/garden/static/kubernetes/aec-agent",
@@ -343,6 +343,8 @@ export function getAecAnnotations({
     // This may seem incorrect, but we want to transition from env/namespace terminology to env type/name.
     [gardenAnnotationKey("environment-type")]: ctx.environmentName,
     [gardenAnnotationKey("environment-name")]: ctx.namespace,
+    // Project ID isn't necessarily set in the config, so we use the project name as a fallback
+    [gardenAnnotationKey("project-id")]: ctx.projectId || ctx.projectName || "<missing>",
     [gardenAnnotationKey("aec-config")]: JSON.stringify(aecConfig || {}),
   }
 

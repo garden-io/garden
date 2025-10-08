@@ -20,6 +20,11 @@ import type { Log } from "../../logger/log-entry.js"
 import { monotonicFactory, ulid, type ULID, type UUID } from "ulid"
 import { create } from "@bufbuild/protobuf"
 import {
+  AecAgentStatusSchema,
+  AecEnvironmentUpdateSchema,
+  AecAgentStatusType,
+} from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_aec_pb.js"
+import {
   GardenCommandExecutionCompletedSchema,
   GardenCommandExecutionStarted_GitMetadata_GitRemoteSchema,
   GardenCommandExecutionStarted_GitMetadataSchema,
@@ -99,6 +104,18 @@ export class GrpcEventConverter {
             | CoreEventPayload<"runStatus">,
         })
         break
+      case "aecAgentEnvironmentUpdate":
+        events = this.handleAecEnvironmentUpdate({
+          context,
+          payload: payload as CoreEventPayload<"aecAgentEnvironmentUpdate">,
+        })
+        break
+      case "aecAgentStatus":
+        events = this.handleAecAgentStatus({
+          context,
+          payload: payload as CoreEventPayload<"aecAgentStatus">,
+        })
+        break
       default:
         // TODO: handle all event cases
         // name satisfies never // ensure all cases are handled
@@ -111,6 +128,59 @@ export class GrpcEventConverter {
     }
 
     return events
+  }
+
+  private handleAecEnvironmentUpdate({
+    context,
+    payload,
+  }: {
+    context: GardenEventContext
+    payload: CoreEventPayload<"aecAgentEnvironmentUpdate">
+  }): GrpcEventEnvelope[] {
+    return [
+      createGardenCliEvent(context, GardenCliEventType.AEC_ENVIRONMENT_UPDATE, {
+        case: "aecEnvironmentUpdate",
+        value: create(AecEnvironmentUpdateSchema, {
+          aecAgentInfo: payload.aecAgentInfo,
+          projectId: payload.projectId,
+          timestamp: timestampFromDate(new Date(payload.timestamp)),
+
+          environmentType: payload.environmentType,
+          environmentName: payload.environmentName,
+          statusDescription: payload.statusDescription,
+          inProgress: payload.inProgress,
+          error: payload.error,
+          success: payload.success,
+        }),
+      }),
+    ]
+  }
+
+  private handleAecAgentStatus({
+    context,
+    payload,
+  }: {
+    context: GardenEventContext
+    payload: CoreEventPayload<"aecAgentStatus">
+  }): GrpcEventEnvelope[] {
+    const status =
+      payload.status === "error"
+        ? AecAgentStatusType.ERROR
+        : payload.status === "running"
+          ? AecAgentStatusType.RUNNING
+          : AecAgentStatusType.STOPPED
+
+    return [
+      createGardenCliEvent(context, GardenCliEventType.AEC_AGENT_STATUS, {
+        case: "aecAgentStatus",
+        value: create(AecAgentStatusSchema, {
+          aecAgentInfo: payload.aecAgentInfo,
+          status,
+          statusDescription: payload.statusDescription,
+          timestamp: timestampFromDate(new Date(payload.timestamp)),
+        }),
+      }),
+    ]
   }
 
   private handleActionStatus({

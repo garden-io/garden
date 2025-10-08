@@ -28,6 +28,7 @@ import { GetFilesCommand } from "./get-files.js"
 import { GetVariablesCommand } from "./get-variables.js"
 import { GetUsersCommand } from "./get-users.js"
 import { GetVariableListsCommand } from "./get-variable-lists.js"
+import { GetRemoteVariablesCommand } from "./get-remote-variables.js"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -55,5 +56,6 @@ export class GetCommand extends CommandGroup {
     GetVariablesCommand,
     GetUsersCommand,
     GetVariableListsCommand,
+    GetRemoteVariablesCommand,
   ]
 }

@@ -173,6 +173,7 @@ export abstract class CliWrapper {
       stdout,
       stderr,
       tty,
+      log,
     })
   }
 }

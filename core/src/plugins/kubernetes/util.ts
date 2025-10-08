@@ -307,7 +307,9 @@ export async function execInWorkload({
       // For some reason, we're getting extra newlines for each line here, so we trim them.
       const msg = line.toString().trimEnd()
       ctx.events.emit("log", { timestamp: new Date().toISOString(), msg, ...logEventContext })
-      log.verbose(msg)
+      if (!interactive) {
+        log.verbose(msg)
+      }
     })
     execParams.stdout = outputStream
     execParams.stderr = outputStream

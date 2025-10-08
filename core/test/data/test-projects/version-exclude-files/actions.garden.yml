@@ -1,0 +1,11 @@
+kind: Test
+type: test
+name: test
+include:
+  - test1.txt
+  - test2.log
+version:
+  excludeFiles:
+    - "*.log"
+spec:
+  command: ["echo"]

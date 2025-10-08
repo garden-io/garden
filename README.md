@@ -16,7 +16,7 @@ _If you love Garden, please ★ star this repository to show your support :green
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://docs.garden.io/?utm_source=github">Docs</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/garden-io/garden/tree/0.14.8/examples">Examples</a>
+  <a href="https://github.com/garden-io/garden/tree/0.14.9/examples">Examples</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -111,18 +111,11 @@ garden dev
 
 ## How Garden Works
 
-The Stack Graph is a key feature of Garden that enables efficient development, testing, and DevOps automation. The Stack Graph allows you to declare the dependency structure of your project and track changes to avoid unnecessary builds, deploys and test runs. It's like CI/CD config that you can additionally use for development. Without the Stack Graph, many of these functionalities that distinguish Garden from its competitors would not be possible or would be much less efficient.
+Garden Core is a standalone binary that can run from CI or from a developer’s machine. Its configuration framework allows you to codify a complete description of your stack using intuitive YAML config—making your workflows reproducible and portable.
 
-- **Efficient builds and deploys:** The Stack Graph allows Garden to determine which parts of your project have changed and need to be rebuilt or redeployed, avoiding unnecessary work and speeding up the development process.
+Garden's "action graph" allows you to declare the dependency structure of your project and track changes to avoid unnecessary builds, deploys and test runs. It's like CI/CD config that you can additionally use for development.
 
-- **Automated testing:** Garden can automatically run tests for the parts of your project that have changed, thanks to the Stack Graph. This saves time because all parts of your dependency graph are known and cached.
-
-- **DevOps automation:** The Stack Graph allows Garden to automate many aspects of the DevOps process, including building, testing, and deploying your project.
-
-For more information on the Stack Graph and how Garden works, see:
-
-- [How Garden Works](https://docs.garden.io/overview/how-garden-works)
-- [A video tour of the Stack Graph and guide to getting started](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8)
+Check out the [How Garden Works](https://docs.garden.io/overview/how-garden-works) page of our docs to learn more.
 
 ## Plugins
 

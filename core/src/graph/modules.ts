@@ -95,10 +95,12 @@ export class ModuleGraph {
     modules,
     moduleTypes,
     skippedKeys,
+    allowedRuntimeActions,
   }: {
     modules: GardenModule[]
     moduleTypes: ModuleTypeMap
     skippedKeys?: Set<string>
+    allowedRuntimeActions?: Set<string>
   }) {
     this.dependencyGraph = {}
     this.modules = {}
@@ -171,7 +173,7 @@ export class ModuleGraph {
       }
     }
 
-    detectMissingDependencies(Object.values(this.modules), skippedKeys)
+    detectMissingDependencies({ moduleConfigs: Object.values(this.modules), skippedKeys, allowedRuntimeActions })
 
     // Add relations between nodes
     for (const module of modules) {
@@ -223,7 +225,7 @@ export class ModuleGraph {
           addBuildDeps(serviceNode)
         }
 
-        for (const depName of serviceConfig.dependencies) {
+        for (const depName of serviceConfig.dependencies.filter((d) => !allowedRuntimeActions?.has(d))) {
           this.addRuntimeRelation(serviceNode, depName)
         }
       }
@@ -249,7 +251,7 @@ export class ModuleGraph {
           addBuildDeps(taskNode)
         }
 
-        for (const depName of taskConfig.dependencies) {
+        for (const depName of taskConfig.dependencies.filter((d) => !allowedRuntimeActions?.has(d))) {
           this.addRuntimeRelation(taskNode, depName)
         }
       }
@@ -732,7 +734,15 @@ export class ModuleDependencyGraphNode {
  * Looks for dependencies on non-existent modules, services or tasks, and throws a ConfigurationError
  * if any were found.
  */
-export function detectMissingDependencies(moduleConfigs: ModuleConfig[], skippedKeys?: Set<string>) {
+export function detectMissingDependencies({
+  moduleConfigs,
+  skippedKeys,
+  allowedRuntimeActions,
+}: {
+  moduleConfigs: ModuleConfig[]
+  skippedKeys?: Set<string>
+  allowedRuntimeActions?: Set<string>
+}) {
   const moduleNames: Set<string> = new Set(moduleConfigs.map((m) => m.name))
   const serviceNames = moduleConfigs.flatMap((m) => m.serviceConfigs.map((s) => s.name))
   const taskNames = moduleConfigs.flatMap((m) => m.taskConfigs.map((t) => t.name))
@@ -757,10 +767,15 @@ export function detectMissingDependencies(moduleConfigs: ModuleConfig[], skipped
     for (const [configKey, entityName] of runtimeDepTypes) {
       for (const config of m[configKey]) {
         for (const missingRuntimeDep of config.dependencies.filter((d: string) => !runtimeNames.has(d))) {
+          if (allowedRuntimeActions?.has(missingRuntimeDep)) {
+            // We allow dependencies on Deploy and Run actions
+            continue
+          }
           if (skippedKeys?.has(`deploy.${missingRuntimeDep}`) || skippedKeys?.has(`run.${missingRuntimeDep}`)) {
             // Don't flag missing dependencies that are explicitly skipped during resolution
             continue
           }
+
           missingDepDescriptions.push(deline`
             ${entityName} '${config.name}' (in module '${m.name}'): Unknown service or task '${missingRuntimeDep}'
             referenced in dependencies.`)
@@ -778,6 +793,7 @@ export function detectMissingDependencies(moduleConfigs: ModuleConfig[], skipped
 
         Available modules: ${naturalList(Array.from(moduleNames))}
         Available services and tasks: ${naturalList(Array.from(runtimeNames))}
+        Available Deploy and Run actions: ${naturalList(Array.from(allowedRuntimeActions || []))}
         `,
     })
   }

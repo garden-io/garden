@@ -205,8 +205,8 @@ export const regctlCliSpec: PluginToolSpec = {
   ],
 }
 
-const progressToolVersion = "0.0.1"
-const progressToolSpec: PluginToolSpec = {
+const progressToolVersion = "0.0.3"
+export const progressToolSpec: PluginToolSpec = {
   name: "standalone-progressui",
   version: progressToolVersion,
   description: "Helper that utilizes the buildkit library to parse docker logs from progress json output.",
@@ -216,31 +216,31 @@ const progressToolSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-darwin-arm64`,
-      sha256: "633b74d5c37b53757322184e8e453e9982e0615356047e14637d437fa85f0653",
+      sha256: "72f088c81e1da380e04117af01ebb73b9de0aa3e7058608bc722c9553fa2a411",
     },
     {
       platform: "darwin",
       architecture: "amd64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-darwin-amd64`,
-      sha256: "f3d156ecd0ad307e54caa0abe2fe2b42b2b69eb78ff546ff949921b6e232b92c",
+      sha256: "eea41c72f27892bc92f0c0d87381533b0de98df83dcdfe611d41caa5ec4fb69e",
     },
     {
       platform: "linux",
       architecture: "arm64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-linux-arm64`,
-      sha256: "20a4991f1efc2aae0cca359308feba7e6361a2f92941fdad1f7f14137d94eb6c",
+      sha256: "22f9a301687d3ff686ba2f337ce43cfcc98e1ae983b1218362bdb81d37010b15",
     },
     {
       platform: "linux",
       architecture: "amd64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-linux-amd64`,
-      sha256: "f3b8534b57939688d5f1ab11d8999d6854b08eef43af1619b641a51bd5f7c8bd",
+      sha256: "5758e868b7b0fc3be485025ea82ee1e70da00bc1428fec3b7aab7b9864d0ebec",
     },
     {
       platform: "windows",
       architecture: "amd64",
       url: `https://download.garden.io/standalone-progressui/${progressToolVersion}/standalone-progressui-windows-amd64`,
-      sha256: "c83935be933413ecedb92fb6a70c235670598059dab0d12cc9b4bb0b0f652d25",
+      sha256: "b4da9f96039ed46b9e1253258600a06cd27bc4a9d3a0bae79cd77cbea463ba52",
     },
   ],
 }
@@ -354,6 +354,7 @@ export async function getContainerModuleOutputs({ moduleConfig, version }: GetMo
       "local-image-id": localImageId,
       "deployment-image-name": deploymentImageName,
       "deployment-image-id": deploymentImageId,
+      "deployment-image-tag": version.versionString,
     },
   }
 }
@@ -586,6 +587,11 @@ export const gardenPlugin = () =>
                 )
               }
 
+              if (config.include === undefined && config.exclude === undefined) {
+                // No reason to include files by default since the spec.image field is required and is enough to version the action
+                config.include = []
+              }
+
               return { config, supportedModes: { sync: !!spec.sync } satisfies ActionModes }
             },
 
@@ -655,7 +661,14 @@ export const gardenPlugin = () =>
           schema: containerRunActionSchema(),
           runtimeOutputsSchema: containerRunOutputSchema(),
           handlers: {
-            // Implemented by other providers (e.g. kubernetes)
+            async configure({ config }) {
+              if (config.include === undefined && config.exclude === undefined) {
+                // No reason to include files by default since the spec.image field is required and is enough to version the action
+                config.include = []
+              }
+              return { config, supportedModes: { sync: false } satisfies ActionModes }
+            },
+
             async validate({ action }) {
               validateRuntimeCommon(action)
               return {}
@@ -674,6 +687,14 @@ export const gardenPlugin = () =>
           schema: containerTestActionSchema(),
           runtimeOutputsSchema: containerTestOutputSchema(),
           handlers: {
+            async configure({ config }) {
+              if (config.include === undefined && config.exclude === undefined) {
+                // No reason to include files by default since the spec.image field is required and is enough to version the action
+                config.include = []
+              }
+              return { config, supportedModes: { sync: false } satisfies ActionModes }
+            },
+
             // Implemented by other providers (e.g. kubernetes)
             async validate({ action }) {
               validateRuntimeCommon(action)

@@ -24,6 +24,9 @@ import type { V1Namespace } from "@kubernetes/client-node"
 import type { EventBus } from "../../../events/events.js"
 import { createServer } from "http"
 import { formatDistanceToNow } from "date-fns"
+import { createCloudEventStream } from "../../../cloud/util.js"
+import type { RestfulEventStream } from "../../../cloud/api-legacy/restful-event-stream.js"
+import type { GrpcEventStream } from "../../../cloud/api/grpc-event-stream.js"
 
 const defaultCleanupInterval = 60000
 const defaultTtlSeconds = 60 * 60 * 24 // 24 hours
@@ -46,6 +49,7 @@ export const aecAgentCommand: PluginCommand = {
     try {
       const result = await handler(params)
       params.garden.events.emit("aecAgentStatus", {
+        timestamp: new Date().toISOString(),
         aecAgentInfo: {
           pluginName: params.ctx.provider.name,
           environmentType: params.ctx.environmentName,
@@ -58,6 +62,7 @@ export const aecAgentCommand: PluginCommand = {
     } catch (e) {
       // Catch unexpected errors and emit event to Cloud
       params.garden.events.emit("aecAgentStatus", {
+        timestamp: new Date().toISOString(),
         aecAgentInfo: {
           pluginName: params.ctx.provider.name,
           environmentType: params.ctx.environmentName,
@@ -79,7 +84,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
 
   const opts = minimist(args, {
     string: ["interval", "ttl", "description", "health-check-port"],
-    boolean: ["dry-run"],
+    boolean: ["dry-run", "disable-events"],
   })
 
   if (!opts["description"]) {
@@ -157,10 +162,28 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
     })
   }
 
+  let cloudEventStream: RestfulEventStream | GrpcEventStream | undefined
+
+  if (!opts["disable-events"]) {
+    cloudEventStream = createCloudEventStream({
+      sessionId: garden.sessionId,
+      log,
+      garden,
+      opts: { shouldStreamEvents: true, shouldStreamLogs: false },
+    })
+  }
+
+  if (cloudEventStream) {
+    log.info("Streaming events to Cloud API")
+  } else {
+    log.warn("Unable to stream events to Cloud API")
+  }
+
   const startTime = new Date()
   let lastLoopStart = startTime
 
   garden.events.emit("aecAgentStatus", {
+    timestamp: new Date().toISOString(),
     aecAgentInfo,
     status: "running",
     statusDescription: "AEC agent service started",
@@ -206,6 +229,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
       })
       // Note: A stopped status is emitted after returning
       garden.events.emit("aecAgentStatus", {
+        timestamp: new Date().toISOString(),
         aecAgentInfo,
         status: "running",
         statusDescription: msg,
@@ -248,6 +272,7 @@ async function cleanupLoop({
 
   // Send heartbeat to Cloud
   events.emit("aecAgentStatus", {
+    timestamp: new Date().toISOString(),
     aecAgentInfo,
     status: "running",
     statusDescription: "Checking namespaces...",
@@ -259,11 +284,12 @@ async function cleanupLoop({
     allNamespaces.items.map(async (ns) => {
       const namespaceName = ns.metadata?.name || "<unknown>"
       const nsLog = log.createLog({ origin: namespaceName })
+      const projectId = ns.metadata?.annotations?.[gardenAnnotationKey("project-id")]
       const environmentType = ns.metadata?.annotations?.[gardenAnnotationKey("environment-type")]
       const environmentName = ns.metadata?.annotations?.[gardenAnnotationKey("environment-name")]
 
-      if (!environmentType || !environmentName) {
-        const msg = `Missing environment type and/or name annotation, skipping`
+      if (!projectId || !environmentType || !environmentName) {
+        const msg = `Missing project ID, environment type and/or name annotation, skipping`
         nsLog.verbose({ msg })
         // TODO: Uncomment this if we feel it's useful, skipping for now to avoid spamming events
         // events.emit("aecAgentEnvironmentUpdate", {
@@ -288,6 +314,7 @@ async function cleanupLoop({
           dryRun,
           aecAgentInfo,
           events,
+          projectId,
           environmentType,
           environmentName,
         })
@@ -295,7 +322,9 @@ async function cleanupLoop({
         // Skip sending events if the namespace is not configured for AEC
         if (result.aecConfigured) {
           events.emit("aecAgentEnvironmentUpdate", {
+            timestamp: new Date().toISOString(),
             aecAgentInfo,
+            projectId,
             environmentType,
             environmentName,
             statusDescription: result.status,
@@ -311,7 +340,9 @@ async function cleanupLoop({
         const msg = `Unexpected error: ${e}`
         nsLog.error({ msg })
         events.emit("aecAgentEnvironmentUpdate", {
+          timestamp: new Date().toISOString(),
           aecAgentInfo,
+          projectId,
           environmentType,
           environmentName,
           statusDescription: msg,
@@ -328,6 +359,7 @@ async function cleanupLoop({
 
 interface CheckAndCleanupResult {
   namespace: V1Namespace
+  projectId?: string
   status: string
   aecConfigured?: boolean
   aecStatus?: AecStatus
@@ -349,6 +381,7 @@ export async function checkAndCleanupNamespace({
   dryRun,
   aecAgentInfo,
   events,
+  projectId,
   environmentType,
   environmentName,
 }: {
@@ -360,6 +393,7 @@ export async function checkAndCleanupNamespace({
   dryRun?: boolean
   aecAgentInfo: AecAgentInfo
   events: EventBus
+  projectId: string
   environmentType: string
   environmentName: string
 }): Promise<CheckAndCleanupResult> {
@@ -545,7 +579,7 @@ export async function checkAndCleanupNamespace({
   }
 
   if (aecInProgress) {
-    const msg = `Cleanup already in progress, skipping`
+    const msg = `Cleanup already in progress since ${formatDistanceToNow(aecInProgress)}, skipping`
     log.info({ msg })
     return {
       namespace,
@@ -612,7 +646,9 @@ export async function checkAndCleanupNamespace({
 
     if (!dryRun) {
       events.emit("aecAgentEnvironmentUpdate", {
+        timestamp: new Date().toISOString(),
         aecAgentInfo,
+        projectId,
         environmentType,
         environmentName,
         lastDeployed: lastDeployed?.toISOString(),
@@ -635,7 +671,7 @@ export async function checkAndCleanupNamespace({
             annotations: {
               // TODO: Make status more elaborate, include the trigger that matched and the time it was updated
               [gardenAnnotationKey("aec-status")]: "paused",
-              [gardenAnnotationKey("aec-in-progress")]: undefined,
+              [gardenAnnotationKey("aec-in-progress")]: null,
             },
           },
         },
@@ -661,7 +697,9 @@ export async function checkAndCleanupNamespace({
 
     if (!dryRun) {
       events.emit("aecAgentEnvironmentUpdate", {
+        timestamp: new Date().toISOString(),
         aecAgentInfo,
+        projectId,
         environmentType,
         environmentName,
         actionTriggered: "cleanup",

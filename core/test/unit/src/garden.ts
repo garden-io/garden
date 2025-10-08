@@ -87,6 +87,7 @@ import type { ApiTrpcClient } from "../../../src/cloud/api/trpc.js"
 import { TRPCClientError } from "@trpc/client"
 import { parseTemplateString } from "../../../src/template/templated-strings.js"
 import { makeFakeCloudApi } from "../../helpers/api.js"
+import { actionReferenceToString } from "../../../src/actions/base.js"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -537,7 +538,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: [],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -567,7 +568,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: [],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -597,7 +598,7 @@ describe("Garden", () => {
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
           excludeValuesFromActionVersions: [],
-          remoteVariables: [],
+          importVariables: [],
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
           providers: [{ name: "foo" }],
           variables: { foo: "default", bar: "something" },
@@ -616,7 +617,7 @@ describe("Garden", () => {
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
           excludeValuesFromActionVersions: [],
-          remoteVariables: [],
+          importVariables: [],
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
           providers: [{ name: "foo" }],
           variables: { foo: "default", bar: "something" },
@@ -911,93 +912,83 @@ describe("Garden", () => {
         expect(garden.secrets).to.eql({})
       })
 
-      // TODO: Remove this context block once variables are GA
-      context("GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES=true", () => {
-        const originalVal = gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES
-        before(() => {
-          gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES = true
-        })
-        after(() => {
-          gardenEnv.GARDEN_EXPERIMENTAL_USE_CLOUD_VARIABLES = originalVal
-        })
-
-        it("should have an empty secrets map if 'remoteVariables' is not set", async () => {
-          const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
-            variableList: {
-              getValues: {
-                query: async () => {
-                  return {
-                    variableA: {
-                      value: "variable-a-val",
-                      isSecret: true,
-                      scopedAccountId: null,
-                      scopedEnvironmentId: null,
-                    },
-                  }
-                },
+      it("should have an empty secrets map if 'importVariables' is not set", async () => {
+        const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
+          variableList: {
+            getValues: {
+              query: async () => {
+                return {
+                  variableA: {
+                    value: "variable-a-val",
+                    isSecret: true,
+                    scopedAccountId: null,
+                    scopedEnvironmentId: null,
+                  },
+                }
               },
             },
-          }
-          const overrideCloudApiFactory = async () =>
-            await makeFakeCloudApi({
-              trpcClient: fakeTrpcClient as ApiTrpcClient,
-              configStoreTmpDir,
-              log,
-            })
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config, // remoteVariables is not set
-            environmentString: envName,
-            overrideCloudApiFactory,
+          },
+        }
+        const overrideCloudApiFactory = async () =>
+          await makeFakeCloudApi({
+            trpcClient: fakeTrpcClient as ApiTrpcClient,
+            configStoreTmpDir,
+            log,
           })
 
-          expect(garden.secrets).to.eql({})
+        const garden = await TestGarden.factory(pathFoo, {
+          config, // importVariables is not set
+          environmentString: envName,
+          overrideCloudApiFactory,
         })
 
-        it("should fetch variables if 'remoteVariables' is set", async () => {
-          const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
-            variableList: {
-              getValues: {
-                query: async () => {
-                  return {
-                    variableA: {
-                      value: "variable-a-val",
-                      isSecret: true,
-                      scopedAccountId: null,
-                      scopedEnvironmentId: null,
-                    },
-                    variableB: {
-                      value: "variable-b-val",
-                      isSecret: true,
-                      scopedAccountId: null,
-                      scopedEnvironmentId: null,
-                    },
-                  }
-                },
+        expect(garden.secrets).to.eql({})
+      })
+
+      it("should fetch variables if 'importVariables' is set", async () => {
+        const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
+          variableList: {
+            getValues: {
+              query: async () => {
+                return {
+                  variableA: {
+                    value: "variable-a-val",
+                    isSecret: true,
+                    scopedAccountId: null,
+                    scopedEnvironmentId: null,
+                  },
+                  variableB: {
+                    value: "variable-b-val",
+                    isSecret: true,
+                    scopedAccountId: null,
+                    scopedEnvironmentId: null,
+                  },
+                }
               },
             },
-          }
-          const overrideCloudApiFactory = async () =>
-            await makeFakeCloudApi({
-              trpcClient: fakeTrpcClient as ApiTrpcClient,
-              configStoreTmpDir,
-              log,
-            })
-
-          const garden = await TestGarden.factory(pathFoo, {
-            config: {
-              ...config,
-              remoteVariables: "varlist_1",
-            },
-            environmentString: envName,
-            overrideCloudApiFactory,
+          },
+        }
+        const overrideCloudApiFactory = async () =>
+          await makeFakeCloudApi({
+            trpcClient: fakeTrpcClient as ApiTrpcClient,
+            configStoreTmpDir,
+            log,
           })
 
-          expect(garden.secrets).to.eql({
-            variableA: "variable-a-val",
-            variableB: "variable-b-val",
-          })
+        const garden = await TestGarden.factory(pathFoo, {
+          config: {
+            ...config,
+            importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
+          },
+          environmentString: envName,
+          overrideCloudApiFactory,
         })
+
+        expect(garden.secrets).to.eql({
+          variableA: "variable-a-val",
+          variableB: "variable-b-val",
+        })
+
         it("should log an error and throw if fetching variables fails", async () => {
           const fakeTrpcClientThatThrowsTrpcError: DeepPartial<ApiTrpcClient> = {
             variableList: {
@@ -1038,7 +1029,7 @@ describe("Garden", () => {
               TestGarden.factory(pathFoo, {
                 config: {
                   ...config,
-                  remoteVariables: "varlist_1",
+                  importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
                 },
                 environmentString: envName,
                 overrideCloudApiFactory: overrideCloudApiFactoryThrowTrpcError,
@@ -1061,7 +1052,7 @@ describe("Garden", () => {
               TestGarden.factory(pathFoo, {
                 config: {
                   ...config,
-                  remoteVariables: "varlist_1",
+                  importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
                 },
                 environmentString: envName,
                 overrideCloudApiFactory: overrideCloudApiFactoryThrowError,
@@ -4624,6 +4615,36 @@ describe("Garden", () => {
       expect(versionTestB.dependencyVersions["run.prepare"]).to.not.exist
     })
 
+    it("correctly handles version.excludeFiles", async () => {
+      const projectRoot = getDataDir("test-projects", "version-exclude-files")
+      let garden = await makeTestGarden(projectRoot, {})
+
+      let graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+
+      let resolvedTest = graph.getTest("test")
+
+      const modifiedFilePath = join(garden.projectRoot, "test2.log")
+      await remove(modifiedFilePath)
+
+      const versionTestA = resolvedTest.getFullVersion(garden.log)
+
+      // Add a file to affect the Run version
+      await writeFile(modifiedFilePath, "bar")
+
+      garden = await makeTestGarden(projectRoot, {})
+      garden.clearCaches()
+      graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+
+      resolvedTest = graph.getTest("test")
+
+      const versionTestB = resolvedTest.getFullVersion(garden.log)
+
+      // Should have same source version
+      expect(versionTestA.sourceVersion).to.equal(versionTestB.sourceVersion)
+      // But different files
+      expect(versionTestA.files).to.not.eql(versionTestB.files)
+    })
+
     it("correctly handles version.excludeValues", async () => {
       const projectRoot = getDataDir("test-projects", "version-exclude-values")
       const gardenA = await makeTestGarden(projectRoot, { environmentString: "a" })
@@ -4718,6 +4739,103 @@ describe("Garden", () => {
       // But the config versions should still resolve to the same
       expect(a.configVersion(gardenA.log)).to.equal(b.configVersion(gardenB.log))
       expect(resolvedA.configVersion(gardenA.log)).to.equal(resolvedB.configVersion(gardenB.log))
+    })
+
+    it("allows module services and tasks to depend on Deploy and Run actions", async () => {
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [testPlugin()],
+        config: createProjectConfig({
+          name: "test",
+          path: pathFoo,
+          providers: [{ name: "test-plugin" }],
+        }),
+      })
+
+      garden.setPartialModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+          disabled: false,
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {
+            services: [
+              { name: "service-a", dependencies: ["deploy.service-b", "run.task-b"], deployCommand: ["echo", "foo"] },
+            ],
+            tasks: [{ name: "task-a", dependencies: ["deploy.service-b", "run.task-b"], command: ["echo", "foo"] }],
+          },
+        },
+      ])
+
+      garden.setPartialActionConfigs([
+        {
+          name: "service-b",
+          type: "test",
+          kind: "Deploy",
+        },
+        {
+          name: "task-b",
+          type: "test",
+          kind: "Run",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const serviceA = graph.getDeploy("service-a")
+      const taskA = graph.getRun("task-a")
+
+      expect(serviceA.getDependencyReferences().map(actionReferenceToString)).to.eql(["deploy.service-b", "run.task-b"])
+      expect(taskA.getDependencyReferences().map(actionReferenceToString)).to.eql(["deploy.service-b", "run.task-b"])
+    })
+
+    it("throws if service from module depends on a non-existent Deploy action", async () => {
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [testPlugin()],
+        config: createProjectConfig({
+          name: "test",
+          path: pathFoo,
+          providers: [{ name: "test-plugin" }],
+        }),
+      })
+
+      garden.setPartialModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+          disabled: false,
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {
+            services: [{ name: "service-a", dependencies: ["deploy.service-c"], deployCommand: ["echo", "foo"] }],
+          },
+        },
+      ])
+
+      garden.setPartialActionConfigs([
+        {
+          name: "service-b",
+          type: "test",
+          kind: "Deploy",
+        },
+      ])
+
+      await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+        contains: [
+          "Unknown dependencies detected.",
+          "Unknown service or task 'deploy.service-c' referenced in dependencies.",
+          "Available Deploy and Run actions: deploy.service-b",
+        ],
+      })
     })
 
     describe("disabled actions", () => {
@@ -5766,7 +5884,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: ["foo", "bar"],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -5793,7 +5911,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: [],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -5826,7 +5944,7 @@ describe("Garden", () => {
             source: { yamlDoc: undefined, path: [] },
           }) as string,
         ],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "bar" },
@@ -5858,7 +5976,7 @@ describe("Garden", () => {
             source: { yamlDoc: undefined, path: [] },
           }) as string,
         ],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "bar" },
