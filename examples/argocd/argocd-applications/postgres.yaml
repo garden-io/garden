@@ -25,3 +25,5 @@ spec:
         auth:
           # This should of course not be used in production
           postgresPassword: postgres
+        image:
+          repository: bitnamilegacy/postgresql

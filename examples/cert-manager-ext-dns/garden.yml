@@ -31,6 +31,9 @@ spec:
       email: ${var.CF_EMAIL}
       proxied: ${var.CF_PROXIED}
       apiToken: ${local.env.CF_API_TOKEN}
+    # hrmpf (https://github.com/bitnami/containers/issues/83267)
+    image:
+      repository: bitnamilegacy/external-dns
 ---
 # Cluster-issuers Action configuration
 kind: Deploy
