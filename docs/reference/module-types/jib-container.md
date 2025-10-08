@@ -11,7 +11,7 @@ Modules are deprecated and will be removed in version `0.14`. Please use [action
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.14.8/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.14.9/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -290,6 +290,8 @@ services:
 
     # The names of any services that this service depends on at runtime, and the names of any tasks that should be
     # executed before this service is deployed.
+    # You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in
+    # template strings.
     dependencies: []
 
     # Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable
@@ -663,6 +665,8 @@ tasks:
 
     # The names of any tasks that must be executed, and the names of any services that must be running, before this
     # task is executed.
+    # You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in
+    # template strings.
     dependencies: []
 
     # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
@@ -1322,10 +1326,11 @@ Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and da
 [services](#services) > dependencies
 
 The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
+You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in template strings.
 
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `array[alternatives]` | `[]`    | No       |
 
 ### `services[].disabled`
 
@@ -2498,10 +2503,11 @@ A description of the task.
 [tasks](#tasks) > dependencies
 
 The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
+You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in template strings.
 
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `array[alternatives]` | `[]`    | No       |
 
 ### `tasks[].disabled`
 

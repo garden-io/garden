@@ -12,7 +12,7 @@ import dedent from "dedent"
 import { printHeader } from "../logger/util.js"
 import type { EnvironmentStatusMap } from "../plugin/handlers/Provider/getEnvironmentStatus.js"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy.js"
-import { joi, joiIdentifierMap } from "../config/common.js"
+import { joi, joiIdentifierMap, joiArray } from "../config/common.js"
 import { environmentStatusSchema } from "../config/status.js"
 import { BooleanParameter, StringsParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
@@ -21,6 +21,12 @@ import { isDeployAction } from "../actions/deploy.js"
 import { omit, mapValues } from "lodash-es"
 import type { DeployStatus, DeployStatusMap } from "../plugin/handlers/Deploy/get-status.js"
 import { getDeployStatusSchema } from "../plugin/handlers/Deploy/get-status.js"
+import { CommandError, ConfigurationError, GardenError } from "../exceptions.js"
+import { enumerate } from "../util/enumerate.js"
+import { handleBulkOperationResult, noApiMsg, throwIfLegacyCloud } from "./helpers.js"
+import { confirmDelete } from "./cloud/helpers.js"
+import type { DeleteResult } from "./cloud/helpers.js"
+import type { EmptyObject } from "type-fest"
 
 // TODO: rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
@@ -28,7 +34,7 @@ export class DeleteCommand extends CommandGroup {
   override aliases = ["del", "delete"]
   help = "Clean up resources."
 
-  subCommands = [DeleteEnvironmentCommand, DeleteDeployCommand]
+  subCommands = [DeleteEnvironmentCommand, DeleteDeployCommand, DeleteRemoteVariablesCommand]
 }
 
 const dependantsFirstOpt = {
@@ -87,7 +93,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
     garden,
     log,
     opts,
-  }: CommandParams<{}, DeleteEnvironmentOpts>): Promise<CommandResult<DeleteEnvironmentResult>> {
+  }: CommandParams<EmptyObject, DeleteEnvironmentOpts>): Promise<CommandResult<DeleteEnvironmentResult>> {
     const actions = await garden.getActionRouter()
     const graph = await garden.getConfigGraph({ log, emit: true })
     const deployStatuses = await actions.deleteDeploys({
@@ -209,5 +215,98 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
     log.success({ msg: "\nDone!", showDuration: false })
 
     return { result }
+  }
+}
+
+export const deleteRemoteVariablesArgs = {
+  ids: new StringsParameter({
+    help: deline`The ID(s) of the cloud variables to delete.`,
+    spread: true,
+  }),
+}
+
+type DeleteRemoteVariablesArgs = typeof deleteRemoteVariablesArgs
+
+export class DeleteRemoteVariablesCommand extends Command<DeleteRemoteVariablesArgs> {
+  name = "remote-variables"
+  help = "Delete remote variables from Garden Cloud."
+  emoji = "☁️"
+
+  override aliases = ["cloud-variables"]
+
+  override description = dedent`
+    Delete remote variables in Garden Cloud. You will need the IDs of the variables you want to delete,
+    which you can get from the \`garden get remote-variables\` command.
+
+    Examples:
+        garden delete remote-variables <ID 1> <ID 2> <ID 3>   # delete the remote variables with the given IDs.
+  `
+
+  override arguments = deleteRemoteVariablesArgs
+
+  override printHeader({ log }) {
+    printHeader(log, "Delete remote variables", "☁️")
+  }
+
+  override outputsSchema = () =>
+    joi.object().keys({
+      variables: joiArray(
+        joi.object().keys({
+          id: joi.string(),
+          success: joi.boolean(),
+        })
+      ).description("A list of deleted variables"),
+    })
+
+  async action({ garden, args, log, opts }: CommandParams<DeleteRemoteVariablesArgs>): Promise<CommandResult> {
+    throwIfLegacyCloud(garden, "garden cloud variables delete")
+
+    const variablesToDelete = args.ids || []
+    if (variablesToDelete.length === 0) {
+      throw new CommandError({
+        message: `No variable IDs provided.`,
+      })
+    }
+
+    if (!opts.yes && !(await confirmDelete("remote variable", variablesToDelete.length))) {
+      return {}
+    }
+
+    if (!garden.cloudApi) {
+      throw new ConfigurationError({ message: noApiMsg("delete", "remote variables") })
+    }
+
+    const cmdLog = log.createLog({ name: "variables-command" })
+    cmdLog.info("Deleting remote variables...")
+
+    const errors: { identifier: string; message?: string }[] = []
+    const results: DeleteResult[] = []
+    for (const [counter, id] of enumerate(variablesToDelete, 1)) {
+      cmdLog.info({ msg: `Deleting remote variables... → ${counter}/${variablesToDelete.length}` })
+      try {
+        const res = await garden.cloudApi.trpc.variable.delete.mutate({
+          organizationId: garden.cloudApi.organizationId,
+          variableId: id,
+        })
+        results.push({ id, status: res.success ? "success" : "error" })
+      } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
+        errors.push({
+          identifier: id,
+          message: err.message,
+        })
+      }
+    }
+
+    return handleBulkOperationResult({
+      log,
+      cmdLog,
+      errors,
+      action: "delete",
+      resource: "variable",
+      results,
+    })
   }
 }

@@ -267,6 +267,8 @@ waitForJobs: true
 
 # The names of any services that this service depends on at runtime, and the names of any tasks that should be
 # executed before this service is deployed.
+# You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in template
+# strings.
 dependencies: []
 
 # Specifies which files or directories to sync to which paths inside the running containers of the service when it's
@@ -371,6 +373,8 @@ tasks:
 
     # The names of any tasks that must be executed, and the names of any services that must be running, before this
     # task is executed.
+    # You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in
+    # template strings.
     dependencies: []
 
     # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
@@ -1108,10 +1112,11 @@ Wait until the jobs have been completed. Garden will wait for as long as `timeou
 ### `dependencies[]`
 
 The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
+You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in template strings.
 
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `array[alternatives]` | `[]`    | No       |
 
 ### `sync`
 
@@ -1384,10 +1389,11 @@ A description of the task.
 [tasks](#tasks) > dependencies
 
 The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
+You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in template strings.
 
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `array[alternatives]` | `[]`    | No       |
 
 ### `tasks[].disabled`
 

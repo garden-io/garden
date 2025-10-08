@@ -87,6 +87,7 @@ import type { ApiTrpcClient } from "../../../src/cloud/api/trpc.js"
 import { TRPCClientError } from "@trpc/client"
 import { parseTemplateString } from "../../../src/template/templated-strings.js"
 import { makeFakeCloudApi } from "../../helpers/api.js"
+import { actionReferenceToString } from "../../../src/actions/base.js"
 
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 
@@ -537,7 +538,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: [],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -567,7 +568,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: [],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -597,7 +598,7 @@ describe("Garden", () => {
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
           excludeValuesFromActionVersions: [],
-          remoteVariables: [],
+          importVariables: [],
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
           providers: [{ name: "foo" }],
           variables: { foo: "default", bar: "something" },
@@ -616,7 +617,7 @@ describe("Garden", () => {
           defaultEnvironment: "default",
           dotIgnoreFile: ".gitignore",
           excludeValuesFromActionVersions: [],
-          remoteVariables: [],
+          importVariables: [],
           environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
           providers: [{ name: "foo" }],
           variables: { foo: "default", bar: "something" },
@@ -911,7 +912,7 @@ describe("Garden", () => {
         expect(garden.secrets).to.eql({})
       })
 
-      it("should have an empty secrets map if 'remoteVariables' is not set", async () => {
+      it("should have an empty secrets map if 'importVariables' is not set", async () => {
         const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
           variableList: {
             getValues: {
@@ -936,7 +937,7 @@ describe("Garden", () => {
           })
 
         const garden = await TestGarden.factory(pathFoo, {
-          config, // remoteVariables is not set
+          config, // importVariables is not set
           environmentString: envName,
           overrideCloudApiFactory,
         })
@@ -944,7 +945,7 @@ describe("Garden", () => {
         expect(garden.secrets).to.eql({})
       })
 
-      it("should fetch variables if 'remoteVariables' is set", async () => {
+      it("should fetch variables if 'importVariables' is set", async () => {
         const fakeTrpcClient: DeepPartial<ApiTrpcClient> = {
           variableList: {
             getValues: {
@@ -977,7 +978,7 @@ describe("Garden", () => {
         const garden = await TestGarden.factory(pathFoo, {
           config: {
             ...config,
-            remoteVariables: "varlist_1",
+            importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
           },
           environmentString: envName,
           overrideCloudApiFactory,
@@ -1028,7 +1029,7 @@ describe("Garden", () => {
               TestGarden.factory(pathFoo, {
                 config: {
                   ...config,
-                  remoteVariables: "varlist_1",
+                  importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
                 },
                 environmentString: envName,
                 overrideCloudApiFactory: overrideCloudApiFactoryThrowTrpcError,
@@ -1051,7 +1052,7 @@ describe("Garden", () => {
               TestGarden.factory(pathFoo, {
                 config: {
                   ...config,
-                  remoteVariables: "varlist_1",
+                  importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
                 },
                 environmentString: envName,
                 overrideCloudApiFactory: overrideCloudApiFactoryThrowError,
@@ -4740,6 +4741,103 @@ describe("Garden", () => {
       expect(resolvedA.configVersion(gardenA.log)).to.equal(resolvedB.configVersion(gardenB.log))
     })
 
+    it("allows module services and tasks to depend on Deploy and Run actions", async () => {
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [testPlugin()],
+        config: createProjectConfig({
+          name: "test",
+          path: pathFoo,
+          providers: [{ name: "test-plugin" }],
+        }),
+      })
+
+      garden.setPartialModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+          disabled: false,
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {
+            services: [
+              { name: "service-a", dependencies: ["deploy.service-b", "run.task-b"], deployCommand: ["echo", "foo"] },
+            ],
+            tasks: [{ name: "task-a", dependencies: ["deploy.service-b", "run.task-b"], command: ["echo", "foo"] }],
+          },
+        },
+      ])
+
+      garden.setPartialActionConfigs([
+        {
+          name: "service-b",
+          type: "test",
+          kind: "Deploy",
+        },
+        {
+          name: "task-b",
+          type: "test",
+          kind: "Run",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const serviceA = graph.getDeploy("service-a")
+      const taskA = graph.getRun("task-a")
+
+      expect(serviceA.getDependencyReferences().map(actionReferenceToString)).to.eql(["deploy.service-b", "run.task-b"])
+      expect(taskA.getDependencyReferences().map(actionReferenceToString)).to.eql(["deploy.service-b", "run.task-b"])
+    })
+
+    it("throws if service from module depends on a non-existent Deploy action", async () => {
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [testPlugin()],
+        config: createProjectConfig({
+          name: "test",
+          path: pathFoo,
+          providers: [{ name: "test-plugin" }],
+        }),
+      })
+
+      garden.setPartialModuleConfigs([
+        {
+          apiVersion: GardenApiVersion.v0,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+          disabled: false,
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {
+            services: [{ name: "service-a", dependencies: ["deploy.service-c"], deployCommand: ["echo", "foo"] }],
+          },
+        },
+      ])
+
+      garden.setPartialActionConfigs([
+        {
+          name: "service-b",
+          type: "test",
+          kind: "Deploy",
+        },
+      ])
+
+      await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+        contains: [
+          "Unknown dependencies detected.",
+          "Unknown service or task 'deploy.service-c' referenced in dependencies.",
+          "Available Deploy and Run actions: deploy.service-b",
+        ],
+      })
+    })
+
     describe("disabled actions", () => {
       context("should not throw if disabled action does not have a configured provider", () => {
         it("when action is disabled explicitly via `disabled: true` flag", async () => {
@@ -5786,7 +5884,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: ["foo", "bar"],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -5813,7 +5911,7 @@ describe("Garden", () => {
         defaultEnvironment: "default",
         dotIgnoreFile: ".gitignore",
         excludeValuesFromActionVersions: [],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -5846,7 +5944,7 @@ describe("Garden", () => {
             source: { yamlDoc: undefined, path: [] },
           }) as string,
         ],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "bar" },
@@ -5878,7 +5976,7 @@ describe("Garden", () => {
             source: { yamlDoc: undefined, path: [] },
           }) as string,
         ],
-        remoteVariables: [],
+        importVariables: [],
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "bar" },

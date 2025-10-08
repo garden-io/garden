@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/e2e",
-  "version": "0.14.8",
+  "version": "0.14.9",
   "description": "End-to-end tests for the Garden CLI",
   "type": "module",
   "repository": {

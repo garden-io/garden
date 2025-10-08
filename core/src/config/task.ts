@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiUserIdentifier, joi, joiSparseArray, createSchema } from "./common.js"
+import { joiUserIdentifier, joi, joiSparseArray, createSchema, joiIdentifier } from "./common.js"
 import { deline, dedent } from "../util/string.js"
 import { memoize } from "lodash-es"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../constants.js"
@@ -38,8 +38,11 @@ export const baseTaskSpecSchema = createSchema({
   keys: () => ({
     name: joiUserIdentifier().required().description("The name of the task."),
     description: joi.string().optional().description("A description of the task."),
-    dependencies: joiSparseArray(joi.string()).description(deline`
+    dependencies: joiSparseArray(joi.alternatives().try(joiIdentifier(), joi.actionReference().returnString()))
+      .description(deline`
       The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
+
+      You may also depend on Deploy and Run actions, but please note that you cannot reference those actions in template strings.
     `),
     disabled: joi
       .boolean()

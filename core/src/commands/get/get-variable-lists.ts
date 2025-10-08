@@ -29,7 +29,7 @@ export class GetVariableListsCommand extends Command<{}, Opts> {
     ${getCloudListCommandBaseDescription("variable lists")}
 
     Variable lists are used to group together remote variables and this command can be used to get
-    the variable list IDs that are needed for the \`garden create remote-variables\` command.
+    the variable list IDs that are needed for the \`garden create cloud-variables\` command.
 
     Examples:
         garden get variable-lists                 # list variable lists and pretty print results
@@ -44,7 +44,6 @@ export class GetVariableListsCommand extends Command<{}, Opts> {
   override printHeader({ log }) {
     printHeader(log, "Get variable lists", "☁️")
   }
-  override hidden = true
 
   override outputsSchema = () =>
     joi.object().keys({

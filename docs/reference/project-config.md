@@ -298,16 +298,18 @@ varfile: garden.env
 variables: {}
 
 # EXPERIMENTAL: This is an experimental feature that requires enabling variables for your organization in Garden Cloud
-# (currenty only
-# available in early access).
+# (currenty only available in early access).
 #
-# Specify a variable list (or array of variable lists) from which to load variables/secrets. The lists and their
-# variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).
+# Specify an array of variable lists from which to load variables/secrets. The lists and their variables/secrets are
+# created in [Garden Cloud](https://app.garden.io/variables).
 #
-# If an array of variable lists is provided, the variable are merged in the order of the lists (so the value from a
-# variable in a list that appears later in the array overwrites the value of a
+# Variable are merged in the order of the lists (so the value from a variable in a list that appears later in the
+# array overwrites the value of a
 # variable from an earlier list if they have the same name).
-remoteVariables: []
+importVariables:
+  - from:
+
+    list:
 ```
 
 ## Configuration Keys
@@ -954,23 +956,40 @@ Key/value map of variables to configure for all environments. Keys may contain l
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-### `remoteVariables`
+### `importVariables[]`
 
-EXPERIMENTAL: This is an experimental feature that requires enabling variables for your organization in Garden Cloud (currenty only
-available in early access).
+EXPERIMENTAL: This is an experimental feature that requires enabling variables for your organization in Garden Cloud (currenty only available in early access).
 
-Specify a variable list (or array of variable lists) from which to load variables/secrets. The lists and their variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).
+Specify an array of variable lists from which to load variables/secrets. The lists and their variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).
 
-If an array of variable lists is provided, the variable are merged in the order of the lists (so the value from a variable in a list that appears later in the array overwrites the value of a
+Variable are merged in the order of the lists (so the value from a variable in a list that appears later in the array overwrites the value of a
 variable from an earlier list if they have the same name).
 
-| Type                                       | Default | Required |
-| ------------------------------------------ | ------- | -------- |
-| `string \| array[string] \| array[object]` | `[]`    | No       |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 Example:
 
 ```yaml
-remoteVariables: "varlist_abc"
+importVariables:
+  - from: garden-cloud
+    list: varlist_abc
 ```
+
+### `importVariables[].from`
+
+[importVariables](#importvariables) > from
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "garden-cloud" | Yes      |
+
+### `importVariables[].list`
+
+[importVariables](#importvariables) > list
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
