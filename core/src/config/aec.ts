@@ -103,7 +103,7 @@ export const aecConfigSchema = createSchema({
 
     If you specify multiple triggers and multiple are matched, the _last_ trigger matched in the list will be used. For example, you can specify a trigger to pause the environment after 1 day of inactivity as the first trigger, and another trigger to fully clean up the environment after 1 week of inactivity or on a specific schedule as the second trigger.
 
-    Note that this feature is only available for paid Garden Cloud users. Also note that the feature is currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
+    Note that this feature is only available for Garden Cloud users. Also note that the feature is currently in beta, and is only available for specific providers, in particular the Kubernetes provider.
 
     Please refer to the [Automatic Environment Cleanup guide](${DOCS_BASE_URL}/guides/automatic-environment-cleanup) for details.
   `,
