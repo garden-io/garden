@@ -52,6 +52,7 @@
   * [Deploying K8s Resources](./garden-for/kubernetes/deploy-k8s-resource.md)
   * [Installing Helm charts](./garden-for/kubernetes/install-helm-chart.md)
   * [Running Tests and Tasks](./garden-for/kubernetes/run-tests-and-tasks.md)
+  * [Automatic Environment Cleanup](./garden-for/kubernetes/automatic-environment-cleanup.md)
 * [Terraform](./garden-for/terraform/README.md)
   * [Using Terraform](./garden-for/terraform/configure-provider.md)
   * [Applying Terrform Stacks](./garden-for/terraform/actions.md)
