@@ -224,7 +224,7 @@
     "@typescript-eslint/parser": "^6.16.0",
     "chai": "^5.2.1",
     "eslint": "^8.57.1",
-    "eslint-config-prettier": "^9.1.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsdoc": "^50.6.17",
     "eslint-plugin-no-null": "^1.0.2",
     "eslint-plugin-react": "^7.37.5",
