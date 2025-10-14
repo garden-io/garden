@@ -1965,6 +1965,10 @@ importVariables:
 
     list:
 
+    # Variable lists are referenced by their IDs so here you can add an optional description. When copying the
+    # variable list information from Garden Cloud the description will be prepopulated.
+    description:
+
 # All action configs in the project.
 actionConfigs:
   # Build action configs in the project.

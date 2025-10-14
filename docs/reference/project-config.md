@@ -310,6 +310,10 @@ importVariables:
   - from:
 
     list:
+
+    # Variable lists are referenced by their IDs so here you can add an optional description. When copying the
+    # variable list information from Garden Cloud the description will be prepopulated.
+    description:
 ```
 
 ## Configuration Keys
@@ -992,4 +996,14 @@ importVariables:
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
+
+### `importVariables[].description`
+
+[importVariables](#importvariables) > description
+
+Variable lists are referenced by their IDs so here you can add an optional description. When copying the variable list information from Garden Cloud the description will be prepopulated.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
