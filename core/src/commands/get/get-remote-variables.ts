@@ -31,7 +31,7 @@ interface RemoteVariable {
   variableListName: string
   scopedToEnvironment: string
   scopedToUser: string
-  expiresAt: string
+  expiresAt: string | null
   description: string
   scopedAccountId: string | null
   scopedEnvironmentId: string | null
@@ -76,7 +76,7 @@ export class GetRemoteVariablesCommand extends Command<EmptyObject, Opts> {
           variableListName: joi.string(),
           environmentScope: joi.string(),
           userScope: joi.string(),
-          expiresAt: joi.string().allow(""),
+          expiresAt: joi.string().allow(null, ""),
           description: joi.string(),
         })
       ).description("A list of remote variables"),
@@ -129,7 +129,7 @@ export class GetRemoteVariablesCommand extends Command<EmptyObject, Opts> {
       variableListName: v.variableListName || "N/A",
       scopedToEnvironment: v.scopedGardenEnvironmentName || "None",
       scopedToUser: v.scopedAccountName || "None",
-      expiresAt: v.expiresAt ? new Date(v.expiresAt).toISOString() : "Never",
+      expiresAt: v.expiresAt ? new Date(v.expiresAt).toISOString() : null,
       description: v.description || "",
       scopedAccountId: v.scopedAccountId,
       scopedEnvironmentId: v.scopedGardenEnvironmentId,
@@ -154,7 +154,7 @@ export class GetRemoteVariablesCommand extends Command<EmptyObject, Opts> {
         v.variableListName,
         v.scopedToEnvironment,
         v.scopedToUser,
-        v.expiresAt,
+        v.expiresAt === null ? "Never" : v.expiresAt,
         v.isSecret ? "Yes" : "No",
       ]
     })
