@@ -214,6 +214,7 @@ interface ProjectScan {
 interface ImportVarsSourceGardenCloud {
   from: "garden-cloud"
   list: string
+  description?: string
 }
 
 export type ImportVariablesConfig = ImportVarsSourceGardenCloud[] | undefined
@@ -337,6 +338,9 @@ export const importVariablesBaseSchema = () =>
     joi.object().keys({
       from: joi.string().valid("garden-cloud").required(),
       list: joi.string().required(),
+      description: joi.string().description(dedent`
+        Variable lists are referenced by their IDs so here you can add an optional description. When copying the variable list information from Garden Cloud the description will be prepopulated.
+      `),
     })
   )
 
