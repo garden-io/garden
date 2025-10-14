@@ -38,6 +38,7 @@ export interface TaskNodeParams<T extends Task> {
 export abstract class TaskNode<T extends Task = Task> {
   abstract readonly executionType: NodeType
   public readonly type: string
+  public readonly createdAt: Date
   public startedAt?: Date
   public readonly task: T
   public readonly statusOnly: boolean
@@ -48,6 +49,7 @@ export abstract class TaskNode<T extends Task = Task> {
   protected solver: GraphSolver
   protected dependants: { [key: string]: TaskNode }
   protected result?: GraphResult<any>
+  protected completedAt?: Date
 
   constructor({ solver, task, statusOnly }: TaskNodeParams<T>) {
     this.task = task
@@ -55,6 +57,7 @@ export abstract class TaskNode<T extends Task = Task> {
     this.solver = solver
     this.statusOnly = statusOnly
     this.dependants = {}
+    this.createdAt = new Date()
   }
 
   abstract describe(): string
@@ -156,6 +159,8 @@ export abstract class TaskNode<T extends Task = Task> {
       success: !error && !aborted,
       attached: !!result?.attached,
     }
+
+    this.completedAt = new Date()
 
     if (aborted || error) {
       // We abort every dependant, and complete the corresponding request node for the failed node with an error.

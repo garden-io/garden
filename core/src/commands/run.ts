@@ -208,7 +208,7 @@ export class RunCommand extends Command<Args, Opts> {
         })
     )
 
-    const results = await garden.processTasks({ tasks })
+    const results = await garden.processTasks({ tasks, logProgressStatus: true })
 
     return handleProcessResults(garden, log, "run", results)
   }
