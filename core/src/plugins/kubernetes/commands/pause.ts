@@ -69,7 +69,7 @@ export const pauseCommand: PluginCommand = {
     result = await Promise.all(
       deploys.map(async (action): Promise<PauseResult> => {
         const actionKey = action.key()
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
 
         // Check the Deploy status
         const status = statuses[action.name]

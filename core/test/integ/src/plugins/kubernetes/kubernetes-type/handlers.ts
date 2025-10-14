@@ -52,6 +52,7 @@ import type { ActionModeMap } from "../../../../../../src/actions/types.js"
 import stripAnsi from "strip-ansi"
 import type { DeployActionConfig } from "../../../../../../src/actions/deploy.js"
 import type { EventNamespaceStatus } from "../../../../../../src/plugin-context.js"
+import { uuidv4 } from "../../../../../../src/util/random.js"
 
 describe("kubernetes-type handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -146,7 +147,7 @@ describe("kubernetes-type handlers", () => {
     garden = await getKubernetesTestGarden()
     moduleConfigBackup = await garden.getRawModuleConfigs()
     log = garden.log
-    actionLog = createActionLog({ log, actionName: "", actionKind: "" })
+    actionLog = createActionLog({ log, action: { name: "", kind: "Build", uid: uuidv4() } })
     const provider = <KubernetesProvider>await garden.resolveProvider({ log, name: "local-kubernetes" })
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })

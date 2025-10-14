@@ -110,7 +110,7 @@ export async function getActionState(
   graph: ResolvedConfigGraph,
   log: Log
 ): Promise<ActionState> {
-  const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+  const actionLog = createActionLog({ log, action })
   switch (action.kind) {
     case "Build":
       return (await router.build.getStatus({ action: action as ResolvedBuildAction, log: actionLog, graph }))?.result
@@ -156,7 +156,7 @@ export async function getDeployStatusPayloads({
     await Promise.all(
       actions.map(async (action) => {
         const startedAt = new Date().toISOString()
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
         const { result } = await router.deploy.getStatus({ action, log: actionLog, graph })
 
         const payload = makeActionCompletePayload({
@@ -194,7 +194,7 @@ export async function getBuildStatusPayloads({
     await Promise.all(
       actions.map(async (action) => {
         const startedAt = new Date().toISOString()
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
         const { result } = await router.build.getStatus({ action, log: actionLog, graph })
 
         const payload = makeActionCompletePayload({
@@ -230,7 +230,7 @@ export async function getTestStatusPayloads({
   return fromPairs(
     await Promise.all(
       actions.map(async (action) => {
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
         const startedAt = new Date().toISOString()
         const { result } = await router.test.getResult({ action, log: actionLog, graph })
         const payload = makeActionCompletePayload({
@@ -266,7 +266,7 @@ export async function getRunStatusPayloads({
   return fromPairs(
     await Promise.all(
       actions.map(async (action) => {
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
         const startedAt = new Date().toISOString()
         const { result } = await router.run.getResult({ action, log: actionLog, graph })
 

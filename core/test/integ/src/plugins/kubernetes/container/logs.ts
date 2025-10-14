@@ -48,7 +48,7 @@ describe("kubernetes", () => {
   describe("k8sGetContainerDeployLogs", () => {
     it("should write Deploy logs to stream", async () => {
       const action = graph.getDeploy("simple-service")
-      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log: garden.log, action })
 
       const entries: DeployLogEntry[] = []
 
@@ -109,7 +109,7 @@ describe("kubernetes", () => {
           graph,
         })
 
-        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log: garden.log, action })
         const resources = [
           await createWorkloadManifest({
             ctx,
@@ -179,7 +179,7 @@ describe("kubernetes", () => {
           graph,
         })
 
-        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log: garden.log, action })
         const resources = [
           await createWorkloadManifest({
             ctx,

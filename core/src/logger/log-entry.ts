@@ -20,6 +20,8 @@ import { renderDuration } from "./util.js"
 import { styles } from "./styles.js"
 import { getStyle } from "./renderers.js"
 import hasAnsi from "has-ansi"
+import type { BaseAction } from "../actions/base.js"
+import type { ActionKind } from "../actions/types.js"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
@@ -82,6 +84,7 @@ export interface ActionLogContext extends BaseContext {
    * The kind of the action that produced the log entry. Is printed in the "section" part of the log lines.
    */
   actionKind: string
+  actionUid: string
 }
 
 export type LogContext = CoreLogContext | ActionLogContext
@@ -193,14 +196,12 @@ interface CreateLogEntryParams extends LogParams {
  */
 export function createActionLog({
   log,
-  actionName,
-  actionKind,
+  action,
   origin,
   fixLevel,
 }: {
   log: Log
-  actionName: string
-  actionKind: string
+  action: BaseAction | { name: string; kind: ActionKind; uid: string }
   origin?: string
   fixLevel?: LogLevel
 }) {
@@ -213,8 +214,9 @@ export function createActionLog({
       ...omitUndefined(log.context),
       type: "actionLog",
       origin,
-      actionName,
-      actionKind,
+      actionName: action.name,
+      actionKind: action.kind.toLowerCase(),
+      actionUid: action.uid,
     },
   })
 }
