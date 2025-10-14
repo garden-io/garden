@@ -122,7 +122,7 @@ export class BuildCommand extends Command<Args, Opts> {
         })
     )
 
-    const result = await garden.processTasks({ tasks })
+    const result = await garden.processTasks({ tasks, logProgressStatus: true })
 
     return handleProcessResults(garden, log, "build", result)
   }

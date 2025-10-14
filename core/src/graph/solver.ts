@@ -24,12 +24,17 @@ import type { CompleteTaskParams, InternalNodeTypes, TaskNode, TaskRequestParams
 import { getNodeKey, ProcessTaskNode, RequestTaskNode, StatusTaskNode } from "./nodes.js"
 import AsyncLock from "async-lock"
 import { styles } from "../logger/styles.js"
+import stripAnsi from "strip-ansi"
+import chalk from "chalk"
+import { formatDuration } from "date-fns"
 
 const taskStyle = styles.highlight.bold
+const statusUpdateIntervalMsec = 10000
 
 export interface SolveOpts {
   statusOnly?: boolean
   throwOnError?: boolean
+  logProgressStatus?: boolean
 }
 
 export interface SolveParams<T extends BaseTask = BaseTask> extends SolveOpts {
@@ -96,8 +101,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   async solve(params: SolveParams): Promise<SolveResult> {
-    const { statusOnly, tasks, throwOnError } = params
+    const { statusOnly, tasks, throwOnError, logProgressStatus } = params
 
+    const startTime = new Date()
     const batchId = uuidv4()
     const results = new GraphResults(tasks)
     let aborted = false
@@ -107,6 +113,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     if (tasks.length === 0) {
       return { results, error: null }
     }
+
+    let statusInterval: NodeJS.Timeout | null = null
+    let lastStatusTime: Date | null = null
+    let lastStatus: string
 
     const log = this.log
     // TODO-0.13.1+: remove this lock and test with concurrent execution
@@ -163,11 +173,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
               if (!r) {
                 continue
               }
-
               if (r.error) {
                 wrappedErrors.push(toGardenError(r.error))
               }
-
               msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`
             }
 
@@ -204,11 +212,33 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         this.on("abort", cleanup)
 
         this.start()
+
+        if (logProgressStatus) {
+          // Don't want the graph-solver section to be printed
+          const statusLog = this.log.root.createLog()
+          const reportHandler = () => {
+            const { status, content } = this.renderStatus(batchId, startTime)
+            if (lastStatus === content) {
+              // Only repeat unchanged status every 3 updates
+              if (lastStatusTime && new Date().getTime() - lastStatusTime.getTime() > statusUpdateIntervalMsec * 3) {
+                statusLog.info({ msg: "\n" + status + "\n" })
+              }
+              return
+            }
+            lastStatus = content
+            lastStatusTime = new Date()
+            statusLog.info({ msg: "\n" + status + "\n" })
+          }
+          statusInterval = setInterval(reportHandler, statusUpdateIntervalMsec)
+        }
       }).finally(() => {
         // Clean up
         // TODO-0.13.1: needs revising for concurrency, shortcutting just for now
         this.nodes = {}
         this.pendingNodes = {}
+        if (statusInterval) {
+          clearInterval(statusInterval)
+        }
       })
 
       return output
@@ -251,6 +281,68 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
   clearCache() {
     // TODO-0.13.1: currently a no-op, possibly not necessary
+  }
+
+  renderStatus(batchId: string, startTime: Date) {
+    const requested = Object.values(this.requestedTasks[batchId]).sort((a, b) => {
+      // Sort by key in ascending order
+      return a.getKey().localeCompare(b.getKey())
+    })
+    const inProgress = Object.values(this.inProgress).sort((a, b) => {
+      // Sort by startedAt in descending order (the conditional should always be true)
+      if (a.startedAt && b.startedAt) {
+        return b.startedAt.getTime() - a.startedAt.getTime()
+      }
+      return 0
+    })
+    const pending = consolidateNodesByTask(Object.values(this.pendingNodes))
+      .filter((n) => !n.isComplete() && !this.inProgress[n.getKey()])
+      .sort((a, b) => {
+        // Sort by createdAt in descending order
+        return b.createdAt.getTime() - a.createdAt.getTime()
+      })
+
+    const allNodes = { ...this.nodes, ...this.requestedTasks[batchId] }
+    const consolidatedNodes = consolidateNodesByTask(Object.values(allNodes))
+
+    const aborted = consolidatedNodes
+      .filter((n) => n.isComplete() && n.getResult()?.aborted)
+      .sort(sortResultsByCompletedAt)
+    const failed = consolidatedNodes
+      .filter((n) => n.isComplete() && n.getResult()?.error)
+      .sort(sortResultsByCompletedAt)
+    const succeeded = consolidatedNodes
+      .filter((n) => n.isComplete() && n.getResult()?.success)
+      .sort(sortResultsByCompletedAt)
+
+    const abortedDeps = aborted.filter((n) => n.executionType !== "request")
+    const failedDeps = failed.filter((n) => n.executionType !== "request")
+    const succeededDeps = succeeded.filter((n) => n.executionType !== "request")
+
+    const content = [
+      listActions(chalk.underline("actions requested"), requested),
+      listActions("in progress (incl. dependencies)", inProgress),
+      listActions("pending (incl. dependencies)", pending),
+      chalk.green(listActions(formatResultDescription("succeeded", succeededDeps), succeeded)),
+      chalk.yellow(listActions(formatResultDescription("aborted", abortedDeps), aborted)),
+      chalk.red(listActions(formatResultDescription("failed", failedDeps), failed)),
+    ]
+    const duration = formatDuration({ seconds: (new Date().getTime() - startTime.getTime()) / 1000 })
+    const status = [
+      renderDivider({
+        color: chalk.magenta,
+        title: `Graph status after ${duration}:`,
+      }),
+      ...content,
+      renderDivider({
+        color: chalk.magenta,
+      }),
+    ]
+
+    return {
+      status: status.filter((s) => stripAnsi(s) !== "").join("\n"),
+      content: stripAnsi(content.filter((s) => s !== "").join("\n")),
+    }
   }
 
   // TODO: This should really only be visible to TaskNode instances
@@ -552,6 +644,51 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     log.silly(() =>
       styles.primary(`Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`)
     )
+  }
+}
+
+function sortResultsByCompletedAt(a: TaskNode, b: TaskNode) {
+  const aResult = a.getResult()
+  const bResult = b.getResult()
+  if (aResult?.completedAt && bResult?.completedAt) {
+    return bResult.completedAt.getTime() - aResult.completedAt.getTime()
+  }
+  return 0
+}
+
+function listActions(description: string, actions: TaskNode[]) {
+  if (actions.length === 0) {
+    return ""
+  }
+  let actionList = actions.map((a) => a.task.getBaseKey())
+  if (actions.length > 5) {
+    actionList = [...actionList.slice(0, 4), "..."]
+  }
+  const actionListStyled = chalk.dim(`[${actionList.join(", ")}]`)
+  return `${actions.length.toString().padStart(3, " ")} ${description} ${actionListStyled}`
+}
+
+function consolidateNodesByTask(nodes: TaskNode[]) {
+  const consolidated = {} as { [taskKey: string]: TaskNode }
+  for (const node of nodes) {
+    const taskKey = node.task.getBaseKey()
+    // Prefer request nodes over process nodes, and process nodes over status nodes
+    if (
+      !consolidated[taskKey] ||
+      node.executionType === "request" ||
+      (node.executionType === "process" && consolidated[taskKey].executionType === "status")
+    ) {
+      consolidated[taskKey] = node
+    }
+  }
+  return Object.values(consolidated)
+}
+
+function formatResultDescription(description: string, depNodes: TaskNode[]) {
+  if (depNodes.length > 0) {
+    return `${description} (thereof ${depNodes.length} dependencies)`
+  } else {
+    return description
   }
 }
 
