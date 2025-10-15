@@ -69,7 +69,7 @@ garden plugins kubernetes setup-aec --env <env-name>
 garden plugins local-kubernetes setup-aec --env <local-env>
 ```
 
-### 4. Deploy and Test
+### 4. Deploy Your Environment
 
 Deploy to your environment:
 
