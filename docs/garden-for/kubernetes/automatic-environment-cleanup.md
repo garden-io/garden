@@ -35,7 +35,7 @@ Follow these steps to quickly set up automatic environment cleanup:
 - Admin/owner access to your Garden Cloud organization
 - Logged in to Garden Cloud via `garden login` from your project root
 
-### 3. Configure Environment Cleanup
+### 2. Configure Environment Cleanup
 
 Add AEC configuration to one of the environments in your `project.garden.yml`:
 
