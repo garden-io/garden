@@ -57,7 +57,7 @@ environments:
             unit: days
 ```
 
-### 2. Install the AEC Agent
+### 3. Install the AEC Agent
 
 Install the AEC agent in your Kubernetes cluster:
 
