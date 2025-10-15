@@ -71,7 +71,7 @@ garden plugins local-kubernetes setup-aec --env <local-env>
 
 ### 4. Deploy and Test
 
-Deploy to your environment to establish a baseline:
+Deploy to your environment:
 
 ```bash
 garden deploy --env preview
