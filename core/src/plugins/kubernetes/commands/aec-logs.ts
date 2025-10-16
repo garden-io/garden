@@ -15,6 +15,7 @@ import { getAecAgentManifests } from "../aec.js"
 import type { KubernetesResource } from "../types.js"
 import { streamK8sLogs } from "../logs.js"
 import chalk from "chalk"
+import { makeDocsLinkPlain } from "../../../docs/common.js"
 
 interface Result {
   manifests?: KubernetesResource[]
@@ -26,6 +27,8 @@ export const aecLogsCommand: PluginCommand = {
     Print the logs from the Automatic Environment Cleanup (AEC) agent.
 
     Run with \`-- --follow\` to stream logs continuously.
+
+    See the [Automatic Environment Cleanup guide](${makeDocsLinkPlain`garden-for/kubernetes/automatic-environment-cleanup`}) for more information.
   `,
   title: `Print the logs from the Automatic Environment Cleanup (AEC) agent.`,
   resolveGraph: false,
