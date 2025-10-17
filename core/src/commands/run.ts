@@ -91,6 +91,7 @@ export class RunCommand extends Command<Args, Opts> {
 
   override streamEvents = true
   override protected = true
+  override streamLogEntriesV2 = true
 
   override description = dedent`
     This is useful for any ad-hoc Runs, for example database migrations, or when developing.

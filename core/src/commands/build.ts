@@ -51,6 +51,7 @@ export class BuildCommand extends Command<Args, Opts> {
 
   override protected = true
   override streamEvents = true
+  override streamLogEntriesV2 = true
 
   override description = dedent`
     Runs all or specified Builds, taking into account build dependency order.

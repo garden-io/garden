@@ -99,6 +99,7 @@ export class TestCommand extends Command<Args, Opts> {
 
   override protected = true
   override streamEvents = true
+  override streamLogEntriesV2 = true
 
   override description = dedent`
     Runs all or specified Tests defined in the project. Also run builds and other dependencies,

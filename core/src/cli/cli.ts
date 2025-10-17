@@ -312,6 +312,9 @@ ${renderCommands(commands)}
           }
         }
 
+        // Wire root logger Garden instance event bus
+        log.root.events = garden.events
+
         analytics = await garden.getAnalyticsHandler()
 
         // Register log file writers. We need to do this after the Garden class is initialised because

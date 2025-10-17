@@ -173,7 +173,7 @@ export interface LogEntry<C extends BaseContext = LogContext>
    */
   symbol?: LogSymbol
   data?: any
-  dataFormat?: "json" | "yaml"
+  dataFormat?: "json" | "yaml" // Defaults to "yaml" if not set (and data field is present)
   error?: GardenError
   skipEmit?: boolean
 }
@@ -518,4 +518,12 @@ export class ActionLog extends Log<ActionLogContext> {
   createLog(params: CreateLogParams = {}): ActionLog {
     return new ActionLog(this.makeLogConfig(params))
   }
+}
+
+export function isCoreLogContext(context: LogContext): context is CoreLogContext {
+  return context.type === "coreLog"
+}
+
+export function isActionLogContext(context: LogContext): context is ActionLogContext {
+  return context.type === "actionLog"
 }
