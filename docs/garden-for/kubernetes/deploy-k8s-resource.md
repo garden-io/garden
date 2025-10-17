@@ -303,7 +303,7 @@ name: api
 
 variables:
   apiEnv: # <--- Garden variables that we'll set as K8s container env vars
-    DATABASE_PASSWORD: ${remoteVars.DATABASE_PASSWORD} # <--- A secret variable stored in Garden Cloud
+    DATABASE_PASSWORD: ${imported.DATABASE_PASSWORD} # <--- A secret variable stored in Garden Cloud
     NODE_ENV: development
     PORT: ${var.API_PORT} # <--- A shared variable that's set in the project config that we reference here
 
