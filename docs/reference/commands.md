@@ -27,6 +27,7 @@ The following option flags can be used with any of the CLI commands:
   | `--yes` |  | boolean | Automatically approve any yes/no prompts during execution, and allow running protected commands against production environments.
   | `--silent` |  | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--offline` |  | boolean | Use the --offline option when you can&#x27;t log in right now. Some features won&#x27;t be available in offline mode.
+  | `--json-result-path` |  | string | Output command result to the specified path. Defaults to &lt;garden-dir&gt;/command-results/&lt;command-name&gt;-&lt;timestamp&gt;.json.
   | `--logger-type` |  | `quiet` `default` `basic` `json` `ink`  | Set logger type. default The default Garden logger, basic: [DEPRECATED] An alias for &quot;default&quot;. json: Renders log lines as JSON. quiet: Suppresses all log output, same as --silent.
   | `--log-level` |  | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5. From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).
   | `--output` |  | `json` `yaml`  | Output command result in the specified format. When used, this option disables line-by-line logging, even if the GARDEN_LOGGER_TYPE environment variable is used.

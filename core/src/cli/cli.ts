@@ -58,7 +58,7 @@ import type minimist from "minimist"
 import { styles } from "../logger/styles.js"
 import { enforceLogin } from "../cloud/enforce-login.js"
 
-const { pathExists } = fsExtra
+const { pathExists, mkdirp, writeFile } = fsExtra
 
 export interface RunOutput {
   argv: any
@@ -261,7 +261,7 @@ ${renderCommands(commands)}
         skipCloudConnect: command.noProject,
       }
 
-      let garden: Garden
+      let garden: Garden | undefined = undefined
       let result: CommandResult = {}
       let analytics: AnalyticsHandler | undefined = undefined
 
@@ -346,6 +346,14 @@ ${renderCommands(commands)}
           await garden.monitors.waitUntilStopped()
         }
 
+        await this.writeCommandResultToFile({
+          garden,
+          command,
+          commandResult: result,
+          resultPathOverride: parsedOpts["json-result-path"],
+          log,
+        })
+
         garden.close()
       } catch (err) {
         // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".
@@ -360,6 +368,16 @@ ${renderCommands(commands)}
           )
         }
 
+        if (garden) {
+          await this.writeCommandResultToFile({
+            garden,
+            command,
+            commandResult: { errors: [toGardenError(err)] },
+            resultPathOverride: parsedOpts["json-result-path"],
+            log,
+          })
+        }
+
         // flush analytics early since when we throw the instance is not returned
         await analytics?.closeAndFlush()
 
@@ -370,6 +388,35 @@ ${renderCommands(commands)}
 
       return { result, analytics }
     })
+  }
+
+  private async writeCommandResultToFile({
+    garden,
+    command,
+    commandResult,
+    resultPathOverride,
+    log,
+  }: {
+    garden: Garden
+    command: Command
+    commandResult: CommandResult
+    resultPathOverride: string | undefined
+    log: Log
+  }) {
+    // Always output the command result to a file
+    const resultDir = join(garden.gardenDirPath, "command-results")
+    const resultFilePath =
+      resultPathOverride || join(resultDir, `${command.getFullName()}-${new Date().toISOString()}.json`)
+
+    try {
+      if (!resultPathOverride) {
+        await mkdirp(resultDir)
+      }
+      await writeFile(resultFilePath, JSON.stringify(commandResult, null, 2))
+      log.debug(`Wrote command result to path ${resultFilePath}`)
+    } catch (err) {
+      log.warn(`Failed to output command result to path ${resultFilePath}: ${err}`)
+    }
   }
 
   async run({

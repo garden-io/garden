@@ -635,6 +635,8 @@ describe("cli", () => {
         "--logger-type=json",
         "--show-timestamps=false",
         "--force-refresh",
+        "--json-result-path",
+        "test-result.json",
         "--var",
         "my=value,other=something",
       ]
@@ -661,6 +663,7 @@ describe("cli", () => {
           "var": ["my=value", "other=something"],
           "version": false,
           "help": false,
+          "json-result-path": "test-result.json",
         },
       })
     })
@@ -792,6 +795,7 @@ describe("cli", () => {
           "output": undefined,
           "root": undefined,
           "var": undefined,
+          "json-result-path": undefined,
         },
       })
     })
@@ -867,6 +871,7 @@ describe("cli", () => {
           "output": undefined,
           "root": undefined,
           "var": undefined,
+          "json-result-path": undefined,
         },
       })
     })
