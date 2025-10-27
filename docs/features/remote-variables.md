@@ -194,7 +194,7 @@ Storing variables in Garden Cloud, as opposed to only with your CI provider, all
 
 You can programmatically create remote variables via the Garden CLI.
 
-First, get the variable list ID for the relevant list with. It's probably already visible in your project config under the `importVariables` field.
+First, get the variable list ID for the relevant list with. If you've already set the `importVariables` field in your project configuration, you can see the ID there.
 
 You can also get all the variable lists with:
 
