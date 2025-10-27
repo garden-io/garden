@@ -7,7 +7,7 @@ title: Remote Variables and Secrets
 
 The Remote Variables feature allows you to store variables and secrets securely in [Garden Cloud](https://app.garden.io) and reference them in your Garden configuration. Remote variables and secrets can be scoped to environments and specific Garden users.
 
-Here's a quick motivational example before we dive into the details. Below is a screenshot of secrets stored in Garden Cloud. Notice how the secrets are scoped to different environments and users 👇
+Here's a quick example before we dive into the details. Below is a screenshot of secrets stored in Garden Cloud. Notice how the secrets are scoped to different environments and users 👇
 
 <figure>
   <picture>
@@ -26,7 +26,14 @@ Here's a quick motivational example before we dive into the details. Below is a 
 In your Garden config you can reference the `DB_PASSWORD` remote variable like so:
 
 ```yaml
-# api/garden.yml
+# In project.garden.yml
+kind: Project
+name: my-project
+importVariables:
+  - from: garden-cloud
+    list: "varlist_abcdef"
+---
+# In api/garden.yml
 kind: Deploy
 name: api
 type: kubernetes
@@ -134,7 +141,7 @@ Remote secrets can contain sensitive values that not everyone in your org should
 
 A variable scoped to a user can not be used by other user. Variables that are not scoped to users will be accessible to everyone in your Garden Cloud organization. Their values aren't visible if they're encrypted but users can still use them implicitly when running Garden commands.
 
-That's why we recommend creating a service account for secrets that should not be shared. We also generally recommend using a service account for CI in general, instead of running pipelines as a normal user. Here's how you create a service account and scope a variable/secret to it:
+That's why we recommend creating a service account for secrets that should not be shared. We also recommend using a service account for CI in general, instead of running pipelines as a normal user. Here's how you create a service account and scope a variable/secret to it:
 
 1. Navigate to the Users page in [Garden Cloud](https://app.garden.io) and create a service account. Note that service accounts occupy seats just like any other user in your organization and come with build minutes.
 2. Create a new variable on the Variables page and select the service account from the user list in the "create variable" dialog. You can also update existing variables and scope them to the service account. Note that user scoped variables must also be scoped to environments.
