@@ -132,7 +132,7 @@ Variables that aren't scoped to specific users are accessible to anyone in your 
 
 Remote secrets can contain sensitive values that not everyone in your org should have access to. You can manage access by scoping them to specific users.
 
-A variable scoped to a user can not be used by other uses. Variables that are not scoped to users will be accessible to everyone in your Garden Cloud organization. Their values aren't visible if they're encrypted but users can still use them implicitly when running Garden commands.
+A variable scoped to a user can not be used by other user. Variables that are not scoped to users will be accessible to everyone in your Garden Cloud organization. Their values aren't visible if they're encrypted but users can still use them implicitly when running Garden commands.
 
 That's why we recommend creating a service account for secrets that should not be shared. Here's how you create a service account and scope a variable/secret to it:
 
