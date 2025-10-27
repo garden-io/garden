@@ -78,7 +78,7 @@ export function makeActionStatusPayloadBase({
     actionName: action.name,
     actionVersion: action.versionString(log),
     // NOTE: The type/kind needs to be lower case in the event payload
-    actionKind: action.kind.toLowerCase(),
+    actionKind: action.kind.toLowerCase() as Lowercase<ActionKind>,
     actionType: action.type,
     actionUid: action.uid,
     moduleName: action.moduleName(),
