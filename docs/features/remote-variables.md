@@ -139,7 +139,7 @@ Variables that aren't scoped to specific users are accessible to anyone in your 
 
 Remote secrets can contain sensitive values that not everyone in your org should have access to. You can manage access by scoping them to specific users.
 
-A variable scoped to a user can not be used by other user. Variables that are not scoped to users will be accessible to everyone in your Garden Cloud organization. Their values aren't visible if they're encrypted but users can still use them implicitly when running Garden commands.
+A variable scoped to a user can not be used by other users. Variables that are not scoped to users will be accessible to everyone in your Garden Cloud organization. Their values aren't visible if they're encrypted but users can still use them implicitly when running Garden commands.
 
 That's why we recommend creating a service account for secrets that should not be shared. We also recommend using a service account for CI in general, instead of running pipelines as a normal user. Here's how you create a service account and scope a variable/secret to it:
 
@@ -186,16 +186,6 @@ spec:
 ```
 
 For a more complete example of this approach, checkout our [K8s Deploy guide](../garden-for/kubernetes/deploy-k8s-resource.md#overwriting-values)
-
-### Using remote variables in CI
-
-To use remote variables in CI you need to be authenticated against Garden Cloud via the `GARDEN_AUTH_TOKEN` environment variable.
-
-We recommend creating a service account for CI environments—you'll find step-by-step instructions in the [Manage Access section](#managing-access-with-service-accounts) above. You can also create a personal auth token for your user from the Users page in [Garden Cloud](https://app.garden.io).
-
-Once you have the auth token, you need to set in your CI environment as `GARDEN_AUTH_TOKEN`. If you're using GitHub Actions we recommend using the [Garden Action](https://github.com/garden-io/garden-action) which simplifies the process.
-
-Storing variables in Garden Cloud, as opposed to only with your CI provider, allows you to fully reproduce a given CI run from your laptop. If your CI environment uses sensitive values that users should not have access to from their laptops, you can create a service account and scope the variables appropriately (see the [Managing Access section](#managing-access-with-service-accounts) above).
 
 ### Creating remote variables with the Garden CLI
 
