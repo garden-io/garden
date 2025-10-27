@@ -66,7 +66,7 @@
 * [Remote Container Builder](./features/remote-container-builder.md)
 * [Team Caching](./features/team-caching.md)
 * [Variables and Templating](./features/variables-and-templating.md)
-* [Remote Variables/Secrets](./features/remote-variables.md)
+* [Remote Variables and Secrets](./features/remote-variables.md)
 * [Config Templates](./features/config-templates.md)
 * [Workflows](./features/workflows.md)
 * [Code Synchronization](./features/code-synchronization.md)
