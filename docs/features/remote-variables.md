@@ -134,7 +134,7 @@ Remote secrets can contain sensitive values that not everyone in your org should
 
 A variable scoped to a user can not be used by other user. Variables that are not scoped to users will be accessible to everyone in your Garden Cloud organization. Their values aren't visible if they're encrypted but users can still use them implicitly when running Garden commands.
 
-That's why we recommend creating a service account for secrets that should not be shared. Here's how you create a service account and scope a variable/secret to it:
+That's why we recommend creating a service account for secrets that should not be shared. We also generally recommend using a service account for CI in general, instead of running pipelines as a normal user. Here's how you create a service account and scope a variable/secret to it:
 
 1. Navigate to the Users page in [Garden Cloud](https://app.garden.io) and create a service account. Note that service accounts occupy seats just like any other user in your organization and come with build minutes.
 2. Create a new variable on the Variables page and select the service account from the user list in the "create variable" dialog. You can also update existing variables and scope them to the service account. Note that user scoped variables must also be scoped to environments.
