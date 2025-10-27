@@ -153,7 +153,7 @@ Note that anyone with admin privileges can create an access token for a given se
 
 ## Usage examples
 
-The examples below assume you've read the Quickstart section above and that the `importVariables` config is set.
+The examples below assume you've read the Quickstart section above and that the `importVariables` field is already set in your Project configuration.
 
 ### Using remote variables in K8s manifests
 
