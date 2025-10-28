@@ -290,8 +290,8 @@ commands:
 
             # Install the latest stable Rust version
             # We maintain it manually to avoid unexpected breaking changes like we faced in Rust 1.78 for Windows builds.
-            # See https://blog.rust-lang.org/2024/05/02/Rust-1.78.0.html for details.
-            RUST_VERSION="1.83.0"
+            # Cross v0.2.5 dependencies require Rust 1.88.0 or later
+            RUST_VERSION="1.88.0"
             rustup install $RUST_VERSION
             rustup default $RUST_VERSION
 
