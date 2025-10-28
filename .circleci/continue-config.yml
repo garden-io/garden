@@ -282,6 +282,13 @@ commands:
       - run:
           name: "Install Rust and Cross"
           command: |
+            sudo dpkg --add-architecture i386
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends xvfb wine64
+            export WINEARCH=win64
+            export WINEDEBUG=-all
+            CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER="xvfb-run -a wine64"
+
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
             # To be able to run cargo
