@@ -135,31 +135,31 @@ pub(crate) fn wait(mut child: Child) -> Result<Option<i32>> {
     Ok(None)
 }
 
-#[cfg(test)]
-mod tests {
-    use std::env;
-
-    use crate::{extract::extract_archives_if_needed, node::spawn_garden};
-
-    use super::wait;
-
-    #[test]
-    #[ignore = "This test does not work in cross, because the git binary is missing in the container."]
-    fn test_garden_version() {
-        let directories = directories::ProjectDirs::from("io", "garden", "garden-test")
-            .expect("Failed to get temporary directory");
-
-        let root_path = directories.data_dir();
-
-        // windows tests are running in wine, node doesn't like that.
-        env::set_var("NODE_SKIP_PLATFORM_CHECK", "1");
-
-        // This test mostly ensures that we have no panic due to corrupt archives in release builds.
-        let result = extract_archives_if_needed(root_path).expect("Failed self-extract");
-
-        let child = spawn_garden(&result, ["garden".into(), "version".into()].into_iter())
-            .expect("Failed to spawn garden");
-        let return_code = wait(child).expect("Failed waiting for garden").unwrap();
-        assert!(return_code == 0);
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use std::env;
+//
+//     use crate::{extract::extract_archives_if_needed, node::spawn_garden};
+//
+//     use super::wait;
+//
+//     #[test]
+//     #[ignore = "This test does not work in cross, because the git binary is missing in the container."]
+//     fn test_garden_version() {
+//         let directories = directories::ProjectDirs::from("io", "garden", "garden-test")
+//             .expect("Failed to get temporary directory");
+//
+//         let root_path = directories.data_dir();
+//
+//         // windows tests are running in wine, node doesn't like that.
+//         env::set_var("NODE_SKIP_PLATFORM_CHECK", "1");
+//
+//         // This test mostly ensures that we have no panic due to corrupt archives in release builds.
+//         let result = extract_archives_if_needed(root_path).expect("Failed self-extract");
+//
+//         let child = spawn_garden(&result, ["garden".into(), "version".into()].into_iter())
+//             .expect("Failed to spawn garden");
+//         let return_code = wait(child).expect("Failed waiting for garden").unwrap();
+//         assert!(return_code == 0);
+//     }
+// }

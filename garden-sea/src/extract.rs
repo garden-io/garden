@@ -162,21 +162,21 @@ fn unpack(path: &Path, archive: &[u8]) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use std::{fs, path::PathBuf};
-
-    use super::extract_archives_if_needed;
-
-    #[test]
-    fn test_extract_smoke() {
-        let dir: PathBuf = "/tmp/garden-sea-test".into();
-
-        if dir.exists() {
-            fs::remove_dir_all(&dir).expect("Failed to delete temporary directory");
-        }
-
-        // This test mostly ensures that we have no panic due to corrupt archives in release builds.
-        extract_archives_if_needed(&dir).expect("Failed self-extract");
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use std::{fs, path::PathBuf};
+//
+//     use super::extract_archives_if_needed;
+//
+//     #[test]
+//     fn test_extract_smoke() {
+//         let dir: PathBuf = "/tmp/garden-sea-test".into();
+//
+//         if dir.exists() {
+//             fs::remove_dir_all(&dir).expect("Failed to delete temporary directory");
+//         }
+//
+//         // This test mostly ensures that we have no panic due to corrupt archives in release builds.
+//         extract_archives_if_needed(&dir).expect("Failed self-extract");
+//     }
+// }

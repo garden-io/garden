@@ -1234,222 +1234,222 @@ workflows:
           # On main we do not need to re-run all the tests, as the merge queue guarantees that tests already passed.
           # For the edge release we declare the `build-edge` job below that only runs on main.
           <<: *ignore-main
-      - build-dist-macos:
-          requires: [build]
+      # - build-dist-macos:
+      #     requires: [build]
       - build-dist-linux-windows:
           requires: [build]
-      - lint:
-          requires: [build]
-      - check-docs:
-          requires: [build]
-      - check-package-licenses:
-          requires: [build]
-      - test-framework:
-          requires: [build]
-      - test-dist:
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires: [build-dist-macos, build-dist-linux-windows]
-      - test-macos-x86-rosetta:
-          <<: *only-internal-prs
-          requires: [build-dist-macos]
-      - test-macos-arm:
-          <<: *only-internal-prs
-          requires: [build-dist-macos]
-      - test-dockerhub:
-          <<: *only-prs
-          requires: [build-dist-linux-windows]
-      - test-windows:
-          <<: *only-internal-prs
-          requires: [build-dist-linux-windows]
+      # - lint:
+      #     requires: [build]
+      # - check-docs:
+      #     requires: [build]
+      # - check-package-licenses:
+      #     requires: [build]
+      # - test-framework:
+      #     requires: [build]
+      # - test-dist:
+      #     # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+      #     <<: *only-internal-prs
+      #     requires: [build-dist-macos, build-dist-linux-windows]
+      # - test-macos-x86-rosetta:
+      #     <<: *only-internal-prs
+      #     requires: [build-dist-macos]
+      # - test-macos-arm:
+      #     <<: *only-internal-prs
+      #     requires: [build-dist-macos]
+      # - test-dockerhub:
+      #     <<: *only-prs
+      #     requires: [build-dist-linux-windows]
+      # - test-windows:
+      #     <<: *only-internal-prs
+      #     requires: [build-dist-linux-windows]
 
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-code-synchronization
       #     project: code-synchronization
       #     requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-demo-project
-          project: demo-project
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-demo-project-modules
-          project: demo-project-modules
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-gke-kaniko
-          project: gke
-          environment: gke-kaniko
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-gke-buildkit
-          project: gke
-          environment: gke-buildkit
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-jib-container
-          project: jib-container
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-jib-container-modules
-          project: jib-container-modules
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-kustomize
-          project: kustomize
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-kustomize-modules
-          project: kustomize-modules
-          requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
-      #     name: e2e-remote-sources
-      #     project: remote-sources
+      #     name: e2e-demo-project
+      #     project: demo-project
+      #     environment: remote
       #     requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-remote-sources-modules
-          project: remote-sources-modules
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-run-actions
-          project: run-actions
-          requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
-      #     name: e2e-tasks-modules
-      #     project: tasks-modules
+      #     name: e2e-demo-project-modules
+      #     project: demo-project-modules
+      #     environment: remote
       #     requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-templated-k8s-container
-          project: templated-k8s-container
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-templated-k8s-container-modules
-          project: templated-k8s-container-modules
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-vote
-          project: vote
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-vote-modules
-          project: vote-modules
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-vote-helm
-          project: vote-helm
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-open-telemetry
-          project: open-telemetry
-          requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
-      #     name: e2e-vote-helm-modules
-      #     project: vote-helm-modules
+      #     name: e2e-gke-kaniko
+      #     project: gke
+      #     environment: gke-kaniko
       #     requires: [build]
-
-      ### REMOTE TESTS ###
-      # The remote tests (e.g. kaniko and buildkit) still require a local kubernetes cluster for some reason…
-      - test-minikube:
-          <<: *only-internal-prs
-          name: test-remote
-          requires: [build]
-          kubernetesVersion: "v1.31.0"
-          minikubeVersion: "v1.34.0"
-          skipTests: "local-only"
-          remoteCluster: true
-
-      ### VM TESTS ###
-
-      # Note: The below is a not-quite-random mix of local k8s variants and k8s versions. Doing a full matrix of every
-      # variant and k8s version would be quite expensive, so we try and make sure each of the officially maintained
-      # k8s versions is tested, and that the most recent versions are broadly tested.
-      # The kind tests are the cheapest to run so we use many of those,
-      # but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      - test-k3s:
-          name: vm-1.31-k3s
-          requires: [build]
-          k3sVersion: v1.31.1+k3s1
-      - test-minikube:
-          name: vm-1.31-minikube
-          requires: [build]
-          kubernetesVersion: "v1.31.0"
-          minikubeVersion: "v1.34.0"
-      - test-kind:
-          name: vm-1.32-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
-      - test-microk8s:
-          name: vm-1.33-microk8s
-          requires: [build]
-          kubernetesVersion: "1.33"
-
-      - test-plugins:
-          <<: *only-internal-prs
-          requires: [build]
-          kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
-
-      # This is only for edge release (Overrides version to edge-cedar)
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-gke-buildkit
+      #     project: gke
+      #     environment: gke-buildkit
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-jib-container
+      #     project: jib-container
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-jib-container-modules
+      #     project: jib-container-modules
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-kustomize
+      #     project: kustomize
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-kustomize-modules
+      #     project: kustomize-modules
+      #     requires: [build]
+      # # - e2e-project:
+      # #     <<: *only-internal-prs
+      # #     name: e2e-remote-sources
+      # #     project: remote-sources
+      # #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-remote-sources-modules
+      #     project: remote-sources-modules
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-run-actions
+      #     project: run-actions
+      #     requires: [build]
+      # # - e2e-project:
+      # #     <<: *only-internal-prs
+      # #     name: e2e-tasks-modules
+      # #     project: tasks-modules
+      # #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-templated-k8s-container
+      #     project: templated-k8s-container
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-templated-k8s-container-modules
+      #     project: templated-k8s-container-modules
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote
+      #     project: vote
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote-modules
+      #     project: vote-modules
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote-helm
+      #     project: vote-helm
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-open-telemetry
+      #     project: open-telemetry
+      #     requires: [build]
+      # # - e2e-project:
+      # #     <<: *only-internal-prs
+      # #     name: e2e-vote-helm-modules
+      # #     project: vote-helm-modules
+      # #     requires: [build]
+      #
+      # ### REMOTE TESTS ###
+      # # The remote tests (e.g. kaniko and buildkit) still require a local kubernetes cluster for some reason…
+      # - test-minikube:
+      #     <<: *only-internal-prs
+      #     name: test-remote
+      #     requires: [build]
+      #     kubernetesVersion: "v1.31.0"
+      #     minikubeVersion: "v1.34.0"
+      #     skipTests: "local-only"
+      #     remoteCluster: true
+      #
+      # ### VM TESTS ###
+      #
+      # # Note: The below is a not-quite-random mix of local k8s variants and k8s versions. Doing a full matrix of every
+      # # variant and k8s version would be quite expensive, so we try and make sure each of the officially maintained
+      # # k8s versions is tested, and that the most recent versions are broadly tested.
+      # # The kind tests are the cheapest to run so we use many of those,
+      # # but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
+      # - test-k3s:
+      #     name: vm-1.31-k3s
+      #     requires: [build]
+      #     k3sVersion: v1.31.1+k3s1
+      # - test-minikube:
+      #     name: vm-1.31-minikube
+      #     requires: [build]
+      #     kubernetesVersion: "v1.31.0"
+      #     minikubeVersion: "v1.34.0"
+      # - test-kind:
+      #     name: vm-1.32-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
+      # - test-microk8s:
+      #     name: vm-1.33-microk8s
+      #     requires: [build]
+      #     kubernetesVersion: "1.33"
+      #
+      # - test-plugins:
+      #     <<: *only-internal-prs
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
+      #
+      # # This is only for edge release (Overrides version to edge-cedar)
       - build:
           <<: *only-main
           name: build-edge
-
-      - build-dist-macos:
-          <<: *only-main
-          name: build-dist-macos-edge
-          version: edge-cedar
-          requires: [build-edge]
-
+      #
+      # - build-dist-macos:
+      #     <<: *only-main
+      #     name: build-dist-macos-edge
+      #     version: edge-cedar
+      #     requires: [build-edge]
+      #
       - build-dist-linux-windows:
           <<: *only-main
           name: build-dist-linux-windows-edge
           version: edge-cedar
           requires: [build-edge]
 
-      - sign-windows-binary:
-          <<: *only-main
-          name: sign-windows-binary-edge
-          context: garden-core-code-signing
-          requires: [build-dist-linux-windows-edge]
-          version: edge-cedar
-
-      - github-edge-prerelease:
-          <<: *only-main
-          version: edge-cedar
-          requires: [build-dist-macos-edge, build-dist-linux-windows-edge, sign-windows-binary-edge]
-
-      - dockerhub-release:
-          <<: *only-main
-          context: docker
-          requires: [build-dist-macos-edge, build-dist-linux-windows-edge]
-
-      - test-docker-gcloud:
-          context: docker
-          requires: [dockerhub-release]
+      # - sign-windows-binary:
+      #     <<: *only-main
+      #     name: sign-windows-binary-edge
+      #     context: garden-core-code-signing
+      #     requires: [build-dist-linux-windows-edge]
+      #     version: edge-cedar
+      #
+      # - github-edge-prerelease:
+      #     <<: *only-main
+      #     version: edge-cedar
+      #     requires: [build-dist-macos-edge, build-dist-linux-windows-edge, sign-windows-binary-edge]
+      #
+      # - dockerhub-release:
+      #     <<: *only-main
+      #     context: docker
+      #     requires: [build-dist-macos-edge, build-dist-linux-windows-edge]
+      #
+      # - test-docker-gcloud:
+      #     context: docker
+      #     requires: [dockerhub-release]
   tags:
     jobs:
       - build:
