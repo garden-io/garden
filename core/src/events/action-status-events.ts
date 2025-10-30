@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { ActionKind } from "../actions/types.js"
 import { actionStates } from "../actions/types.js"
 import type { BuildState } from "../plugin/handlers/Build/get-status.js"
 import type { ActionRuntime, RunState } from "../plugin/plugin.js"
@@ -94,7 +95,7 @@ interface ActionStatusPayloadBase {
    * should've been actionKind.
    */
   actionType: string
-  actionKind: string
+  actionKind: Lowercase<ActionKind>
   actionVersion: string
   actionUid: string
   /**

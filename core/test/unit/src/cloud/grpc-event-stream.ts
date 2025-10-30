@@ -20,6 +20,7 @@ import type { Log } from "../../../../src/logger/log-entry.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { makeTestGardenA } from "../../../helpers.js"
 import { sleep } from "../../../../src/util/util.js"
+import type { GardenActionRunCompleted } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_action_pb.js"
 
 const receivedEvents = new Array<Event>()
 // if this is true, the mock backend will simulate failures.
@@ -185,6 +186,76 @@ describe("GrpcEventStream", () => {
     expect(event.eventData).to.be.an("object")
     expect(event.eventData).to.have.property("case", "gardenCli")
     expect(event.eventData.value).to.be.an("object")
+  })
+
+  it("should include Deploy process result when applicable", async () => {
+    garden.events.emit("deployStatus", {
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      state: "ready",
+      status: {
+        createdAt: new Date().toISOString(),
+        mode: "sync",
+        externalId: "fake-external-id",
+        externalVersion: "fake-external-version",
+        forwardablePorts: [],
+        ingresses: [
+          {
+            hostname: "fake-hostname",
+            linkUrl: "fake-link-url",
+            path: "/",
+            port: 443,
+            protocol: "https",
+          },
+        ],
+        lastMessage: "hello",
+        lastError: "goodbye",
+        outputs: {},
+        runningReplicas: 3,
+        state: "ready",
+        updatedAt: new Date().toISOString(),
+      },
+      actionName: "api",
+      actionKind: "deploy",
+      actionType: "kubernetes",
+      actionUid: "fake-action-uid",
+      sessionId: "fake-session-id",
+      operation: "process",
+      force: false,
+      actionVersion: "foobar",
+      moduleName: null,
+      runtime: undefined,
+    })
+    await bufferedEventStream.close()
+    expect(receivedEvents.length).to.equal(1)
+    const event = receivedEvents[0]
+
+    const eventPayload = event.eventData.value?.eventData.value as GardenActionRunCompleted
+
+    expect(event.eventUlid).to.be.a("string")
+    expect(event.eventData).to.be.an("object")
+    expect(eventPayload.deployRunResult).to.be.an("object")
+    expect(eventPayload.deployRunResult).to.eql({
+      $typeName: eventPayload.deployRunResult?.$typeName,
+      ingresses: [
+        {
+          $typeName: eventPayload.deployRunResult?.ingresses[0].$typeName,
+          hostname: "fake-hostname",
+          linkUrl: "fake-link-url",
+          path: "/",
+          port: 443,
+          protocol: "https",
+        },
+      ],
+      createdAt: eventPayload.deployRunResult?.createdAt,
+      mode: "sync",
+      externalId: "fake-external-id",
+      externalVersion: "fake-external-version",
+      lastMessage: "hello",
+      lastError: "goodbye",
+      runningReplicas: 3,
+      updatedAt: eventPayload.deployRunResult?.updatedAt,
+    })
   })
 
   it("should send events in the correct order even when facing transient failures", async () => {

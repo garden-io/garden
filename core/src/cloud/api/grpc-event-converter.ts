@@ -34,6 +34,7 @@ import {
   GardenCommandExecutionStartedSchema,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_command_pb.js"
 import { timestampFromDate } from "@bufbuild/protobuf/wkt"
+import type { DeployRunResult } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_action_pb.js"
 import {
   GardenActionGetStatusCompletedSchema,
   GardenActionGetStatusStartedSchema,
@@ -43,7 +44,10 @@ import {
   GardenActionRunCompletedSchema,
   GardenActionRunStartedSchema,
   GardenActionScannedSchema,
+  ServiceIngressSchema,
+  DeployRunResultSchema,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_action_pb.js"
+import type { DeployStatusForEventPayload } from "../../types/service.js"
 
 const nextEventUlid = monotonicFactory()
 
@@ -233,6 +237,35 @@ export class GrpcEventConverter {
             }),
           ]
         } else if (payload.operation === "process") {
+          const actionKind = payload.actionKind
+
+          let deployRunResult: DeployRunResult | undefined = undefined
+
+          if (actionKind === "deploy" && "status" in payload && payload.status) {
+            const deployStatus = payload.status as DeployStatusForEventPayload
+
+            deployRunResult = create(DeployRunResultSchema, {
+              createdAt: deployStatus.createdAt,
+              mode: deployStatus.mode,
+              externalId: deployStatus.externalId,
+              externalVersion: deployStatus.externalVersion,
+              ingresses:
+                deployStatus.ingresses?.map((ingress) =>
+                  create(ServiceIngressSchema, {
+                    hostname: ingress.hostname,
+                    linkUrl: ingress.linkUrl,
+                    path: ingress.path || "/",
+                    port: ingress.port,
+                    protocol: ingress.protocol,
+                  })
+                ) || [],
+              lastMessage: deployStatus.lastMessage,
+              lastError: deployStatus.lastError,
+              runningReplicas: deployStatus.runningReplicas,
+              updatedAt: deployStatus.updatedAt,
+            })
+          }
+
           return [
             createGardenCliEvent(context, GardenCliEventType.ACTION_RUN_COMPLETED, {
               case: "actionRunCompleted",
@@ -240,6 +273,8 @@ export class GrpcEventConverter {
                 actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
                 completedAt: timestampFromDate(new Date()),
                 success: !["not-ready", "failed", "unknown"].includes(payload.state),
+                // This is undefined for non-Deploy actions
+                deployRunResult,
               }),
             }),
           ]
