@@ -146,7 +146,7 @@ export async function getRenderedResources({
       log,
       namespace,
       args: ["get", "manifest", releaseName],
-      emitLogEvents: true,
+      emitLogEvents: false,
     })
   )
 }
