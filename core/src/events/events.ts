@@ -223,6 +223,9 @@ export interface Events {
   // Command/project metadata events
   commandInfo: CommandInfoPayload
 
+  // Emitted periodically to indicate that the command is still alive.
+  commandHeartbeat: { sentAt: string }
+
   // Stack Graph events
   stackGraph: RenderedActionGraph
 
@@ -344,6 +347,7 @@ const pipedEventNamesSet = new Set<EventName>([
   "internalError",
   "log",
   "commandInfo",
+  "commandHeartbeat",
   "namespaceStatus",
   "deployStatus",
   "stackGraph",

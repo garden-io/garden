@@ -188,6 +188,7 @@ export abstract class Command<
 
   subscribers: DataCallback[]
   terminated: boolean
+  heartbeatIntervalId?: NodeJS.Timeout | null = null
   public server?: GardenServer
 
   // FIXME: The parent command is not set via the constructor but rather needs to be set "manually" after
@@ -373,6 +374,11 @@ export abstract class Command<
             _projectRootDirAbs: garden.projectRoot,
           })
 
+          garden.events.emit("commandHeartbeat", { sentAt: new Date().toISOString() })
+          this.heartbeatIntervalId = setInterval(() => {
+            garden.events.emit("commandHeartbeat", { sentAt: new Date().toISOString() })
+          }, 5_000) // Emit a heartbeat event every 5 seconds
+
           // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
           if (await this.isAllowedToRun(garden, log, allOpts)) {
             // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
@@ -424,6 +430,7 @@ export abstract class Command<
           garden.events.emit("sessionFailed", {})
           throw err
         } finally {
+          this.heartbeatIntervalId && clearInterval(this.heartbeatIntervalId)
           if (parentSessionId) {
             garden.close()
             parentGarden.nestedSessions.delete(sessionId)
