@@ -1,4 +1,4 @@
-FROM maven:3.5.2-jdk-8-alpine AS build
+FROM maven:3.9-amazoncorretto-11-alpine AS build
 
 WORKDIR /code
 
@@ -10,8 +10,8 @@ RUN ["mvn", "verify"]
 COPY ["src/main", "/code/src/main"]
 RUN ["mvn", "package"]
 
-FROM openjdk:8-jre-alpine
+FROM amazoncorretto:11-alpine
 
 COPY --from=build /code/target/worker-jar-with-dependencies.jar /
 
-CMD ["java", "-XX:+UnlockExperimentalVMOptions", "-XX:+UseCGroupMemoryLimitForHeap", "-jar", "/worker-jar-with-dependencies.jar"]
+CMD ["java", "-jar", "/worker-jar-with-dependencies.jar"]

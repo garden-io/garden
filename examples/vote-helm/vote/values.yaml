@@ -4,6 +4,8 @@
 
 replicaCount: 1
 
+imagePullSecrets: []
+
 image:
   repository: vote-image
   tag: stable

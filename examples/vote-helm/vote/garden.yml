@@ -19,6 +19,7 @@ spec:
         sourcePath: ${actions.build.vote-image.sourcePath}/src
         mode: two-way
   values:
+    imagePullSecrets: ${var.imagePullSecrets}
     image:
       repository: ${actions.build.vote-image.outputs.deployment-image-name}
       tag: ${actions.build.vote-image.version}
@@ -60,6 +61,7 @@ spec:
     name: vote-integ-pod
   command: [/bin/sh, -c, "npm run test:integ"]
   values:
+    imagePullSecrets: ${var.imagePullSecrets}
     image:
       repository: ${actions.build.vote-image.outputs.deployment-image-name}
       tag: ${actions.build.vote-image.version}
