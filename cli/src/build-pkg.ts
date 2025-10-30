@@ -437,8 +437,30 @@ async function buildBinaries(args: string[]) {
     console.log(chalk.cyan("Compiling garden binary for " + targetName))
     const rustTarget = getRustTarget(target.spec)
 
-    // Run Garden SEA smoke tests. Windows tests run in a wine environment.
-    await exec(cargoCommand, ["test", "--target", rustTarget], { cwd: gardenSeaDir, stdio: "inherit" })
+    // Run Garden SEA smoke tests, except when on Windows.
+    //
+    // The Windows binary is still built and tested on actual Windows in the test-windows CircleCI job.
+    //
+    // I tried to get the Wine-based dist tests for the Windows build to work, but ended up giving up (faced lots of
+    // errors to due with 32 vs 64 bit binary formats, missing DLLs etc. which I spent too much time chasing down).
+    // The brittleness and baroque nature of that Wine-based flow also made me want to eliminate it from our pipeline
+    // (since I could see it causing further instabilities down the road even if we fixed things as they are now).
+    // - THS
+    const skipTests = cargoCommand === "cross" && target.spec.os === "win"
+    if (!skipTests) {
+      await exec(cargoCommand, ["test", "--target", rustTarget], { cwd: gardenSeaDir, stdio: "inherit" })
+    } else {
+      console.log(
+        chalk.yellow(
+          "Skipping dist tests for Windows (the Wine-based runtime test environment for Windows was causing us trouble)"
+        )
+      )
+      console.log(
+        chalk.yellow(
+          "In CI, the Windows executable will be tested on an actual Windows runner in the test-windows job."
+        )
+      )
+    }
 
     // Build the release binary
     await exec(cargoCommand, ["build", "--target", rustTarget, "--release"], { cwd: gardenSeaDir, stdio: "inherit" })
