@@ -117,7 +117,7 @@ export function renderMsg(entry: LogEntry): string {
   const style = getStyle(level)
 
   // For log levels higher than "info" we print the log level name.
-  const logLevelName = entry.level > LogLevel.info ? `[${logLevelMap[entry.level]}] ` : ""
+  const logLevelName = entry.level > LogLevel.verbose ? `[${logLevelMap[entry.level]}] ` : ""
 
   const origin = context.origin ? `[${styles.italic(context.origin)}] ` : ""
 
