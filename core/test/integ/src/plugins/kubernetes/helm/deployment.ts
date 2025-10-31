@@ -18,7 +18,12 @@ import {
   getReleaseStatus,
   getRenderedResources,
 } from "../../../../../../src/plugins/kubernetes/helm/status.js"
-import { getReleaseName } from "../../../../../../src/plugins/kubernetes/helm/common.js"
+import {
+  getReleaseName,
+  prepareManifests,
+  prepareTemplates,
+  filterManifests,
+} from "../../../../../../src/plugins/kubernetes/helm/common.js"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
 import { buildHelmModules, getHelmTestGarden } from "./common.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
@@ -33,6 +38,9 @@ import { parseTemplateCollection } from "../../../../../../src/template/template
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants.js"
 import { join } from "node:path"
 import type { EventNamespaceStatus } from "../../../../../../src/plugin-context.js"
+import { checkResourceStatuses } from "../../../../../../src/plugins/kubernetes/status/status.js"
+import { sleep } from "../../../../../../src/util/util.js"
+import { helm } from "../../../../../../src/plugins/kubernetes/helm/helm-cli.js"
 
 describe("helmDeploy", () => {
   let garden: TestGarden
@@ -61,6 +69,42 @@ describe("helmDeploy", () => {
       }
     } catch {}
   })
+
+  /**
+   * Wait for a Helm release to reach a stable state (deployed or failed).
+   * This helps avoid race conditions with Helm's locking mechanism.
+   */
+  async function waitForReleaseStable(
+    releaseName: string,
+    namespace: string,
+    timeoutMs: number = 30000
+  ): Promise<void> {
+    const startTime = Date.now()
+    const stableStatuses = ["deployed", "failed", "uninstalled", "superseded"]
+
+    while (Date.now() - startTime < timeoutMs) {
+      try {
+        const statusJson = await helm({
+          ctx,
+          log: garden.log,
+          namespace,
+          args: ["status", releaseName, "--output", "json"],
+          emitLogEvents: false,
+        })
+        const status = JSON.parse(statusJson)
+
+        if (status?.info?.status && stableStatuses.includes(status.info.status)) {
+          return
+        }
+      } catch (error) {
+        // Release might not exist yet or be in transition, continue polling
+      }
+
+      await sleep(1000)
+    }
+
+    throw new Error(`Timeout waiting for Helm release '${releaseName}' to reach stable state after ${timeoutMs}ms`)
+  }
 
   context("normal behaviour", () => {
     for (const deployName of ["api", "oci-url", "oci-url-with-version"]) {
@@ -671,6 +715,143 @@ describe("helmDeploy", () => {
             expect(message).to.include(`Error: UPGRADE FAILED`)
           }
         )
+      })
+
+      it("should not fail early when replacing an unhealthy Deployment with a healthy one", async () => {
+        graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+        // Step 1: Deploy an unhealthy version
+        const unhealthyAction = graph.getDeploy("api") as HelmDeployAction
+        unhealthyAction._config.timeout = 30
+        unhealthyAction._config.spec.waitForUnhealthyResources = false // Enable fail-fast
+        unhealthyAction._config.spec.atomic = false // Required for fail-fast
+        unhealthyAction._config.spec.values = {
+          ...unhealthyAction._config.spec.values,
+          args: ["/bin/sh", "-c", "exit 1"], // Causes immediate failure
+        }
+
+        const resolvedUnhealthyAction = await garden.resolveAction<HelmDeployAction>({
+          action: unhealthyAction,
+          log: garden.log,
+          graph,
+        })
+        const unhealthyActionLog = createActionLog({
+          log: garden.log,
+          actionName: resolvedUnhealthyAction.name,
+          actionKind: resolvedUnhealthyAction.kind,
+        })
+
+        // Deploy the unhealthy version - expect it to fail
+        await expectError(
+          () =>
+            helmDeploy({
+              ctx,
+              log: unhealthyActionLog,
+              action: resolvedUnhealthyAction,
+              force: false,
+            }),
+          (err) => {
+            // Verify it failed as expected
+            expect(err).to.exist
+          }
+        )
+
+        // Wait for Helm's lock to be released before the next deployment
+        const releaseName = getReleaseName(resolvedUnhealthyAction)
+        const namespace = await getActionNamespace({
+          ctx,
+          log: garden.log,
+          action: resolvedUnhealthyAction,
+          provider,
+        })
+        await waitForReleaseStable(releaseName, namespace)
+
+        // Step 2: Prepare manifests for the healthy deployment
+        const api = await KubeApi.factory(garden.log, ctx, provider)
+
+        // Get preparedTemplates and manifests for verification
+        const preparedTemplates = await prepareTemplates({
+          ctx,
+          action: resolvedUnhealthyAction,
+          log: garden.log,
+        })
+        const preparedManifests = await prepareManifests({
+          ctx,
+          log: garden.log,
+          action: resolvedUnhealthyAction,
+          ...preparedTemplates,
+        })
+        const manifests = await filterManifests(preparedManifests)
+
+        // Step 3: Verify the Deployment is unhealthy
+        const initialStatuses = await checkResourceStatuses({
+          api,
+          namespace,
+          waitForJobs: false,
+          manifests,
+          log: garden.log,
+        })
+
+        const deploymentStatus = initialStatuses.find(
+          (s) =>
+            s.resource.kind === "Deployment" && s.resource.metadata.name === getReleaseName(resolvedUnhealthyAction)
+        )
+        expect(deploymentStatus).to.exist
+        expect(deploymentStatus!.state).to.equal("unhealthy")
+        expect(isWorkload(deploymentStatus!.resource)).to.be.true
+
+        const initialGeneration = deploymentStatus!.resource.metadata.generation
+
+        // Step 4: Deploy the healthy version
+        const healthyAction = graph.getDeploy("api") as HelmDeployAction
+        healthyAction._config.timeout = 30
+        healthyAction._config.spec.waitForUnhealthyResources = false // Keep fail-fast enabled
+        healthyAction._config.spec.atomic = false
+        // Remove the failing args - use default behavior (just omit args from values)
+        const { args: _args, ...restValues } = healthyAction._config.spec.values || {}
+        healthyAction._config.spec.values = restValues
+
+        const resolvedHealthyAction = await garden.resolveAction<HelmDeployAction>({
+          action: healthyAction,
+          log: garden.log,
+          graph,
+        })
+        const healthyActionLog = createActionLog({
+          log: garden.log,
+          actionName: resolvedHealthyAction.name,
+          actionKind: resolvedHealthyAction.kind,
+        })
+
+        // This should succeed - the key assertion of the test
+        const deployResult = await helmDeploy({
+          ctx,
+          log: healthyActionLog,
+          action: resolvedHealthyAction,
+          force: false,
+        })
+
+        // Step 5: Verify success
+        expect(deployResult.state).to.equal("ready")
+        expect(deployResult.detail).to.exist
+        expect(deployResult.detail!.detail.helmCommandSuccessful).to.be.true
+
+        // Verify the deployment is now healthy
+        const finalStatuses = await checkResourceStatuses({
+          api,
+          namespace,
+          waitForJobs: false,
+          manifests,
+          log: garden.log,
+        })
+
+        const finalDeploymentStatus = finalStatuses.find(
+          (s) => s.resource.kind === "Deployment" && s.resource.metadata.name === getReleaseName(resolvedHealthyAction)
+        )
+        expect(finalDeploymentStatus).to.exist
+        expect(finalDeploymentStatus!.state).to.equal("ready")
+
+        // Verify generation incremented (proving a new deployment happened)
+        expect(finalDeploymentStatus!.resource.metadata.generation).to.be.greaterThan(initialGeneration!)
       })
     })
   })
