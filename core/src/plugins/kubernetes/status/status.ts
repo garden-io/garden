@@ -33,7 +33,7 @@ import type {
   V1ReplicationController,
   V1Service,
 } from "@kubernetes/client-node"
-import { getPods, getResourceKey, hashManifest } from "../util.js"
+import { getPodsBySelector, getResourceKey, hashManifest } from "../util.js"
 import { checkWorkloadStatus } from "./workload.js"
 import { checkWorkloadPodStatus } from "./pod.js"
 import { deline, stableStringify } from "../../../util/string.js"
@@ -106,12 +106,16 @@ const objHandlers: { [kind: string]: StatusHandler } = {
   ReplicaSet: async ({ api, namespace, resource }: StatusHandlerParams<V1ReplicaSet>) => {
     return checkWorkloadPodStatus(
       resource,
-      await getPods(api, namespace, (<KubernetesServerResource<V1ReplicaSet>>resource).spec.selector!.matchLabels!)
+      await getPodsBySelector(
+        api,
+        namespace,
+        (<KubernetesServerResource<V1ReplicaSet>>resource).spec.selector!.matchLabels!
+      )
     )
   },
 
   ReplicationController: async ({ api, namespace, resource }: StatusHandlerParams<V1ReplicationController>) => {
-    return checkWorkloadPodStatus(resource, await getPods(api, namespace, resource.spec!.selector!))
+    return checkWorkloadPodStatus(resource, await getPodsBySelector(api, namespace, resource.spec!.selector!))
   },
 
   Service: async ({ resource }: StatusHandlerParams<V1Service>) => {
