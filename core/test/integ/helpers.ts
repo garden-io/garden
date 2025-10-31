@@ -171,3 +171,12 @@ export async function getEmptyGardenWithLocalK8sProvider() {
   const projectRoot = getDataDir("test-projects", "empty-project-local-kubernetes")
   return await makeTestGarden(projectRoot)
 }
+
+/**
+ * Return a unique namespace name for per-test isolation.
+ * Example: helm-test-<timestamp>-<random>
+ */
+export function generateTestNamespace(prefix = "helm-test") {
+  const suffix = Math.random().toString(36).substring(2, 8)
+  return `${prefix}-${Date.now()}-${suffix}`
+}

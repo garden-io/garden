@@ -58,6 +58,15 @@ export function getResourceKey(resource: KubernetesResource) {
 }
 
 /**
+ * Note: This format isn't used by the k8s API, but is useful for indexing manifests/resources locally in a way
+ * that avoids potential name clashes across namespaces.
+ */
+export function getNamespacedResourceKey(resource: KubernetesResource) {
+  const prefix = resource.metadata.namespace ? `namespace:${resource.metadata.namespace}/` : ""
+  return `${prefix}${resource.kind}/${resource.metadata.name}`
+}
+
+/**
  * Returns a hash of the manifest. We use this instead of the raw manifest when setting the
  * "manifest-hash" annotation. This prevents "Too long annotation" errors for long manifests.
  */
@@ -417,7 +426,7 @@ export function getApiGroup(resource: KubernetesResource) {
 /**
  * Returns true if the resource is a built-in Kubernetes workload type.
  */
-export function isWorkload(resource: KubernetesResource) {
+export function isWorkload(resource: KubernetesResource): resource is KubernetesWorkload {
   return isBuiltIn(resource) && workloadTypes.includes(resource.kind)
 }
 
