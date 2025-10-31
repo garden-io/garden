@@ -256,8 +256,6 @@ export async function ensureBuildkit({
       timeoutSec: 600,
     })
 
-    deployLog.info("Done!")
-
     return { authSecret, updated: true }
   })
 }

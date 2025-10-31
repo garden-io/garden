@@ -19,6 +19,7 @@ import { omitUndefined } from "../util/objects.js"
 import { renderDuration } from "./util.js"
 import { styles } from "./styles.js"
 import { getStyle } from "./renderers.js"
+import hasAnsi from "has-ansi"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
@@ -410,7 +411,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
     const style = resolved.level === LogLevel.info ? styles.success : getStyle(resolved.level)
     return this.log({
       ...resolved,
-      msg: transformMsg(this.getMsgWithDuration(resolved) || "", (msg) => style(msg)),
+      msg: transformMsg(this.getMsgWithDuration(resolved) || "", (msg) => (hasAnsi(msg) ? msg : style(msg))),
     })
   }
 

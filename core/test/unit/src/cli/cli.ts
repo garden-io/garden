@@ -778,7 +778,7 @@ describe("cli", () => {
         },
         opts: {
           "silent": false,
-          "log-level": "info",
+          "log-level": "verbose",
           "emoji": envSupportsEmoji(),
           "show-timestamps": false,
           "yes": false,
@@ -853,7 +853,7 @@ describe("cli", () => {
         },
         opts: {
           "silent": false,
-          "log-level": "info",
+          "log-level": "verbose",
           "emoji": envSupportsEmoji(),
           "show-timestamps": false,
           "yes": false,

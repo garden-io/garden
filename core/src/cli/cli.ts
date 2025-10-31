@@ -433,7 +433,7 @@ ${renderCommands(commands)}
     }
 
     const log = logger.createLog()
-    log.verbose(`garden version: ${getPackageVersion()}`)
+    log.debug(`garden version: ${getPackageVersion()}`)
 
     // Load custom commands from current project (if applicable) and see if any match the arguments
     if (!command) {

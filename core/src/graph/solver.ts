@@ -29,7 +29,7 @@ import chalk from "chalk"
 import { formatDuration } from "date-fns"
 
 const taskStyle = styles.highlight.bold
-const statusUpdateIntervalMsec = 10000
+const statusUpdateIntervalMsec = 20000
 
 export interface SolveOpts {
   statusOnly?: boolean
@@ -283,7 +283,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     // TODO-0.13.1: currently a no-op, possibly not necessary
   }
 
-  renderStatus(batchId: string, startTime: Date) {
+  private renderStatus(batchId: string, startTime: Date) {
     const requested = Object.values(this.requestedTasks[batchId]).sort((a, b) => {
       // Sort by key in ascending order
       return a.getKey().localeCompare(b.getKey())
@@ -327,7 +327,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       chalk.yellow(listActions(formatResultDescription("aborted", abortedDeps), aborted)),
       chalk.red(listActions(formatResultDescription("failed", failedDeps), failed)),
     ]
-    const duration = formatDuration({ seconds: (new Date().getTime() - startTime.getTime()) / 1000 })
+    const duration = formatDuration({ seconds: Math.round((new Date().getTime() - startTime.getTime()) / 1000) })
     const status = [
       renderDivider({
         color: chalk.magenta,
@@ -340,8 +340,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     ]
 
     return {
-      status: status.filter((s) => stripAnsi(s) !== "").join("\n"),
-      content: stripAnsi(content.filter((s) => s !== "").join("\n")),
+      status: status.filter((s) => stripAnsi(s).trim() !== "").join("\n"),
+      content: content
+        .map((s) => stripAnsi(s).trim())
+        .filter((s) => s !== "")
+        .join("\n")
+        .trim(),
     }
   }
 
