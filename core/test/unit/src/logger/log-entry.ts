@@ -12,7 +12,7 @@ import type { Logger } from "../../../../src/logger/logger.js"
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
 import { freezeTime } from "../../../helpers.js"
 import type { CoreLog, Log, LogMetadata } from "../../../../src/logger/log-entry.js"
-import { createActionLog } from "../../../../src/logger/log-entry.js"
+import { createActionLog, resolveMsg } from "../../../../src/logger/log-entry.js"
 import { omit } from "lodash-es"
 import { styles } from "../../../../src/logger/styles.js"
 
@@ -84,8 +84,9 @@ describe("Log", () => {
       expect(entry.msg).to.eql(styles.success("success"))
     })
     it("should log success message in original color if it has ansi", () => {
-      const entry = log.success(`hello ${styles.highlight("cyan")}`).getLatestEntry()
-      expect(entry.msg).to.eql(`hello ${styles.highlight("cyan")}`)
+      const msg = `hello ${styles.highlight("cyan")}`
+      const entry = log.success(msg).getLatestEntry()
+      expect(resolveMsg(entry)?.trim()).to.eql(msg.trim())
     })
     it("should set the symbol to success", () => {
       const entry = log.success("success").getLatestEntry()

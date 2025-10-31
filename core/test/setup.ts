@@ -17,8 +17,12 @@ import mocha from "mocha"
 import sourceMapSupport from "source-map-support"
 import { UnresolvedTemplateValue } from "../src/template/types.js"
 import { setGloablProjectApiVersion } from "../src/project-api-version.js"
+import { config as chaiConfig } from "chai"
 
 sourceMapSupport.install()
+
+// Disable truncation of strings in chai assertion error messages for better debugging
+chaiConfig.truncateThreshold = 0
 
 let lastTime = performance.now()
 const mainBlockCheckup = setInterval(() => {
