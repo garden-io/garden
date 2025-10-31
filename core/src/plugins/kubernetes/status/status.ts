@@ -21,7 +21,6 @@ import type {
 } from "../types.js"
 import { cloneDeep, flatten, isArray, isEqual, isPlainObject, keyBy, mapValues, omit, pickBy } from "lodash-es"
 import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
-import { isSubset } from "../../../util/is-subset.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type {
   KubernetesObject,
@@ -404,6 +403,463 @@ interface ComparisonResult {
   selectorChangedResourceKeys: string[]
 }
 
+// The spec comparison & normalization code below is laborious, but it's worth being thorough here.
+
+// Constants for Kubernetes default values
+const K8S_DEFAULTS = {
+  service: {
+    sessionAffinity: "None",
+    type: "ClusterIP",
+  },
+  workload: {
+    minReadySeconds: [0, "0"],
+    hostNetwork: [false, "false"],
+  },
+  deployment: {
+    revisionHistoryLimit: [10, "10"],
+    progressDeadlineSeconds: [600, "600"],
+  },
+  statefulSet: {
+    revisionHistoryLimit: [10, "10"],
+  },
+  daemonSet: {
+    revisionHistoryLimit: [10, "10"],
+    minReadySeconds: [0, "0"],
+  },
+  pod: {
+    restartPolicy: "Always",
+    dnsPolicy: "ClusterFirst",
+    schedulerName: "default-scheduler",
+    terminationGracePeriodSeconds: [30, "30"],
+    enableServiceLinks: [true, "true"],
+  },
+  container: {
+    terminationMessagePath: "/dev/termination-log",
+    terminationMessagePolicy: "File",
+    portProtocol: "TCP",
+  },
+} as const
+
+// Server-managed metadata fields that should be ignored in comparisons
+const SERVER_MANAGED_METADATA_FIELDS = [
+  "resourceVersion",
+  "uid",
+  "generation",
+  "selfLink",
+  "creationTimestamp",
+  "managedFields",
+  "deletionTimestamp",
+  "deletionGracePeriodSeconds",
+] as const
+
+/**
+ * Determines if deploying the manifest would result in a spec change that triggers a new generation
+ * (and thus potentially new containers being spun up).
+ *
+ * This function normalizes both the manifest and deployed resource to account for Kubernetes API
+ * eccentricities (default values, omitted properties, etc.) before comparing their specs.
+ *
+ * @param manifest - The local Kubernetes manifest to deploy
+ * @param deployedResource - The matching resource fetched from the cluster
+ * @returns true if the spec has changed and would increment generation, false otherwise
+ */
+export function specChanged({
+  manifest,
+  deployedResource,
+}: {
+  manifest: KubernetesResource
+  deployedResource: KubernetesResource
+}): boolean {
+  // Clone to avoid mutating the original objects
+  let normalizedManifest = cloneDeep(manifest)
+  let normalizedDeployed = cloneDeep(deployedResource)
+
+  normalizedManifest = convertNumericToString(normalizedManifest)
+  normalizedDeployed = convertNumericToString(normalizedDeployed)
+
+  normalizeApiVersionAndNamespace(normalizedManifest, normalizedDeployed)
+
+  // Normalize resource-type-specific defaults
+  if (normalizedManifest.kind === "Service") {
+    normalizeServiceDefaults(normalizedManifest, normalizedDeployed)
+  }
+
+  if (normalizedManifest.kind === "Ingress") {
+    normalizeIngressDefaults(normalizedManifest, normalizedDeployed)
+  }
+
+  if (isWorkloadKind(normalizedManifest.kind)) {
+    normalizeWorkloadDefaults(normalizedManifest, normalizedDeployed)
+  }
+
+  if (normalizedManifest.kind === "Pod") {
+    if (normalizedManifest.spec) {
+      normalizeContainerDefaults(normalizedManifest.spec, normalizedDeployed.spec)
+    }
+  }
+
+  // Clean up metadata and annotations
+  normalizedManifest = <KubernetesResource>removeNullAndUndefined(normalizedManifest)
+  normalizedDeployed = <KubernetesResource>removeNullAndUndefined(normalizedDeployed)
+  normalizedManifest = removeEmptyEnvValues(normalizedManifest)
+  normalizedDeployed = removeEmptyEnvValues(normalizedDeployed)
+
+  removeServerManagedMetadata(normalizedManifest)
+  removeServerManagedMetadata(normalizedDeployed)
+  removeGardenAnnotations(normalizedManifest)
+  removeGardenAnnotations(normalizedDeployed)
+
+  // Finally, compare the specs
+  const hasChanged = !isEqual(normalizedManifest.spec, normalizedDeployed.spec)
+
+  return hasChanged
+}
+
+/**
+ * Convert all numeric values to strings for consistent comparison
+ */
+function convertNumericToString(resource: KubernetesResource): KubernetesResource {
+  return <KubernetesResource>deepMap(resource, (v) => (typeof v === "number" ? v.toString() : v))
+}
+
+/**
+ * Harmonize API version and namespace between manifest and deployed resource
+ */
+function normalizeApiVersionAndNamespace(manifest: KubernetesResource, deployed: KubernetesResource): void {
+  // API version may change during deployment
+  manifest.apiVersion = deployed.apiVersion
+
+  // Namespace is silently dropped for non-namespaced resources
+  if (manifest.metadata?.namespace && deployed.metadata?.namespace === undefined) {
+    delete manifest.metadata.namespace
+  }
+}
+
+function isWorkloadKind(kind: string): boolean {
+  return kind === "Deployment" || kind === "DaemonSet" || kind === "StatefulSet"
+}
+
+function normalizeServiceDefaults(manifest: KubernetesResource, deployed: KubernetesResource): void {
+  // These fields are server-managed and should be removed from both sides for comparison
+  const serverManagedServiceFields = [
+    "clusterIP",
+    "clusterIPs",
+    "ipFamilies",
+    "ipFamilyPolicy",
+    "internalTrafficPolicy",
+    "sessionAffinityConfig",
+  ]
+
+  for (const field of serverManagedServiceFields) {
+    if (manifest.spec?.[field] !== undefined) {
+      delete manifest.spec[field]
+    }
+    if (deployed.spec?.[field] !== undefined) {
+      delete deployed.spec[field]
+    }
+  }
+
+  // Remove defaults that match K8S_DEFAULTS.service
+  const removeIfDefault = (resource: KubernetesResource, field: string, defaultValue: string) => {
+    if (resource.spec?.[field] === defaultValue) {
+      delete resource.spec[field]
+    }
+  }
+
+  removeIfDefault(manifest, "sessionAffinity", K8S_DEFAULTS.service.sessionAffinity)
+  removeIfDefault(deployed, "sessionAffinity", K8S_DEFAULTS.service.sessionAffinity)
+  removeIfDefault(manifest, "type", K8S_DEFAULTS.service.type)
+  removeIfDefault(deployed, "type", K8S_DEFAULTS.service.type)
+}
+
+/**
+ * Normalize Ingress-specific defaults that Kubernetes adds
+ */
+function normalizeIngressDefaults(manifest: KubernetesResource, deployed: KubernetesResource): void {
+  // Kubernetes adds default pathType "Prefix" to Ingress paths if not specified
+  // We need to check if ANY path in the manifest has pathType specified
+  const manifestHasPathType = manifest.spec?.rules?.some((rule: any) =>
+    rule.http?.paths?.some((path: any) => path.pathType !== undefined)
+  )
+
+  // If manifest doesn't specify pathType anywhere, remove default "Prefix" from deployed
+  if (!manifestHasPathType && deployed.spec?.rules) {
+    for (const rule of deployed.spec.rules) {
+      if (rule.http?.paths && Array.isArray(rule.http.paths)) {
+        for (const path of rule.http.paths) {
+          if (path.pathType === "Prefix") {
+            delete path.pathType
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Normalize Workload-specific defaults (Deployment, DaemonSet, StatefulSet)
+ */
+function normalizeWorkloadDefaults(manifest: KubernetesResource, deployed: KubernetesResource): void {
+  const removeIfMatchesDefault = (resource: KubernetesResource, field: string, defaultValues: readonly any[]) => {
+    if (resource.spec && defaultValues.includes(resource.spec[field])) {
+      delete resource.spec[field]
+    }
+  }
+
+  // Common workload defaults (applies to all workload types)
+  removeIfMatchesDefault(manifest, "minReadySeconds", K8S_DEFAULTS.workload.minReadySeconds)
+  removeIfMatchesDefault(deployed, "minReadySeconds", K8S_DEFAULTS.workload.minReadySeconds)
+
+  // hostNetwork in template spec
+  const removeHostNetworkDefault = (resource: KubernetesResource) => {
+    if (
+      resource.spec?.template?.spec?.hostNetwork &&
+      K8S_DEFAULTS.workload.hostNetwork.includes(resource.spec.template.spec.hostNetwork)
+    ) {
+      delete resource.spec.template.spec.hostNetwork
+    }
+  }
+  removeHostNetworkDefault(manifest)
+  removeHostNetworkDefault(deployed)
+
+  // Deployment-specific defaults
+  if (manifest.kind === "Deployment") {
+    removeIfMatchesDefault(manifest, "revisionHistoryLimit", K8S_DEFAULTS.deployment.revisionHistoryLimit)
+    removeIfMatchesDefault(deployed, "revisionHistoryLimit", K8S_DEFAULTS.deployment.revisionHistoryLimit)
+    removeIfMatchesDefault(manifest, "progressDeadlineSeconds", K8S_DEFAULTS.deployment.progressDeadlineSeconds)
+    removeIfMatchesDefault(deployed, "progressDeadlineSeconds", K8S_DEFAULTS.deployment.progressDeadlineSeconds)
+
+    // Remove default strategy from deployed if it matches the K8s default
+    // Default strategy for Deployment is RollingUpdate with maxUnavailable=25%, maxSurge=25%
+    if (deployed.spec?.strategy) {
+      const strategy = deployed.spec.strategy
+      const isDefaultStrategy =
+        strategy.type === "RollingUpdate" &&
+        strategy.rollingUpdate?.maxUnavailable === "25%" &&
+        strategy.rollingUpdate?.maxSurge === "25%"
+
+      if (isDefaultStrategy && !manifest.spec?.strategy) {
+        delete deployed.spec.strategy
+      }
+    }
+  }
+
+  // StatefulSet-specific defaults
+  if (manifest.kind === "StatefulSet") {
+    removeIfMatchesDefault(manifest, "revisionHistoryLimit", K8S_DEFAULTS.statefulSet.revisionHistoryLimit)
+    removeIfMatchesDefault(deployed, "revisionHistoryLimit", K8S_DEFAULTS.statefulSet.revisionHistoryLimit)
+
+    // Remove default updateStrategy from deployed if it matches the K8s default
+    // Default updateStrategy for StatefulSet is RollingUpdate with partition=0
+    // Note: partition may be a string after convertNumericToString()
+    if (deployed.spec?.updateStrategy) {
+      const strategy = deployed.spec.updateStrategy
+      const partition = strategy.rollingUpdate?.partition
+      const isDefaultStrategy =
+        strategy.type === "RollingUpdate" && (partition === 0 || partition === "0" || partition === undefined)
+
+      if (isDefaultStrategy && !manifest.spec?.updateStrategy) {
+        delete deployed.spec.updateStrategy
+      }
+    }
+
+    // Remove default podManagementPolicy from deployed if it matches K8s default
+    // Default is "OrderedReady"
+    if (deployed.spec?.podManagementPolicy === "OrderedReady" && !manifest.spec?.podManagementPolicy) {
+      delete deployed.spec.podManagementPolicy
+    }
+  }
+
+  // DaemonSet-specific defaults
+  if (manifest.kind === "DaemonSet") {
+    removeIfMatchesDefault(manifest, "revisionHistoryLimit", K8S_DEFAULTS.daemonSet.revisionHistoryLimit)
+    removeIfMatchesDefault(deployed, "revisionHistoryLimit", K8S_DEFAULTS.daemonSet.revisionHistoryLimit)
+  }
+
+  // Handle pod template spec defaults
+  if (manifest.spec?.template?.spec) {
+    normalizeContainerDefaults(manifest.spec.template.spec, deployed.spec?.template?.spec)
+  }
+}
+
+/**
+ * Remove server-managed metadata fields
+ */
+function removeServerManagedMetadata(resource: KubernetesResource): void {
+  // Remove server-managed fields from top-level metadata
+  for (const field of SERVER_MANAGED_METADATA_FIELDS) {
+    if (resource.metadata?.[field]) {
+      delete resource.metadata[field]
+    }
+  }
+
+  // Also remove from pod template metadata in workloads
+  if (resource.spec?.template?.metadata) {
+    for (const field of SERVER_MANAGED_METADATA_FIELDS) {
+      if (resource.spec.template.metadata[field]) {
+        delete resource.spec.template.metadata[field]
+      }
+    }
+  }
+}
+
+/**
+ * Remove Garden-specific annotations that don't affect spec semantics
+ */
+function removeGardenAnnotations(resource: KubernetesResource): void {
+  if (resource.metadata?.annotations) {
+    resource.metadata.annotations = pickBy(
+      resource.metadata.annotations,
+      (_value, key) => !key.startsWith("garden.io/")
+    )
+  }
+  // Also check template annotations for workloads
+  if (resource.spec?.template?.metadata?.annotations) {
+    resource.spec.template.metadata.annotations = pickBy(
+      resource.spec.template.metadata.annotations,
+      (_value, key) => !key.startsWith("garden.io/")
+    )
+  }
+}
+
+/**
+ * Normalizes container-related defaults in a pod spec to match what K8s returns
+ */
+function normalizeContainerDefaults(manifestPodSpec: any, deployedPodSpec: any) {
+  // Add pod-level defaults to manifest if K8s added them to deployed
+  const podDefaults = [
+    { field: "restartPolicy", defaultValue: K8S_DEFAULTS.pod.restartPolicy },
+    { field: "dnsPolicy", defaultValue: K8S_DEFAULTS.pod.dnsPolicy },
+    { field: "schedulerName", defaultValue: K8S_DEFAULTS.pod.schedulerName },
+  ]
+
+  for (const { field, defaultValue } of podDefaults) {
+    if (manifestPodSpec[field] === undefined && deployedPodSpec?.[field] === defaultValue) {
+      manifestPodSpec[field] = defaultValue
+    }
+  }
+
+  // Remove defaults that match - delete from both if they're the same default value
+  const removeMatchingDefaults = (field: string, defaultValues: readonly any[]) => {
+    if (defaultValues.includes(manifestPodSpec[field])) {
+      const deployedValue = deployedPodSpec?.[field]
+      if (deployedValue === undefined || defaultValues.includes(deployedValue)) {
+        delete manifestPodSpec[field]
+        if (deployedPodSpec) {
+          delete deployedPodSpec[field]
+        }
+      }
+    } else if (manifestPodSpec[field] === undefined && deployedPodSpec?.[field] !== undefined) {
+      // If manifest doesn't have the field but deployed has a default value, remove from deployed
+      if (defaultValues.includes(deployedPodSpec[field])) {
+        delete deployedPodSpec[field]
+      }
+    }
+  }
+
+  removeMatchingDefaults("terminationGracePeriodSeconds", K8S_DEFAULTS.pod.terminationGracePeriodSeconds)
+  removeMatchingDefaults("enableServiceLinks", K8S_DEFAULTS.pod.enableServiceLinks)
+
+  // Remove empty securityContext objects
+  if (
+    manifestPodSpec.securityContext === undefined &&
+    deployedPodSpec?.securityContext &&
+    Object.keys(deployedPodSpec.securityContext).length === 0
+  ) {
+    delete deployedPodSpec.securityContext
+  }
+
+  // Normalize container arrays
+  normalizeContainers(manifestPodSpec.containers, deployedPodSpec?.containers)
+  normalizeContainers(manifestPodSpec.initContainers, deployedPodSpec?.initContainers)
+}
+
+/**
+ * Normalize container-specific defaults
+ */
+function normalizeContainers(manifestContainers: any[], deployedContainers: any[] | undefined) {
+  if (!manifestContainers) return
+
+  // Build a map of deployed containers by name for reliable matching
+  const deployedContainersByName = new Map<string, any>()
+  if (deployedContainers) {
+    for (const container of deployedContainers) {
+      if (container.name) {
+        deployedContainersByName.set(container.name, container)
+      }
+    }
+  }
+
+  for (const manifestContainer of manifestContainers) {
+    const deployedContainer = manifestContainer.name ? deployedContainersByName.get(manifestContainer.name) : undefined
+
+    // imagePullPolicy defaults based on image tag
+    if (manifestContainer.imagePullPolicy === undefined) {
+      // Determine if image uses :latest tag (explicit or implicit)
+      const image = manifestContainer.image
+      const hasLatestTag = image?.endsWith(":latest") || (image && !image.includes(":") && !image.includes("@"))
+      manifestContainer.imagePullPolicy = hasLatestTag ? "Always" : "IfNotPresent"
+    }
+
+    // Remove container defaults that match K8S_DEFAULTS.container
+    const containerDefaults = [
+      { field: "terminationMessagePath", defaultValue: K8S_DEFAULTS.container.terminationMessagePath },
+      { field: "terminationMessagePolicy", defaultValue: K8S_DEFAULTS.container.terminationMessagePolicy },
+    ]
+
+    for (const { field, defaultValue } of containerDefaults) {
+      if (manifestContainer[field] === defaultValue || !manifestContainer[field]) {
+        delete manifestContainer[field]
+      }
+      if (deployedContainer && (deployedContainer[field] === defaultValue || !deployedContainer[field])) {
+        delete deployedContainer[field]
+      }
+    }
+
+    // Normalize port protocols
+    normalizePortProtocols(manifestContainer.ports)
+    if (deployedContainer) {
+      normalizePortProtocols(deployedContainer.ports)
+    }
+
+    // Normalize empty resource requests/limits
+    normalizeContainerResources(manifestContainer)
+    if (deployedContainer) {
+      normalizeContainerResources(deployedContainer)
+    }
+  }
+}
+
+/**
+ * Normalize port protocol defaults (remove if TCP)
+ */
+function normalizePortProtocols(ports: any[] | undefined) {
+  if (!ports) return
+
+  for (const port of ports) {
+    if (port.protocol === K8S_DEFAULTS.container.portProtocol || !port.protocol) {
+      delete port.protocol
+    }
+  }
+}
+
+/**
+ * Remove empty resource requests/limits
+ */
+function normalizeContainerResources(container: any) {
+  if (!container.resources) return
+
+  if (container.resources.requests && Object.keys(container.resources.requests).length === 0) {
+    delete container.resources.requests
+  }
+  if (container.resources.limits && Object.keys(container.resources.limits).length === 0) {
+    delete container.resources.limits
+  }
+  if (Object.keys(container.resources).length === 0) {
+    delete container.resources
+  }
+}
+
 /**
  * Check if each of the given Kubernetes objects matches what's installed in the cluster
  */
@@ -471,8 +927,8 @@ export async function compareDeployedResources({
   log.debug(`Comparing expected and deployed resources...`)
 
   for (const key of Object.keys(manifestsMap)) {
-    let manifest = cloneDeep(manifestsMap[key])
-    let deployedResource = deployedMap[key]
+    const manifest = cloneDeep(manifestsMap[key])
+    const deployedResource = deployedMap[key]
 
     if (!manifest.metadata.annotations) {
       manifest.metadata.annotations = {}
@@ -509,56 +965,9 @@ export async function compareDeployedResources({
       }
     }
 
-    // to avoid normalization issues, we convert all numeric values to strings and then compare
-    manifest = <KubernetesResource>deepMap(manifest, (v) => (typeof v === "number" ? v.toString() : v))
-    deployedResource = <KubernetesResource>deepMap(deployedResource, (v) => (typeof v === "number" ? v.toString() : v))
-
-    // the API version may implicitly change when deploying
-    manifest.apiVersion = deployedResource.apiVersion
-
-    // the namespace property is silently dropped when added to non-namespaced resources
-    if (manifest.metadata?.namespace && deployedResource.metadata?.namespace === undefined) {
-      delete manifest.metadata.namespace
-    }
-
-    if (!deployedResource.metadata.annotations) {
-      deployedResource.metadata.annotations = {}
-    }
-
-    // handle auto-filled properties (this is a bit of a design issue in the K8s API)
-    if (manifest.kind === "Service" && manifest.spec.clusterIP === "") {
-      delete manifest.spec.clusterIP
-    }
-
-    // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
-    //       `kubectl diff` is ready, or server-side apply/diff is ready
-    if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind === "StatefulSet") {
-      // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
-      //       `kubectl diff` is ready, or server-side apply/diff is ready
-
-      // handle properties that are omitted in the response because they have the default value
-      // (another design issue in the K8s API)
-      if (manifest.spec.minReadySeconds === 0) {
-        delete manifest.spec.minReadySeconds
-      }
-      if (manifest.spec.template && manifest.spec.template.spec && manifest.spec.template.spec.hostNetwork === false) {
-        delete manifest.spec.template.spec.hostNetwork
-      }
-    }
-
-    // clean null and undefined values
-    manifest = <KubernetesResource>removeNullAndUndefined(manifest)
-    // The Kubernetes API currently strips out environment variables values so we remove them
-    // from the manifests as well
-    manifest = removeEmptyEnvValues(manifest)
-    // ...and from the deployedResource for good measure, in case the K8s API changes.
-    deployedResource = removeEmptyEnvValues(deployedResource)
-
-    if (!isSubset(deployedResource, manifest)) {
-      if (manifest) {
-        log.debug(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
-        log.silly(() => diffString(deployedResource, manifest))
-      }
+    if (specChanged({ manifest, deployedResource })) {
+      log.debug(`Resource ${manifest.metadata.name} spec has changed`)
+      log.silly(() => diffString(deployedResource, manifest))
       result.state = "outdated"
       return result
     }
