@@ -20,7 +20,7 @@ import { findProjectConfig } from "../config/base.js"
 import { GardenError, toGardenError } from "../exceptions.js"
 import type { Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
-import { getTermWidth, renderDivider } from "../logger/util.js"
+import { getTerminalWidth, renderDivider } from "../logger/util.js"
 import type { GardenInstanceManager } from "../server/instance-manager.js"
 import { TypedEventEmitter } from "../util/events.js"
 import { uuidv4 } from "../util/random.js"
@@ -479,7 +479,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private printWithDividers(text: string, title: string) {
     let width = max(text.split("\n").map((l) => stringWidth(l.trimEnd()))) || 0
     width += 2
-    const termWidth = getTermWidth()
+    const termWidth = getTerminalWidth()
     const minWidth = stringWidth(title) + 10
 
     if (width > termWidth) {
@@ -688,7 +688,7 @@ ${styles.accent.underline("Keys:")}
     opts: PrepareParams["opts"]
   }) {
     const id = uuidv4()
-    const width = getTermWidth() - 2
+    const width = getTerminalWidth() - 2
 
     const prepareParams: PrepareParams = {
       log: this.log,
