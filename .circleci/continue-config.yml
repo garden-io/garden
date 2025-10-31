@@ -20,6 +20,8 @@ parameters:
     GARDEN_DISABLE_VERSION_CHECK: "true"
     GARDEN_DISABLE_ANALYTICS: "true"
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
+    FORCE_COLOR: "1"
+    TERM: "xterm-256color"
 
   ubuntu-vm-runner: &ubuntu-vm-runner
     image: "ubuntu-2404:2024.08.1"
