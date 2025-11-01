@@ -60,6 +60,8 @@ export class PluginsCommand extends Command<Args> {
 
   override arguments = pluginArgs
 
+  override streamLogEntriesV2 = true
+
   override printHeader({ log }) {
     printHeader(log, "Plugins", "⚙️")
   }

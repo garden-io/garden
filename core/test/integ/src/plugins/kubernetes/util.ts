@@ -104,8 +104,7 @@ describe("getWorkloadPods", () => {
       namespace: provider.config.namespace!.name!,
       log: createActionLog({
         log: garden.log,
-        actionName: simpleServiceAction.name,
-        actionKind: simpleServiceAction.kind,
+        action: simpleServiceAction,
       }),
       production: false,
     })

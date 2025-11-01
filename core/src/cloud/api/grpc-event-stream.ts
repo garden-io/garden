@@ -11,8 +11,6 @@ import type { GardenWithNewBackend } from "../../garden.js"
 import { registerCleanupFunction, sleep } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { EventName, EventPayload, GardenEventAnyListener } from "../../events/events.js"
-import { LogLevel } from "../../logger/logger.js"
-import type { LogEntryEventPayload } from "../api-legacy/restful-event-stream.js"
 import type {
   Event as GrpcEvent,
   GardenEventIngestionService,
@@ -71,7 +69,7 @@ export class GrpcEventStream {
     this.isClosed = false
     this.shouldStreamLogEntries = shouldStreamLogEntries
 
-    this.converter = new GrpcEventConverter(this.garden, this.log)
+    this.converter = new GrpcEventConverter(this.garden, this.log, this.shouldStreamLogEntries)
 
     // TODO: make sure it waits for the callback function completion
     registerCleanupFunction("grow-stream-session-cancelled-event", () => {
@@ -80,17 +78,19 @@ export class GrpcEventStream {
       }
 
       this.handleEvent("sessionCancelled", {})
-      this.close().catch(() => {})
+      this.close().catch(() => {
+        return
+      })
     })
 
-    this.logListener = (name, payload) => {
-      if (name === "logEntry" && payload.level <= LogLevel.debug) {
-        this.handleLogEntry(payload)
-      }
+    // Handle log entries in the converter
+    this.logListener = () => {
+      return
     }
+
     this.log.root.events.onAny(this.logListener)
 
-    this.eventListener = async (name, payload) => {
+    this.eventListener = (name, payload) => {
       this.handleEvent(name, payload)
     }
     this.garden.events.onAny(this.eventListener)
@@ -167,7 +167,15 @@ export class GrpcEventStream {
   }
 
   private handleEvent<T extends EventName>(name: T, payload: EventPayload<T>) {
-    const events = this.converter.convert(name, payload)
+    let events: GrpcEvent[] = []
+
+    try {
+      events = this.converter.convert(name, payload)
+    } catch (err) {
+      this.log.warn(`GrpcEventStream: Error while converting event ${name}: ${err}`)
+      return
+    }
+
     for (const event of events) {
       this.log.silly(
         () => `GrpcEventStream: ${this.outputStream ? "Sending" : "Buffering"} event ${describeGrpcEvent(event)}`
@@ -188,14 +196,6 @@ export class GrpcEventStream {
         ?.write(create(IngestEventsRequestSchema, { event }))
         .catch((err) => this.log.debug(`GrpcEventStream: Failed to write event ${event.eventUlid}: ${err}`))
     }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private handleLogEntry(logEntry: LogEntryEventPayload) {
-    if (!this.shouldStreamLogEntries) {
-      return
-    }
-    // TODO: logs handling
   }
 
   private async streamEvents() {
@@ -235,7 +235,7 @@ export class GrpcEventStream {
             )}`
         )
       } else {
-        this.log.debug(() => `GrpcEventStream: Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`)
+        this.log.silly(() => `GrpcEventStream: Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`)
       }
 
       // Remove acknowledged event from the buffer
@@ -293,7 +293,7 @@ export class GrpcEventStream {
       return
     }
 
-    this.log.debug(() => `GrpcEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
+    this.log.silly(() => `GrpcEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
 
     // NOTE: The Map implementation in the javascript runtime guarantees that values will be iterated in the order they were added (FIFO).
     for (const event of this.eventBuffer.values()) {

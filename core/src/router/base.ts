@@ -9,7 +9,7 @@
 import { fromPairs, keyBy, mapValues, pickBy } from "lodash-es"
 
 import type { Garden } from "../garden.js"
-import type { Log } from "../logger/log-entry.js"
+import type { ActionLog, Log } from "../logger/log-entry.js"
 import type {
   PluginActionContextParams,
   PluginActionParamsBase,
@@ -133,6 +133,7 @@ type HandlerParams<K extends ActionKind, H extends keyof ActionTypeClasses<K>> =
   GetActionTypeParams<ActionTypeClasses<K>[H]>,
   CommonParams | "artifactsPath"
 > & {
+  log: ActionLog
   graph: ConfigGraph
   pluginName?: string
   events?: PluginEventBroker | undefined

@@ -14,6 +14,8 @@ import { PluginEventBroker } from "../plugin-context.js"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts.js"
 import type { BaseRouterParams } from "./base.js"
 import { createActionRouter } from "./base.js"
+import { logLevelFromString } from "../logger/logger.js"
+import { uuidv4 } from "../util/random.js"
 
 const API_ACTION_TYPE = "run"
 
@@ -38,10 +40,31 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         params.events.on("log", ({ timestamp, msg, origin, level }) => {
           if (!params.interactive) {
             // stream logs to CLI; if interactive is true, the output will already be streamed to process.stdout
-            // TODO: make sure that logs of different tasks in the same module can be differentiated
             params.log[level]({ msg, origin })
+          } else {
+            // Make sure to send the log entry to Garden Cloud v2
+            garden.events.emit("logEntry", {
+              key: uuidv4(),
+              timestamp,
+              level: logLevelFromString(level),
+              message: {
+                msg: undefined,
+                rawMsg: msg,
+                error: "",
+                section: "",
+              },
+              context: {
+                type: "actionLog",
+                actionName,
+                actionKind: actionType,
+                actionUid,
+                origin: origin || "",
+                sessionId: garden.sessionId,
+                parentSessionId: garden.parentSessionId,
+              },
+            })
           }
-          // stream logs to Garden Cloud
+          // stream logs to Garden Cloud (legacy)
           garden.events.emit("log", {
             timestamp,
             actionUid,

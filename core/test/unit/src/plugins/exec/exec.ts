@@ -50,6 +50,7 @@ import {
 } from "../../../../../src/constants.js"
 import { isRunning, killRecursive } from "../../../../../src/process.js"
 import { ACTION_RUNTIME_LOCAL } from "../../../../../src/plugin/base.js"
+import { uuidv4 } from "../../../../../src/util/random.js"
 
 describe("exec plugin", () => {
   context("test-project based tests", () => {
@@ -67,7 +68,7 @@ describe("exec plugin", () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       execProvider = await garden.resolveProvider({ log: garden.log, name: "exec" })
       ctx = await garden.getPluginContext({ provider: execProvider, templateContext: undefined, events: undefined })
-      log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+      log = createActionLog({ log: garden.log, action: { name: "", kind: "Build", uid: uuidv4() } })
       await garden.clearBuilds()
     })
 

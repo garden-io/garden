@@ -107,7 +107,7 @@ export class ExecCommand extends Command<Args, Opts> {
     const deployState = status.detail?.state
 
     const router = await garden.getActionRouter()
-    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+    const actionLog = createActionLog({ log, action })
 
     switch (deployState) {
       // Warn if the deployment is not ready yet or unhealthy, but still proceed.

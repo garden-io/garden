@@ -74,7 +74,7 @@ describe("jib-container", function () {
         action.getSpec().tarOnly = true
 
         const router = await garden.getActionRouter()
-        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log: garden.log, action })
 
         const { result: res } = await router.build.build({
           action,
@@ -94,7 +94,7 @@ describe("jib-container", function () {
         action.getSpec().tarOnly = true
 
         const router = await garden.getActionRouter()
-        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log: garden.log, action })
 
         const { result: res } = await router.build.build({
           action,
@@ -118,7 +118,7 @@ describe("jib-container", function () {
         action.getSpec().tarOnly = false
 
         const router = await garden.getActionRouter()
-        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log: garden.log, action })
 
         await router.build.build({
           action,
@@ -132,7 +132,7 @@ describe("jib-container", function () {
         action.getSpec().tarOnly = false
 
         const router = await garden.getActionRouter()
-        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log: garden.log, action })
 
         await router.build.build({
           action,
@@ -149,7 +149,7 @@ describe("jib-container", function () {
         action.getSpec().dockerBuild = true
 
         const router = await garden.getActionRouter()
-        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log: garden.log, action })
 
         await router.build.build({
           action,
@@ -164,7 +164,7 @@ describe("jib-container", function () {
         action.getSpec().dockerBuild = true
 
         const router = await garden.getActionRouter()
-        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log: garden.log, action })
 
         await router.build.build({
           action,

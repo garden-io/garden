@@ -141,8 +141,7 @@ export class LogMonitor extends Monitor {
     const router = await this.garden.getActionRouter()
     const actionLog = createActionLog({
       log: this.garden.log,
-      actionName: this.action.name,
-      actionKind: this.action.kind,
+      action: this.action,
     })
     const onLogEntry = (entry: DeployLogEntry) => {
       // Skip empty entries

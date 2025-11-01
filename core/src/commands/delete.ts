@@ -65,6 +65,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
 
   override protected = true
   override streamEvents = true
+  override streamLogEntriesV2 = true
 
   override options = deleteEnvironmentOpts
 
@@ -149,6 +150,7 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
   override protected = true
   workflows = true
   override streamEvents = true
+  override streamLogEntriesV2 = true
 
   override options = deleteDeployOpts
 

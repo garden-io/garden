@@ -106,6 +106,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
   override protected = true
   override streamEvents = true
+  override streamLogEntriesV2 = true
 
   override description = dedent`
     Deploys all or specified Deploy actions, taking into account dependency order.

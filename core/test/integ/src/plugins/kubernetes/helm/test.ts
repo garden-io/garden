@@ -93,7 +93,7 @@ describe("Helm Pod Test", () => {
     )
 
     const actions = await garden.getActionRouter()
-    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+    const actionLog = createActionLog({ log: garden.log, action })
 
     // We also verify that, despite the test failing, its result was still saved.
     const result = await actions.test.getResult({

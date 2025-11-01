@@ -80,7 +80,7 @@ describe("Helm Pod Run", () => {
 
     // We also verify that result was saved.
     const actions = await garden.getActionRouter()
-    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+    const actionLog = createActionLog({ log: garden.log, action })
 
     const storedResult = await actions.run.getResult({
       log: actionLog,
@@ -128,7 +128,7 @@ describe("Helm Pod Run", () => {
 
     // Verify that the result was not saved
     const router = await garden.getActionRouter()
-    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+    const actionLog = createActionLog({ log: garden.log, action })
 
     const { result } = await router.run.getResult({
       log: actionLog,
@@ -181,7 +181,7 @@ describe("Helm Pod Run", () => {
     )
 
     const actions = await garden.getActionRouter()
-    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+    const actionLog = createActionLog({ log: garden.log, action })
 
     // We also verify that, despite the task failing, its result was still saved.
     const result = await actions.run.getResult({

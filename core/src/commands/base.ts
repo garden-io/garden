@@ -180,7 +180,8 @@ export abstract class Command<
   noProject = false
   protected = false
   streamEvents = false // Set to true to stream events for the command
-  streamLogEntries = false // Set to true to stream log entries for the command
+  streamLogEntries = false // Set to true to stream log entries for the command to Garden Cloud v1 and v2
+  streamLogEntriesV2 = false // Set to true to stream log entries for the command to just Garden Cloud v2
   isCustom = false // Used to identify custom commands
   isDevCommand = false // Set to true for internal commands in interactive command-line commands
   ignoreOptions = false // Completely ignore all option flags and pass all arguments directly to the command
@@ -344,11 +345,14 @@ export abstract class Command<
 
         let result: CommandResult<R>
 
+        // We're streaming more logs to Garden Cloud v2 so we have a separate flag for that
+        const shouldStreamLogs = this.streamLogEntries || (!!garden.cloudApi && this.streamLogEntriesV2)
+
         const cloudEventStream = createCloudEventStream({
           sessionId: garden.sessionId,
           log,
           garden,
-          opts: { shouldStreamEvents: this.streamEvents, shouldStreamLogs: this.streamLogEntries },
+          opts: { shouldStreamEvents: this.streamEvents, shouldStreamLogs },
         })
         if (cloudEventStream) {
           log.silly(() => `Connecting Garden instance events to Cloud API`)

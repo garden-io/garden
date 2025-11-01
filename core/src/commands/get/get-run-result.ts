@@ -66,7 +66,7 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
     const router = await garden.getActionRouter()
 
     const resolved = await garden.resolveAction({ action, graph, log })
-    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+    const actionLog = createActionLog({ log, action })
 
     const { result: res } = await router.run.getResult({
       log: actionLog,

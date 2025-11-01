@@ -122,7 +122,7 @@ describe("sync mode deployments and sync behavior", () => {
           actionModes: { sync: ["deploy.sync-mode"] },
         }),
       })
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log, action })
 
       const status = await k8sGetContainerDeployStatus({
         ctx,
@@ -192,7 +192,7 @@ describe("sync mode deployments and sync behavior", () => {
           actionModes: { sync: ["deploy.sync-mode"] },
         }),
       })
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log, action })
       const status = await k8sGetContainerDeployStatus({
         ctx,
         action: resolvedAction,
@@ -475,7 +475,7 @@ describe("sync mode deployments and sync behavior", () => {
       )
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       actionRaw = graph.getDeploy("sync-mode")
-      actionLog = createActionLog({ log: garden.log, actionName: actionRaw.name, actionKind: actionRaw.kind })
+      actionLog = createActionLog({ log: garden.log, action: actionRaw })
       action = await garden.resolveAction({
         action: actionRaw,
         log: garden.log,

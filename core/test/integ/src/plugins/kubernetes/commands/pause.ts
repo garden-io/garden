@@ -187,8 +187,7 @@ describe("kubernetesPauseCommand", () => {
       })
       const actionLog = createActionLog({
         log: garden.log,
-        actionName: action.name,
-        actionKind: action.kind,
+        action,
       })
 
       await helmDeploy({

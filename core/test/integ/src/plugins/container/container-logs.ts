@@ -11,6 +11,7 @@ import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import type { ActionLog } from "../../../../../src/logger/log-entry.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import { gardenPlugin as gardenContainerPlugin } from "../../../../../src/plugins/container/container.js"
+import { uuidv4 } from "../../../../../src/util/random.js"
 
 describe("dockerBuildLogs", () => {
   const projectRoot = getDataDir("test-project-container-build-logs")
@@ -20,7 +21,7 @@ describe("dockerBuildLogs", () => {
 
   before(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenContainerPlugin()] })
-    log = createActionLog({ log: garden.log, actionName: "simple-build", actionKind: "Build" })
+    log = createActionLog({ log: garden.log, action: { name: "simple-build", kind: "Build", uid: uuidv4() } })
   })
 
   after(() => {

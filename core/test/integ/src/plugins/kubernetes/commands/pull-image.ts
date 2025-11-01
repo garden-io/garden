@@ -81,8 +81,7 @@ describe.skip("pull-image plugin command", () => {
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
       const actionLog = createActionLog({
         log: garden.log,
-        actionName: resolvedAction.name,
-        actionKind: resolvedAction.kind,
+        action: resolvedAction,
       })
 
       await builder.handlers.build!({
@@ -123,7 +122,7 @@ describe.skip("pull-image plugin command", () => {
 
       // build the image
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
-      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log: garden.log, action })
 
       await builder.handlers.build!({
         ctx,

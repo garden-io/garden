@@ -71,6 +71,10 @@ export const logLevelMap = {
   [LogLevel.silly]: "silly",
 }
 
+export function logLevelFromString(level: string): LogLevel {
+  return LogLevel[level as keyof typeof LogLevel]
+}
+
 export function logLevelToString(level: LogLevel): StringLogLevel {
   return logLevelMap[level] as StringLogLevel
 }

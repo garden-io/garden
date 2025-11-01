@@ -30,6 +30,7 @@ import { freezeTime } from "../../../helpers.js"
 import { format } from "date-fns"
 import { styles } from "../../../../src/logger/styles.js"
 import { gardenEnv } from "../../../../src/constants.js"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 const logger: Logger = getRootLogger()
 
@@ -72,7 +73,7 @@ describe("renderers", () => {
     })
     it("should properly format sections for action logs", () => {
       const log = logger.createLog({ name: "hello" })
-      const actionLog = createActionLog({ log, actionName: "api", actionKind: "build" }).info("foo")
+      const actionLog = createActionLog({ log, action: { name: "api", kind: "Build", uid: uuidv4() } }).info("foo")
       const withWhitespace = "build.api".padEnd(SECTION_PADDING, " ")
       const rendered = stripAnsi(renderSection(actionLog.entries[0]))
       expect(rendered).to.equal(`${withWhitespace} → `)

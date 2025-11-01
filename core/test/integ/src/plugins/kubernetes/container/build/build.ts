@@ -32,6 +32,7 @@ import {
 import { compareDeployedResources } from "../../../../../../../src/plugins/kubernetes/status/status.js"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api.js"
 import { ensureBuildkit } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit.js"
+import { uuidv4 } from "../../../../../../../src/util/random.js"
 
 describe.skip("Kubernetes Container Build Extension", () => {
   const builder = k8sContainerBuildExtension()
@@ -51,7 +52,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
 
   const init = async (environmentName: string, remoteContainerAuth = false) => {
     ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
-    log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+    log = createActionLog({ log: garden.log, action: { name: "", kind: "Build", uid: uuidv4() } })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = (await garden.getPluginContext({
@@ -599,7 +600,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
 
   const init = async (environmentName: string, remoteContainerAuth = false) => {
     ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
-    log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+    log = createActionLog({ log: garden.log, action: { name: "", kind: "Build", uid: uuidv4() } })
     provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = (await garden.getPluginContext({
       provider,

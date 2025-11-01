@@ -16,7 +16,8 @@ import {
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import type { EventName as CoreEventName, EventPayload as CoreEventPayload } from "../../events/events.js"
 import type { GardenWithNewBackend } from "../../garden.js"
-import type { Log } from "../../logger/log-entry.js"
+import type { LogSymbol, Msg } from "../../logger/log-entry.js"
+import { isActionLogContext, isCoreLogContext, type Log } from "../../logger/log-entry.js"
 import { monotonicFactory, ulid, type ULID, type UUID } from "ulid"
 import { create } from "@bufbuild/protobuf"
 import {
@@ -48,6 +49,12 @@ import {
   DeployRunResultSchema,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_action_pb.js"
 import type { DeployStatusForEventPayload } from "../../types/service.js"
+import {
+  DataFormat,
+  GardenLogMessageEmittedSchema,
+  LogSymbol as GrpcLogSymbol,
+} from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_logs_pb.js"
+import type { LogEntryEventPayload } from "../api-legacy/restful-event-stream.js"
 
 const nextEventUlid = monotonicFactory()
 
@@ -61,6 +68,7 @@ type GardenEventContext = {
 export class GrpcEventConverter {
   private readonly garden: GardenWithNewBackend
   private readonly log: Log
+  private readonly shouldStreamLogEntries: boolean
 
   /**
    * It is important to keep it static,
@@ -69,9 +77,10 @@ export class GrpcEventConverter {
    */
   private static readonly uuidToUlidMap = new Map<UUID, ULID>()
 
-  constructor(garden: GardenWithNewBackend, log: Log) {
+  constructor(garden: GardenWithNewBackend, log: Log, shouldStreamLogEntries: boolean) {
     this.garden = garden
     this.log = log
+    this.shouldStreamLogEntries = shouldStreamLogEntries
   }
 
   convert<T extends CoreEventName>(name: T, payload: CoreEventPayload<T>): GrpcEventEnvelope[] {
@@ -120,18 +129,66 @@ export class GrpcEventConverter {
           payload: payload as CoreEventPayload<"aecAgentStatus">,
         })
         break
+      // NOTE: We're not propagating "log" events, only keeping those for legacy Cloud
+      case "logEntry":
+        events = this.handleLogEntry({ context, payload: payload as CoreEventPayload<"logEntry"> })
+        break
       default:
-        // TODO: handle all event cases
-        // name satisfies never // ensure all cases are handled
-        this.log.silly(`GrpcEventStream: Unhandled core event ${name}`)
         return []
     }
 
-    if (events.length === 0) {
-      this.log.silly(`GrpcEventStream: Ignoring core event ${name}`)
+    return events
+  }
+
+  private handleLogEntry({
+    context,
+    payload,
+  }: {
+    context: GardenEventContext
+    payload: LogEntryEventPayload
+  }): GrpcEventEnvelope[] {
+    if (!this.shouldStreamLogEntries) {
+      return []
+    }
+    const msg = resolveMsg(payload.message.msg)
+    let rawMsg = resolveMsg(payload.message.rawMsg)
+
+    if (msg === rawMsg) {
+      // No need to send both if they're the same
+      rawMsg = undefined
     }
 
-    return events
+    const coreLog = isCoreLogContext(payload.context) ? payload.context : undefined
+    const actionLog = isActionLogContext(payload.context) ? payload.context : undefined
+
+    let actionUlid: ULID | undefined = undefined
+    if (actionLog) {
+      actionUlid = this.mapToUlid(actionLog.actionUid, "actionUid", "actionUlid")
+    }
+
+    return [
+      createGardenCliEvent(context, GardenCliEventType.LOGS_EMITTED, {
+        case: "logsEmitted",
+        value: create(GardenLogMessageEmittedSchema, {
+          actionUlid,
+          loggedAt: timestampFromDate(new Date(payload.timestamp)),
+          logLevel: payload.level + 1,
+          // NOTE: We deprecated the sectionName and logMessage fields, preferring the logDetails field instead
+          originDescription: payload.context.origin,
+          logDetails: {
+            // Empty strings should be omitted
+            msg: msg ?? undefined,
+            rawMsg: rawMsg ?? undefined,
+            data: payload.message.data ?? undefined,
+            dataFormat: convertLogMessageDataFormat(payload.message.dataFormat),
+            symbol: convertLogSymbol(payload.message.symbol),
+            error: payload.message.error,
+            coreLog,
+            actionLog,
+          },
+        }),
+      }),
+    ]
   }
 
   private handleAecEnvironmentUpdate({
@@ -515,4 +572,39 @@ export function createGardenCliEvent(
 
 export function describeGrpcEvent(event: GrpcEventEnvelope): string {
   return `GrpcEvent(${event.eventUlid}, ${event.eventData.case}, ${event.eventData.value?.eventData.case})`
+}
+
+function convertLogSymbol(symbol: LogSymbol | undefined): GrpcLogSymbol | undefined {
+  switch (symbol) {
+    case "info":
+      return GrpcLogSymbol.INFO
+    case "success":
+      return GrpcLogSymbol.SUCCESS
+    case "warning":
+      return GrpcLogSymbol.WARNING
+    case "error":
+      return GrpcLogSymbol.ERROR
+    case "empty":
+      return GrpcLogSymbol.UNSPECIFIED
+    default:
+      return undefined
+  }
+}
+
+function convertLogMessageDataFormat(dataFormat: "json" | "yaml" | undefined): DataFormat | undefined {
+  switch (dataFormat) {
+    case "json":
+      return DataFormat.JSON
+    case "yaml":
+      return DataFormat.YAML
+    default:
+      return undefined
+  }
+}
+
+function resolveMsg(msg: Msg | undefined): string | undefined {
+  if (typeof msg === "function") {
+    return msg()
+  }
+  return msg
 }

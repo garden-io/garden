@@ -214,8 +214,7 @@ describe("kubernetes container module handlers", () => {
       const actions = await garden.getActionRouter()
       const actionLog = createActionLog({
         log: garden.log,
-        actionName: resolvedRuntimeAction.name,
-        actionKind: resolvedRuntimeAction.kind,
+        action: resolvedRuntimeAction,
       })
 
       // We also verify that, despite the test failing, its result was still saved.

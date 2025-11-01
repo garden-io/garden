@@ -22,6 +22,7 @@ import { createActionLog } from "../../../../src/logger/log-entry.js"
 import type { TestGarden } from "../../../helpers.js"
 import { makeTempGarden } from "../../../helpers.js"
 import type tmp from "tmp-promise"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 function minimalActionConfig(): ActionConfig {
   return {
@@ -123,8 +124,7 @@ describe("getFullActionVersion", () => {
 describe("getActionConfigVersion", () => {
   const log = createActionLog({
     log: getRootLogger().createLog(),
-    actionName: "foo",
-    actionKind: "Build",
+    action: { name: "foo", kind: "Build", uid: uuidv4() },
   })
 
   context("action config version does not change", () => {
@@ -280,8 +280,7 @@ describe("getActionConfigVersion", () => {
 describe("replaceExcludeValues", () => {
   const log = createActionLog({
     log: getRootLogger().createLog(),
-    actionName: "foo",
-    actionKind: "Build",
+    action: { name: "foo", kind: "Build", uid: uuidv4() },
   })
 
   it("handles multiple replacements in the same string", () => {

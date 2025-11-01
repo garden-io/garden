@@ -169,7 +169,7 @@ export async function getDeployStatuses(
   return fromPairs(
     await Promise.all(
       actions.map(async (action) => {
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
         const { result } = await router.deploy.getStatus({ action, log: actionLog, graph })
         return [action.name, result]
       })
@@ -182,7 +182,7 @@ async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph
   return fromPairs(
     await Promise.all(
       actions.map(async (action) => {
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
         const { result } = await router.build.getStatus({ action, log: actionLog, graph })
         return [action.name, result]
       })
@@ -196,7 +196,7 @@ async function getTestStatuses(router: ActionRouter, graph: ResolvedConfigGraph,
   return fromPairs(
     await Promise.all(
       actions.map(async (action) => {
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
         const { result } = await router.test.getResult({ action, log: actionLog, graph })
         return [action.name, result]
       })
@@ -210,7 +210,7 @@ async function getRunStatuses(router: ActionRouter, graph: ResolvedConfigGraph, 
   return fromPairs(
     await Promise.all(
       actions.map(async (action) => {
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
         const { result } = await router.run.getResult({ action, log: actionLog, graph })
         return [action.name, result]
       })

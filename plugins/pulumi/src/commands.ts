@@ -408,7 +408,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
       const tasks = await Promise.all(
         actions.map(async (action) => {
           const templateContext = new TemplatableConfigContext(garden, action.getConfig())
-          const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+          const actionLog = createActionLog({ log, action })
 
           const pulumiParams: PulumiBaseParams = {
             ctx: await garden.getPluginContext({ provider: pulumiProvider, templateContext, events: ctx.events }),

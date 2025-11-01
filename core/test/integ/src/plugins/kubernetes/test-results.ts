@@ -59,7 +59,7 @@ describe("kubernetes Test results", () => {
 
       expect(trimmed).to.be.not.undefined
       expect(trimmed!.log.length).to.be.lte(MAX_RUN_RESULT_LOG_LENGTH)
-      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log: garden.log, action })
 
       const stored = await k8sGetTestResult({
         ctx,

@@ -757,8 +757,7 @@ export abstract class BaseAction<
 
     return createActionLog({
       log,
-      actionKind: this.kind,
-      actionName: this.name,
+      action: this,
     })
   }
 

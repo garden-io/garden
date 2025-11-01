@@ -115,7 +115,7 @@ export class SyncRestartCommand extends Command<Args, Opts> {
 
     await Promise.all(
       actions.map(async (action) => {
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
         await router.deploy.stopSync({ log: actionLog, action, graph })
       })
     )
