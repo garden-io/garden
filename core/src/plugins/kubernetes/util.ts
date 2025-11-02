@@ -168,7 +168,8 @@ export async function getCurrentWorkloadPods(
  * Retrieve a list of pods based on the given resource/manifest. If passed a Pod manifest, it's read from the
  * remote namespace and returned directly.
  *
- * In the case of Deployments, only the pods belonging the latest ReplicaSet are returned.
+ * For Deployments, only the pods belonging to the current ReplicaSet are returned.
+ * For StatefulSets and DaemonSets, pods are filtered by ownerReferences.
  */
 export async function getWorkloadPods({
   api,
@@ -190,26 +191,103 @@ export async function getWorkloadPods({
 
   // We don't match on the garden.io/version label because it can fall out of sync
   const selector = omit(getSelectorFromResource(resource), gardenAnnotationKey("version"))
-  const pods = await getPods(api, resource.metadata?.namespace || namespace, selector)
+  const pods = await getPodsBySelector(api, resource.metadata?.namespace || namespace, selector)
 
   if (resource.kind === "Deployment") {
-    // Make sure we only return the pods from the current ReplicaSet
+    // For Deployments: find the current ReplicaSet and filter pods by pod-template-hash
     const selectorString = labelSelectorToString(selector)
     const replicaSetRes = await api.apps.listNamespacedReplicaSet({
       namespace: resource.metadata?.namespace || namespace,
       labelSelector: selectorString,
     })
 
-    const replicaSets = replicaSetRes.items.filter((r) => (r.spec.replicas || 0) > 0)
-
-    if (replicaSets.length === 0) {
+    if (replicaSetRes.items.length === 0) {
       return []
     }
 
-    const sorted = sortBy(replicaSets, (r) => r.metadata.creationTimestamp!)
-    const currentReplicaSet = sorted[replicaSets.length - 1]
-    return pods.filter((p) => p.metadata.name.startsWith(currentReplicaSet.metadata.name))
+    // Get the deployment UID, fetching from server if needed
+    let deploymentUid = resource.metadata?.uid
+    if (!deploymentUid) {
+      // Resource is a local manifest without UID - fetch from cluster
+      try {
+        const serverResource = await api.apps.readNamespacedDeployment({
+          name: resource.metadata.name,
+          namespace: resource.metadata?.namespace || namespace,
+        })
+        deploymentUid = serverResource.metadata?.uid
+      } catch (err) {
+        if (err instanceof KubernetesError && err.responseStatusCode === 404) {
+          // Deployment doesn't exist in cluster yet
+          return []
+        }
+        throw err
+      }
+    }
+
+    // Find the current ReplicaSet by checking owner references and revision
+    const currentReplicaSets = replicaSetRes.items.filter((rs) => {
+      // Check if this ReplicaSet is owned by this Deployment
+      const ownedByDeployment = rs.metadata.ownerReferences?.some(
+        (ref) => ref.kind === "Deployment" && ref.uid === deploymentUid
+      )
+      return ownedByDeployment && (rs.status?.replicas || 0) > 0
+    })
+
+    if (currentReplicaSets.length === 0) {
+      return []
+    }
+
+    // Sort by revision annotation to get the latest
+    const sorted = sortBy(currentReplicaSets, (rs) => {
+      const revision = rs.metadata.annotations?.["deployment.kubernetes.io/revision"]
+      return revision ? parseInt(revision, 10) : 0
+    })
+    const currentReplicaSet = sorted[sorted.length - 1]
+
+    // Filter pods by pod-template-hash label (canonical way)
+    const podTemplateHash = currentReplicaSet.metadata.labels?.["pod-template-hash"]
+    if (podTemplateHash) {
+      return pods.filter((p) => p.metadata.labels?.["pod-template-hash"] === podTemplateHash)
+    } else {
+      // Fallback to owner reference check
+      const rsUid = currentReplicaSet.metadata.uid
+      return pods.filter((p) =>
+        p.metadata.ownerReferences?.some((ref) => ref.kind === "ReplicaSet" && ref.uid === rsUid)
+      )
+    }
+  } else if (resource.kind === "StatefulSet" || resource.kind === "DaemonSet") {
+    // For StatefulSets and DaemonSets: pods are owned directly by the workload
+    // Get the resource UID, fetching from server if needed
+    let resourceUid = resource.metadata?.uid
+    if (!resourceUid) {
+      // Resource is a local manifest without UID - fetch from cluster
+      try {
+        const serverResource =
+          resource.kind === "StatefulSet"
+            ? await api.apps.readNamespacedStatefulSet({
+                name: resource.metadata.name,
+                namespace: resource.metadata?.namespace || namespace,
+              })
+            : await api.apps.readNamespacedDaemonSet({
+                name: resource.metadata.name,
+                namespace: resource.metadata?.namespace || namespace,
+              })
+        resourceUid = serverResource.metadata?.uid
+      } catch (err) {
+        if (err instanceof KubernetesError && err.responseStatusCode === 404) {
+          // Workload doesn't exist in cluster yet
+          return []
+        }
+        throw err
+      }
+    }
+
+    // Filter by ownerReferences to ensure we only get pods from this specific resource
+    return pods.filter((p) =>
+      p.metadata.ownerReferences?.some((ref) => ref.kind === resource.kind && ref.uid === resourceUid)
+    )
   } else {
+    // For other workload types (e.g., ReplicaSet), use label selector
     return pods
   }
 }
@@ -223,7 +301,7 @@ export function labelSelectorToString(selector: { [key: string]: string }) {
 /**
  * Retrieve a list of pods based on the provided label selector.
  */
-export async function getPods(
+export async function getPodsBySelector(
   api: KubeApi,
   namespace: string,
   selector: { [key: string]: string }
@@ -240,8 +318,8 @@ export async function getPods(
 /**
  * Retrieve a list of *ready* pods based on the provided label selector.
  */
-export async function getReadyPods(api: KubeApi, namespace: string, selector: { [key: string]: string }) {
-  const pods = await getPods(api, namespace, selector)
+export async function getReadyPodsBySelector(api: KubeApi, namespace: string, selector: { [key: string]: string }) {
+  const pods = await getPodsBySelector(api, namespace, selector)
   return pods.filter((pod) => checkPodStatus(pod) === "ready")
 }
 
@@ -593,7 +671,7 @@ export async function getTargetResource({
   })
 
   if (query.podSelector && !isEmpty(query.podSelector)) {
-    const pods = await getReadyPods(api, namespace, query.podSelector)
+    const pods = await getReadyPodsBySelector(api, namespace, query.podSelector)
     const pod = sample(pods)
     if (!pod) {
       const selectorStr = getSelectorString(query.podSelector)
@@ -804,6 +882,8 @@ export function renderWorkloadEvents(events: CoreV1Event[], workloadKind: string
   text += `${styles.accent(`━━━ Latest events from ${workloadKind} ${workloadName} ━━━`)}\n`
   for (const event of events) {
     const obj = event.involvedObject
+    const timestamp = event.lastTimestamp || event.firstTimestamp || event.eventTime
+    const timeStr = timestamp ? new Date(timestamp).toISOString() : "<no timestamp>"
     const name = styles.highlight(`${obj.kind} ${obj.name}:`)
     const msg = `${event.reason} - ${event.message}`
     const colored =
@@ -812,7 +892,7 @@ export function renderWorkloadEvents(events: CoreV1Event[], workloadKind: string
         : event.type === "Warning"
           ? styles.warning(msg)
           : styles.highlight(msg)
-    text += `${name} ${colored}\n`
+    text += `${styles.primary(timeStr)} ${name} ${colored}\n`
   }
 
   if (events.length === 0) {
