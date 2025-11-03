@@ -149,7 +149,7 @@ describe("GrpcEventStream", () => {
       aecAgentInfo: {
         pluginName: "fake-plugin-name",
         environmentType: "fake-environment-type",
-        description: "fake-description",
+        agentDescription: "fake-description",
       },
       status: "running",
       statusDescription: "fake-status-description",
@@ -169,7 +169,7 @@ describe("GrpcEventStream", () => {
       aecAgentInfo: {
         pluginName: "fake-plugin-name",
         environmentType: "fake-environment-type",
-        description: "fake-description",
+        agentDescription: "fake-description",
       },
       projectId: "fake-project-id",
       environmentType: "fake-environment-type",

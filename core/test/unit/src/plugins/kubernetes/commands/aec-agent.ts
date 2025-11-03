@@ -37,7 +37,7 @@ describe("checkAndCleanupNamespace", () => {
   const api = new KubeApi(log, "dummy", kubeConfig)
 
   const aecAgentInfo: AecAgentInfo = {
-    description: "dummy",
+    agentDescription: "dummy",
     environmentType: "dummy",
     pluginName: "dummy",
   }
