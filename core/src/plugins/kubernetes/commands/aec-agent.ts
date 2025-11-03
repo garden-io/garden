@@ -53,7 +53,7 @@ export const aecAgentCommand: PluginCommand = {
         aecAgentInfo: {
           pluginName: params.ctx.provider.name,
           environmentType: params.ctx.environmentName,
-          description: params.args["description"],
+          agentDescription: params.args["description"],
         },
         status: "stopped",
         statusDescription: "Exiting gracefully",
@@ -66,7 +66,7 @@ export const aecAgentCommand: PluginCommand = {
         aecAgentInfo: {
           pluginName: params.ctx.provider.name,
           environmentType: params.ctx.environmentName,
-          description: params.args["description"],
+          agentDescription: params.args["description"],
         },
         status: "error",
         statusDescription: String(e),
@@ -96,7 +96,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
   const aecAgentInfo: AecAgentInfo = {
     pluginName: provider.name,
     environmentType: ctx.environmentName,
-    description: opts["description"],
+    agentDescription: opts["description"],
   }
 
   log.info({ msg: `AEC agent info: ${JSON.stringify(aecAgentInfo)}` })
