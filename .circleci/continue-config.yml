@@ -1323,11 +1323,6 @@ workflows:
       #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-remote-sources-modules
-          project: remote-sources-modules
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
           name: e2e-run-actions
           project: run-actions
           requires: [build]
