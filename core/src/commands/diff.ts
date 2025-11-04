@@ -774,13 +774,14 @@ async function computeFiles({
 
   if (actionA) {
     const sourcePath = actionA.sourcePath()
-    filesA = await gardenA.vcs.getFiles({
+    const treeVersionWithHashes = await gardenA.vcs.getTreeVersionWithHashes({
       log,
-      path: sourcePath,
+      projectName: gardenA.projectName,
+      config: actionA.getConfig(),
       // FIXME: We should use the minimal roots, as when resolving the graph
       scanRoot: sourcePath,
     })
-    filesA = filesA.map((file) => ({
+    filesA = treeVersionWithHashes.files.map((file) => ({
       ...file,
       path: relative(sourcePath, file.path),
     }))
@@ -788,13 +789,14 @@ async function computeFiles({
 
   if (actionB) {
     const sourcePath = actionB.sourcePath()
-    filesB = await gardenB.vcs.getFiles({
+    const treeVersionWithHashes = await gardenB.vcs.getTreeVersionWithHashes({
       log,
-      path: sourcePath,
+      projectName: gardenB.projectName,
+      config: actionB.getConfig(),
       // FIXME: We should use the minimal roots, as when resolving the graph
       scanRoot: sourcePath,
     })
-    filesB = filesB.map((file) => ({
+    filesB = treeVersionWithHashes.files.map((file) => ({
       ...file,
       path: relative(sourcePath, file.path),
     }))
