@@ -420,7 +420,7 @@ async function actionDiffPreliminary({
   node: RenderedNode
   resolveAction: boolean
 }): Promise<ActionDiffPreliminary> {
-  const actionA = graphA.getActionByRef({ kind: node.kind, name: node.name })
+  const actionA = graphA.getActionByRef({ kind: node.kind, name: node.name }, { includeDisabled: true })
 
   log = actionA.createLog(log)
   log.debug({ msg: "Comparison (phase 1)" })
@@ -573,7 +573,7 @@ export async function actionDiffFinal(
     }
   }
 
-  const actionA = graphA.getActionByRef({ kind: diff.kind, name: diff.name })
+  const actionA = graphA.getActionByRef({ kind: diff.kind, name: diff.name }, { includeDisabled: true })
   // const actionB = graphB.getActionByRef({ kind: diffB.kind, name: diffB.name })
 
   const status = diff.status
