@@ -147,7 +147,7 @@ describe("parseCliArgs", () => {
     const argv = parseCliArgs({ stringArgs: [], command: cmd, cli: true })
 
     expect(argv.silent).to.be.false
-    expect(argv["log-level"]).to.equal(LogLevel[LogLevel.info])
+    expect(argv["log-level"]).to.equal(LogLevel[LogLevel.verbose])
   })
 
   it("sets default command option values", () => {
@@ -313,7 +313,7 @@ describe("processCliArgs", () => {
     const cmd = new BuildCommand()
     const { opts } = parseAndProcess([], cmd)
     expect(opts.silent).to.be.false
-    expect(opts["log-level"]).to.equal(LogLevel[LogLevel.info])
+    expect(opts["log-level"]).to.equal(LogLevel[LogLevel.verbose])
   })
 
   it("prefers defaultValue value over cliDefault when cli=false", () => {

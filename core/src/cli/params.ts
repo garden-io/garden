@@ -430,8 +430,8 @@ export const globalDisplayOptions = {
       ${styles.highlight("info: 2")}, ${styles.highlight("verbose: 3")}, ${styles.highlight("debug: 4")},
       ${styles.highlight("silly: 5")}.
       From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).`,
-    hints: "[choice] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
-    defaultValue: LogLevel[LogLevel.info],
+    hints: "[choice] [default: verbose] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
+    defaultValue: LogLevel[LogLevel.verbose],
   }),
   "output": new ChoicesParameter({
     aliases: ["o"],

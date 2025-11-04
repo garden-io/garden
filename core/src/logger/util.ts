@@ -12,12 +12,18 @@ import stringWidth from "string-width"
 import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants.js"
 import { styles } from "./styles.js"
 import type { ChalkInstance } from "chalk"
+import ci from "ci-info"
 
 // Add platforms/terminals?
 export function envSupportsEmoji() {
   return (
     process.platform === "darwin" || process.env.TERM_PROGRAM === "Hyper" || process.env.TERM_PROGRAM === "HyperTerm"
   )
+}
+
+// Copied from https://github.com/sindresorhus/is-interactive
+export function isInteractive({ stream = process.stdout } = {}) {
+  return Boolean(stream && stream.isTTY && process.env.TERM !== "dumb" && !("CI" in process.env)) && !ci.isCI
 }
 
 let _overrideTerminalWidth: number | undefined
@@ -93,7 +99,7 @@ export function renderDivider({
 }: DividerOpts = {}) {
   const pad = " "
   if (!width) {
-    width = getTermWidth()
+    width = getTerminalWidth()
   }
 
   if (!color) {
@@ -110,11 +116,6 @@ export function renderDivider({
   const paddingString = pad.repeat(padding)
 
   return paddingString + dividerSideString + titleString + dividerSideString + paddingString
-}
-
-export const getTermWidth = () => {
-  // TODO: accept stdout as param
-  return process.stdout?.columns || 100
 }
 
 export function renderDuration(duration: number): string {
