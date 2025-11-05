@@ -21,9 +21,8 @@ import { aecConfigSchema, describeTrigger, matchAecTriggers } from "../../../con
 import { validateSchema } from "../../../config/validation.js"
 import { getAnnotationsForPausedWorkload } from "../aec.js"
 import type { V1Namespace } from "@kubernetes/client-node"
-import type { EventBus } from "../../../events/events.js"
+import type { EventBus, EventPayload } from "../../../events/events.js"
 import { createServer } from "http"
-import { formatDistanceToNow } from "date-fns"
 import { createCloudEventStream } from "../../../cloud/util.js"
 import type { RestfulEventStream } from "../../../cloud/api-legacy/restful-event-stream.js"
 import type { GrpcEventStream } from "../../../cloud/api/grpc-event-stream.js"
@@ -31,6 +30,8 @@ import type { GrpcEventStream } from "../../../cloud/api/grpc-event-stream.js"
 const defaultCleanupInterval = 60000
 const defaultTtlSeconds = 60 * 60 * 24 // 24 hours
 export const aecAgentHealthCheckPort = 8999
+
+const lastEnvironmentStatus: Record<string, string> = {}
 
 export const aecAgentCommand: PluginCommand = {
   name: "aec-agent",
@@ -250,6 +251,16 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
   return { result }
 }
 
+function emitEnvironmentStatus(events: EventBus, event: EventPayload<"aecAgentEnvironmentUpdate">) {
+  const key = `${event.projectId}-${event.environmentType}-${event.environmentName}`
+  const lastStatus = lastEnvironmentStatus[key]
+  if (lastStatus === event.statusDescription) {
+    return
+  }
+  lastEnvironmentStatus[key] = event.statusDescription
+  events.emit("aecAgentEnvironmentUpdate", event)
+}
+
 async function cleanupLoop({
   log,
   api,
@@ -321,7 +332,7 @@ async function cleanupLoop({
 
         // Skip sending events if the namespace is not configured for AEC
         if (result.aecConfigured) {
-          events.emit("aecAgentEnvironmentUpdate", {
+          emitEnvironmentStatus(events, {
             timestamp: new Date().toISOString(),
             aecAgentInfo,
             projectId,
@@ -339,7 +350,7 @@ async function cleanupLoop({
       } catch (e) {
         const msg = `Unexpected error: ${e}`
         nsLog.error({ msg })
-        events.emit("aecAgentEnvironmentUpdate", {
+        emitEnvironmentStatus(events, {
           timestamp: new Date().toISOString(),
           aecAgentInfo,
           projectId,
@@ -525,7 +536,7 @@ export async function checkAndCleanupNamespace({
 
   if (lastDeployed) {
     // Log time since last deployed
-    stringStatus.push(`Last deployed ${formatDistanceToNow(lastDeployed)} ago`)
+    stringStatus.push(`Last deployed at ${lastDeployed.toISOString()}`)
   } else {
     stringStatus.push("No last-deployed annotation")
   }
@@ -571,15 +582,17 @@ export async function checkAndCleanupNamespace({
     log.warn({ msg })
     return {
       namespace,
-      aecConfigured: true,
+      aecConfigured: false,
       aecStatus,
       aecConfigParsed,
       status: status(),
     }
   }
 
+  stringStatus.push(`Configured triggers: ${aecConfigParsed.triggers.map(describeTrigger).join(", ")}`)
+
   if (aecInProgress) {
-    const msg = `Cleanup already in progress since ${formatDistanceToNow(aecInProgress)}, skipping`
+    const msg = `Cleanup already in progress since ${aecInProgress.toISOString()}`
     log.info({ msg })
     return {
       namespace,
@@ -603,7 +616,7 @@ export async function checkAndCleanupNamespace({
 
   // If no triggers are matched, skip
   if (matchedTriggers.length === 0) {
-    const msg = `No triggers matched, nothing to do`
+    const msg = `No triggers matched, nothing to do for now`
     stringStatus.push(msg)
     log.info({ msg })
     return {
@@ -645,7 +658,7 @@ export async function checkAndCleanupNamespace({
     log.info({ msg: `Pausing workloads...` })
 
     if (!dryRun) {
-      events.emit("aecAgentEnvironmentUpdate", {
+      emitEnvironmentStatus(events, {
         timestamp: new Date().toISOString(),
         aecAgentInfo,
         projectId,
@@ -696,7 +709,7 @@ export async function checkAndCleanupNamespace({
     log.info({ msg: `Cleaning up namespace` })
 
     if (!dryRun) {
-      events.emit("aecAgentEnvironmentUpdate", {
+      emitEnvironmentStatus(events, {
         timestamp: new Date().toISOString(),
         aecAgentInfo,
         projectId,
