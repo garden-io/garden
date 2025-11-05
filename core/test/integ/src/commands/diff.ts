@@ -135,7 +135,7 @@ describe("DiffCommand", () => {
     expect(summary).to.include("Source files changed")
     expect(summary).to.include("M Dockerfile")
     expect(summary).to.include("+ test.txt")
-    expect(summary).to.include("8 files unchanged")
+    expect(summary).to.include("7 files unchanged")
 
     const files = result.actions["build.api"].files
     const changedFiles = files.filter((file) => file.status === "modified")

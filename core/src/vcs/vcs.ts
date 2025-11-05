@@ -70,6 +70,11 @@ export interface TreeVersion {
   files: string[]
 }
 
+export interface TreeVersionWithHashes {
+  contentHash: string
+  files: VcsFile[]
+}
+
 export interface TreeVersions {
   [moduleName: string]: TreeVersion
 }
@@ -208,13 +213,13 @@ export abstract class VcsHandler {
     this.cache.clear()
   }
 
-  async getTreeVersion({
+  async getTreeVersionWithHashes({
     log,
     projectName,
     config,
     force = false,
     scanRoot,
-  }: GetTreeVersionParams): Promise<TreeVersion> {
+  }: GetTreeVersionParams): Promise<TreeVersionWithHashes> {
     const cacheKey = getResourceTreeCacheKey(config)
     const description = describeConfig(config)
 
@@ -231,7 +236,7 @@ export abstract class VcsHandler {
     const configPath = getConfigFilePath(config)
     const path = getSourcePath(config)
 
-    let result: TreeVersion = { contentHash: NEW_RESOURCE_VERSION, files: [] }
+    let result: TreeVersionWithHashes = { contentHash: NEW_RESOURCE_VERSION, files: [] }
 
     // Make sure we don't concurrently scan the exact same context
     await scanLock.acquire(cacheKey.join(":"), async () => {
@@ -296,7 +301,7 @@ export abstract class VcsHandler {
           stringsForContentHash = filesToHash.map((f) => f.hash)
         }
         result.contentHash = hashStrings(stringsForContentHash)
-        result.files = files.map((f) => f.path)
+        result.files = files
       }
 
       this.cache.set(log, cacheKey, result, pathToCacheContext(path))
@@ -304,6 +309,14 @@ export abstract class VcsHandler {
     })
 
     return result
+  }
+
+  async getTreeVersion(params: GetTreeVersionParams): Promise<TreeVersion> {
+    const treeVersionWithHashes = await this.getTreeVersionWithHashes(params)
+    return {
+      contentHash: treeVersionWithHashes.contentHash,
+      files: treeVersionWithHashes.files.map((f) => f.path),
+    }
   }
 
   /**
