@@ -23,6 +23,7 @@ import {
   AecAgentStatusSchema,
   AecEnvironmentUpdateSchema,
   AecAgentStatusType,
+  AecAction,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_aec_pb.js"
 import {
   GardenCommandExecutionCompletedSchema,
@@ -56,6 +57,17 @@ type GardenEventContext = {
   commandUlid: ULID
   organizationId: string
   clientVersion: string
+}
+
+const aecAgentStatusMap = {
+  running: AecAgentStatusType.RUNNING,
+  stopped: AecAgentStatusType.STOPPED,
+  error: AecAgentStatusType.ERROR,
+}
+
+const aecEnvironmentUpdateActionTriggeredMap = {
+  pause: AecAction.PAUSE,
+  cleanup: AecAction.CLEANUP,
 }
 
 export class GrpcEventConverter {
@@ -148,7 +160,9 @@ export class GrpcEventConverter {
           aecAgentInfo: payload.aecAgentInfo,
           projectId: payload.projectId,
           timestamp: timestampFromDate(new Date(payload.timestamp)),
-
+          actionTriggered: payload.actionTriggered
+            ? aecEnvironmentUpdateActionTriggeredMap[payload.actionTriggered]
+            : undefined,
           environmentType: payload.environmentType,
           environmentName: payload.environmentName,
           statusDescription: payload.statusDescription,
@@ -167,12 +181,12 @@ export class GrpcEventConverter {
     context: GardenEventContext
     payload: CoreEventPayload<"aecAgentStatus">
   }): GrpcEventEnvelope[] {
-    const status =
-      payload.status === "error"
-        ? AecAgentStatusType.ERROR
-        : payload.status === "running"
-          ? AecAgentStatusType.RUNNING
-          : AecAgentStatusType.STOPPED
+    const status = aecAgentStatusMap[payload.status]
+
+    if (!status) {
+      this.log.warn(`GrpcEventStream: Unhandled aec agent status '${payload.status}', ignoring event`)
+      return []
+    }
 
     return [
       createGardenCliEvent(context, GardenCliEventType.AEC_AGENT_STATUS, {
