@@ -589,6 +589,8 @@ export async function checkAndCleanupNamespace({
     }
   }
 
+  stringStatus.push(`Configured triggers: ${aecConfigParsed.triggers.map(describeTrigger).join(", ")}`)
+
   if (aecInProgress) {
     const msg = `Cleanup already in progress since ${aecInProgress.toISOString()}`
     log.info({ msg })
@@ -614,7 +616,7 @@ export async function checkAndCleanupNamespace({
 
   // If no triggers are matched, skip
   if (matchedTriggers.length === 0) {
-    const msg = `No triggers matched, nothing to do`
+    const msg = `No triggers matched, nothing to do for now`
     stringStatus.push(msg)
     log.info({ msg })
     return {
