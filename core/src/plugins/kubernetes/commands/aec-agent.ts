@@ -571,7 +571,7 @@ export async function checkAndCleanupNamespace({
     log.warn({ msg })
     return {
       namespace,
-      aecConfigured: true,
+      aecConfigured: false,
       aecStatus,
       aecConfigParsed,
       status: status(),
