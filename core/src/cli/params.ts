@@ -410,6 +410,10 @@ export const globalDisplayOptions = {
     defaultValue: false,
     cliOnly: true,
   }),
+  "json-result-path": new StringParameter({
+    help: "Output command result to the specified path. Defaults to <garden-dir>/command-results/<command-name>-<timestamp>.json.",
+    cliOnly: true,
+  }),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
     help: deline`
