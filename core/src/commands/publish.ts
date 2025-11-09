@@ -50,6 +50,7 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
   help = "Build and publish artifacts (e.g. container images) to a remote registry."
 
   override streamEvents = true
+  override streamLogEntriesV2 = true
 
   override description = dedent`
     Publishes built artifacts for all or specified builds. Also builds dependencies if needed.

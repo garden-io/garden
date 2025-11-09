@@ -180,7 +180,7 @@ export async function getSyncStatuses({
     deployActions,
     async (action) => {
       const events = new PluginEventBroker(garden)
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log, action })
       const { result: status } = await router.deploy.getStatus({
         graph,
         action,

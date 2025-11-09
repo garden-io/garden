@@ -57,7 +57,7 @@ export class SyncMonitor extends Monitor {
 
   async start() {
     this.router = await this.garden.getActionRouter()
-    this.actionLog = createActionLog({ log: this.log, actionName: this.action.name, actionKind: this.action.kind })
+    this.actionLog = createActionLog({ log: this.log, action: this.action })
     await this.router.deploy.getSyncStatus({
       log: this.actionLog,
       action: this.action,

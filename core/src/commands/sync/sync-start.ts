@@ -135,7 +135,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
     }
 
     actions = actions.filter((action) => {
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log, action })
       if (!action.supportsMode("sync")) {
         if (names.includes(action.name)) {
           actionLog.warn(`${action.longDescription()} does not support syncing.`)
@@ -239,7 +239,7 @@ export async function startSyncWithoutDeploy({
       const mode = result?.result?.detail?.mode
       const state = result?.result?.detail?.state
       const executedAction = result?.result?.executedAction
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log, action })
 
       if (executedAction && (state === "outdated" || state === "ready")) {
         if (mode !== "sync") {

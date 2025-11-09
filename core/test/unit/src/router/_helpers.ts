@@ -28,6 +28,7 @@ import {
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
 } from "../../../../src/constants.js"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 export async function getRouterTestData() {
   const { basePlugin, dateUsedForCompleted, returnWrongOutputsCfgKey, testPluginA, testPluginB } =
@@ -40,7 +41,7 @@ export async function getRouterTestData() {
     }),
     onlySpecifiedPlugins: true,
   })
-  const log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+  const log = createActionLog({ log: garden.log, action: { name: "", kind: "Build", uid: uuidv4() } })
   const actionRouter = await garden.getActionRouter()
   const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   const module = graph.getModule("module-a")

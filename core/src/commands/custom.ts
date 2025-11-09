@@ -73,7 +73,7 @@ export class CustomCommandWrapper extends Command {
   help = ""
 
   override isCustom = true
-
+  override streamLogEntriesV2 = true
   override allowUndefinedArguments = true
 
   constructor(public spec: CommandResource) {

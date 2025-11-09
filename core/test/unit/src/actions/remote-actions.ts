@@ -18,6 +18,7 @@ import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
 
 import { ACTION_RUNTIME_LOCAL } from "../../../../src/plugin/base.js"
 import { BuildTask } from "../../../../src/tasks/build.js"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 describe("remote actions", () => {
   context("test-project based tests", () => {
@@ -34,7 +35,7 @@ describe("remote actions", () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       // execProvider = await garden.resolveProvider({ log: garden.log, name: "exec" })
       // const ctx = await garden.getPluginContext({ provider: execProvider, templateContext: undefined, events: undefined })
-      log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+      log = createActionLog({ log: garden.log, action: { name: "", kind: "Build", uid: uuidv4() } })
       await garden.clearBuilds()
     })
 

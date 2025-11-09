@@ -61,6 +61,7 @@ export class WorkflowCommand extends Command<Args, {}> {
 
   override streamEvents = true
   override streamLogEntries = true
+  override streamLogEntriesV2 = true
 
   override description = dedent`
     Runs the commands and/or scripts defined in the workflow's steps, in sequence.

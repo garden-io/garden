@@ -114,7 +114,7 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
       log.debug(`Starting port forward to ${key}`)
 
       try {
-        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log, action })
         const output = await router.deploy.getPortForward({ action, log: actionLog, graph, events, ...spec })
         fwd = output.result
       } catch (err) {
@@ -309,7 +309,7 @@ export async function stopPortProxy({ garden, graph, log, action, proxy, events 
   closeProxyServer(proxy)
 
   const router = await garden.getActionRouter()
-  const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+  const actionLog = createActionLog({ log, action })
 
   await router.deploy.stopPortForward({ log: actionLog, graph, action, events, ...proxy.spec })
 }
