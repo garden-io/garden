@@ -170,7 +170,7 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.8.1",
+    "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^19.8.1",
     "@garden-io/platform-api-types": "1.1131.0",
     "@google-cloud/artifact-registry": "^4.2.0",
