@@ -215,7 +215,7 @@ describe("VcsHandler", () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
       const cacheKey = getResourceTreeCacheKey(moduleConfig)
 
-      const cachedResult = { contentHash: "abcdef", files: ["foo"] }
+      const cachedResult = { contentHash: "abcdef", files: [{ path: "foo", hash: "abcdef" }] }
       handlerA["cache"].set(gardenA.log, cacheKey, cachedResult, ["foo", "bar"])
 
       const result = await handlerA.getTreeVersion({
@@ -223,7 +223,7 @@ describe("VcsHandler", () => {
         projectName: gardenA.projectName,
         config: moduleConfig,
       })
-      expect(result).to.eql(cachedResult)
+      expect(result).to.eql({ contentHash: "abcdef", files: ["foo"] })
     })
 
     it("should cache the resolved version", async () => {

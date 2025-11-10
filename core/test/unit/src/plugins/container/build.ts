@@ -30,6 +30,7 @@ import fsExtra from "fs-extra"
 const { createFile } = fsExtra
 import { type ContainerBuildActionSpec } from "../../../../../src/plugins/container/config.js"
 import { makeSecret, toClearText } from "../../../../../src/util/secrets.js"
+import { uuidv4 } from "../../../../../src/util/random.js"
 
 context("build.ts", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -43,7 +44,7 @@ context("build.ts", () => {
   before(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
-    actionLog = createActionLog({ log, actionName: "", actionKind: "" })
+    actionLog = createActionLog({ log, action: { name: "", kind: "Build", uid: uuidv4() } })
     containerProvider = await garden.resolveProvider({ log: garden.log, name: "container" })
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
     graph = await garden.getConfigGraph({ log, emit: false })

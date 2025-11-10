@@ -418,7 +418,7 @@ async function buildContainerInCloudBuilder(params: {
     name: `build.${params.action.name}`,
   })
 
-  log.success(styles.bold(`Accelerated by Remote Container Builder ${renderSavedTime(res.timeSaved)}`))
+  log.info(styles.bold(`Accelerated by Remote Container Builder ${renderSavedTime(res.timeSaved)}`))
 
   return res
 }

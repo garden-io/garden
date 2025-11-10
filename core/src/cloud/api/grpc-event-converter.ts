@@ -16,13 +16,15 @@ import {
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import type { EventName as CoreEventName, EventPayload as CoreEventPayload } from "../../events/events.js"
 import type { GardenWithNewBackend } from "../../garden.js"
-import type { Log } from "../../logger/log-entry.js"
+import type { LogSymbol, Msg } from "../../logger/log-entry.js"
+import { isActionLogContext, isCoreLogContext, type Log } from "../../logger/log-entry.js"
 import { monotonicFactory, ulid, type ULID, type UUID } from "ulid"
 import { create } from "@bufbuild/protobuf"
 import {
   AecAgentStatusSchema,
   AecEnvironmentUpdateSchema,
   AecAgentStatusType,
+  AecAction,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_aec_pb.js"
 import {
   GardenCommandExecutionCompletedSchema,
@@ -34,6 +36,7 @@ import {
   GardenCommandExecutionStartedSchema,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_command_pb.js"
 import { timestampFromDate } from "@bufbuild/protobuf/wkt"
+import type { DeployRunResult } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_action_pb.js"
 import {
   GardenActionGetStatusCompletedSchema,
   GardenActionGetStatusStartedSchema,
@@ -43,7 +46,16 @@ import {
   GardenActionRunCompletedSchema,
   GardenActionRunStartedSchema,
   GardenActionScannedSchema,
+  ServiceIngressSchema,
+  DeployRunResultSchema,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_action_pb.js"
+import type { DeployStatusForEventPayload } from "../../types/service.js"
+import {
+  DataFormat,
+  GardenLogMessageEmittedSchema,
+  LogSymbol as GrpcLogSymbol,
+} from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_logs_pb.js"
+import type { LogEntryEventPayload } from "../api-legacy/restful-event-stream.js"
 
 const nextEventUlid = monotonicFactory()
 
@@ -54,9 +66,21 @@ type GardenEventContext = {
   clientVersion: string
 }
 
+const aecAgentStatusMap = {
+  running: AecAgentStatusType.RUNNING,
+  stopped: AecAgentStatusType.STOPPED,
+  error: AecAgentStatusType.ERROR,
+}
+
+const aecEnvironmentUpdateActionTriggeredMap = {
+  pause: AecAction.PAUSE,
+  cleanup: AecAction.CLEANUP,
+}
+
 export class GrpcEventConverter {
   private readonly garden: GardenWithNewBackend
   private readonly log: Log
+  private readonly shouldStreamLogEntries: boolean
 
   /**
    * It is important to keep it static,
@@ -65,9 +89,10 @@ export class GrpcEventConverter {
    */
   private static readonly uuidToUlidMap = new Map<UUID, ULID>()
 
-  constructor(garden: GardenWithNewBackend, log: Log) {
+  constructor(garden: GardenWithNewBackend, log: Log, shouldStreamLogEntries: boolean) {
     this.garden = garden
     this.log = log
+    this.shouldStreamLogEntries = shouldStreamLogEntries
   }
 
   convert<T extends CoreEventName>(name: T, payload: CoreEventPayload<T>): GrpcEventEnvelope[] {
@@ -116,18 +141,66 @@ export class GrpcEventConverter {
           payload: payload as CoreEventPayload<"aecAgentStatus">,
         })
         break
+      // NOTE: We're not propagating "log" events, only keeping those for legacy Cloud
+      case "logEntry":
+        events = this.handleLogEntry({ context, payload: payload as CoreEventPayload<"logEntry"> })
+        break
       default:
-        // TODO: handle all event cases
-        // name satisfies never // ensure all cases are handled
-        this.log.silly(`GrpcEventStream: Unhandled core event ${name}`)
         return []
     }
 
-    if (events.length === 0) {
-      this.log.silly(`GrpcEventStream: Ignoring core event ${name}`)
+    return events
+  }
+
+  private handleLogEntry({
+    context,
+    payload,
+  }: {
+    context: GardenEventContext
+    payload: LogEntryEventPayload
+  }): GrpcEventEnvelope[] {
+    if (!this.shouldStreamLogEntries) {
+      return []
+    }
+    const msg = resolveMsg(payload.message.msg)
+    let rawMsg = resolveMsg(payload.message.rawMsg)
+
+    if (msg === rawMsg) {
+      // No need to send both if they're the same
+      rawMsg = undefined
     }
 
-    return events
+    const coreLog = isCoreLogContext(payload.context) ? payload.context : undefined
+    const actionLog = isActionLogContext(payload.context) ? payload.context : undefined
+
+    let actionUlid: ULID | undefined = undefined
+    if (actionLog) {
+      actionUlid = this.mapToUlid(actionLog.actionUid, "actionUid", "actionUlid")
+    }
+
+    return [
+      createGardenCliEvent(context, GardenCliEventType.LOGS_EMITTED, {
+        case: "logsEmitted",
+        value: create(GardenLogMessageEmittedSchema, {
+          actionUlid,
+          loggedAt: timestampFromDate(new Date(payload.timestamp)),
+          logLevel: payload.level + 1,
+          // NOTE: We deprecated the sectionName and logMessage fields, preferring the logDetails field instead
+          originDescription: payload.context.origin,
+          logDetails: {
+            // Empty strings should be omitted
+            msg: msg ?? undefined,
+            rawMsg: rawMsg ?? undefined,
+            data: payload.message.data ?? undefined,
+            dataFormat: convertLogMessageDataFormat(payload.message.dataFormat),
+            symbol: convertLogSymbol(payload.message.symbol),
+            error: payload.message.error,
+            coreLog,
+            actionLog,
+          },
+        }),
+      }),
+    ]
   }
 
   private handleAecEnvironmentUpdate({
@@ -144,7 +217,9 @@ export class GrpcEventConverter {
           aecAgentInfo: payload.aecAgentInfo,
           projectId: payload.projectId,
           timestamp: timestampFromDate(new Date(payload.timestamp)),
-
+          actionTriggered: payload.actionTriggered
+            ? aecEnvironmentUpdateActionTriggeredMap[payload.actionTriggered]
+            : undefined,
           environmentType: payload.environmentType,
           environmentName: payload.environmentName,
           statusDescription: payload.statusDescription,
@@ -163,12 +238,12 @@ export class GrpcEventConverter {
     context: GardenEventContext
     payload: CoreEventPayload<"aecAgentStatus">
   }): GrpcEventEnvelope[] {
-    const status =
-      payload.status === "error"
-        ? AecAgentStatusType.ERROR
-        : payload.status === "running"
-          ? AecAgentStatusType.RUNNING
-          : AecAgentStatusType.STOPPED
+    const status = aecAgentStatusMap[payload.status]
+
+    if (!status) {
+      this.log.warn(`GrpcEventStream: Unhandled aec agent status '${payload.status}', ignoring event`)
+      return []
+    }
 
     return [
       createGardenCliEvent(context, GardenCliEventType.AEC_AGENT_STATUS, {
@@ -233,6 +308,35 @@ export class GrpcEventConverter {
             }),
           ]
         } else if (payload.operation === "process") {
+          const actionKind = payload.actionKind
+
+          let deployRunResult: DeployRunResult | undefined = undefined
+
+          if (actionKind === "deploy" && "status" in payload && payload.status) {
+            const deployStatus = payload.status as DeployStatusForEventPayload
+
+            deployRunResult = create(DeployRunResultSchema, {
+              createdAt: deployStatus.createdAt,
+              mode: deployStatus.mode,
+              externalId: deployStatus.externalId,
+              externalVersion: deployStatus.externalVersion,
+              ingresses:
+                deployStatus.ingresses?.map((ingress) =>
+                  create(ServiceIngressSchema, {
+                    hostname: ingress.hostname,
+                    linkUrl: ingress.linkUrl,
+                    path: ingress.path || "/",
+                    port: ingress.port,
+                    protocol: ingress.protocol,
+                  })
+                ) || [],
+              lastMessage: deployStatus.lastMessage,
+              lastError: deployStatus.lastError,
+              runningReplicas: deployStatus.runningReplicas,
+              updatedAt: deployStatus.updatedAt,
+            })
+          }
+
           return [
             createGardenCliEvent(context, GardenCliEventType.ACTION_RUN_COMPLETED, {
               case: "actionRunCompleted",
@@ -240,6 +344,8 @@ export class GrpcEventConverter {
                 actionUlid: this.mapToUlid(payload.actionUid, "actionUid", "actionUlid"),
                 completedAt: timestampFromDate(new Date()),
                 success: !["not-ready", "failed", "unknown"].includes(payload.state),
+                // This is undefined for non-Deploy actions
+                deployRunResult,
               }),
             }),
           ]
@@ -480,4 +586,39 @@ export function createGardenCliEvent(
 
 export function describeGrpcEvent(event: GrpcEventEnvelope): string {
   return `GrpcEvent(${event.eventUlid}, ${event.eventData.case}, ${event.eventData.value?.eventData.case})`
+}
+
+function convertLogSymbol(symbol: LogSymbol | undefined): GrpcLogSymbol | undefined {
+  switch (symbol) {
+    case "info":
+      return GrpcLogSymbol.INFO
+    case "success":
+      return GrpcLogSymbol.SUCCESS
+    case "warning":
+      return GrpcLogSymbol.WARNING
+    case "error":
+      return GrpcLogSymbol.ERROR
+    case "empty":
+      return GrpcLogSymbol.UNSPECIFIED
+    default:
+      return undefined
+  }
+}
+
+function convertLogMessageDataFormat(dataFormat: "json" | "yaml" | undefined): DataFormat | undefined {
+  switch (dataFormat) {
+    case "json":
+      return DataFormat.JSON
+    case "yaml":
+      return DataFormat.YAML
+    default:
+      return undefined
+  }
+}
+
+function resolveMsg(msg: Msg | undefined): string | undefined {
+  if (typeof msg === "function") {
+    return msg()
+  }
+  return msg
 }

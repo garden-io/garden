@@ -97,8 +97,7 @@ describe("runContainerTask", () => {
     const resolvedAction = await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph })
     const actionLog = createActionLog({
       log: garden.log,
-      actionName: resolvedAction.name,
-      actionKind: resolvedAction.kind,
+      action: resolvedAction,
     })
 
     const storedResult = await actions.run.getResult({
@@ -148,8 +147,7 @@ describe("runContainerTask", () => {
     const resolvedAction = await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph })
     const actionLog = createActionLog({
       log: garden.log,
-      actionName: resolvedAction.name,
-      actionKind: resolvedAction.kind,
+      action: resolvedAction,
     })
 
     const { result } = await router.run.getResult({
@@ -202,8 +200,7 @@ describe("runContainerTask", () => {
     const resolvedAction = await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph })
     const actionLog = createActionLog({
       log: garden.log,
-      actionName: resolvedAction.name,
-      actionKind: resolvedAction.kind,
+      action: resolvedAction,
     })
 
     const { result } = await actions.run.getResult({

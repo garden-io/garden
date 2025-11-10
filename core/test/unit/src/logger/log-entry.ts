@@ -12,9 +12,10 @@ import type { Logger } from "../../../../src/logger/logger.js"
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
 import { freezeTime } from "../../../helpers.js"
 import type { CoreLog, Log, LogMetadata } from "../../../../src/logger/log-entry.js"
-import { createActionLog } from "../../../../src/logger/log-entry.js"
+import { createActionLog, resolveMsg } from "../../../../src/logger/log-entry.js"
 import { omit } from "lodash-es"
 import { styles } from "../../../../src/logger/styles.js"
+import { uuidv4 } from "../../../../src/util/random.js"
 
 const logger: Logger = getRootLogger()
 
@@ -84,8 +85,9 @@ describe("Log", () => {
       expect(entry.msg).to.eql(styles.success("success"))
     })
     it("should log success message in original color if it has ansi", () => {
-      const entry = log.success(`hello ${styles.highlight("cyan")}`).getLatestEntry()
-      expect(entry.msg).to.eql(`hello ${styles.highlight("cyan")}`)
+      const msg = `hello ${styles.highlight("cyan")}`
+      const entry = log.success(msg).getLatestEntry()
+      expect(resolveMsg(entry)?.trim()).to.eql(msg.trim())
     })
     it("should set the symbol to success", () => {
       const entry = log.success("success").getLatestEntry()
@@ -268,11 +270,11 @@ describe("ActionLog", () => {
   describe("createActionLog helper", () => {
     it("should create a new ActionLog", () => {
       const timestamp = freezeTime().toISOString()
+      const actionUid = uuidv4()
       const actionLog = createActionLog({
         log,
         origin: "origin",
-        actionName: "api",
-        actionKind: "build",
+        action: { name: "api", kind: "Build", uid: actionUid },
         fixLevel: LogLevel.verbose,
       })
       const partialActionLog = omit(actionLog, "root")
@@ -290,6 +292,7 @@ describe("ActionLog", () => {
           actionName: "api",
           origin: "origin",
           type: "actionLog",
+          actionUid,
         },
         parentConfigs: [
           {
@@ -313,8 +316,7 @@ describe("ActionLog", () => {
       const actionLogVerbose = createActionLog({
         log: inputLog,
         origin: "origin",
-        actionName: "api",
-        actionKind: "build",
+        action: { name: "api", kind: "Build", uid: uuidv4() },
       })
       expect(actionLogVerbose.fixLevel).to.eql(LogLevel.verbose)
     })
@@ -329,8 +331,7 @@ describe("ActionLog", () => {
       const actionLogDebug = createActionLog({
         log: inputLog,
         origin: "origin",
-        actionName: "api",
-        actionKind: "build",
+        action: { name: "api", kind: "Build", uid: uuidv4() },
         fixLevel: LogLevel.debug,
       })
       expect(actionLogDebug.fixLevel).to.eql(LogLevel.debug)
@@ -341,8 +342,7 @@ describe("ActionLog", () => {
       const actionLog = createActionLog({
         log,
         origin: "origin",
-        actionName: "api",
-        actionKind: "build",
+        action: { name: "api", kind: "Build", uid: uuidv4() },
         fixLevel: LogLevel.verbose,
       })
       expect(actionLog.context.sessionId).to.equal("foo")
@@ -350,11 +350,11 @@ describe("ActionLog", () => {
 
     it("should ensure child log inherits config", () => {
       const timestamp = freezeTime().toISOString()
+      const actionUid = uuidv4()
       const actionLog = createActionLog({
         log,
         origin: "origin",
-        actionName: "api",
-        actionKind: "build",
+        action: { name: "api", kind: "Build", uid: actionUid },
         fixLevel: LogLevel.verbose,
       })
 
@@ -371,6 +371,7 @@ describe("ActionLog", () => {
           actionName: "api",
           origin: "origin",
           type: "actionLog",
+          actionUid,
         },
         metadata: inheritedMetadata,
         parentConfigs: [log.getConfig(), actionLog.getConfig()],
@@ -380,8 +381,7 @@ describe("ActionLog", () => {
       const actionLog = createActionLog({
         log,
         origin: "origin",
-        actionName: "api",
-        actionKind: "build",
+        action: { name: "api", kind: "Build", uid: uuidv4() },
         fixLevel: LogLevel.verbose,
       })
 
@@ -389,18 +389,18 @@ describe("ActionLog", () => {
       expect(actionLogChild.context.origin).to.eql("origin-2")
     })
     it("should always show duration", () => {
-      const testLog = createActionLog({ log, actionName: "api", actionKind: "build" })
+      const testLog = createActionLog({ log, action: { name: "api", kind: "Build", uid: uuidv4() } })
       expect(testLog.showDuration).to.be.true
     })
   })
 
   describe("createLogEntry", () => {
     it("should pass its config on to the log entry", () => {
+      const actionUid = uuidv4()
       const timestamp = freezeTime().toISOString()
       const testLog = createActionLog({
         log,
-        actionKind: "build",
-        actionName: "api",
+        action: { name: "api", kind: "Build", uid: actionUid },
         origin: "foo",
       })
       const entry = testLog.info("hello").getLatestEntry()
@@ -418,6 +418,7 @@ describe("ActionLog", () => {
           origin: "foo",
           actionKind: "build",
           actionName: "api",
+          actionUid,
         },
       })
     })

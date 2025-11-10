@@ -312,6 +312,9 @@ ${renderCommands(commands)}
           }
         }
 
+        // Wire root logger Garden instance event bus
+        log.root.events = garden.events
+
         analytics = await garden.getAnalyticsHandler()
 
         // Register log file writers. We need to do this after the Garden class is initialised because
@@ -433,7 +436,7 @@ ${renderCommands(commands)}
     }
 
     const log = logger.createLog()
-    log.verbose(`garden version: ${getPackageVersion()}`)
+    log.debug(`garden version: ${getPackageVersion()}`)
 
     // Load custom commands from current project (if applicable) and see if any match the arguments
     if (!command) {

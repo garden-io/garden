@@ -26,6 +26,7 @@ import { BoundedCache } from "../../cache.js"
 import AsyncLock from "async-lock"
 import { getAecAnnotations, isAecEnabled } from "./aec.js"
 import type { AecStatus } from "../../config/aec.js"
+import { styles } from "../../logger/styles.js"
 
 const GARDEN_VERSION = getPackageVersion()
 
@@ -401,7 +402,7 @@ export async function deleteNamespaces({
     const nsNames = await getAllNamespaces(api)
     if (intersection(nsNames, namespaces).length === 0) {
       if (log) {
-        log.success("Done")
+        log.info(styles.success("Done"))
       }
       break
     }

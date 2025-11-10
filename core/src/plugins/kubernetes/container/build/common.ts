@@ -157,7 +157,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     log.debug(`Sync connection terminated`)
   }
 
-  syncLog.success("File sync to cluster complete")
+  syncLog.info(styles.success("File sync to cluster complete"))
 
   return { contextRelPath, contextPath, dataPath }
 }
@@ -468,7 +468,7 @@ export async function ensureUtilDeployment({
       timeoutSec: 600,
     })
 
-    buildUtilLog.success("Done")
+    buildUtilLog.info(styles.success("Done"))
 
     return { authSecret, updated: true }
   })

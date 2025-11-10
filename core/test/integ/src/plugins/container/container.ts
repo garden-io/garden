@@ -32,6 +32,7 @@ import { getDockerBuildFlags } from "../../../../../src/plugins/container/build.
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants.js"
 import type { KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
 import { kubernetesContainerHelpers } from "../../../../../src/plugins/kubernetes/container/build/local.js"
+import { uuidv4 } from "../../../../../src/util/random.js"
 
 describe("plugins.container", () => {
   const projectRoot = getDataDir("test-project-container-kubernetes")
@@ -60,7 +61,7 @@ describe("plugins.container", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenContainerPlugin(), gardenK8sPlugin()] })
-    log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+    log = createActionLog({ log: garden.log, action: { name: "", kind: "Build", uid: uuidv4() } })
     containerProvider = await garden.resolveProvider({ log: garden.log, name: "container" })
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)

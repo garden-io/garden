@@ -351,7 +351,7 @@ describe("LogsCommand", () => {
               name: "c-by-far-the-longest-of-the-bunch",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:04:00.000Z"), // <--- 4
-              level: LogLevel.verbose,
+              level: LogLevel.debug,
             })
           } else if (action.name === "d-very-very-long") {
             onLogEntry({

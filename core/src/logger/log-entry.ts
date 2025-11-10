@@ -19,6 +19,9 @@ import { omitUndefined } from "../util/objects.js"
 import { renderDuration } from "./util.js"
 import { styles } from "./styles.js"
 import { getStyle } from "./renderers.js"
+import hasAnsi from "has-ansi"
+import type { BaseAction } from "../actions/base.js"
+import type { ActionKind } from "../actions/types.js"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
@@ -81,6 +84,7 @@ export interface ActionLogContext extends BaseContext {
    * The kind of the action that produced the log entry. Is printed in the "section" part of the log lines.
    */
   actionKind: string
+  actionUid: string
 }
 
 export type LogContext = CoreLogContext | ActionLogContext
@@ -169,7 +173,7 @@ export interface LogEntry<C extends BaseContext = LogContext>
    */
   symbol?: LogSymbol
   data?: any
-  dataFormat?: "json" | "yaml"
+  dataFormat?: "json" | "yaml" // Defaults to "yaml" if not set (and data field is present)
   error?: GardenError
   skipEmit?: boolean
 }
@@ -192,14 +196,12 @@ interface CreateLogEntryParams extends LogParams {
  */
 export function createActionLog({
   log,
-  actionName,
-  actionKind,
+  action,
   origin,
   fixLevel,
 }: {
   log: Log
-  actionName: string
-  actionKind: string
+  action: BaseAction | { name: string; kind: ActionKind; uid: string }
   origin?: string
   fixLevel?: LogLevel
 }) {
@@ -212,8 +214,9 @@ export function createActionLog({
       ...omitUndefined(log.context),
       type: "actionLog",
       origin,
-      actionName,
-      actionKind,
+      actionName: action.name,
+      actionKind: action.kind.toLowerCase(),
+      actionUid: action.uid,
     },
   })
 }
@@ -410,7 +413,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
     const style = resolved.level === LogLevel.info ? styles.success : getStyle(resolved.level)
     return this.log({
       ...resolved,
-      msg: transformMsg(this.getMsgWithDuration(resolved) || "", (msg) => style(msg)),
+      msg: transformMsg(this.getMsgWithDuration(resolved) || "", (msg) => (hasAnsi(msg) ? msg : style(msg))),
     })
   }
 
@@ -515,4 +518,12 @@ export class ActionLog extends Log<ActionLogContext> {
   createLog(params: CreateLogParams = {}): ActionLog {
     return new ActionLog(this.makeLogConfig(params))
   }
+}
+
+export function isCoreLogContext(context: LogContext): context is CoreLogContext {
+  return context.type === "coreLog"
+}
+
+export function isActionLogContext(context: LogContext): context is ActionLogContext {
+  return context.type === "actionLog"
 }

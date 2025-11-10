@@ -71,7 +71,7 @@ describe("helmDeploy", () => {
           log: garden.log,
           graph,
         })
-        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+        const actionLog = createActionLog({ log: garden.log, action })
 
         // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
         let namespaceStatus: EventNamespaceStatus | null = null
@@ -113,7 +113,7 @@ describe("helmDeploy", () => {
         log: garden.log,
         graph,
       })
-      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log: garden.log, action })
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
       let namespaceStatus: EventNamespaceStatus | null = null
@@ -155,7 +155,7 @@ describe("helmDeploy", () => {
         log: garden.log,
         graph,
       })
-      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log: garden.log, action })
 
       const releaseName = getReleaseName(action)
       await helmDeploy({
@@ -189,7 +189,7 @@ describe("helmDeploy", () => {
         log: garden.log,
         graph,
       })
-      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log: garden.log, action })
 
       const namespace = action.getSpec().namespace!
       expect(namespace).to.equal(provider.config.namespace!.name + "-extra")
@@ -227,7 +227,7 @@ describe("helmDeploy", () => {
         log: garden.log,
         graph,
       })
-      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log: garden.log, action })
       const namespace = await getActionNamespace({
         ctx,
         log: garden.log,
@@ -275,7 +275,7 @@ describe("helmDeploy", () => {
         log: garden.log,
         graph,
       })
-      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log: garden.log, action })
       const namespace = await getActionNamespace({
         ctx,
         log: garden.log,
@@ -335,8 +335,7 @@ describe("helmDeploy", () => {
       })
       const actionLog = createActionLog({
         log: gardenWithCloudApi.log,
-        actionName: action.name,
-        actionKind: action.kind,
+        action,
       })
 
       await helmDeploy({
@@ -411,8 +410,7 @@ describe("helmDeploy", () => {
       })
       const actionLog = createActionLog({
         log: garden.log,
-        actionName: resolvedAction.name,
-        actionKind: resolvedAction.kind,
+        action: resolvedAction,
       })
 
       const res = await helmDeploy({
@@ -490,8 +488,7 @@ describe("helmDeploy", () => {
       })
       const actionLog = createActionLog({
         log: garden.log,
-        actionName: resolvedAction.name,
-        actionKind: resolvedAction.kind,
+        action: resolvedAction,
       })
       const releaseName = getReleaseName(resolvedAction)
 
@@ -531,8 +528,7 @@ describe("helmDeploy", () => {
       })
       const actionLog = createActionLog({
         log: garden.log,
-        actionName: resolvedAction.name,
-        actionKind: resolvedAction.kind,
+        action: resolvedAction,
       })
 
       await expectError(
@@ -572,8 +568,7 @@ describe("helmDeploy", () => {
         })
         const actionLog = createActionLog({
           log: garden.log,
-          actionName: resolvedAction.name,
-          actionKind: resolvedAction.kind,
+          action: resolvedAction,
         })
         const releaseName = getReleaseName(resolvedAction)
 
@@ -614,8 +609,7 @@ describe("helmDeploy", () => {
         })
         const actionLog = createActionLog({
           log: garden.log,
-          actionName: resolvedAction.name,
-          actionKind: resolvedAction.kind,
+          action: resolvedAction,
         })
 
         const releaseName = getReleaseName(resolvedAction)
@@ -653,8 +647,7 @@ describe("helmDeploy", () => {
         })
         const actionLog = createActionLog({
           log: garden.log,
-          actionName: resolvedAction.name,
-          actionKind: resolvedAction.kind,
+          action: resolvedAction,
         })
 
         await expectError(

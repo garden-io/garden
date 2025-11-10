@@ -10,7 +10,9 @@ import dedent from "dedent"
 import { memoize } from "lodash-es"
 import { DOCS_BASE_URL } from "../constants.js"
 import { joi, createSchema } from "./common.js"
+import type { AecAgentInfoSchema as GrpcAecAgentInfoSchema } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_aec_pb.js"
 import z from "zod"
+import type { MessageValidType } from "@bufbuild/protobuf"
 
 const aecTtlUnits = ["hours", "days", "minutes"] as const
 const daysString = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const
@@ -19,11 +21,7 @@ const aecActions = ["cleanup", "pause"] as const
 
 export type AecAction = (typeof aecActions)[number]
 
-export interface AecAgentInfo {
-  pluginName: string
-  environmentType: string
-  description: string
-}
+export type AecAgentInfo = Omit<MessageValidType<typeof GrpcAecAgentInfoSchema>, "$typeName">
 
 export type EnvironmentAecConfig = {
   disabled?: boolean

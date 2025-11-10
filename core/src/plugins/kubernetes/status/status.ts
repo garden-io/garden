@@ -33,7 +33,7 @@ import type {
   V1ReplicationController,
   V1Service,
 } from "@kubernetes/client-node"
-import { getPods, getResourceKey, hashManifest } from "../util.js"
+import { getPodsBySelector, getResourceKey, hashManifest } from "../util.js"
 import { checkWorkloadStatus } from "./workload.js"
 import { checkWorkloadPodStatus } from "./pod.js"
 import { deline, stableStringify } from "../../../util/string.js"
@@ -106,12 +106,16 @@ const objHandlers: { [kind: string]: StatusHandler } = {
   ReplicaSet: async ({ api, namespace, resource }: StatusHandlerParams<V1ReplicaSet>) => {
     return checkWorkloadPodStatus(
       resource,
-      await getPods(api, namespace, (<KubernetesServerResource<V1ReplicaSet>>resource).spec.selector!.matchLabels!)
+      await getPodsBySelector(
+        api,
+        namespace,
+        (<KubernetesServerResource<V1ReplicaSet>>resource).spec.selector!.matchLabels!
+      )
     )
   },
 
   ReplicationController: async ({ api, namespace, resource }: StatusHandlerParams<V1ReplicationController>) => {
-    return checkWorkloadPodStatus(resource, await getPods(api, namespace, resource.spec!.selector!))
+    return checkWorkloadPodStatus(resource, await getPodsBySelector(api, namespace, resource.spec!.selector!))
   },
 
   Service: async ({ resource }: StatusHandlerParams<V1Service>) => {
@@ -294,20 +298,16 @@ export async function waitForResources({
   const emitLog = (msg: string) =>
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg, ...logEventContext })
 
-  const waitingMsg = `Waiting for resources to be ready...`
-  const statusLine = log
-    .createLog({
-      // TODO: Avoid setting fallback, the action name should be known
-      name: logContext || "<kubernetes>",
-      origin: "kubernetes",
-    })
-    .info(waitingMsg)
-  emitLog(waitingMsg)
+  const statusLine = log.createLog({
+    // TODO: Avoid setting fallback, the action name should be known
+    name: logContext || "<kubernetes>",
+    origin: "kubernetes",
+  })
+  emitLog(`Waiting for resources to be ready...`)
 
   if (resources.length === 0) {
     const noResourcesMsg = `No resources to wait for`
     emitLog(noResourcesMsg)
-    statusLine.info(noResourcesMsg)
     return []
   }
 
@@ -344,7 +344,6 @@ export async function waitForResources({
       const statusMessage = `${resource.kind} ${resource.metadata.name} is "${status.state}"`
 
       const statusLogMsg = `Status of ${statusMessage}`
-      log.debug(statusLogMsg)
       emitLog(statusLogMsg)
 
       if (status.state === "unhealthy") {
@@ -365,8 +364,6 @@ export async function waitForResources({
         const statusUpdateLogMsg = `${getResourceKey(status.resource)}: ${status.lastMessage}`
         if (status.warning) {
           statusLine.warn(statusUpdateLogMsg)
-        } else {
-          statusLine.info(statusUpdateLogMsg)
         }
         emitLog(statusUpdateLogMsg)
       }
@@ -392,7 +389,6 @@ export async function waitForResources({
 
   const readyMsg = `Resources ready`
   emitLog(readyMsg)
-  statusLine.info(readyMsg)
 
   return Object.values(results)
 }

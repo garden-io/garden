@@ -103,7 +103,7 @@ describe.skip("ensureBuildkit", () => {
       const log = garden.log
       const graph = await garden.getConfigGraph({ log, emit: false })
       const action = graph.getBuild("simple-service")
-      const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+      const actionLog = createActionLog({ log, action })
       const resolved = await resolveAction({ garden, graph, action, log })
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.

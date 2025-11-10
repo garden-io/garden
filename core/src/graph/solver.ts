@@ -27,9 +27,10 @@ import { styles } from "../logger/styles.js"
 import stripAnsi from "strip-ansi"
 import chalk from "chalk"
 import { formatDuration } from "date-fns"
+import { LogLevel } from "../logger/logger.js"
 
 const taskStyle = styles.highlight.bold
-const statusUpdateIntervalMsec = 10000
+const statusUpdateIntervalMsec = 20000
 
 export interface SolveOpts {
   statusOnly?: boolean
@@ -283,7 +284,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     // TODO-0.13.1: currently a no-op, possibly not necessary
   }
 
-  renderStatus(batchId: string, startTime: Date) {
+  private renderStatus(batchId: string, startTime: Date) {
     const requested = Object.values(this.requestedTasks[batchId]).sort((a, b) => {
       // Sort by key in ascending order
       return a.getKey().localeCompare(b.getKey())
@@ -327,7 +328,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       chalk.yellow(listActions(formatResultDescription("aborted", abortedDeps), aborted)),
       chalk.red(listActions(formatResultDescription("failed", failedDeps), failed)),
     ]
-    const duration = formatDuration({ seconds: (new Date().getTime() - startTime.getTime()) / 1000 })
+    const duration = formatDuration({ seconds: Math.round((new Date().getTime() - startTime.getTime()) / 1000) })
     const status = [
       renderDivider({
         color: chalk.magenta,
@@ -340,8 +341,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     ]
 
     return {
-      status: status.filter((s) => stripAnsi(s) !== "").join("\n"),
-      content: stripAnsi(content.filter((s) => s !== "").join("\n")),
+      status: status.filter((s) => stripAnsi(s).trim() !== "").join("\n"),
+      content: content
+        .map((s) => stripAnsi(s).trim())
+        .filter((s) => s !== "")
+        .join("\n")
+        .trim(),
     }
   }
 
@@ -622,26 +627,36 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   //
   private logTaskError(node: TaskNode, err: Error) {
     const log = node.task.log
-    const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}. This is what happened:`
+    const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}.`
     this.logError(log, err, prefix)
   }
 
   private logInternalError(node: TaskNode, err: Error) {
     const log = node.task.log
-    const prefix = `An internal error occurred while ${node.describe()} ${renderDuration(log.getDuration())}. This is what happened:`
+    const prefix = `An internal error occurred while ${node.describe()} ${renderDuration(log.getDuration())}.`
     this.logError(log, err, prefix)
   }
 
   private logError(log: Log, err: Error, errMessagePrefix: string) {
     const error = toGardenError(err)
-    const { msg, rawMsg } = renderMessageWithDivider({
-      prefix: errMessagePrefix,
-      msg: error.explain(errMessagePrefix),
-      isError: true,
-    })
+    let msg = errMessagePrefix
+    let rawMsg = msg
+
+    if (log.root.level < LogLevel.verbose) {
+      // Print the full error message if the log level is not verbose or higher
+      errMessagePrefix += ` This is what happened:`
+      const rendered = renderMessageWithDivider({
+        prefix: errMessagePrefix,
+        msg: error.explain(errMessagePrefix),
+        isError: true,
+      })
+      msg = rendered.msg
+      rawMsg = rendered.rawMsg
+    }
+
     log.error({ msg, rawMsg, error, showDuration: false })
     const divider = renderDivider()
-    log.silly(() =>
+    log.debug(() =>
       styles.primary(`Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`)
     )
   }
