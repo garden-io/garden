@@ -3141,7 +3141,7 @@ describe("throwOnMissingSecretKeys", () => {
       (err) => {
         expect(err.message).to.match(/Module moduleA: a/)
         expect(err.message).to.match(/Module moduleB: a, c/)
-        expect(err.message).to.match(/Secret keys with loaded values: b/)
+        expect(err.message).to.match(/The following secret keys were found: b/)
       }
     )
 
