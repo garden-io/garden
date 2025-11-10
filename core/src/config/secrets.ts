@@ -29,7 +29,7 @@ function getMessageFooter({ loadedKeys, isLoggedIn }: { loadedKeys: string[]; is
       Note: You can manage secrets in Garden Cloud. No secrets have been defined for the current project and environment. See also ${secretsGuideLink}
     `
   } else {
-    return `Secret keys with loaded values: ${loadedKeys.join(", ")}`
+    return `The following secret keys were found: ${loadedKeys.join(", ")}`
   }
 }
 

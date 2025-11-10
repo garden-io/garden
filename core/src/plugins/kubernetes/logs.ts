@@ -8,6 +8,7 @@
 
 import { omit, sortBy } from "lodash-es"
 import parseDuration from "parse-duration"
+import split2 from "split2"
 
 import type { DeployLogEntry } from "../../types/service.js"
 import type { KubernetesResource, KubernetesPod } from "./types.js"
@@ -452,12 +453,19 @@ export class K8sLogFollower<T extends LogEntryBase> {
           },
         })
 
+        // Make sure to split the stream by line
+        const splitStream = split2()
+        splitStream.pipe(writableStream)
+        splitStream.on("error", () => {
+          // Ignore
+        })
+
         const context = `Follow logs of '${containerName}' in Pod '${pod.metadata.name}'`
 
         try {
           abortController = await this.streamPodLogs({
             connection,
-            stream: writableStream,
+            stream: splitStream,
             tail: tail || Math.floor(maxLogLinesInMemory / containers.length),
             since,
             sinceOnRetry,

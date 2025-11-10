@@ -27,6 +27,7 @@ import { styles } from "../logger/styles.js"
 import stripAnsi from "strip-ansi"
 import chalk from "chalk"
 import { formatDuration } from "date-fns"
+import { LogLevel } from "../logger/logger.js"
 
 const taskStyle = styles.highlight.bold
 const statusUpdateIntervalMsec = 20000
@@ -626,26 +627,36 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   //
   private logTaskError(node: TaskNode, err: Error) {
     const log = node.task.log
-    const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}. This is what happened:`
+    const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}.`
     this.logError(log, err, prefix)
   }
 
   private logInternalError(node: TaskNode, err: Error) {
     const log = node.task.log
-    const prefix = `An internal error occurred while ${node.describe()} ${renderDuration(log.getDuration())}. This is what happened:`
+    const prefix = `An internal error occurred while ${node.describe()} ${renderDuration(log.getDuration())}.`
     this.logError(log, err, prefix)
   }
 
   private logError(log: Log, err: Error, errMessagePrefix: string) {
     const error = toGardenError(err)
-    const { msg, rawMsg } = renderMessageWithDivider({
-      prefix: errMessagePrefix,
-      msg: error.explain(errMessagePrefix),
-      isError: true,
-    })
+    let msg = errMessagePrefix
+    let rawMsg = msg
+
+    if (log.root.level < LogLevel.verbose) {
+      // Print the full error message if the log level is not verbose or higher
+      errMessagePrefix += ` This is what happened:`
+      const rendered = renderMessageWithDivider({
+        prefix: errMessagePrefix,
+        msg: error.explain(errMessagePrefix),
+        isError: true,
+      })
+      msg = rendered.msg
+      rawMsg = rendered.rawMsg
+    }
+
     log.error({ msg, rawMsg, error, showDuration: false })
     const divider = renderDivider()
-    log.silly(() =>
+    log.debug(() =>
       styles.primary(`Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`)
     )
   }

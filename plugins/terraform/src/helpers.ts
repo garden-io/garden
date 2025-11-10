@@ -279,7 +279,7 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
 
   if (plan.exitCode === 0) {
     // Stack is up-to-date
-    statusLog.success(styles.success("Stack up-to-date"))
+    statusLog.info(styles.success("Stack up-to-date"))
     return "up-to-date"
   } else if (plan.exitCode === 1) {
     // Error from terraform. This can, for example, happen if variables are missing or there are errors in the tf files.

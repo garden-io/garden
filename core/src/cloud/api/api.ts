@@ -34,6 +34,7 @@ import { createClient } from "@connectrpc/connect"
 import { GardenEventIngestionService } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import type { ImportVariablesConfig } from "../../config/project.js"
 import { getVarlistIdsFromRemoteVarsConfig } from "../../config/project.js"
+import { styles } from "../../logger/styles.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -159,7 +160,7 @@ export class GardenCloudApi {
         })
       }
 
-      cloudFactoryLog.success(successMsg)
+      cloudFactoryLog.info(styles.success(successMsg))
       return new GardenCloudApi({
         log: cloudLog,
         domain: cloudDomain,

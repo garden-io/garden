@@ -82,7 +82,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       timeoutSec: 60,
     })
 
-    log.success(`nginx successfully installed in ${namespace} namespace`)
+    log.info(styles.success(`nginx successfully installed in ${namespace} namespace`))
   }
 
   override async getStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
