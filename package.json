@@ -77,7 +77,7 @@
     "typescript": "^5.9.2",
     "wrap-ansi": "^9.0.0",
     "yargs": "^18.0.0",
-    "zod": "^3.25.67"
+    "zod": "^4.1.12"
   },
   "scripts": {
     "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path core/src:core/test --output-dir .",
