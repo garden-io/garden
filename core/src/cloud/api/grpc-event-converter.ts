@@ -34,6 +34,7 @@ import {
   GardenCommandExecutionStarted_InvocationSchema,
   GardenCommandExecutionStarted_ProjectMetadataSchema,
   GardenCommandExecutionStartedSchema,
+  GardenCommandHeartbeatSchema,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_command_pb.js"
 import { timestampFromDate } from "@bufbuild/protobuf/wkt"
 import type { DeployRunResult } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_action_pb.js"
@@ -103,6 +104,9 @@ export class GrpcEventConverter {
     switch (name) {
       case "commandInfo":
         events = this.handleCommandStarted({ context, payload: payload as CoreEventPayload<"commandInfo"> })
+        break
+      case "commandHeartbeat":
+        events = this.handleCommandHeartbeat({ context, payload: payload as CoreEventPayload<"commandHeartbeat"> })
         break
       case "sessionCompleted":
         events = this.handleCommandCompleted({
@@ -513,6 +517,22 @@ export class GrpcEventConverter {
       }),
     })
 
+    return [event]
+  }
+
+  private handleCommandHeartbeat({
+    context,
+    payload,
+  }: {
+    context: GardenEventContext
+    payload: CoreEventPayload<"commandHeartbeat">
+  }): GrpcEventEnvelope[] {
+    const event = createGardenCliEvent(context, GardenCliEventType.COMMAND_HEARTBEAT, {
+      case: "commandHeartbeat",
+      value: create(GardenCommandHeartbeatSchema, {
+        sentAt: timestampFromDate(new Date(payload.sentAt)),
+      }),
+    })
     return [event]
   }
 
