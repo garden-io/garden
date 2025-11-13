@@ -355,7 +355,7 @@ const helpers = {
   }),
 
   /**
-   * Asserts that the specified docker client version meets the minimum requirements.
+   * Asserts that the specified docker server version meets the minimum requirements.
    */
   checkDockerServerVersion(version: DockerVersion, log: ActionLog) {
     if (!version.server) {

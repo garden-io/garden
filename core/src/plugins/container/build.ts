@@ -75,8 +75,6 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
 }
 
 export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {
-  containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion(), log)
-
   const outputs = action.getOutputs()
   const identifier = outputs.localImageId
 
@@ -90,6 +88,13 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
       Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.
     `,
     })
+  }
+
+  const cloudBuilderAvailability = await cloudBuilder.getAvailability(ctx, action)
+
+  if (!cloudBuilderAvailability.available) {
+    // Only check Docker server version if Container Builder is not available
+    containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion(), log)
   }
 
   const logEventContext = {
@@ -173,12 +178,11 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   const timeout = action.getConfig("timeout")
 
   let res: { buildResult: SpawnOutput; timeSaved: number }
-  const availability = await cloudBuilder.getAvailability(ctx, action)
-  const runtime = cloudBuilder.getActionRuntime(ctx, availability)
-  if (availability.available) {
+  const runtime = cloudBuilder.getActionRuntime(ctx, cloudBuilderAvailability)
+  if (cloudBuilderAvailability.available) {
     res = await buildContainerInCloudBuilder({
       action,
-      availability,
+      availability: cloudBuilderAvailability,
       outputStream,
       timeout,
       log,
