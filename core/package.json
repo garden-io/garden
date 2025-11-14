@@ -94,7 +94,7 @@
     "is-glob": "^4.0.3",
     "is-url": "^1.2.4",
     "isomorphic-ws": "^5.0.0",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.1.1",
     "json-diff": "^1.0.6",
     "json-merge-patch": "^1.0.2",
     "json-stable-stringify": "^1.3.0",
