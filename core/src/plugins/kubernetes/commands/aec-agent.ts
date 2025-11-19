@@ -251,14 +251,22 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
   return { result }
 }
 
-function emitEnvironmentStatus(events: EventBus, event: EventPayload<"aecAgentEnvironmentUpdate">) {
+function emitEnvironmentStatus(
+  events: EventBus,
+  namespaceName: string,
+  event: Omit<EventPayload<"aecAgentEnvironmentUpdate">, "resource" | "timestamp">
+) {
   const key = `${event.projectId}-${event.environmentType}-${event.environmentName}`
   const lastStatus = lastEnvironmentStatus[key]
   if (lastStatus === event.statusDescription) {
     return
   }
   lastEnvironmentStatus[key] = event.statusDescription
-  events.emit("aecAgentEnvironmentUpdate", event)
+  events.emit("aecAgentEnvironmentUpdate", {
+    ...event,
+    timestamp: new Date().toISOString(),
+    resource: [`namespace/${namespaceName}`],
+  })
 }
 
 async function cleanupLoop({
@@ -332,8 +340,7 @@ async function cleanupLoop({
 
         // Skip sending events if the namespace is not configured for AEC
         if (result.aecConfigured) {
-          emitEnvironmentStatus(events, {
-            timestamp: new Date().toISOString(),
+          emitEnvironmentStatus(events, namespaceName, {
             aecAgentInfo,
             projectId,
             environmentType,
@@ -350,8 +357,7 @@ async function cleanupLoop({
       } catch (e) {
         const msg = `Unexpected error: ${e}`
         nsLog.error({ msg })
-        emitEnvironmentStatus(events, {
-          timestamp: new Date().toISOString(),
+        emitEnvironmentStatus(events, namespaceName, {
           aecAgentInfo,
           projectId,
           environmentType,
@@ -658,8 +664,7 @@ export async function checkAndCleanupNamespace({
     log.info({ msg: `Pausing workloads...` })
 
     if (!dryRun) {
-      emitEnvironmentStatus(events, {
-        timestamp: new Date().toISOString(),
+      emitEnvironmentStatus(events, namespaceName, {
         aecAgentInfo,
         projectId,
         environmentType,
@@ -709,8 +714,7 @@ export async function checkAndCleanupNamespace({
     log.info({ msg: `Cleaning up namespace` })
 
     if (!dryRun) {
-      emitEnvironmentStatus(events, {
-        timestamp: new Date().toISOString(),
+      emitEnvironmentStatus(events, namespaceName, {
         aecAgentInfo,
         projectId,
         environmentType,

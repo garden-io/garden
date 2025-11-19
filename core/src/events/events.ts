@@ -316,6 +316,7 @@ export interface AecAgentEnvironmentUpdate {
   error: boolean
   actionTriggered?: AecAction
   success?: boolean
+  resource: string[]
 }
 
 export type EventName = keyof Events

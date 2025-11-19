@@ -221,6 +221,7 @@ export class GrpcEventConverter {
           aecAgentInfo: payload.aecAgentInfo,
           projectId: payload.projectId,
           timestamp: timestampFromDate(new Date(payload.timestamp)),
+          lastDeployed: payload.lastDeployed,
           actionTriggered: payload.actionTriggered
             ? aecEnvironmentUpdateActionTriggeredMap[payload.actionTriggered]
             : undefined,
@@ -230,6 +231,7 @@ export class GrpcEventConverter {
           inProgress: payload.inProgress,
           error: payload.error,
           success: payload.success,
+          resource: payload.resource,
         }),
       }),
     ]
