@@ -109,7 +109,7 @@ export const setupAecCommand: PluginCommand = {
       imageOverride,
       serviceAccessToken: serviceAccount.token,
       systemNamespace,
-      description: `projectId=${garden.projectId} context=${provider.config.context} namespace=${systemNamespace}`,
+      description: `projectId=${garden.projectId || "n/a"} projectName=${garden.projectName} context=${provider.config.context} namespace=${systemNamespace}`,
       localDevMode,
       cloudDomain: cloudApi.domain,
       organizationId: organization.id,
