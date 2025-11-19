@@ -178,6 +178,7 @@ describe("GrpcEventStream", () => {
       inProgress: false,
       error: false,
       success: false,
+      resource: ["namespace/fake-namespace-name"],
     })
     await bufferedEventStream.close()
     expect(receivedEvents.length).to.equal(1)
