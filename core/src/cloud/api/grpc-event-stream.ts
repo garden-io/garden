@@ -194,7 +194,9 @@ export class GrpcEventStream {
       // See the caller of `streamEvents`.
       void this.outputStream
         ?.write(create(IngestEventsRequestSchema, { event }))
-        .catch((err) => this.log.debug(`GrpcEventStream: Failed to write event ${event.eventUlid}: ${err}`))
+        // This must be at a log level higher than what's streamed because otherwise we exponentially spam the logs
+        // when we can't write events to the stream.
+        .catch((err) => this.log.silly(`GrpcEventStream: Failed to write event ${event.eventUlid}: ${err}`))
     }
   }
 
