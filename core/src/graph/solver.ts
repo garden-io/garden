@@ -120,6 +120,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     let lastStatus: string
 
     const log = this.log
+    // Don't want the graph-solver section to be printed for the status log
+    const statusLog = this.log.root.createLog()
+
     // TODO-0.13.1+: remove this lock and test with concurrent execution
     return this.lock.acquire("solve", async () => {
       const output = await new Promise<SolveResult>((resolve, reject) => {
@@ -203,8 +206,18 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         const cleanup = ({ error }: { error: GraphResultError | null }) => {
           // TODO: abort remaining pending tasks?
           aborted = true
-          delete this.requestedTasks[batchId]
           this.off("abort", cleanup)
+
+          // Print the final status
+          if (logProgressStatus) {
+            const duration = formatDuration({
+              seconds: Math.round((new Date().getTime() - startTime.getTime()) / 1000),
+            })
+            const { status } = this.renderStatus(batchId, startTime, `Results after completion (took ${duration})`)
+            statusLog.info({ msg: "\n" + status + "\n" })
+          }
+
+          delete this.requestedTasks[batchId]
           if (error) {
             reject(error)
           }
@@ -215,8 +228,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         this.start()
 
         if (logProgressStatus) {
-          // Don't want the graph-solver section to be printed
-          const statusLog = this.log.root.createLog()
           const reportHandler = () => {
             const { status, content } = this.renderStatus(batchId, startTime)
             if (lastStatus === content) {
@@ -284,7 +295,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     // TODO-0.13.1: currently a no-op, possibly not necessary
   }
 
-  private renderStatus(batchId: string, startTime: Date) {
+  private renderStatus(batchId: string, startTime: Date, title?: string) {
     const requested = Object.values(this.requestedTasks[batchId]).sort((a, b) => {
       // Sort by key in ascending order
       return a.getKey().localeCompare(b.getKey())
@@ -332,7 +343,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const status = [
       renderDivider({
         color: chalk.magenta,
-        title: `Graph status after ${duration}:`,
+        title: title ?? `Graph status after ${duration}`,
       }),
       ...content,
       renderDivider({
