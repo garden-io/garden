@@ -170,7 +170,7 @@ async function handler({ ctx, log, args, garden }: PluginCommandParams<Kubernete
       sessionId: garden.sessionId,
       log,
       garden,
-      opts: { shouldStreamEvents: true, shouldStreamLogs: false },
+      opts: { streamEvents: true, streamLogEntries: false },
     })
   }
 

@@ -81,7 +81,7 @@ const aecEnvironmentUpdateActionTriggeredMap = {
 export class GrpcEventConverter {
   private readonly garden: GardenWithNewBackend
   private readonly log: Log
-  private readonly shouldStreamLogEntries: boolean
+  private readonly streamLogEntries: boolean
 
   /**
    * It is important to keep it static,
@@ -90,10 +90,10 @@ export class GrpcEventConverter {
    */
   private static readonly uuidToUlidMap = new Map<UUID, ULID>()
 
-  constructor(garden: GardenWithNewBackend, log: Log, shouldStreamLogEntries: boolean) {
+  constructor(garden: GardenWithNewBackend, log: Log, streamLogEntries: boolean) {
     this.garden = garden
     this.log = log
-    this.shouldStreamLogEntries = shouldStreamLogEntries
+    this.streamLogEntries = streamLogEntries
   }
 
   convert<T extends CoreEventName>(name: T, payload: CoreEventPayload<T>): GrpcEventEnvelope[] {
@@ -163,7 +163,7 @@ export class GrpcEventConverter {
     context: GardenEventContext
     payload: LogEntryEventPayload
   }): GrpcEventEnvelope[] {
-    if (!this.shouldStreamLogEntries) {
+    if (!this.streamLogEntries) {
       return []
     }
     const msg = resolveMsg(payload.message.msg)

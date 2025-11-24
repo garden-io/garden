@@ -102,7 +102,7 @@ describe("GrpcEventStream", () => {
       log,
       garden,
       eventIngestionService: mockClient,
-      shouldStreamLogEntries: true,
+      streamLogEntries: true,
     })
   })
 
