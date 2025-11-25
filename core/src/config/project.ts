@@ -46,7 +46,7 @@ import { deepResolveContext } from "./template-contexts/base.js"
 import { LazyMergePatch } from "../template/lazy-merge.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { VariablesContext } from "./template-contexts/variables.js"
-import { getBackendType } from "../cloud/util.js"
+import type { CloudBackendType } from "../cloud/util.js"
 import type { EnvironmentAecConfig } from "./aec.js"
 import { aecConfigSchema } from "./aec.js"
 
@@ -654,6 +654,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   commandInfo,
   projectContext,
   localEnvOverrides,
+  backendType,
 }: {
   projectContext: ProjectConfigContext
   variableOverrides: DeepPrimitiveMap
@@ -667,6 +668,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   secrets: PrimitiveMap
   commandInfo: CommandInfo
   localEnvOverrides: StringMap
+  backendType: CloudBackendType
 }) {
   const { environments, name: projectName, path: projectRoot } = projectConfig
   const parsed = parseEnvironment(envString)
@@ -706,7 +708,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     variables: await VariablesContext.forProject(projectConfig, variableOverrides, projectContext),
     loggedIn,
     cloudBackendDomain,
-    backendType: getBackendType(projectConfig),
+    backendType,
     secrets,
     commandInfo,
     localEnvOverrides,

@@ -60,7 +60,7 @@ export class LoginCommand extends Command<{}, Opts> {
   async action({ garden, log }: CommandParams<{}, Opts>): Promise<CommandResult> {
     const projectConfig = await findProjectConfigOrPrintInstructions(log, garden.projectRoot)
     const globalConfigStore = garden.globalConfigStore
-    const cloudDomain = getCloudDomain(projectConfig)
+    const cloudDomain = await getCloudDomain(projectConfig)
     const { id: projectId, organizationId } = projectConfig || {}
 
     let cloudApi: GardenCloudApiLegacy | GardenCloudApi | undefined
@@ -68,7 +68,7 @@ export class LoginCommand extends Command<{}, Opts> {
     try {
       // NOTE: The Cloud API is missing from the `Garden` class for commands
       // with `noProject = true` so we initialize it here.
-      if (useLegacyCloud(projectConfig) && projectId) {
+      if ((await useLegacyCloud(projectConfig)) && projectId) {
         cloudApi = await GardenCloudApiLegacy.factory({
           log,
           cloudDomain,
@@ -98,7 +98,7 @@ export class LoginCommand extends Command<{}, Opts> {
       }
     }
 
-    const authRedirectConfig = useLegacyCloud(projectConfig)
+    const authRedirectConfig = (await useLegacyCloud(projectConfig))
       ? getAuthRedirectConfigLegacy(cloudDomain)
       : getAuthRedirectConfig({ cloudDomain, organizationId })
 

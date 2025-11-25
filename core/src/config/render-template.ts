@@ -38,7 +38,6 @@ import { deepEvaluate, evaluate } from "../template/evaluate.js"
 import { serialiseUnresolvedTemplates, UnresolvedTemplateValue } from "../template/types.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { InputContext } from "./template-contexts/input.js"
-import { getBackendType } from "../cloud/util.js"
 import { duplicatesByKey } from "../util/util.js"
 import { makeDocsLinkPlain } from "../docs/common.js"
 
@@ -151,7 +150,7 @@ export async function renderConfigTemplate({
     ...garden,
     loggedIn,
     cloudBackendDomain: garden.cloudDomain,
-    backendType: getBackendType(garden.getProjectConfig()),
+    backendType: garden.backendType,
   })
 
   // @ts-expect-error todo: correct types for unresolved configs
@@ -256,7 +255,7 @@ async function renderWithInputs({
     ...garden,
     loggedIn: garden.isLoggedIn(),
     cloudBackendDomain: garden.cloudDomain,
-    backendType: getBackendType(garden.getProjectConfig()),
+    backendType: garden.backendType,
     parentName: resolved.name,
     templateName: template.name,
     inputs: InputContext.forRenderTemplate(config, template),

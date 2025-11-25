@@ -36,12 +36,12 @@ export class LogOutCommand extends Command<{}, Opts> {
     const projectConfig = await findProjectConfigOrPrintInstructions(log, garden.projectRoot)
     const { id: projectId, organizationId } = projectConfig
 
-    const cloudDomain = getCloudDomain(projectConfig)
+    const cloudDomain = await getCloudDomain(projectConfig)
     const globalConfigStore = garden.globalConfigStore
 
     try {
       let cloudApi: GardenCloudApiLegacy | GardenCloudApi | undefined
-      if (useLegacyCloud(projectConfig) && projectId) {
+      if ((await useLegacyCloud(projectConfig)) && projectId) {
         cloudApi = await GardenCloudApiLegacy.factory({
           log,
           cloudDomain,

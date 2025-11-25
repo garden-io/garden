@@ -271,6 +271,7 @@ describe("AnalyticsHandler", () => {
       garden = await makeTestGardenA(undefined, {
         config: createProjectConfig({
           name: "foo",
+          domain: "https://example.com",
           id: "fake-project-id",
         }),
         overrideCloudApiLegacyFactory: FakeGardenCloudApiLegacy.factory,
