@@ -168,11 +168,11 @@ import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { getPathInfo } from "./vcs/git.js"
 import {
+  type CloudBackendType,
   getBackendType,
   getCloudDistributionName,
   getCloudDomain,
   getCloudLogSectionName,
-  useLegacyCloud,
 } from "./cloud/util.js"
 import { GardenCloudApi } from "./cloud/api/api.js"
 import type { GardenCloudApiFactory } from "./cloud/api/api.js"
@@ -217,6 +217,7 @@ export interface GardenParams {
   projectId?: string
   cloudApiLegacy?: GardenCloudApiLegacy
   cloudApi?: GardenCloudApi
+  backendType: CloudBackendType
   cloudDomain: string
   dotIgnoreFile: string
   importVariables: ImportVariablesConfig
@@ -320,6 +321,7 @@ export class Garden {
   public readonly cloudDomain: string
   public cloudApiLegacy?: GardenCloudApiLegacy
   public cloudApi?: GardenCloudApi
+  public readonly backendType: CloudBackendType
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -413,6 +415,7 @@ export class Garden {
     this.cloudDomain = params.cloudDomain
     this.cloudApiLegacy = params.cloudApiLegacy
     this.cloudApi = params.cloudApi
+    this.backendType = params.backendType
     this.apiVersion = params.projectConfig.apiVersion
 
     this.asyncLock = new AsyncLock()
@@ -613,7 +616,7 @@ export class Garden {
       ...this,
       loggedIn,
       cloudBackendDomain: this.cloudDomain,
-      backendType: getBackendType(this.projectConfig),
+      backendType: this.backendType,
     })
   }
 
@@ -1963,7 +1966,7 @@ export class Garden {
   /** Returns whether the user is logged in to the "old" Garden Cloud */
   public isOldBackendAvailable(): this is GardenWithOldBackend {
     const oldBackendAvailable = !!this.cloudApiLegacy
-    if (getBackendType(this.projectConfig) === "v2" && oldBackendAvailable) {
+    if (this.backendType === "v2" && oldBackendAvailable) {
       throw new InternalError({
         message: "Invalid state: should use backend v2, but logged in to backend v1",
       })
@@ -1974,7 +1977,7 @@ export class Garden {
   /** Returns whether the user is logged in to the "new" Garden Cloud */
   public isNewBackendAvailable(): this is GardenWithNewBackend {
     const newBackendAvailable = !!this.cloudApi
-    if (getBackendType(this.projectConfig) === "v1" && newBackendAvailable) {
+    if (this.backendType === "v1" && newBackendAvailable) {
       throw new InternalError({
         message: "Invalid state: should use backend v1, but logged in to backend v2",
       })
@@ -2117,11 +2120,12 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const sessionId = opts.sessionId || uuidv4()
     const skipCloudConnect = opts.skipCloudConnect || false
 
-    const cloudBackendDomain = getCloudDomain(projectConfig)
+    const cloudBackendDomain = await getCloudDomain(projectConfig)
 
     let cloudApiLegacy: GardenCloudApiLegacy | undefined
     let cloudApi: GardenCloudApi | undefined
-    const useLegacy = useLegacyCloud(projectConfig)
+    const backendType = await getBackendType(projectConfig)
+    const useLegacy = backendType === "v1"
 
     if (useLegacy && projectId && !skipCloudConnect) {
       const apiFactory = opts.overrideCloudApiLegacyFactory || GardenCloudApiLegacy.factory
@@ -2172,7 +2176,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       username: _username,
       loggedIn,
       cloudBackendDomain,
-      backendType: getBackendType(projectConfig),
+      backendType,
       secrets,
       commandInfo,
       localEnvOverrides: opts.localEnvOverrides || {},
@@ -2200,6 +2204,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       secrets,
       commandInfo,
       localEnvOverrides: opts.localEnvOverrides || {},
+      backendType,
     })
 
     const { providers, production } = pickedEnv
@@ -2245,6 +2250,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       cloudDomain: cloudBackendDomain,
       cloudApiLegacy,
       cloudApi,
+      backendType,
       projectId: projectConfig.id,
       projectConfig,
       projectRoot,
@@ -2310,7 +2316,7 @@ async function initCloudProject({
     }
   }
 
-  const cloudDomain = cloudApiLegacy?.domain || getCloudDomain(config)
+  const cloudDomain = cloudApiLegacy?.domain || (await getCloudDomain(config))
   const distroName = getCloudDistributionName(cloudDomain)
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
