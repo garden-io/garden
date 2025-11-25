@@ -75,6 +75,7 @@ export const gardenEnv = {
   GARDEN_CACHE_TTL: env.get("GARDEN_CACHE_TTL").required(false).asInt(),
   GARDEN_DB_DIR: env.get("GARDEN_DB_DIR").required(false).default(GARDEN_GLOBAL_PATH).asString(),
   GARDEN_DISABLE_ANALYTICS: env.get("GARDEN_DISABLE_ANALYTICS").required(false).asBool(),
+  GARDEN_DISABLE_CLOUD_LOGS: env.get("GARDEN_DISABLE_CLOUD_LOGS").required(false).asBool(),
   GARDEN_DISABLE_PORT_FORWARDS: env.get("GARDEN_DISABLE_PORT_FORWARDS").required(false).asBool(),
   GARDEN_DISABLE_VERSION_CHECK: env.get("GARDEN_DISABLE_VERSION_CHECK").required(false).asBool(),
   GARDEN_ENABLE_PROFILING: env.get("GARDEN_ENABLE_PROFILING").required(false).default("false").asBool(),

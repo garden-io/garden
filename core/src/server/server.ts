@@ -780,7 +780,7 @@ export class GardenServer extends EventEmitter {
         sessionId: sessionIdForConfigLoad,
         log,
         garden,
-        opts: { shouldStreamEvents: true, shouldStreamLogs: false },
+        opts: { streamEvents: true, streamLogEntries: false },
       })
 
       let graph: ConfigGraph | undefined

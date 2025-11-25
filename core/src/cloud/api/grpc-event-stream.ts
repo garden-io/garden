@@ -37,7 +37,7 @@ export class GrpcEventStream {
   private readonly eventListener: GardenEventAnyListener<EventName>
   private readonly logListener: GardenEventAnyListener<"logEntry">
 
-  private readonly shouldStreamLogEntries: boolean
+  private readonly streamLogEntries: boolean
 
   private readonly eventIngestionService: Client<typeof GardenEventIngestionService>
 
@@ -56,20 +56,20 @@ export class GrpcEventStream {
     garden,
     log,
     eventIngestionService,
-    shouldStreamLogEntries,
+    streamLogEntries,
   }: {
     garden: GardenWithNewBackend
     log: Log
     eventIngestionService: Client<typeof GardenEventIngestionService>
-    shouldStreamLogEntries: boolean
+    streamLogEntries: boolean
   }) {
     this.garden = garden
     this.log = log
     this.eventIngestionService = eventIngestionService
     this.isClosed = false
-    this.shouldStreamLogEntries = shouldStreamLogEntries
+    this.streamLogEntries = streamLogEntries
 
-    this.converter = new GrpcEventConverter(this.garden, this.log, this.shouldStreamLogEntries)
+    this.converter = new GrpcEventConverter(this.garden, this.log, this.streamLogEntries)
 
     // TODO: make sure it waits for the callback function completion
     registerCleanupFunction("grow-stream-session-cancelled-event", () => {

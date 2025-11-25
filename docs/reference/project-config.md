@@ -167,6 +167,9 @@ providers:
 # the format `<namespace>.<environment>`. Defaults to the first configured environment, with no namespace set.
 defaultEnvironment: ''
 
+# Set to true to disable streaming of logs to Garden Cloud.
+disableCloudLogs:
+
 # Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as
 # `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are
 # ignored when scanning for actions and action sources.
@@ -687,6 +690,14 @@ Example:
 ```yaml
 defaultEnvironment: "dev"
 ```
+
+### `disableCloudLogs`
+
+Set to true to disable streaming of logs to Garden Cloud.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
 
 ### `dotIgnoreFile`
 

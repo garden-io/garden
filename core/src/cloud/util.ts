@@ -80,7 +80,7 @@ interface CreateCloudEventStreamParams {
   sessionId: string
   log: Log
   garden: Garden
-  opts: { shouldStreamEvents: boolean; shouldStreamLogs: boolean }
+  opts: { streamEvents: boolean; streamLogEntries: boolean }
 }
 
 export function createCloudEventStream({
@@ -89,6 +89,10 @@ export function createCloudEventStream({
   garden,
   opts,
 }: CreateCloudEventStreamParams): RestfulEventStream | GrpcEventStream | undefined {
+  const streamLogEntries =
+    opts.streamLogEntries &&
+    !(gardenEnv.GARDEN_DISABLE_CLOUD_LOGS === true || garden.getProjectConfig().disableCloudLogs === true)
+
   if (garden.isOldBackendAvailable()) {
     const cloudApi = garden.cloudApiLegacy
     const cloudSession = cloudApi.getRegisteredSession(sessionId)
@@ -102,16 +106,16 @@ export function createCloudEventStream({
       cloudSession,
       maxLogLevel: eventLogLevel,
       garden,
-      streamEvents: opts.shouldStreamEvents,
-      streamLogEntries: opts.shouldStreamLogs,
+      streamEvents: opts.streamEvents,
+      streamLogEntries,
     })
   }
 
-  if (garden.isNewBackendAvailable() && opts.shouldStreamEvents) {
+  if (garden.isNewBackendAvailable() && opts.streamEvents) {
     return new GrpcEventStream({
       log,
       garden,
-      shouldStreamLogEntries: opts.shouldStreamLogs,
+      streamLogEntries,
       eventIngestionService: garden.cloudApi.eventIngestionService,
     })
   }

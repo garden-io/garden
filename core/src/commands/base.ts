@@ -347,13 +347,13 @@ export abstract class Command<
         let result: CommandResult<R>
 
         // We're streaming more logs to Garden Cloud v2 so we have a separate flag for that
-        const shouldStreamLogs = this.streamLogEntries || (!!garden.cloudApi && this.streamLogEntriesV2)
+        const streamLogEntries = this.streamLogEntries || (!!garden.cloudApi && this.streamLogEntriesV2)
 
         const cloudEventStream = createCloudEventStream({
           sessionId: garden.sessionId,
           log,
           garden,
-          opts: { shouldStreamEvents: this.streamEvents, shouldStreamLogs },
+          opts: { streamEvents: this.streamEvents, streamLogEntries },
         })
         if (cloudEventStream) {
           log.silly(() => `Connecting Garden instance events to Cloud API`)

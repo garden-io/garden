@@ -240,6 +240,7 @@ export interface ProjectConfig extends BaseGardenResource {
   varfile?: string
   variables: DeepPrimitiveMap
   importVariables: ImportVariablesConfig
+  disableCloudLogs?: boolean
 }
 
 export const projectApiVersionSchema = memoize(() =>
@@ -393,6 +394,7 @@ export const projectSchema = createSchema({
         `
       )
       .example("dev"),
+    disableCloudLogs: joi.boolean().description("Set to true to disable streaming of logs to Garden Cloud."),
     dotIgnoreFile: joi
       .posixPath()
       .filenameOnly()
