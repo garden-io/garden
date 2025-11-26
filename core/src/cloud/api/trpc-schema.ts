@@ -38,7 +38,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               createdAt: Date
               updatedAt: Date
               role: "admin" | "member"
-              featureFlags: ("variables" | "command-runs" | "private-container-builder")[]
+              slug: string | null
+              isCurrentUserOwner: boolean
+              featureFlags: ("variables" | "command-runs" | "aec-ui" | "private-container-builder")[]
             }[]
           } | null
           meta: object
@@ -53,6 +55,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             invitationToken?: string | undefined
           }
           output: {
+            accountId: string
             redirectTo: string
           }
           meta: object
@@ -121,6 +124,19 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               expiresAt: Date | null
               isOwner: boolean
               kind: "account" | "invitation"
+              serviceAccount?: boolean | undefined
+              tokens?:
+                | {
+                    description: string | null
+                    type: "access" | "refresh" | "web"
+                    id: string
+                    createdAt: Date
+                    updatedAt: Date
+                    accountId: string
+                    expiresAt: Date
+                    label: string | null
+                  }[]
+                | undefined
             }[]
             nextCursor?: number | undefined
           }
@@ -184,7 +200,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               createdAt: Date
               updatedAt: Date
               role: "admin" | "member"
-              featureFlags: ("variables" | "command-runs" | "private-container-builder")[]
+              slug: string | null
+              isCurrentUserOwner: boolean
+              featureFlags: ("variables" | "command-runs" | "aec-ui" | "private-container-builder")[]
             }[]
           } | null
           meta: object
@@ -208,11 +226,29 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           }
           meta: object
         }>
+        changeRole: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            organizationId: string
+            accountId: string
+            role: "admin" | "member"
+          }
+          output: {
+            name: string
+            email: string
+            id: string
+            createdAt: Date
+            updatedAt: Date
+            role: "admin" | "member"
+            isOwner: boolean
+          }
+          meta: object
+        }>
         getOrCreateServiceAccountAndToken: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             name: string
             organizationId: string
             accountId: string
+            label?: string | undefined
           }
           output: {
             account: {
@@ -225,6 +261,22 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               isOwner: boolean
             }
             token: string
+          }
+          meta: object
+        }>
+        createServiceAccount: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            name: string
+            organizationId: string
+          }
+          output: {
+            name: string
+            email: string
+            id: string
+            createdAt: Date
+            updatedAt: Date
+            role: "admin" | "member"
+            isOwner: boolean
           }
           meta: object
         }>
@@ -263,6 +315,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             cacheKey: string
           }
           output: {
+            version: "v1"
             data:
               | {
                   startedAt: string
@@ -275,8 +328,155 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                   notFoundReason: "no-result-exists" | "max-result-age-exceeded" | "max-hits-exceeded"
                   notFoundDescription: string
                 }
-            version: "v1"
           }
+          meta: object
+        }>
+      }>
+    >
+    aec: import("@trpc/server").TRPCBuiltRouter<
+      {
+        ctx: any
+        meta: object
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        transformer: true
+      },
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        listEnvironmentStatuses: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+            projectId?: string | undefined
+            cursor?: number | undefined
+            perPage?: number | undefined
+            environmentName?: string | undefined
+            environmentType?: string | undefined
+            orderBy?: "timestamp" | "projectId" | "environmentName" | "latestEventUlid" | undefined
+            sortOrder?: "asc" | "desc" | undefined
+          }
+          output: {
+            items: {
+              error: boolean
+              organizationId: string
+              timestamp: Date
+              projectId: string
+              success: boolean | null
+              environmentName: string
+              environmentType: string
+              latestEventUlid: string
+              actorId: string
+              commandUlid: string
+              sessionUlid: string
+              agentPluginName: string
+              agentEnvironmentType: string
+              agentDescription: {
+                project: string
+                k8sContext: string
+                namespace: string
+              }
+              agentVersion: string | null
+              statusDescription: string
+              inProgress: boolean
+              lastDeployed: string | null
+              actionTriggered: "Active" | "Cleanup" | "Pause" | "Cleaning up..." | "Pausing..." | null
+              resource: string[] | null
+              environment: string
+            }[]
+            nextCursor?: number | undefined
+          }
+          meta: object
+        }>
+        getEnvironmentStatus: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+            projectId: string
+            environmentName: string
+            environmentType: string
+          }
+          output: {
+            error: boolean
+            organizationId: string
+            timestamp: Date
+            projectId: string
+            success: boolean | null
+            environmentName: string
+            environmentType: string
+            latestEventUlid: string
+            actorId: string
+            commandUlid: string
+            sessionUlid: string
+            agentPluginName: string
+            agentEnvironmentType: string
+            agentDescription: {
+              project: string
+              k8sContext: string
+              namespace: string
+            }
+            agentVersion: string | null
+            statusDescription: string
+            inProgress: boolean
+            lastDeployed: string | null
+            actionTriggered: "Active" | "Cleanup" | "Pause" | "Cleaning up..." | "Pausing..." | null
+            resource: string[] | null
+            environment: string
+          } | null
+          meta: object
+        }>
+        listAgentStatuses: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+            cursor?: number | undefined
+            perPage?: number | undefined
+            orderBy?: "timestamp" | "latestEventUlid" | "agentPluginName" | "agentEnvironmentType" | undefined
+            sortOrder?: "asc" | "desc" | undefined
+            agentPluginName?: string | undefined
+            agentEnvironmentType?: string | undefined
+          }
+          output: {
+            items: {
+              status: "Unknown" | "Running" | "Stopped" | "Error" | "Inactive"
+              organizationId: string
+              timestamp: Date
+              latestEventUlid: string
+              actorId: string
+              commandUlid: string
+              sessionUlid: string
+              agentPluginName: string
+              agentEnvironmentType: string
+              agentDescription: {
+                project: string
+                k8sContext: string
+                namespace: string
+              }
+              agentVersion: string | null
+              statusDescription: string
+            }[]
+            nextCursor?: number | undefined
+          }
+          meta: object
+        }>
+        getAgentStatus: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+            agentPluginName: string
+            agentEnvironmentType: string
+          }
+          output: {
+            status: "Unknown" | "Running" | "Stopped" | "Error" | "Inactive"
+            organizationId: string
+            timestamp: Date
+            latestEventUlid: string
+            actorId: string
+            commandUlid: string
+            sessionUlid: string
+            agentPluginName: string
+            agentEnvironmentType: string
+            agentDescription: {
+              project: string
+              k8sContext: string
+              namespace: string
+            }
+            agentVersion: string | null
+            statusDescription: string
+          } | null
           meta: object
         }>
       }>
@@ -495,8 +695,8 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             }[]
             prices: {
               id: `price_${string}`
-              metadata: Record<string, unknown>
               product: `prod_${string}`
+              metadata: Record<string, unknown>
               unitAmount: number | null
               unitAmountDecimal: string | null
               recurring: {
@@ -609,6 +809,74 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         }>
       }>
     >
+    commandLogs: import("@trpc/server").TRPCBuiltRouter<
+      {
+        ctx: any
+        meta: object
+        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        transformer: true
+      },
+      import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        list: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            id: string
+            organizationId: string
+            cursor?: number | undefined
+            perPage?: number | undefined
+            sortOrder?: "asc" | "desc" | undefined
+            actionUlid?: string | undefined
+            maxLogLevel?: import("../schemas/event-streaming-database/command-logs").GardenLogLevel | undefined
+          }
+          output: {
+            items: {
+              organizationId: string
+              actorId: string
+              commandUlid: string
+              sessionUlid: string
+              actionUlid: string | null
+              eventUlid: string
+              logLevel: number
+              originDescription: string | null
+              logDetails: {
+                symbol?: string | undefined
+                error?: string | undefined
+                data?: string | undefined
+                msg?: string | undefined
+                rawMsg?: string | undefined
+                dataFormat?: string | undefined
+                section?: string | undefined
+                coreLog?:
+                  | {
+                      name?: string | undefined
+                      origin?: string | undefined
+                    }
+                  | undefined
+                actionLog?:
+                  | {
+                      actionName: string
+                      actionKind: string
+                      actionUid: string
+                      origin?: string | undefined
+                    }
+                  | undefined
+              }
+              loggedAt: Date
+            }[]
+            nextCursor?: number | undefined
+          }
+          meta: object
+        }>
+        watch: import("@trpc/server").TRPCSubscriptionProcedure<{
+          input: {
+            id: string
+            organizationId: string
+            actionUlid?: string | undefined
+          }
+          output: AsyncIterable<import("../repositories/event-streaming-database/command-logs").CommandLog, void, any>
+          meta: object
+        }>
+      }>
+    >
     commandRun: import("@trpc/server").TRPCBuiltRouter<
       {
         ctx: any
@@ -620,6 +888,8 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         watchCommandExecutionStatus: import("@trpc/server").TRPCSubscriptionProcedure<{
           input: {
             organizationId: string
+            accountIds: string[] | null
+            projectNames: string[] | null
             lastKnownEventUlid: string
             dates?:
               | {
@@ -632,20 +902,34 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             {
               type: "created" | "updated"
               data: {
+                account:
+                  | {
+                      name: string
+                      email: string
+                      avatarUrl: string
+                      otherEmails: string | undefined
+                      serviceAccount: boolean | undefined
+                      id: string
+                      createdAt: Date
+                      updatedAt: Date
+                    }
+                  | undefined
                 id: string
-                status: any
+                status: import("../schemas/event-streaming-database/command-execution-status").GardenCommandStatus
                 organizationId: string
                 startedAt: Date
                 completedAt: Date | null
+                actorId: string
                 commandUlid: string
                 sessionUlid: string
-                actorId: string
                 createdEventUlid: string
                 updatedEventUlid: string
-                gitMetadata: any
-                invocation: any
+                lastHeartbeatAt: Date | null
+                gitMetadata: import("../schemas/event-streaming-database/command-execution-status").GardenGitMetadata
+                invocation: import("../schemas/event-streaming-database/command-execution-status").GardenCommandInvocation
                 isCustomCommand: boolean
-                projectMetadata: any
+                projectMetadata: import("../schemas/event-streaming-database/command-execution-status").GardenProjectMetadata
+                projectName: string
                 completedSuccessfully: boolean | null
               }
             },
@@ -654,22 +938,102 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           >
           meta: object
         }>
-        getFromEventStore: import("@trpc/server").TRPCQueryProcedure<{
+        watchActionStatuses: import("@trpc/server").TRPCSubscriptionProcedure<{
+          input: {
+            id: string
+            organizationId: string
+            lastKnownEventUlid: string
+          }
+          output: AsyncIterable<
+            import("../repositories/event-streaming-database/helpers").EventStreamingDatabaseUpdate<{
+              type: string
+              status: "aborted" | "ready" | "cached" | "processing" | "failed" | "getting-status" | "queued"
+              name: string
+              organizationId: string
+              kind: "Build" | "Deploy" | "Run" | "Test"
+              actorId: string
+              commandUlid: string
+              sessionUlid: string
+              actionUlid: string
+              createdEventUlid: string
+              updatedEventUlid: string
+              statusCompletedSuccess: boolean | null
+              statusCompletedNeedsRun: boolean | null
+              runCompletedSuccess: boolean | null
+              scannedAt: Date
+              dependencies: import("../schemas/event-streaming-database/action-status").GardenActionDependency[]
+              statusStartedAt: Date | null
+              statusCompletedAt: Date | null
+              runStartedAt: Date | null
+              runCompletedAt: Date | null
+              overallDurationSeconds: number | null
+              overallDuration: import("../util/interval").Interval | null
+              runDuration: import("../util/interval").Interval | null
+              statusDuration: import("../util/interval").Interval | null
+              commandStatus: import("../schemas/event-streaming-database/command-execution-status").GardenCommandStatus
+              buildGetStatusResult: {
+                state: "unspecified" | "found-in-registry" | "missing-from-registry"
+              }
+              deployGetStatusResult: {
+                state: "ready" | "unspecified" | "outdated" | "missing" | "unhealthy" | "deploying" | "stopped"
+              }
+              runGetStatusResult: {
+                state:
+                  | "unspecified"
+                  | "found-in-team-cache"
+                  | "found-in-local-cache"
+                  | "missing-checked-all-caches"
+                  | "missing-checked-local-cache"
+              }
+              testGetStatusResult: {
+                state:
+                  | "unspecified"
+                  | "found-in-team-cache"
+                  | "found-in-local-cache"
+                  | "missing-checked-all-caches"
+                  | "missing-checked-local-cache"
+              }
+              deployRunResult: {
+                createdAt?: string
+                mode?: string
+                externalId?: string
+                externalVersion?: string
+                ingresses?: {
+                  hostname: string
+                  linkUrl?: string
+                  path: string
+                  port?: number
+                  protocol: string
+                }[]
+                lastMessage?: string
+                lastError?: string
+                runningReplicas?: number
+                state?: string
+                updatedAt?: string
+              }
+            }>,
+            void,
+            any
+          >
+          meta: object
+        }>
+        getCommandExecutionStatus: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             id: string
             organizationId: string
           }
           output: {
-            status: "FAILED" | "SUCCEEDED" | "RUNNING"
+            status: "FAILED" | "SUCCEEDED" | "RUNNING" | "TIMED_OUT"
             id: string
             organizationId: string
             startedAt: Date
             completedAt: Date | null
+            actorId: string
             commandUlid: string
             sessionUlid: string
-            actorId: string
             createdEventUlid: string
             updatedEventUlid: string
+            lastHeartbeatAt: Date | null
             gitMetadata: {
               gitRemotes: {
                 name: string
@@ -694,91 +1058,47 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               projectName: string
               projectRootDir: string
             }
-            actionStatus: {
-              type: string
-              status: "aborted" | "ready" | "cached" | "processing" | "failed" | "getting-status" | "queued"
-              name: string
-              organizationId: string
-              kind: string
-              commandUlid: string
-              sessionUlid: string
-              actorId: string
-              createdEventUlid: string
-              updatedEventUlid: string
-              actionUlid: string
-              statusCompletedSuccess: boolean | null
-              statusCompletedNeedsRun: boolean | null
-              runCompletedSuccess: boolean | null
-              scannedAt: Date
-              dependencies: {
-                ref: {
-                  name: string
-                  kind: string
+            account?:
+              | {
+                  name: string | null
+                  email: string
+                  id: string
+                  createdAt: Date
+                  updatedAt: Date
+                  serviceAccount?: boolean | undefined
                 }
-                isExplicit: boolean
-              }[]
-              statusStartedAt: Date | null
-              statusCompletedAt: Date | null
-              runStartedAt: Date | null
-              runCompletedAt: Date | null
-              overallDurationSeconds: number | null
-              overallDuration: {
-                years: number
-                months: number
-                days: number
-                hours: number
-                minutes: number
-                seconds: number
-                milliseconds: number
-              } | null
-              runDuration: {
-                years: number
-                months: number
-                days: number
-                hours: number
-                minutes: number
-                seconds: number
-                milliseconds: number
-              } | null
-              statusDuration: {
-                years: number
-                months: number
-                days: number
-                hours: number
-                minutes: number
-                seconds: number
-                milliseconds: number
-              } | null
-              commandStatus: "FAILED" | "SUCCEEDED" | "RUNNING"
-            }[]
+              | undefined
           }
           meta: object
         }>
-        listCommandExecutionStatus: import("@trpc/server").TRPCQueryProcedure<{
+        listCommandExecutionStatuses: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             organizationId: string
+            accountIds: string[] | null
+            projectNames: string[] | null
             cursor?: number | undefined
             perPage?: number | undefined
+            sortOrder?: "asc" | "desc" | undefined
             dates?:
               | {
                   from?: number | undefined
                   to?: number | undefined
                 }
               | undefined
-            sortOrder?: "asc" | "desc" | undefined
           }
           output: {
             items: {
-              status: "FAILED" | "SUCCEEDED" | "RUNNING"
+              status: "FAILED" | "SUCCEEDED" | "RUNNING" | "TIMED_OUT"
               id: string
               organizationId: string
               startedAt: Date
               completedAt: Date | null
+              actorId: string
               commandUlid: string
               sessionUlid: string
-              actorId: string
               createdEventUlid: string
               updatedEventUlid: string
+              lastHeartbeatAt: Date | null
               gitMetadata: {
                 gitRemotes: {
                   name: string
@@ -803,29 +1123,127 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                 projectName: string
                 projectRootDir: string
               }
+              account?:
+                | {
+                    name: string | null
+                    email: string
+                    id: string
+                    createdAt: Date
+                    updatedAt: Date
+                    serviceAccount?: boolean | undefined
+                  }
+                | undefined
             }[]
             nextCursor?: number | undefined
           }
           meta: object
         }>
-        timelineChart: import("@trpc/server").TRPCQueryProcedure<{
+        getActionStatuses: import("@trpc/server").TRPCQueryProcedure<{
           input: {
+            id: string
             organizationId: string
-            dates?:
-              | {
-                  from?: number | undefined
-                  to?: number | undefined
-                }
-              | undefined
-            sortOrder?: "asc" | "desc" | undefined
           }
           output: {
-            active: number
-            timestamp: number
-            failed: number
-            successful: number
-            cancelled: number
-          }[]
+            actionStatuses: {
+              type: string
+              status: "aborted" | "ready" | "cached" | "processing" | "failed" | "getting-status" | "queued"
+              name: string
+              organizationId: string
+              kind: "Build" | "Deploy" | "Run" | "Test"
+              actorId: string
+              commandUlid: string
+              sessionUlid: string
+              actionUlid: string
+              createdEventUlid: string
+              updatedEventUlid: string
+              statusCompletedSuccess: boolean | null
+              statusCompletedNeedsRun: boolean | null
+              runCompletedSuccess: boolean | null
+              scannedAt: Date
+              dependencies: {
+                ref: {
+                  name: string
+                  kind: "Build" | "Deploy" | "Run" | "Test"
+                }
+                isExplicit: boolean
+              }[]
+              statusStartedAt: Date | null
+              statusCompletedAt: Date | null
+              runStartedAt: Date | null
+              runCompletedAt: Date | null
+              overallDurationSeconds: number | null
+              overallDuration: {
+                seconds: number
+                years: number
+                months: number
+                days: number
+                hours: number
+                minutes: number
+                milliseconds: number
+              } | null
+              runDuration: {
+                seconds: number
+                years: number
+                months: number
+                days: number
+                hours: number
+                minutes: number
+                milliseconds: number
+              } | null
+              statusDuration: {
+                seconds: number
+                years: number
+                months: number
+                days: number
+                hours: number
+                minutes: number
+                milliseconds: number
+              } | null
+              commandStatus: "FAILED" | "SUCCEEDED" | "RUNNING" | "TIMED_OUT"
+              buildGetStatusResult: {
+                state: "unspecified" | "found-in-registry" | "missing-from-registry"
+              } | null
+              deployGetStatusResult: {
+                state: "ready" | "unspecified" | "outdated" | "missing" | "unhealthy" | "deploying" | "stopped"
+              } | null
+              runGetStatusResult: {
+                state:
+                  | "unspecified"
+                  | "found-in-team-cache"
+                  | "found-in-local-cache"
+                  | "missing-checked-all-caches"
+                  | "missing-checked-local-cache"
+              } | null
+              testGetStatusResult: {
+                state:
+                  | "unspecified"
+                  | "found-in-team-cache"
+                  | "found-in-local-cache"
+                  | "missing-checked-all-caches"
+                  | "missing-checked-local-cache"
+              } | null
+              deployRunResult: {
+                createdAt?: string | undefined
+                updatedAt?: string | undefined
+                mode?: string | undefined
+                state?: string | undefined
+                externalId?: string | undefined
+                externalVersion?: string | undefined
+                ingresses?:
+                  | {
+                      path: string
+                      hostname: string
+                      protocol: string
+                      port?: number | undefined
+                      linkUrl?: string | undefined
+                    }[]
+                  | undefined
+                lastMessage?: string | undefined
+                lastError?: string | undefined
+                runningReplicas?: number | undefined
+              } | null
+            }[]
+          }
           meta: object
         }>
       }>
@@ -1107,12 +1525,14 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             name: string
+            slug?: string | null | undefined
           }
           output: {
             name: string
             id: string
             createdAt: Date
             updatedAt: Date
+            slug: string | null
             plan: "free" | "trial" | "team" | "enterprise"
           }
           meta: object
@@ -1126,6 +1546,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             id: string
             createdAt: Date
             updatedAt: Date
+            slug: string | null
             plan: "free" | "trial" | "team" | "enterprise"
             activeUsersCount: number
             usedSeatsCount: number
@@ -1143,6 +1564,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               id: string
               createdAt: Date
               updatedAt: Date
+              slug: string | null
               plan: "free" | "trial" | "team" | "enterprise"
             }[]
             nextCursor?: number | undefined
@@ -1151,15 +1573,27 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         }>
         update: import("@trpc/server").TRPCMutationProcedure<{
           input: {
-            name: string
             organizationId: string
+            name?: string | undefined
+            slug?: string | null | undefined
           }
           output: {
             name: string
             id: string
             createdAt: Date
             updatedAt: Date
+            slug: string | null
             plan: "free" | "trial" | "team" | "enterprise"
+          }
+          meta: object
+        }>
+        checkSlugAvailability: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            slug: string
+            organizationId?: string | undefined
+          }
+          output: {
+            available: boolean
           }
           meta: object
         }>
@@ -1222,13 +1656,13 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             refreshToken: string
           }
           output: {
-            accessToken: string
-            refreshToken: string
-            tokenValidity: number
             notices: {
               message: string
               severity: "error" | "info" | "warning"
             }[]
+            refreshToken: string
+            accessToken: string
+            tokenValidity: number
           }
           meta: object
         }>
@@ -1244,10 +1678,35 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         createAccessToken: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             name: string
+            description?: string | undefined
+            expiresAt?: Date | undefined
           }
           output: {
+            description: string | null
             value: string
             type: "access" | "refresh" | "web"
+            id: string
+            createdAt: Date
+            updatedAt: Date
+            accountId: string
+            expiresAt: Date
+            label: string | null
+          }
+          meta: object
+        }>
+        createServiceAccountToken: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            name: string
+            organizationId: string
+            accountId: string
+            description?: string | undefined
+            expiresAt?: Date | undefined
+          }
+          output: {
+            description: string | null
+            value: string
+            type: "access" | "refresh" | "web"
+            id: string
             createdAt: Date
             updatedAt: Date
             accountId: string
@@ -1258,7 +1717,16 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         }>
         deleteAccessToken: import("@trpc/server").TRPCMutationProcedure<{
           input: {
-            token: string
+            tokenId: string
+          }
+          output: void
+          meta: object
+        }>
+        deleteServiceAccountToken: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            organizationId: string
+            accountId: string
+            tokenId: string
           }
           output: void
           meta: object
@@ -1266,8 +1734,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         listAccessTokens: import("@trpc/server").TRPCQueryProcedure<{
           input: void
           output: {
-            value: string
+            description: string | null
             type: "access" | "refresh" | "web"
+            id: string
             createdAt: Date
             updatedAt: Date
             accountId: string
@@ -1284,8 +1753,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           }
           output: {
             items: {
-              value: string
+              description: string | null
               type: "access" | "refresh" | "web"
+              id: string
               createdAt: Date
               updatedAt: Date
               accountId: string
@@ -1313,10 +1783,10 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             name: string
             organizationId: string
             expiresAt: Date | null
+            variableListId: string
             isSecret: boolean
             scopedGardenEnvironmentId: string | null
             scopedAccountId: string | null
-            variableListId: string
             scopedGardenEnvironmentName: string | null
           }
           output: {
@@ -1397,11 +1867,19 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           meta: object
         }>
         getValues: import("@trpc/server").TRPCQueryProcedure<{
-          input: {
-            organizationId: string
-            variableListId: string
-            gardenEnvironmentName: string
-          }
+          input:
+            | {
+                organizationId: string
+                variableListId: string
+                gardenEnvironmentName: string
+                variableListName?: string | undefined
+              }
+            | {
+                organizationId: string
+                variableListName: string
+                gardenEnvironmentName: string
+                variableListId?: string | undefined
+              }
           output: Record<
             string,
             {
@@ -1413,6 +1891,19 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           >
           meta: object
         }>
+        legacyGetDefaultProjectList: import("@trpc/server").TRPCQueryProcedure<{
+          input: {
+            organizationId: string
+            projectId: string
+          }
+          output: {
+            description: string
+            name: string
+            id: `varlist_${string}`
+            migratedFromProjectId: string | null
+          }
+          meta: object
+        }>
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             description: string
@@ -1422,13 +1913,29 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           output: {
             description: string
             name: string
-            id: string
+            id: `varlist_${string}`
+            organizationId: string
+          }
+          meta: object
+        }>
+        update: import("@trpc/server").TRPCMutationProcedure<{
+          input: {
+            organizationId: string
+            variableListId: string
+            description?: string | undefined
+            name?: string | undefined
+          }
+          output: {
+            description: string
+            name: string
+            id: `varlist_${string}`
             organizationId: string
           }
           meta: object
         }>
         delete: import("@trpc/server").TRPCMutationProcedure<{
           input: {
+            organizationId: string
             variableListId: string
           }
           output: {
@@ -1447,17 +1954,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             createdAt: Date
             updatedAt: Date
             organizationId: string
-          }
-          meta: object
-        }>
-        update: import("@trpc/server").TRPCMutationProcedure<{
-          input: {
-            variableListId: string
-            description?: string | undefined
-            name?: string | undefined
-          }
-          output: {
-            success: boolean
+            migratedFromProjectId: string | null
           }
           meta: object
         }>
@@ -1476,12 +1973,23 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           meta: object
         }>
         listVariables: import("@trpc/server").TRPCQueryProcedure<{
-          input: {
-            organizationId: string
-            variableListId: string
-            cursor?: number | undefined
-            perPage?: number | undefined
-          }
+          input:
+            | {
+                organizationId: string
+                variableListId: string
+                search?: string | undefined
+                variableListName?: string | undefined
+                cursor?: number | undefined
+                perPage?: number | undefined
+              }
+            | {
+                organizationId: string
+                variableListName: string
+                search?: string | undefined
+                variableListId?: string | undefined
+                cursor?: number | undefined
+                perPage?: number | undefined
+              }
           output: {
             items: {
               description: string | null

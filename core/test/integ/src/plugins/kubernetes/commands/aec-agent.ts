@@ -26,6 +26,7 @@ describe("aec-agent command", () => {
     override async getOrganization() {
       return {
         name: "foo",
+        slug: "foo-slug",
         id: "baz",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -46,6 +47,8 @@ describe("aec-agent command", () => {
         organizations: [
           {
             name: "foo",
+            isCurrentUserOwner: true,
+            slug: "foo-slug",
             id: "baz",
             createdAt: new Date(),
             updatedAt: new Date(),
