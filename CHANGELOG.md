@@ -4,9 +4,6 @@
 
 ### Bug Fixes
 
-* **aec:** several fixes and improvements for AEC information events ([#7808](https://github.com/garden-io/garden/issues/7808)) ([d069e4268](https://github.com/garden-io/garden/commit/d069e4268))
-* **aec:** missing/incorrect description field in status messages ([#7801](https://github.com/garden-io/garden/issues/7801)) ([b61fd8b70](https://github.com/garden-io/garden/commit/b61fd8b70))
-* **cloud:** don't explode if log streaming fails ([#7828](https://github.com/garden-io/garden/issues/7828)) ([9a97521d1](https://github.com/garden-io/garden/commit/9a97521d1))
 * **container:** don't check for local docker if using cloud builder ([#7813](https://github.com/garden-io/garden/issues/7813)) ([5d0d4dffe](https://github.com/garden-io/garden/commit/5d0d4dffe))
 * **core:** do not log "helm get manifest" output ([#7795](https://github.com/garden-io/garden/issues/7795)) ([5638647fe](https://github.com/garden-io/garden/commit/5638647fe))
 * **diff:** some false positives in diff command ([#7806](https://github.com/garden-io/garden/issues/7806)) ([d306e66ca](https://github.com/garden-io/garden/commit/d306e66ca))
@@ -16,19 +13,13 @@
 
 * stream logs to Garden Cloud via gRPC ([#7793](https://github.com/garden-io/garden/issues/7793)) ([0bd363e6a](https://github.com/garden-io/garden/commit/0bd363e6a))
 * **api:** make cloud util commands visible ([#7742](https://github.com/garden-io/garden/issues/7742)) ([1b86d56f9](https://github.com/garden-io/garden/commit/1b86d56f9))
-* **cloud:** emit command heartbeat events ([#7796](https://github.com/garden-io/garden/issues/7796)) ([93c6f1376](https://github.com/garden-io/garden/commit/93c6f1376))
 * **core:** emit deploy run results to Garden Cloud ([#7781](https://github.com/garden-io/garden/issues/7781)) ([a0870606b](https://github.com/garden-io/garden/commit/a0870606b))
 
 ### Improvements
 
 * show verbose log output by default ([#7799](https://github.com/garden-io/garden/issues/7799)) ([f5b042c08](https://github.com/garden-io/garden/commit/f5b042c08))
 * **aec:** add more detail to env update events ([#7830](https://github.com/garden-io/garden/issues/7830)) ([932ebff2d](https://github.com/garden-io/garden/commit/932ebff2d))
-* **aec:** include project name in AEC agent description ([#7827](https://github.com/garden-io/garden/issues/7827)) ([9f8e282b2](https://github.com/garden-io/garden/commit/9f8e282b2))
 * **cli:** print graph status message on interval during solve ([#7769](https://github.com/garden-io/garden/issues/7769)) ([a306d5f81](https://github.com/garden-io/garden/commit/a306d5f81))
-* **cloud:** default variable lists ([22945e0a3](https://github.com/garden-io/garden/commit/22945e0a3))
-* **cloud:** detect v2 backend for migrated projects ([65817ac41](https://github.com/garden-io/garden/commit/65817ac41))
-* **cloud:** add toggles to disable log streaming to Cloud ([#7834](https://github.com/garden-io/garden/issues/7834)) ([070e72635](https://github.com/garden-io/garden/commit/070e72635))
-* **core:** add description to importedVariables schema ([#7770](https://github.com/garden-io/garden/issues/7770)) ([0b0f3d040](https://github.com/garden-io/garden/commit/0b0f3d040))
 * **logs:** print graph summary at end of graph solve ([#7832](https://github.com/garden-io/garden/issues/7832)) ([3fd26a3d4](https://github.com/garden-io/garden/commit/3fd26a3d4))
 * **logs:** misc log-related fixes and cleanup ([#7809](https://github.com/garden-io/garden/issues/7809)) ([2bc471d5e](https://github.com/garden-io/garden/commit/2bc471d5e))
 
