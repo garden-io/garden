@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git+https://github.com/garden-io/garden.git"
   },
-  "version": "0.14.9",
+  "version": "0.14.10",
   "author": "Garden Technologies, Inc. <info@garden.io>",
   "license": "MPL-2.0",
   "homepage": "https://github.com/garden-io/garden",
