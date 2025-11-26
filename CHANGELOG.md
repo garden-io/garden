@@ -1,4 +1,28 @@
 
+<a name="0.14.10"></a>
+## [0.14.10](https://github.com/garden-io/garden/compare/0.14.9...0.14.10) (2025-11-26)
+
+### Bug Fixes
+
+* **container:** don't check for local docker if using cloud builder ([#7813](https://github.com/garden-io/garden/issues/7813)) ([5d0d4dffe](https://github.com/garden-io/garden/commit/5d0d4dffe))
+* **core:** do not log "helm get manifest" output ([#7795](https://github.com/garden-io/garden/issues/7795)) ([5638647fe](https://github.com/garden-io/garden/commit/5638647fe))
+* **diff:** some false positives in diff command ([#7806](https://github.com/garden-io/garden/issues/7806)) ([d306e66ca](https://github.com/garden-io/garden/commit/d306e66ca))
+* **k8s:** error when re-deploying failed StatefulSet or DaemonSet ([#7798](https://github.com/garden-io/garden/issues/7798)) ([fa99ce8c0](https://github.com/garden-io/garden/commit/fa99ce8c0))
+
+### Features
+
+* stream logs to Garden Cloud via gRPC ([#7793](https://github.com/garden-io/garden/issues/7793)) ([0bd363e6a](https://github.com/garden-io/garden/commit/0bd363e6a))
+* **api:** make cloud util commands visible ([#7742](https://github.com/garden-io/garden/issues/7742)) ([1b86d56f9](https://github.com/garden-io/garden/commit/1b86d56f9))
+* **core:** emit deploy run results to Garden Cloud ([#7781](https://github.com/garden-io/garden/issues/7781)) ([a0870606b](https://github.com/garden-io/garden/commit/a0870606b))
+
+### Improvements
+
+* show verbose log output by default ([#7799](https://github.com/garden-io/garden/issues/7799)) ([f5b042c08](https://github.com/garden-io/garden/commit/f5b042c08))
+* **aec:** add more detail to env update events ([#7830](https://github.com/garden-io/garden/issues/7830)) ([932ebff2d](https://github.com/garden-io/garden/commit/932ebff2d))
+* **cli:** print graph status message on interval during solve ([#7769](https://github.com/garden-io/garden/issues/7769)) ([a306d5f81](https://github.com/garden-io/garden/commit/a306d5f81))
+* **logs:** print graph summary at end of graph solve ([#7832](https://github.com/garden-io/garden/issues/7832)) ([3fd26a3d4](https://github.com/garden-io/garden/commit/3fd26a3d4))
+* **logs:** misc log-related fixes and cleanup ([#7809](https://github.com/garden-io/garden/issues/7809)) ([2bc471d5e](https://github.com/garden-io/garden/commit/2bc471d5e))
+
 <a name="0.14.9"></a>
 ## [0.14.9](https://github.com/garden-io/garden/compare/0.14.8...0.14.9) (2025-09-30)
 
