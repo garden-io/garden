@@ -26,7 +26,7 @@ import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
 import { getStoredAuthToken } from "../api-legacy/auth.js"
-import { deline } from "../../util/string.js"
+import { dedent, deline } from "../../util/string.js"
 import { TRPCClientError } from "@trpc/client"
 import type { InferrableClientTypes } from "@trpc/server/unstable-core-do-not-import"
 import { createGrpcTransport } from "@connectrpc/connect-node"
@@ -349,17 +349,15 @@ export class GardenCloudApi {
     importVariables,
     environmentName,
     log,
+    legacyProjectId,
   }: {
     importVariables: ImportVariablesConfig
     environmentName: string
     log: Log
+    legacyProjectId?: string | undefined
   }) {
-    const variableListIds = getVarlistIdsFromRemoteVarsConfig(importVariables)
-    if (variableListIds.length === 0) {
-      return {}
-    }
-
     log.info(`Fetching remote variables`)
+    const variableListIds = await this.getVariableListIds(importVariables, legacyProjectId, log)
     const reqs = variableListIds.map(async (variableListId, index) => {
       log.debug(`Fetching remote variables for variableListId=${variableListId}`)
       try {
@@ -395,6 +393,46 @@ export class GardenCloudApi {
     }, {})
 
     return variables
+  }
+
+  async getVariableListIds(
+    importVariables: ImportVariablesConfig,
+    legacyProjectId: string | undefined,
+    log: Log
+  ): Promise<string[]> {
+    const variableListIds = getVarlistIdsFromRemoteVarsConfig(importVariables)
+
+    if (variableListIds.length > 0) {
+      return variableListIds
+    }
+
+    if (!legacyProjectId) {
+      return []
+    }
+
+    try {
+      const response = await this.trpc.variableList.legacyGetDefaultProjectList.query({
+        organizationId: this.organizationId,
+        projectId: legacyProjectId,
+      })
+      log.warn(`No variable lists configured, falling back to default variable list: ${response.id}`)
+      // Write a YAML snippet to help the user configure the variable list
+      log.info(dedent`
+        To avoid using the default variable list (and suppress this message), you can configure remote variables in your project configuration:
+        ${styles.highlight(
+          `
+  importVariables:
+    - from: "garden-cloud"
+      list: ${styles.success('"' + response.id + '"')}
+      description: "${response.description}"
+          `
+        )}
+      `)
+      return [response.id]
+    } catch (error) {
+      log.info(`Could not fetch default variable list for legacy project ID ${legacyProjectId}: ${error}`)
+      return []
+    }
   }
 
   async revokeToken(clientAuthToken: ClientAuthToken, log: Log) {

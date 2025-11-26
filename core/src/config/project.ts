@@ -497,7 +497,6 @@ export const projectSchema = createSchema({
         { from: "garden-cloud", list: "varlist_def" },
       ]),
   }),
-  oxor: [["id", "organizationId"]],
 })
 
 export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {

@@ -2163,6 +2163,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       const cloudLog = log.createLog({ name: getCloudLogSectionName("Garden Cloud") })
       secrets = await cloudApi.getVariables({
         importVariables: projectConfig.importVariables,
+        legacyProjectId: projectId,
         environmentName,
         log: cloudLog,
       })
