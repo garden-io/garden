@@ -8,7 +8,7 @@ title: Automatic Environment Cleanup
 The Automatic Environment Cleanup (AEC) feature allows you to automatically clean up or pause environments in your Kubernetes cluster after a period of inactivity or on a scheduled basis. This helps reduce costs and resource usage by ensuring that unused environments don't consume cluster resources indefinitely.
 
 {% hint style="info" %}
-This feature requires Garden Cloud and is currently in beta. It's currently only available for the Kubernetes provider.
+This feature requires [Garden version 0.14.10](https://github.com/garden-io/garden/releases/tag/0.14.10) (or newer) and is currently in beta. It's currently only available for the Kubernetes provider.
 {% endhint %}
 
 ## How it Works

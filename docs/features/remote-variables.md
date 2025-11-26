@@ -7,6 +7,11 @@ title: Remote Variables and Secrets
 
 The Remote Variables feature allows you to store variables and secrets securely in [Garden Cloud](https://app.garden.io) and reference them in your Garden configuration. Remote variables and secrets can be scoped to environments and specific Garden users.
 
+{% hint style="info" %}
+This feature requires [Garden version 0.14.10](https://github.com/garden-io/garden/releases/tag/0.14.10) (or newer).
+{% endhint %}
+
+
 Here's a quick example before we dive into the details. Below is a screenshot of secrets stored in Garden Cloud. Notice how the secrets are scoped to different environments and users 👇
 
 <figure>
