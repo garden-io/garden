@@ -1402,9 +1402,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             legacyProjectId: string
           }
           output: {
-            name: string
+            name: string | null
             slug: string | null
-            id: string
+            id: string | null
           }
           meta: object
         }>

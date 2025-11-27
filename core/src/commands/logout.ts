@@ -56,6 +56,7 @@ export class LogOutCommand extends Command<{}, Opts> {
           skipLogging: true,
           globalConfigStore,
           organizationId,
+          legacyProjectId: projectId,
         })
       }
 

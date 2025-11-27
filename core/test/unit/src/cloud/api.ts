@@ -13,6 +13,7 @@ import { GardenCloudApi } from "../../../../src/cloud/api/api.js"
 import type { ApiTrpcClient, RouterOutput } from "../../../../src/cloud/api/trpc.js"
 import type { DeepPartial } from "utility-types"
 import { TRPCClientError } from "@trpc/client"
+import { gardenEnv } from "../../../../src/constants.js"
 
 function makeFakeTrpcClient(overrides?: DeepPartial<ApiTrpcClient>): ApiTrpcClient {
   const base: DeepPartial<ApiTrpcClient> = {
@@ -68,6 +69,7 @@ describe("GardenCloudApi", () => {
         importVariables: [{ from: "garden-cloud", list: "varlist_a" }],
         environmentName: "dev",
         log: garden.log,
+        legacyProjectId: undefined,
       })
 
       expect(variables).to.eql({
@@ -126,6 +128,7 @@ describe("GardenCloudApi", () => {
         ],
         environmentName: "dev",
         log: garden.log,
+        legacyProjectId: undefined,
       })
 
       expect(variables).to.eql({
@@ -191,6 +194,7 @@ describe("GardenCloudApi", () => {
         ],
         environmentName: "dev",
         log: garden.log,
+        legacyProjectId: undefined,
       })
 
       expect(variables).to.eql({
@@ -250,6 +254,7 @@ describe("GardenCloudApi", () => {
         ],
         environmentName: "dev",
         log: garden.log,
+        legacyProjectId: undefined,
       })
       const varListALast = await cloudApi.getVariables({
         importVariables: [
@@ -258,6 +263,7 @@ describe("GardenCloudApi", () => {
         ],
         environmentName: "dev",
         log: garden.log,
+        legacyProjectId: undefined,
       })
 
       expect(varListBLast).to.eql({
@@ -308,9 +314,155 @@ describe("GardenCloudApi", () => {
             ],
             environmentName: "dev",
             log: garden.log,
+            legacyProjectId: undefined,
           }),
         (err) => {
           expect(err.message).to.contain(`Garden Cloud API call failed with error`)
+        }
+      )
+    })
+  })
+
+  describe("getDefaultOrganizationIdForLegacyProject", () => {
+    it("should return organization id when organization is found", async () => {
+      const fakeTrpcClient = makeFakeTrpcClient({
+        organization: {
+          legacyGetDefaultOrganization: {
+            query: async () => {
+              const res: RouterOutput["organization"]["legacyGetDefaultOrganization"] = {
+                name: "Test Organization",
+                slug: "test-org",
+                id: "org-123",
+              }
+              return res
+            },
+          },
+        },
+      })
+
+      const result = await GardenCloudApi.getDefaultOrganizationIdForLegacyProject(
+        "https://example.com",
+        "fake-auth-token",
+        "legacy-project-123",
+        fakeTrpcClient
+      )
+
+      expect(result).to.equal("org-123")
+    })
+
+    it("should return undefined when organization is not found", async () => {
+      const fakeTrpcClient = makeFakeTrpcClient({
+        organization: {
+          legacyGetDefaultOrganization: {
+            query: async () => {
+              const res: RouterOutput["organization"]["legacyGetDefaultOrganization"] = {
+                name: null,
+                slug: null,
+                id: null,
+              }
+              return res
+            },
+          },
+        },
+      })
+
+      const result = await GardenCloudApi.getDefaultOrganizationIdForLegacyProject(
+        "https://example.com",
+        "fake-auth-token",
+        "legacy-project-456",
+        fakeTrpcClient
+      )
+
+      expect(result).to.be.undefined
+    })
+  })
+
+  describe("factory", () => {
+    const savedAuthToken = gardenEnv.GARDEN_AUTH_TOKEN
+
+    beforeEach(() => {
+      gardenEnv.GARDEN_AUTH_TOKEN = "fake-auth-token"
+    })
+
+    afterEach(() => {
+      gardenEnv.GARDEN_AUTH_TOKEN = savedAuthToken
+    })
+
+    it("should resolve organization ID from legacyProjectId when organizationId is not provided", async () => {
+      const fakeTrpcClient = makeFakeTrpcClient({
+        token: {
+          verifyToken: {
+            query: async () => ({
+              valid: true,
+              notices: [],
+            }),
+          },
+        },
+        organization: {
+          legacyGetDefaultOrganization: {
+            query: async () => {
+              const res: RouterOutput["organization"]["legacyGetDefaultOrganization"] = {
+                name: "Test Organization",
+                slug: "test-org",
+                id: "org-123",
+              }
+              return res
+            },
+          },
+        },
+      })
+
+      const api = await GardenCloudApi.factory({
+        log: garden.log,
+        cloudDomain: "https://example.com",
+        organizationId: undefined,
+        legacyProjectId: "legacy-project-123",
+        globalConfigStore: garden.globalConfigStore,
+        skipLogging: true,
+        __trpcClientOverrideForTesting: fakeTrpcClient,
+      })
+
+      expect(api).to.be.instanceOf(GardenCloudApi)
+      expect(api?.organizationId).to.equal("org-123")
+    })
+
+    it("should throw ParameterError when legacyProjectId is provided but organization is not found", async () => {
+      const fakeTrpcClient = makeFakeTrpcClient({
+        token: {
+          verifyToken: {
+            query: async () => ({
+              valid: true,
+              notices: [],
+            }),
+          },
+        },
+        organization: {
+          legacyGetDefaultOrganization: {
+            query: async () => {
+              const res: RouterOutput["organization"]["legacyGetDefaultOrganization"] = {
+                name: null,
+                slug: null,
+                id: null,
+              }
+              return res
+            },
+          },
+        },
+      })
+
+      await expectError(
+        () =>
+          GardenCloudApi.factory({
+            log: garden.log,
+            cloudDomain: "https://example.com",
+            organizationId: undefined,
+            legacyProjectId: "legacy-project-456",
+            globalConfigStore: garden.globalConfigStore,
+            skipLogging: true,
+            __trpcClientOverrideForTesting: fakeTrpcClient,
+          }),
+        (err) => {
+          expect(err.message).to.contain("Could not determine organization ID")
         }
       )
     })
