@@ -223,8 +223,9 @@ export class GardenCloudApi {
               Organization ID resolved from project ID. Please update your project configuration to specify the organization ID.
 
               Add the following to your project configuration to avoid this message in the future:
-              ${styles.highlight(`organizationId: ${organizationId}`)}
-            `,
+
+                ${styles.command(`organizationId: ${organizationId}`)}
+            ` + "\n",
           })
         } else {
           cloudFactoryLog.debug({ msg: `Could not resolve organization ID from project ID` })
@@ -490,13 +491,13 @@ export class GardenCloudApi {
       })
       log.warn(`No variable lists configured, falling back to default variable list: ${response.id}`)
       // Write a YAML snippet to help the user configure the variable list
-      log.info(dedent`
+      log.warn(dedent`
         To avoid using the default variable list (and suppress this message), you can configure remote variables in your project configuration:
-        ${styles.highlight(
+        ${styles.command(
           `
   importVariables:
     - from: "garden-cloud"
-      list: ${styles.success('"' + response.id + '"')}
+      list: ${'"' + response.id + '"'}
       description: "${response.description}"
           `
         )}
