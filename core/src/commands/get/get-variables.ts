@@ -14,7 +14,7 @@ import { dedent, renderTable } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { flatten, omit, uniqBy } from "lodash-es"
 import type { GardenCloudApi } from "../../cloud/api/api.js"
-import { defaultProjectVarfilePath, getVarlistIdsFromRemoteVarsConfig } from "../../config/project.js"
+import { defaultProjectVarfilePath } from "../../config/project.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "../../config/common.js"
 import type { ResolvedTemplate } from "../../template/types.js"
 import type { RouterOutput } from "../../cloud/api/trpc.js"
@@ -27,6 +27,7 @@ import type { Log } from "../../logger/log-entry.js"
 import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params.js"
 import { filterDisableFromConfigDump } from "./helpers.js"
 import type { EmptyObject } from "type-fest"
+import { noApiMsg } from "../helpers.js"
 
 const variablesListOpts = {
   "resolve": new ChoicesParameter({
@@ -143,7 +144,11 @@ export class GetVariablesCommand extends Command<EmptyObject, Opts> {
       }
     })
 
-    const variableListIds = getVarlistIdsFromRemoteVarsConfig(config.importVariables)
+    if (!garden.cloudApi) {
+      throw new ConfigurationError({ message: noApiMsg("get", "variables") })
+    }
+
+    const variableListIds = await garden.cloudApi.getVariableListIds(garden.importVariables, garden.projectId, log)
     const importVariables =
       garden.cloudApi && variableListIds.length > 0
         ? await getCloudVariables({ api: garden.cloudApi, variableListIds, log })

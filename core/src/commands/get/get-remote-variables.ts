@@ -15,7 +15,6 @@ import { joi, joiArray } from "../../config/common.js"
 import { ConfigurationError } from "../../exceptions.js"
 import { getCloudListCommandBaseDescription, noApiMsg, throwIfLegacyCloud } from "../helpers.js"
 import { makeDocsLinkPlain } from "../../docs/common.js"
-import { getVarlistIdsFromRemoteVarsConfig } from "../../config/project.js"
 import type { RouterOutput } from "../../cloud/api/trpc.js"
 import type { EmptyObject } from "type-fest"
 
@@ -92,7 +91,7 @@ export class GetRemoteVariablesCommand extends Command<EmptyObject, Opts> {
       throw new ConfigurationError({ message: noApiMsg("get", "cloud variables") })
     }
 
-    const variableListIds = getVarlistIdsFromRemoteVarsConfig(garden.importVariables)
+    const variableListIds = await garden.cloudApi.getVariableListIds(garden.importVariables, garden.projectId, log)
 
     if (variableListIds.length === 0) {
       log.info(dedent`
