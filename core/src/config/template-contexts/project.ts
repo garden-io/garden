@@ -19,7 +19,6 @@ import { type VcsInfo } from "../../vcs/vcs.js"
 import { styles } from "../../logger/styles.js"
 import type { VariablesContext } from "./variables.js"
 import { type CloudBackendType, getCloudDistributionName } from "../../cloud/util.js"
-import { getSecretsUnavailableInNewBackendMessage } from "../../cloud/api/secrets.js"
 
 // TODO: Mark as deprecated
 const secretsSchema = joiStringMap(joi.string().description("The secret's value."))
@@ -344,10 +343,6 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   override getMissingKeyErrorFooter({ key }: ContextResolveParams): string {
     if (key[0] !== "secrets" && key[0] !== "importVariables") {
       return ""
-    }
-
-    if (this._backendType === "v2") {
-      return getSecretsUnavailableInNewBackendMessage(this._cloudBackendDomain)
     }
 
     const distributionName = getCloudDistributionName(this._cloudBackendDomain)
