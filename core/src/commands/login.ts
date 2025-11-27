@@ -76,13 +76,14 @@ export class LoginCommand extends Command<{}, Opts> {
           globalConfigStore,
           projectId,
         })
-      } else if (organizationId) {
+      } else if (organizationId || projectId) {
         cloudApi = await GardenCloudApi.factory({
           log,
           cloudDomain,
           skipLogging: true,
           globalConfigStore,
           organizationId,
+          legacyProjectId: projectId,
         })
       }
 

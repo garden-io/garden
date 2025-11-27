@@ -49,7 +49,7 @@ export class LogOutCommand extends Command<{}, Opts> {
           globalConfigStore,
           projectId,
         })
-      } else if (organizationId) {
+      } else if (organizationId || projectId) {
         cloudApi = await GardenCloudApi.factory({
           log,
           cloudDomain,

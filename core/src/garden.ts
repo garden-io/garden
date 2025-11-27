@@ -2135,11 +2135,12 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         log,
         projectId,
       })
-    } else if (organizationId && !useLegacy) {
+    } else if ((organizationId || projectId) && !useLegacy && !skipCloudConnect) {
       const apiFactory = opts.overrideCloudApiFactory || GardenCloudApi.factory
       cloudApi = await apiFactory({
         cloudDomain: cloudBackendDomain,
         organizationId,
+        legacyProjectId: projectId,
         globalConfigStore,
         log,
       })
