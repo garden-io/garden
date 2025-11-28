@@ -219,7 +219,8 @@ export class GardenCloudApi {
         if (organizationId) {
           cloudFactoryLog.debug({ msg: `Resolved organization ID: ${organizationId}` })
           cloudFactoryLog.warn({
-            msg: dedent`
+            msg:
+              dedent`
               Organization ID resolved from project ID. Please update your project configuration to specify the organization ID.
 
               Add the following to your project configuration to avoid this message in the future:
