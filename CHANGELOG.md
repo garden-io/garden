@@ -1,4 +1,16 @@
 
+<a name="0.14.11"></a>
+## [0.14.11](https://github.com/garden-io/garden/compare/0.14.10...0.14.11) (2025-11-28)
+
+### Bug Fixes
+
+* **cloud:** default list for var utility commands ([#7849](https://github.com/garden-io/garden/issues/7849)) ([ed6e891ed](https://github.com/garden-io/garden/commit/ed6e891ed))
+* **secrets:** bad error message when missing a secret in v2 backend ([#7850](https://github.com/garden-io/garden/issues/7850)) ([32f03d327](https://github.com/garden-io/garden/commit/32f03d327))
+
+### Improvements
+
+* **cloud:** default orgs ([#7852](https://github.com/garden-io/garden/issues/7852)) ([6aaa13972](https://github.com/garden-io/garden/commit/6aaa13972))
+
 <a name="0.14.10"></a>
 ## [0.14.10](https://github.com/garden-io/garden/compare/0.14.9...0.14.10) (2025-11-26)
 
