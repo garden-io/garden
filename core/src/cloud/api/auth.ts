@@ -12,6 +12,7 @@ import { TRPCError } from "@trpc/server"
 import { getHTTPStatusCodeFromError } from "@trpc/server/http"
 import type { ClientAuthToken, GlobalConfigStore } from "../../config-store/global.js"
 import type { Log } from "../../logger/log-entry.js"
+import type { ApiTrpcClient } from "./trpc.js"
 import { describeTRPCClientError, getNonAuthenticatedApiClient } from "./trpc.js"
 import { CloudApiTokenRefreshError } from "../api-legacy/api.js"
 import { CloudApiError, InternalError } from "../../exceptions.js"
@@ -73,14 +74,17 @@ export async function isTokenValid({
   authToken,
   cloudDomain,
   log,
+  __trpcClientOverrideForTesting,
 }: {
   authToken: string
   cloudDomain: string
   log: Log
+  __trpcClientOverrideForTesting?: ApiTrpcClient
 }): Promise<boolean> {
   try {
     log.debug(`Checking client auth token with ${getCloudDistributionName(cloudDomain)}`)
-    const verificationResult = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.verifyToken.query({
+    const client = __trpcClientOverrideForTesting || getNonAuthenticatedApiClient({ hostUrl: cloudDomain })
+    const verificationResult = await client.token.verifyToken.query({
       token: authToken,
     })
 
@@ -116,14 +120,22 @@ export async function isTokenValid({
   }
 }
 
-export async function refreshAuthTokenAndWriteToConfigStore(
-  log: Log,
-  globalConfigStore: GlobalConfigStore,
-  cloudDomain: string,
+export async function refreshAuthTokenAndWriteToConfigStore({
+  log,
+  globalConfigStore,
+  cloudDomain,
+  refreshToken,
+  __trpcClientOverrideForTesting,
+}: {
+  log: Log
+  globalConfigStore: GlobalConfigStore
+  cloudDomain: string
   refreshToken: string
-) {
+  __trpcClientOverrideForTesting?: ApiTrpcClient
+}) {
   try {
-    const result = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.refreshToken.mutate({
+    const client = __trpcClientOverrideForTesting || getNonAuthenticatedApiClient({ hostUrl: cloudDomain })
+    const result = await client.token.refreshToken.mutate({
       refreshToken,
     })
 

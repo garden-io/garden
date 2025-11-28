@@ -21,7 +21,7 @@ import type {
 } from "./trpc.js"
 import { describeTRPCClientError, getAuthenticatedApiClient } from "./trpc.js"
 import type { GardenErrorParams } from "../../exceptions.js"
-import { CloudApiError, GardenError } from "../../exceptions.js"
+import { CloudApiError, GardenError, ParameterError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
@@ -74,7 +74,8 @@ interface GardenCloudApiFactoryParams {
   log: Log
   cloudDomain: string
   globalConfigStore: GlobalConfigStore
-  organizationId: string
+  organizationId: string | undefined
+  legacyProjectId: string | undefined
   skipLogging?: boolean
   __trpcClientOverrideForTesting?: ApiTrpcClient
 }
@@ -135,7 +136,8 @@ export class GardenCloudApi {
   static async factory({
     log,
     cloudDomain,
-    organizationId,
+    organizationId: paramOrganizationId,
+    legacyProjectId,
     globalConfigStore,
     __trpcClientOverrideForTesting,
     skipLogging = false,
@@ -149,9 +151,19 @@ export class GardenCloudApi {
 
     cloudFactoryLog.info("Authorizing...")
 
+    let authToken: string | undefined
+    let organizationId: string | undefined = paramOrganizationId
+
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
-      log.silly(() => "Using auth token from GARDEN_AUTH_TOKEN env var")
-      if (!(await isTokenValid({ authToken: gardenEnv.GARDEN_AUTH_TOKEN, cloudDomain, log: cloudLog }))) {
+      log.debug(() => "Using auth token from GARDEN_AUTH_TOKEN env var")
+      if (
+        !(await isTokenValid({
+          authToken: gardenEnv.GARDEN_AUTH_TOKEN,
+          cloudDomain,
+          log: cloudLog,
+          __trpcClientOverrideForTesting,
+        }))
+      ) {
         throw new CloudApiError({
           message: deline`
           The provided access token is expired or has been revoked for ${cloudDomain}, please create a new one from the ${distroName} UI.
@@ -160,40 +172,77 @@ export class GardenCloudApi {
         })
       }
 
-      cloudFactoryLog.info(styles.success(successMsg))
-      return new GardenCloudApi({
-        log: cloudLog,
-        domain: cloudDomain,
-        organizationId,
-        globalConfigStore,
-        authToken: gardenEnv.GARDEN_AUTH_TOKEN,
-        __trpcClientOverrideForTesting,
+      authToken = gardenEnv.GARDEN_AUTH_TOKEN
+    } else {
+      const tokenData = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
+      authToken = tokenData?.token
+
+      if (!tokenData || !authToken) {
+        log.debug(
+          `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
+        )
+        return undefined
+      }
+
+      // Refresh the token if it has expired.
+      if (isTokenExpired(tokenData)) {
+        cloudFactoryLog.debug({ msg: `Current auth token is expired, attempting to refresh` })
+        authToken = (
+          await refreshAuthTokenAndWriteToConfigStore({
+            log,
+            globalConfigStore,
+            cloudDomain,
+            refreshToken: tokenData.refreshToken,
+            __trpcClientOverrideForTesting,
+          })
+        ).accessToken
+      }
+
+      const tokenValid = await isTokenValid({ cloudDomain, authToken, log, __trpcClientOverrideForTesting })
+
+      if (!tokenValid) {
+        log.debug({ msg: `The stored token was not valid.` })
+        return undefined
+      }
+    }
+
+    // Resolve organization ID if not provided but legacy project ID is available
+    if (!organizationId && legacyProjectId) {
+      cloudFactoryLog.debug({ msg: `No organization ID provided, attempting to resolve from project ID` })
+      try {
+        organizationId = await GardenCloudApi.getDefaultOrganizationIdForLegacyProject(
+          cloudDomain,
+          authToken,
+          legacyProjectId,
+          __trpcClientOverrideForTesting
+        )
+        if (organizationId) {
+          cloudFactoryLog.debug({ msg: `Resolved organization ID: ${organizationId}` })
+          cloudFactoryLog.warn({
+            msg:
+              dedent`
+              Organization ID resolved from project ID. Please update your project configuration to specify the organization ID.
+
+              Add the following to your project configuration to avoid this message in the future:
+
+                ${styles.command(`organizationId: ${organizationId}`)}
+            ` + "\n",
+          })
+        } else {
+          cloudFactoryLog.debug({ msg: `Could not resolve organization ID from project ID` })
+        }
+      } catch (error) {
+        cloudFactoryLog.warn({ msg: `Failed to resolve organization ID from project ID: ${error}` })
+      }
+    }
+
+    if (!organizationId) {
+      throw new ParameterError({
+        message: deline`
+          Could not determine organization ID. Please provide an organizationId in your project configuration
+          or ensure your project is properly configured in ${distroName}.
+        `,
       })
-    }
-
-    const tokenData = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
-    let authToken = tokenData?.token
-
-    if (!tokenData || !authToken) {
-      log.debug(
-        `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
-      )
-      return undefined
-    }
-
-    // Refresh the token if it has expired.
-    if (isTokenExpired(tokenData)) {
-      cloudFactoryLog.debug({ msg: `Current auth token is expired, attempting to refresh` })
-      authToken = (
-        await refreshAuthTokenAndWriteToConfigStore(log, globalConfigStore, cloudDomain, tokenData.refreshToken)
-      ).accessToken
-    }
-
-    const tokenValid = await isTokenValid({ cloudDomain, authToken, log })
-
-    if (!tokenValid) {
-      log.debug({ msg: `The stored token was not valid.` })
-      return undefined
     }
 
     // Start refresh interval if using JWT
@@ -203,9 +252,13 @@ export class GardenCloudApi {
       organizationId,
       globalConfigStore,
       authToken,
+      __trpcClientOverrideForTesting,
     })
-    cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
-    api.startInterval()
+
+    if (!gardenEnv.GARDEN_AUTH_TOKEN) {
+      cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
+      api.startInterval()
+    }
 
     cloudFactoryLog.success(successMsg)
     return api
@@ -244,12 +297,12 @@ export class GardenCloudApi {
     const { sub, isAfter } = await import("date-fns")
 
     if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
-      const tokenResponse = await refreshAuthTokenAndWriteToConfigStore(
-        this.log,
-        this.globalConfigStore,
-        this.domain,
-        token.refreshToken
-      )
+      const tokenResponse = await refreshAuthTokenAndWriteToConfigStore({
+        log: this.log,
+        globalConfigStore: this.globalConfigStore,
+        cloudDomain: this.domain,
+        refreshToken: token.refreshToken,
+      })
       this.authToken = tokenResponse.accessToken
     }
   }
@@ -354,7 +407,7 @@ export class GardenCloudApi {
     importVariables: ImportVariablesConfig
     environmentName: string
     log: Log
-    legacyProjectId?: string | undefined
+    legacyProjectId: string | undefined
   }) {
     log.info(`Fetching remote variables`)
     const variableListIds = await this.getVariableListIds(importVariables, legacyProjectId, log)
@@ -395,6 +448,28 @@ export class GardenCloudApi {
     return variables
   }
 
+  static async getDefaultOrganizationIdForLegacyProject(
+    domain: string,
+    authToken: string,
+    legacyProjectId: string,
+    __trpcClientOverrideForTesting?: ApiTrpcClient
+  ): Promise<string | undefined> {
+    const tokenGetter = () => authToken
+    const client = __trpcClientOverrideForTesting || getAuthenticatedApiClient({ hostUrl: domain, tokenGetter })
+
+    try {
+      const response = await client.organization.legacyGetDefaultOrganization.query({
+        legacyProjectId,
+      })
+      return response.id ?? undefined
+    } catch (error) {
+      if (error instanceof TRPCClientError) {
+        throw GardenCloudTRPCError.wrapTRPCClientError(error)
+      }
+      throw error
+    }
+  }
+
   async getVariableListIds(
     importVariables: ImportVariablesConfig,
     legacyProjectId: string | undefined,
@@ -417,13 +492,13 @@ export class GardenCloudApi {
       })
       log.warn(`No variable lists configured, falling back to default variable list: ${response.id}`)
       // Write a YAML snippet to help the user configure the variable list
-      log.info(dedent`
+      log.warn(dedent`
         To avoid using the default variable list (and suppress this message), you can configure remote variables in your project configuration:
-        ${styles.highlight(
+        ${styles.command(
           `
   importVariables:
     - from: "garden-cloud"
-      list: ${styles.success('"' + response.id + '"')}
+      list: ${'"' + response.id + '"'}
       description: "${response.description}"
           `
         )}
