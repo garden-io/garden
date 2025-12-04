@@ -61,10 +61,11 @@ export class LoginCommand extends Command<{}, Opts> {
     const projectConfig = await findProjectConfigOrPrintInstructions(log, garden.projectRoot)
     const globalConfigStore = garden.globalConfigStore
     const cloudDomain = await getCloudDomain(projectConfig)
-    const { id: projectId, organizationId } = projectConfig || {}
+    const { id: projectId, organizationId: configOrganizationId } = projectConfig || {}
 
     let cloudApi: GardenCloudApiLegacy | GardenCloudApi | undefined
 
+    // First, see if we're already logged in.
     try {
       // NOTE: The Cloud API is missing from the `Garden` class for commands
       // with `noProject = true` so we initialize it here.
@@ -76,19 +77,31 @@ export class LoginCommand extends Command<{}, Opts> {
           globalConfigStore,
           projectId,
         })
-      } else if (organizationId || projectId) {
+      } else if (configOrganizationId || projectId) {
         cloudApi = await GardenCloudApi.factory({
           log,
           cloudDomain,
           skipLogging: true,
           globalConfigStore,
-          organizationId,
+          organizationId: configOrganizationId,
           legacyProjectId: projectId,
         })
       }
 
       if (cloudApi) {
         log.success({ msg: `You're already logged in to ${cloudDomain}.` })
+
+        // If we have a cloud API with resolved org ID, update the config
+        if (cloudApi instanceof GardenCloudApi && projectId) {
+          await updateProjectConfigWithResolvedOrgId({
+            log,
+            projectConfig,
+            organizationId: cloudApi.organizationId,
+            legacyProjectId: projectId,
+            hadConflict: !!(configOrganizationId && configOrganizationId !== cloudApi.organizationId),
+          })
+        }
+
         cloudApi.close()
         // If successful, we are already logged in.
         return {}
@@ -99,9 +112,12 @@ export class LoginCommand extends Command<{}, Opts> {
       }
     }
 
+    // Otherwise, we still need to log in.
+
+    // Don't pass organizationId to login URL - let user choose, then resolve from project ID after
     const authRedirectConfig = (await useLegacyCloud(projectConfig))
       ? getAuthRedirectConfigLegacy(cloudDomain)
-      : getAuthRedirectConfig({ cloudDomain, organizationId })
+      : getAuthRedirectConfig({ cloudDomain })
 
     log.info({ msg: `Logging in to ${cloudDomain}...` })
     const tokenResponse = await login({ log, authRedirectConfig, events: garden.events, cloudDomain })
@@ -112,8 +128,30 @@ export class LoginCommand extends Command<{}, Opts> {
       domain: cloudDomain,
     })
     log.success({ msg: `\nSuccessfully logged in to ${cloudDomain}.\n`, showDuration: false })
-    if (tokenResponse.organizationId) {
-      await applyOrganizationId({ log, projectConfig, organizationId: tokenResponse.organizationId })
+
+    // After login, resolve the org ID from legacy project ID using the new token
+    // This ensures we use the correct org even if the user selected their personal org during login
+    const orgIdToApply = await getOrganizationIdToApply({
+      projectId,
+      projectConfig,
+      cloudDomain,
+      tokenResponse,
+      log,
+    })
+
+    if (orgIdToApply) {
+      await updateProjectConfigWithResolvedOrgId({
+        log,
+        projectConfig,
+        organizationId: orgIdToApply,
+        legacyProjectId: projectId,
+        hadConflict: !!(
+          configOrganizationId &&
+          configOrganizationId !== orgIdToApply &&
+          projectId &&
+          tokenResponse.organizationId !== orgIdToApply
+        ),
+      })
     }
 
     return {}
@@ -172,6 +210,141 @@ export async function login({
   return response
 }
 
+/**
+ * Resolves the organization ID from a legacy project ID after login.
+ * If the user selected a different organization during login, logs an informative message.
+ * Returns the resolved organization ID, or falls back to the token response if resolution fails.
+ */
+async function resolveOrganizationIdAfterLogin({
+  projectId,
+  cloudDomain,
+  tokenResponse,
+  log,
+}: {
+  projectId: string
+  cloudDomain: string
+  tokenResponse: AuthToken
+  log: Log
+}): Promise<string | undefined> {
+  try {
+    const resolvedOrgId = await GardenCloudApi.getDefaultOrganizationIdForLegacyProject(
+      cloudDomain,
+      tokenResponse.token,
+      projectId
+    )
+    if (resolvedOrgId) {
+      // Check if user selected wrong org during login
+      if (tokenResponse.organizationId && tokenResponse.organizationId !== resolvedOrgId) {
+        log.info({
+          msg: styles.secondary(dedent`
+            Note: You selected organization ${tokenResponse.organizationId} during login, but this project
+            belongs to organization ${resolvedOrgId}. Using the correct organization for this project.
+          `),
+        })
+      }
+      return resolvedOrgId
+    } else {
+      // Couldn't resolve from legacy project ID, fall back to token response
+      return tokenResponse.organizationId
+    }
+  } catch (error) {
+    log.debug(`Could not resolve organization ID from legacy project ID: ${error}`)
+    return tokenResponse.organizationId
+  }
+}
+
+/**
+ * Determines the organization ID to apply after login.
+ * If a legacy project ID exists and we're not using legacy cloud, resolves the org ID from the project ID.
+ * Otherwise, falls back to the organization ID from the token response.
+ */
+async function getOrganizationIdToApply({
+  projectId,
+  projectConfig,
+  cloudDomain,
+  tokenResponse,
+  log,
+}: {
+  projectId: string | undefined
+  projectConfig: ProjectConfig | undefined
+  cloudDomain: string
+  tokenResponse: AuthToken
+  log: Log
+}): Promise<string | undefined> {
+  if (projectId && projectConfig && !(await useLegacyCloud(projectConfig))) {
+    // Resolve using the newly obtained token
+    return await resolveOrganizationIdAfterLogin({
+      projectId,
+      cloudDomain,
+      tokenResponse,
+      log,
+    })
+  } else {
+    // No legacy project ID, use the org from token response
+    return tokenResponse.organizationId
+  }
+}
+export async function updateProjectConfigWithResolvedOrgId({
+  log,
+  projectConfig,
+  organizationId,
+  legacyProjectId,
+  hadConflict,
+}: {
+  log: Log
+  projectConfig: ProjectConfig | undefined
+  organizationId: string
+  legacyProjectId: string | undefined
+  hadConflict: boolean
+}) {
+  if (!projectConfig) {
+    // TODO: Generate a project config, similarly to how it's done in the `create project` command (and set the
+    // organizationId there). Use the name of the repo root dir as the project name.
+    return
+  }
+
+  if (!projectConfig.configPath) {
+    throw new InternalError({
+      message: "Invalid state: The project configuration must have a config file path",
+    })
+  }
+
+  const currentOrgId = projectConfig.organizationId
+  const shouldUpdateConfig =
+    !currentOrgId || // No org ID set
+    currentOrgId !== organizationId || // Wrong org ID set
+    legacyProjectId // Legacy fields to comment out
+
+  if (!shouldUpdateConfig) {
+    log.debug("Project config already has the correct organizationId and no legacy fields, skipping.")
+    return
+  }
+
+  if (hadConflict) {
+    log.info({
+      msg: dedent`
+        Organization ID conflict was detected and resolved. Your project configuration will be updated
+        to use the correct organizationId (${organizationId}) associated with your legacy project.
+      `,
+    })
+  } else if (currentOrgId && currentOrgId !== organizationId) {
+    log.info({
+      msg: dedent`
+        Updating project configuration with the correct organizationId (${organizationId}).
+      `,
+    })
+  }
+
+  await rewriteProjectConfigFile({
+    log,
+    projectConfigPath: projectConfig.configPath,
+    organizationId,
+    legacyProjectId,
+    commentOutLegacyFields: !!legacyProjectId,
+  })
+}
+
+// Deprecated: Use updateProjectConfigWithResolvedOrgId instead
 export async function applyOrganizationId({
   log,
   projectConfig,
@@ -200,7 +373,11 @@ export async function applyOrganizationId({
           message: "Invalid state: The project configuration must have a config file path",
         })
       }
-      await rewriteProjectConfigFile(log, projectConfig.configPath, organizationId)
+      await rewriteProjectConfigFile({
+        log,
+        projectConfigPath: projectConfig.configPath,
+        organizationId,
+      })
     }
   } else {
     // TODO: Generate a project config, similarly to how it's done in the `create project` command (and set the
@@ -208,45 +385,79 @@ export async function applyOrganizationId({
   }
 }
 
-async function rewriteProjectConfigFile(log: Log, projectConfigPath: string, organizationId: string): Promise<void> {
+async function rewriteProjectConfigFile({
+  log,
+  projectConfigPath,
+  organizationId,
+  legacyProjectId,
+  commentOutLegacyFields = false,
+}: {
+  log: Log
+  projectConfigPath: string
+  organizationId: string
+  legacyProjectId?: string
+  commentOutLegacyFields?: boolean
+}): Promise<void> {
   const relPath = relative(process.cwd(), projectConfigPath)
   // We reparse the file this way to avoid losing comments, field ordering etc. when writing it back after adding
   // the organizationId.
   const fileContent = (await readFile(projectConfigPath)).toString()
   try {
-    const updatedFileContent = rewriteProjectConfigYaml(fileContent, projectConfigPath, organizationId)
+    const updatedFileContent = rewriteProjectConfigYaml({
+      projectConfigYaml: fileContent,
+      projectConfigPath,
+      organizationId,
+      legacyProjectId,
+      commentOutLegacyFields,
+    })
     await writeFile(projectConfigPath, updatedFileContent)
+
+    const changes: string[] = []
+    changes.push(`${styles.highlight("organizationId")} set to ${organizationId}`)
+    if (commentOutLegacyFields) {
+      changes.push(`legacy fields ${styles.highlight("id")} and ${styles.highlight("domain")} commented out`)
+    }
+
     log.info(
-      dedent`
-        Successfully connected your Garden Project with Garden Cloud!
+      `
+Welcome to the new Garden Cloud! Your project configuration has been updated:
+${changes.map((c) => `  - ${c}`).join("\n")}
 
-        Your project configuration on disk has been updated to include the ${styles.highlight("organizationId")} that identifies your project with Garden Cloud.
-
-        Make sure to commit the updated ${styles.highlight(relPath)} to source control.
+Make sure to commit the updated ${styles.highlight(relPath)} to source control.
       `
     )
   } catch (err) {
     // If the above fails for any reason, we log a helpful message to guide the user to setting the
     // organizationId in their project config manually.
     log.debug(
-      `An error occurred while automatically setting organizationId in project config at path ${relPath}: ${err instanceof Error ? err.stack : err}`
+      `An error occurred while automatically updating project config at path ${relPath}: ${err instanceof Error ? err.stack : err}`
     )
     log.info(dedent`
-        Please add the following field to your project config:
+        Please manually update your project configuration:
 
           kind: Project
           organizationId: ${organizationId} # <----
+          ${legacyProjectId ? `# id: ${legacyProjectId}  # Legacy field, no longer needed` : ""}
+          ${commentOutLegacyFields ? `# domain: ...  # Legacy field, no longer needed` : ""}
           ...
       `)
     return
   }
 }
 
-export function rewriteProjectConfigYaml(
-  projectConfigYaml: string,
-  projectConfigPath: string,
+export function rewriteProjectConfigYaml({
+  projectConfigYaml,
+  projectConfigPath,
+  organizationId,
+  legacyProjectId,
+  commentOutLegacyFields = false,
+}: {
+  projectConfigYaml: string
+  projectConfigPath: string
   organizationId: string
-): string {
+  legacyProjectId?: string
+  commentOutLegacyFields?: boolean
+}): string {
   const docsInFile = parseAllDocuments(projectConfigYaml)
 
   // We throw below if there isn't exactly one project config in the file, so we don't need
@@ -285,24 +496,82 @@ export function rewriteProjectConfigYaml(
   // Probably a minor issue/limitation, but worth noting here.
   if (projectDoc.contents instanceof YAMLMap) {
     const map = projectDoc.contents
-    // Create a new Pair for the organizationId key.
 
-    // We need to cast to unknown because the node we create here doesn't have all the metadata that would be there
-    // if it had been parsed from disk.
-    const keyNode = projectDoc.createNode("organizationId") as unknown as ParsedNode
-    const valueNode = projectDoc.createNode(organizationId) as unknown as ParsedNode
-    const newPair = new Pair(keyNode, valueNode)
+    // Step 1: Set or update organizationId
+    const existingOrgIdIndex = map.items.findIndex(
+      (item) => item.key instanceof Scalar && item.key.value === "organizationId"
+    )
 
-    // Find the index of the `name` field (i.e. the project name).
-    const insertIndex = map.items.findIndex((item) => item.key instanceof Scalar && item.key.value === "name")
-
-    // If found, insert after that key; if not, just add it at the end.
-    if (insertIndex !== -1) {
-      // Insert after the found index
-      map.items.splice(insertIndex + 1, 0, newPair)
+    if (existingOrgIdIndex !== -1) {
+      // Update existing organizationId
+      const existingPair = map.items[existingOrgIdIndex]
+      if (existingPair.value instanceof Scalar) {
+        existingPair.value.value = organizationId
+      } else {
+        // Replace with a new scalar
+        const valueNode = projectDoc.createNode(organizationId) as unknown as ParsedNode
+        existingPair.value = valueNode
+      }
     } else {
-      // Fallback: simply set it (which typically adds it at the end)
-      projectDoc.set("organizationId", organizationId)
+      // Add new organizationId field
+      // We need to cast to unknown because the node we create here doesn't have all the metadata that would be there
+      // if it had been parsed from disk.
+      const keyNode = projectDoc.createNode("organizationId") as unknown as ParsedNode
+      const valueNode = projectDoc.createNode(organizationId) as unknown as ParsedNode
+      const newPair = new Pair(keyNode, valueNode)
+
+      // Find the index of the `name` field (i.e. the project name).
+      const insertIndex = map.items.findIndex((item) => item.key instanceof Scalar && item.key.value === "name")
+
+      // If found, insert after that key; if not, just add it at the end.
+      if (insertIndex !== -1) {
+        // Insert after the found index
+        map.items.splice(insertIndex + 1, 0, newPair)
+      } else {
+        // Fallback: simply set it (which typically adds it at the end)
+        projectDoc.set("organizationId", organizationId)
+      }
+    }
+
+    // Step 2: Comment out legacy fields if requested
+    if (commentOutLegacyFields) {
+      // Collect fields to comment out with their values
+      const fieldsToComment: Array<{ field: string; value: string; index: number }> = []
+
+      const idIndex = map.items.findIndex((item) => item.key instanceof Scalar && item.key.value === "id")
+      if (idIndex !== -1) {
+        const idPair = map.items[idIndex]
+        const idValue = idPair.value instanceof Scalar ? idPair.value.value : legacyProjectId || "<legacy-id>"
+        fieldsToComment.push({ field: "id", value: String(idValue), index: idIndex })
+      }
+
+      const domainIndex = map.items.findIndex((item) => item.key instanceof Scalar && item.key.value === "domain")
+      if (domainIndex !== -1) {
+        const domainPair = map.items[domainIndex]
+        const domainValue = domainPair.value instanceof Scalar ? domainPair.value.value : "<legacy-domain>"
+        fieldsToComment.push({ field: "domain", value: String(domainValue), index: domainIndex })
+      }
+
+      // Sort by index in descending order so we can remove from the end first
+      // This prevents index shifting issues
+      fieldsToComment.sort((a, b) => b.index - a.index)
+
+      // Process each field to comment out
+      for (const { field, value, index } of fieldsToComment) {
+        // Remove the item from the map
+        map.items.splice(index, 1)
+
+        // Add as a comment to the next item's key commentBefore
+        if (index < map.items.length) {
+          const nextItem = map.items[index]
+          if (nextItem.key) {
+            const existingComment = nextItem.key.commentBefore || ""
+            // Add space at start for "# field: value" format, no trailing newline to avoid blank lines
+            const commentLine = `${field}: ${value}  # Legacy field, no longer needed`
+            nextItem.key.commentBefore = existingComment ? `${existingComment} ${commentLine}\n` : ` ${commentLine}\n`
+          }
+        }
+      }
     }
   } else {
     throw new InternalError({

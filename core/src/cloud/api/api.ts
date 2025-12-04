@@ -38,6 +38,72 @@ import { styles } from "../../logger/styles.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
+/**
+ * Resolves the organization ID for a legacy project, or returns the provided one if none is found by the API.
+ */
+async function resolveOrganizationIdForLegacyProject({
+  cloudDomain,
+  authToken,
+  legacyProjectId,
+  organizationId,
+  log,
+  __trpcClientOverrideForTesting,
+}: {
+  cloudDomain: string
+  authToken: string
+  legacyProjectId: string
+  organizationId: string | undefined
+  log: Log
+  __trpcClientOverrideForTesting?: ApiTrpcClient
+}): Promise<string | undefined> {
+  log.debug({ msg: `Legacy project ID found, resolving organization ID from project ID` })
+  try {
+    const resolvedOrgId = await GardenCloudApi.getDefaultOrganizationIdForLegacyProject(
+      cloudDomain,
+      authToken,
+      legacyProjectId,
+      __trpcClientOverrideForTesting
+    )
+
+    if (resolvedOrgId) {
+      log.debug({ msg: `Resolved organization ID: ${resolvedOrgId}` })
+
+      // Check for conflict and log if org ID is being updated
+      if (organizationId && organizationId !== resolvedOrgId) {
+        log.info({
+          msg:
+            dedent`
+            Organization ID mismatch detected. The configured organizationId (${organizationId}) differs from the organization associated with the legacy project ID (${resolvedOrgId}).
+
+            Using ${resolvedOrgId} from the legacy project ID. Your project configuration will be updated automatically.
+          ` + "\n",
+        })
+      } else if (!organizationId) {
+        log.warn({
+          msg:
+            dedent`
+            Organization ID resolved from legacy project ID. Your project configuration will be updated to include the organization ID and comment out the legacy fields (project ID and domain).
+
+            Recommended configuration:
+
+              ${styles.command(`organizationId: ${resolvedOrgId}`)}
+              # id: ${legacyProjectId}  # Legacy field, no longer needed
+          ` + "\n",
+        })
+      }
+
+      return resolvedOrgId
+    } else {
+      log.debug({ msg: `Could not resolve organization ID from project ID` })
+      return organizationId
+    }
+  } catch (error) {
+    log.warn({ msg: `Failed to resolve organization ID from project ID: ${error}` })
+    // Fall back to provided organizationId if resolution fails
+    return organizationId
+  }
+}
+
 export type GardenCloudApiFactory = (params: GardenCloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
 
 export class GardenCloudError extends GardenError {
@@ -206,34 +272,16 @@ export class GardenCloudApi {
       }
     }
 
-    // Resolve organization ID if not provided but legacy project ID is available
-    if (!organizationId && legacyProjectId) {
-      cloudFactoryLog.debug({ msg: `No organization ID provided, attempting to resolve from project ID` })
-      try {
-        organizationId = await GardenCloudApi.getDefaultOrganizationIdForLegacyProject(
-          cloudDomain,
-          authToken,
-          legacyProjectId,
-          __trpcClientOverrideForTesting
-        )
-        if (organizationId) {
-          cloudFactoryLog.debug({ msg: `Resolved organization ID: ${organizationId}` })
-          cloudFactoryLog.warn({
-            msg:
-              dedent`
-              Organization ID resolved from project ID. Please update your project configuration to specify the organization ID.
-
-              Add the following to your project configuration to avoid this message in the future:
-
-                ${styles.command(`organizationId: ${organizationId}`)}
-            ` + "\n",
-          })
-        } else {
-          cloudFactoryLog.debug({ msg: `Could not resolve organization ID from project ID` })
-        }
-      } catch (error) {
-        cloudFactoryLog.warn({ msg: `Failed to resolve organization ID from project ID: ${error}` })
-      }
+    // Resolve organization ID from legacy project ID if available (always takes precedence)
+    if (legacyProjectId) {
+      organizationId = await resolveOrganizationIdForLegacyProject({
+        cloudDomain,
+        authToken,
+        legacyProjectId,
+        organizationId,
+        log: cloudFactoryLog,
+        __trpcClientOverrideForTesting,
+      })
     }
 
     if (!organizationId) {
