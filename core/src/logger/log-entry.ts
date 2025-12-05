@@ -178,7 +178,7 @@ export interface LogEntry<C extends BaseContext = LogContext>
   skipEmit?: boolean
 }
 
-interface LogParams
+export interface LogParams
   extends Pick<LogEntry, "metadata" | "msg" | "rawMsg" | "symbol" | "data" | "dataFormat" | "error" | "skipEmit">,
     Pick<LogContext, "origin">,
     Pick<LogConfig<LogContext>, "showDuration"> {}

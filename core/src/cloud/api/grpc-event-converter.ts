@@ -16,7 +16,7 @@ import {
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/events_pb.js"
 import type { EventName as CoreEventName, EventPayload as CoreEventPayload } from "../../events/events.js"
 import type { GardenWithNewBackend } from "../../garden.js"
-import type { LogSymbol, Msg } from "../../logger/log-entry.js"
+import type { LogParams, LogSymbol, Msg } from "../../logger/log-entry.js"
 import { isActionLogContext, isCoreLogContext, type Log } from "../../logger/log-entry.js"
 import { monotonicFactory, ulid, type ULID, type UUID } from "ulid"
 import { create } from "@bufbuild/protobuf"
@@ -57,6 +57,10 @@ import {
   LogSymbol as GrpcLogSymbol,
 } from "@buf/garden_grow-platform.bufbuild_es/garden/public/events/v1/garden_logs_pb.js"
 import type { LogEntryEventPayload } from "../api-legacy/restful-event-stream.js"
+import type { StringLogLevel } from "../../logger/logger.js"
+
+export const GRPC_INTERNAL_LOG_ORIGIN = "grpc-event-stream"
+export const GRPC_INTERNAL_LOG_PREFIX = "GrpcEventStream:"
 
 const nextEventUlid = monotonicFactory()
 
@@ -80,7 +84,7 @@ const aecEnvironmentUpdateActionTriggeredMap = {
 
 export class GrpcEventConverter {
   private readonly garden: GardenWithNewBackend
-  private readonly log: Log
+  private readonly _log: Log
   private readonly streamLogEntries: boolean
 
   /**
@@ -92,8 +96,12 @@ export class GrpcEventConverter {
 
   constructor(garden: GardenWithNewBackend, log: Log, streamLogEntries: boolean) {
     this.garden = garden
-    this.log = log
+    this._log = log
     this.streamLogEntries = streamLogEntries
+  }
+
+  private log(level: StringLogLevel, fn: () => string): Log {
+    return this._log[level](wrapGrpcInternalLog(fn))
   }
 
   convert<T extends CoreEventName>(name: T, payload: CoreEventPayload<T>): GrpcEventEnvelope[] {
@@ -164,6 +172,14 @@ export class GrpcEventConverter {
     payload: LogEntryEventPayload
   }): GrpcEventEnvelope[] {
     if (!this.streamLogEntries) {
+      return []
+    }
+    if (
+      payload.context.origin === GRPC_INTERNAL_LOG_ORIGIN ||
+      (payload.message.msg &&
+        typeof payload.message.msg === "string" &&
+        payload.message.msg.startsWith(GRPC_INTERNAL_LOG_PREFIX))
+    ) {
       return []
     }
     const msg = resolveMsg(payload.message.msg)
@@ -247,7 +263,7 @@ export class GrpcEventConverter {
     const status = aecAgentStatusMap[payload.status]
 
     if (!status) {
-      this.log.warn(`GrpcEventStream: Unhandled aec agent status '${payload.status}', ignoring event`)
+      this.log("warn", () => `Unhandled AEC agent status '${payload.status}', ignoring event`)
       return []
     }
 
@@ -357,12 +373,12 @@ export class GrpcEventConverter {
           ]
         } else {
           payload.operation satisfies never // ensure all cases are handled
-          this.log.silly(`GrpcEventStream: Unhandled action operation ${payload.operation}`)
+          this.log("silly", () => `Unhandled action operation ${payload.operation}`)
           return []
         }
       default:
         payload satisfies never // ensure all cases are handled
-        this.log.silly(`GrpcEventStream: Unhandled action state ${payload}`)
+        this.log("silly", () => `Unhandled action state ${payload}`)
         return []
     }
   }
@@ -574,7 +590,7 @@ export class GrpcEventConverter {
 
     const generatedUlid = ulid()
     GrpcEventConverter.uuidToUlidMap.set(uuid, generatedUlid)
-    this.log.silly(() => `GrpcEventConverter: Mapped ${fromDescription}=${uuid} to ${toDescription}=${generatedUlid}`)
+    this.log("silly", () => `Mapped ${fromDescription}=${uuid} to ${toDescription}=${generatedUlid}`)
     return generatedUlid
   }
 }
@@ -643,4 +659,11 @@ function resolveMsg(msg: Msg | undefined): string | undefined {
     return msg()
   }
   return msg
+}
+
+export function wrapGrpcInternalLog(fn: () => string): Omit<LogParams, "symbol"> {
+  return {
+    msg: () => `${GRPC_INTERNAL_LOG_PREFIX} ${fn()}`,
+    origin: GRPC_INTERNAL_LOG_ORIGIN,
+  }
 }
