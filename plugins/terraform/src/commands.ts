@@ -18,18 +18,103 @@ import { getProviderStatusCachePath } from "@garden-io/core/build/src/tasks/reso
 import type { TerraformDeploy } from "./action.js"
 import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
-const commandsToWrap = ["apply", "plan", "destroy"]
+const commandsToWrap = [
+  "apply",
+  "plan",
+  "destroy",
+  "init",
+  "validate",
+  "output",
+  "show",
+  "refresh",
+  "force-unlock",
+  "fmt",
+  "get",
+  "graph",
+  "import",
+  "login",
+  "logout",
+  "taint",
+  "test",
+  "untaint",
+  "metadata-functions",
+  "workspace-functions",
+  "state-list",
+  "state-mv",
+  "state-pull",
+  "state-push",
+  "state-replace-provider",
+  "state-rm",
+  "state-show",
+]
+
+// Commands that accept -var parameters
+const commandsAcceptingVars = new Set(["apply", "plan", "destroy", "refresh", "import"])
+
+// Commands that require terraform init to be run first
+const commandsRequiringInit = new Set([
+  "apply",
+  "plan",
+  "destroy",
+  "refresh",
+  "import",
+  "output",
+  "show",
+  "graph",
+  "taint",
+  "untaint",
+  "test",
+  "force-unlock",
+  "workspace-functions",
+  "state-list",
+  "state-mv",
+  "state-pull",
+  "state-push",
+  "state-replace-provider",
+  "state-rm",
+  "state-show",
+])
+
+// Commands that require workspace selection
+const commandsRequiringWorkspace = new Set([
+  "apply",
+  "plan",
+  "destroy",
+  "refresh",
+  "import",
+  "output",
+  "show",
+  "graph",
+  "taint",
+  "untaint",
+  "test",
+  "workspace-functions",
+  "state-list",
+  "state-mv",
+  "state-pull",
+  "state-push",
+  "state-replace-provider",
+  "state-rm",
+  "state-show",
+])
+
 const initCommand = styles.bold("terraform init")
 
-export const getTerraformCommands = (): PluginCommand[] =>
-  commandsToWrap.flatMap((commandName) => [makeRootCommand(commandName), makeActionCommand(commandName)])
+export const getTerraformCommands = (): PluginCommand[] => {
+  const commands = commandsToWrap.flatMap((commandName) => [
+    makeRootCommand(commandName),
+    makeActionCommand(commandName),
+  ])
+  return commands
+}
 
 function makeRootCommand(commandName: string): PluginCommand {
-  const terraformCommand = styles.bold("terraform " + commandName)
+  const commandNameArgs = getCommandNameArgs(commandName)
+  const terraformCommand = styles.bold("terraform " + commandNameArgs.join(" "))
 
   return {
     name: commandName + "-root",
-    description: `Runs ${terraformCommand} for the provider root stack, with the provider variables automatically configured as inputs. Positional arguments are passed to the command. If necessary, ${initCommand} is run first.`,
+    description: `Runs ${terraformCommand} for the provider root stack, with the provider variables automatically configured as inputs. Positional arguments are passed to the command. If necessary and appropriate, ${initCommand} may be run first.`,
     title: styles.command(`Running ${styles.command(terraformCommand)} for project root stack`),
     async handler({ ctx, args, log }: PluginCommandParams) {
       const provider = ctx.provider as TerraformProvider
@@ -54,10 +139,20 @@ function makeRootCommand(commandName: string): PluginCommand {
       const workspace = provider.config.workspace || null
       const backendConfig = provider.config.backendConfig
 
-      await ensureWorkspace({ ctx, provider, root, log, workspace })
-      await ensureTerraformInit({ ctx, provider, root, log, backendConfig })
+      // Only run workspace and init setup for commands that need them
+      if (commandsRequiringWorkspace.has(commandName)) {
+        await ensureWorkspace({ ctx, provider, root, log, workspace })
+      }
+      if (commandsRequiringInit.has(commandName)) {
+        await ensureTerraformInit({ ctx, provider, root, log, backendConfig })
+      }
 
-      args = [commandName, ...(await prepareVariables(root, provider.config.variables)), ...args]
+      // Only add -var parameters for commands that support them
+      if (commandsAcceptingVars.has(commandName)) {
+        args = [...commandNameArgs, ...(await prepareVariables(root, provider.config.variables)), ...args]
+      } else {
+        args = [...commandNameArgs, ...args]
+      }
 
       await terraform(ctx, provider).spawnAndWait({
         log,
@@ -74,7 +169,8 @@ function makeRootCommand(commandName: string): PluginCommand {
 }
 
 function makeActionCommand(commandName: string): PluginCommand {
-  const terraformCommand = styles.bold("terraform " + commandName)
+  const commandNameArgs = getCommandNameArgs(commandName)
+  const terraformCommand = styles.bold("terraform " + commandNameArgs.join(" "))
 
   return {
     name: commandName + "-action",
@@ -99,10 +195,21 @@ function makeActionCommand(commandName: string): PluginCommand {
       const workspace = spec.workspace || null
       const backendConfig = spec.backendConfig
 
-      await ensureWorkspace({ ctx, provider, root, log, workspace })
-      await ensureTerraformInit({ ctx, provider, root, log, backendConfig })
+      // Only run workspace and init setup for commands that need them
+      if (commandsRequiringWorkspace.has(commandName)) {
+        await ensureWorkspace({ ctx, provider, root, log, workspace })
+      }
+      if (commandsRequiringInit.has(commandName)) {
+        await ensureTerraformInit({ ctx, provider, root, log, backendConfig })
+      }
 
-      args = [commandName, ...(await prepareVariables(root, spec.variables)), ...args.slice(1)]
+      // Only add -var parameters for commands that support them
+      if (commandsAcceptingVars.has(commandName)) {
+        args = [...commandNameArgs, ...(await prepareVariables(root, spec.variables)), ...args.slice(1)]
+      } else {
+        args = [...commandNameArgs, ...args.slice(1)]
+      }
+
       await terraform(ctx, provider).spawnAndWait({
         log,
         args,
@@ -131,4 +238,11 @@ function findAction(graph: ConfigGraph, name: string): TerraformDeploy {
   }
 
   return action
+}
+
+function getCommandNameArgs(commandName: string): string[] {
+  if (commandName.includes("-")) {
+    return commandName.split("-")
+  }
+  return [commandName]
 }
