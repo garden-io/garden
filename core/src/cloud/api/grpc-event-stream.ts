@@ -26,13 +26,14 @@ import type { WritableIterable } from "@connectrpc/connect/protocol"
 import { createWritableIterable } from "@connectrpc/connect/protocol"
 
 import { GardenCloudError } from "./api.js"
-import { describeGrpcEvent, GrpcEventConverter } from "./grpc-event-converter.js"
+import { describeGrpcEvent, GrpcEventConverter, wrapGrpcInternalLog } from "./grpc-event-converter.js"
 import { create } from "@bufbuild/protobuf"
 import { InternalError } from "../../exceptions.js"
+import type { StringLogLevel } from "../../logger/logger.js"
 
 export class GrpcEventStream {
   private readonly garden: GardenWithNewBackend
-  private readonly log: Log
+  private readonly _log: Log
 
   private readonly eventListener: GardenEventAnyListener<EventName>
   private readonly logListener: GardenEventAnyListener<"logEntry">
@@ -64,12 +65,12 @@ export class GrpcEventStream {
     streamLogEntries: boolean
   }) {
     this.garden = garden
-    this.log = log
+    this._log = log
     this.eventIngestionService = eventIngestionService
     this.isClosed = false
     this.streamLogEntries = streamLogEntries
 
-    this.converter = new GrpcEventConverter(this.garden, this.log, this.streamLogEntries)
+    this.converter = new GrpcEventConverter(this.garden, this._log, this.streamLogEntries)
 
     // TODO: make sure it waits for the callback function completion
     registerCleanupFunction("grow-stream-session-cancelled-event", () => {
@@ -88,7 +89,7 @@ export class GrpcEventStream {
       return
     }
 
-    this.log.root.events.onAny(this.logListener)
+    this._log.root.events.onAny(this.logListener)
 
     this.eventListener = (name, payload) => {
       this.handleEvent(name, payload)
@@ -96,23 +97,23 @@ export class GrpcEventStream {
     this.garden.events.onAny(this.eventListener)
 
     setTimeout(async () => {
-      this.log.silly("GrpcEventStream: Starting loop")
+      this.log("silly", () => "Starting loop")
 
       while (!this.isClosed) {
-        this.log.silly("GrpcEventStream: Connecting ...")
+        this.log("silly", () => "Connecting...")
 
         try {
           await this.streamEvents()
         } catch (err) {
           if (err instanceof ConnectError) {
-            this.log.silly(`GrpcEventStream: Error while streaming events: ${err}`)
-            this.log.silly("GrpcEventStream: Retrying in 1 second...")
+            this.log("silly", () => `Error while streaming events: ${err}`)
+            this.log("silly", () => "Retrying in 1 second...")
             await sleep(1000)
           } else {
             // This is a temporary workaround to avoid crashing the process when the new event system is not in production.
             // In production, we want to crash the process to surface the issue.
-            this.log.debug(`GrpcEventStream: Unexpected error while streaming events: ${err}`)
-            this.log.debug("GrpcEventStream: Bailing out.")
+            this.log("silly", () => `Unexpected error while streaming events: ${err}`)
+            this.log("silly", () => "Bailing out.")
             break
             // TODO(production): remove the code above and uncomment the following.
             // This will become an unhandled error and will cause the process to crash.
@@ -123,16 +124,20 @@ export class GrpcEventStream {
     }, 0)
   }
 
+  private log(level: StringLogLevel, fn: () => string): Log {
+    return this._log[level](wrapGrpcInternalLog(fn))
+  }
+
   async close() {
     if (this.isClosed) {
       return
     }
 
     this.garden.events.offAny(this.eventListener)
-    this.log.root.events.offAny(this.logListener)
+    this._log.root.events.offAny(this.logListener)
 
     if (this.eventBuffer.size === 0) {
-      this.log.silly("GrpcEventStream: Close called and no events waiting for acknowledgement. Disconnecting...")
+      this.log("silly", () => "Close called and no events waiting for acknowledgement. Disconnecting...")
       this.isClosed = true
       // close the connection as well
       this.outputStream?.close()
@@ -145,7 +150,7 @@ export class GrpcEventStream {
     })
 
     // Wait max 1 second for the events to be acknowledged
-    const timeout = 1000
+    const timeout = 5000
     // TODO(production): use 30 seconds when we go to production, but for now let's only wait 100ms for acknowledgements.
     // const timeout = 30000
 
@@ -153,12 +158,14 @@ export class GrpcEventStream {
     await Promise.race([
       promise,
       (async () => {
-        this.log.debug(`Waiting for ${timeoutSec} seconds to flush events to Garden Cloud`)
+        this.log("verbose", () => `Waiting up to ${timeoutSec} seconds to flush events to Garden Cloud`)
         await sleep(timeout)
-        this.log.debug(
-          `GrpcEventStream: Not all events were acknowledged within ${timeoutSec} seconds. Information in Garden Cloud may be incomplete.`
+        this.log(
+          "debug",
+          () =>
+            `Not all events were acknowledged within ${timeoutSec} seconds. Information in Garden Cloud may be incomplete.`
         )
-        this.log.warn("Not all events have been sent to Garden Cloud. Check the debug logs for more details.")
+        this.log("warn", () => "Not all events have been sent to Garden Cloud. Check the debug logs for more details.")
       })(),
     ])
 
@@ -172,14 +179,12 @@ export class GrpcEventStream {
     try {
       events = this.converter.convert(name, payload)
     } catch (err) {
-      this.log.warn(`GrpcEventStream: Error while converting event ${name}: ${err}`)
+      this.log("warn", () => `Error while converting event ${name}: ${err}`)
       return
     }
 
     for (const event of events) {
-      this.log.silly(
-        () => `GrpcEventStream: ${this.outputStream ? "Sending" : "Buffering"} event ${describeGrpcEvent(event)}`
-      )
+      this.log("silly", () => `${this.outputStream ? "Sending" : "Buffering"} event ${describeGrpcEvent(event)}`)
 
       // The eventUlid must be set by the converter call above.
       // The field is optional because of the protobuf validation rules.
@@ -196,7 +201,7 @@ export class GrpcEventStream {
         ?.write(create(IngestEventsRequestSchema, { event }))
         // This must be at a log level higher than what's streamed because otherwise we exponentially spam the logs
         // when we can't write events to the stream.
-        .catch((err) => this.log.silly(`GrpcEventStream: Failed to write event ${event.eventUlid}: ${err}`))
+        .catch((err) => this.log("silly", () => `Failed to write event ${event.eventUlid}: ${err}`))
     }
   }
 
@@ -207,18 +212,18 @@ export class GrpcEventStream {
     try {
       ackStream = this.eventIngestionService.ingestEvents(this.outputStream)
     } catch (err) {
-      this.log.debug(`GrpcEventStream: Failed to start event ingestion bi-directional stream: ${err}`)
+      this.log("debug", () => `Failed to start event ingestion bi-directional stream: ${err}`)
       throw err
     }
 
-    this.log.silly(() => "GrpcEventStream: Connected")
+    this.log("silly", () => "Connected")
 
     this.flushEventBuffer()
 
     try {
       await this.consumeAcks(ackStream)
     } catch (err) {
-      this.log.debug(`GrpcEventStream: Error while consuming acks: ${err}`)
+      this.log("silly", () => `Error while consuming acks: ${err}`)
       // Let the outer retry handle this
       throw err
     } finally {
@@ -230,14 +235,16 @@ export class GrpcEventStream {
   private async consumeAcks(ackStream: AsyncIterable<IngestEventsResponse>) {
     for await (const nextAck of ackStream) {
       if (!nextAck.success) {
-        this.log.debug(
-          `GrpcEventStream: Server failed to process event ulid=${nextAck.eventUlid}, final=${nextAck.final}: ` +
+        this.log(
+          "debug",
+          () =>
+            `Server failed to process event ulid=${nextAck.eventUlid}, final=${nextAck.final}: ` +
             `${JSON.stringify(this.eventBuffer.get(nextAck.eventUlid), (_, v) =>
               typeof v === "bigint" ? v.toString() : v
             )}`
         )
       } else {
-        this.log.silly(() => `GrpcEventStream: Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`)
+        this.log("silly", () => `Received ack for event ${nextAck.eventUlid}, final=${nextAck.final}`)
       }
 
       // Remove acknowledged event from the buffer
@@ -248,33 +255,33 @@ export class GrpcEventStream {
       const messages = nextAck.messages || []
       for (const msg of messages) {
         const logMessage = `${this.garden.cloudApi.distroName} failed to process event ulid=${nextAck.eventUlid}: ${msg.text}`
+        let logLevel: StringLogLevel = "warn"
 
         switch (msg.severity) {
           case IngestEventsResponse_Message_Severity.DEBUG:
-            this.log.debug(logMessage)
+            logLevel = "debug"
             break
           case IngestEventsResponse_Message_Severity.INFO:
-            this.log.info(logMessage)
+            logLevel = "info"
             break
           case IngestEventsResponse_Message_Severity.WARNING:
-            this.log.warn(logMessage)
+            logLevel = "warn"
             break
           case IngestEventsResponse_Message_Severity.ERROR:
             throw new GardenCloudError({
               message: logMessage,
             })
           case IngestEventsResponse_Message_Severity.UNSPECIFIED:
-            this.log.debug(
-              `GrpcEventStream: Unspecified message severity for event ulid=${nextAck.eventUlid}: ${msg.text}`
-            )
             break
           default:
             msg.severity satisfies never
         }
+
+        this.log("debug", () => `[${logLevel}] ${logMessage}`)
       }
 
       if (this.closeCallbacks.length && this.eventBuffer.size === 0) {
-        this.log.silly("GrpcEventStream: All events have been acknowledged. Disconnecting...")
+        this.log("silly", () => "All events have been acknowledged. Disconnecting...")
         for (const callback of this.closeCallbacks) {
           // Call all the callbacks to notify that the stream is closed
           callback()
@@ -295,18 +302,18 @@ export class GrpcEventStream {
       return
     }
 
-    this.log.silly(() => `GrpcEventStream: Flushing ${this.eventBuffer.size} events from the buffer`)
+    this.log("silly", () => `Flushing ${this.eventBuffer.size} events from the buffer`)
 
     // NOTE: The Map implementation in the javascript runtime guarantees that values will be iterated in the order they were added (FIFO).
     for (const event of this.eventBuffer.values()) {
       if (!this.outputStream) {
-        this.log.silly(() => `GrpcEventStream: Stream closed during flush`)
+        this.log("silly", () => `Stream closed during flush`)
         break
       }
 
       // NOTE: We ignore the promise on purpose to avoid out-of-order events.
       void this.outputStream.write(create(IngestEventsRequestSchema, { event })).catch((err) => {
-        this.log.debug(`GrpcEventStream: Failed to write event ${event.eventUlid} during flush: ${err}`)
+        this.log("debug", () => `Failed to write event ${event.eventUlid} during flush: ${err}`)
       })
     }
   }
