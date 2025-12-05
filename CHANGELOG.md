@@ -1,4 +1,12 @@
 
+<a name="0.14.12"></a>
+## [0.14.12](https://github.com/garden-io/garden/compare/0.14.11...0.14.12) (2025-12-05)
+
+### Bug Fixes
+
+* **cloud:** potential OOM when Cloud connection fails ([#7861](https://github.com/garden-io/garden/issues/7861)) ([3285e4b0d](https://github.com/garden-io/garden/commit/3285e4b0d))
+* **cloud:** fix to default org flow ([#7860](https://github.com/garden-io/garden/issues/7860)) ([da618ee18](https://github.com/garden-io/garden/commit/da618ee18))
+
 <a name="0.14.11"></a>
 ## [0.14.11](https://github.com/garden-io/garden/compare/0.14.10...0.14.11) (2025-11-28)
 

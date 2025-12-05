@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-jib",
-  "version": "0.14.11",
+  "version": "0.14.12",
   "description": "Jib container plugin for Garden",
   "type": "module",
   "main": "build/src/index.js",
