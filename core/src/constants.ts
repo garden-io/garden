@@ -95,7 +95,11 @@ export const gardenEnv = {
   GARDEN_SKIP_TESTS: env.get("GARDEN_SKIP_TESTS").required(false).default("").asString(),
   GARDEN_HARD_CONCURRENCY_LIMIT: env.get("GARDEN_HARD_CONCURRENCY_LIMIT").required(false).default(50).asInt(),
   GARDEN_WORKFLOW_RUN_UID: env.get("GARDEN_WORKFLOW_RUN_UID").required(false).asString(),
+
+  // These two are intended for dev and testing.
   GARDEN_CLOUD_DOMAIN: env.get("GARDEN_CLOUD_DOMAIN").required(false).asUrlString(),
+  GARDEN_CLOUD_BACKEND_TYPE: env.get("GARDEN_CLOUD_BACKEND_TYPE").required(false).asString(),
+
   GARDEN_ENABLE_TRACING: env.get("GARDEN_ENABLE_TRACING").required(false).default("true").asBool(),
   GARDEN_VERSION_CHECK_ENDPOINT: env
     .get("GARDEN_VERSION_CHECK_ENDPOINT")

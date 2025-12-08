@@ -103,6 +103,9 @@ export async function getCloudDomain(projectConfig: ProjectConfig): Promise<stri
 export type CloudBackendType = "v1" | "v2"
 
 export async function getBackendType(projectConfig: ProjectConfig): Promise<CloudBackendType> {
+  if (gardenEnv.GARDEN_CLOUD_BACKEND_TYPE === "v2") {
+    return "v2"
+  }
   const cloudDomain = await getCloudDomain(projectConfig)
   if (cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
     return "v2"
