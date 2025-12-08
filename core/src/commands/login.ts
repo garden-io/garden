@@ -340,7 +340,7 @@ export async function updateProjectConfigWithResolvedOrgId({
     projectConfigPath: projectConfig.configPath,
     organizationId,
     legacyProjectId,
-    commentOutLegacyFields: !!legacyProjectId,
+    commentOutLegacyFields: false,
   })
 }
 
@@ -437,8 +437,6 @@ Make sure to commit the updated ${styles.highlight(relPath)} to source control.
 
           kind: Project
           organizationId: ${organizationId} # <----
-          ${legacyProjectId ? `# id: ${legacyProjectId}  # Legacy field, no longer needed` : ""}
-          ${commentOutLegacyFields ? `# domain: ...  # Legacy field, no longer needed` : ""}
           ...
       `)
     return
