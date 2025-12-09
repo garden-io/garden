@@ -361,7 +361,7 @@ export function getAecAnnotations({
 
 function getAecAgentImage(imageOverride: string | undefined, localDevMode?: boolean) {
   // TODO: Once stable, use a stable image tag based on the version of the CLI
-  return imageOverride || (localDevMode ? "garden-dev-local:dev" : "gardendev/garden:0.14-edge-bookworm")
+  return imageOverride || (localDevMode ? "garden-dev-local:dev" : "gardendev/garden:0.14.12-bookworm")
 }
 
 export type PausableWorkload =
