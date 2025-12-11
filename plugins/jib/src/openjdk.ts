@@ -28,51 +28,55 @@ interface JdkVersion {
   windows: JdkBinary
 }
 
-const jdk8VersionName = "jdk8u292-b10"
+const jdk8VersionName = "jdk8u472-b08"
 const jdk8Version: JdkVersion = {
   lookupName: "openjdk-8",
   description: `The OpenJDK 8 library, ${jdk8VersionName}`,
-  baseUrl: "https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u292-b10/",
+  baseUrl: "https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u472-b08/",
   versionName: jdk8VersionName,
   mac_amd64: {
-    filename: "OpenJDK8U-jdk_x64_mac_hotspot_8u292b10.tar.gz",
-    sha256: "5646fbe9e4138c902c910bb7014d41463976598097ad03919e4848634c7e8007",
+    filename: "OpenJDK8U-jdk_x64_mac_hotspot_8u472b08.tar.gz",
+    sha256: "b6fec006d29f843f9daf062aa1384bdc01b1658aab2e09f519c7341eb4281e4c",
   },
   linux_amd64: {
-    filename: "OpenJDK8U-jdk_x64_linux_hotspot_8u292b10.tar.gz",
-    sha256: "0949505fcf42a1765558048451bb2a22e84b3635b1a31dd6191780eeccaa4ada",
+    filename: "OpenJDK8U-jdk_x64_linux_hotspot_8u472b08.tar.gz",
+    sha256: "5becaa4ac660e844c5a39e2ebc39ff5ac824c37ff1b625af8c8b111dc13c3592",
   },
   linux_arm64: {
-    filename: "OpenJDK8U-jdk_aarch64_linux_hotspot_8u292b10.tar.gz",
-    sha256: "a29edaf66221f7a51353d3f28e1ecf4221268848260417bc562d797e514082a8",
+    filename: "OpenJDK8U-jdk_aarch64_linux_hotspot_8u472b08.tar.gz",
+    sha256: "e2aff19d85d2441e409d6cbdf12ef7c2acabb0de73bca4207947135dcaa935a2",
   },
   windows: {
-    filename: "OpenJDK8U-jdk_x64_windows_hotspot_8u292b10.zip",
-    sha256: "2405e11f9f3603e506cf7ab01fcb67a3e3a1cf3e7858e14d629a72c9a24c6c42",
+    filename: "OpenJDK8U-jdk_x64_windows_hotspot_8u472b08.zip",
+    sha256: "cbafb089f7c8a3e873607c8f4fe40e4943297f641d27806e055e782c82a33985",
   },
 }
 
-const jdk11VersionName = "jdk-11.0.9.1+1"
+const jdk11VersionName = "jdk-11.0.29+7"
 const jdk11Version: JdkVersion = {
   lookupName: "openjdk-11",
   description: `The OpenJDK 11 library, ${jdk11VersionName}`,
-  baseUrl: "https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.9.1%2B1/",
+  baseUrl: "https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.29%2B7/",
   versionName: jdk11VersionName,
   mac_amd64: {
-    filename: "OpenJDK11U-jdk_x64_mac_hotspot_11.0.9.1_1.tar.gz",
-    sha256: "96bc469f9b02a3b84382a0685b0bd7935e1ad1bd82a0aab9befb5b42a17cbd77",
+    filename: "OpenJDK11U-jdk_x64_mac_hotspot_11.0.29_7.tar.gz",
+    sha256: "4bad4982a355b6996e5ebe92b4c7e33bb4ba92ea0ea0fe274cbc994918ce86ff",
+  },
+  mac_arm64: {
+    filename: "OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.29_7.tar.gz",
+    sha256: "c6dd4f100ca6953db86470349e762db20903da5ca275b902390352e7dd4b8e0c",
   },
   linux_amd64: {
-    filename: "OpenJDK11U-jdk_x64_linux_hotspot_11.0.9.1_1.tar.gz",
-    sha256: "e388fd7f3f2503856d0b04fde6e151cbaa91a1df3bcebf1deddfc3729d677ca3",
+    filename: "OpenJDK11U-jdk_x64_linux_hotspot_11.0.29_7.tar.gz",
+    sha256: "3c8f2b53dd137cd86e54f40df96fd0fc56df72c749c06469e7eab216503bc7cf",
   },
   linux_arm64: {
-    filename: "OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.9.1_1.tar.gz",
-    sha256: "e9cea040cdf5d9b0a2986feaf87662e1aef68e876f4d66664cb2be36e26db412",
+    filename: "OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.29_7.tar.gz",
+    sha256: "71e00cd0ab4371a4e9d67d1a2ca3e8ed2f126dff6a6ab152a6ecdec60100fbdd",
   },
   windows: {
-    filename: "OpenJDK11U-jdk_x64_windows_hotspot_11.0.9.1_1.zip",
-    sha256: "fea633dc37f007cb6b1e1af1874da63ad3d5e31817e583048287c67010dce5c8",
+    filename: "OpenJDK11U-jdk_x64_windows_hotspot_11.0.29_7.zip",
+    sha256: "c21b63f6391b9d8f8aa969fb99250de797539cfb54232f5d4d371993f0c235b5",
   },
 }
 
@@ -100,60 +104,59 @@ const jdk13Version: JdkVersion = {
   },
 }
 
-const jdk17VersionName = "jdk-17.0.9+9"
+const jdk17VersionName = "jdk-17.0.17+10"
 const jdk17Version: JdkVersion = {
   lookupName: "openjdk-17",
   description: `The OpenJDK 17 library, ${jdk17VersionName}`,
-  baseUrl: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9/",
+  baseUrl: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.17%2B10/",
   versionName: jdk17VersionName,
   mac_amd64: {
-    filename: "OpenJDK17U-jdk_x64_mac_hotspot_17.0.9_9.tar.gz",
-    sha256: "c69b37ea72136df49ce54972408803584b49b2c91b0fbc876d7125e963c7db37",
+    filename: "OpenJDK17U-jdk_x64_mac_hotspot_17.0.17_10.tar.gz",
+    sha256: "a2a7bfd3a767fcaf35a2e96cc562e6a63cd695e08c1a896222303c4e978da3d6",
   },
   mac_arm64: {
-    filename: "OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.9_9.tar.gz",
-    sha256: "823777266415347983bbd87ccd8136537242ff27e62f307b7e8521494c665f0d",
+    filename: "OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.17_10.tar.gz",
+    sha256: "856059de21518c2ff6eba6126ffc93390affe363c3ee205b3146a3bac3be0aa5",
   },
   linux_amd64: {
-    filename: "OpenJDK17U-jdk_x64_linux_hotspot_17.0.9_9.tar.gz",
-    sha256: "7b175dbe0d6e3c9c23b6ed96449b018308d8fc94a5ecd9c0df8b8bc376c3c18a",
+    filename: "OpenJDK17U-jdk_x64_linux_hotspot_17.0.17_10.tar.gz",
+    sha256: "992f96e7995075ac7636bb1a8de52b0c61d71ed3137fafc979ab96b4ab78dd75",
   },
   linux_arm64: {
-    filename: "OpenJDK17U-jdk_aarch64_linux_hotspot_17.0.9_9.tar.gz",
-    sha256: "e2c5e26f8572544b201bc22a9b28f2b1a3147ab69be111cea07c7f52af252e75",
+    filename: "OpenJDK17U-jdk_aarch64_linux_hotspot_17.0.17_10.tar.gz",
+    sha256: "dc29ca6d35beb4419b4b00419b8a3dfbf5ae551e1ae2b046b516d9a579d04533",
   },
   windows: {
-    baseUrlOverride: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9.1/",
-    filename: "OpenJDK17U-jdk_x64_windows_hotspot_17.0.9_9.zip",
-    sha256: "d1b2bb5a074ba33a0cf4e84aa558f7a563b827f999a71c8e47bdb0dd02af6b9c",
+    filename: "OpenJDK17U-jdk_x64_windows_hotspot_17.0.17_10.zip",
+    sha256: "dcf0064efec7e515a5e3b56e7532f1a1c125510303c6c9e60af8878e3f7347fe",
   },
 }
 
-const jdk21VersionName = "jdk-21.0.3+9"
+const jdk21VersionName = "jdk-21.0.9+10"
 const jdk21Version: JdkVersion = {
   lookupName: "openjdk-21",
   description: `The OpenJDK 21 library, ${jdk21VersionName}`,
-  baseUrl: "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.3%2B9/",
+  baseUrl: "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.9%2B10/",
   versionName: jdk21VersionName,
   mac_amd64: {
-    filename: "OpenJDK21U-jdk_x64_mac_hotspot_21.0.3_9.tar.gz",
-    sha256: "f777103aab94330d14a29bd99f3a26d60abbab8e2c375cec9602746096721a7c",
+    filename: "OpenJDK21U-jdk_x64_mac_hotspot_21.0.9_10.tar.gz",
+    sha256: "f803a3f5bce141f23ac699dfcda06a721f4b74f53bacb0f4bbe9bfcad54427d8",
   },
   mac_arm64: {
-    filename: "OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.3_9.tar.gz",
-    sha256: "b6be6a9568be83695ec6b7cb977f4902f7be47d74494c290bc2a5c3c951e254f",
+    filename: "OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.9_10.tar.gz",
+    sha256: "55a40abeb0e174fdc70f769b34b50b70c3967e0b12a643e6a3e23f9a582aac16",
   },
   linux_amd64: {
-    filename: "OpenJDK21U-jdk_x64_linux_hotspot_21.0.3_9.tar.gz",
-    sha256: "fffa52c22d797b715a962e6c8d11ec7d79b90dd819b5bc51d62137ea4b22a340",
+    filename: "OpenJDK21U-jdk_x64_linux_hotspot_21.0.9_10.tar.gz",
+    sha256: "810d3773df7e0d6c4394e4e244b264c8b30e0b05a0acf542d065fd78a6b65c2f",
   },
   linux_arm64: {
-    filename: "OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.3_9.tar.gz",
-    sha256: "7d3ab0e8eba95bd682cfda8041c6cb6fa21e09d0d9131316fd7c96c78969de31",
+    filename: "OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.9_10.tar.gz",
+    sha256: "edf0da4debe7cf475dbe320d174d6eed81479eb363f41e38a2efb740428c603a",
   },
   windows: {
-    filename: "OpenJDK21U-jdk_x64_windows_hotspot_21.0.3_9.zip",
-    sha256: "c43a66cff7a403d56c5c5e1ff10d3d5f95961abf80f97f0e35380594909f0e4d",
+    filename: "OpenJDK21U-jdk_x64_windows_hotspot_21.0.9_10.zip",
+    sha256: "1c67df516e9795c0b09f5714bfe151da2e3cc988082042f5bbb60d75e4e63fb5",
   },
 }
 
@@ -229,10 +232,39 @@ function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
   }
 }
 
+const jdk23VersionName = "jdk-23.0.2+7"
+const jdk23Version: JdkVersion = {
+  lookupName: "openjdk-23",
+  description: `The OpenJDK 23 library, ${jdk23VersionName}`,
+  baseUrl: "https://github.com/adoptium/temurin23-binaries/releases/download/jdk-23.0.2%2B7/",
+  versionName: jdk23VersionName,
+  mac_amd64: {
+    filename: "OpenJDK23U-jdk_x64_mac_hotspot_23.0.2_7.tar.gz",
+    sha256: "97fca2e90668351f248f149d4e96e16875094eba6716a8dd1dcf163be9e19085",
+  },
+  mac_arm64: {
+    filename: "OpenJDK23U-jdk_aarch64_mac_hotspot_23.0.2_7.tar.gz",
+    sha256: "749993e751f085c7ae713140066a90800075e4aeedfac50a5ed0c5457131c5a0",
+  },
+  linux_amd64: {
+    filename: "OpenJDK23U-jdk_x64_linux_hotspot_23.0.2_7.tar.gz",
+    sha256: "870ac8c05c6fe563e7a3878a47d0234b83c050e83651d2c47e8b822ec74512dd",
+  },
+  linux_arm64: {
+    filename: "OpenJDK23U-jdk_aarch64_linux_hotspot_23.0.2_7.tar.gz",
+    sha256: "fb43ae1202402842559cb6223886ec1663b90ffbec48479abbcb92c92c9012eb",
+  },
+  windows: {
+    filename: "OpenJDK23U-jdk_x64_windows_hotspot_23.0.2_7.zip",
+    sha256: "2171b4660d3e1056fb4a5f4b7e515fff986b8e7e0cf06c9f3e1f79d435ec7d18",
+  },
+}
+
 export const openJdkSpecs: PluginToolSpec[] = [
   openJdkSpec(jdk8Version),
   openJdkSpec(jdk11Version),
   openJdkSpec(jdk13Version),
   openJdkSpec(jdk17Version),
   openJdkSpec(jdk21Version),
+  openJdkSpec(jdk23Version),
 ]
