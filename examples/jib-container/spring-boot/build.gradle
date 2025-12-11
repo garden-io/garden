@@ -4,7 +4,7 @@ plugins {
     id 'idea'
     id 'org.springframework.boot' version '2.1.6.RELEASE'
     id 'io.spring.dependency-management' version '1.0.6.RELEASE'
-    id 'com.google.cloud.tools.jib' version '3.1.4'
+    id 'com.google.cloud.tools.jib' version '3.4.3'
 }
 
 repositories {
@@ -16,4 +16,16 @@ targetCompatibility = 1.8
 
 dependencies {
     compile('org.springframework.boot:spring-boot-starter-web')
+}
+
+jib {
+    from {
+        image = 'public.ecr.aws/docker/library/eclipse-temurin:8-jre'
+        platforms {
+            platform {
+                architecture = System.getProperty("os.arch") == "aarch64" ? "arm64" : "amd64"
+                os = "linux"
+            }
+        }
+    }
 }

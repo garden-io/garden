@@ -9,7 +9,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jib-maven-plugin.version>3.1.4</jib-maven-plugin.version>
+    <jib-maven-plugin.version>3.4.4</jib-maven-plugin.version>
     <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
   </properties>
 
@@ -38,11 +38,14 @@
         <groupId>com.google.cloud.tools</groupId>
         <artifactId>jib-maven-plugin</artifactId>
         <version>${jib-maven-plugin.version}</version>
-        <!-- <configuration>
-          <to>
+        <configuration>
+          <from>
+            <image>public.ecr.aws/docker/library/eclipse-temurin:8-jre</image>
+          </from>
+          <!-- <to>
             <image>gcr.io/REPLACE-WITH-YOUR-GCP-PROJECT/image-built-with-jib</image>
-          </to>
-        </configuration> -->
+          </to> -->
+        </configuration>
         <executions>
           <execution>
             <phase>package</phase>

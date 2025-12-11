@@ -15,11 +15,11 @@ const { pathExists } = fsExtra
 import type { BuildToolParams, VerifyBinaryParams } from "./build-tool-base.js"
 import { runBuildTool, verifyBinaryPath } from "./build-tool-base.js"
 
-export const gradleVersion = "7.5.1"
+export const gradleVersion = "7.6.4"
 
 const spec = {
   url: `https://services.gradle.org/distributions/gradle-${gradleVersion}-bin.zip`,
-  sha256: "f6b8596b10cce501591e92f229816aa4046424f3b24d771751b06779d58c8ec4",
+  sha256: "bed1da33cca0f557ab13691c77f38bb67388119e4794d113e051039b80af9bb1",
   extract: {
     format: "zip",
     targetPath: `gradle-${gradleVersion}/bin/gradle`,

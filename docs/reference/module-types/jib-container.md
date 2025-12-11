@@ -92,7 +92,7 @@ build:
   # Defines the location of the custom executable Gradle binary.
   #
   # If not provided, then the Gradle binary available in the working directory will be used.
-  # If no Gradle binary found in the working dir, then Gradle 7.5.1 will be downloaded and used.
+  # If no Gradle binary found in the working dir, then Gradle 7.6.4 will be downloaded and used.
   #
   # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
   # Gradle.
@@ -101,7 +101,7 @@ build:
 
   # Defines the location of the custom executable Maven binary.
   #
-  # If not provided, then Maven 3.8.8 will be downloaded and used.
+  # If not provided, then Maven 3.9.9 will be downloaded and used.
   #
   # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
   # Maven.
@@ -113,7 +113,7 @@ build:
 
   # Defines the location of the custom executable Maven Daemon binary.
   #
-  # If not provided, then Maven Daemon 0.9.0 will be downloaded and used.
+  # If not provided, then Maven Daemon 1.0.2 will be downloaded and used.
   #
   # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
   # Maven Daemon.
@@ -904,9 +904,9 @@ The chosen version will be downloaded by Garden and used to define `JAVA_HOME` e
 
 To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
 
-| Type     | Allowed Values    | Default | Required |
-| -------- | ----------------- | ------- | -------- |
-| `number` | 8, 11, 13, 17, 21 | `11`    | Yes      |
+| Type     | Allowed Values        | Default | Required |
+| -------- | --------------------- | ------- | -------- |
+| `number` | 8, 11, 13, 17, 21, 23 | `11`    | Yes      |
 
 ### `build.jdkPath`
 
@@ -965,7 +965,7 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 Defines the location of the custom executable Gradle binary.
 
 If not provided, then the Gradle binary available in the working directory will be used.
-If no Gradle binary found in the working dir, then Gradle 7.5.1 will be downloaded and used.
+If no Gradle binary found in the working dir, then Gradle 7.6.4 will be downloaded and used.
 
 **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Gradle.
 To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
@@ -980,7 +980,7 @@ To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
 
 Defines the location of the custom executable Maven binary.
 
-If not provided, then Maven 3.8.8 will be downloaded and used.
+If not provided, then Maven 3.9.9 will be downloaded and used.
 
 **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven.
 To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
@@ -1005,7 +1005,7 @@ Defines the Maven phases to be executed during the Garden build step.
 
 Defines the location of the custom executable Maven Daemon binary.
 
-If not provided, then Maven Daemon 0.9.0 will be downloaded and used.
+If not provided, then Maven Daemon 1.0.2 will be downloaded and used.
 
 **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven Daemon.
 To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
