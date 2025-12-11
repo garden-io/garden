@@ -15,30 +15,29 @@ import { runBuildTool, verifyBinaryPath } from "./build-tool-base.js"
 
 const buildLock = new AsyncLock()
 
-export const mvndVersion = "0.9.0"
+export const mvndVersion = "1.0.2"
 
 const mvndSpec = {
   baseUrl: `https://github.com/apache/maven-mvnd/releases/download/${mvndVersion}/`,
-  // 0.9.0 has no ARM64 build for linux yet
-  // Should be fixed once 1.0.0 is released
+  // 1.0.2 still has no ARM64 build for linux
   linux_amd64: {
     filename: `maven-mvnd-${mvndVersion}-linux-amd64.tar.gz`,
-    sha256: "64acc68f2a3e25a0662eb62bf87cf2641706245505572ca1d20f933c7190f148",
+    sha256: "a5990f4cfd4aa3307a4c5c86d6cfdd13a0bd394a6b07c6bb64efa7decb342205",
     targetPath: `maven-mvnd-${mvndVersion}-linux-amd64/bin/mvnd`,
   },
   darwin_arm64: {
     filename: `maven-mvnd-${mvndVersion}-darwin-aarch64.tar.gz`,
-    sha256: "bca67a44cc3716a7da46926acff41b3864d62e5da6982b9e998eca42d2f9bfac",
+    sha256: "a0f9fe345ca76726806fc17ef78caf73e3e1887921c8c156d53341564803e24b",
     targetPath: `maven-mvnd-${mvndVersion}-darwin-aarch64/bin/mvnd`,
   },
   darwin_amd64: {
     filename: `maven-mvnd-${mvndVersion}-darwin-amd64.tar.gz`,
-    sha256: "b94fb24d92cd971b6368df14f44bf77b5614a422dfe9f6f115b32b11860c1d6b",
+    sha256: "926b0512ac3df2dd05770f61eeafbf97cfeafd14bb903fdea90b34bc8165ad21",
     targetPath: `maven-mvnd-${mvndVersion}-darwin-amd64/bin/mvnd`,
   },
   windows: {
     filename: `maven-mvnd-${mvndVersion}-windows-amd64.zip`,
-    sha256: "07205da7f84db53fdffc55079b817789267b661f39978a2b2ad4f2584dc812ba",
+    sha256: "c48cdbee495b6d93a171648801a4485bef10f1f0d0ee3eb64a5ee67f8ae77461",
     targetPath: `maven-mvnd-${mvndVersion}-windows-amd64/bin/mvnd.cmd`,
   },
 }
