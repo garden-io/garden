@@ -1,4 +1,15 @@
 
+<a name="0.14.13"></a>
+## [0.14.13](https://github.com/garden-io/garden/compare/0.14.12...0.14.13) (2025-12-15)
+
+### Bug Fixes
+
+* **cloud:** fix default variable list logic ([#7867](https://github.com/garden-io/garden/issues/7867)) ([1d103002b](https://github.com/garden-io/garden/commit/1d103002b))
+
+### Features
+
+* **terraform:** add more plugin commands to terraform plugin ([#7856](https://github.com/garden-io/garden/issues/7856)) ([56cbb3d1a](https://github.com/garden-io/garden/commit/56cbb3d1a))
+
 <a name="0.14.12"></a>
 ## [0.14.12](https://github.com/garden-io/garden/compare/0.14.11...0.14.12) (2025-12-05)
 
