@@ -418,7 +418,7 @@ jobs:
   build-dist-macos:
     macos:
       xcode: 15.0.0
-    resource_class: macos.m1.medium.gen1
+    resource_class: macos.m4pro.medium.gen1
     parameters:
       version:
         description: The version tag/name to set
