@@ -11,7 +11,7 @@ For the purposes of this example we'll be using [CircleCI](https://circleci.com)
 
 ## Project overview
 
-The project is based on our basic [demo-project](https://github.com/garden-io/garden/tree/0.14.12/examples/demo-project) example, but configured for multiple environments. Additionally it contains a CircleCI config file. You'll find the entire source code [here](https://github.com/garden-io/ci-demo-project).
+The project is based on our basic [demo-project](https://github.com/garden-io/garden/tree/0.14.13/examples/demo-project) example, but configured for multiple environments. Additionally it contains a CircleCI config file. You'll find the entire source code [here](https://github.com/garden-io/ci-demo-project).
 
 The CI pipeline is configured so that Garden tests the project and deploys it to a **preview** environment on every pull request. Additionally, it tests the project and deploys it to a separate **staging** environment on every merge to the `main` branch.
 
