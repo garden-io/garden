@@ -15,11 +15,11 @@ import { runBuildTool, verifyBinaryPath } from "./build-tool-base.js"
 
 const buildLock = new AsyncLock()
 
-export const mvnVersion = "3.8.8"
+export const mvnVersion = "3.9.9"
 
 const spec = {
   url: `https://archive.apache.org/dist/maven/maven-3/${mvnVersion}/binaries/apache-maven-${mvnVersion}-bin.tar.gz`,
-  sha256: "17811e108701af5985bf5167abbd47c06e92c6c6bd1c13a1a1c095c9b4ecc32a",
+  sha256: "7a9cdf674fc1703d6382f5f330b3d110ea1b512b51f1652846d9e4e8a588d766",
   extract: {
     format: "tar",
     targetPath: `apache-maven-${mvnVersion}/bin/mvn`,
@@ -57,7 +57,7 @@ export const mavenSpec: PluginToolSpec = {
       architecture: "amd64",
       ...spec,
       url: `https://archive.apache.org/dist/maven/maven-3/${mvnVersion}/binaries/apache-maven-${mvnVersion}-bin.zip`,
-      sha256: "2e181515ce8ae14b7a904c40bb4794831f5fd1d9641107a13b916af15af4001a",
+      sha256: "4ec3f26fb1a692473aea0235c300bd20f0f9fe741947c82c1234cefd76ac3a3c",
       extract: {
         format: "zip",
         targetPath: spec.extract.targetPath + ".cmd",

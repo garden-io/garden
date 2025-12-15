@@ -1,6 +1,6 @@
 plugins {
   id 'java'
-  id 'com.google.cloud.tools.jib' version '3.1.4'
+  id 'com.google.cloud.tools.jib' version '3.4.3'
 }
 
 sourceCompatibility = 1.8
@@ -12,6 +12,18 @@ repositories {
 
 dependencies {
   compile 'com.google.guava:guava:32.0.0-jre'
+}
+
+jib {
+  from {
+    image = 'public.ecr.aws/docker/library/eclipse-temurin:8-jre'
+    platforms {
+      platform {
+        architecture = System.getProperty("os.arch") == "aarch64" ? "arm64" : "amd64"
+        os = "linux"
+      }
+    }
+  }
 }
 
 // Note: Garden sets this automatically.
