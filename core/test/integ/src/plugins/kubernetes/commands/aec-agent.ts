@@ -47,7 +47,8 @@ describe("aec-agent command", () => {
         organizations: [
           {
             name: "foo",
-            isCurrentUserOwner: true,
+            isCurrentAccountOwner: true,
+            plan: "team" as const,
             slug: "foo-slug",
             id: "baz",
             createdAt: new Date(),

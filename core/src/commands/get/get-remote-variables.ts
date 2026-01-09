@@ -102,14 +102,14 @@ export class GetRemoteVariablesCommand extends Command<EmptyObject, Opts> {
       return { result: { variables: [] } }
     }
 
-    const allVariables: RouterOutput["variableList"]["listVariables"]["items"] = []
+    const allVariables: RouterOutput["variable"]["list"]["items"] = []
 
     for (const variableListId of variableListIds) {
       let cursor: number | undefined = undefined
 
       do {
         log.debug(`Fetching variables for variable list ${variableListId}`)
-        const response = await garden.cloudApi.trpc.variableList.listVariables.query({
+        const response = await garden.cloudApi.trpc.variable.list.query({
           organizationId: garden.cloudApi.organizationId,
           variableListId,
           ...(cursor && { cursor }),
