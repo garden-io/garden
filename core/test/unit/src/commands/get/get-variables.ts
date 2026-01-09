@@ -30,7 +30,9 @@ function makeFakeTrpcClient(overrides?: DeepPartial<ApiTrpcClient>): ApiTrpcClie
           }
         },
       },
-      listVariables: {
+    },
+    variable: {
+      list: {
         query: async () => {
           return {
             items: [

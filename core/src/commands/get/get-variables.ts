@@ -69,7 +69,7 @@ type VarsMetadata = {
   action?: `${ActionKind}.${string}`
 }
 
-type RemoteVariable = RouterOutput["variableList"]["listVariables"]["items"][0] & {
+type RemoteVariable = RouterOutput["variable"]["list"]["items"][0] & {
   variableListId: string
 }
 
@@ -251,13 +251,13 @@ async function getCloudVariables({
   const remoteVars = flatten(
     await Promise.all(
       variableListIds.map(async (variableListId) => {
-        const allVariables: RouterOutput["variableList"]["listVariables"]["items"][0][] = []
+        const allVariables: RouterOutput["variable"]["list"]["items"][0][] = []
         let cursor: number | undefined = undefined
 
         // Fetch all pages of variables for this list
         do {
           log.debug(`Fetching variables for variable list ${variableListId}`)
-          const response = await api.trpc.variableList.listVariables.query({
+          const response = await api.trpc.variable.list.query({
             organizationId: api.organizationId,
             variableListId,
             ...(cursor && { cursor }),
