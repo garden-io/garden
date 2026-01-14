@@ -12,7 +12,7 @@ providers:
   - name: kubernetes
     # Replace these values as appropriate
     # > the kube context of the cluster
-    context: gke_garden-ci_europe-west1-b_core-ci
+    context: ci-context
     # > the namespace to deploy to in the cluster
     namespace: gke-testing-${var.userId}
     # > any hostname that points to your cluster's ingress controller

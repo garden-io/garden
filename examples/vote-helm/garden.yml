@@ -15,7 +15,7 @@ providers:
   - name: kubernetes
     environments: [testing]
     # Replace the below values as appropriate
-    context: gke_garden-ci_europe-west1-b_core-ci
+    context: ci-context
     namespace: ${project.name}-testing-${var.userId}
     defaultHostname: ${var.baseHostname}
     buildMode: kaniko
