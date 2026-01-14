@@ -21,11 +21,11 @@ providers:
     context: ci-context
     ingressClass: "nginx"
     imagePullSecrets:
-      - name: gcr-config
+      - name: regcred
         namespace: default
     deploymentRegistry:
-      hostname: eu.gcr.io
-      namespace: garden-ci
+      hostname: index.docker.io
+      namespace: gardenci
     namespace: k8s-deploy-simple-${kebabCase(local.username)}
 
 ---

@@ -21,9 +21,9 @@ providers:
     # set these as appropriate
     context: # ...
     namespace: ${project.name}-testing-${var.userId}
-    defaultHostname: ${project.name}-testing-${var.userId}.dev-1.sys.garden
+    defaultHostname: ${project.name}-testing-${var.userId}.dev.example.com
     deploymentRegistry:
-      hostname: # ... # <- set this according to the region your cluster runs in
-      namespace: # ... # <- set this to the project ID of the target cluster
+      hostname: # ... # <- set this to your registry hostname
+      namespace: # ... # <- typically your organization name, project ID etc.
 ...
 ```

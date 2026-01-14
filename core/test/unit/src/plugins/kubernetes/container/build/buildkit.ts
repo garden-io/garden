@@ -298,7 +298,7 @@ describe("buildkit build", () => {
     // test autodetection for mode=inline
     const expectedInline = [
       // The following registries are actually known NOT to support mode=max
-      "eu.gcr.io",
+      "hub.docker.com",
       "gcr.io",
       // Most self-hosted registries actually support mode=max, but because
       // Harbor actually doesn't, we need to default to inline.
@@ -357,7 +357,7 @@ describe("buildkit build", () => {
     // test autodetection for mode=max
     const expectedMax = [
       // The following registries are known to actually support mode=max
-      "hub.docker.com",
+      "index.docker.io",
       "pkg.dev",
       "some.subdomain.pkg.dev",
       "ghcr.io",

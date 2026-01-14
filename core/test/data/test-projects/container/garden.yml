@@ -20,7 +20,7 @@ providers:
   - name: local-kubernetes
     deploymentRegistry: &deploymentRegistry
       hostname: europe-west3-docker.pkg.dev
-      namespace: garden-ci/garden-integ-tests
+      namespace: gardenci/garden-integ-tests
     environments: [local-remote-registry]
   - &base
     name: local-kubernetes

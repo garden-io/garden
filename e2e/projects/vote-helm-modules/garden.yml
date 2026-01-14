@@ -8,7 +8,7 @@ environments:
   - name: testing
     defaultNamespace: ${var.userId}
     variables:
-      baseHostname: ${project.name}-testing-${var.userId}.dev-1.sys.garden
+      baseHostname: ${project.name}-testing-${var.userId}.dev.example.com
 providers:
   - name: local-kubernetes
     environments: [local]
@@ -20,14 +20,12 @@ providers:
     defaultHostname: ${var.baseHostname}
     buildMode: kaniko
     deploymentRegistry:
-      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
-      namespace: garden-ci   # <- set this to the project ID of the target cluster
+      hostname: index.docker.io    # <- set this to your registry hostname
+      namespace: gardenci   # <- typically your organization name, project ID etc.
     imagePullSecrets:
       # Make sure this matches the name and namespace of the imagePullSecret you've created
       # to authenticate with your registry (if needed)
-      - name: gcr-config
-        namespace: default
-      - name: dockerhub
+      - name: regcred
         namespace: default
 variables:
   userId: ${local.username}

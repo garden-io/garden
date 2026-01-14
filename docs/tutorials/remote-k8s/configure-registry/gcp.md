@@ -51,10 +51,10 @@ Next create a JSON key file for the GSA:
 gcloud iam service-accounts keys create keyfile.json --iam-account gcr-access@${PROJECT_ID}.iam.gserviceaccount.com
 ```
 
-Then prepare the _imagePullSecret_ in your Kubernetes cluster. Run the following command, if appropriate replacing `gcr.io` with the correct registry hostname (e.g. `eu.gcr.io` or `asia.gcr.io`):
+Then prepare the _imagePullSecret_ in your Kubernetes cluster. Run the following command, if appropriate replacing `gcr.io` with the correct registry hostname (e.g. `index.docker.io` or `asia.gcr.io`):
 
 ```sh
-kubectl --namespace default create secret docker-registry gcr-config \
+kubectl --namespace default create secret docker-registry regcred \
   --docker-server=gcr.io \
   --docker-username=_json_key \
   --docker-password="$(cat keyfile.json)"
