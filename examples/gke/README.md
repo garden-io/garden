@@ -1,8 +1,8 @@
 # gke project
 
-A variant on the `demo-project` example, with an example configuration for GKE with in-cluster building with Kaniko or BuildKit.
+A variant on the `demo-project` example, with an example configuration for GKE.
 
-Two environments are configured, `gke-kaniko` and `gke-buildkit`. The first uses Kaniko for in-cluster builds, the latter uses BuildKit. The example is set up to use GCR as the deployment registry.
+Two environments are configured, `gke` and `gke-buildkit`. The first uses local Docker builds, the latter uses BuildKit for in-cluster builds. The example is set up to use GCR as the deployment registry.
 
 ## Setup
 
@@ -89,5 +89,5 @@ Finally, to build and deploy your services to your new GKE cluster, run:
 
 ```sh
 # Choose which environment to deploy with the --env parameter
-garden deploy --env=<gke-kaniko|gke-buildkit>
+garden deploy --env=<gke|gke-buildkit>
 ```

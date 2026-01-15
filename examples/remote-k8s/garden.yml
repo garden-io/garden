@@ -16,7 +16,6 @@ providers:
     environments: [remote]
     context: my-remote-context
     defaultHostname: my-cluster.example.com # change this to the hostname that points to your cluster
-    buildMode: kaniko
     # Replace the below values as appropriate
     deploymentRegistry:
       hostname: index.docker.io # <- set this to your registry hostname

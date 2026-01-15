@@ -2,9 +2,7 @@ apiVersion: garden.io/v2
 kind: Project
 name: gke
 environments:
-  - name: gke-kaniko
-    variables:
-      buildMode: kaniko
+  - name: gke
   - name: gke-buildkit
     variables:
       buildMode: cluster-buildkit
@@ -20,7 +18,7 @@ providers:
     buildMode: ${var.buildMode} # <- set differently in each environment above
     deploymentRegistry:
       # Replace these values as appropriate
-      hostname: index.docker.io # <- set this to your registry hostname
+      hostname: eu.gcr.io # <- set this to your registry hostname according to the region your cluster runs in
       namespace: gardenci # <- typically your organization name, project ID etc.
     imagePullSecrets:
       # Make sure this matches the name and namespace of the imagePullSecret you've created
