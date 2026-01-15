@@ -589,6 +589,7 @@ jobs:
         default: testing
     steps:
       - checkout
+      - *remote-docker
       - npm_install:
           context: docker
       - configure_remote_cluster
