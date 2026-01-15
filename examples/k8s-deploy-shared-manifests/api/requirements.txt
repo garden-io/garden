@@ -3,5 +3,5 @@ redis==4.4.4
 gunicorn==23.0.0
 flask-cors==4.0.2
 requests==2.32.2
-urllib3==1.26.19
+urllib3==2.6.3
 psycopg2
