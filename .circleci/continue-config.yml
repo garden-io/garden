@@ -190,11 +190,7 @@ commands:
       - run:
           name: docker login
           command: |
-            if [ -n "$DOCKER_PASS" ]; then
-              echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-            else
-              echo "Skipping, no login available"
-            fi
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
 
   install_kind:
     description: Install Kind
@@ -274,6 +270,10 @@ commands:
               --alias ci-context
 
             kubectl config use-context ci-context
+
+            # Authenticate Docker to ECR for pushing images
+            aws ecr get-login-password --region eu-central-1 | \
+              docker login --username AWS --password-stdin 873483817304.dkr.ecr.eu-central-1.amazonaws.com
 
   cleanup_remote_cluster:
     description: Clean up namespaces in the CI cluster (to be used with configure_remote_cluster)
@@ -1329,12 +1329,15 @@ workflows:
       - test-macos-x86-rosetta:
           <<: *only-internal-prs
           requires: [build-dist-macos]
+          context: docker
       - test-macos-arm:
           <<: *only-internal-prs
           requires: [build-dist-macos]
+          context: docker
       - test-dockerhub:
           <<: *only-prs
           requires: [build-dist-linux-windows]
+          context: docker
       - test-windows:
           <<: *only-internal-prs
           requires: [build-dist-linux-windows]
@@ -1344,92 +1347,109 @@ workflows:
       #     name: e2e-code-synchronization
       #     project: code-synchronization
       #     requires: [build]
+      #     context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-demo-project
           project: demo-project
           environment: remote
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-demo-project-modules
           project: demo-project-modules
           environment: remote
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-jib-container
           project: jib-container
           environment: remote
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-jib-container-modules
           project: jib-container-modules
           environment: remote
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-kustomize
           project: kustomize
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-kustomize-modules
           project: kustomize-modules
           requires: [build]
+          context: docker
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-remote-sources
       #     project: remote-sources
       #     requires: [build]
+      #     context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-run-actions
           project: run-actions
           requires: [build]
+          context: docker
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-tasks-modules
       #     project: tasks-modules
       #     requires: [build]
+      #     context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-templated-k8s-container
           project: templated-k8s-container
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-templated-k8s-container-modules
           project: templated-k8s-container-modules
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-vote
           project: vote
           environment: remote
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-vote-modules
           project: vote-modules
           environment: remote
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-vote-helm
           project: vote-helm
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-open-telemetry
           project: open-telemetry
           requires: [build]
+          context: docker
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-vote-helm-modules
       #     project: vote-helm-modules
       #     requires: [build]
+      #     context: docker
 
       ### REMOTE TESTS ###
       # The remote tests (e.g. kaniko and buildkit) still require a local kubernetes cluster for some reason…
@@ -1441,6 +1461,7 @@ workflows:
           minikubeVersion: "v1.34.0"
           skipTests: "local-only"
           remoteCluster: true
+          context: docker
 
       ### VM TESTS ###
 
@@ -1453,24 +1474,29 @@ workflows:
           name: vm-1.31-k3s
           requires: [build]
           k3sVersion: v1.31.1+k3s1
+          context: docker
       - test-minikube:
           name: vm-1.31-minikube
           requires: [build]
           kubernetesVersion: "v1.31.0"
           minikubeVersion: "v1.34.0"
+          context: docker
       - test-kind:
           name: vm-1.32-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
+          context: docker
       - test-microk8s:
           name: vm-1.33-microk8s
           requires: [build]
           kubernetesVersion: "1.33"
+          context: docker
 
       - test-plugins:
           <<: *only-internal-prs
           requires: [build]
           kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
+          context: docker
 
       # This is only for edge release (Overrides version to edge-cedar)
       - build:
