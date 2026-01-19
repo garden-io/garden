@@ -776,6 +776,8 @@ jobs:
       # Need to checkout to run example project
       - checkout
       - configure_remote_cluster
+      - *remote-docker
+      - docker_login
       - *attach-workspace
       - run:
           name: Test that the binary works with the fancy logger enabled
@@ -1335,6 +1337,7 @@ workflows:
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
           requires: [build-dist-macos, build-dist-linux-windows]
+          context: docker
       - test-macos-x86-rosetta:
           <<: *only-internal-prs
           requires: [build-dist-macos]

@@ -13,6 +13,7 @@ spec:
     image:
       repository: ${actions.build.result-image.outputs.deployment-image-name}
       tag: ${actions.build.result-image.version}
+    imagePullSecrets: ${var.imagePullSecrets}
     ingress:
       enabled: true
       paths: [/]

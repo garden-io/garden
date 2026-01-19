@@ -5,10 +5,13 @@ environments:
   - name: local
     variables:
       baseHostname: vote.local.demo.garden
+      imagePullSecrets: []
   - name: testing
     defaultNamespace: ${var.userId}
     variables:
       baseHostname: ${project.name}-testing-${var.userId}.dev.example.com
+      imagePullSecrets:
+        - name: regcred
 providers:
   - name: local-kubernetes
     environments: [local]

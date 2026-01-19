@@ -1,9 +1,16 @@
 apiVersion: garden.io/v2
 kind: Project
 name: templated-k8s-container
+
 environments:
   - name: local
+    variables:
+      imagePullSecrets: []
   - name: testing
+    variables:
+      imagePullSecrets:
+        - name: regcred
+
 providers:
   - name: local-kubernetes
     environments: [local]
@@ -21,5 +28,6 @@ providers:
       # to authenticate with your registry (if needed)
       - name: regcred
         namespace: default
+
 variables:
   userId: ${kebabCase(local.username)}
