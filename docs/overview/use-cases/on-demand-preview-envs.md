@@ -47,10 +47,6 @@ So with that in mind, these are the recommended next steps:
 - [Add actions](../../garden-for/kubernetes/README.md) to build and deploy your project
 - Follow our guide on [environments and namespaces](../../guides/namespaces.md) to ensure each preview environment is isolated
 
-{% hint style="info" %}
-Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
-{% endhint %}
-
 ## Further Reading
 
 - [What is Garden](../../overview/what-is-garden.md)

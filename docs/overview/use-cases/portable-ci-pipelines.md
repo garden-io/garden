@@ -29,10 +29,6 @@ If you're already familiar with Garden and just want to get going, click any of 
 - [Using Garden in CircleCI](../../guides/using-garden-in-circleci.md)
 - Garden's official [GitHub Action](https://github.com/marketplace/actions/garden-action).
 
-{% hint style="info" %}
-Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
-{% endhint %}
-
 ## Further Reading
 
 - [What is Garden](../../overview/what-is-garden.md)

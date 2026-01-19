@@ -47,10 +47,6 @@ So with that in mind, here are the recommended next steps:
 - [Add actions](../../garden-for/kubernetes/README.md) to build and deploy your project
 - [Configure code syncing](../../features/code-synchronization.md) so you can live reload changes to the remote cluster
 
-{% hint style="info" %}
-Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
-{% endhint %}
-
 ## Further Reading
 
 - [What is Garden](../../overview/what-is-garden.md)

@@ -71,4 +71,4 @@ You can learn more in [this blog post](https://garden.io/blog/garden-linkerd) on
 
 Now that you have a feel for how teams typically adopt Garden, we recommend diving right in with our [Quickstart guide](../getting-started/quickstart.md) or learning how to [add Garden to your own project](../getting-started/next-steps.md).
 
-And if you have any questions, don't hesitate to reach out to our [our Discord community](https://discord.gg/FrmhuUjFs6).
+And if you have any questions, don't hesitate to reach out on [Garden Discussions](https://github.com/garden-io/garden/discussions).

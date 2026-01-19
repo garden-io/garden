@@ -25,10 +25,6 @@ Navigate to [Examples](#examples) for a selection of pre-configured stacks you c
 - Use [Config Templates](../../features/config-templates.md) to vend development environments to all your developers
 - If you're coming from Docker Compose, visit our [Migrating From Docker Compose](../../guides/migrating-from-docker-compose.md) guide
 
-{% hint style="info" %}
-Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
-{% endhint %}
-
 ## Further Reading
 
 - [What is Garden](../../overview/what-is-garden.md)

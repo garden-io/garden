@@ -1,6 +1,6 @@
 # Garden
 
-_If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](https://go.garden.io/discord)._
+_If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Check out [Garden Discussions](https://github.com/garden-io/garden/discussions)._
 
 <p align="center">
   <picture>
@@ -19,8 +19,6 @@ _If you love Garden, please ★ star this repository to show your support :green
   <a href="https://github.com/garden-io/garden/tree/0.14.13/examples">Examples</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://go.garden.io/discord">Discord</a>
 </div>
 
 ## Welcome to Garden!
@@ -127,7 +125,7 @@ Garden is _pluggable_: how actions are executed depends on the plugins used. Our
 
 ## Community
 
-Join our [Discord community](https://go.garden.io/discord) to ask questions, give feedback or just say hi 🙂
+Check out [Garden Discussions](https://github.com/garden-io/garden/discussions) to ask questions, give feedback or just say hi 🙂
 
 ## Contributing
 

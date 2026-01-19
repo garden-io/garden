@@ -144,7 +144,7 @@ Start by checking out the [Garden basics guide](./basics.md) which covers the ma
 
 After that you can either go through [first project tutorial](../tutorials/your-first-project/) which explains step-by-step how to add Garden to an existing project. Or you can check out the [Next Steps guide](./next-steps.md) which gives you a more high level but still step-wise overview of how to adopt Garden and add it to your stack.
 
-If you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://go.garden.io/discord)!
+If you have any questions or feedback—or just want to say hi 🙂—we encourage you to use [Garden Discussion](https://github.com/garden-io/garden/discussions)!
 
 ## Troubleshooting
 

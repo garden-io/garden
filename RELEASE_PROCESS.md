@@ -62,7 +62,6 @@ Once the release CI job is done, a draft release will appear in GitHub. That dra
 10. Install the Homebrew package and make sure it works okay:
     - `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
     - Run `$(brew --prefix garden-cli)/bin/garden dev` and run the `version` command in the console (to make sure you're using the packaged release). Do a quick manual test in an example project and see if all looks OK.
-11. Prepare the release announcement and publish it in our channels (Discord and Twitter). If not possible, delegate the task to an available contributor.
 
 ## Misc
 

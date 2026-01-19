@@ -23,4 +23,4 @@ For a large, complex project, it might be good to start with a subset of it, so 
 
 Whatever your setup is, we're sure you'll be rewarded with an elegant, productive setup for testing and developing your system!
 
-And if there's something you can't find in our docs, we happily encourage you to [join our Discord community](https://discord.gg/FrmhuUjFs6) and/or file an issue on [our GitHub repo](https://github.com/garden-io/garden). We're more than happy to help!
+And if there's something you can't find in our docs, we happily encourage you to [check out Garden Discussions](https://github.com/garden-io/garden/discussions) and/or file an issue on [our GitHub repo](https://github.com/garden-io/garden). We're more than happy to help!

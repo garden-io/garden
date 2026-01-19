@@ -17,7 +17,7 @@ Below you'll find basic guides for some common cloud providers:
 * [GCP](./gcp.md)
 * [Azure](./azure.md)
 
-Let us know on [our Discord community](https://discord.gg/FrmhuUjFs6) if you'd like guides for more providers.
+Let us know on [Garden Discussions](https://github.com/garden-io/garden/discussions) if you'd like guides for more providers.
 
 Note that there are multiple ways to create Kubernetes clusters (e.g. point-and-click, Terraform, Pulumi, etc) and feel free to pick whatever approach you're most comfortable with.
 
