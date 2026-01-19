@@ -131,6 +131,8 @@ export async function ensureNamespace({
                   [gardenAnnotationKey("generated")]: "true",
                   [gardenAnnotationKey("version")]: GARDEN_VERSION,
                   ...(namespace.annotations || {}),
+                  // Set last-deployed to now if AEC is enabled (avoids dangling namespaces if nothing is deployed)
+                  ...(aecEnabled ? { [gardenAnnotationKey("last-deployed")]: new Date().toISOString() } : {}),
                 },
                 labels: namespace.labels,
               },
