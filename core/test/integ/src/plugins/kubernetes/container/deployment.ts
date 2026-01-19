@@ -22,7 +22,7 @@ import { keyBy } from "lodash-es"
 import { getContainerTestGarden } from "./container.js"
 import { DeployTask } from "../../../../../../src/tasks/deploy.js"
 import type { TestGarden } from "../../../../../helpers.js"
-import { expectError, findNamespaceStatusEvent, grouped } from "../../../../../helpers.js"
+import { expectError, findNamespaceStatusEvent } from "../../../../../helpers.js"
 import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util.js"
 import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util.js"
 import { isConfiguredForSyncMode } from "../../../../../../src/plugins/kubernetes/status/status.js"
@@ -579,89 +579,6 @@ describe("kubernetes container deployment handlers", () => {
         expect(resources.Deployment.spec.template.spec.containers[0].volumeMounts).to.eql([
           { name: "test", mountPath: "/volume" },
         ])
-      })
-    })
-
-    grouped("kaniko", "remote-only").context("kaniko", () => {
-      before(async () => {
-        await init("kaniko", true)
-      })
-
-      after(async () => {
-        if (cleanup) {
-          cleanup()
-        }
-      })
-
-      const processDeployAction = async (
-        resolvedAction: ResolvedDeployAction<ContainerDeployActionConfig, ContainerDeployOutputs>
-      ) => {
-        const deployTask = new DeployTask({
-          garden,
-          graph,
-          log: garden.log,
-          action: resolvedAction,
-          force: true,
-          forceBuild: false,
-        })
-
-        const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-        const statuses = getDeployStatuses(results.results)
-
-        return statuses[resolvedAction.name]
-      }
-
-      it.skip("should deploy a simple service without dockerfile", async () => {
-        const action = await resolveDeployAction("simple-server-busybox")
-        const status = await processDeployAction(action)
-
-        const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
-
-        // Note: the image version should match the image in the module not the
-        // deploy action version
-        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(`busybox:1.31.1`)
-      })
-
-      it.skip("should deploy a simple service without image", async () => {
-        const action = await resolveDeployAction("remote-registry-test")
-        const status = await processDeployAction(action)
-
-        const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
-        const buildVersionString = action.getBuildAction()?.versionString(garden.log)
-
-        // Note: the image version should match the build action version and not the
-        // deploy action version
-        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
-        )
-      })
-
-      it.skip("should deploy a simple service with absolute image path", async () => {
-        const action = await resolveDeployAction("remote-registry-test-absolute-image")
-        const status = await processDeployAction(action)
-
-        const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
-        const buildVersionString = action.getBuildAction()?.versionString(garden.log)
-
-        // Note: the image version should match the build action version and not the
-        // deploy action version
-        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
-        )
-      })
-
-      it.skip("should deploy a simple service with relative image path", async () => {
-        const action = await resolveDeployAction("remote-registry-test-relative-image")
-        const status = await processDeployAction(action)
-
-        const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
-        const buildVersionString = action.getBuildAction()?.versionString(garden.log)
-
-        // Note: the image version should match the build action version and not the
-        // deploy action version
-        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
-        )
       })
     })
   })

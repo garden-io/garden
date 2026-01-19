@@ -31,7 +31,7 @@ import type { PluginContext } from "../../../../../../src/plugin-context.js"
 const { emptyDir, pathExists } = fsExtra
 
 const root = getDataDir("test-projects", "container")
-const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
+const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "cluster-buildkit" : "local"
 
 export interface ContainerTestGardenResult {
   garden: TestGarden
