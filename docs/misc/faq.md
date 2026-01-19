@@ -295,7 +295,7 @@ Yes! `two-way` sync mode can be configured with Garden sync mode. See [this guid
 
 Garden is currently in use by many teams. We don’t have a set date or plan to label it as 1.0, but we don't expect to do it anytime soon.
 
-We have a team of people working on it full-time, and we make it a priority to address all non-trivial bugs. We’re also happy to help out and answer questions via [our Discord community](https://discord.gg/FrmhuUjFs6).
+We have a team of people working on it full-time, and we make it a priority to address all non-trivial bugs. We’re also happy to help out and answer questions on [Garden Discussions](https://github.com/garden-io/garden/discussions).
 
 ### Does Garden work offline?
 

@@ -213,4 +213,4 @@ And that's the gist of it!
 
 We encourage you to try adding Garden to your own project. You won't need to change any of your existing code or configuration, only sprinkle in some Garden config files to codify your workflows and you'll be going **from zero to a running system in a single command**.
 
-And if you have any questions, don't hesitate to reach out to our [our Discord community](https://discord.gg/FrmhuUjFs6).
+And if you have any questions, don't hesitate to reach out on [Garden Discussions](https://github.com/garden-io/garden/discussions).

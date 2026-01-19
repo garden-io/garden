@@ -13,10 +13,10 @@ import { exec } from "../util/util.js"
 
 export class CommunityCommand extends Command {
   name = "community"
-  help = "Join our community Discord to chat with us!"
+  help = "Checkout Garden Discussions on GitHub to chat with us!"
 
   override description = dedent`
-    Opens the Garden Community Discord invite link
+    Opens the Garden Discussions page.
   `
 
   override noProject = true
@@ -24,14 +24,14 @@ export class CommunityCommand extends Command {
   override printHeader() {}
 
   async action(): Promise<CommandResult> {
-    const discordInvite = "https://discord.gg/FrmhuUjFs6"
+    const discussionsLink = "https://github.com/garden-io/garden/discussions"
     // eslint-disable-next-line no-console
-    console.log(discordInvite)
+    console.log(discussionsLink)
 
     try {
-      await exec("open", [discordInvite])
+      await exec("open", [discussionsLink])
     } catch (_) {}
 
-    return { result: { discordInvite } }
+    return { result: { discussionsLink } }
   }
 }

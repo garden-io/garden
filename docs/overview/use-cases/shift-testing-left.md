@@ -49,10 +49,6 @@ So with that in mind, these are the recommended next steps:
 - [Set up your remote cluster](../../garden-for/kubernetes/remote-kubernetes.md)
 - [Add actions](../../garden-for/kubernetes/README.md) to build and deploy your project
 
-{% hint style="info" %}
-Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
-{% endhint %}
-
 ## Further Reading
 
 - [What is Garden](../../overview/what-is-garden.md)

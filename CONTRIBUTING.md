@@ -1,7 +1,7 @@
 # Contributing
 
 > [!NOTE]
-> If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](https://go.garden.io/discord).
+> If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Check out [Garden Discussions](https://github.com/garden-io/garden/discussions).
 
 :tada: Thanks for taking an interest in contributing to Garden and Garden's docs. We appreciate your effort and passion! :clap:
 

@@ -143,4 +143,4 @@ The gif below shows the test caching in action:
 
 Don't worry too much about the different action kinds and types, we have plenty of examples to help you pick the right one. Just know that you can model a system of any complexity with this pattern, even if it's components are spread across multiple repos.
 
-And if you have any questions, feel free to open an issue on Github or ping us on [Discord](https://go.garden.io/discord).
+And if you have any questions, feel free to open an issue on Github or ask a question on [Garden Discussions](https://github.com/garden-io/garden/discussions).

@@ -17,4 +17,4 @@ The flag is also given to each provider, which may modify behavior accordingly. 
 4. Increase the `RevisionHistoryLimit` on workloads to 10.
 5. By default, running `garden deploy --force` will propagate the `--force` flag to `helm upgrade`, and set the `--replace` flag on `helm install` when deploying `helm` actions. This may be okay while developing but risky in production, so the `production` flag prevents both of those.
 
-We would highly appreciate feedback on other configuration settings that should be altered when `production: true`. Please send us feedback via [GitHub issues](https://github.com/garden-io/garden/issues) or reach out on [our Discord Community](https://discord.gg/FrmhuUjFs6)!
+We would highly appreciate feedback on other configuration settings that should be altered when `production: true`. Please send us feedback via [GitHub issues](https://github.com/garden-io/garden/issues) or reach out on [Garden Discussions](https://github.com/garden-io/garden/discussions)!

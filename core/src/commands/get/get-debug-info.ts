@@ -317,8 +317,6 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
       dedent`
         NOTE: Please be aware that the output file might contain sensitive information.
         If you plan to make the file available to the general public (e.g. GitHub), please review the content first.
-        If you need to share a file containing sensitive information with the Garden team, please contact us on
-        our Discord community: https://discord.gg/FrmhuUjFs6.
       `
     )
 

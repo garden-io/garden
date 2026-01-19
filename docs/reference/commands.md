@@ -655,9 +655,9 @@ Examples:
 
 ### garden community
 
-**Join our community Discord to chat with us!**
+**Checkout Garden Discussions on GitHub to chat with us!**
 
-Opens the Garden Community Discord invite link
+Opens the Garden Discussions page.
 
 #### Usage
 

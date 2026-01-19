@@ -32,5 +32,3 @@ To use the new cloud version after the release, you’ll need update to Garden t
 If you’re logged into [app.garden.io](http://app.garden.io) using older versions of the Garden CLI, you’ll see a warning message saying that your command results won’t be available in Garden Cloud. Other than that, Garden will continue to work as expected—the only difference is that logs and command results won’t be visible in the UI.
 
 Again, we’re actively working to **restore this functionality** while making the new Garden Cloud a **vastly better experience overall**.
-
-Stay tuned, and if you have any questions, don’t hesitate to reach out [on Discord](https://discord.com/invite/FrmhuUjFs6) or directly to [ricky@garden.io](mailto:ricky@garden.io) ❤️
