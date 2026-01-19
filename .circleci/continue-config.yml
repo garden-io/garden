@@ -1247,7 +1247,7 @@ jobs:
             choco install --limit-output --no-progress -y git awscli kubernetes-cli
             refreshenv
       - run:
-          name: Setup remote K8s via AWS EKS
+          name: Setup remote K8s via AWS EKS and deploy demo-project
           command: |
             # Use CircleCI OIDC to assume AWS role
             $env:AWS_REGION = "eu-central-1"
@@ -1271,23 +1271,40 @@ jobs:
               --alias ci-context
 
             kubectl config use-context ci-context
-      - run:
-          name: Deploy demo-project
-          command: |
+
+            # Deploy demo-project
             .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
-      - run:
-          name: Cleanup demo-project
-          command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
-          when: always
-      - run:
-          name: Validate vote-helm project # to validate the sync mode paths on Windows with action-based configs
-          command: |
+
+            # Validate vote-helm project (to validate the sync mode paths on Windows with action-based configs)
             .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
       - run:
-          name: Cleanup vote-helm project
-          command: (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+          name: Cleanup namespaces
+          command: |
+            # Re-authenticate for cleanup
+            $env:AWS_REGION = "eu-central-1"
+            $credentials = aws sts assume-role-with-web-identity `
+              --role-arn "arn:aws:iam::873483817304:role/core-ci-ci-access" `
+              --role-session-name "circleci-$env:CIRCLE_BUILD_NUM" `
+              --web-identity-token "$env:CIRCLE_OIDC_TOKEN_V2" `
+              --duration-seconds 3600 `
+              --output json | ConvertFrom-Json
+            $env:AWS_ACCESS_KEY_ID = $credentials.Credentials.AccessKeyId
+            $env:AWS_SECRET_ACCESS_KEY = $credentials.Credentials.SecretAccessKey
+            $env:AWS_SESSION_TOKEN = $credentials.Credentials.SessionToken
+
+            (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+            (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
-      - fail_fast
+      - run:
+          name: Fail Fast
+          when: on_fail
+          command: |
+            if ($env:CIRCLE_BRANCH -like "gh-readonly-queue*") {
+              Write-Host "Canceling workflow as a step resulted in failure"
+              Invoke-RestMethod -Method Post -Uri "https://circleci.com/api/v2/workflow/$env:CIRCLE_WORKFLOW_ID/cancel?circle-token=$env:CIRCLE_TOKEN"
+            } else {
+              Write-Host "Not canceling workflow as not running in merge queue"
+            }
 
 workflows:
   version: 2
