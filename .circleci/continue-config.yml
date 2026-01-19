@@ -1287,14 +1287,6 @@ jobs:
           name: Cleanup vote-helm project
           command: (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
-      - run:
-          name: Validate vote-helm-modules project # to validate the sync mode paths on Windows with module-based configs
-          command: |
-            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm-modules\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
-      - run:
-          name: Cleanup vote-helm-modules project
-          command: (kubectl delete namespace --wait=false vote-helm-modules-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
-          when: always
       - fail_fast
 
 workflows:
@@ -1371,21 +1363,8 @@ workflows:
           context: docker
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-jib-container-modules
-          project: jib-container-modules
-          environment: remote
-          requires: [build]
-          context: docker
-      - e2e-project:
-          <<: *only-internal-prs
           name: e2e-kustomize
           project: kustomize
-          requires: [build]
-          context: docker
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-kustomize-modules
-          project: kustomize-modules
           requires: [build]
           context: docker
       # - e2e-project:
@@ -1400,22 +1379,10 @@ workflows:
           project: run-actions
           requires: [build]
           context: docker
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-tasks-modules
-      #     project: tasks-modules
-      #     requires: [build]
-      #     context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-templated-k8s-container
           project: templated-k8s-container
-          requires: [build]
-          context: docker
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-templated-k8s-container-modules
-          project: templated-k8s-container-modules
           requires: [build]
           context: docker
       - e2e-project:
@@ -1438,18 +1405,6 @@ workflows:
           project: vote-helm
           requires: [build]
           context: docker
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-open-telemetry
-          project: open-telemetry
-          requires: [build]
-          context: docker
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-vote-helm-modules
-      #     project: vote-helm-modules
-      #     requires: [build]
-      #     context: docker
 
       ### REMOTE TESTS ###
       # The remote tests (e.g. kaniko and buildkit) still require a local kubernetes cluster for some reason…
