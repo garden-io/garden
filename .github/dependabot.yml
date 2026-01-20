@@ -25,36 +25,11 @@ updates:
     open-pull-requests-limit: 5
     schedule:
       interval: "weekly"
+    exclude-paths:
+      - "e2e/projects/**"
+      - "examples/**"
+      - "core/test/data/**"
+      - "plugins/**/test/**"
     # Pinned manually to current version to be consistent with @buf/garden_grow-platform.bufbuild_es
     ignore:
       - dependency-name: "@bufbuild/protobuf"
-
-  ### 0.13 branch
-
-  # Automatically update GitHub Actions
-  - package-ecosystem: "github-actions"
-    target-branch: "0.13"
-    labels:
-      - "0.13"
-    directory: "/"
-    open-pull-requests-limit: 5
-    schedule:
-      interval: "weekly"
-  # Automatically update Dockerfile FROM images
-  - package-ecosystem: "docker"
-    target-branch: "0.13"
-    labels:
-      - "0.13"
-    directory: "/support/"
-    open-pull-requests-limit: 5
-    schedule:
-      interval: "weekly"
-  # Automatically update NPM packages
-  - package-ecosystem: "npm"
-    target-branch: "0.13"
-    labels:
-      - "0.13"
-    directory: "/"
-    open-pull-requests-limit: 5
-    schedule:
-      interval: "weekly"
