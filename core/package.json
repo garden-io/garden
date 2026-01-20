@@ -78,7 +78,7 @@
     "gray-matter": "^4.0.3",
     "handlebars": "^4.7.7",
     "has-ansi": "^6.0.0",
-    "hasha": "^6.0.0",
+    "hasha": "^7.0.0",
     "http-status-codes": "^2.2.0",
     "humanize-string": "^3.0.0",
     "indent-string": "^5.0.0",
