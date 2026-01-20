@@ -41,7 +41,7 @@ providers:
     kubeconfig: ${var.terraformInitRoot}/${providers.terraform.outputs.kubeconfig_path}
     context: ${providers.terraform.outputs.cluster_name}
     # any hostname that points to your cluster's ingress controller
-    defaultHostname: ${var.userId}-gke.dev-1.sys.garden
+    defaultHostname: ${var.userId}-gke.dev.example.com
     # Replace the below values as appropriate
     deploymentRegistry:
       hostname: ${variables.registryHostname}

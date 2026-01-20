@@ -12,8 +12,8 @@ environments:
       show-log: true
 providers:
   - name: kubernetes
-    environments: [testing]
-    context: gke_garden-ci_europe-west1-b_core-ci
+    environments: [ testing ]
+    context: ci-context
     namespace: e2e-tests
     defaultHostname: dev-1.sys.garden
     buildMode: cluster-buildkit

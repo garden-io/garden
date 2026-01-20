@@ -8,12 +8,6 @@ brew tap git-chglog/git-chglog
 brew install ${BREW_DEPS}
 brew upgrade ${BREW_DEPS}
 
-# install and set up Google Cloud SDK
-brew install --cask google-cloud-sdk
-
-gcloud components update
-gcloud components install beta gke-gcloud-auth-plugin
-
 # install all tools with asdf
 ASDF_PLUGINS=(jq nodejs kubectl helm stern)
 for plugin in $ASDF_PLUGINS; do

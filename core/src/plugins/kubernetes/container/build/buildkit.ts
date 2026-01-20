@@ -57,6 +57,7 @@ const MODE_MAX_ALLOWED_REGISTRIES = [
   /^([^/]+\.)?pkg\.dev\//i, // Google Package Registry
   /^([^/]+\.)?azurecr\.io\//i, // Azure Container registry
   /^hub\.docker\.com\//i, // DockerHub
+  /^index\.docker\.io\//i, // DockerHub
   /^ghcr\.io\//i, // GitHub Container registry
 ]
 

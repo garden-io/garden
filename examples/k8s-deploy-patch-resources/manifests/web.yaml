@@ -23,7 +23,7 @@ spec:
           args: [npm, run, serve]
           env:
             - name: HOSTNAME
-              value: ci.dev-1.sys.garden # <--- will be patched
+              value: ci.dev.example.com # <--- will be patched
           ports:
             - name: http
               containerPort: 8080
@@ -85,7 +85,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: web.ci.dev-1.sys.garden
+    - host: web.ci.dev.example.com
       http:
         paths:
           - backend:

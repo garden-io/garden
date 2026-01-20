@@ -19,6 +19,10 @@ spec:
         app.kubernetes.io/name: {{ include "base-chart.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ include "base-chart.name" . }}
           image: "{{ required "Must specify image.repository field in values" .Values.image.repository }}:{{ required "Must specify image.tag field in values" .Values.image.tag }}"

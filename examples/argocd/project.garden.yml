@@ -21,7 +21,7 @@ environments:
   - name: gke-gitops-dev
     defaultNamespace: ${var.dev-k8s-namespace}
     variables:
-      baseHostname: ${var.dev-k8s-namespace}.dev-1.sys.garden
+      baseHostname: ${var.dev-k8s-namespace}.dev.example.com
   - name: ci
     defaultNamespace: ${var.ci-k8s-namespace}
     variables:
