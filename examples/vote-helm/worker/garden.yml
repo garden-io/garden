@@ -7,3 +7,4 @@ spec:
     image:
       repository: ${actions.build.worker-image.outputs.deployment-image-name}
       tag: ${actions.build.worker-image.version}
+    imagePullSecrets: ${var.imagePullSecrets}

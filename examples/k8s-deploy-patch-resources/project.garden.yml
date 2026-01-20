@@ -20,8 +20,8 @@ environments:
   - name: remote
     defaultNamespace: ${var.remoteEnvName}
     variables:
-      imagePullSecretName: gcr-config
-      baseHostname: ${var.remoteEnvName}.dev-1.sys.garden
+      imagePullSecretName: regcred
+      baseHostname: ${var.remoteEnvName}.dev.example.com
 
 providers:
   - name: local-kubernetes
@@ -30,14 +30,14 @@ providers:
   - name: kubernetes
     environments: [remote]
     # Replace the below values as appropriate
-    context: gke_garden-ci_europe-west1-b_core-ci
+    context: ci-context
     ingressClass: "nginx"
     buildMode: cluster-buildkit
     imagePullSecrets:
       - name: ${var.imagePullSecretName}
         namespace: default
     deploymentRegistry:
-      hostname: eu.gcr.io
-      namespace: garden-ci
+      hostname: index.docker.io
+      namespace: gardenci
     namespace: ${environment.namespace}
     defaultHostname: ${var.baseHostname}

@@ -16,13 +16,12 @@ providers:
     environments: [remote]
     context: my-remote-context
     defaultHostname: my-cluster.example.com # change this to the hostname that points to your cluster
-    buildMode: kaniko
     # Replace the below values as appropriate
     deploymentRegistry:
-      hostname: eu.gcr.io # <- set this according to the region your cluster runs in
-      namespace: garden-ci # <- set this to the project ID of the target cluster
+      hostname: index.docker.io # <- set this to your registry hostname
+      namespace: gardenci # <- typically your organization name, project ID etc.
     imagePullSecrets:
       # Make sure this matches the name and namespace of the imagePullSecret you've created
       # to authenticate with your registry (if needed)
-      - name: gcr-config
+      - name: regcred
         namespace: default

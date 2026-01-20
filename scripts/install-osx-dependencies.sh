@@ -8,12 +8,6 @@ brew tap git-chglog/git-chglog
 brew install ${BREW_DEPS}
 brew upgrade ${BREW_DEPS}
 
-# install and set up Google Cloud SDK
-brew install --cask google-cloud-sdk
-
-gcloud components update
-gcloud components install beta gke-gcloud-auth-plugin
-
 # install nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 # make nvm command active without terminal reopening

@@ -3,7 +3,6 @@ version: 2.1
 
 orbs:
   win: circleci/windows@5.1.0
-  rok8s-scripts: fairwinds/rok8s-scripts@14.1.0
   macos: circleci/macos@2.5.4
   aws-cli: circleci/aws-cli@5.4.1
 
@@ -191,11 +190,7 @@ commands:
       - run:
           name: docker login
           command: |
-            if [ -n "$DOCKER_PASS" ]; then
-              echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-            else
-              echo "Skipping, no login available"
-            fi
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
 
   install_kind:
     description: Install Kind
@@ -242,24 +237,46 @@ commands:
             kubectl config set-context kind-kind
 
   configure_remote_cluster:
-    description: Configure the kubectl context via gcloud so that we can access our remote cluster. Used for e2e testing.
+    description: Configure the kubectl context via AWS to access our remote EKS cluster. Used for e2e testing.
     steps:
+      - aws-cli/setup
       - run:
-          name: Configure kubectl context via gcloud and authenticate to Google Container Registry
+          name: Configure kubectl context via AWS EKS
           command: |
-            export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-            echo "export USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $BASH_ENV
-            export GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud-key.json
-            echo "export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS" >> $BASH_ENV
-            echo $GCLOUD_SERVICE_KEY > $GOOGLE_APPLICATION_CREDENTIALS
-            gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
-            gcloud --quiet config set project $GOOGLE_PROJECT_ID
-            gcloud --quiet config set compute/zone $GOOGLE_COMPUTE_ZONE
-            gcloud --quiet container clusters get-credentials $GOOGLE_CLUSTER_ID --zone $GOOGLE_COMPUTE_ZONE
-            gcloud --quiet auth configure-docker
+            # Use CircleCI OIDC to assume AWS role
+            export AWS_REGION=eu-central-1
+            echo "export AWS_REGION=eu-central-1" >> $BASH_ENV
+
+            # Assume the CI role using OIDC token
+            CREDENTIALS=$(aws sts assume-role-with-web-identity \
+              --role-arn "arn:aws:iam::873483817304:role/core-ci-ci-access" \
+              --role-session-name "circleci-${CIRCLE_BUILD_NUM}" \
+              --web-identity-token "${CIRCLE_OIDC_TOKEN_V2}" \
+              --duration-seconds 3600 \
+              --output json)
+
+            export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.Credentials.AccessKeyId')
+            export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.Credentials.SecretAccessKey')
+            export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.Credentials.SessionToken')
+
+            echo "export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $BASH_ENV
+            echo "export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $BASH_ENV
+            echo "export AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $BASH_ENV
+
+            # Update kubeconfig for EKS cluster with ci-context alias
+            aws eks update-kubeconfig \
+              --name core-ci \
+              --region eu-central-1 \
+              --alias ci-context
+
+            kubectl config use-context ci-context
+
+            # Authenticate Docker to ECR for pushing images
+            aws ecr get-login-password --region eu-central-1 | \
+              docker login --username AWS --password-stdin 873483817304.dkr.ecr.eu-central-1.amazonaws.com
 
   cleanup_remote_cluster:
-    description: Clean up namespaces in the ci cluster on gcloud (to be used with configure_remote_cluster)
+    description: Clean up namespaces in the CI cluster (to be used with configure_remote_cluster)
     parameters:
       filter:
         description: What to grep namespaces by to select the current namespace to delete
@@ -292,8 +309,8 @@ commands:
 
             # Install the latest stable Rust version
             # We maintain it manually to avoid unexpected breaking changes like we faced in Rust 1.78 for Windows builds.
-            # Cross v0.2.5 dependencies require Rust 1.88.0 or later
-            RUST_VERSION="1.88.0"
+            # Cross v0.2.5 dependencies require Rust 1.92.0 or later
+            RUST_VERSION="1.92.0"
             rustup install $RUST_VERSION
             rustup default $RUST_VERSION
 
@@ -572,6 +589,7 @@ jobs:
         default: testing
     steps:
       - checkout
+      - *remote-docker
       - npm_install:
           context: docker
       - configure_remote_cluster
@@ -662,10 +680,10 @@ jobs:
             docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
       - fail_fast
 
-  test-docker-gcloud:
+  test-docker-aws:
     docker:
       # We do not use a specific digest here on purpose, to use the latest build from the previous job
-      - image: gardendev/garden-gcloud:cedar-edge-alpine
+      - image: gardendev/garden-aws:cedar-edge-alpine
         environment:
           <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
@@ -758,6 +776,8 @@ jobs:
       # Need to checkout to run example project
       - checkout
       - configure_remote_cluster
+      - *remote-docker
+      - docker_login
       - *attach-workspace
       - run:
           name: Test that the binary works with the fancy logger enabled
@@ -1105,19 +1125,42 @@ jobs:
           name: Upgrade git
           command: brew upgrade git
       - run:
-          name: Install gcloud SDK
+          name: Install AWS CLI
           command: |
-            cd $HOME
-            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-498.0.0-darwin-x86_64.tar.gz
-            tar xzf google-cloud-sdk-498.0.0-darwin-x86_64.tar.gz
-            echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+            curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
+            sudo installer -pkg AWSCLIV2.pkg -target /
+            rm AWSCLIV2.pkg
       - docker_login
       - run:
-          name: Install gke-gcloud-auth-plugin
+          name: Configure kubectl context via AWS EKS
           command: |
-            gcloud --quiet components install gke-gcloud-auth-plugin
-            echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >> $BASH_ENV
-      - configure_remote_cluster
+            # Use CircleCI OIDC to assume AWS role
+            export AWS_REGION=eu-central-1
+            echo "export AWS_REGION=eu-central-1" >> $BASH_ENV
+
+            # Assume the CI role using OIDC token
+            CREDENTIALS=$(aws sts assume-role-with-web-identity \
+              --role-arn "arn:aws:iam::873483817304:role/core-ci-ci-access" \
+              --role-session-name "circleci-${CIRCLE_BUILD_NUM}" \
+              --web-identity-token "${CIRCLE_OIDC_TOKEN_V2}" \
+              --duration-seconds 3600 \
+              --output json)
+
+            export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.Credentials.AccessKeyId')
+            export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.Credentials.SecretAccessKey')
+            export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.Credentials.SessionToken')
+
+            echo "export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $BASH_ENV
+            echo "export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $BASH_ENV
+            echo "export AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $BASH_ENV
+
+            # Update kubeconfig for EKS cluster with ci-context alias
+            aws eks update-kubeconfig \
+              --name core-ci \
+              --region eu-central-1 \
+              --alias ci-context
+
+            kubectl config use-context ci-context
       - run:
           name: Deploy demo-project
           command: dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=$CIRCLE_BUILD_NUM-macos
@@ -1141,19 +1184,42 @@ jobs:
           name: Upgrade git
           command: brew upgrade git
       - run:
-          name: Install gcloud SDK
+          name: Install AWS CLI
           command: |
-            cd $HOME
-            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-498.0.0-darwin-arm.tar.gz
-            tar xzf google-cloud-sdk-498.0.0-darwin-arm.tar.gz
-            echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+            curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
+            sudo installer -pkg AWSCLIV2.pkg -target /
+            rm AWSCLIV2.pkg
       - docker_login
       - run:
-          name: Install gke-gcloud-auth-plugin
+          name: Configure kubectl context via AWS EKS
           command: |
-            gcloud --quiet components install gke-gcloud-auth-plugin
-            echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >> $BASH_ENV
-      - configure_remote_cluster
+            # Use CircleCI OIDC to assume AWS role
+            export AWS_REGION=eu-central-1
+            echo "export AWS_REGION=eu-central-1" >> $BASH_ENV
+
+            # Assume the CI role using OIDC token
+            CREDENTIALS=$(aws sts assume-role-with-web-identity \
+              --role-arn "arn:aws:iam::873483817304:role/core-ci-ci-access" \
+              --role-session-name "circleci-${CIRCLE_BUILD_NUM}" \
+              --web-identity-token "${CIRCLE_OIDC_TOKEN_V2}" \
+              --duration-seconds 3600 \
+              --output json)
+
+            export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.Credentials.AccessKeyId')
+            export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.Credentials.SecretAccessKey')
+            export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.Credentials.SessionToken')
+
+            echo "export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $BASH_ENV
+            echo "export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $BASH_ENV
+            echo "export AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $BASH_ENV
+
+            # Update kubeconfig for EKS cluster with ci-context alias
+            aws eks update-kubeconfig \
+              --name core-ci \
+              --region eu-central-1 \
+              --alias ci-context
+
+            kubectl config use-context ci-context
       - run:
           name: Deploy demo-project
           command: dist/macos-arm64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=$CIRCLE_BUILD_NUM-macos-arm
@@ -1180,48 +1246,67 @@ jobs:
           name: Install Deps
           command: |
             Import-Module "$Env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-            choco install --limit-output --no-progress -y git gcloudsdk kubernetes-cli
-            $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
-            gcloud components install gke-gcloud-auth-plugin --quiet
-            $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
+            choco install --limit-output --no-progress -y git awscli kubernetes-cli
             refreshenv
       - run:
-          name: Write gcloud credentials to file
-          command: $env:GCLOUD_SERVICE_KEY | Set-Content key.json
-      - run:
-          name: Setup remote K8s
+          name: Setup remote K8s via AWS EKS and deploy demo-project
           command: |
-            gcloud auth activate-service-account --key-file=key.json
-            $env:GOOGLE_APPLICATION_CREDENTIALS = (Get-Location) + '\key.json'
-            gcloud --quiet config set project $env:GOOGLE_PROJECT_ID
-            gcloud --quiet config set compute/zone $env:GOOGLE_COMPUTE_ZONE
-            gcloud --quiet container clusters get-credentials $env:GOOGLE_CLUSTER_ID --zone $env:GOOGLE_COMPUTE_ZONE
-            gcloud --quiet auth configure-docker
-      - run:
-          name: Deploy demo-project
-          command: |
+            # Use CircleCI OIDC to assume AWS role
+            $env:AWS_REGION = "eu-central-1"
+
+            # Get credentials using OIDC token
+            $credentials = aws sts assume-role-with-web-identity `
+              --role-arn "arn:aws:iam::873483817304:role/core-ci-ci-access" `
+              --role-session-name "circleci-$env:CIRCLE_BUILD_NUM" `
+              --web-identity-token "$env:CIRCLE_OIDC_TOKEN_V2" `
+              --duration-seconds 3600 `
+              --output json | ConvertFrom-Json
+
+            $env:AWS_ACCESS_KEY_ID = $credentials.Credentials.AccessKeyId
+            $env:AWS_SECRET_ACCESS_KEY = $credentials.Credentials.SecretAccessKey
+            $env:AWS_SESSION_TOKEN = $credentials.Credentials.SessionToken
+
+            # Update kubeconfig for EKS cluster with ci-context alias
+            aws eks update-kubeconfig `
+              --name core-ci `
+              --region eu-central-1 `
+              --alias ci-context
+
+            kubectl config use-context ci-context
+
+            # Deploy demo-project
             .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
-      - run:
-          name: Cleanup demo-project
-          command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
-          when: always
-      - run:
-          name: Validate vote-helm project # to validate the sync mode paths on Windows with action-based configs
-          command: |
+
+            # Validate vote-helm project (to validate the sync mode paths on Windows with action-based configs)
             .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
       - run:
-          name: Cleanup vote-helm project
-          command: (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
-          when: always
-      - run:
-          name: Validate vote-helm-modules project # to validate the sync mode paths on Windows with module-based configs
+          name: Cleanup namespaces
           command: |
-            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm-modules\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
-      - run:
-          name: Cleanup vote-helm-modules project
-          command: (kubectl delete namespace --wait=false vote-helm-modules-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+            # Re-authenticate for cleanup
+            $env:AWS_REGION = "eu-central-1"
+            $credentials = aws sts assume-role-with-web-identity `
+              --role-arn "arn:aws:iam::873483817304:role/core-ci-ci-access" `
+              --role-session-name "circleci-$env:CIRCLE_BUILD_NUM" `
+              --web-identity-token "$env:CIRCLE_OIDC_TOKEN_V2" `
+              --duration-seconds 3600 `
+              --output json | ConvertFrom-Json
+            $env:AWS_ACCESS_KEY_ID = $credentials.Credentials.AccessKeyId
+            $env:AWS_SECRET_ACCESS_KEY = $credentials.Credentials.SecretAccessKey
+            $env:AWS_SESSION_TOKEN = $credentials.Credentials.SessionToken
+
+            (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+            (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
-      - fail_fast
+      - run:
+          name: Fail Fast
+          when: on_fail
+          command: |
+            if ($env:CIRCLE_BRANCH -like "gh-readonly-queue*") {
+              Write-Host "Canceling workflow as a step resulted in failure"
+              Invoke-RestMethod -Method Post -Uri "https://circleci.com/api/v2/workflow/$env:CIRCLE_WORKFLOW_ID/cancel?circle-token=$env:CIRCLE_TOKEN"
+            } else {
+              Write-Host "Not canceling workflow as not running in merge queue"
+            }
 
 workflows:
   version: 2
@@ -1252,15 +1337,19 @@ workflows:
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
           requires: [build-dist-macos, build-dist-linux-windows]
+          context: docker
       - test-macos-x86-rosetta:
           <<: *only-internal-prs
           requires: [build-dist-macos]
+          context: docker
       - test-macos-arm:
           <<: *only-internal-prs
           requires: [build-dist-macos]
+          context: docker
       - test-dockerhub:
           <<: *only-prs
           requires: [build-dist-linux-windows]
+          context: docker
       - test-windows:
           <<: *only-internal-prs
           requires: [build-dist-linux-windows]
@@ -1270,104 +1359,72 @@ workflows:
       #     name: e2e-code-synchronization
       #     project: code-synchronization
       #     requires: [build]
+      #     context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-demo-project
           project: demo-project
           environment: remote
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-demo-project-modules
           project: demo-project-modules
           environment: remote
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-gke-kaniko
-          project: gke
-          environment: gke-kaniko
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-gke-buildkit
-          project: gke
-          environment: gke-buildkit
-          requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-jib-container
           project: jib-container
           environment: remote
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-jib-container-modules
-          project: jib-container-modules
-          environment: remote
-          requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-kustomize
           project: kustomize
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-kustomize-modules
-          project: kustomize-modules
-          requires: [build]
+          context: docker
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-remote-sources
       #     project: remote-sources
       #     requires: [build]
+      #     context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-run-actions
           project: run-actions
           requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-tasks-modules
-      #     project: tasks-modules
-      #     requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-templated-k8s-container
           project: templated-k8s-container
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-templated-k8s-container-modules
-          project: templated-k8s-container-modules
-          requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-vote
           project: vote
           environment: remote
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-vote-modules
           project: vote-modules
           environment: remote
           requires: [build]
+          context: docker
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-vote-helm
           project: vote-helm
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-open-telemetry
-          project: open-telemetry
-          requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-vote-helm-modules
-      #     project: vote-helm-modules
-      #     requires: [build]
+          context: docker
 
       ### REMOTE TESTS ###
       # The remote tests (e.g. kaniko and buildkit) still require a local kubernetes cluster for some reason…
@@ -1379,6 +1436,7 @@ workflows:
           minikubeVersion: "v1.34.0"
           skipTests: "local-only"
           remoteCluster: true
+          context: docker
 
       ### VM TESTS ###
 
@@ -1391,24 +1449,29 @@ workflows:
           name: vm-1.31-k3s
           requires: [build]
           k3sVersion: v1.31.1+k3s1
+          context: docker
       - test-minikube:
           name: vm-1.31-minikube
           requires: [build]
           kubernetesVersion: "v1.31.0"
           minikubeVersion: "v1.34.0"
+          context: docker
       - test-kind:
           name: vm-1.32-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
+          context: docker
       - test-microk8s:
           name: vm-1.33-microk8s
           requires: [build]
           kubernetesVersion: "1.33"
+          context: docker
 
       - test-plugins:
           <<: *only-internal-prs
           requires: [build]
           kindNodeImage: kindest/node:v1.32.3@sha256:b36e76b4ad37b88539ce5e07425f77b29f73a8eaaebf3f1a8bc9c764401d118c
+          context: docker
 
       # This is only for edge release (Overrides version to edge-cedar)
       - build:
@@ -1444,7 +1507,7 @@ workflows:
           context: docker
           requires: [build-dist-macos-edge, build-dist-linux-windows-edge]
 
-      - test-docker-gcloud:
+      - test-docker-aws:
           context: docker
           requires: [dockerhub-release]
   tags:

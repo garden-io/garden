@@ -67,49 +67,6 @@ describe.skip("pull-image plugin command", () => {
     expect(imageHash.stdout.trim()).to.equal("ok")
   }
 
-  grouped("kaniko", "remote-only").context("using an external cluster registry with kaniko", () => {
-    let resolvedAction: ResolvedBuildAction
-    let action: BuildAction
-
-    before(async () => {
-      await init("kaniko")
-
-      action = graph.getBuild("remote-registry-test")
-      resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
-
-      // build the image
-      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
-      const actionLog = createActionLog({
-        log: garden.log,
-        action: resolvedAction,
-      })
-
-      await builder.handlers.build!({
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-      })
-    })
-
-    after(async () => {
-      if (cleanup) {
-        cleanup()
-      }
-    })
-
-    it("should pull the image", async () => {
-      await removeImage(resolvedAction)
-      await pullBuild({
-        localId: resolvedAction._staticOutputs["local-image-id"],
-        remoteId: resolvedAction._staticOutputs["deployment-image-id"],
-        ctx: ctx as KubernetesPluginContext,
-        action,
-        log: garden.log,
-      })
-      await ensureImagePulled(resolvedAction)
-    })
-  })
-
   grouped("cluster-buildkit", "remote-only").context("using an external cluster registry with buildkit", () => {
     let action: BuildAction
     let resolvedAction: ResolvedBuildAction

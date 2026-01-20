@@ -32,6 +32,7 @@ import type { KubernetesResource, SyncableResource } from "../types.js"
 import { isTruthy } from "../../../util/util.js"
 import { styles } from "../../../logger/styles.js"
 import type { ActionLog } from "../../../logger/log-entry.js"
+import { prepareSecrets } from "../secrets.js"
 
 type WrappedInstallError = { source: "helm" | "waitForResources"; error: unknown }
 
@@ -131,6 +132,10 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     ...preparedTemplates,
   })
   const manifests = await filterManifests(preparedManifests)
+
+  // Ensure secrets are created in the target namespace
+  const secrets = [...provider.config.copySecrets, ...provider.config.imagePullSecrets]
+  await prepareSecrets({ api, namespace, secrets, log })
 
   // We never fail fast with --atomic
   const failFast = spec.atomic === false && spec.waitForUnhealthyResources === false

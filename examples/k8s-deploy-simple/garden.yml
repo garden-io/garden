@@ -18,14 +18,14 @@ providers:
   - name: kubernetes
     environments: [remote]
     # Replace the below values as appropriate
-    context: gke_garden-ci_europe-west1-b_core-ci
+    context: ci-context
     ingressClass: "nginx"
     imagePullSecrets:
-      - name: gcr-config
+      - name: regcred
         namespace: default
     deploymentRegistry:
-      hostname: eu.gcr.io
-      namespace: garden-ci
+      hostname: index.docker.io
+      namespace: gardenci
     namespace: k8s-deploy-simple-${kebabCase(local.username)}
 
 ---

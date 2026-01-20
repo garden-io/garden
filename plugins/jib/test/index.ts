@@ -55,7 +55,7 @@ describe("jib-container", function () {
 
   describe("getModuleOutputs", () => {
     it("correctly sets the module outputs", async () => {
-      const image = "eu.gcr.io/garden-ci/jib-test-project"
+      const image = "gardenci/jib-test-project"
 
       expect(module.outputs).to.eql({
         "deployment-image-id": image + ":" + module.version.versionString,

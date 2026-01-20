@@ -9,4 +9,4 @@ providers:
 kind: Module
 type: jib-container
 name: foo
-image: eu.gcr.io/garden-ci/jib-test-project
+image: gardenci/jib-test-project

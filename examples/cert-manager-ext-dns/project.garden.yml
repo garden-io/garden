@@ -15,7 +15,6 @@ providers:
     context: gke_devrel-348008_europe-north1_gke-terraform # Make sure to change this to your own context
     namespace: ${var.DEFAULT_NAMESPACE}
     setupIngressController: nginx
-    buildMode: kaniko
     # tlsCertificates: # You can start testing this with the staging certificates, but you should use production certificates in production
     #   - name: staging-cert
     #     secretRef:
