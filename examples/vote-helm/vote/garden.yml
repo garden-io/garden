@@ -22,6 +22,7 @@ spec:
     image:
       repository: ${actions.build.vote-image.outputs.deployment-image-name}
       tag: ${actions.build.vote-image.version}
+    imagePullSecrets: ${var.imagePullSecrets}
     ingress:
       enabled: true
       paths: [/]
@@ -63,6 +64,7 @@ spec:
     image:
       repository: ${actions.build.vote-image.outputs.deployment-image-name}
       tag: ${actions.build.vote-image.version}
+    imagePullSecrets: ${var.imagePullSecrets}
     ingress:
       enabled: true
       paths: [/]
