@@ -29,7 +29,7 @@ describe("kubernetes configureProvider", () => {
     context: "my-cluster",
     defaultHostname: "hostname.invalid",
     deploymentRegistry: {
-      hostname: "eu.gcr.io",
+      hostname: "index.docker.io",
       namespace: "garden-ci",
       insecure: false,
     },

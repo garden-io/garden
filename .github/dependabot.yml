@@ -25,3 +25,11 @@ updates:
     open-pull-requests-limit: 5
     schedule:
       interval: "weekly"
+    exclude-paths:
+      - "e2e/projects/**"
+      - "examples/**"
+      - "core/test/data/**"
+      - "plugins/**/test/**"
+    # Pinned manually to current version to be consistent with @buf/garden_grow-platform.bufbuild_es
+    ignore:
+      - dependency-name: "@bufbuild/protobuf"

@@ -17,6 +17,7 @@ spec:
     image:
       repository: ${var.repository}
       tag: ${var.tag}
+    imagePullSecrets: ${var.imagePullSecrets}
     ingress:
       enabled: true
       paths: [/]

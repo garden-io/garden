@@ -157,8 +157,6 @@ The staging certificate got created, now uncomment the `tlsCertificates` block i
 
 ````yaml
 ...
-kaniko:
-  namespace: null
 tlsCertificates: # <------ Uncomment this block
   - name: staging-cert
     secretRef:

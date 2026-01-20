@@ -49,6 +49,7 @@ configs:
                 labels:
                   service: ${parent.name}
               spec:
+                imagePullSecrets: ${var.imagePullSecrets}
                 containers:
                   - name: main
                     image: ${actions.build["${parent.name}"].outputs.deployment-image-id}
