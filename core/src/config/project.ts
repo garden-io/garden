@@ -211,13 +211,31 @@ interface ProjectScan {
   git?: GitConfig
 }
 
-interface ImportVarsSourceGardenCloud {
+export interface ImportVarsSourceGardenCloud {
   from: "garden-cloud"
   list: string
   description?: string
 }
 
-export type ImportVariablesConfig = ImportVarsSourceGardenCloud[] | undefined
+export type ImportVarsSourceFormat = "yaml" | "dotenv" | "json"
+
+export interface ImportVarsSourceFile {
+  from: "file"
+  path: string
+  format: ImportVarsSourceFormat
+  description?: string
+}
+
+export interface ImportVarsSourceScript {
+  from: "exec"
+  command: string[]
+  format: ImportVarsSourceFormat
+  description?: string
+}
+
+export type ImportVarsSource = ImportVarsSourceGardenCloud | ImportVarsSourceFile | ImportVarsSourceScript
+
+export type ImportVariablesConfig = ImportVarsSource[] | undefined
 
 export interface ProjectConfig extends BaseGardenResource {
   apiVersion: GardenApiVersion
@@ -334,16 +352,49 @@ const projectOutputSchema = createSchema({
   }),
 })
 
+const importVarsGardenCloudSchema = joi.object().keys({
+  from: joi
+    .string()
+    .valid("garden-cloud")
+    .required()
+    .description("Import variables from a Garden Cloud variable list."),
+  list: joi.string().required().description("The ID of the variable list to import from Garden Cloud."),
+  description: joi.string().optional().description(dedent`
+    Variable lists are referenced by their IDs so here you can add an optional description. When copying the variable list information from Garden Cloud the description will be prepopulated.
+  `),
+})
+
+const importVarsFileSchema = joi.object().keys({
+  from: joi.string().valid("file").required().description("Import variables from a local file."),
+  path: joi.posixPath().required().description("Path to the file containing variables, relative to the project root."),
+  format: joi
+    .string()
+    .valid("yaml", "dotenv", "json")
+    .required()
+    .description("The format of the file. Must be one of: yaml, dotenv, json."),
+  description: joi.string().optional().description("Optional description for this variable source."),
+})
+
+const importVarsExecSchema = joi.object().keys({
+  from: joi.string().valid("exec").required().description("Import variables by running a command."),
+  command: joi
+    .array()
+    .items(joi.string())
+    .min(1)
+    .required()
+    .description(
+      "The command to run. The command will receive GARDEN_OUTPUT_PATH (path to write variables to) and GARDEN_ENVIRONMENT (the name of the current environment) as environment variables."
+    ),
+  format: joi
+    .string()
+    .valid("yaml", "dotenv", "json")
+    .required()
+    .description("The format the command will output. Must be one of: yaml, dotenv, json."),
+  description: joi.string().optional().description("Optional description for this variable source."),
+})
+
 export const importVariablesBaseSchema = () =>
-  joi.array().items(
-    joi.object().keys({
-      from: joi.string().valid("garden-cloud").required(),
-      list: joi.string().required(),
-      description: joi.string().description(dedent`
-        Variable lists are referenced by their IDs so here you can add an optional description. When copying the variable list information from Garden Cloud the description will be prepopulated.
-      `),
-    })
-  )
+  joi.array().items(joi.alternatives().try(importVarsGardenCloudSchema, importVarsFileSchema, importVarsExecSchema))
 
 export const projectSchema = createSchema({
   name: "Project",
@@ -482,20 +533,22 @@ export const projectSchema = createSchema({
     importVariables: importVariablesBaseSchema()
       .description(
         dedent`
-      EXPERIMENTAL: This is an experimental feature that requires enabling variables for your organization in Garden Cloud (currenty only available in early access).
+      Specify sources from which to import variables. Variables are merged in the order specified,
+      with later sources taking precedence over earlier ones.
 
-      Specify an array of variable lists from which to load variables/secrets. The lists and their variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).
+      Three source types are supported:
 
-      Variable are merged in the order of the lists (so the value from a variable in a list that appears later in the array overwrites the value of a
-      variable from an earlier list if they have the same name).
+      **Garden Cloud** (\`from: "garden-cloud"\`): Import variables from a Garden Cloud variable list. Requires being logged in to Garden Cloud.
+
+      **File** (\`from: "file"\`): Import variables from a local file. Supports yaml, json, and dotenv formats.
+
+      **Exec** (\`from: "exec"\`): Import variables by running a command. The command receives \`GARDEN_OUTPUT_PATH\` (path to a temp file where it should write the variables) and \`GARDEN_ENVIRONMENT\` (the current environment name) as environment variables. If the command does not write to the file, a warning is logged and no variables are imported from this source.
     `
       )
       .default([])
-      .example([{ from: "garden-cloud", list: "varlist_abc" }])
-      .example([
-        { from: "garden-cloud", list: "varlist_abc" },
-        { from: "garden-cloud", list: "varlist_def" },
-      ]),
+      .example([{ from: "file", path: "secrets.env", format: "dotenv" }])
+      .example([{ from: "exec", command: ["./fetch-secrets.sh"], format: "json" }])
+      .example([{ from: "garden-cloud", list: "varlist_abc" }]),
   }),
 })
 
@@ -872,11 +925,14 @@ export function parseEnvironment(env: string): ParsedEnvironment {
 
 /**
  * Returns a list of varlist IDs from the remote variables config.
+ * Only returns IDs from garden-cloud sources, filtering out file and exec sources.
  */
 export function getVarlistIdsFromRemoteVarsConfig(remoteVars: ImportVariablesConfig): string[] {
   if (remoteVars === undefined) {
     return []
   }
 
-  return remoteVars.map((config) => config.list)
+  return remoteVars
+    .filter((config): config is ImportVarsSourceGardenCloud => config.from === "garden-cloud")
+    .map((config) => config.list)
 }

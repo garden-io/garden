@@ -457,7 +457,6 @@ export class GardenCloudApi {
     log: Log
     legacyProjectId: string | undefined
   }) {
-    log.info(`Fetching remote variables`)
     const variableListIds = await this.getVariableListIds(importVariables, legacyProjectId, log)
     const reqs = variableListIds.map(async (variableListId, index) => {
       log.debug(`Fetching remote variables for variableListId=${variableListId}`)

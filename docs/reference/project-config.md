@@ -300,18 +300,25 @@ varfile: garden.env
 # permitted, including arrays and objects of any nesting.
 variables: {}
 
-# EXPERIMENTAL: This is an experimental feature that requires enabling variables for your organization in Garden Cloud
-# (currenty only available in early access).
+# Specify sources from which to import variables. Variables are merged in the order specified,
+# with later sources taking precedence over earlier ones.
 #
-# Specify an array of variable lists from which to load variables/secrets. The lists and their variables/secrets are
-# created in [Garden Cloud](https://app.garden.io/variables).
+# Three source types are supported:
 #
-# Variable are merged in the order of the lists (so the value from a variable in a list that appears later in the
-# array overwrites the value of a
-# variable from an earlier list if they have the same name).
-importVariables:
-  - from:
+# **Garden Cloud** (`from: "garden-cloud"`): Import variables from a Garden Cloud variable list. Requires being logged
+# in to Garden Cloud.
+#
+# **File** (`from: "file"`): Import variables from a local file. Supports yaml, json, and dotenv formats.
+#
+# **Exec** (`from: "exec"`): Import variables by running a command. The command receives `GARDEN_OUTPUT_PATH` (path to
+# a temp file where it should write the variables) and `GARDEN_ENVIRONMENT` (the current environment name) as
+# environment variables. If the command does not write to the file, a warning is logged and no variables are imported
+# from this source.
+importVariables: []
+  - # Import variables from a Garden Cloud variable list.
+    from:
 
+    # The ID of the variable list to import from Garden Cloud.
     list:
 
     # Variable lists are referenced by their IDs so here you can add an optional description. When copying the
@@ -973,28 +980,35 @@ Key/value map of variables to configure for all environments. Keys may contain l
 
 ### `importVariables[]`
 
-EXPERIMENTAL: This is an experimental feature that requires enabling variables for your organization in Garden Cloud (currenty only available in early access).
+Specify sources from which to import variables. Variables are merged in the order specified,
+with later sources taking precedence over earlier ones.
 
-Specify an array of variable lists from which to load variables/secrets. The lists and their variables/secrets are created in [Garden Cloud](https://app.garden.io/variables).
+Three source types are supported:
 
-Variable are merged in the order of the lists (so the value from a variable in a list that appears later in the array overwrites the value of a
-variable from an earlier list if they have the same name).
+**Garden Cloud** (`from: "garden-cloud"`): Import variables from a Garden Cloud variable list. Requires being logged in to Garden Cloud.
 
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
+**File** (`from: "file"`): Import variables from a local file. Supports yaml, json, and dotenv formats.
+
+**Exec** (`from: "exec"`): Import variables by running a command. The command receives `GARDEN_OUTPUT_PATH` (path to a temp file where it should write the variables) and `GARDEN_ENVIRONMENT` (the current environment name) as environment variables. If the command does not write to the file, a warning is logged and no variables are imported from this source.
+
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `array[alternatives]` | `[]`    | No       |
 
 Example:
 
 ```yaml
 importVariables:
-  - from: garden-cloud
-    list: varlist_abc
+  - from: file
+    path: secrets.env
+    format: dotenv
 ```
 
 ### `importVariables[].from`
 
 [importVariables](#importvariables) > from
+
+Import variables from a Garden Cloud variable list.
 
 | Type     | Allowed Values | Required |
 | -------- | -------------- | -------- |
@@ -1003,6 +1017,8 @@ importVariables:
 ### `importVariables[].list`
 
 [importVariables](#importvariables) > list
+
+The ID of the variable list to import from Garden Cloud.
 
 | Type     | Required |
 | -------- | -------- |
