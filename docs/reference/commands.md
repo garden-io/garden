@@ -1961,8 +1961,10 @@ variables:
 
 # The 'importVariables' config
 importVariables:
-  - from:
+  - # Import variables from a Garden Cloud variable list.
+    from:
 
+    # The ID of the variable list to import from Garden Cloud.
     list:
 
     # Variable lists are referenced by their IDs so here you can add an optional description. When copying the

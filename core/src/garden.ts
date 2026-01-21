@@ -66,6 +66,7 @@ import { LogLevel, getRootLogger } from "./logger/logger.js"
 import type { GardenPluginSpec } from "./plugin/plugin.js"
 import type { GardenResource } from "./config/base.js"
 import { loadConfigResources, findProjectConfig, configTemplateKind, renderTemplateKind } from "./config/base.js"
+import { loadImportedVariables } from "./config/import-variables.js"
 import type { DeepPrimitiveMap, StringMap, PrimitiveMap } from "./config/common.js"
 import { treeVersionSchema, joi, allowUnknown } from "./config/common.js"
 import { GlobalConfigStore } from "./config-store/global.js"
@@ -2160,13 +2161,16 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         skipCloudConnect,
       })
       secrets = initRes.secrets
-    } else if (cloudApi) {
-      const cloudLog = log.createLog({ name: getCloudLogSectionName("Garden Cloud") })
-      secrets = await cloudApi.getVariables({
+    } else {
+      // Load variables from all configured import sources (garden-cloud, file, exec)
+      const importLog = log.createLog({ name: "import-variables" })
+      secrets = await loadImportedVariables({
         importVariables: projectConfig.importVariables,
-        legacyProjectId: projectId,
+        projectRoot,
+        log: importLog,
+        cloudApi,
         environmentName,
-        log: cloudLog,
+        legacyProjectId: projectId,
       })
     }
 

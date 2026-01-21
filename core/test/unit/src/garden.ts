@@ -988,86 +988,148 @@ describe("Garden", () => {
           variableA: "variable-a-val",
           variableB: "variable-b-val",
         })
+      })
 
-        it("should log an error and throw if fetching variables fails", async () => {
-          const fakeTrpcClientThatThrowsTrpcError: DeepPartial<ApiTrpcClient> = {
-            variableList: {
-              getValues: {
-                query: async () => {
-                  throw new TRPCClientError("no bueno")
-                },
+      it("should log an error and throw if fetching variables fails", async () => {
+        const fakeTrpcClientThatThrowsTrpcError: DeepPartial<ApiTrpcClient> = {
+          variableList: {
+            getValues: {
+              query: async () => {
+                throw new TRPCClientError("no bueno")
               },
             },
-          }
-          const fakeTrpcClientThatThrowsError: DeepPartial<ApiTrpcClient> = {
-            variableList: {
-              getValues: {
-                query: async () => {
-                  throw new Error("no bueno")
-                },
+          },
+        }
+        const fakeTrpcClientThatThrowsError: DeepPartial<ApiTrpcClient> = {
+          variableList: {
+            getValues: {
+              query: async () => {
+                throw new Error("no bueno")
               },
             },
+          },
+        }
+        const overrideCloudApiFactoryThrowTrpcError = async () =>
+          await makeFakeCloudApi({
+            trpcClient: fakeTrpcClientThatThrowsTrpcError as ApiTrpcClient,
+            configStoreTmpDir,
+            log,
+          })
+
+        const overrideCloudApiFactoryThrowError = async () =>
+          await makeFakeCloudApi({
+            trpcClient: fakeTrpcClientThatThrowsError as ApiTrpcClient,
+            configStoreTmpDir,
+            log,
+          })
+
+        getRootLogger()["entries"] = []
+
+        await expectError(
+          () =>
+            TestGarden.factory(pathFoo, {
+              config: {
+                ...config,
+                importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
+              },
+              environmentString: envName,
+              overrideCloudApiFactory: overrideCloudApiFactoryThrowTrpcError,
+            }),
+          (err) => {
+            const expectedLog = getRootLogger()
+              .getLogEntries()
+              .filter((l) => resolveMsg(l)?.includes(`Fetching variables for variable list 'varlist_1' failed`))
+            expect(expectedLog[0].msg).to.eql(
+              `Fetching variables for variable list 'varlist_1' failed with API error: no bueno`
+            )
+            expect(err).to.be.instanceof(GardenCloudTRPCError)
           }
-          const overrideCloudApiFactoryThrowTrpcError = async () =>
-            await makeFakeCloudApi({
-              trpcClient: fakeTrpcClientThatThrowsTrpcError as ApiTrpcClient,
-              configStoreTmpDir,
-              log,
-            })
+        )
 
-          const overrideCloudApiFactoryThrowError = async () =>
-            await makeFakeCloudApi({
-              trpcClient: fakeTrpcClientThatThrowsError as ApiTrpcClient,
-              configStoreTmpDir,
-              log,
-            })
+        getRootLogger()["entries"] = []
 
-          getRootLogger()["entries"] = []
+        await expectError(
+          () =>
+            TestGarden.factory(pathFoo, {
+              config: {
+                ...config,
+                importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
+              },
+              environmentString: envName,
+              overrideCloudApiFactory: overrideCloudApiFactoryThrowError,
+            }),
+          (err) => {
+            const expectedLog = getRootLogger()
+              .getLogEntries()
+              .filter((l) => resolveMsg(l)?.includes(`Fetching variables for variable list 'varlist_1' failed`))
+            expect(expectedLog[0].msg).to.eql(
+              `Fetching variables for variable list 'varlist_1' failed with Error error: no bueno`
+            )
+            expect(err).to.be.instanceof(Error)
+          }
+        )
+      })
+    })
 
-          await expectError(
-            () =>
-              TestGarden.factory(pathFoo, {
-                config: {
-                  ...config,
-                  importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
-                },
-                environmentString: envName,
-                overrideCloudApiFactory: overrideCloudApiFactoryThrowTrpcError,
-              }),
-            (err) => {
-              const expectedLog = getRootLogger()
-                .getLogEntries()
-                .filter((l) => resolveMsg(l)?.includes(`Fetching variables for variable list 'varlist_1' failed`))
-              expect(expectedLog[0].msg).to.eql(
-                `Fetching variables for variable list 'varlist_1' failed with API error: no bueno`
-              )
-              expect(err).to.be.instanceof(GardenCloudTRPCError)
-            }
-          )
+    context("importVariables from file and exec sources", () => {
+      const envName = "default"
 
-          getRootLogger()["entries"] = []
+      it("should load variables from a file source", async () => {
+        // Create a variables file in the project directory
+        const varsPath = join(pathFoo, "test-vars.yaml")
+        await fsExtra.writeFile(varsPath, "fileVar1: value-from-file\nfileVar2: another-value\n")
 
-          await expectError(
-            () =>
-              TestGarden.factory(pathFoo, {
-                config: {
-                  ...config,
-                  importVariables: [{ from: "garden-cloud", list: "varlist_1" }],
-                },
-                environmentString: envName,
-                overrideCloudApiFactory: overrideCloudApiFactoryThrowError,
-              }),
-            (err) => {
-              const expectedLog = getRootLogger()
-                .getLogEntries()
-                .filter((l) => resolveMsg(l)?.includes(`Fetching variables for variable list 'varlist_1' failed`))
-              expect(expectedLog[0].msg).to.eql(
-                `Fetching variables for variable list 'varlist_1' failed with Error error: no bueno`
-              )
-              expect(err).to.be.instanceof(Error)
-            }
-          )
+        const config: ProjectConfig = createProjectConfig({
+          name: "test-project",
+          path: pathFoo,
+          importVariables: [{ from: "file", path: "test-vars.yaml", format: "yaml" }],
         })
+
+        try {
+          const garden = await TestGarden.factory(pathFoo, {
+            config,
+            environmentString: envName,
+          })
+
+          expect(garden.secrets).to.eql({
+            fileVar1: "value-from-file",
+            fileVar2: "another-value",
+          })
+        } finally {
+          await fsExtra.remove(varsPath)
+        }
+      })
+
+      it("should load variables from an exec source", async () => {
+        // Create a script that writes variables to GARDEN_OUTPUT_PATH
+        const scriptPath = join(pathFoo, "get-vars.sh")
+        await fsExtra.writeFile(
+          scriptPath,
+          `#!/bin/bash
+echo '{"execVar1": "value-from-exec", "execVar2": "exec-value-2"}' > "$GARDEN_OUTPUT_PATH"
+`
+        )
+        await fsExtra.chmod(scriptPath, 0o755)
+
+        const config: ProjectConfig = createProjectConfig({
+          name: "test-project",
+          path: pathFoo,
+          importVariables: [{ from: "exec", command: [scriptPath], format: "json" }],
+        })
+
+        try {
+          const garden = await TestGarden.factory(pathFoo, {
+            config,
+            environmentString: envName,
+          })
+
+          expect(garden.secrets).to.eql({
+            execVar1: "value-from-exec",
+            execVar2: "exec-value-2",
+          })
+        } finally {
+          await fsExtra.remove(scriptPath)
+        }
       })
     })
   })
