@@ -12,13 +12,13 @@ import { RestfulEventStream } from "../../../../src/cloud/api-legacy/restful-eve
 import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
 import { makeTestGardenA } from "../../../helpers.js"
 import { find, isMatch, range, repeat } from "lodash-es"
-import type { CloudSession, GardenCloudApiLegacy } from "../../../../src/cloud/api-legacy/api.js"
+import type { CloudSessionLegacy, GardenCloudApiLegacy } from "../../../../src/cloud/api-legacy/api.js"
 
 function makeDummyRecord(sizeKb: number) {
   return { someKey: repeat("a", sizeKb * 1024) }
 }
 
-const mockCloudSession: CloudSession = {
+const mockCloudSession: CloudSessionLegacy = {
   // this api is never called in the tests below, all caller functions are overridden in the individual tests
   api: {} as GardenCloudApiLegacy,
   // we do not need any correct values of these for this test suite

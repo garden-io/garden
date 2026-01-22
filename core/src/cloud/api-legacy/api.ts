@@ -93,7 +93,7 @@ interface CloudSessionResponse {
   shortId: string
 }
 
-export interface CloudSession extends CloudSessionResponse {
+export interface CloudSessionLegacy extends CloudSessionResponse {
   api: GardenCloudApiLegacy
   id: string
   projectId: string
@@ -171,7 +171,7 @@ export class GardenCloudApiLegacy {
   private readonly httpClient: GardenCloudHttpClient
 
   private projects: Map<string, CloudProject> // keyed by project ID
-  private registeredSessions: Map<string, CloudSession> // keyed by session ID
+  private registeredSessions: Map<string, CloudSessionLegacy> // keyed by session ID
 
   private readonly log: Log
   public readonly domain: string
@@ -477,7 +477,7 @@ export class GardenCloudApiLegacy {
     environment: string
     namespace: string
     isDevCommand: boolean
-  }): Promise<CloudSession | undefined> {
+  }): Promise<CloudSessionLegacy | undefined> {
     let session = this.registeredSessions.get(sessionId)
 
     if (session) {

@@ -92,7 +92,7 @@ export class GrpcEventConverter {
    * because each command execution in the dev console causes a new instance creation.
    * We need to be sure that uuid to ulid mapping is stable is the case if we have a cache miss here.
    */
-  private static readonly uuidToUlidMap = new Map<UUID, ULID>()
+  static readonly uuidToUlidMap = new Map<UUID, ULID>()
 
   constructor(garden: GardenWithNewBackend, log: Log, streamLogEntries: boolean) {
     this.garden = garden

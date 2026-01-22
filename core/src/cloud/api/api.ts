@@ -35,6 +35,8 @@ import { GardenEventIngestionService } from "@buf/garden_grow-platform.bufbuild_
 import type { ImportVariablesConfig } from "../../config/project.js"
 import { getVarlistIdsFromRemoteVarsConfig } from "../../config/project.js"
 import { styles } from "../../logger/styles.js"
+import { Memoize } from "typescript-memoize"
+import { GrpcEventConverter } from "./grpc-event-converter.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -561,10 +563,12 @@ export class GardenCloudApi {
     return await revokeAuthToken({ clientAuthToken, cloudDomain: this.domain, log })
   }
 
+  @Memoize(() => true)
   async getCurrentAccount() {
     return await this.trpc.account.getCurrentAccount.query()
   }
 
+  @Memoize(() => true)
   async getOrganization() {
     return await this.trpc.organization.getById.query({
       organizationId: this.organizationId,
@@ -577,6 +581,46 @@ export class GardenCloudApi {
       accountId,
       name,
     })
+  }
+
+  async getCommandRunsUrl() {
+    const organization = await this.getOrganization()
+
+    return new URL(`/${organization.slug || organization.id}/command-runs`, this.domain)
+  }
+
+  /**
+   * Returns the URL to Garden Cloud command run detail for this session ID if available.
+   * Returns null if a corresponding command ULID wasn't found, e.g. because no event has been sent.
+   */
+  async getCommandRunUrl(sessionId: string) {
+    const organization = await this.getOrganization()
+    const commandUlid = GrpcEventConverter.uuidToUlidMap.get(sessionId)
+
+    if (!commandUlid) {
+      return null
+    }
+
+    return new URL(`/${organization.slug || organization.id}/command-runs?id=${commandUlid}`, this.domain)
+  }
+
+  /**
+   * Returns the URL to Garden Cloud action log for this action ID if available.
+   * Returns null if corresponding ULIDs weren't found, e.g. because the relevant events haven't been sent.
+   */
+  async getActionLogUrl({ sessionId, actionUid }: { sessionId: string; actionUid: string }) {
+    const organization = await this.getOrganization()
+    const commandUlid = GrpcEventConverter.uuidToUlidMap.get(sessionId)
+    const actionUlid = GrpcEventConverter.uuidToUlidMap.get(actionUid)
+
+    if (!commandUlid || !actionUlid) {
+      return null
+    }
+
+    return new URL(
+      `/${organization.slug || organization.id}/command-runs?id=${commandUlid}&actionLogId=${actionUlid}`,
+      this.domain
+    )
   }
 
   // GRPC clients

@@ -37,6 +37,7 @@ import {
 import { styles } from "../logger/styles.js"
 import type { ActionRuntime } from "../plugin/base.js"
 import { deline } from "../util/string.js"
+import { renderMessageWithDivider } from "../logger/util.js"
 
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
@@ -680,6 +681,32 @@ export abstract class ExecuteActionTask<
   abstract override getStatus(params: ActionTaskStatusParams<T>): Promise<O & ExecuteActionOutputs<T>>
 
   abstract override process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
+
+  async makeErrorMsg({ errorMsg, logOutput: logOutput }: { errorMsg?: string; logOutput?: string }) {
+    const errorMsgBase = errorMsg || `The action failed but the error message is missing.`
+
+    const logUrl = this.garden.cloudApi
+      ? await this.garden.cloudApi.getActionLogUrl({
+          sessionId: this.garden.sessionId,
+          actionUid: this.action.uid,
+        })
+      : null
+
+    // If a log link is available we don't append the output to the error but rather just show the link.
+    // The link is printed elsewhere for better log readability.
+    if (logOutput && !logUrl) {
+      errorMsg = renderMessageWithDivider({
+        prefix: `${errorMsgBase}${errorMsgBase.endsWith(".") ? "" : "."} Here's the output until the error occurred:`,
+        msg: logOutput,
+        isError: true,
+        color: styles.error,
+      }).msg
+    } else {
+      errorMsg = errorMsgBase
+    }
+
+    return errorMsg
+  }
 }
 
 export type TaskResultType<T extends BaseTask<ValidResultType>> =

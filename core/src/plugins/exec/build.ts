@@ -6,14 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { renderMessageWithDivider } from "../../logger/util.js"
 import type {
   GardenSdkActionDefinitionActionType,
   GardenSdkActionDefinitionConfigType,
   BuildStatus,
 } from "../../plugin/sdk.js"
 import { sdk } from "../../plugin/sdk.js"
-import { styles } from "../../logger/styles.js"
 import { execRunCommand, isExpectedStatusCommandError } from "./common.js"
 import {
   execCommonSchema,
@@ -84,20 +82,6 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
     output.detail.buildLog = result.outputLog
     success = result.success
     output.outputs = result.outputs
-  }
-
-  if (output.detail?.buildLog) {
-    output.outputs.log = output.detail?.buildLog
-
-    const prefix = `Finished building ${styles.highlight(action.name)}. Here is the full output:`
-    log.info(
-      renderMessageWithDivider({
-        prefix,
-        msg: output.detail?.buildLog,
-        isError: !success,
-        color: styles.primary,
-      })
-    )
   }
 
   return { ...output, state: success ? "ready" : "failed" }

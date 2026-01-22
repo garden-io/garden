@@ -162,6 +162,7 @@ export const runResultSchemaZod = z.object({
   startedAt: z.coerce.date(),
   completedAt: z.coerce.date(),
   log: z.string().transform((arg) => tailString(arg, MAX_RUN_RESULT_LOG_LENGTH, true)),
+  errorMsg: z.string().optional(),
   diagnosticErrorMsg: z.string().optional(),
 })
 
@@ -178,6 +179,7 @@ export const runResultSchema = createSchema({
     startedAt: joi.date().required().description("When the module run was started."),
     completedAt: joi.date().required().description("When the module run was completed."),
     log: joi.string().allow("").default("").description("The output log from the run."),
+    errorMsg: joi.string().allow("").optional().description("An error message from the plugin."),
     diagnosticErrorMsg: joi
       .string()
       .optional()

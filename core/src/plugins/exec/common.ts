@@ -110,13 +110,14 @@ export async function execRunCommand({
 
     // Comes from error object
     const shortMessage = (result as any).shortMessage || ""
-    const outputLog = ((result.stdout || "") + "\n" + (result.stderr || "") + "\n" + shortMessage).trim()
+    const outputLog = ((result.stdout || "") + "\n" + (result.stderr || "")).trim()
 
     return {
       ...result,
       outputs: { ...outputs, log: outputLog, stdout: result.stdout, stderr: result.stderr },
       outputLog,
       completedAt: new Date(),
+      errorMsg: shortMessage,
       success: result.exitCode === 0,
     }
   } finally {
