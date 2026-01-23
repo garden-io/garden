@@ -728,17 +728,21 @@ Examples:
 
 **Create remote variables in Garden Cloud.**
 
-Create remote variables in Garden Cloud. Variables belong to variable lists, which you can get via the
+Create or update remote variables in Garden Cloud. Variables belong to variable lists, which you can get via the
 `garden get variable-lists` command, and can optionally be scoped to an environment,
 or an environment and a user. The variable lists themselves are also created in Garden Cloud.
 
 To scope variables to a user, you will need the user's ID which you can get from the
 `garden get users` command.
 
+To update existing variables if they exist (i.e. use an upsert), pass the --upsert flag. The default behaviour
+(i.e. when not upserting) is to fail if a variable with the same name already exists in the variable list.
+
 You can optionally read the variables from a .env formatted file using --from-file.
 
 Examples:
     garden create remote-variables varlist_123 DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two variables
+    garden create remote-variables varlist_123 DB_PASSWORD=my-pwd ACCESS_KEY=my-key --upsert  # create two variables and upsert if they already exist
     garden create remote-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci    # create a variable and scope it to the ci environment
     garden create remote-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci --scope-to-user <user-id>  # create a variable and scope it to the ci environment and user
     garden create remote-variables varlist_123 --from-file /path/to/variables.env  # create variables from the key value pairs in the variables.env file
@@ -771,6 +775,7 @@ you want to create an environment scoped variable.
   | `--from-file` |  | path | Read the variables from the file at the given path. The file should have standard &quot;dotenv&quot;
 format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
   | `--secret` |  | boolean | Store the variable as an encrypted secret. Defaults to true.
+  | `--upsert` |  | boolean | Update the variable if it already exists. Defaults to false.
   | `--description` |  | string | Description for the variable.
   | `--expires-at` |  | string | ISO 8601 date string for when the variable expires.
 
@@ -794,6 +799,9 @@ variables:
     scopedAccountId:
 
     environmentName:
+
+    # Whether an existing variable was replaced (only relevant when upserting)
+    replacedPrevious:
 ```
 
 ### garden cleanup namespace

@@ -9,17 +9,17 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
   {
-    ctx: any
+    ctx: unknown
     meta: object
-    errorShape: import("@trpc/server").TRPCErrorShape<object>
+    errorShape: unknown
     transformer: true
   },
   import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     account: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -51,8 +51,8 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             name: string
             email: string
             password: string
-            organizationId?: string | undefined
             port?: number | undefined
+            organizationId?: string | undefined
             invitationToken?: string | undefined
           }
           output: {
@@ -65,8 +65,8 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           input: {
             email: string
             password: string
-            organizationId?: string | undefined
             port?: number | undefined
+            organizationId?: string | undefined
             invitationToken?: string | undefined
           }
           output: {
@@ -84,8 +84,8 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         oauthUrlRedirect: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             provider: "github" | "gitlab"
-            organizationId?: string | undefined
             port?: number | undefined
+            organizationId?: string | undefined
             invitationToken?: string | undefined
           }
           output: {
@@ -125,21 +125,21 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               id: string
               createdAt: Date
               updatedAt: Date
-              email: string
-              kind: "account" | "invitation"
-              role: "admin" | "member"
               expiresAt: Date | null
+              email: string
+              role: "admin" | "member"
               isOwner: boolean
+              kind: "account" | "invitation"
               serviceAccount?: boolean | undefined
               tokens?:
                 | {
                     type: "access" | "refresh" | "web"
+                    description: string | null
                     id: string
                     createdAt: Date
                     updatedAt: Date
-                    description: string | null
-                    accountId: string
                     expiresAt: Date
+                    accountId: string
                     label: string | null
                   }[]
                 | undefined
@@ -258,7 +258,6 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             label?: string | undefined
           }
           output: {
-            token: string
             account: {
               name: string
               id: string
@@ -268,6 +267,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               role: "admin" | "member"
               isOwner: boolean
             }
+            token: string
           }
           meta: object
         }>
@@ -291,21 +291,21 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     actionCache: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         createEntry: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             organizationId: string
-            startedAt: string
-            completedAt: string
             schemaVersion: string
             actionType: string
             actionRef: string
             cacheKey: string
+            startedAt: string
+            completedAt: string
             result?: unknown
           }
           output: {
@@ -342,37 +342,38 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     aec: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         listEnvironmentStatuses: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             organizationId: string
-            projectId?: string | undefined
-            environmentType?: string | undefined
-            environmentName?: string | undefined
             cursor?: number | undefined
             perPage?: number | undefined
-            orderBy?: "projectId" | "environmentName" | "latestEventUlid" | "timestamp" | undefined
+            environmentName?: string | undefined
+            projectId?: string | undefined
+            environmentType?: string | undefined
+            orderBy?: "timestamp" | "environmentName" | "projectId" | "latestEventUlid" | undefined
             sortOrder?: "asc" | "desc" | undefined
           }
           output: {
             items: {
               error: boolean
               organizationId: string
+              timestamp: Date
               success: boolean | null
-              commandUlid: string
-              sessionUlid: string
-              actorId: string
+              environmentName: string
               projectId: string
               environmentType: string
-              environmentName: string
+              latestEventUlid: string
+              actorId: string
+              commandUlid: string
+              sessionUlid: string
               agentPluginName: string
               agentEnvironmentType: string
-              latestEventUlid: string
               agentDescription: {
                 project: string
                 k8sContext: string
@@ -385,7 +386,6 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               actionTriggered: "Active" | "Cleanup" | "Pause" | "Cleaning up..." | "Pausing..." | null
               resource: string[] | null
               environment: string
-              timestamp: Date
             }[]
             nextCursor?: number | undefined
           }
@@ -394,23 +394,24 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         getEnvironmentStatus: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             organizationId: string
+            environmentName: string
             projectId: string
             environmentType: string
-            environmentName: string
           }
           output: {
             error: boolean
             organizationId: string
+            timestamp: Date
             success: boolean | null
-            commandUlid: string
-            sessionUlid: string
-            actorId: string
+            environmentName: string
             projectId: string
             environmentType: string
-            environmentName: string
+            latestEventUlid: string
+            actorId: string
+            commandUlid: string
+            sessionUlid: string
             agentPluginName: string
             agentEnvironmentType: string
-            latestEventUlid: string
             agentDescription: {
               project: string
               k8sContext: string
@@ -423,30 +424,30 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             actionTriggered: "Active" | "Cleanup" | "Pause" | "Cleaning up..." | "Pausing..." | null
             resource: string[] | null
             environment: string
-            timestamp: Date
           } | null
           meta: object
         }>
         listAgentStatuses: import("@trpc/server").TRPCQueryProcedure<{
           input: {
             organizationId: string
-            agentPluginName?: string | undefined
-            agentEnvironmentType?: string | undefined
             cursor?: number | undefined
             perPage?: number | undefined
-            orderBy?: "agentPluginName" | "agentEnvironmentType" | "latestEventUlid" | "timestamp" | undefined
+            orderBy?: "timestamp" | "latestEventUlid" | "agentPluginName" | "agentEnvironmentType" | undefined
             sortOrder?: "asc" | "desc" | undefined
+            agentPluginName?: string | undefined
+            agentEnvironmentType?: string | undefined
           }
           output: {
             items: {
               status: "Unknown" | "Running" | "Stopped" | "Error" | "Inactive"
               organizationId: string
+              timestamp: Date
+              latestEventUlid: string
+              actorId: string
               commandUlid: string
               sessionUlid: string
-              actorId: string
               agentPluginName: string
               agentEnvironmentType: string
-              latestEventUlid: string
               agentDescription: {
                 project: string
                 k8sContext: string
@@ -454,7 +455,6 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               }
               agentVersion: string | null
               statusDescription: string
-              timestamp: Date
             }[]
             nextCursor?: number | undefined
           }
@@ -469,12 +469,13 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           output: {
             status: "Unknown" | "Running" | "Stopped" | "Error" | "Inactive"
             organizationId: string
+            timestamp: Date
+            latestEventUlid: string
+            actorId: string
             commandUlid: string
             sessionUlid: string
-            actorId: string
             agentPluginName: string
             agentEnvironmentType: string
-            latestEventUlid: string
             agentDescription: {
               project: string
               k8sContext: string
@@ -482,7 +483,6 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             }
             agentVersion: string | null
             statusDescription: string
-            timestamp: Date
           } | null
           meta: object
         }>
@@ -490,16 +490,16 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     agentConfiguration: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
-            organizationId: string
             description: string
+            organizationId: string
             registries: Map<
               string,
               {
@@ -517,12 +517,11 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               | {}
           }
           output: {
+            description: string
+            organizationId: string
             id: string
             createdAt: Date
             updatedAt: Date
-            organizationId: string
-            registrationToken: string
-            description: string
             registries: Map<
               string,
               {
@@ -538,20 +537,21 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                   searchDomains: string[]
                 }
               | {}
+            registrationToken: string
           }
           meta: object
         }>
         get: import("@trpc/server").TRPCQueryProcedure<{
           input: {
-            id: string
             organizationId: string
+            id: string
           }
           output: {
+            description: string
+            organizationId: string
             id: string
             createdAt: Date
             updatedAt: Date
-            organizationId: string
-            description: string
             registries: Map<
               string,
               {
@@ -575,11 +575,11 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             organizationId: string
           }
           output: {
+            description: string
+            organizationId: string
             id: string
             createdAt: Date
             updatedAt: Date
-            organizationId: string
-            description: string
             registries: Map<
               string,
               {
@@ -602,9 +602,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     agentInstance: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -618,15 +618,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             id: string
             createdAt: Date
             updatedAt: Date
-            platforms: {
-              os: string
-              architecture: string
-              osVersion: string
-              osFeatures: string[]
-              variant: string
-            }[]
             agentVersion: string
-            lastSeen: Date
             connectivity:
               | {
                   type: "tunnel"
@@ -635,6 +627,14 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                   type: "direct"
                   buildkitAddress: string
                 }
+            platforms: {
+              architecture: string
+              os: string
+              variant: string
+              osVersion: string
+              osFeatures: string[]
+            }[]
+            lastSeen: Date
           }[]
           meta: object
         }>
@@ -650,18 +650,18 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     analytics: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         trackPageViewEvent: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             path: string
-            title: string
             userAgent: string
             url: string
+            title: string
             pathNameClean: string
             referrer: string
             prevPage?:
@@ -681,9 +681,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     billing: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -697,25 +697,24 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                 maxSeats?: number | null | undefined
               }
             | {
+                resolvedPlan: "free" | "team"
+                products: {
+                  description: string | null
+                  name: string
+                  id: `prod_${string}`
+                  metadata: Record<string, unknown>
+                  defaultPrice?: `price_${string}` | undefined
+                }[]
                 prices: {
                   id: `price_${string}`
                   product: `prod_${string}`
                   metadata: Record<string, unknown>
-                  recurring: {
-                    interval: "month" | "year" | "day" | "week"
-                  } | null
                   unitAmount: number | null
                   unitAmountDecimal: string | null
+                  recurring: {
+                    interval: "month" | "year" | "week" | "day"
+                  } | null
                 }[]
-                products: {
-                  name: string
-                  id: `prod_${string}`
-                  description: string | null
-                  metadata: Record<string, unknown>
-                  defaultPrice?: `price_${string}` | undefined
-                }[]
-                resolvedPlan: "free" | "team"
-                maxSeats?: number | null | undefined
                 billingProfile?:
                   | {
                       invoiceStatus: "void" | "draft" | "open" | "paid" | "uncollectible" | null
@@ -739,6 +738,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                       cancelAtPeriodEnd?: boolean | undefined
                     }
                   | undefined
+                maxSeats?: number | null | undefined
                 customerPortalUrl?: string | null | undefined
               }
           meta: object
@@ -765,9 +765,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     cloudBuilder: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -785,16 +785,16 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                   reason: string
                 }
               | {
+                  available: true
                   buildx: {
-                    clientCertificatePem: string
                     endpoints: {
                       platform: string
                       mtlsEndpoint: string
                       serverCaPem: string
                     }[]
+                    clientCertificatePem: string
                     privateKeyPem?: string | undefined
                   }
-                  available: true
                 }
           }
           meta: object
@@ -824,56 +824,58 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     commandLogs: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         list: import("@trpc/server").TRPCQueryProcedure<{
           input: {
-            id: string
             organizationId: string
-            actionUlid?: string | undefined
+            commandUlid: string
             cursor?: number | undefined
             perPage?: number | undefined
             sortOrder?: "asc" | "desc" | undefined
+            actionUlid?: string | undefined
             maxLogLevel?: string | undefined
           }
           output: {
             items: {
               organizationId: string
+              actorId: string
               commandUlid: string
               sessionUlid: string
-              actorId: string
               actionUlid: string | null
               eventUlid: string
               logLevel: number
               originDescription: string | null
-              loggedAt: Date
               logDetails: {
-                symbol?: string | undefined
-                error?: string | undefined
-                data?: string | undefined
-                msg?: string | undefined
-                rawMsg?: string | undefined
-                dataFormat?: string | undefined
-                section?: string | undefined
+                symbol?: string | null | undefined
+                error?: string | null | undefined
+                data?: string | null | undefined
+                msg?: string | null | undefined
+                rawMsg?: string | null | undefined
+                dataFormat?: string | null | undefined
+                section?: string | null | undefined
                 coreLog?:
                   | {
-                      name?: string | undefined
-                      origin?: string | undefined
+                      name?: string | null | undefined
+                      origin?: string | null | undefined
                     }
+                  | null
                   | undefined
                 actionLog?:
                   | {
                       actionName: string
                       actionKind: string
                       actionUid: string
-                      origin?: string | undefined
+                      origin?: string | null | undefined
                     }
+                  | null
                   | undefined
               }
+              loggedAt: Date
             }[]
             nextCursor?: number | undefined
           }
@@ -881,20 +883,20 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         }>
         watch: import("@trpc/server").TRPCSubscriptionProcedure<{
           input: {
-            id: string
             organizationId: string
+            commandUlid: string
             actionUlid?: string | undefined
           }
-          output: any
+          output: unknown
           meta: object
         }>
       }>
     >
     commandRun: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -929,23 +931,22 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                       serviceAccount: boolean | undefined
                     }
                   | undefined
-                id: string
-                status: string
+                status: import("../schemas/event-streaming-database/command-execution-status").GardenCommandStatus
                 organizationId: string
                 startedAt: Date
                 completedAt: Date | null
-                createdEventUlid: string
-                updatedEventUlid: string
+                actorId: string
                 commandUlid: string
                 sessionUlid: string
-                actorId: string
-                isCustomCommand: boolean
-                completedSuccessfully: boolean | null
+                createdEventUlid: string
+                updatedEventUlid: string
                 lastHeartbeatAt: Date | null
+                gitMetadata: import("../schemas/event-streaming-database/command-execution-status").GardenGitMetadata
+                invocation: import("../schemas/event-streaming-database/command-execution-status").GardenCommandInvocation
+                isCustomCommand: boolean
+                projectMetadata: import("../schemas/event-streaming-database/command-execution-status").GardenProjectMetadata
                 projectName: string
-                invocation: any
-                gitMetadata: any
-                projectMetadata: any
+                completedSuccessfully: boolean | null
               }
             },
             void,
@@ -955,38 +956,35 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         }>
         watchActionStatuses: import("@trpc/server").TRPCSubscriptionProcedure<{
           input: {
-            id: string
             organizationId: string
+            commandUlid: string
             lastKnownEventUlid: string
           }
-          output: any
+          output: AsyncIterable<
+            import("../repositories/event-streaming-database/helpers").EventStreamingDatabaseUpdate<
+              import("../schemas/event-streaming-database/action-status").ActionStatus
+            >,
+            void,
+            any
+          >
           meta: object
         }>
         getCommandExecutionStatus: import("@trpc/server").TRPCQueryProcedure<{
           input: {
-            id: string
             organizationId: string
+            commandUlid: string
           }
           output: {
             status: "FAILED" | "SUCCEEDED" | "RUNNING" | "TIMED_OUT"
-            id: string
             organizationId: string
             startedAt: Date
             completedAt: Date | null
-            createdEventUlid: string
-            updatedEventUlid: string
+            actorId: string
             commandUlid: string
             sessionUlid: string
-            actorId: string
-            isCustomCommand: boolean
+            createdEventUlid: string
+            updatedEventUlid: string
             lastHeartbeatAt: Date | null
-            invocation: {
-              cwd: string
-              instruction: {
-                name: string
-                args: string[]
-              }
-            }
             gitMetadata: {
               gitRemotes: {
                 name: string
@@ -996,11 +994,19 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               headRefSha: string
               repositoryRootDir: string
             }
+            invocation: {
+              cwd: string
+              instruction: {
+                name: string
+                args: string[]
+              }
+            }
+            isCustomCommand: boolean
             projectMetadata: {
-              projectName: string
               environmentName: string
               namespaceName: string
               projectApiVersion: string
+              projectName: string
               projectRootDir: string
             }
             account?:
@@ -1034,24 +1040,15 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           output: {
             items: {
               status: "FAILED" | "SUCCEEDED" | "RUNNING" | "TIMED_OUT"
-              id: string
               organizationId: string
               startedAt: Date
               completedAt: Date | null
-              createdEventUlid: string
-              updatedEventUlid: string
+              actorId: string
               commandUlid: string
               sessionUlid: string
-              actorId: string
-              isCustomCommand: boolean
+              createdEventUlid: string
+              updatedEventUlid: string
               lastHeartbeatAt: Date | null
-              invocation: {
-                cwd: string
-                instruction: {
-                  name: string
-                  args: string[]
-                }
-              }
               gitMetadata: {
                 gitRemotes: {
                   name: string
@@ -1061,11 +1058,19 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                 headRefSha: string
                 repositoryRootDir: string
               }
+              invocation: {
+                cwd: string
+                instruction: {
+                  name: string
+                  args: string[]
+                }
+              }
+              isCustomCommand: boolean
               projectMetadata: {
-                projectName: string
                 environmentName: string
                 namespaceName: string
                 projectApiVersion: string
+                projectName: string
                 projectRootDir: string
               }
               account?:
@@ -1085,56 +1090,63 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         }>
         getActionStatuses: import("@trpc/server").TRPCQueryProcedure<{
           input: {
-            id: string
             organizationId: string
+            commandUlid: string
           }
           output: {
             actionStatuses: {
-              name: string
               type: string
-              status: "aborted" | "failed" | "ready" | "cached" | "processing" | "getting-status" | "queued"
+              status: "aborted" | "ready" | "cached" | "processing" | "failed" | "getting-status" | "queued"
+              name: string
               organizationId: string
-              createdEventUlid: string
-              updatedEventUlid: string
+              kind: "Build" | "Deploy" | "Run" | "Test"
+              actorId: string
               commandUlid: string
               sessionUlid: string
-              actorId: string
               actionUlid: string
-              kind: "Build" | "Deploy" | "Run" | "Test"
+              createdEventUlid: string
+              updatedEventUlid: string
               statusCompletedSuccess: boolean | null
               statusCompletedNeedsRun: boolean | null
               runCompletedSuccess: boolean | null
               scannedAt: Date
+              dependencies: {
+                ref: {
+                  name: string
+                  kind: "Build" | "Deploy" | "Run" | "Test"
+                }
+                isExplicit: boolean
+              }[]
               statusStartedAt: Date | null
               statusCompletedAt: Date | null
               runStartedAt: Date | null
               runCompletedAt: Date | null
               overallDurationSeconds: number | null
               overallDuration: {
+                seconds: number
                 years: number
                 months: number
                 days: number
                 hours: number
                 minutes: number
-                seconds: number
                 milliseconds: number
               } | null
               runDuration: {
+                seconds: number
                 years: number
                 months: number
                 days: number
                 hours: number
                 minutes: number
-                seconds: number
                 milliseconds: number
               } | null
               statusDuration: {
+                seconds: number
                 years: number
                 months: number
                 days: number
                 hours: number
                 minutes: number
-                seconds: number
                 milliseconds: number
               } | null
               commandStatus: "FAILED" | "SUCCEEDED" | "RUNNING" | "TIMED_OUT"
@@ -1161,32 +1173,26 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                   | "missing-checked-local-cache"
               } | null
               deployRunResult: {
-                createdAt?: string | undefined
-                updatedAt?: string | undefined
-                state?: string | undefined
-                mode?: string | undefined
-                externalId?: string | undefined
-                externalVersion?: string | undefined
+                createdAt?: string | null | undefined
+                updatedAt?: string | null | undefined
+                mode?: string | null | undefined
+                state?: string | null | undefined
+                externalId?: string | null | undefined
+                externalVersion?: string | null | undefined
                 ingresses?:
                   | {
                       path: string
                       hostname: string
                       protocol: string
-                      port?: number | undefined
-                      linkUrl?: string | undefined
+                      port?: number | null | undefined
+                      linkUrl?: string | null | undefined
                     }[]
+                  | null
                   | undefined
-                lastMessage?: string | undefined
-                lastError?: string | undefined
-                runningReplicas?: number | undefined
+                lastMessage?: string | null | undefined
+                lastError?: string | null | undefined
+                runningReplicas?: number | null | undefined
               } | null
-              dependencies: {
-                ref: {
-                  name: string
-                  kind: "Build" | "Deploy" | "Run" | "Test"
-                }
-                isExplicit: boolean
-              }[]
             }[]
           }
           meta: object
@@ -1195,9 +1201,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     gardenEnvironment: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -1207,10 +1213,10 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             variableListId: string
           }
           output: {
-            name: string
-            id: string
             description: string | null
+            name: string
             adminOnly: boolean
+            id: string
             variableCount: number
           }[]
           meta: object
@@ -1223,9 +1229,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             environmentId: string
           }
           output: {
+            description: string | null
             name: string
             id: string
-            description: string | null
             variableListId: `varlist_${string}`
           }
           meta: object
@@ -1233,16 +1239,16 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         updateAdminOnlySettings: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             organizationId: string
-            variableListId: string
             adminOnly: boolean
+            variableListId: string
             environmentId: string
           }
           output: {
-            name: string
-            id: string
             description: string | null
-            variableListId: `varlist_${string}`
+            name: string
             adminOnly: boolean
+            id: string
+            variableListId: `varlist_${string}`
           }
           meta: object
         }>
@@ -1254,10 +1260,10 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           }
           output: {
             name: string
-            id: string
             organizationId: string
-            variableListId: `varlist_${string}`
             adminOnly: boolean
+            id: string
+            variableListId: `varlist_${string}`
           }
           meta: object
         }>
@@ -1267,16 +1273,18 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             variableListId: string
             environmentId: string
           }
-          output: void
+          output: {
+            success: boolean
+          }
           meta: object
         }>
       }>
     >
     dockerBuild: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -1291,8 +1299,8 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               actual: "buildx" | "cloud-builder" | "garden-k8s-kaniko" | "garden-k8s-buildkit"
               preferred?:
                 | {
-                    fallbackReason: string
                     runtime: "buildx" | "cloud-builder" | "garden-k8s-kaniko" | "garden-k8s-buildkit"
+                    fallbackReason: string
                   }
                 | undefined
             }
@@ -1326,12 +1334,12 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
                         "strip",
                         import("zod").ZodTypeAny,
                         {
-                          buildType?: string | undefined
                           metadata?: Record<string, unknown> | undefined
+                          buildType?: string | undefined
                         },
                         {
-                          buildType?: string | undefined
                           metadata?: Record<string, unknown> | undefined
+                          buildType?: string | undefined
                         }
                       >
                     >
@@ -1357,33 +1365,19 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           output: {
             items: {
               status: "success" | "failure"
+              organizationId: string
               id: string
               createdAt: Date
               updatedAt: Date
-              organizationId: string
               accountId: string
-              accountName: string
               startedAt: Date
-              dockerRawjsonLogs: Record<string, unknown>[]
-              actualRuntime: string
-              sourceFilename: string | null
-              sourceLanguage: string | null
-              sourceData: string | null
+              accountName: string
+              actualRuntime: string | null
+              totalLayers: number | null
+              cachedLayers: number | null
               completedAt?: Date | null | undefined
               platforms?: string[] | null | undefined
-              dockerClientVersion?: string | null | undefined
-              dockerServerVersion?: string | null | undefined
-              builderImplicitName?: string | null | undefined
-              builderIsDefault?: boolean | null | undefined
-              builderDriver?: string | null | undefined
               tags?: string[] | null | undefined
-              imageManifestDigest?: string | null | undefined
-              buildxBuildRef?: string | null | undefined
-              executedVertexDigests?: string[] | null | undefined
-              cachedVertexDigests?: string[] | null | undefined
-              timeSavedMs?: number | null | undefined
-              preferredRuntime?: string | null | undefined
-              fallbackReason?: string | null | undefined
             }[]
             nextCursor?: number | undefined
           }
@@ -1391,20 +1385,22 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
         }>
         get: import("@trpc/server").TRPCQueryProcedure<{
           input: {
-            id: string
             organizationId: string
+            id: string
           }
           output: {
             status: "success" | "failure"
+            organizationId: string
             id: string
             createdAt: Date
             updatedAt: Date
-            organizationId: string
             accountId: string
-            accountName: string
             startedAt: Date
+            accountName: string
+            actualRuntime: string | null
+            totalLayers: number | null
+            cachedLayers: number | null
             dockerRawjsonLogs: Record<string, unknown>[]
-            actualRuntime: string
             sourceFilename: string | null
             sourceLanguage: string | null
             sourceData: string | null
@@ -1423,19 +1419,19 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             } | null
             completedAt?: Date | null | undefined
             platforms?: string[] | null | undefined
+            fallbackReason?: string | null | undefined
+            tags?: string[] | null | undefined
             dockerClientVersion?: string | null | undefined
             dockerServerVersion?: string | null | undefined
             builderImplicitName?: string | null | undefined
             builderIsDefault?: boolean | null | undefined
             builderDriver?: string | null | undefined
-            tags?: string[] | null | undefined
             imageManifestDigest?: string | null | undefined
             buildxBuildRef?: string | null | undefined
             executedVertexDigests?: string[] | null | undefined
             cachedVertexDigests?: string[] | null | undefined
             timeSavedMs?: number | null | undefined
             preferredRuntime?: string | null | undefined
-            fallbackReason?: string | null | undefined
           }
           meta: object
         }>
@@ -1451,19 +1447,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               cpu: number
               memoryMb: number
             }
-            usage: {
-              total: {
-                buildCount: bigint
-                buildUnitMinutes: bigint
-                buildWallMinutes: bigint
-              }
-              perDay: {
-                date: string
-                buildCount: bigint
-                buildUnitMinutes: bigint
-                buildWallMinutes: bigint
-              }[]
-            }
+            totalTimeSavedMs: number
             limits: {
               concurrencyLimits: {
                 maxCpu: number
@@ -1475,7 +1459,19 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               }
               enabledPlatforms: string[]
             }
-            totalTimeSavedMs: number
+            usage: {
+              total: {
+                buildCount: bigint
+                buildWallMinutes: bigint
+                buildUnitMinutes: bigint
+              }
+              perDay: {
+                date: string
+                buildCount: bigint
+                buildWallMinutes: bigint
+                buildUnitMinutes: bigint
+              }[]
+            }
           }
           meta: object
         }>
@@ -1483,9 +1479,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     invitation: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -1540,9 +1536,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     organization: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -1644,11 +1640,11 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             organizationId: string
           }
           output: {
+            description: string
             name: string
             id: string
-            description: string
-            visible: boolean
             enabled: boolean
+            visible: boolean
           }[]
           meta: object
         }>
@@ -1667,9 +1663,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     token: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -1681,7 +1677,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             valid: boolean
             notices: {
               message: string
-              severity: "info" | "error" | "warning"
+              severity: "error" | "info" | "warning"
             }[]
           }
           meta: object
@@ -1691,13 +1687,13 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             refreshToken: string
           }
           output: {
-            accessToken: string
-            refreshToken: string
-            tokenValidity: number
             notices: {
               message: string
-              severity: "info" | "error" | "warning"
+              severity: "error" | "info" | "warning"
             }[]
+            refreshToken: string
+            accessToken: string
+            tokenValidity: number
           }
           meta: object
         }>
@@ -1719,12 +1715,12 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           output: {
             value: string
             type: "access" | "refresh" | "web"
+            description: string | null
             id: string
             createdAt: Date
             updatedAt: Date
-            description: string | null
-            accountId: string
             expiresAt: Date
+            accountId: string
             label: string | null
           }
           meta: object
@@ -1740,12 +1736,12 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           output: {
             value: string
             type: "access" | "refresh" | "web"
+            description: string | null
             id: string
             createdAt: Date
             updatedAt: Date
-            description: string | null
-            accountId: string
             expiresAt: Date
+            accountId: string
             label: string | null
           }
           meta: object
@@ -1770,12 +1766,12 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           input: void
           output: {
             type: "access" | "refresh" | "web"
+            description: string | null
             id: string
             createdAt: Date
             updatedAt: Date
-            description: string | null
-            accountId: string
             expiresAt: Date
+            accountId: string
             label: string | null
           }[]
           meta: object
@@ -1789,12 +1785,12 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           output: {
             items: {
               type: "access" | "refresh" | "web"
+              description: string | null
               id: string
               createdAt: Date
               updatedAt: Date
-              description: string | null
-              accountId: string
               expiresAt: Date
+              accountId: string
               label: string | null
             }[]
             nextCursor?: number | undefined
@@ -1805,37 +1801,39 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     variable: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
-            name: string
             value: string
-            organizationId: string
             description: string | null
+            name: string
+            organizationId: string
+            isSecret: boolean
+            scopedGardenEnvironmentId: string | null
+            scopedAccountId: string | null
             variableListId: string
             expiresAt: Date | null
-            isSecret: boolean
-            scopedAccountId: string | null
-            scopedGardenEnvironmentId: string | null
             scopedGardenEnvironmentName: string | null
+            upsert?: boolean | undefined
           }
           output: {
             id: string
+            replacedPrevious: boolean
           }
           meta: object
         }>
         update: import("@trpc/server").TRPCMutationProcedure<{
           input: {
-            organizationId: string
             description: string | null
-            expiresAt: Date | null
-            scopedAccountId: string | null
+            organizationId: string
             scopedGardenEnvironmentId: string | null
+            scopedAccountId: string | null
+            expiresAt: Date | null
             scopedGardenEnvironmentName: string | null
             variableId: string
             value?: string | undefined
@@ -1851,17 +1849,17 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             variableId: string
           }
           output: {
+            description: string | null
             name: string
+            organizationId: string
             id: string
             createdAt: Date
             updatedAt: Date
-            organizationId: string
-            description: string | null
-            expiresAt: Date | null
             isSecret: boolean
+            scopedGardenEnvironmentId: string | null
             scopedAccountId: string | null
             createdByAccountId: string
-            scopedGardenEnvironmentId: string | null
+            expiresAt: Date | null
             value: string
             createdByName: string | null
             scopedGardenEnvironmentName: string | null
@@ -1883,24 +1881,24 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             | {
                 organizationId: string
                 variableListName: string
-                variableListId?: string | undefined
                 search?: string | undefined
+                variableListId?: string | undefined
                 cursor?: number | undefined
                 perPage?: number | undefined
               }
           output: {
             items: {
+              description: string | null
               name: string
+              organizationId: string
               id: string
               createdAt: Date
               updatedAt: Date
-              organizationId: string
-              description: string | null
-              expiresAt: Date | null
               isSecret: boolean
+              scopedGardenEnvironmentId: string | null
               scopedAccountId: string | null
               createdByAccountId: string
-              scopedGardenEnvironmentId: string | null
+              expiresAt: Date | null
               value: string
               createdByName: string | null
               scopedGardenEnvironmentName: string | null
@@ -1928,9 +1926,9 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
     >
     variableList: import("@trpc/server").TRPCBuiltRouter<
       {
-        ctx: any
+        ctx: unknown
         meta: object
-        errorShape: import("@trpc/server").TRPCErrorShape<object>
+        errorShape: unknown
         transformer: true
       },
       import("@trpc/server").TRPCDecorateCreateRouterOptions<{
@@ -1953,8 +1951,8 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             {
               value: string
               isSecret: boolean
-              scopedAccountId: string | null
               scopedGardenEnvironmentId: string | null
+              scopedAccountId: string | null
             }
           >
           meta: object
@@ -1965,26 +1963,26 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             projectId: string
           }
           output: {
-            name: string
-            id: `varlist_${string}`
             description: string
+            name: string
             migratedFromProjectId: string | null
+            id: `varlist_${string}`
           }
           meta: object
         }>
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
+            description: string
             name: string
             organizationId: string
-            description: string
             adminOnly: boolean
           }
           output: {
-            name: string
-            id: `varlist_${string}`
-            organizationId: string
             description: string
+            name: string
+            organizationId: string
             adminOnly: boolean
+            id: `varlist_${string}`
           }
           meta: object
         }>
@@ -1992,16 +1990,16 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
           input: {
             organizationId: string
             variableListId: string
-            name?: string | undefined
             description?: string | undefined
+            name?: string | undefined
             adminOnly?: boolean | undefined
           }
           output: {
-            name: string
-            id: `varlist_${string}`
-            organizationId: string
             description: string
+            name: string
+            organizationId: string
             adminOnly: boolean
+            id: `varlist_${string}`
           }
           meta: object
         }>
@@ -2020,14 +2018,14 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             variableListId: string
           }
           output: {
+            description: string
             name: string
+            organizationId: string
+            adminOnly: boolean
+            migratedFromProjectId: string | null
             id: string
             createdAt: Date
             updatedAt: Date
-            organizationId: string
-            description: string
-            adminOnly: boolean
-            migratedFromProjectId: string | null
           }
           meta: object
         }>
@@ -2036,13 +2034,13 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             organizationId: string
           }
           output: {
+            description: string
             name: string
+            organizationId: string
+            adminOnly: boolean
             id: `varlist_${string}`
             createdAt: Date
             updatedAt: Date
-            organizationId: string
-            description: string
-            adminOnly: boolean
           }[]
           meta: object
         }>

@@ -23,7 +23,7 @@ import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
 import dotenv from "dotenv"
 import fsExtra from "fs-extra"
-import { capitalize } from "lodash-es"
+import { capitalize, isObject } from "lodash-es"
 import pluralize from "pluralize"
 import { CommandError, toGardenError } from "../exceptions.js"
 import type { CommandResult } from "./base.js"
@@ -189,6 +189,21 @@ export function noApiMsg(action: string, resource: string) {
   `
 }
 
+// Thought I'd just use the grammatical terms. Why not. - THS
+const actionGerundMap = {
+  create: "creating",
+  update: "updating",
+  upsert: "upserting",
+  delete: "deleting",
+} as const
+
+const actionVerbPastTenseMap = {
+  create: "created",
+  update: "updated",
+  upsert: "upserted",
+  delete: "deleted",
+} as const
+
 export function handleBulkOperationResult<T>({
   log,
   results,
@@ -201,18 +216,26 @@ export function handleBulkOperationResult<T>({
   cmdLog: Log
   results: T[]
   errors: ApiCommandError[]
-  action: "create" | "update" | "delete"
+  action: "create" | "update" | "upsert" | "delete"
   resource: "secret" | "user" | "variable"
 }): CommandResult<T[]> {
   const successCount = results.length
   const totalCount = errors.length + successCount
+  let upsertCount: null | number = null
+  if (action === "upsert") {
+    const firstResult = results[0]
+    if (firstResult && isObject(firstResult) && Object.keys(firstResult).includes("replacedPrevious")) {
+      // Then we count the upserted values.
+      upsertCount = (results as Array<{ replacedPrevious: boolean }>).filter((r) => r.replacedPrevious).length
+    }
+  }
 
   log.info("")
 
   if (errors.length > 0) {
     cmdLog.error("Error")
 
-    const actionVerb = action === "create" ? "creating" : action === "update" ? "updating" : "deleting"
+    const actionVerb = actionGerundMap[action]
     const errorMsgs = errors
       .map((e) => {
         const identifier = Number.isInteger(e.identifier)
@@ -234,10 +257,12 @@ export function handleBulkOperationResult<T>({
 
   if (successCount > 0) {
     const resourceStr = successCount === 1 ? resource : pluralize(resource)
+    let countDescription = ""
+    if (action === "upsert" && upsertCount !== null) {
+      countDescription += ` (${successCount - upsertCount} new, ${upsertCount} updated)`
+    }
     log.info({
-      msg: `Successfully ${
-        action === "create" ? "created" : action === "update" ? "updated" : "deleted"
-      } ${successCount} ${resourceStr}!`,
+      msg: `Successfully ${actionVerbPastTenseMap[action]} ${successCount} ${resourceStr}!${countDescription}`,
     })
     log.info("")
   }

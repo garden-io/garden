@@ -54,6 +54,10 @@ export const createRemoteVariablesOpts = {
     help: "Store the variable as an encrypted secret. Defaults to true.",
     defaultValue: true,
   }),
+  "upsert": new BooleanParameter({
+    help: "Update the variable if it already exists. Defaults to false.",
+    defaultValue: false,
+  }),
   "description": new StringOption({
     help: "Description for the variable.",
   }),
@@ -74,6 +78,7 @@ interface VariableResult {
   expiresAt: Date | null
   scopedAccountId: string | null
   environmentName: string | null
+  replacedPrevious: boolean
 }
 
 export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
@@ -84,17 +89,21 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
   override aliases = ["cloud-variables"]
 
   override description = dedent`
-    Create remote variables in Garden Cloud. Variables belong to variable lists, which you can get via the
+    Create or update remote variables in Garden Cloud. Variables belong to variable lists, which you can get via the
     \`garden get variable-lists\` command, and can optionally be scoped to an environment,
     or an environment and a user. The variable lists themselves are also created in Garden Cloud.
 
     To scope variables to a user, you will need the user's ID which you can get from the
     \`garden get users\` command.
+  
+    To update existing variables if they exist (i.e. use an upsert), pass the --upsert flag. The default behaviour
+    (i.e. when not upserting) is to fail if a variable with the same name already exists in the variable list.
 
     You can optionally read the variables from a .env formatted file using --from-file.
 
     Examples:
         garden create remote-variables varlist_123 DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two variables
+        garden create remote-variables varlist_123 DB_PASSWORD=my-pwd ACCESS_KEY=my-key --upsert  # create two variables and upsert if they already exist
         garden create remote-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci    # create a variable and scope it to the ci environment
         garden create remote-variables varlist_123 ACCESS_KEY=my-key --scope-to-env ci --scope-to-user <user-id>  # create a variable and scope it to the ci environment and user
         garden create remote-variables varlist_123 --from-file /path/to/variables.env  # create variables from the key value pairs in the variables.env file
@@ -122,6 +131,9 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
           expiresAt: joi.date().allow(null),
           scopedAccountId: joi.string().allow(null),
           environmentName: joi.string().allow(null),
+          replacedPrevious: joi
+            .boolean()
+            .description("Whether an existing variable was replaced (only relevant when upserting)"),
         })
       ).description("A list of created variables"),
     })
@@ -140,6 +152,7 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
     const description = opts["description"]
     const expiresAt = opts["expires-at"]
     const variableListId = args["variable-list-id"]
+    const upsert = opts["upsert"]
 
     if (userId !== undefined && !envName) {
       throw new CommandError({
@@ -169,6 +182,7 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
           variableListId,
           name,
           value,
+          upsert,
           description: description || null,
           isSecret: isSecret || false,
           expiresAt: expiresAt ? new Date(expiresAt) : null,
@@ -186,6 +200,7 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
           expiresAt: expiresAt ? new Date(expiresAt) : null,
           scopedAccountId: userId || null,
           environmentName: envName || null,
+          replacedPrevious: response.replacedPrevious,
         })
       } catch (err) {
         errors.push({
@@ -199,7 +214,7 @@ export class CreateRemoteVariablesCommand extends Command<Args, Opts> {
     return handleBulkOperationResult({
       log,
       cmdLog,
-      action: "create",
+      action: upsert ? "upsert" : "create",
       resource: "variable",
       errors,
       results,
