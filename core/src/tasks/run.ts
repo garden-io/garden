@@ -114,7 +114,10 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       if (status.detail?.diagnosticErrorMsg) {
         this.log.debug(`Additional context for the error:\n\n${status.detail.diagnosticErrorMsg}`)
       }
-      throw new RunFailedError({ message: status.detail?.log || "The run failed, but it did not output anything." })
+
+      throw new RunFailedError({
+        message: await this.makeErrorMsg({ errorMsg: status.detail?.errorMsg, logOutput: status.detail?.log }),
+      })
     }
 
     return {

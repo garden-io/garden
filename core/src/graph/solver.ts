@@ -527,10 +527,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       const processResult = await node.execute()
       this.completeTask({ startedAt, error: null, result: processResult, node, aborted: false })
     } catch (error) {
-      this.completeTask({ startedAt, error: toGardenError(error), result: null, node, aborted: false })
       if (!node.task.interactive) {
-        this.logTaskError(node, toGardenError(error))
+        await this.logTaskError(node, toGardenError(error))
       }
+      this.completeTask({ startedAt, error: toGardenError(error), result: null, node, aborted: false })
     }
   }
 
@@ -636,10 +636,25 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   //
   // Logging
   //
-  private logTaskError(node: TaskNode, err: Error) {
+  private async logTaskError(node: TaskNode, err: Error) {
     const log = node.task.log
     const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}.`
     this.logError(log, err, prefix)
+
+    // Arguably this should be handled at the task level but it's nicer to print the
+    // link to the logs after the error message.
+    if (node.task.isExecuteTask()) {
+      const logUrl = this.garden.cloudApi
+        ? await this.garden.cloudApi.getActionLogUrl({
+            sessionId: this.garden.sessionId,
+            actionUid: node.task.action.uid,
+          })
+        : null
+
+      if (logUrl) {
+        log.error({ msg: `View full logs: ${styles.link(logUrl.href)}`, showDuration: false })
+      }
+    }
   }
 
   private logInternalError(node: TaskNode, err: Error) {

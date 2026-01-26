@@ -28,7 +28,7 @@ import type { SolveResult } from "../graph/solver.js"
 import { waitForOutputFlush } from "../process.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { GardenServer } from "../server/server.js"
-import type { CloudSession } from "../cloud/api-legacy/api.js"
+import type { CloudSessionLegacy } from "../cloud/api-legacy/api.js"
 import type { DeployState, ForwardablePort, ServiceIngress } from "../types/service.js"
 import { deployStates, forwardablePortSchema, serviceIngressSchema } from "../types/service.js"
 import type { GraphResultMapWithoutTask, GraphResults, GraphResultWithoutTask } from "../graph/results.js"
@@ -39,7 +39,7 @@ import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { styles } from "../logger/styles.js"
 import { clearVarfileCache } from "../config/base.js"
-import { createCloudEventStream, getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
+import { createCloudEventStream, getCloudLogSectionName } from "../cloud/util.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -285,9 +285,7 @@ export abstract class Command<
 
         const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
 
-        let cloudSession: CloudSession | undefined
-        let commandResultUrl: string | undefined
-
+        let cloudSessionLegacy: CloudSessionLegacy | undefined
         // Session registration for the `dev` and `serve` commands is handled in the `serve` command's `action` method,
         // so we skip registering here to avoid duplication.
         //
@@ -299,7 +297,7 @@ export abstract class Command<
           !["dev", "serve"].includes(this.name) && this.maybePersistent(params) && !params.parentCommand
 
         if (!skipRegistration && garden.isOldBackendAvailable() && garden.projectId && this.streamEvents) {
-          cloudSession = await garden.cloudApiLegacy.registerSession({
+          cloudSessionLegacy = await garden.cloudApiLegacy.registerSession({
             parentSessionId: parentSessionId || undefined,
             sessionId: garden.sessionId,
             projectId: garden.projectId,
@@ -312,15 +310,25 @@ export abstract class Command<
           })
         }
 
-        if (cloudSession) {
-          const distroName = getCloudDistributionName(cloudSession.api.domain)
-          commandResultUrl = cloudSession.api.getCommandResultUrl({
-            sessionId: garden.sessionId,
-            projectId: cloudSession.projectId,
-            shortId: cloudSession.shortId,
-          }).href
-          const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
-          cloudLog.info(`View command results at: ${styles.link(commandResultUrl)}`)
+        // Print link to cloud at start of run
+        const commandRunUrl = cloudSessionLegacy
+          ? cloudSessionLegacy.api.getCommandResultUrl({
+              sessionId: garden.sessionId,
+              projectId: cloudSessionLegacy.projectId,
+              shortId: cloudSessionLegacy.shortId,
+            })
+          : garden.cloudApi
+            ? // Here we just link to the main command runs page because the command run detail link isn't available yet
+              await garden.cloudApi.getCommandRunsUrl()
+            : null
+
+        if (commandRunUrl) {
+          const cloudLog = log.createLog({
+            name: cloudSessionLegacy
+              ? getCloudLogSectionName("Garden Enterprise")
+              : getCloudLogSectionName("Garden Cloud"),
+          })
+          cloudLog.info(`View command results at: ${styles.link(commandRunUrl.href)}`)
         }
 
         let analytics: AnalyticsHandler | undefined
@@ -363,11 +371,11 @@ export abstract class Command<
           garden.events.emit("commandInfo", {
             ...commandInfo,
             environmentName: garden.environmentName,
-            environmentId: cloudSession?.environmentId,
+            environmentId: cloudSessionLegacy?.environmentId,
             projectName: garden.projectName,
-            projectId: cloudSession?.projectId,
+            projectId: cloudSessionLegacy?.projectId,
             namespaceName: garden.namespace,
-            namespaceId: cloudSession?.namespaceId,
+            namespaceId: cloudSessionLegacy?.namespaceId,
             coreVersion: getPackageVersion(),
             vcsBranch: garden.vcsInfo.branch,
             vcsCommitHash: garden.vcsInfo.commitHash,
@@ -445,6 +453,17 @@ export abstract class Command<
         // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to
         // fire, which may be needed to e.g. capture monitors added in event handlers
         await waitForOutputFlush()
+
+        // Print link to cloud again at end of run
+        const commandResultUrl = cloudSessionLegacy
+          ? cloudSessionLegacy.api.getCommandResultUrl({
+              sessionId: garden.sessionId,
+              projectId: cloudSessionLegacy.projectId,
+              shortId: cloudSessionLegacy.shortId,
+            })
+          : garden.cloudApi
+            ? await garden.cloudApi.getCommandRunUrl(garden.sessionId)
+            : null
 
         if (commandResultUrl) {
           const msg = `View command results at: \n\n${printEmoji("👉", log)}${styles.link(
@@ -1099,6 +1118,7 @@ export async function handleProcessResults(
       message: errMsg,
       wrappedErrors,
     })
+
     return { result, errors: [error] }
   }
 

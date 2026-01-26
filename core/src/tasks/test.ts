@@ -126,15 +126,19 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     } catch (err) {
       throw err
     }
-    if (status.detail?.success) {
-    } else {
+
+    if (status.detail?.success !== true) {
       const exitCode = status.detail?.exitCode
       const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`
       this.log.error(failedMsg)
+
       if (status.detail?.diagnosticErrorMsg) {
         this.log.debug(`Additional context for the error:\n\n${status.detail.diagnosticErrorMsg}`)
       }
-      throw new TestFailedError({ message: status.detail?.log || "The test failed, but it did not output anything." })
+
+      throw new TestFailedError({
+        message: await this.makeErrorMsg({ errorMsg: status.detail?.errorMsg, logOutput: status.detail?.log }),
+      })
     }
 
     return {

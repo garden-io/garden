@@ -17,7 +17,6 @@ import { TimeoutError } from "../../exceptions.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { ExecaReturnBase } from "execa"
 import { execa } from "execa"
-import { renderMessageWithDivider } from "../../logger/util.js"
 import { LogLevel } from "../../logger/logger.js"
 import { createWriteStream } from "fs"
 import fsExtra from "fs-extra"
@@ -196,18 +195,6 @@ execDeploy.addHandler("deploy", async (params) => {
       env,
       opts: { reject: true },
     })
-
-    if (result.outputLog) {
-      const prefix = `Finished deploying ${styles.highlight(action.name)}. Here is the output:`
-      log.info(
-        renderMessageWithDivider({
-          prefix,
-          msg: result.outputLog,
-          isError: !result.success,
-          color: styles.primary,
-        })
-      )
-    }
 
     const deployState: DeployState = result.success ? "ready" : "unhealthy"
     const actionState: ActionState = result.success ? "ready" : "failed"

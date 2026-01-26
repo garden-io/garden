@@ -41,7 +41,7 @@ import type tmp from "tmp-promise"
 import type { ProjectConfig } from "../../../../../src/config/project.js"
 import type { BuildActionConfig } from "../../../../../src/actions/build.js"
 import type { DeployActionConfig } from "../../../../../src/actions/deploy.js"
-import type { RunActionConfig } from "../../../../../src/actions/run.js"
+import type { RunAction, RunActionConfig } from "../../../../../src/actions/run.js"
 import { getLogFilePath } from "../../../../../src/plugins/exec/deploy.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
@@ -733,6 +733,46 @@ describe("exec plugin", () => {
 
         expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
       })
+
+      it("should return error message and output log on error", async () => {
+        const router = await garden.getActionRouter()
+        const rawAction = (await actionFromConfig({
+          garden,
+          graph,
+          router,
+          log,
+          config: {
+            type: "exec",
+            kind: "Test",
+            name: "test",
+            dependencies: [],
+            disabled: false,
+            timeout: 1234,
+            spec: {
+              shell: true,
+              command: ["echo hello && exit 1"],
+            },
+            internal: {
+              basePath: garden.projectRoot,
+            },
+          } as TestActionConfig,
+          configsByKey: {},
+          linkedSources: {},
+          mode: "default",
+        })) as TestAction
+        const action = await garden.resolveAction({ action: rawAction, graph, log })
+        const { result: res } = await router.test.run({
+          log,
+          action,
+          interactive: true,
+          graph,
+          silent: false,
+        })
+
+        expect(res.state).to.eql("failed")
+        expect(res.detail?.log).to.eql("hello")
+        expect(res.detail?.errorMsg).to.eql("Command failed with exit code 1: echo hello && exit 1")
+      })
     })
 
     describe("Run", () => {
@@ -872,6 +912,45 @@ describe("exec plugin", () => {
         })
 
         expect(res.outputs).to.eql({ foo: "bar", log: "", stdout: "", stderr: "" })
+      })
+
+      it("should return error message and output log on error", async () => {
+        const router = await garden.getActionRouter()
+        const rawAction = (await actionFromConfig({
+          garden,
+          graph,
+          router,
+          log,
+          config: {
+            type: "exec",
+            kind: "Run",
+            name: "run",
+            dependencies: [],
+            disabled: false,
+            timeout: 1234,
+            spec: {
+              shell: true,
+              command: ["echo hello && exit 1"],
+            },
+            internal: {
+              basePath: garden.projectRoot,
+            },
+          } as RunActionConfig,
+          configsByKey: {},
+          linkedSources: {},
+          mode: "default",
+        })) as RunAction
+        const action = await garden.resolveAction({ action: rawAction, graph, log })
+        const { result: res } = await router.run.run({
+          log,
+          action,
+          interactive: true,
+          graph,
+        })
+
+        expect(res.state).to.eql("failed")
+        expect(res.detail?.log).to.eql("hello")
+        expect(res.detail?.errorMsg).to.eql("Command failed with exit code 1: echo hello && exit 1")
       })
     })
 

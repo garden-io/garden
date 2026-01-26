@@ -4017,6 +4017,9 @@ actions:
         # The output log from the run.
         log:
 
+        # An error message from the plugin.
+        errorMsg:
+
         # An optional, more detailed diagnostic error message from the plugin.
         diagnosticErrorMsg:
 
@@ -4050,6 +4053,9 @@ actions:
 
         # The output log from the run.
         log:
+
+        # An error message from the plugin.
+        errorMsg:
 
         # An optional, more detailed diagnostic error message from the plugin.
         diagnosticErrorMsg:
@@ -4541,6 +4547,9 @@ detail:
   # The output log from the run.
   log:
 
+  # An error message from the plugin.
+  errorMsg:
+
   # An optional, more detailed diagnostic error message from the plugin.
   diagnosticErrorMsg:
 
@@ -4595,6 +4604,9 @@ detail:
 
   # The output log from the run.
   log:
+
+  # An error message from the plugin.
+  errorMsg:
 
   # An optional, more detailed diagnostic error message from the plugin.
   diagnosticErrorMsg:

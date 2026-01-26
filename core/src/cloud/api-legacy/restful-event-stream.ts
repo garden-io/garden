@@ -15,7 +15,7 @@ import { got } from "../../util/http.js"
 
 import type { LogLevel } from "../../logger/logger.js"
 import type { Garden } from "../../garden.js"
-import type { CloudSession } from "./api.js"
+import type { CloudSessionLegacy } from "./api.js"
 import { getSection } from "../../logger/renderers.js"
 import { registerCleanupFunction } from "../../util/util.js"
 import { makeAuthHeader } from "./auth.js"
@@ -101,7 +101,7 @@ export interface ApiLogBatch extends ApiBatchBase {
 export interface RestfulEventStreamParams {
   log: Log
   maxLogLevel: LogLevel
-  cloudSession: CloudSession
+  cloudSession: CloudSessionLegacy
   garden: Garden
   streamEvents?: boolean
   streamLogEntries?: boolean
@@ -119,7 +119,7 @@ export interface RestfulEventStreamParams {
  * any) e.g. when config changes during a watch-mode command.
  */
 export class RestfulEventStream {
-  private readonly cloudSession: CloudSession
+  private readonly cloudSession: CloudSessionLegacy
   private readonly garden: Garden
 
   private readonly log: Log

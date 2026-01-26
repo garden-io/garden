@@ -7,10 +7,8 @@
  */
 
 import { runResultToActionState } from "../../actions/base.js"
-import { renderMessageWithDivider } from "../../logger/util.js"
 import type { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType } from "../../plugin/sdk.js"
 import { sdk } from "../../plugin/sdk.js"
-import { styles } from "../../logger/styles.js"
 import { copyArtifacts, execGetResultHandler, execRunCommand } from "./common.js"
 import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
@@ -74,6 +72,7 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
     command,
     version: action.versionString(log),
     success: commandResult.success,
+    errorMsg: commandResult.errorMsg,
     log: commandResult.outputLog,
     startedAt,
     completedAt: commandResult.completedAt,
@@ -87,18 +86,6 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
 
   if (!commandResult.success) {
     return result
-  }
-
-  if (commandResult.outputLog) {
-    const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
-    log.info(
-      renderMessageWithDivider({
-        prefix,
-        msg: commandResult.outputLog,
-        isError: !commandResult.success,
-        color: styles.primary,
-      })
-    )
   }
 
   return result

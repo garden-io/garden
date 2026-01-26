@@ -734,7 +734,7 @@ export abstract class PodRunnerError extends GardenError {
   }
 }
 
-class PodRunnerWorkloadError extends PodRunnerError {
+export class PodRunnerWorkloadError extends PodRunnerError {
   override type = "pod-runner-exit-code"
 
   constructor({ message, details }: PodRunnerErrorParams) {
@@ -764,10 +764,6 @@ class PodRunnerWorkloadError extends PodRunnerError {
       }
     }
 
-    if (details.logs) {
-      errorDesc += `Here are the logs until the error occurred:\n\n${details.logs}`
-    }
-
     super({
       message: errorDesc,
       details,
@@ -777,16 +773,6 @@ class PodRunnerWorkloadError extends PodRunnerError {
 
 class PodRunnerOutOfMemoryError extends PodRunnerError {
   override type = "pod-runner-oom"
-
-  constructor({ message, details }: PodRunnerErrorParams) {
-    const logsMessage = details.logs
-      ? ` Here are the logs until the out-of-memory event occurred:\n\n${details.logs}`
-      : ""
-    super({
-      message: `${message}${logsMessage}`,
-      details,
-    })
-  }
 }
 
 class PodRunnerNotFoundError extends PodRunnerError {
@@ -810,15 +796,6 @@ class PodRunnerNotFoundError extends PodRunnerError {
 
 export class PodRunnerTimeoutError extends PodRunnerError {
   override type = "pod-runner-timeout"
-
-  //
-  constructor({ message, details }: PodRunnerErrorParams) {
-    const logsMessage = details.logs ? ` Here are the logs until the timeout occurred:\n\n${details.logs}` : ""
-    super({
-      message: `${message}${logsMessage}`,
-      details,
-    })
-  }
 }
 
 interface RunAndWaitResult {
@@ -1055,7 +1032,7 @@ export class PodRunner {
           if (throwOnExitCode === true) {
             // Consider it as a task execution error inside the Pod.
             throw new PodRunnerWorkloadError({
-              message: `Failed with exit code ${exitCode}.`,
+              message: `Running Pod ${this.podName} failed with exit code ${exitCode}.`,
               details: await podErrorDetails(),
             })
           } else {
@@ -1063,7 +1040,7 @@ export class PodRunner {
           }
         } else if (exitCode === 127) {
           throw new PodRunnerWorkloadError({
-            message: `Failed with error "command not found". Is there a typo in the task or test spec?`,
+            message: `Running Pod ${this.podName} failed with error "command not found". Is there a typo in the task or test spec?`,
             details: await podErrorDetails(),
           })
         } else {
@@ -1079,7 +1056,7 @@ export class PodRunner {
         if (exitCode !== undefined && exitCode !== 0) {
           if (throwOnExitCode === true) {
             throw new PodRunnerWorkloadError({
-              message: `Failed with exit code ${exitCode}.`,
+              message: `Running Pod ${this.podName} failed with exit code ${exitCode}.`,
               details: await podErrorDetails(),
             })
           } else {
@@ -1226,7 +1203,10 @@ export class PodRunner {
         podName: this.podName,
         result,
       }
-      throw new PodRunnerWorkloadError({ message: `Failed with exit code ${result.exitCode}.`, details: errorDetails })
+      throw new PodRunnerWorkloadError({
+        message: `Running Pod ${this.podName} failed with exit code ${result.exitCode}.`,
+        details: errorDetails,
+      })
     }
 
     return {
@@ -1330,7 +1310,7 @@ export class PodRunner {
   }
 
   handlePodError({ err, startedAt }: { err: GardenError; startedAt: Date }): RunResult {
-    let message: string
+    let errorMsg: string | undefined
     let diagnosticErrorMsg: string | undefined
     let exitCode: number | undefined
 
@@ -1346,7 +1326,7 @@ export class PodRunner {
     } else if (err instanceof PodRunnerWorkloadError || err instanceof PodRunnerTimeoutError) {
       // If we return here, we'll throw TestFailedError or TaskFailedError down the line, which should only be thrown if the actual test failed.
       // In all other failure conditions, we want to throw and the original error incl. stack trace to bubble up.
-      message = err.message
+      errorMsg = err.message
       exitCode = err.details.exitCode
 
       if (err.details.podStatus) {
@@ -1357,7 +1337,8 @@ export class PodRunner {
     }
 
     return {
-      log: message,
+      log: err.details.logs || "",
+      errorMsg,
       diagnosticErrorMsg,
       success: false,
       startedAt,

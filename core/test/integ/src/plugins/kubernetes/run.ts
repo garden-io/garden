@@ -18,7 +18,12 @@ import { join } from "path"
 import type { Garden } from "../../../../../src/garden.js"
 import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 import { deline, randomString, dedent } from "../../../../../src/util/string.js"
-import { runAndCopy, PodRunner, prepareRunPodSpec } from "../../../../../src/plugins/kubernetes/run.js"
+import {
+  runAndCopy,
+  PodRunner,
+  prepareRunPodSpec,
+  PodRunnerWorkloadError,
+} from "../../../../../src/plugins/kubernetes/run.js"
 import { KubeApi, KubernetesError } from "../../../../../src/plugins/kubernetes/api.js"
 import type {
   KubernetesPluginContext,
@@ -193,12 +198,8 @@ describe("PodRunner", () => {
       await expectError(
         () => runner.exec({ log, command: ["sh", "-c", "echo foo && exit 2"], buffer: true }),
         (err) => {
-          expect(err.message).to.eql(dedent`
-              Failed with exit code 2.
-
-              Here are the logs until the error occurred:
-
-              foo`)
+          expect(err.message).to.eql(`Running Pod ${runner.podName} failed with exit code 2.`)
+          expect(err.details.logs.trim()).to.eql(`foo`)
         }
       )
     })
@@ -299,13 +300,8 @@ describe("PodRunner", () => {
       await expectError(
         () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events, throwOnExitCode: true }),
         (err) => {
-          expect(err.message).to.eql(dedent`
-            Failed with exit code 1.
-
-            Here are the logs until the error occurred:
-
-            foo
-            `)
+          expect(err.message).to.eql(`Running Pod ${runner.podName} failed with exit code 1.`)
+          expect(err.details.logs).to.eql(`foo`)
         }
       )
     })
@@ -560,6 +556,33 @@ describe("PodRunner", () => {
           `)
         expect(res.success).to.be.true
       })
+    })
+  })
+  describe("handlePodError", () => {
+    it("should return a RunResult from a PodRunnerError", async () => {
+      const pod = makePod(["sh", "-c", "sleep 600"])
+
+      runner = new PodRunner({
+        ctx,
+        pod,
+        namespace,
+        api,
+        provider,
+      })
+
+      const error = new PodRunnerWorkloadError({
+        message: "Something went wrong",
+        details: {
+          podName: runner.podName,
+          logs: "for shame",
+          exitCode: 1,
+        },
+      })
+      const runResult = runner.handlePodError({ err: error, startedAt: new Date() })
+      expect(runResult.errorMsg).to.equal("Something went wrong")
+      expect(runResult.log).to.equal("for shame")
+      expect(runResult.exitCode).to.equal(1)
+      expect(runResult.success).to.equal(false)
     })
   })
 })
@@ -1272,8 +1295,8 @@ describe("kubernetes Pod runner functions", () => {
         })
 
         // Note: Kubernetes doesn't always return the logs when commands time out.
-        expect(result.log.trim()).to.include(`Command timed out after ${timeout} seconds.`)
-        expect(result.success).to.be.false
+        expect(result.errorMsg).to.eql(`Command timed out after ${timeout} seconds.`)
+        expect(result.log.trim()).to.eql("banana")
       })
     })
 
@@ -1458,9 +1481,8 @@ describe("kubernetes Pod runner functions", () => {
               timeout,
             })
 
-            expect(result.log.trim()).to.equal(
-              `Command timed out after ${timeout} seconds. Here are the logs until the timeout occurred:\n\nbanana`
-            )
+            expect(result.errorMsg).to.equal(`Command timed out after ${timeout} seconds.`)
+            expect(result.log.trim()).to.equal(`banana`)
             expect(result.success).to.be.false
           })
 
@@ -1483,7 +1505,7 @@ describe("kubernetes Pod runner functions", () => {
               timeout,
             })
 
-            expect(result.log.trim()).to.equal(`Command timed out after ${timeout} seconds.`)
+            expect(result.errorMsg).to.equal(`Command timed out after ${timeout} seconds.`)
             expect(await pathExists(join(tmpDir.path, "task.txt"))).to.be.true
             expect(result.success).to.be.false
           })
