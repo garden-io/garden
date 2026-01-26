@@ -8,7 +8,7 @@
 
 import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/build/src/util/string.js"
-import { deletePulumiDeploy, deployPulumi, getPulumiDeployStatus } from "./handlers.js"
+import { deletePulumiDeploy, deployPulumi, getPulumiDeployStatus, planPulumiDeploy } from "./handlers.js"
 import { getPulumiCommands } from "./commands.js"
 import { pulumiCliSpecs } from "./cli.js"
 import type { PulumiDeployConfig } from "./action.js"
@@ -74,6 +74,7 @@ export const gardenPlugin = () =>
             deploy: deployPulumi,
             getStatus: getPulumiDeployStatus,
             delete: deletePulumiDeploy,
+            plan: planPulumiDeploy,
           },
         },
       ],

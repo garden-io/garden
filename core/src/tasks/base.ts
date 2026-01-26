@@ -19,6 +19,10 @@ import { GraphError, InternalError, RuntimeError } from "../exceptions.js"
 import type { DeleteDeployTask } from "./delete-deploy.js"
 import type { BuildTask } from "./build.js"
 import type { DeployTask } from "./deploy.js"
+import type { PlanTask } from "./plan.js"
+import type { PlanRunTask } from "./plan-run.js"
+import type { PlanTestTask } from "./plan-test.js"
+import type { PlanBuildTask } from "./plan-build.js"
 import type { PluginActionTask, PluginTask } from "./plugin.js"
 import type { PublishTask } from "./publish.js"
 import type { ResolveActionTask } from "./resolve-action.js"
@@ -78,6 +82,10 @@ export type Task =
   | BuildTask
   | DeleteDeployTask
   | DeployTask
+  | PlanTask
+  | PlanRunTask
+  | PlanTestTask
+  | PlanBuildTask
   | PluginTask
   | PluginActionTask<any, any>
   | PublishTask

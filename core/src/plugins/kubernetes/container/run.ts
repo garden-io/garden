@@ -16,6 +16,20 @@ import { getDeployedImageId } from "./util.js"
 import { getRunResultCache } from "../results-cache.js"
 import { InternalError } from "../../../exceptions.js"
 import type { KubernetesRunResult } from "../../../plugin/base.js"
+import { styles } from "../../../logger/styles.js"
+
+export const k8sContainerRunPlan: RunActionHandler<"plan", ContainerRunAction> = async ({ action }) => {
+  const { command, args } = action.getSpec()
+  const image = getDeployedImageId(action)
+  const fullCommand = [...(command || []), ...(args || [])].join(" ") || "(default entrypoint)"
+  return {
+    state: "ready" as const,
+    outputs: { log: "" },
+    planDescription: styles.success(
+      `Would run in Pod with image ${styles.highlight(image)}: ${styles.accent(fullCommand)}`
+    ),
+  }
+}
 
 export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params

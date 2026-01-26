@@ -1,7 +1,7 @@
 config:
   pulumi-k8s-test:appName: api-pulumi-variables-override
   pulumi-k8s-test:orgName: gordon-garden-bot
-  pulumi-k8s-test:namespace: pulumi-test
+  pulumi-k8s-test:namespace: pulumi-test-fd2a175a-198c-4e49-99e9-0324fb11580b
   pulumi-k8s-test:isMinikube: 'true'
 backend:
   url: https://api.pulumi.com

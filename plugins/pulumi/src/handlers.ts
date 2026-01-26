@@ -17,6 +17,7 @@ import {
   getStackConfigPath,
   getStackOutputs,
   getStackStatusFromTag,
+  previewStack,
   selectStack,
   setStackVersionTag,
 } from "./helpers.js"
@@ -160,5 +161,80 @@ export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = 
       state: "missing",
       detail: {},
     },
+  }
+}
+
+export const planPulumiDeploy: DeployActionHandlers<PulumiDeploy>["plan"] = async ({ ctx, log, action }) => {
+  const provider = ctx.provider as PulumiProvider
+  const pulumiParams = { log, ctx, provider, action }
+
+  await selectStack(pulumiParams)
+
+  // Run pulumi preview and capture the output
+  const previewResult = await previewStack({
+    ...pulumiParams,
+    logPreview: false, // We'll include the output in our plan description
+  })
+
+  const { operationCounts, previewUrl, affectedResourcesCount } = previewResult
+
+  // Extract counts with defaults
+  const createCount = operationCounts.create || 0
+  const updateCount = operationCounts.update || 0
+  const deleteCount = operationCounts.delete || 0
+  const replaceCount = operationCounts.replace || 0
+  const sameCount = operationCounts.same || 0
+
+  // Build the plan description
+  let planDescription = `Pulumi Deploy: ${action.name}\n`
+  planDescription += `Stack Root: ${getActionStackRoot(action)}\n`
+  if (previewUrl) {
+    planDescription += `Preview URL: ${previewUrl}\n`
+  }
+  planDescription += `\n`
+
+  if (affectedResourcesCount === 0) {
+    planDescription += "No changes. Stack is up-to-date."
+  } else {
+    planDescription += `Resources affected: ${affectedResourcesCount}\n`
+    if (createCount > 0) planDescription += `  Creates: ${createCount}\n`
+    if (updateCount > 0) planDescription += `  Updates: ${updateCount}\n`
+    if (deleteCount > 0) planDescription += `  Deletes: ${deleteCount}\n`
+    if (replaceCount > 0) planDescription += `  Replaces: ${replaceCount}\n`
+    if (sameCount > 0) planDescription += `  Same: ${sameCount}\n`
+    if (previewUrl) {
+      planDescription += `\nView detailed preview at: ${previewUrl}`
+    }
+  }
+
+  // Build resource changes list (simplified for pulumi)
+  const resourceChanges: Array<{ key: string; operation: "create" | "update" | "delete" | "unchanged" }> = []
+  if (createCount > 0) {
+    resourceChanges.push({ key: `pulumi/${action.name} (${createCount} resources)`, operation: "create" })
+  }
+  if (updateCount + replaceCount > 0) {
+    resourceChanges.push({
+      key: `pulumi/${action.name} (${updateCount + replaceCount} resources)`,
+      operation: "update",
+    })
+  }
+  if (deleteCount > 0) {
+    resourceChanges.push({ key: `pulumi/${action.name} (${deleteCount} resources)`, operation: "delete" })
+  }
+  if (sameCount > 0 && resourceChanges.length === 0) {
+    resourceChanges.push({ key: `pulumi/${action.name}`, operation: "unchanged" })
+  }
+
+  return {
+    state: "ready",
+    outputs: await getStackOutputs(pulumiParams),
+    planDescription,
+    changesSummary: {
+      create: createCount,
+      update: updateCount + replaceCount,
+      delete: deleteCount,
+      unchanged: sameCount,
+    },
+    resourceChanges,
   }
 }

@@ -207,6 +207,59 @@ execDeploy.addHandler("deploy", async (params) => {
   }
 })
 
+execDeploy.addHandler("plan", async (params) => {
+  const { action, log } = params
+  const spec = action.getSpec()
+
+  let planDescription: string
+
+  if (spec.deployCommand.length === 0) {
+    planDescription = "No deploy command configured. Nothing would be executed."
+  } else if (spec.persistent) {
+    planDescription = dedent`
+      Would start persistent process:
+        Command: ${spec.deployCommand.join(" ")}
+        Working directory: ${action.getBuildPath()}
+    `
+    if (spec.statusCommand && spec.statusCommand.length > 0) {
+      planDescription += `\n  Status command: ${spec.statusCommand.join(" ")}`
+    }
+  } else {
+    planDescription = dedent`
+      Would execute deploy command:
+        Command: ${spec.deployCommand.join(" ")}
+        Working directory: ${action.getBuildPath()}
+    `
+  }
+
+  if (spec.cleanupCommand && spec.cleanupCommand.length > 0) {
+    planDescription += `\n  Cleanup command: ${spec.cleanupCommand.join(" ")}`
+  }
+
+  if (Object.keys(spec.env).length > 0) {
+    planDescription += `\n  Environment variables: ${Object.keys(spec.env).join(", ")}`
+  }
+
+  log.info(planDescription)
+
+  const hasDeployCommand = spec.deployCommand.length > 0
+
+  return {
+    state: "ready",
+    outputs: {},
+    planDescription,
+    changesSummary: {
+      create: 0,
+      update: hasDeployCommand ? 1 : 0,
+      delete: 0,
+      unchanged: hasDeployCommand ? 0 : 1,
+    },
+    resourceChanges: hasDeployCommand
+      ? [{ key: `exec/${action.name}`, operation: "update" as const }]
+      : [{ key: `exec/${action.name}`, operation: "unchanged" as const }],
+  }
+})
+
 export async function deployPersistentExecService({
   ctx,
   deployName,

@@ -13,7 +13,7 @@ import { getPortForwardHandler } from "../port-forward.js"
 import { getActionNamespace } from "../namespace.js"
 import type { HelmDeployAction } from "./config.js"
 import { helmDeploySchema } from "./config.js"
-import { deleteHelmDeploy, helmDeploy } from "./deployment.js"
+import { deleteHelmDeploy, helmDeploy, planHelmDeploy } from "./deployment.js"
 import { execInHelmDeploy } from "./exec.js"
 import { getHelmDeployLogs } from "./logs.js"
 import { getHelmDeployStatus } from "./status.js"
@@ -46,6 +46,7 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
     exec: execInHelmDeploy,
     getLogs: getHelmDeployLogs,
     getStatus: getHelmDeployStatus,
+    plan: planHelmDeploy,
 
     startSync: helmStartSync,
     stopSync: k8sContainerStopSync,

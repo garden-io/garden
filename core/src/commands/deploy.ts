@@ -14,6 +14,11 @@ import { Command, handleProcessResults, processCommandResultSchema, emptyActionR
 import { printEmoji, printHeader } from "../logger/util.js"
 import { runAsDevCommand } from "./helpers.js"
 import { DeployTask } from "../tasks/deploy.js"
+import { PlanTask } from "../tasks/plan.js"
+// Side-effect imports to ensure plan task factories are registered
+import "../tasks/plan-run.js"
+import "../tasks/plan-test.js"
+import "../tasks/plan-build.js"
 import { naturalList } from "../util/string.js"
 import { StringsParameter, BooleanParameter } from "../cli/params.js"
 import type { Garden } from "../garden.js"
@@ -30,6 +35,7 @@ import { gardenEnv } from "../constants.js"
 import type { DeployAction } from "../actions/deploy.js"
 import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
 import { styles } from "../logger/styles.js"
+import { handlePlanResults } from "./plan-helpers.js"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -45,6 +51,13 @@ export const deployArgs = {
 export const deployOpts = {
   "force": new BooleanParameter({ help: "Force re-deploy.", aliases: ["f"] }),
   "force-build": new BooleanParameter({ help: "Force re-build of build dependencies." }),
+  "plan": new BooleanParameter({
+    help: dedent`
+      [EXPERIMENTAL] Show what would be deployed without actually deploying anything.
+      This will run the plan handler for each Deploy action, showing the changes that would be made.
+    `,
+    aliases: ["dry-run"],
+  }),
   "watch": watchParameter,
   "sync": new StringsParameter({
     help: dedent`
@@ -128,6 +141,8 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy --forward            # deploy everything and start port forwards without sync or local mode
         garden deploy my-deploy --logs     # deploy my-deploy and follow the log output from the deployed service
         garden deploy my-deploy -l 3       # deploy with verbose log level to see logs of the creation of the deployment
+        garden deploy --plan               # show what would be deployed without making any changes
+        garden deploy my-deploy --plan     # show what deploying my-deploy would do
   `
 
   override arguments = deployArgs
@@ -160,11 +175,18 @@ export class DeployCommand extends Command<Args, Opts> {
     this.garden = garden
     const commandLog = log.createLog({ name: "garden" })
 
+    const planMode = opts["plan"]
+
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
     }
 
-    const monitor = this.maybePersistent(params)
+    // Plan mode is not compatible with persistent options
+    if (planMode && (opts.sync || opts.logs || opts.forward)) {
+      commandLog.warn("--plan is not compatible with --sync, --logs, or --forward. These options will be ignored.")
+    }
+
+    const monitor = !planMode && this.maybePersistent(params)
     if (monitor && !params.parentCommand) {
       // Then we're not in the dev command yet, so we call that instead with the appropriate initial command.
       return runAsDevCommand("deploy", params)
@@ -174,11 +196,11 @@ export class DeployCommand extends Command<Args, Opts> {
 
     // TODO-0.13.0: make these both explicit options
     const forward = monitor && !disablePortForwards
-    const streamLogs = opts.logs
+    const streamLogs = !planMode && opts.logs
 
     const actionModes: ActionModeMap = {
       // Support a single empty value (which comes across as an empty list) as equivalent to '*'
-      sync: opts.sync?.length === 0 ? ["deploy.*"] : opts.sync?.map((s) => "deploy." + s),
+      sync: planMode ? undefined : opts.sync?.length === 0 ? ["deploy.*"] : opts.sync?.map((s) => "deploy." + s),
     }
 
     let actionsFilter: string[] | undefined = undefined
@@ -229,7 +251,7 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const force = opts.force
-    const startSync = !!opts.sync
+    const startSync = !planMode && !!opts.sync
 
     await warnOnLinkedActions(garden, log, deployActions)
 
@@ -254,7 +276,20 @@ export class DeployCommand extends Command<Args, Opts> {
       }
     }
 
+    // Create either PlanTask (for --plan mode) or DeployTask (for normal deploy)
     const tasks = deployActions.map((action) => {
+      if (planMode) {
+        return new PlanTask({
+          garden,
+          log,
+          graph,
+          action,
+          force,
+          forceBuild: opts["force-build"],
+          skipRuntimeDependencies,
+        })
+      }
+
       const events = new PluginEventBroker(garden)
       const task = new DeployTask({
         garden,
@@ -311,6 +346,11 @@ export class DeployCommand extends Command<Args, Opts> {
     })
 
     const results = await garden.processTasks({ tasks, logProgressStatus: true })
+
+    // For plan mode, we format the output differently
+    if (planMode) {
+      return handlePlanResults(garden, log, results)
+    }
 
     return handleProcessResults(garden, log, "deploy", results)
   }

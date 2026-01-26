@@ -106,6 +106,30 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       return output
     },
 
+    plan: async (params) => {
+      const { router, action, log: _log } = params
+
+      const output = await router.callHandler({
+        params,
+        handlerType: "plan",
+        defaultHandler: async (p) => {
+          p.log.warn(
+            `No plan handler available for ${p.action.kind} action type ${p.action.type}. ` +
+              `Dry-run not supported for this action type.`
+          )
+          return {
+            state: "unknown" as ActionState,
+            outputs: {},
+            planDescription: `Dry-run not supported for action type "${p.action.type}"`,
+            changesSummary: { create: 0, update: 0, delete: 0, unchanged: 0 },
+          }
+        },
+      })
+      const result = output.result
+      await router.validateActionOutputs(action, "runtime", result.outputs)
+      return output
+    },
+
     getPortForward: async (params) => {
       return params.router.callHandler({ params, handlerType: "getPortForward" })
     },

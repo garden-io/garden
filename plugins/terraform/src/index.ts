@@ -21,7 +21,7 @@ import { docsBaseUrl } from "@garden-io/sdk/build/src/constants.js"
 import { getTerraformCommands } from "./commands.js"
 import type { TerraformDeployConfig } from "./action.js"
 import { terraformDeployOutputsSchema, terraformDeploySchema } from "./action.js"
-import { deleteTerraformModule, deployTerraform, getTerraformStatus } from "./handlers.js"
+import { deleteTerraformModule, deployTerraform, getTerraformStatus, planTerraformDeploy } from "./handlers.js"
 import { DOCS_BASE_URL } from "@garden-io/core/build/src/constants.js"
 import type { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/build.js"
 import type { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/convert.js"
@@ -122,6 +122,7 @@ export const gardenPlugin = () =>
             deploy: deployTerraform,
             getStatus: getTerraformStatus,
             delete: deleteTerraformModule,
+            plan: planTerraformDeploy,
           },
         },
       ],

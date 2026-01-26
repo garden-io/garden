@@ -23,6 +23,7 @@ import { filterManifests, prepareManifests, prepareTemplates } from "./common.js
 import { kubernetesRunOutputsSchema } from "../kubernetes-type/config.js"
 import { getRunResultCache, getTestResultCache } from "../results-cache.js"
 import type { KubernetesRunResult } from "../../../plugin/base.js"
+import { styles } from "../../../logger/styles.js"
 
 const helmRunPodOutputsSchema = kubernetesRunOutputsSchema
 const helmTestPodOutputsSchema = helmRunPodOutputsSchema
@@ -72,6 +73,21 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
     },
 
     getResult: k8sGetRunResult,
+
+    plan: async ({ action }) => {
+      const spec = action.getSpec()
+      const resource = spec.resource
+      const command = spec.command || []
+      const args = spec.args || []
+      const fullCommand = [...command, ...args].join(" ") || "(default entrypoint)"
+      return {
+        state: "ready" as const,
+        outputs: { log: "" },
+        planDescription: styles.success(
+          `Would run in Pod from ${styles.highlight(`${resource?.kind}/${resource?.name}`)}: ${styles.accent(fullCommand)}`
+        ),
+      }
+    },
   },
 })
 
@@ -112,6 +128,21 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
     },
 
     getResult: k8sGetRunResult,
+
+    plan: async ({ action }) => {
+      const spec = action.getSpec()
+      const resource = spec.resource
+      const command = spec.command || []
+      const args = spec.args || []
+      const fullCommand = [...command, ...args].join(" ") || "(default entrypoint)"
+      return {
+        state: "ready" as const,
+        outputs: { log: "" },
+        planDescription: styles.success(
+          `Would run test in Pod from ${styles.highlight(`${resource?.kind}/${resource?.name}`)}: ${styles.accent(fullCommand)}`
+        ),
+      }
+    },
   },
 })
 

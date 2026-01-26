@@ -24,6 +24,8 @@ import type { DeployStatus } from "../../../../src/plugin/handlers/Deploy/get-st
 import { defaultServerPort } from "../../../../src/commands/serve.js"
 import { zodObjectToJoi } from "../../../../src/config/common.js"
 import { gardenEnv } from "../../../../src/constants.js"
+import { getPlanDeploySchema } from "../../../../src/plugin/handlers/Deploy/plan.js"
+import { validateSchema } from "../../../../src/config/validation.js"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
@@ -113,6 +115,7 @@ export const defaultDeployOpts = withDefaultGlobalOpts({
   "watch": false,
   "force": false,
   "force-build": true, // <----
+  "plan": false,
   "skip": undefined,
   "skip-dependencies": false,
   "skip-watch": false,
@@ -480,6 +483,161 @@ describe("DeployCommand", () => {
     }
 
     expect(Object.keys(taskResultOutputs(result!)).includes("deploy.service-b")).to.be.false
+  })
+
+  describe("--plan", () => {
+    it("should plan Run dependencies instead of executing them", async () => {
+      const garden = await makeTestGarden(projectRootB, { plugins: [testProvider()] })
+      const log = garden.log
+
+      const { result, errors } = await command.action({
+        garden,
+        log,
+        args: {
+          names: ["service-b"],
+        },
+        opts: {
+          ...defaultDeployOpts,
+          plan: true,
+        },
+      })
+
+      if (errors) {
+        throw errors[0]
+      }
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      // Should have plan tasks instead of execute tasks
+      // plan.* for Deploy actions (e.g., plan.service-a)
+      // plan-run.* for Run actions (e.g., plan-run.task-b)
+      // plan-build.* for Build actions (e.g., plan-build.module-a)
+      const planDeployKeys = keys.filter((k) => k.startsWith("plan.") && !k.startsWith("plan-"))
+      const planRunKeys = keys.filter((k) => k.startsWith("plan-run."))
+      const planBuildKeys = keys.filter((k) => k.startsWith("plan-build."))
+
+      expect(planDeployKeys, "Expected plan.* tasks for Deploy").to.not.be.empty
+      expect(planRunKeys, "Expected plan-run.* tasks for Run").to.not.be.empty
+      expect(planBuildKeys, "Expected plan-build.* tasks for Build").to.not.be.empty
+
+      // Should NOT have regular execute tasks for runs (e.g., run.task-b)
+      expect(keys.filter((k) => k.match(/^run\.[^.]+$/)).length, "Should not have run.* tasks").to.equal(0)
+
+      // Should NOT have regular deploy tasks (e.g., deploy.service-a)
+      expect(keys.filter((k) => k.match(/^deploy\.[^.]+$/)).length, "Should not have deploy.* tasks").to.equal(0)
+
+      // Should NOT have regular build tasks (e.g., build.module-a)
+      expect(keys.filter((k) => k.match(/^build\.[^.]+$/)).length, "Should not have build.* tasks").to.equal(0)
+    })
+
+    it("should have plan results with planDescription for each action", async () => {
+      const garden = await makeTestGarden(projectRootB, { plugins: [testProvider()] })
+      const log = garden.log
+
+      const { result, errors } = await command.action({
+        garden,
+        log,
+        args: {
+          names: ["service-b"],
+        },
+        opts: {
+          ...defaultDeployOpts,
+          plan: true,
+        },
+      })
+
+      if (errors) {
+        throw errors[0]
+      }
+
+      const graphResults = result!.graphResults
+      const resultsMap = graphResults as Record<string, any>
+
+      // Verify task keys use the correct format (this catches the bug where keys were wrong)
+      // Keys should be: plan.{name}, plan-run.{name}, plan-build.{name} - NOT plan.deploy.{name}, etc.
+      const allKeys = Object.keys(resultsMap)
+
+      // Check that we don't have incorrectly formatted keys
+      const wrongDeployKeys = allKeys.filter((k) => k.startsWith("plan.deploy."))
+      const wrongRunKeys = allKeys.filter((k) => k.startsWith("plan-run.run."))
+      const wrongBuildKeys = allKeys.filter((k) => k.startsWith("plan-build.build."))
+      const wrongTestKeys = allKeys.filter((k) => k.startsWith("plan-test.test."))
+
+      expect(wrongDeployKeys, "Should not have plan.deploy.* keys").to.be.empty
+      expect(wrongRunKeys, "Should not have plan-run.run.* keys").to.be.empty
+      expect(wrongBuildKeys, "Should not have plan-build.build.* keys").to.be.empty
+      expect(wrongTestKeys, "Should not have plan-test.test.* keys").to.be.empty
+
+      // Verify each plan task result has a planDescription
+      for (const [key, taskResult] of Object.entries(resultsMap)) {
+        if (!taskResult) continue
+
+        // Skip non-plan tasks (like resolve tasks)
+        const isPlanTask =
+          key.startsWith("plan.") ||
+          key.startsWith("plan-run.") ||
+          key.startsWith("plan-test.") ||
+          key.startsWith("plan-build.")
+        if (!isPlanTask) continue
+
+        const result = (taskResult as any).result
+        expect(result, `Task ${key} should have a result`).to.exist
+        expect(result.planDescription, `Task ${key} should have planDescription`).to.be.a("string")
+        expect(result.planDescription.length, `Task ${key} planDescription should not be empty`).to.be.greaterThan(0)
+      }
+    })
+
+    describe("PlanDeployResult schema validation", () => {
+      it("should allow resourceChanges with diffOutput field", () => {
+        const validResult = {
+          state: "ready",
+          outputs: {},
+          planDescription: "Would create resources",
+          changesSummary: { create: 1, update: 0, delete: 0, unchanged: 0 },
+          resourceChanges: [{ key: "Deployment/default/api", operation: "create", diffOutput: "some diff output" }],
+        }
+        // Should not throw
+        validateSchema(validResult, getPlanDeploySchema())
+      })
+
+      it("should allow resourceChanges with empty diffOutput field", () => {
+        const validResult = {
+          state: "ready",
+          outputs: {},
+          planDescription: "No changes needed",
+          changesSummary: { create: 0, update: 0, delete: 0, unchanged: 2 },
+          resourceChanges: [
+            { key: "Deployment/default/api", operation: "unchanged", diffOutput: "" },
+            { key: "Service/default/api", operation: "unchanged", diffOutput: "" },
+          ],
+        }
+        // Should not throw - empty diffOutput must be allowed
+        validateSchema(validResult, getPlanDeploySchema())
+      })
+
+      it("should allow resourceChanges without diffOutput field", () => {
+        const validResult = {
+          state: "ready",
+          outputs: {},
+          planDescription: "Would create resources",
+          changesSummary: { create: 1, update: 0, delete: 0, unchanged: 0 },
+          resourceChanges: [{ key: "Deployment/default/api", operation: "create" }],
+        }
+        // Should not throw
+        validateSchema(validResult, getPlanDeploySchema())
+      })
+
+      it("should reject resourceChanges with invalid operation", () => {
+        const invalidResult = {
+          state: "ready",
+          outputs: {},
+          planDescription: "Would do something",
+          changesSummary: { create: 0, update: 0, delete: 0, unchanged: 0 },
+          resourceChanges: [{ key: "Deployment/default/api", operation: "invalid-operation" }],
+        }
+        expect(() => validateSchema(invalidResult, getPlanDeploySchema())).to.throw()
+      })
+    })
   })
 
   describe("isPersistent", () => {

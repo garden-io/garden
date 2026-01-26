@@ -696,3 +696,17 @@ async function getPlatforms(cmdOpts: string[]): Promise<string[]> {
   }
   return platforms
 }
+
+export const planContainerBuild: BuildActionHandler<"plan", ContainerBuildAction> = async ({ action }) => {
+  const spec = action.getSpec()
+  const dockerfile = spec.dockerfile || defaultDockerfileName
+  const outputs = action.getOutputs()
+
+  return {
+    state: "ready",
+    outputs: {},
+    planDescription: styles.success(
+      `Would build container image ${styles.highlight(outputs.localImageId)} from ${styles.accent(dockerfile)}`
+    ),
+  }
+}

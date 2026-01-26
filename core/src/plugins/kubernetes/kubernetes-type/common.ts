@@ -81,7 +81,7 @@ export async function getManifests({
 
     if (patchSpec) {
       const manifestDescription = renderManifestDescription(declaredManifest)
-      log.info(`Applying patch to ${manifestDescription}`)
+      log.verbose(`Applying patch to ${manifestDescription}`)
 
       try {
         // Ideally we don't shell out to kubectl here but I couldn't find a way to use the Node SDK here.

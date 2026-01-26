@@ -24,6 +24,7 @@ import {
   buildContainer,
   getContainerBuildActionOutputs,
   getContainerBuildStatus,
+  planContainerBuild,
   validateContainerBuild,
 } from "./build.js"
 import type { ConfigureModuleParams } from "../../plugin/handlers/Module/configure.js"
@@ -532,6 +533,7 @@ export const gardenPlugin = () =>
 
             build: buildContainer,
             getStatus: getContainerBuildStatus,
+            plan: planContainerBuild,
             publish: publishContainerBuild,
             validate: validateContainerBuild,
           },

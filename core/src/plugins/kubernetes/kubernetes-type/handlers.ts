@@ -13,7 +13,7 @@ import { gardenAnnotationKey } from "../../../util/annotations.js"
 import { KubeApi } from "../api.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync.js"
-import { apply, deleteObjectsBySelector } from "../kubectl.js"
+import { apply, deleteObjectsBySelector, kubectlDiff } from "../kubectl.js"
 import { streamK8sLogs } from "../logs.js"
 import {
   deleteNamespaces,
@@ -27,6 +27,7 @@ import type { ResourceStatus } from "../status/status.js"
 import {
   getDeployedResource,
   k8sManifestHashAnnotationKey,
+  manifestMatchesDeployedResource,
   resolveResourceStatus,
   resolveResourceStatuses,
   waitForResources,
@@ -45,6 +46,7 @@ import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-st
 import type { ResolvedDeployAction } from "../../../actions/deploy.js"
 import { isSha256 } from "../../../util/hashing.js"
 import { prepareSecrets } from "../secrets.js"
+import { styles } from "../../../logger/styles.js"
 import type { KubernetesPodRunActionConfig } from "./kubernetes-pod.js"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
@@ -479,6 +481,132 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
     detail: status.detail!,
     // Tell the framework that the mutagen process is attached, if applicable
     attached,
+  }
+}
+
+export const planKubernetesDeploy: DeployActionHandler<"plan", KubernetesDeployAction> = async (params) => {
+  const { ctx, log, action } = params
+
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
+  const api = await KubeApi.factory(log, ctx, provider)
+
+  const namespaceStatus = await getActionNamespaceStatus({
+    ctx: k8sCtx,
+    log,
+    action,
+    provider,
+  })
+  const namespace = namespaceStatus.namespaceName
+
+  const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
+
+  const getResourceKey = (resource: KubernetesResource) => {
+    const ns = resource.metadata?.namespace || namespace
+    return `${resource.kind}/${ns}/${resource.metadata?.name}`
+  }
+
+  // Get currently deployed resources and determine changes using the same logic as status check
+  const deployedByKey = new Map<string, KubernetesServerResource>()
+  for (const manifest of manifests) {
+    const deployed = await getDeployedResource(ctx, provider, manifest, log)
+    if (deployed) {
+      deployedByKey.set(getResourceKey(manifest), deployed)
+    }
+  }
+
+  // Determine which resources have changed using the same comparison as status check
+  type ResourceChange = { key: string; operation: "create" | "update" | "delete" | "unchanged"; diffOutput?: string }
+  const resourceChanges: ResourceChange[] = []
+  let createCount = 0
+  let updateCount = 0
+  let unchangedCount = 0
+
+  for (const manifest of manifests) {
+    const key = getResourceKey(manifest)
+    const deployed = deployedByKey.get(key) || null
+
+    if (!deployed) {
+      // Resource doesn't exist - will be created
+      createCount++
+      resourceChanges.push({ key, operation: "create" })
+    } else {
+      // Check if resource matches using the same logic as status check
+      const matches = await manifestMatchesDeployedResource(manifest, deployed)
+      if (matches) {
+        unchangedCount++
+        resourceChanges.push({ key, operation: "unchanged" })
+      } else {
+        updateCount++
+        // Use kubectl diff for this single manifest to get a proper unified diff
+        const diffResult = await kubectlDiff({
+          log,
+          ctx,
+          provider,
+          manifests: [manifest],
+          namespace: manifest.metadata?.namespace || namespace,
+        })
+        resourceChanges.push({ key, operation: "update", diffOutput: diffResult.diffOutput })
+      }
+    }
+  }
+
+  // Build the plan description with better formatting
+  const lines: string[] = []
+
+  // Header for this Deploy action
+  lines.push(styles.highlight(`━━━ Kubernetes Deploy: ${styles.bold(action.name)} ━━━`))
+  lines.push(`Namespace: ${styles.accent(namespace)}`)
+  lines.push(`Manifests: ${manifests.length}`)
+  lines.push("")
+
+  if (createCount > 0 || updateCount > 0) {
+    // List resources by operation type
+    const creates = resourceChanges.filter((r) => r.operation === "create")
+    const updates = resourceChanges.filter((r) => r.operation === "update")
+
+    if (creates.length > 0) {
+      lines.push(styles.success(`Resources to create (${creates.length}):`))
+      for (const r of creates) {
+        lines.push(styles.success(`  + ${r.key}`))
+      }
+      lines.push("")
+    }
+
+    if (updates.length > 0) {
+      lines.push(styles.warning(`Resources to update (${updates.length}):`))
+      for (const r of updates) {
+        lines.push(styles.warning(`  ~ ${r.key}`))
+      }
+      lines.push("")
+    }
+
+    // Show the detailed diff for updates using kubectl diff output
+    const updatesWithDiff = updates.filter((r) => r.diffOutput)
+    if (updatesWithDiff.length > 0) {
+      lines.push(styles.primary("Detailed changes:"))
+      lines.push("")
+      for (const r of updatesWithDiff) {
+        lines.push(styles.warning(`--- ${r.key} ---`))
+        lines.push(r.diffOutput!)
+        lines.push("")
+      }
+    }
+  } else {
+    lines.push(styles.success("✓ No changes detected. Resources are up-to-date."))
+  }
+
+  return {
+    state: "ready",
+    outputs: {},
+    planDescription: lines.join("\n"),
+    changesSummary: {
+      create: createCount,
+      update: updateCount,
+      delete: 0,
+      unchanged: unchangedCount,
+    },
+    resourceChanges,
   }
 }
 

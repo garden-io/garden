@@ -24,6 +24,7 @@ import { LogOutCommand } from "./logout.js"
 import { LogsCommand } from "./logs.js"
 import { memoize } from "lodash-es"
 import { OptionsCommand } from "./options.js"
+import { PlanCommand } from "./plan.js"
 import { PluginsCommand } from "./plugins.js"
 import { PublishCommand } from "./publish.js"
 import { RunCommand } from "./run.js"
@@ -59,6 +60,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new LogOutCommand(),
   new LogsCommand(),
   new OptionsCommand(),
+  new PlanCommand(),
   new PluginsCommand(),
   new PublishCommand(),
   new RunCommand(),

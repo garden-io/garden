@@ -13,6 +13,7 @@ import { copyArtifacts, execGetResultHandler, execRunCommand } from "./common.js
 import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
 import { InternalError } from "../../exceptions.js"
+import { styles } from "../../logger/styles.js"
 
 export const execTestSpecSchema = execRunSpecSchema
 
@@ -92,3 +93,12 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
 })
 
 execTest.addHandler("getResult", execGetResultHandler)
+
+execTest.addHandler("plan", async ({ action }) => {
+  const { command } = action.getSpec()
+  return {
+    state: "ready" as const,
+    outputs: {},
+    planDescription: styles.success(`Would execute test command: ${styles.highlight(command.join(" "))}`),
+  }
+})

@@ -6,7 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { checkResourceStatuses, specChanged, waitForResources } from "../status/status.js"
+import {
+  checkResourceStatuses,
+  manifestMatchesDeployedResource,
+  specChanged,
+  waitForResources,
+} from "../status/status.js"
 import { helm } from "./helm-cli.js"
 import type { HelmGardenMetadataConfigMapData } from "./common.js"
 import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common.js"
@@ -16,7 +21,7 @@ import {
   getReleaseStatus,
   getRenderedResources,
 } from "./status.js"
-import { apply, deleteResources } from "../kubectl.js"
+import { apply, deleteResources, kubectlDiff } from "../kubectl.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getForwardablePorts, killPortForwards } from "../port-forward.js"
 import { getActionNamespace, getActionNamespaceStatus, updateNamespaceAecAnnotations } from "../namespace.js"
@@ -522,5 +527,137 @@ async function configureSyncModeAndWait({
       log,
       timeoutSec: timeout,
     })
+  }
+}
+
+export const planHelmDeploy: DeployActionHandler<"plan", HelmDeployAction> = async (params) => {
+  const { ctx, log, action } = params
+
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const releaseName = getReleaseName(action)
+
+  const namespaceStatus = await getActionNamespaceStatus({
+    ctx: k8sCtx,
+    log,
+    action,
+    provider: k8sCtx.provider,
+  })
+  const namespace = namespaceStatus.namespaceName
+
+  // Get rendered manifests using helm template
+  const desiredManifests = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
+
+  // Get currently deployed resources
+  const releaseStatus = await getReleaseStatus({
+    ctx: k8sCtx,
+    action,
+    releaseName,
+    log,
+  })
+
+  const deployedResources: KubernetesResource[] =
+    releaseStatus.state === "missing" ? [] : releaseStatus.detail?.remoteResources || []
+
+  const getResourceKey = (resource: KubernetesResource) => {
+    const ns = resource.metadata?.namespace || namespace
+    return `${resource.kind}/${ns}/${resource.metadata?.name}`
+  }
+
+  // Build a map of deployed resources by key
+  const deployedByKey = new Map(deployedResources.map((r) => [getResourceKey(r), r]))
+
+  // Determine which resources have changed using the same comparison as status check
+  type ResourceChange = { key: string; operation: "create" | "update" | "delete" | "unchanged"; diffOutput?: string }
+  const resourceChanges: ResourceChange[] = []
+  let createCount = 0
+  let updateCount = 0
+  let unchangedCount = 0
+
+  for (const manifest of desiredManifests) {
+    const key = getResourceKey(manifest)
+    const deployed = deployedByKey.get(key) || null
+
+    if (!deployed) {
+      // Resource doesn't exist - will be created
+      createCount++
+      resourceChanges.push({ key, operation: "create" })
+    } else {
+      // Check if resource matches using the same logic as status check
+      const matches = await manifestMatchesDeployedResource(manifest, deployed)
+      if (matches) {
+        unchangedCount++
+        resourceChanges.push({ key, operation: "unchanged" })
+      } else {
+        updateCount++
+        // Use kubectl diff for this single manifest to get a proper unified diff
+        const diffResult = await kubectlDiff({
+          log,
+          ctx,
+          provider: k8sCtx.provider,
+          manifests: [manifest],
+          namespace: manifest.metadata?.namespace || namespace,
+        })
+        resourceChanges.push({ key, operation: "update", diffOutput: diffResult.diffOutput })
+      }
+    }
+  }
+
+  // Build the plan description with better formatting
+  const lines: string[] = []
+
+  // Header for this Deploy action
+  lines.push(styles.highlight(`━━━ Helm Deploy: ${styles.bold(action.name)} ━━━`))
+  lines.push(`Release: ${styles.accent(releaseName)}`)
+  lines.push(`Namespace: ${styles.accent(namespace)}`)
+  lines.push(`Resources: ${desiredManifests.length}`)
+  lines.push("")
+
+  if (createCount > 0 || updateCount > 0) {
+    // List resources by operation type
+    const creates = resourceChanges.filter((r) => r.operation === "create")
+    const updates = resourceChanges.filter((r) => r.operation === "update")
+
+    if (creates.length > 0) {
+      lines.push(styles.success(`Resources to create (${creates.length}):`))
+      for (const r of creates) {
+        lines.push(styles.success(`  + ${r.key}`))
+      }
+      lines.push("")
+    }
+
+    if (updates.length > 0) {
+      lines.push(styles.warning(`Resources to update (${updates.length}):`))
+      for (const r of updates) {
+        lines.push(styles.warning(`  ~ ${r.key}`))
+      }
+      lines.push("")
+    }
+
+    // Show the detailed diff for updates using kubectl diff output
+    const updatesWithDiff = updates.filter((r) => r.diffOutput)
+    if (updatesWithDiff.length > 0) {
+      lines.push(styles.primary("Detailed changes:"))
+      lines.push("")
+      for (const r of updatesWithDiff) {
+        lines.push(styles.warning(`--- ${r.key} ---`))
+        lines.push(r.diffOutput!)
+        lines.push("")
+      }
+    }
+  } else {
+    lines.push(styles.success("✓ No changes detected. Release is up-to-date."))
+  }
+
+  return {
+    state: "ready",
+    outputs: {},
+    planDescription: lines.join("\n"),
+    changesSummary: {
+      create: createCount,
+      update: updateCount,
+      delete: 0,
+      unchanged: unchangedCount,
+    },
+    resourceChanges,
   }
 }
