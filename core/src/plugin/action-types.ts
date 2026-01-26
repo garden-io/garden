@@ -41,6 +41,10 @@ import { GetActionOutputs } from "./handlers/base/get-outputs.js"
 import { StartSync } from "./handlers/Deploy/start-sync.js"
 import { StopSync } from "./handlers/Deploy/stop-sync.js"
 import { GetSyncStatus } from "./handlers/Deploy/get-sync-status.js"
+import { PlanDeploy } from "./handlers/Deploy/plan.js"
+import { PlanRun } from "./handlers/Run/plan.js"
+import { PlanTest } from "./handlers/Test/plan.js"
+import { PlanBuild } from "./handlers/Build/plan.js"
 
 // BASE //
 
@@ -80,6 +84,7 @@ const actionTypeClasses = {
     ...baseActionTypeClasses,
     build: new DoBuildAction(),
     getStatus: new GetBuildActionStatus(),
+    plan: new PlanBuild(),
     publish: new PublishBuildAction(),
   },
   Deploy: {
@@ -91,6 +96,7 @@ const actionTypeClasses = {
     getPortForward: new GetDeployPortForward(),
     getStatus: new GetDeployStatus(),
     getSyncStatus: new GetSyncStatus(),
+    plan: new PlanDeploy(),
     startSync: new StartSync(),
     stopPortForward: new StopDeployPortForward(),
     stopSync: new StopSync(),
@@ -98,11 +104,13 @@ const actionTypeClasses = {
   Run: {
     ...baseActionTypeClasses,
     getResult: new GetRunActionResult(),
+    plan: new PlanRun(),
     run: new RunRunAction(),
   },
   Test: {
     ...baseActionTypeClasses,
     getResult: new GetTestActionResult(),
+    plan: new PlanTest(),
     run: new RunTestAction(),
   },
 }
@@ -140,6 +148,7 @@ export type ActionTypeDefinition<H extends ActionHandlers> = ActionTypeExtension
 export type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseHandlers<C> & {
   build: DoBuildAction<C>
   getStatus: GetBuildActionStatus<C>
+  plan: PlanBuild<C>
   publish: PublishBuildAction<C>
 }
 
@@ -175,6 +184,7 @@ export type DeployActionDescriptions<C extends DeployAction = DeployAction> = Ba
   getPortForward: GetDeployPortForward<C>
   getStatus: GetDeployStatus<C>
   getSyncStatus: GetSyncStatus<C>
+  plan: PlanDeploy<C>
   startSync: StartSync<C>
   stopPortForward: StopDeployPortForward<C>
   stopSync: StopSync<C>
@@ -203,6 +213,7 @@ export type DeployActionDefinition<C extends DeployAction = DeployAction> = Acti
 
 export type RunActionDescriptions<C extends RunAction = RunAction> = BaseHandlers<C> & {
   getResult: GetRunActionResult<C>
+  plan: PlanRun<C>
   run: RunRunAction<C>
 }
 
@@ -222,6 +233,7 @@ export type RunActionDefinition<C extends RunAction = RunAction> = ActionTypeDef
 
 export type TestActionDescriptions<C extends TestAction = TestAction> = BaseHandlers<C> & {
   getResult: GetTestActionResult<C>
+  plan: PlanTest<C>
   run: RunTestAction<C>
 }
 

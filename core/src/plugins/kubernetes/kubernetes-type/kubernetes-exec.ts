@@ -18,6 +18,7 @@ import type { PluginContext } from "../../../plugin-context.js"
 import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
 import type { RunResult } from "../../../plugin/base.js"
 import { dedent } from "../../../util/string.js"
+import { styles } from "../../../logger/styles.js"
 import { KubernetesError } from "../api.js"
 import type { KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
 import { namespaceNameSchema, runPodResourceSchema } from "../config.js"
@@ -85,6 +86,17 @@ export const kubernetesExecRunDefinition = (): RunActionDefinition<KubernetesExe
     getResult: async ({}) => {
       return { state: "not-ready", detail: null, outputs: { log: "" } }
     },
+
+    plan: async ({ action }) => {
+      const { resource, command } = action.getSpec()
+      return {
+        state: "ready" as const,
+        outputs: { log: "" },
+        planDescription: styles.success(
+          `Would exec in ${styles.highlight(`${resource.kind}/${resource.name}`)}: ${styles.accent(command.join(" "))}`
+        ),
+      }
+    },
   },
 })
 
@@ -116,6 +128,17 @@ export const kubernetesExecTestDefinition = (): TestActionDefinition<KubernetesE
      */
     getResult: async ({}) => {
       return { state: "not-ready", detail: null, outputs: { log: "" } }
+    },
+
+    plan: async ({ action }) => {
+      const { resource, command } = action.getSpec()
+      return {
+        state: "ready" as const,
+        outputs: { log: "" },
+        planDescription: styles.success(
+          `Would exec test in ${styles.highlight(`${resource.kind}/${resource.name}`)}: ${styles.accent(command.join(" "))}`
+        ),
+      }
     },
   },
 })

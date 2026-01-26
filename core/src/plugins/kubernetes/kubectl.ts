@@ -28,6 +28,8 @@ import { k8sManifestHashAnnotationKey } from "./status/status.js"
 import { loadAll } from "js-yaml"
 import { isTruthy } from "../../util/util.js"
 import { readFile } from "fs/promises"
+import { cloneDeep } from "lodash-es"
+import { styles } from "../../logger/styles.js"
 
 // Corresponds to the default prune whitelist in `kubectl`.
 // See: https://github.com/kubernetes/kubectl/blob/master/pkg/cmd/apply/prune.go#L176-L192
@@ -179,6 +181,132 @@ export async function applyYamlFromFile(ctx: KubernetesPluginContext, log: Log, 
     .filter(isTruthy)
     .map((m) => m as KubernetesResource)
   await apply({ log, ctx, api, provider: ctx.provider, manifests, validate: false })
+}
+
+export interface KubectlDiffParams {
+  log: Log
+  ctx: PluginContext
+  provider: KubernetesProvider
+  manifests: KubernetesResource[]
+  namespace?: string
+}
+
+export interface KubectlDiffResult {
+  /** Whether there are any differences */
+  hasDiff: boolean
+  /** The unified diff output from kubectl */
+  diffOutput: string
+}
+
+/**
+ * Colorizes unified diff output for better readability.
+ * Lines starting with + are green, - are red, @@ are cyan, others are gray.
+ * Skips the noisy diff/file header lines that show temp file paths.
+ */
+function colorizeDiffOutput(diffOutput: string): string {
+  const lines = diffOutput.split("\n")
+  const coloredLines: string[] = []
+
+  for (const line of lines) {
+    // Skip the diff command header and temp file paths (not useful to users)
+    if (line.startsWith("diff -u") || line.startsWith("diff -N")) {
+      continue
+    }
+    // Skip the --- and +++ file header lines (they show temp file paths)
+    if ((line.startsWith("--- /") || line.startsWith("+++ /")) && line.includes("/T/")) {
+      continue
+    }
+
+    // Colorize the remaining lines
+    if (line.startsWith("+")) {
+      coloredLines.push(styles.success(line))
+    } else if (line.startsWith("-")) {
+      coloredLines.push(styles.error(line))
+    } else if (line.startsWith("@@")) {
+      coloredLines.push(styles.highlight(line))
+    } else {
+      coloredLines.push(styles.secondary(line))
+    }
+  }
+
+  return coloredLines.join("\n")
+}
+
+/**
+ * Runs `kubectl diff` to compare manifests against what's currently deployed.
+ * This provides a proper unified diff that handles YAML arrays correctly.
+ *
+ * The manifests are prepared with the same annotations that would be added during
+ * actual deployment (like the manifest-hash annotation).
+ *
+ * Note: kubectl diff exits with code 0 if no difference, 1 if there are differences,
+ * and >1 for errors.
+ */
+export async function kubectlDiff({
+  log,
+  ctx,
+  provider,
+  manifests,
+  namespace,
+}: KubectlDiffParams): Promise<KubectlDiffResult> {
+  if (manifests.length === 0) {
+    return { hasDiff: false, diffOutput: "" }
+  }
+
+  // Clone manifests and add the manifest-hash annotation (same as apply does)
+  // This ensures the diff shows what would actually change when deployed
+  const preparedManifests = await Promise.all(
+    manifests.map(async (manifest) => {
+      const prepared = cloneDeep(manifest)
+      if (!prepared.metadata.annotations) {
+        prepared.metadata.annotations = {}
+      }
+      // Remove existing hash annotation before computing new one (same logic as apply)
+      if (prepared.metadata.annotations[k8sManifestHashAnnotationKey]) {
+        delete prepared.metadata.annotations[k8sManifestHashAnnotationKey]
+      }
+      prepared.metadata.annotations[k8sManifestHashAnnotationKey] = await hashManifest(prepared)
+      return prepared
+    })
+  )
+
+  const input = Buffer.from(encodeYamlMulti(preparedManifests))
+  const args = ["diff", "-f", "-"]
+
+  try {
+    const result = await kubectl(ctx, provider).exec({
+      log,
+      namespace,
+      args,
+      input,
+      ignoreError: true, // Don't throw on non-zero exit code (kubectl diff returns 1 for differences)
+    })
+
+    // kubectl diff exits with:
+    // 0 - no differences
+    // 1 - differences found
+    // >1 - error
+    if (result.exitCode === 0) {
+      return { hasDiff: false, diffOutput: "" }
+    } else if (result.exitCode === 1) {
+      // Differences found - stdout contains the diff, colorize it
+      return { hasDiff: true, diffOutput: colorizeDiffOutput(result.stdout) }
+    } else {
+      // Error occurred - log warning and return empty diff
+      // This can happen if the resource doesn't exist yet (which is fine for dry-run)
+      const errorOutput = result.stderr || result.stdout
+      if (errorOutput.includes("NotFound") || errorOutput.includes("not found")) {
+        // Resource doesn't exist yet - this is expected for new resources
+        return { hasDiff: true, diffOutput: "" }
+      }
+      log.warn(`kubectl diff returned error (exit code ${result.exitCode}): ${errorOutput}`)
+      return { hasDiff: false, diffOutput: "" }
+    }
+  } catch (error) {
+    // If kubectl diff fails entirely, fall back to no diff
+    log.warn(`kubectl diff failed: ${error}`)
+    return { hasDiff: false, diffOutput: "" }
+  }
 }
 
 export async function deleteResources(params: {

@@ -127,6 +127,95 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
   }
 }
 
+export const planTerraformDeploy: DeployActionHandler<"plan", TerraformDeploy> = async ({ ctx, log, action }) => {
+  const provider = ctx.provider as TerraformProvider
+  const spec = action.getSpec()
+  const root = getModuleStackRoot(action, spec)
+  const variables = spec.variables
+  const workspace = spec.workspace || null
+  const backendConfig = spec.backendConfig
+
+  await ensureWorkspace({ log, ctx, provider, root, workspace })
+  await ensureTerraformInit({ log, ctx, provider, root, backendConfig })
+
+  // Run terraform plan and capture the output
+  const planResult = await terraform(ctx, provider).exec({
+    log,
+    ignoreError: true,
+    args: ["plan", "-detailed-exitcode", "-input=false", ...(await prepareVariables(root, variables))],
+    cwd: root,
+  })
+
+  // Parse exit code to determine changes
+  // 0 = no changes, 1 = error, 2 = changes pending
+  let createCount = 0
+  let updateCount = 0
+  let deleteCount = 0
+  let unchangedCount = 0
+
+  // Parse the plan output to count changes
+  const planOutput = planResult.all || ""
+  const addMatch = planOutput.match(/(\d+) to add/)
+  const changeMatch = planOutput.match(/(\d+) to change/)
+  const destroyMatch = planOutput.match(/(\d+) to destroy/)
+
+  if (addMatch) {
+    createCount = parseInt(addMatch[1], 10)
+  }
+  if (changeMatch) {
+    updateCount = parseInt(changeMatch[1], 10)
+  }
+  if (destroyMatch) {
+    deleteCount = parseInt(destroyMatch[1], 10)
+  }
+
+  let planDescription = `Terraform Deploy: ${action.name}\n`
+  planDescription += `Root: ${root}\n`
+  if (workspace) {
+    planDescription += `Workspace: ${workspace}\n`
+  }
+  planDescription += `\n`
+
+  if (planResult.exitCode === 0) {
+    planDescription += "No changes. Infrastructure is up-to-date."
+    unchangedCount = 1 // Indicate at least something exists
+  } else if (planResult.exitCode === 1) {
+    planDescription += `Error running terraform plan:\n\n${planOutput}`
+  } else if (planResult.exitCode === 2) {
+    planDescription += `Terraform Plan Output:\n\n${planOutput}`
+  } else {
+    planDescription += `Unexpected exit code ${planResult.exitCode}:\n\n${planOutput}`
+  }
+
+  // Build resource changes list (simplified for terraform)
+  const resourceChanges: Array<{ key: string; operation: "create" | "update" | "delete" | "unchanged" }> = []
+  if (createCount > 0) {
+    resourceChanges.push({ key: `terraform/${action.name} (${createCount} resources)`, operation: "create" })
+  }
+  if (updateCount > 0) {
+    resourceChanges.push({ key: `terraform/${action.name} (${updateCount} resources)`, operation: "update" })
+  }
+  if (deleteCount > 0) {
+    resourceChanges.push({ key: `terraform/${action.name} (${deleteCount} resources)`, operation: "delete" })
+  }
+  if (unchangedCount > 0 && resourceChanges.length === 0) {
+    resourceChanges.push({ key: `terraform/${action.name}`, operation: "unchanged" })
+  }
+
+  return {
+    state: planResult.exitCode === 1 ? "failed" : "ready",
+    outputs: await getTfOutputs({ log, ctx, provider, root }),
+    planDescription,
+    changesSummary: {
+      create: createCount,
+      update: updateCount,
+      delete: deleteCount,
+      unchanged: unchangedCount,
+    },
+    resourceChanges,
+  }
+}
+
 function getModuleStackRoot(action: TerraformDeploy, spec: TerraformDeploySpec) {
   // TODO-G2: doublecheck this path
   return join(action.getBuildPath(), spec.root)

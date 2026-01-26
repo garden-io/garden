@@ -20,6 +20,7 @@ import {
   getKubernetesDeployLogs,
   getKubernetesDeployStatus,
   kubernetesDeploy,
+  planKubernetesDeploy,
 } from "./handlers.js"
 import { ConfigurationError, GardenError } from "../../../exceptions.js"
 import { uniq } from "lodash-es"
@@ -153,6 +154,7 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
     exec: execInKubernetesDeploy,
     getLogs: getKubernetesDeployLogs,
     getStatus: getKubernetesDeployStatus,
+    plan: planKubernetesDeploy,
 
     startSync: kubernetesStartSync,
     stopSync: k8sContainerStopSync,

@@ -156,6 +156,18 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
     },
 
     getResult: k8sGetRunResult,
+
+    plan: async ({ action }) => {
+      const spec = action.getSpec()
+      const command = spec.command || []
+      const args = spec.args || []
+      const fullCommand = [...command, ...args].join(" ") || "(default entrypoint)"
+      return {
+        state: "ready" as const,
+        outputs: { log: "" },
+        planDescription: styles.success(`Would run in ad-hoc Pod: ${styles.accent(fullCommand)}`),
+      }
+    },
   },
 })
 
@@ -206,5 +218,17 @@ export const kubernetesPodTestDefinition = (): TestActionDefinition<KubernetesPo
     },
 
     getResult: k8sGetTestResult,
+
+    plan: async ({ action }) => {
+      const spec = action.getSpec()
+      const command = spec.command || []
+      const args = spec.args || []
+      const fullCommand = [...command, ...args].join(" ") || "(default entrypoint)"
+      return {
+        state: "ready" as const,
+        outputs: { log: "" },
+        planDescription: styles.success(`Would run test in ad-hoc Pod: ${styles.accent(fullCommand)}`),
+      }
+    },
   },
 })

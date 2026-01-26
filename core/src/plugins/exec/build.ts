@@ -22,6 +22,7 @@ import {
 } from "./config.js"
 import { execProvider } from "./exec.js"
 import { ACTION_RUNTIME_LOCAL } from "../../plugin/base.js"
+import { styles } from "../../logger/styles.js"
 
 const s = sdk.schema
 
@@ -111,5 +112,16 @@ execBuild.addHandler("getStatus", async ({ action, log, ctx }) => {
       detail: { runtime: ACTION_RUNTIME_LOCAL, buildLog: err.message },
       outputs: {},
     }
+  }
+})
+
+execBuild.addHandler("plan", async ({ action }) => {
+  const command = action.getSpec("command")
+  return {
+    state: "ready" as const,
+    outputs: {},
+    planDescription: command?.length
+      ? styles.success(`Would execute build command: ${styles.highlight(command.join(" "))}`)
+      : styles.secondary("No build command configured"),
   }
 })

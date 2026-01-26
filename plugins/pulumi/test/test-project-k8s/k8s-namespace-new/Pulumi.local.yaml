@@ -1,7 +1,7 @@
 config:
-  pulumi-k8s-test:namespace: pulumi-test
+  pulumi-k8s-test:namespace: pulumi-test-80796810-13da-48c0-9a7a-5f6956d7f2ec
   pulumi-k8s-test:appName: app-name-from-pulumi-varfile
-  pulumi-k8s-test:orgName: foobar123
+  pulumi-k8s-test:orgName: gordon-garden-bot
   pulumi-k8s-test:isMinikube: 'true'
 backend:
   url: https://api.pulumi.com

@@ -38,15 +38,15 @@ import { getBuildkitBuildStatus, buildkitBuildHandler } from "./build/buildkit.j
 import type { BuildStatusHandler, BuildHandler } from "./build/common.js"
 import { getKanikoBuildStatus, kanikoBuild } from "./build/kaniko.js"
 import { getLocalBuildStatus, localBuild } from "./build/local.js"
-import { deleteContainerDeploy, k8sContainerDeploy } from "./deployment.js"
+import { deleteContainerDeploy, k8sContainerDeploy, planContainerDeploy } from "./deployment.js"
 import { execInContainer } from "./exec.js"
 import { k8sGetContainerBuildActionOutputs, validateDeploySpec } from "./handlers.js"
 import { k8sGetContainerDeployLogs } from "./logs.js"
 import { k8sPublishContainerBuild } from "./publish.js"
-import { k8sContainerRun } from "./run.js"
+import { k8sContainerRun, k8sContainerRunPlan } from "./run.js"
 import { k8sGetContainerDeployStatus } from "./status.js"
 import { k8sContainerGetSyncStatus, k8sContainerStartSync, k8sContainerStopSync } from "./sync.js"
-import { k8sContainerTest } from "./test.js"
+import { k8sContainerTest, k8sContainerTestPlan } from "./test.js"
 
 async function getBuildMode({
   ctx,
@@ -141,6 +141,7 @@ export const k8sContainerDeployExtension = (): DeployActionExtension<ContainerDe
       return getPortForwardHandler({ ...params, namespace: undefined })
     },
     getStatus: k8sGetContainerDeployStatus,
+    plan: planContainerDeploy,
 
     startSync: k8sContainerStartSync,
     stopSync: k8sContainerStopSync,
@@ -158,6 +159,7 @@ export const k8sContainerRunExtension = (): RunActionExtension<ContainerRunActio
   handlers: {
     run: k8sContainerRun,
     getResult: k8sGetRunResult,
+    plan: k8sContainerRunPlan,
   },
 })
 
@@ -166,6 +168,7 @@ export const k8sContainerTestExtension = (): TestActionExtension<ContainerTestAc
   handlers: {
     run: k8sContainerTest,
     getResult: k8sGetTestResult,
+    plan: k8sContainerTestPlan,
   },
 })
 

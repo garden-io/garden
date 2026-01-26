@@ -43,6 +43,7 @@ import type { DeployState } from "../../../types/service.js"
 import { combineStates } from "../../../types/service.js"
 import { isTruthy, sleep } from "../../../util/util.js"
 import dedent from "dedent"
+import { isSubset } from "../../../util/is-subset.js"
 
 export const k8sManifestHashAnnotationKey = gardenAnnotationKey("manifest-hash")
 
@@ -1066,6 +1067,103 @@ function removeNullAndUndefined<T>(value: T | Iterable<T>): T | Iterable<T> | { 
   } else {
     return value
   }
+}
+
+/**
+ * Checks if a manifest matches a deployed resource using the same logic as the status check.
+ * This is useful for dry-run to determine if a resource would be updated.
+ *
+ * @returns true if the manifest matches (no update needed), false if it differs (update needed)
+ */
+export async function manifestMatchesDeployedResource(
+  manifest: KubernetesResource,
+  deployedResource: KubernetesResource | null
+): Promise<boolean> {
+  if (!deployedResource) {
+    return false
+  }
+
+  let normalizedManifest = cloneDeep(manifest)
+
+  if (!normalizedManifest.metadata.annotations) {
+    normalizedManifest.metadata.annotations = {}
+  }
+
+  // Discard any last applied config from the input manifest
+  if (normalizedManifest.metadata?.annotations?.[k8sManifestHashAnnotationKey]) {
+    delete normalizedManifest.metadata?.annotations?.[k8sManifestHashAnnotationKey]
+  }
+  if (normalizedManifest.spec?.template?.metadata?.annotations?.[k8sManifestHashAnnotationKey]) {
+    delete normalizedManifest.spec?.template?.metadata?.annotations?.[k8sManifestHashAnnotationKey]
+  }
+
+  // Start by checking for "last applied configuration" annotations and comparing against those.
+  // This can be more accurate than comparing against resolved resources.
+  if (deployedResource.metadata && deployedResource.metadata.annotations) {
+    const lastAppliedHashed = deployedResource.metadata.annotations[k8sManifestHashAnnotationKey]
+
+    // The new manifest matches the last applied manifest
+    if (lastAppliedHashed && (await hashManifest(normalizedManifest)) === lastAppliedHashed) {
+      return true
+    }
+
+    // Fallback to comparing against kubectl's last-applied-configuration annotation
+    const lastApplied = deployedResource.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]
+    if (lastApplied && stableStringify(normalizedManifest) === lastApplied) {
+      return true
+    }
+  }
+
+  // to avoid normalization issues, we convert all numeric values to strings and then compare
+  normalizedManifest = <KubernetesResource>(
+    deepMap(normalizedManifest, (v) => (typeof v === "number" ? v.toString() : v))
+  )
+  let normalizedDeployed = <KubernetesResource>(
+    deepMap(cloneDeep(deployedResource), (v) => (typeof v === "number" ? v.toString() : v))
+  )
+
+  // the API version may implicitly change when deploying
+  normalizedManifest.apiVersion = normalizedDeployed.apiVersion
+
+  // the namespace property is silently dropped when added to non-namespaced resources
+  if (normalizedManifest.metadata?.namespace && normalizedDeployed.metadata?.namespace === undefined) {
+    delete normalizedManifest.metadata.namespace
+  }
+
+  if (!normalizedDeployed.metadata.annotations) {
+    normalizedDeployed.metadata.annotations = {}
+  }
+
+  // handle auto-filled properties (this is a bit of a design issue in the K8s API)
+  if (normalizedManifest.kind === "Service" && normalizedManifest.spec.clusterIP === "") {
+    delete normalizedManifest.spec.clusterIP
+  }
+
+  if (
+    normalizedManifest.kind === "DaemonSet" ||
+    normalizedManifest.kind === "Deployment" ||
+    normalizedManifest.kind === "StatefulSet"
+  ) {
+    // handle properties that are omitted in the response because they have the default value
+    if (normalizedManifest.spec.minReadySeconds === 0) {
+      delete normalizedManifest.spec.minReadySeconds
+    }
+    if (
+      normalizedManifest.spec.template &&
+      normalizedManifest.spec.template.spec &&
+      normalizedManifest.spec.template.spec.hostNetwork === false
+    ) {
+      delete normalizedManifest.spec.template.spec.hostNetwork
+    }
+  }
+
+  // clean null and undefined values
+  normalizedManifest = <KubernetesResource>removeNullAndUndefined(normalizedManifest)
+  // The Kubernetes API currently strips out environment variables values so we remove them
+  normalizedManifest = removeEmptyEnvValues(normalizedManifest)
+  normalizedDeployed = removeEmptyEnvValues(normalizedDeployed)
+
+  return isSubset(normalizedDeployed, normalizedManifest)
 }
 
 /**

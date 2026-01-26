@@ -15,6 +15,20 @@ import type { TestActionHandler } from "../../../plugin/action-types.js"
 import { getDeployedImageId } from "./util.js"
 import { getTestResultCache } from "../results-cache.js"
 import type { KubernetesRunResult } from "../../../plugin/base.js"
+import { styles } from "../../../logger/styles.js"
+
+export const k8sContainerTestPlan: TestActionHandler<"plan", ContainerTestAction> = async ({ action }) => {
+  const { command, args } = action.getSpec()
+  const image = getDeployedImageId(action)
+  const fullCommand = [...(command || []), ...(args || [])].join(" ") || "(default entrypoint)"
+  return {
+    state: "ready" as const,
+    outputs: { log: "" },
+    planDescription: styles.success(
+      `Would run test in Pod with image ${styles.highlight(image)}: ${styles.accent(fullCommand)}`
+    ),
+  }
+}
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
   const { ctx, log, action } = params

@@ -113,4 +113,27 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
       return output
     },
+
+    plan: async (params) => {
+      const { router, action, log: _log } = params
+
+      const output = await router.callHandler({
+        params,
+        handlerType: "plan",
+        defaultHandler: async (p) => {
+          p.log.warn(
+            `No plan handler available for ${p.action.kind} action type ${p.action.type}. ` +
+              `Dry-run not supported for this action type.`
+          )
+          return {
+            state: "unknown" as const,
+            outputs: {},
+            planDescription: `Dry-run not supported for action type "${p.action.type}"`,
+          }
+        },
+      })
+      const { result } = output
+      await router.validateActionOutputs(action, "runtime", result.outputs)
+      return output
+    },
   })

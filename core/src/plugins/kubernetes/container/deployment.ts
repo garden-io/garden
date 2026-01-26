@@ -19,8 +19,8 @@ import { extend, keyBy, omit, set } from "lodash-es"
 import type { ContainerDeployAction, ContainerDeploySpec, ContainerVolumeSpec } from "../../container/moduleConfig.js"
 import { createIngressResources } from "./ingress.js"
 import { createServiceResources } from "./service.js"
-import { waitForResources } from "../status/status.js"
-import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl.js"
+import { getDeployedResource, manifestMatchesDeployedResource, waitForResources } from "../status/status.js"
+import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT, kubectlDiff } from "../kubectl.js"
 import { getAppNamespace, updateNamespaceAecAnnotations } from "../namespace.js"
 import type { PluginContext } from "../../../plugin-context.js"
 import { KubeApi } from "../api.js"
@@ -563,6 +563,124 @@ export function configureVolumes(
 
   podSpec.volumes = volumes
   podSpec.containers[0].volumeMounts = volumeMounts
+}
+
+export const planContainerDeploy: DeployActionHandler<"plan", ContainerDeployAction> = async (params) => {
+  const { ctx, log, action } = params
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+
+  const imageId = getDeployedImageId(action)
+
+  // Get desired manifests
+  const { manifests } = await createContainerManifests({
+    ctx: k8sCtx,
+    api,
+    log,
+    action,
+    imageId,
+  })
+
+  const getResourceKey = (resource: KubernetesResource) => {
+    const ns = resource.metadata?.namespace || namespace
+    return `${resource.kind}/${ns}/${resource.metadata?.name}`
+  }
+
+  // Get deployed resources and determine changes using the same logic as status check
+  type ResourceChange = { key: string; operation: "create" | "update" | "delete" | "unchanged"; diffOutput?: string }
+  const resourceChanges: ResourceChange[] = []
+  let createCount = 0
+  let updateCount = 0
+  let unchangedCount = 0
+
+  for (const manifest of manifests) {
+    const key = getResourceKey(manifest)
+    const deployed = await getDeployedResource(ctx, k8sCtx.provider, manifest, log)
+
+    if (!deployed) {
+      // Resource doesn't exist - will be created
+      createCount++
+      resourceChanges.push({ key, operation: "create" })
+    } else {
+      // Check if resource matches using the same logic as status check
+      const matches = await manifestMatchesDeployedResource(manifest, deployed)
+      if (matches) {
+        unchangedCount++
+        resourceChanges.push({ key, operation: "unchanged" })
+      } else {
+        updateCount++
+        // Use kubectl diff for this single manifest to get a proper unified diff
+        const diffResult = await kubectlDiff({
+          log,
+          ctx,
+          provider: k8sCtx.provider,
+          manifests: [manifest],
+          namespace: manifest.metadata?.namespace || namespace,
+        })
+        resourceChanges.push({ key, operation: "update", diffOutput: diffResult.diffOutput })
+      }
+    }
+  }
+
+  // Build the plan description with better formatting
+  const lines: string[] = []
+
+  // Header for this Deploy action
+  lines.push(styles.highlight(`━━━ Container Deploy: ${styles.bold(action.name)} ━━━`))
+  lines.push(`Namespace: ${styles.accent(namespace)}`)
+  lines.push(`Image: ${styles.accent(imageId)}`)
+  lines.push(`Resources: ${manifests.length}`)
+  lines.push("")
+
+  if (createCount > 0 || updateCount > 0) {
+    // List resources by operation type
+    const creates = resourceChanges.filter((r) => r.operation === "create")
+    const updates = resourceChanges.filter((r) => r.operation === "update")
+
+    if (creates.length > 0) {
+      lines.push(styles.success(`Resources to create (${creates.length}):`))
+      for (const r of creates) {
+        lines.push(styles.success(`  + ${r.key}`))
+      }
+      lines.push("")
+    }
+
+    if (updates.length > 0) {
+      lines.push(styles.warning(`Resources to update (${updates.length}):`))
+      for (const r of updates) {
+        lines.push(styles.warning(`  ~ ${r.key}`))
+      }
+      lines.push("")
+    }
+
+    // Show the detailed diff for updates using kubectl diff output
+    const updatesWithDiff = updates.filter((r) => r.diffOutput)
+    if (updatesWithDiff.length > 0) {
+      lines.push(styles.primary("Detailed changes:"))
+      lines.push("")
+      for (const r of updatesWithDiff) {
+        lines.push(styles.warning(`--- ${r.key} ---`))
+        lines.push(r.diffOutput!)
+        lines.push("")
+      }
+    }
+  } else {
+    lines.push(styles.success("✓ No changes detected. Resources are up-to-date."))
+  }
+
+  return {
+    state: "ready",
+    outputs: {},
+    planDescription: lines.join("\n"),
+    changesSummary: {
+      create: createCount,
+      update: updateCount,
+      delete: 0,
+      unchanged: unchangedCount,
+    },
+    resourceChanges,
+  }
 }
 
 export const deleteContainerDeploy: DeployActionHandler<"delete", ContainerDeployAction> = async (params) => {
