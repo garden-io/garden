@@ -40,7 +40,8 @@ providers:
       # re-run by setting `--force-refresh` on any Garden command that uses the provider.
       runScript:
 
-    # The version of pulumi to use. Set to `null` to use whichever version of `pulumi` is on your PATH.
+    # The version of pulumi to use. Set to `null` to use whichever version of `pulumi` is on your PATH, or provide
+    # an absolute path to a terraform binary.
     version: 3.122.0
 
     # Overrides the default plan directory path used when deploying with the `deployFromPreview` option for pulumi
@@ -167,11 +168,12 @@ Note that provider statuses are cached, so this script will generally only be ru
 
 [providers](#providers) > version
 
-The version of pulumi to use. Set to `null` to use whichever version of `pulumi` is on your PATH.
+The version of pulumi to use. Set to `null` to use whichever version of `pulumi` is on your PATH, or provide
+an absolute path to a terraform binary.
 
-| Type     | Allowed Values                                 | Default     | Required |
-| -------- | ---------------------------------------------- | ----------- | -------- |
-| `string` | "3.122.0", "3.102.0", "3.70.0", "3.64.0", null | `"3.122.0"` | Yes      |
+| Type                         | Default     | Required |
+| ---------------------------- | ----------- | -------- |
+| `string \| posixPath \| any` | `"3.122.0"` | No       |
 
 ### `providers[].previewDir`
 

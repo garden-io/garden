@@ -27,11 +27,11 @@ export const pulumiProviderConfigSchema = providerConfigBaseSchema()
   .keys({
     // May be overridden by individual \`pulumi\` modules.
     version: joi
-      .string()
-      .allow(...supportedVersions, null)
-      .only()
+      .alternatives()
+      .try(joi.string().valid(...supportedVersions), joi.posixPath().absoluteOnly(), joi.valid(null))
       .default(defaultPulumiVersion).description(dedent`
-        The version of pulumi to use. Set to \`null\` to use whichever version of \`pulumi\` is on your PATH.
+        The version of pulumi to use. Set to \`null\` to use whichever version of \`pulumi\` is on your PATH, or provide
+        an absolute path to a terraform binary.
       `),
     previewDir: joi
       .posixPath()

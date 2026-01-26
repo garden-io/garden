@@ -57,7 +57,8 @@ providers:
     # `terraform` action configs, or you can place a `terraform.tfvars` file in each working directory.
     variables:
 
-    # The version of Terraform to use. Set to `null` to use whichever version of `terraform` that is on your PATH.
+    # The version of Terraform to use. Set to `null` to use the version of `terraform` that is on your PATH, or
+    # provide an absolute path to a terraform binary.
     version: 1.4.6
 
     # Use the specified Terraform workspace.
@@ -207,11 +208,11 @@ A map of variables to use when applying Terraform stacks. You can define these h
 
 [providers](#providers) > version
 
-The version of Terraform to use. Set to `null` to use whichever version of `terraform` that is on your PATH.
+The version of Terraform to use. Set to `null` to use the version of `terraform` that is on your PATH, or provide an absolute path to a terraform binary.
 
-| Type     | Allowed Values                                                 | Default   | Required |
-| -------- | -------------------------------------------------------------- | --------- | -------- |
-| `string` | "0.12.26", "0.13.3", "0.14.7", "1.0.5", "1.2.9", "1.4.6", null | `"1.4.6"` | Yes      |
+| Type                         | Default   | Required |
+| ---------------------------- | --------- | -------- |
+| `string \| posixPath \| any` | `"1.4.6"` | No       |
 
 ### `providers[].workspace`
 

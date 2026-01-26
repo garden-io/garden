@@ -7,47 +7,33 @@
  */
 
 import type { TerraformProvider } from "./provider.js"
-import which from "which"
-import { ConfigurationError, RuntimeError } from "@garden-io/sdk/build/src/exceptions.js"
+import { ConfigurationError } from "@garden-io/sdk/build/src/exceptions.js"
 import type { PluginToolSpec } from "@garden-io/sdk/build/src/util/ext-tools.js"
-import { CliWrapper } from "@garden-io/sdk/build/src/util/ext-tools.js"
-import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
+import { CliWrapperFromPath, GlobalCliWrapper } from "@garden-io/sdk/build/src/util/ext-tools.js"
+import type { PluginContext } from "@garden-io/sdk/build/src/types.js"
 import { naturalList } from "@garden-io/sdk/build/src/util/string.js"
 import { SemVer } from "semver"
+import { isAbsolute } from "path"
 
 export function terraform(ctx: PluginContext, provider: TerraformProvider) {
   const version = provider.config.version
 
   if (version === null) {
-    return new GlobalTerraform()
-  } else {
-    const cli = ctx.tools["terraform.terraform-" + version.replace(/\./g, "-")]
-
-    if (!cli) {
-      throw new ConfigurationError({
-        message: `Unsupported Terraform version: ${version}. Supported versions: ${naturalList(supportedVersions)}`,
-      })
-    }
-
-    return cli
+    return new GlobalCliWrapper({ name: "terraform" })
   }
-}
+  if (isAbsolute(version)) {
+    // Then the user provided an absolute path to the Terraform binary which they want to use.
+    return new CliWrapperFromPath({ name: "terraform", pathToBinary: version })
+  }
+  const cli = ctx.tools["terraform.terraform-" + version.replace(/\./g, "-")]
 
-export class GlobalTerraform extends CliWrapper {
-  protected override toolPath = "terraform"
-  constructor() {
-    super({ name: "terraform" })
+  if (!cli) {
+    throw new ConfigurationError({
+      message: `Unsupported Terraform version: ${version}. Supported versions: ${naturalList(supportedVersions)}`,
+    })
   }
 
-  override async getPath(_: Log) {
-    try {
-      return await which("terraform")
-    } catch (err) {
-      throw new RuntimeError({
-        message: `Terraform version is set to null, and terraform CLI could not be found on PATH`,
-      })
-    }
-  }
+  return cli
 }
 
 const TERRAFORM_SEM_VER_0_12_26 = new SemVer("0.12.26")

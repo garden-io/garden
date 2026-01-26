@@ -6,5 +6,5 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export { CliWrapper } from "@garden-io/core/build/src/util/ext-tools.js"
+export { CliWrapper, GlobalCliWrapper, CliWrapperFromPath } from "@garden-io/core/build/src/util/ext-tools.js"
 export { PluginToolSpec } from "@garden-io/core/build/src/plugin/tools.js"

@@ -47,11 +47,10 @@ export const terraformProviderConfigSchema = providerConfigBaseSchema()
       `),
     // May be overridden by individual \`terraform\` actions.
     version: joi
-      .string()
-      .allow(...supportedVersions, null)
-      .only()
+      .alternatives()
+      .try(joi.string().valid(...supportedVersions), joi.posixPath().absoluteOnly(), joi.valid(null))
       .default(defaultTerraformVersion).description(dedent`
-        The version of Terraform to use. Set to \`null\` to use whichever version of \`terraform\` that is on your PATH.
+        The version of Terraform to use. Set to \`null\` to use the version of \`terraform\` that is on your PATH, or provide an absolute path to a terraform binary.
       `),
     workspace: joi.string().description("Use the specified Terraform workspace."),
     streamLogsToCloud: joi

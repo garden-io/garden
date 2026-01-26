@@ -6,14 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import which from "which"
-
-import { CliWrapper } from "@garden-io/sdk/build/src/util/ext-tools.js"
-import { ConfigurationError, RuntimeError } from "@garden-io/sdk/build/src/exceptions.js"
-import type { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/build/src/types.js"
+import { CliWrapperFromPath, GlobalCliWrapper } from "@garden-io/sdk/build/src/util/ext-tools.js"
+import { ConfigurationError } from "@garden-io/sdk/build/src/exceptions.js"
+import type { PluginContext, PluginToolSpec } from "@garden-io/sdk/build/src/types.js"
 import type { PulumiProvider } from "./provider.js"
 import { naturalList } from "@garden-io/sdk/build/src/util/string.js"
 import { SemVer } from "semver"
+import { isAbsolute } from "path"
 
 export const defaultPulumiEnv = {
   // This suppresses the "warning: A new version of Pulumi is available" output when running pulumi commands.
@@ -26,36 +25,21 @@ export function pulumi(ctx: PluginContext, provider: PulumiProvider) {
   const version = provider.config.version
 
   if (version === null) {
-    return new GlobalPulumi()
-  } else {
-    const cli = ctx.tools["pulumi.pulumi-" + version.replace(/\./g, "-")]
-
-    if (!cli) {
-      throw new ConfigurationError({
-        message: `Unsupported pulumi version: ${version}. Supported versions: ${naturalList(supportedVersions)}`,
-      })
-    }
-
-    return cli
+    return new GlobalCliWrapper({ name: "pulumi" })
   }
-}
+  if (isAbsolute(version)) {
+    // Then the user provided an absolute path to the Pulumi binary which they want to use.
+    return new CliWrapperFromPath({ name: "pulumi", pathToBinary: version })
+  }
+  const cli = ctx.tools["pulumi.pulumi-" + version.replace(/\./g, "-")]
 
-export class GlobalPulumi extends CliWrapper {
-  protected override toolPath = "pulumi"
-
-  constructor() {
-    super({ name: "pulumi" })
+  if (!cli) {
+    throw new ConfigurationError({
+      message: `Unsupported pulumi version: ${version}. Supported versions: ${naturalList(supportedVersions)}`,
+    })
   }
 
-  override async getPath(_: Log) {
-    try {
-      return await which("pulumi")
-    } catch (err) {
-      throw new RuntimeError({
-        message: `Pulumi version is set to null, and pulumi CLI could not be found on PATH`,
-      })
-    }
-  }
+  return cli
 }
 
 const PULUMI_SEM_VER_3_122_0 = new SemVer("3.122.0")
