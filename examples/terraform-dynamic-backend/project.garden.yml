@@ -23,7 +23,7 @@ providers:
 ---
 kind: Deploy
 name: tf-hello
-
+type: terraform
 spec:
   root: .
   backendConfig: # <--- Dynamically set the backend for this action, depending on the environment

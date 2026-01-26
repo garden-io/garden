@@ -7,7 +7,7 @@
  */
 
 import fsExtra from "fs-extra"
-import { InternalError } from "../exceptions.js"
+import { InternalError, RuntimeError } from "../exceptions.js"
 import { basename, dirname, join, posix } from "path"
 import { getArchitecture, getPlatform, isDarwinARM } from "./arch-platform.js"
 import { exec, hashString, prepareClearTextEnv, spawn } from "./util.js"
@@ -27,6 +27,8 @@ import { uuidv4 } from "./random.js"
 import { pipeline } from "node:stream/promises"
 import type { MaybeSecret } from "./secrets.js"
 import split2 from "split2"
+import which from "which"
+import { titleize } from "./string.js"
 
 const { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } = fsExtra
 
@@ -175,6 +177,58 @@ export abstract class CliWrapper {
       tty,
       log,
     })
+  }
+}
+
+/**
+ * A wrapper around the CLI tool that can be found globally on the PATH (i.e. the one that shows up when
+ * you run `which <tool>` in a terminal).
+ */
+export class GlobalCliWrapper extends CliWrapper {
+  constructor({ name }: { name: string }) {
+    super({ name })
+  }
+
+  protected get toolPath() {
+    return this.name
+  }
+
+  override async getPath(_: Log) {
+    try {
+      return await which(this.name)
+    } catch (e) {
+      throw new RuntimeError({
+        message: `${titleize(this.name)} version is set to null, and ${this.name} CLI could not be found on PATH`,
+      })
+    }
+  }
+}
+
+/**
+ * A wrapper around the CLI tool that can be found at `pathToBinary`. This lets the user specify an absolute path
+ * to the binary they want to use (which offers more control than just using the global one on PATH when none of the
+ * bundled versions are suitable).
+ */
+export class CliWrapperFromPath extends CliWrapper {
+  private readonly pathToBinary: string
+
+  constructor({ name, pathToBinary }: { name: string; pathToBinary: string }) {
+    super({ name })
+    this.pathToBinary = pathToBinary
+  }
+
+  get toolPath() {
+    return this.pathToBinary
+  }
+
+  override async getPath(_: Log) {
+    try {
+      return await which(this.pathToBinary)
+    } catch (e) {
+      throw new RuntimeError({
+        message: `${titleize(this.name)} binary not found at path: ${this.pathToBinary}`,
+      })
+    }
   }
 }
 
