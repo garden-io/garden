@@ -1,4 +1,17 @@
 
+<a name="0.14.14"></a>
+## [0.14.14](https://github.com/garden-io/garden/compare/0.14.13...0.14.14) (2026-01-26)
+
+### Bug Fixes
+
+* **aec:** set last-deployed annotation when creating namespaces ([985e325f8](https://github.com/garden-io/garden/commit/985e325f8))
+
+### Features
+
+* **cloud:** allow upserting remote variables ([3e9eb9126](https://github.com/garden-io/garden/commit/3e9eb9126))
+* **terraform:** allow specifying binary path ([5d4e35758](https://github.com/garden-io/garden/commit/5d4e35758))
+* **variables:** support loading vars/secrets from files and exec ([ed859d32c](https://github.com/garden-io/garden/commit/ed859d32c))
+
 <a name="0.14.13"></a>
 ## [0.14.13](https://github.com/garden-io/garden/compare/0.14.12...0.14.13) (2025-12-15)
 
