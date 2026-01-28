@@ -69,14 +69,14 @@ jobs:
 
       - name: Checkout garden repo
         if: inputs.release-condition != 'false'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # 4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
         with:
           repository: garden-io/garden
           path: garden
 
       - name: Checkout homebrew repo
         if: inputs.release-condition != 'false'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # 4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
         with:
           repository: garden-io/homebrew-garden
           ref: main
