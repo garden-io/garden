@@ -16,6 +16,7 @@ import type { PrepareEnvironmentParams } from "../../../../../src/plugin/handler
 import type { Garden } from "../../../../../src/garden.js"
 import { getEmptyGardenWithLocalK8sProvider } from "../../../helpers.js"
 import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
+import { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
 
 describe("It should manage ingress controller for respective cluster type", () => {
   let garden: Garden
@@ -99,5 +100,44 @@ describe("It should manage ingress controller for respective cluster type", () =
     await cleanup()
     const ingressControllerIsReadyAfterUninstall = await ingressControllerReady(ctx, log)
     expect(ingressControllerIsReadyAfterUninstall).to.eql(false)
+  })
+
+  // ValidatingWebhookConfiguration isn't a good fit for local dev clusters, since it brings with it maintenance
+  // headaches around certificate management.
+  //
+  // Note: This test only checks for Garden-managed webhooks (prefixed with "garden-nginx-").
+  // Minikube's built-in ingress addon creates its own webhook ("ingress-nginx-admission") which Garden doesn't
+  // install or control.
+  it("should NOT create a ValidatingWebhookConfiguration when installing nginx ingress controller", async () => {
+    const params: PrepareEnvironmentParams = {
+      ctx,
+      log: garden.log,
+      force: false,
+    }
+    ctx.provider.config.setupIngressController = "nginx"
+    await prepareEnvironment(params)
+
+    const ingressControllerIsReady = await ingressControllerReady(ctx, log)
+    expect(ingressControllerIsReady).to.eql(true)
+
+    // Check that no Garden-managed ValidatingWebhookConfiguration exists.
+    // We specifically check for the "garden-nginx-" prefix which is used by Garden's Helm-based installations.
+    // Minikube's addon creates "ingress-nginx-admission" which Garden doesn't control.
+    const api = await KubeApi.factory(log, ctx, provider)
+    const webhooks = await api.listResources({
+      log,
+      apiVersion: "admissionregistration.k8s.io/v1",
+      kind: "ValidatingWebhookConfiguration",
+      namespace: "default", // cluster-scoped, namespace is ignored
+    })
+
+    const gardenManagedWebhooks = webhooks.items.filter((webhook: any) =>
+      webhook.metadata?.name?.includes("garden-nginx")
+    )
+
+    expect(gardenManagedWebhooks.length).to.eql(
+      0,
+      `Expected no Garden-managed ValidatingWebhookConfigurations but found: ${gardenManagedWebhooks.map((w: any) => w.metadata?.name).join(", ")}`
+    )
   })
 })
