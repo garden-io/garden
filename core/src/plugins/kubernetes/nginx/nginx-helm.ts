@@ -16,6 +16,8 @@ import type { SystemVars } from "../init.js"
 import { GardenDefaultBackend } from "./default-backend.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
 import { KubeApi } from "../api.js"
+import { temporaryWrite } from "tempy"
+import { safeDumpYaml } from "../../../util/serialization.js"
 
 import { GardenIngressComponent } from "./ingress-controller-base.js"
 import { styles } from "../../../logger/styles.js"
@@ -40,15 +42,21 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
     const provider = ctx.provider
     const config = provider.config
     const namespace = config.gardenSystemNamespace
+    const api = await KubeApi.factory(log, ctx, provider)
+
+    // Clean up any webhook configurations that might interfere with Ingress creation.
+    // This handles stale webhooks from previous installs or when values weren't applied correctly.
+    const webhookName = `${HELM_INGRESS_NGINX_RELEASE_NAME}-ingress-nginx-admission`
+    const staleWebhookManifest = {
+      apiVersion: "admissionregistration.k8s.io/v1",
+      kind: "ValidatingWebhookConfiguration",
+      metadata: { name: webhookName },
+    }
+    await api.deleteBySpec({ namespace, manifest: staleWebhookManifest, log })
+
     const systemVars: SystemVars = getKubernetesSystemVariables(config)
     const values = this.getNginxHelmValues(systemVars)
-
-    const valueArgs: string[] = []
-    for (const key in values) {
-      if (values.hasOwnProperty(key)) {
-        valueArgs.push(`${key}=${JSON.stringify(values[key])}`)
-      }
-    }
+    const valuesPath = await temporaryWrite(safeDumpYaml(values))
 
     const args = [
       "upgrade",
@@ -61,8 +69,8 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       HELM_INGRESS_NGINX_REPO,
       "--timeout",
       HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT,
-      "--set-json",
-      `${valueArgs.join(",")}`,
+      "--values",
+      valuesPath,
     ]
 
     log.info(`Installing ${styles.highlight("nginx")} in ${styles.highlight(namespace)} namespace...`)
