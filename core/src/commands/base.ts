@@ -386,10 +386,14 @@ export abstract class Command<
             _projectRootDirAbs: garden.projectRoot,
           })
 
-          garden.events.emit("commandHeartbeat", { sentAt: new Date().toISOString() })
-          this.heartbeatIntervalId = setInterval(() => {
+          // Wait 5 seconds before sending the first heartbeat to ensure (almost certainly) that commandInfo
+          // arrives first.
+          this.heartbeatIntervalId = setTimeout(() => {
             garden.events.emit("commandHeartbeat", { sentAt: new Date().toISOString() })
-          }, 5_000) // Emit a heartbeat event every 5 seconds
+            this.heartbeatIntervalId = setInterval(() => {
+              garden.events.emit("commandHeartbeat", { sentAt: new Date().toISOString() })
+            }, 5_000) // Emit a heartbeat event every 5 seconds
+          }, 5_000)
 
           // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
           if (await this.isAllowedToRun(garden, log, allOpts)) {
