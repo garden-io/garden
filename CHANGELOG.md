@@ -1,4 +1,13 @@
 
+<a name="0.14.16"></a>
+## [0.14.16](https://github.com/garden-io/garden/compare/0.14.15...0.14.16) (2026-02-02)
+
+### Bug Fixes
+
+* **core:** wait before emitting first heartbeat event ([#7948](https://github.com/garden-io/garden/issues/7948)) ([84ea483dd](https://github.com/garden-io/garden/commit/84ea483dd))
+* **k8s:** don't create validating webhook for nginx ([1739b01d0](https://github.com/garden-io/garden/commit/1739b01d0))
+* **k8s:** fix fail-fast Helm deploys ([aee8a2043](https://github.com/garden-io/garden/commit/aee8a2043))
+
 <a name="0.14.15"></a>
 ## [0.14.15](https://github.com/garden-io/garden/compare/0.14.14...0.14.15) (2026-01-26)
 
