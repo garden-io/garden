@@ -55,4 +55,4 @@ So with that in mind, these are the recommended next steps:
 
 ## Examples
 
-- [Kubernetes Deploy action example project](https://github.com/garden-io/garden/tree/0.14.15/examples/k8s-deploy-patch-resources)
+- [Kubernetes Deploy action example project](https://github.com/garden-io/garden/tree/0.14.16/examples/k8s-deploy-patch-resources)

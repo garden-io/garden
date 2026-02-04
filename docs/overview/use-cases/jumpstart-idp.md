@@ -34,6 +34,6 @@ Navigate to [Examples](#examples) for a selection of pre-configured stacks you c
 
 ## Examples
 
-- [Remote sources example project](https://github.com/garden-io/garden/tree/0.14.15/examples/remote-sources)
+- [Remote sources example project](https://github.com/garden-io/garden/tree/0.14.16/examples/remote-sources)
 
-- [kubernetes Deploy action type example with config templates](https://github.com/garden-io/garden/tree/0.14.15/examples/k8s-deploy-config-templates)
+- [kubernetes Deploy action type example with config templates](https://github.com/garden-io/garden/tree/0.14.16/examples/k8s-deploy-config-templates)
