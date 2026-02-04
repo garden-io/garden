@@ -15,6 +15,30 @@ import type { DeepPartial } from "utility-types"
 import { TRPCClientError } from "@trpc/client"
 import { gardenEnv } from "../../../../src/constants.js"
 
+function makeFakeAccount(
+  organizationIds: string[] = ["fake-organization-id"]
+): RouterOutput["account"]["getCurrentAccount"] {
+  return {
+    id: "user-123",
+    name: "Test User",
+    email: "test@example.com",
+    avatarUrl: "",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    organizations: organizationIds.map((id) => ({
+      id,
+      name: `Org ${id}`,
+      slug: id,
+      role: "admin" as const,
+      plan: "team" as const,
+      isCurrentAccountOwner: true,
+      featureFlags: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })),
+  }
+}
+
 function makeFakeTrpcClient(overrides?: DeepPartial<ApiTrpcClient>): ApiTrpcClient {
   const base: DeepPartial<ApiTrpcClient> = {
     variableList: {
@@ -35,6 +59,11 @@ function makeFakeTrpcClient(overrides?: DeepPartial<ApiTrpcClient>): ApiTrpcClie
             },
           }
         },
+      },
+    },
+    account: {
+      getCurrentAccount: {
+        query: async () => makeFakeAccount(),
       },
     },
   }
@@ -410,6 +439,11 @@ describe("GardenCloudApi", () => {
             },
           },
         },
+        account: {
+          getCurrentAccount: {
+            query: async () => makeFakeAccount(["org-123"]),
+          },
+        },
       })
 
       const api = await GardenCloudApi.factory({
@@ -465,6 +499,102 @@ describe("GardenCloudApi", () => {
           expect(err.message).to.contain("Could not determine organization ID")
         }
       )
+    })
+
+    it("should throw error when user lacks access to configured organization", async () => {
+      const fakeTrpcClient = makeFakeTrpcClient({
+        token: {
+          verifyToken: {
+            query: async () => ({ valid: true, notices: [] }),
+          },
+        },
+        account: {
+          getCurrentAccount: {
+            query: async () => makeFakeAccount(["org-other"]),
+          },
+        },
+      })
+
+      await expectError(
+        () =>
+          GardenCloudApi.factory({
+            log: garden.log,
+            cloudDomain: "https://example.com",
+            organizationId: "org-not-accessible",
+            legacyProjectId: undefined,
+            globalConfigStore: garden.globalConfigStore,
+            skipLogging: true,
+            __trpcClientOverrideForTesting: fakeTrpcClient,
+          }),
+        (err) => {
+          expect(err.message).to.contain(
+            "do not have access to the organization specified in your project configuration (id: org-not-accessible)"
+          )
+          expect(err.message).to.contain("- Org org-other (id: org-other)")
+        }
+      )
+    })
+
+    it("should throw error with empty org list when user has no organizations", async () => {
+      const fakeTrpcClient = makeFakeTrpcClient({
+        token: {
+          verifyToken: {
+            query: async () => ({ valid: true, notices: [] }),
+          },
+        },
+        account: {
+          getCurrentAccount: {
+            query: async () => makeFakeAccount([]),
+          },
+        },
+      })
+
+      await expectError(
+        () =>
+          GardenCloudApi.factory({
+            log: garden.log,
+            cloudDomain: "https://example.com",
+            organizationId: "org-123",
+            legacyProjectId: undefined,
+            globalConfigStore: garden.globalConfigStore,
+            skipLogging: true,
+            __trpcClientOverrideForTesting: fakeTrpcClient,
+          }),
+        (err) => {
+          expect(err.message).to.contain(
+            "do not have access to the organization specified in your project configuration (id: org-123)"
+          )
+          expect(err.message).to.contain("(none)")
+        }
+      )
+    })
+
+    it("should succeed when user has access to configured organization", async () => {
+      const fakeTrpcClient = makeFakeTrpcClient({
+        token: {
+          verifyToken: {
+            query: async () => ({ valid: true, notices: [] }),
+          },
+        },
+        account: {
+          getCurrentAccount: {
+            query: async () => makeFakeAccount(["org-123", "org-456"]),
+          },
+        },
+      })
+
+      const api = await GardenCloudApi.factory({
+        log: garden.log,
+        cloudDomain: "https://example.com",
+        organizationId: "org-123",
+        legacyProjectId: undefined,
+        globalConfigStore: garden.globalConfigStore,
+        skipLogging: true,
+        __trpcClientOverrideForTesting: fakeTrpcClient,
+      })
+
+      expect(api).to.be.instanceOf(GardenCloudApi)
+      expect(api?.organizationId).to.equal("org-123")
     })
   })
 })
