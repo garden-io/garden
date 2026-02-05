@@ -587,5 +587,96 @@ describe("LoginCommand", () => {
       expect(afterYaml).to.include("id: legacy-project-123") // Not commented
       expect(afterYaml).to.include("domain: https://old.example.com") // Not commented
     })
+
+    it("should preserve long URLs without line-wrapping", () => {
+      const beforeYaml = dedent`
+        kind: Project
+        name: test-project
+        sources:
+          - name: frontend
+            repositoryUrl: "https://git:\${secrets.TOKEN}@gitlab.com/company/products/team/very-long-project-name.git#\${var.tags.frontend || 'development' }"
+      `
+      const organizationId = "org-123"
+      const afterYaml = rewriteProjectConfigYaml({
+        projectConfigYaml: beforeYaml,
+        projectConfigPath: "/some/dir/project.garden.yml",
+        organizationId,
+      })
+
+      // URL should not be split across multiple lines
+      expect(afterYaml).to.include(
+        `repositoryUrl: "https://git:\${secrets.TOKEN}@gitlab.com/company/products/team/very-long-project-name.git#\${var.tags.frontend || 'development' }"`
+      )
+      expect(afterYaml).not.to.include("\\") // No backslash line continuation
+    })
+
+    it("should preserve flow-style arrays without adding spaces", () => {
+      const beforeYaml = dedent`
+        kind: Project
+        name: test-project
+        environments: ["remote", "ci"]
+      `
+      const organizationId = "org-123"
+      const afterYaml = rewriteProjectConfigYaml({
+        projectConfigYaml: beforeYaml,
+        projectConfigPath: "/some/dir/project.garden.yml",
+        organizationId,
+      })
+
+      // Array should remain compact
+      expect(afterYaml).to.include('environments: ["remote", "ci"]')
+      expect(afterYaml).not.to.include('[ "remote", "ci" ]')
+    })
+
+    it("should preserve complex nested structures", () => {
+      const beforeYaml = dedent`
+        kind: Project
+        name: test-project
+        variables:
+          tags: {frontend: "v1.0", backend: "v2.0"}
+        providers:
+          - name: kubernetes
+            environments: ["dev", "staging", "prod"]
+      `
+      const organizationId = "org-123"
+      const afterYaml = rewriteProjectConfigYaml({
+        projectConfigYaml: beforeYaml,
+        projectConfigPath: "/some/dir/project.garden.yml",
+        organizationId,
+      })
+
+      // Inline objects and arrays should be preserved
+      expect(afterYaml).to.include('{frontend: "v1.0", backend: "v2.0"}')
+      expect(afterYaml).to.include('["dev", "staging", "prod"]')
+    })
+
+    it("should produce consistent output on multiple rewrites", () => {
+      const beforeYaml = dedent`
+        kind: Project
+        name: test-project
+        environments: ["remote", "ci"]
+        sources:
+          - name: api
+            repositoryUrl: "https://github.com/org/repo.git"
+      `
+      const organizationId = "org-123"
+
+      // First rewrite
+      const afterFirstRewrite = rewriteProjectConfigYaml({
+        projectConfigYaml: beforeYaml,
+        projectConfigPath: "/some/dir/project.garden.yml",
+        organizationId,
+      })
+
+      // Second rewrite (simulating running login again)
+      const afterSecondRewrite = rewriteProjectConfigYaml({
+        projectConfigYaml: afterFirstRewrite,
+        projectConfigPath: "/some/dir/project.garden.yml",
+        organizationId,
+      })
+
+      // Output should be identical
+      expect(afterFirstRewrite).to.equal(afterSecondRewrite)
+    })
   })
 })

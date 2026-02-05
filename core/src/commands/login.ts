@@ -476,13 +476,13 @@ export function rewriteProjectConfigYaml({
   })
   if (projectConfigMatches.length === 0) {
     throw new ConfigurationError({
-      message: `An error occurred while setting organizatiionId in project config: Project config not found at ${projectConfigPath}`,
+      message: `An error occurred while setting organizationId in project config: Project config not found at ${projectConfigPath}`,
     })
   }
   if (projectConfigMatches.length > 1) {
     throw new ConfigurationError({
       message: deline`
-        An error occurred while setting organizatiionId in project config: Multiple project configs found
+        An error occurred while setting organizationId in project config: Multiple project configs found
         at ${projectConfigPath}. Only one project config is allowed in a Garden project.
       `,
     })
@@ -578,5 +578,9 @@ export function rewriteProjectConfigYaml({
   }
   docsInFile[projectDocIndex] = projectDoc
 
-  return docsInFile.map((doc: Document.Parsed<ParsedNode, true>) => doc.toString()).join("")
+  // Use lineWidth: 0 to disable line folding (prevents URLs from being split mid-word)
+  // Use flowCollectionPadding: false to keep compact arrays like ["a", "b"] instead of [ "a", "b" ]
+  return docsInFile
+    .map((doc: Document.Parsed<ParsedNode, true>) => doc.toString({ lineWidth: 0, flowCollectionPadding: false }))
+    .join("")
 }
