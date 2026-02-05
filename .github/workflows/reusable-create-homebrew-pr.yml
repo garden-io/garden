@@ -82,6 +82,7 @@ jobs:
           ref: main
           path: homebrew-garden
           token: ${{ secrets.COMMITTER_TOKEN }}
+          persist-credentials: false
 
       - name: Template Homebrew Formula
         if: inputs.release-condition != 'false'
