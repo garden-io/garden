@@ -97,7 +97,6 @@ export class LoginCommand extends Command<{}, Opts> {
             log,
             projectConfig,
             organizationId: cloudApi.organizationId,
-            legacyProjectId: projectId,
             hadConflict: !!(configOrganizationId && configOrganizationId !== cloudApi.organizationId),
           })
         }
@@ -144,7 +143,6 @@ export class LoginCommand extends Command<{}, Opts> {
         log,
         projectConfig,
         organizationId: orgIdToApply,
-        legacyProjectId: projectId,
         hadConflict: !!(
           configOrganizationId &&
           configOrganizationId !== orgIdToApply &&
@@ -288,13 +286,11 @@ export async function updateProjectConfigWithResolvedOrgId({
   log,
   projectConfig,
   organizationId,
-  legacyProjectId,
   hadConflict,
 }: {
   log: Log
   projectConfig: ProjectConfig | undefined
   organizationId: string
-  legacyProjectId: string | undefined
   hadConflict: boolean
 }) {
   if (!projectConfig) {
@@ -310,13 +306,10 @@ export async function updateProjectConfigWithResolvedOrgId({
   }
 
   const currentOrgId = projectConfig.organizationId
-  const shouldUpdateConfig =
-    !currentOrgId || // No org ID set
-    currentOrgId !== organizationId || // Wrong org ID set
-    legacyProjectId // Legacy fields to comment out
 
-  if (!shouldUpdateConfig) {
-    log.debug("Project config already has the correct organizationId and no legacy fields, skipping.")
+  // Skip if already correct - don't touch the file at all
+  if (currentOrgId === organizationId) {
+    log.debug("Project config already has the correct organizationId, skipping.")
     return
   }
 
@@ -335,13 +328,21 @@ export async function updateProjectConfigWithResolvedOrgId({
     })
   }
 
-  await rewriteProjectConfigFile({
-    log,
-    projectConfigPath: projectConfig.configPath,
-    organizationId,
-    legacyProjectId,
-    commentOutLegacyFields: false,
-  })
+  if (currentOrgId) {
+    // organizationId exists but is wrong - use lightweight regex replacement (no reformatting)
+    await replaceOrganizationIdInFile({
+      log,
+      projectConfigPath: projectConfig.configPath,
+      organizationId,
+    })
+  } else {
+    // No organizationId - need to insert it using YAML rewriting
+    await rewriteProjectConfigFile({
+      log,
+      projectConfigPath: projectConfig.configPath,
+      organizationId,
+    })
+  }
 }
 
 // Deprecated: Use updateProjectConfigWithResolvedOrgId instead
@@ -385,18 +386,51 @@ export async function applyOrganizationId({
   }
 }
 
-async function rewriteProjectConfigFile({
+/**
+ * Replace an existing organizationId value using regex, preserving all other formatting.
+ * This is used when the organizationId exists but has the wrong value.
+ */
+export function replaceOrganizationIdInYaml(yamlContent: string, newOrganizationId: string): string {
+  // Match organizationId: followed by the value (quoted or unquoted)
+  // Handles: organizationId: value, organizationId: "value", organizationId: 'value'
+  // Also preserves trailing whitespace and comments
+  // Group 3 uses [^\s'"\n]+ to avoid matching trailing whitespace for unquoted values
+  const regex = /^(\s*organizationId:\s*)(['"]?)([^\s'"\n]+)\2(\s*(?:#.*)?)$/m
+  return yamlContent.replace(regex, `$1$2${newOrganizationId}$2$4`)
+}
+
+async function replaceOrganizationIdInFile({
   log,
   projectConfigPath,
   organizationId,
-  legacyProjectId,
-  commentOutLegacyFields = false,
 }: {
   log: Log
   projectConfigPath: string
   organizationId: string
-  legacyProjectId?: string
-  commentOutLegacyFields?: boolean
+}): Promise<void> {
+  const relPath = relative(process.cwd(), projectConfigPath)
+  const fileContent = (await readFile(projectConfigPath)).toString()
+
+  const updatedContent = replaceOrganizationIdInYaml(fileContent, organizationId)
+
+  if (updatedContent === fileContent) {
+    log.warn(`Could not find organizationId to replace in ${relPath}, falling back to full rewrite`)
+    await rewriteProjectConfigFile({ log, projectConfigPath, organizationId })
+    return
+  }
+
+  await writeFile(projectConfigPath, updatedContent)
+  log.info(`Updated ${styles.highlight("organizationId")} to ${organizationId} in ${styles.highlight(relPath)}`)
+}
+
+async function rewriteProjectConfigFile({
+  log,
+  projectConfigPath,
+  organizationId,
+}: {
+  log: Log
+  projectConfigPath: string
+  organizationId: string
 }): Promise<void> {
   const relPath = relative(process.cwd(), projectConfigPath)
   // We reparse the file this way to avoid losing comments, field ordering etc. when writing it back after adding
@@ -407,21 +441,13 @@ async function rewriteProjectConfigFile({
       projectConfigYaml: fileContent,
       projectConfigPath,
       organizationId,
-      legacyProjectId,
-      commentOutLegacyFields,
     })
     await writeFile(projectConfigPath, updatedFileContent)
 
-    const changes: string[] = []
-    changes.push(`${styles.highlight("organizationId")} set to ${organizationId}`)
-    if (commentOutLegacyFields) {
-      changes.push(`legacy fields ${styles.highlight("id")} and ${styles.highlight("domain")} commented out`)
-    }
-
     log.info(
       `
-Welcome to the new Garden Cloud! Your project configuration has been updated:
-${changes.map((c) => `  - ${c}`).join("\n")}
+Your project configuration has been updated:
+  - ${styles.highlight("organizationId")} set to ${organizationId}
 
 Make sure to commit the updated ${styles.highlight(relPath)} to source control.
       `
@@ -447,14 +473,10 @@ export function rewriteProjectConfigYaml({
   projectConfigYaml,
   projectConfigPath,
   organizationId,
-  legacyProjectId,
-  commentOutLegacyFields = false,
 }: {
   projectConfigYaml: string
   projectConfigPath: string
   organizationId: string
-  legacyProjectId?: string
-  commentOutLegacyFields?: boolean
 }): string {
   const docsInFile = parseAllDocuments(projectConfigYaml)
 
@@ -528,47 +550,6 @@ export function rewriteProjectConfigYaml({
       } else {
         // Fallback: simply set it (which typically adds it at the end)
         projectDoc.set("organizationId", organizationId)
-      }
-    }
-
-    // Step 2: Comment out legacy fields if requested
-    if (commentOutLegacyFields) {
-      // Collect fields to comment out with their values
-      const fieldsToComment: Array<{ field: string; value: string; index: number }> = []
-
-      const idIndex = map.items.findIndex((item) => item.key instanceof Scalar && item.key.value === "id")
-      if (idIndex !== -1) {
-        const idPair = map.items[idIndex]
-        const idValue = idPair.value instanceof Scalar ? idPair.value.value : legacyProjectId || "<legacy-id>"
-        fieldsToComment.push({ field: "id", value: String(idValue), index: idIndex })
-      }
-
-      const domainIndex = map.items.findIndex((item) => item.key instanceof Scalar && item.key.value === "domain")
-      if (domainIndex !== -1) {
-        const domainPair = map.items[domainIndex]
-        const domainValue = domainPair.value instanceof Scalar ? domainPair.value.value : "<legacy-domain>"
-        fieldsToComment.push({ field: "domain", value: String(domainValue), index: domainIndex })
-      }
-
-      // Sort by index in descending order so we can remove from the end first
-      // This prevents index shifting issues
-      fieldsToComment.sort((a, b) => b.index - a.index)
-
-      // Process each field to comment out
-      for (const { field, value, index } of fieldsToComment) {
-        // Remove the item from the map
-        map.items.splice(index, 1)
-
-        // Add as a comment to the next item's key commentBefore
-        if (index < map.items.length) {
-          const nextItem = map.items[index]
-          if (nextItem.key) {
-            const existingComment = nextItem.key.commentBefore || ""
-            // Add space at start for "# field: value" format, no trailing newline to avoid blank lines
-            const commentLine = `${field}: ${value}  # Legacy field, no longer needed`
-            nextItem.key.commentBefore = existingComment ? `${existingComment} ${commentLine}\n` : ` ${commentLine}\n`
-          }
-        }
       }
     }
   } else {
