@@ -69,7 +69,7 @@ describe("pulumi action variables and varfiles", () => {
         action,
         force: false,
       })
-      const configFile = await loadYamlFile(join(nsActionRoot, "Pulumi.local.yaml"))
+      const configFile = await loadYamlFile(join(nsActionRoot, "Pulumi.k8s-namespace-local.yaml"))
       expect(configFile.backend).to.eql({
         url: "https://api.pulumi.com",
       })
@@ -84,6 +84,8 @@ describe("pulumi action variables and varfiles", () => {
       context(`using ${configType} configs`, () => {
         it("uses a varfile with the new schema and merges varfiles and action variables correctly", async () => {
           const actionName = configType === "action" ? "k8s-namespace-new" : "k8s-namespace-new-module"
+          const configRoot = configType === "action" ? nsNewActionRoot : nsNewModuleRoot
+          const stackName = configType === "action" ? "k8s-namespace-new-local" : "k8s-namespace-new-module-local"
           const action = graph.getDeploy(actionName)
           const actionLog = action.createLog(log)
           await deployPulumi!({
@@ -92,7 +94,7 @@ describe("pulumi action variables and varfiles", () => {
             action,
             force: false,
           })
-          const configFile = await loadYamlFile(join(nsNewActionRoot, "Pulumi.local.yaml"))
+          const configFile = await loadYamlFile(join(configRoot, `Pulumi.${stackName}.yaml`))
           expect(configFile.backend).to.eql({
             url: "https://api.pulumi.com",
           })

@@ -3,6 +3,7 @@ type: pulumi
 name: k8s-namespace
 description: Creates a Namespace
 spec:
+  stack: k8s-namespace-local
   pulumiVarfiles: [varfile1.yaml, varfile2.yaml]
   createStack: true
   cacheStatus: true

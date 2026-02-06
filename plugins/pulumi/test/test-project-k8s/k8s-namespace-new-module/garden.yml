@@ -2,6 +2,7 @@ kind: Module
 type: pulumi
 name: k8s-namespace-new-module
 description: Creates a Namespace
+stack: k8s-namespace-new-module-local
 useNewPulumiVarfileSchema: true
 pulumiVarfiles: [varfile-new-schema.yaml]
 createStack: true
