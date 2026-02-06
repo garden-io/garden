@@ -12,7 +12,12 @@ import type { TempDirectory } from "../../../helpers.js"
 import { expectError, getDataDir, makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
 import { AuthRedirectServer, getStoredAuthToken, saveAuthToken } from "../../../../src/cloud/api-legacy/auth.js"
 
-import { LoginCommand, rewriteProjectConfigYaml } from "../../../../src/commands/login.js"
+import {
+  LoginCommand,
+  replaceOrganizationIdInYaml,
+  insertOrganizationIdInYaml,
+  commentOutFieldInYaml,
+} from "../../../../src/commands/login.js"
 import { randomString } from "../../../../src/util/string.js"
 import { GardenCloudApiLegacy } from "../../../../src/cloud/api-legacy/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
@@ -403,280 +408,285 @@ describe("LoginCommand", () => {
     })
   })
 
-  describe("setOrganizationIdAndWrite", () => {
-    it("should set the organizationId in a project config on disk, inserting it after the name field", async () => {
-      const beforeYaml = dedent`
+  describe("insertOrganizationIdInYaml", () => {
+    it("should insert organizationId after simple name line", () => {
+      const yaml = dedent`
         kind: Project
-        # This comment should be preserved
         name: test-project
         variables:
           foo: bar
+      `
+      const result = insertOrganizationIdInYaml(yaml, "org-123")
+      expect(result).to.equal(dedent`
+        kind: Project
+        name: test-project
+        organizationId: org-123
+        variables:
+          foo: bar
+      `)
+    })
+
+    it("should insert after name with double-quoted value", () => {
+      const yaml = dedent`
+        kind: Project
+        name: "my-project"
         environments:
           - name: local
-        providers:
-          - name: local-kubernetes
-            environments:
-              - local
-        ---
-        # We don't validate this doc, so we don't need all the fields, but we want to make sure
-        # That this doc is included unchanged in the output.
-        kind: Build
       `
-      const organizationId = "gandalf-1445"
-      const afterYaml = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-      })
-      expect(afterYaml.trim()).to.equal(
-        dedent`
+      const result = insertOrganizationIdInYaml(yaml, "org-456")
+      expect(result).to.include('name: "my-project"\norganizationId: org-456')
+    })
+
+    it("should insert after name with single-quoted value", () => {
+      const yaml = dedent`
         kind: Project
-        # This comment should be preserved
-        name: test-project
-        organizationId: ${organizationId}
-        variables:
-          foo: bar
+        name: 'my-project'
         environments:
           - name: local
-        providers:
-          - name: local-kubernetes
-            environments:
-              - local
-        ---
-        # We don't validate this doc, so we don't need all the fields, but we want to make sure
-        # That this doc is included unchanged in the output.
-        kind: Build
-      `.trim()
-      )
-    })
-
-    it("should comment out the id field when commentOutLegacyFields is true", () => {
-      const beforeYaml = dedent`
-        kind: Project
-        name: test-project
-        id: legacy-project-123
-        variables:
-          foo: bar
       `
-      const organizationId = "org-456"
-      const afterYaml = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-        legacyProjectId: "legacy-project-123",
-        commentOutLegacyFields: true,
-      })
-
-      expect(afterYaml).to.include("organizationId: org-456")
-      expect(afterYaml).to.include("# id: legacy-project-123")
-      expect(afterYaml).to.include("# Legacy field, no longer needed")
-      expect(afterYaml).not.to.match(/^id:/m) // No uncommented id field
+      const result = insertOrganizationIdInYaml(yaml, "org-789")
+      expect(result).to.include("name: 'my-project'\norganizationId: org-789")
     })
 
-    it("should comment out both id and domain fields when commentOutLegacyFields is true", () => {
-      const beforeYaml = dedent`
-        kind: Project
-        name: test-project
-        id: legacy-project-123
-        domain: https://old.example.com
-        variables:
-          foo: bar
-      `
-      const organizationId = "org-456"
-      const afterYaml = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-        legacyProjectId: "legacy-project-123",
-        commentOutLegacyFields: true,
-      })
-
-      expect(afterYaml).to.include("organizationId: org-456")
-      expect(afterYaml).to.include("# id: legacy-project-123")
-      expect(afterYaml).to.include("# domain: https://old.example.com")
-      expect(afterYaml).not.to.match(/^id:/m)
-      expect(afterYaml).not.to.match(/^domain:/m)
-    })
-
-    it("should update existing organizationId and comment out legacy fields", () => {
-      const beforeYaml = dedent`
-        kind: Project
-        name: test-project
-        organizationId: org-old-wrong
-        id: legacy-project-123
-        domain: https://old.example.com
-        variables:
-          foo: bar
-      `
-      const organizationId = "org-new-correct"
-      const afterYaml = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-        legacyProjectId: "legacy-project-123",
-        commentOutLegacyFields: true,
-      })
-
-      expect(afterYaml).to.include("organizationId: org-new-correct")
-      expect(afterYaml).not.to.include("organizationId: org-old-wrong")
-      expect(afterYaml).to.include("# id: legacy-project-123")
-      expect(afterYaml).to.include("# domain: https://old.example.com")
-    })
-
-    it("should preserve existing comments when commenting out legacy fields", () => {
-      const beforeYaml = dedent`
+    it("should insert after name with trailing comment", () => {
+      const yaml = dedent`
         kind: Project
         name: test-project  # My project
-        id: legacy-project-123
-        # Important comment here
         variables:
           foo: bar
       `
-      const organizationId = "org-456"
-      const afterYaml = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-        legacyProjectId: "legacy-project-123",
-        commentOutLegacyFields: true,
-      })
-
-      expect(afterYaml).to.include("# My project")
-      expect(afterYaml).to.include("# Important comment here")
-      expect(afterYaml).to.include("id: legacy-project-123  # Legacy field, no longer needed")
+      const result = insertOrganizationIdInYaml(yaml, "org-123")
+      expect(result).to.include("name: test-project  # My project\norganizationId: org-123")
     })
 
-    it("should handle missing legacy fields gracefully", () => {
-      const beforeYaml = dedent`
+    it("should preserve all other content unchanged", () => {
+      const yaml = dedent`
         kind: Project
         name: test-project
+        environments: [ "local", "remote", "ci" ]
         variables:
-          foo: bar
+          longUrl: "https://git:\${secrets.TOKEN}@gitlab.com/company/products/team/very-long-project-name.git"
       `
-      const organizationId = "org-456"
-      const afterYaml = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-        legacyProjectId: "legacy-project-123",
-        commentOutLegacyFields: true,
-      })
-
-      // Should add organizationId but not fail on missing id/domain
-      expect(afterYaml).to.include("organizationId: org-456")
-      expect(afterYaml).to.include("name: test-project")
-    })
-
-    it("should not comment out fields when commentOutLegacyFields is false", () => {
-      const beforeYaml = dedent`
-        kind: Project
-        name: test-project
-        id: legacy-project-123
-        domain: https://old.example.com
-      `
-      const organizationId = "org-456"
-      const afterYaml = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-        legacyProjectId: "legacy-project-123",
-        commentOutLegacyFields: false,
-      })
-
-      expect(afterYaml).to.include("organizationId: org-456")
-      expect(afterYaml).to.include("id: legacy-project-123") // Not commented
-      expect(afterYaml).to.include("domain: https://old.example.com") // Not commented
-    })
-
-    it("should preserve long URLs without line-wrapping", () => {
-      const beforeYaml = dedent`
-        kind: Project
-        name: test-project
-        sources:
-          - name: frontend
-            repositoryUrl: "https://git:\${secrets.TOKEN}@gitlab.com/company/products/team/very-long-project-name.git#\${var.tags.frontend || 'development' }"
-      `
-      const organizationId = "org-123"
-      const afterYaml = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-      })
-
-      // URL should not be split across multiple lines
-      expect(afterYaml).to.include(
-        `repositoryUrl: "https://git:\${secrets.TOKEN}@gitlab.com/company/products/team/very-long-project-name.git#\${var.tags.frontend || 'development' }"`
+      const result = insertOrganizationIdInYaml(yaml, "org-123")
+      // Verify formatting is preserved exactly
+      expect(result).to.include('environments: [ "local", "remote", "ci" ]')
+      expect(result).to.include(
+        'longUrl: "https://git:${secrets.TOKEN}@gitlab.com/company/products/team/very-long-project-name.git"'
       )
-      expect(afterYaml).not.to.include("\\") // No backslash line continuation
     })
 
-    it("should preserve flow-style arrays without adding spaces", () => {
-      const beforeYaml = dedent`
-        kind: Project
-        name: test-project
-        environments: ["remote", "ci"]
+    it("should return unchanged if name field not found", () => {
+      const yaml = dedent`
+        kind: Build
+        type: container
       `
-      const organizationId = "org-123"
-      const afterYaml = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-      })
-
-      // Array should remain compact
-      expect(afterYaml).to.include('environments: ["remote", "ci"]')
-      expect(afterYaml).not.to.include('[ "remote", "ci" ]')
+      const result = insertOrganizationIdInYaml(yaml, "org-123")
+      expect(result).to.equal(yaml)
     })
 
-    it("should preserve complex nested structures", () => {
-      const beforeYaml = dedent`
+    it("should only match top-level name field", () => {
+      const yaml = dedent`
         kind: Project
         name: test-project
-        variables:
-          tags: {frontend: "v1.0", backend: "v2.0"}
         providers:
           - name: kubernetes
-            environments: ["dev", "staging", "prod"]
       `
-      const organizationId = "org-123"
-      const afterYaml = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-      })
-
-      // Inline objects and arrays should be preserved
-      expect(afterYaml).to.include('{frontend: "v1.0", backend: "v2.0"}')
-      expect(afterYaml).to.include('["dev", "staging", "prod"]')
+      const result = insertOrganizationIdInYaml(yaml, "org-123")
+      // Should insert after top-level name, not nested name
+      const lines = result.split("\n")
+      expect(lines[2]).to.equal("organizationId: org-123")
     })
+  })
 
-    it("should produce consistent output on multiple rewrites", () => {
-      const beforeYaml = dedent`
+  describe("commentOutFieldInYaml", () => {
+    it("should comment out id field with simple value", () => {
+      const yaml = dedent`
         kind: Project
         name: test-project
-        environments: ["remote", "ci"]
-        sources:
-          - name: api
-            repositoryUrl: "https://github.com/org/repo.git"
+        id: legacy-project-123
+        variables:
+          foo: bar
       `
-      const organizationId = "org-123"
+      const result = commentOutFieldInYaml(yaml, "id")
+      expect(result).to.include("# id: legacy-project-123  # Legacy field, no longer needed")
+      expect(result).not.to.match(/^id:/m)
+    })
 
-      // First rewrite
-      const afterFirstRewrite = rewriteProjectConfigYaml({
-        projectConfigYaml: beforeYaml,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-      })
+    it("should comment out id field with quoted value", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        id: "legacy-project-123"
+        variables:
+          foo: bar
+      `
+      const result = commentOutFieldInYaml(yaml, "id")
+      expect(result).to.include('# id: "legacy-project-123"  # Legacy field, no longer needed')
+    })
 
-      // Second rewrite (simulating running login again)
-      const afterSecondRewrite = rewriteProjectConfigYaml({
-        projectConfigYaml: afterFirstRewrite,
-        projectConfigPath: "/some/dir/project.garden.yml",
-        organizationId,
-      })
+    it("should comment out domain field with URL value", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        domain: https://old.garden.io
+        variables:
+          foo: bar
+      `
+      const result = commentOutFieldInYaml(yaml, "domain")
+      expect(result).to.include("# domain: https://old.garden.io  # Legacy field, no longer needed")
+    })
 
-      // Output should be identical
-      expect(afterFirstRewrite).to.equal(afterSecondRewrite)
+    it("should preserve existing trailing comment", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        id: legacy-123  # important id
+        variables:
+          foo: bar
+      `
+      const result = commentOutFieldInYaml(yaml, "id")
+      expect(result).to.include("# id: legacy-123  # important id  # Legacy field, no longer needed")
+    })
+
+    it("should not affect indented fields with same name", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        id: legacy-project-123
+        providers:
+          - name: kubernetes
+            id: provider-id
+      `
+      const result = commentOutFieldInYaml(yaml, "id")
+      // Top-level id should be commented out
+      expect(result).to.include("# id: legacy-project-123  # Legacy field, no longer needed")
+      // Nested id should remain unchanged
+      expect(result).to.include("    id: provider-id")
+    })
+
+    it("should return unchanged if field not found", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        variables:
+          foo: bar
+      `
+      const result = commentOutFieldInYaml(yaml, "id")
+      expect(result).to.equal(yaml)
+    })
+
+    it("should handle field at end of file without trailing newline", () => {
+      const yaml = "kind: Project\nname: test\nid: legacy-123"
+      const result = commentOutFieldInYaml(yaml, "id")
+      expect(result).to.equal("kind: Project\nname: test\n# id: legacy-123  # Legacy field, no longer needed")
+    })
+  })
+
+  describe("regex functions integration", () => {
+    it("should correctly handle full flow: insert organizationId + comment out legacy fields", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        id: legacy-project-123
+        domain: https://old.garden.io
+        environments: [ "local", "remote", "ci" ]
+        variables:
+          longUrl: "https://git:\${secrets.TOKEN}@gitlab.com/org/repo.git"
+      `
+
+      // Simulate the full update flow
+      let result = insertOrganizationIdInYaml(yaml, "new-org-id")
+      result = commentOutFieldInYaml(result, "id")
+      result = commentOutFieldInYaml(result, "domain")
+
+      // Verify organizationId was inserted
+      expect(result).to.include("organizationId: new-org-id")
+
+      // Verify legacy fields were commented out
+      expect(result).to.include("# id: legacy-project-123  # Legacy field, no longer needed")
+      expect(result).to.include("# domain: https://old.garden.io  # Legacy field, no longer needed")
+
+      // Verify formatting is preserved exactly
+      expect(result).to.include('environments: [ "local", "remote", "ci" ]')
+      expect(result).to.include('longUrl: "https://git:${secrets.TOKEN}@gitlab.com/org/repo.git"')
+    })
+  })
+
+  describe("replaceOrganizationIdInYaml", () => {
+    it("should replace unquoted organizationId value", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        organizationId: old-org-id
+        variables:
+          foo: bar
+      `
+      const result = replaceOrganizationIdInYaml(yaml, "new-org-id")
+      expect(result).to.include("organizationId: new-org-id")
+      expect(result).not.to.include("old-org-id")
+    })
+
+    it("should replace double-quoted organizationId value", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        organizationId: "old-org-id"
+        variables:
+          foo: bar
+      `
+      const result = replaceOrganizationIdInYaml(yaml, "new-org-id")
+      expect(result).to.include('organizationId: "new-org-id"')
+      expect(result).not.to.include("old-org-id")
+    })
+
+    it("should replace single-quoted organizationId value", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        organizationId: 'old-org-id'
+        variables:
+          foo: bar
+      `
+      const result = replaceOrganizationIdInYaml(yaml, "new-org-id")
+      expect(result).to.include("organizationId: 'new-org-id'")
+      expect(result).not.to.include("old-org-id")
+    })
+
+    it("should preserve trailing comments", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        organizationId: old-org-id  # This is important
+        variables:
+          foo: bar
+      `
+      const result = replaceOrganizationIdInYaml(yaml, "new-org-id")
+      expect(result).to.include("organizationId: new-org-id  # This is important")
+    })
+
+    it("should preserve surrounding content exactly", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        organizationId: old-org-id
+        environments: [ "local", "remote", "ci" ]
+        variables:
+          foo: bar
+      `
+      const result = replaceOrganizationIdInYaml(yaml, "new-org-id")
+      // The array formatting should be preserved exactly
+      expect(result).to.include('environments: [ "local", "remote", "ci" ]')
+    })
+
+    it("should return unchanged content if organizationId not found", () => {
+      const yaml = dedent`
+        kind: Project
+        name: test-project
+        variables:
+          foo: bar
+      `
+      const result = replaceOrganizationIdInYaml(yaml, "new-org-id")
+      expect(result).to.equal(yaml)
     })
   })
 })

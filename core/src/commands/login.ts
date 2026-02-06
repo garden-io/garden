@@ -11,15 +11,13 @@ import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
 import type { Log } from "../logger/log-entry.js"
-import { CloudApiError, ConfigurationError, InternalError, TimeoutError } from "../exceptions.js"
+import { CloudApiError, InternalError, TimeoutError } from "../exceptions.js"
 import type { AuthToken } from "../cloud/common.js"
 import { AuthRedirectServer, getAuthRedirectConfigLegacy, saveAuthToken } from "../cloud/api-legacy/auth.js"
 import type { EventBus } from "../events/events.js"
 import { getCloudDomain, useLegacyCloud } from "../cloud/util.js"
 import { gardenEnv } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
-import type { Document, ParsedNode } from "yaml"
-import { parseAllDocuments, Pair, YAMLMap, Scalar } from "yaml"
 import { deline } from "../util/string.js"
 import fsExtra from "fs-extra"
 const { readFile, writeFile } = fsExtra
@@ -310,12 +308,10 @@ export async function updateProjectConfigWithResolvedOrgId({
   }
 
   const currentOrgId = projectConfig.organizationId
-  const shouldUpdateConfig =
-    !currentOrgId || // No org ID set
-    currentOrgId !== organizationId || // Wrong org ID set
-    legacyProjectId // Legacy fields to comment out
+  const hasLegacyFields = !!legacyProjectId
 
-  if (!shouldUpdateConfig) {
+  // Skip if organizationId is already correct and there are no legacy fields relating to the old API to comment out
+  if (currentOrgId === organizationId && !hasLegacyFields) {
     log.debug("Project config already has the correct organizationId and no legacy fields, skipping.")
     return
   }
@@ -335,12 +331,12 @@ export async function updateProjectConfigWithResolvedOrgId({
     })
   }
 
-  await rewriteProjectConfigFile({
+  await setOrganizationIdInFile({
     log,
     projectConfigPath: projectConfig.configPath,
     organizationId,
-    legacyProjectId,
-    commentOutLegacyFields: false,
+    isInsert: !currentOrgId,
+    commentOutLegacyFields: hasLegacyFields,
   })
 }
 
@@ -373,10 +369,12 @@ export async function applyOrganizationId({
           message: "Invalid state: The project configuration must have a config file path",
         })
       }
-      await rewriteProjectConfigFile({
+      await setOrganizationIdInFile({
         log,
         projectConfigPath: projectConfig.configPath,
         organizationId,
+        isInsert: true,
+        commentOutLegacyFields: false,
       })
     }
   } else {
@@ -385,202 +383,99 @@ export async function applyOrganizationId({
   }
 }
 
-async function rewriteProjectConfigFile({
+/**
+ * Replace an existing organizationId value using regex, preserving all other formatting.
+ * This is used when the organizationId exists but has the wrong value.
+ * Only matches top-level fields (no indentation).
+ */
+export function replaceOrganizationIdInYaml(yamlContent: string, newOrganizationId: string): string {
+  // Match top-level organizationId: followed by the value (quoted or unquoted)
+  // Handles: organizationId: value, organizationId: "value", organizationId: 'value'
+  // Also preserves trailing whitespace and comments
+  const regex = /^(organizationId:\s*)(['"]?)([^\s'"\n]+)\2(\s*(?:#.*)?)$/m
+  return yamlContent.replace(regex, `$1$2${newOrganizationId}$2$4`)
+}
+
+/**
+ * Insert a new organizationId field after the `name:` line using regex.
+ * Only matches top-level `name:` field (no indentation).
+ */
+export function insertOrganizationIdInYaml(yamlContent: string, organizationId: string): string {
+  // Match top-level name: line and insert organizationId after it
+  const regex = /^(name:.*)$/m
+  return yamlContent.replace(regex, `$1\norganizationId: ${organizationId}`)
+}
+
+/**
+ * Comment out a top-level field in YAML using regex.
+ * Transforms: `fieldName: value` → `# fieldName: value  # Legacy field, no longer needed`
+ * Only matches top-level fields (no indentation).
+ */
+export function commentOutFieldInYaml(yamlContent: string, fieldName: string): string {
+  const regex = new RegExp(`^(${fieldName}:.*)$`, "m")
+  return yamlContent.replace(regex, `# $1  # Legacy field, no longer needed`)
+}
+
+/**
+ * Update the organizationId in a project config file using regex operations.
+ * Supports inserting new, replacing existing, and commenting out legacy fields.
+ */
+async function setOrganizationIdInFile({
   log,
   projectConfigPath,
   organizationId,
-  legacyProjectId,
+  isInsert,
   commentOutLegacyFields = false,
 }: {
   log: Log
   projectConfigPath: string
   organizationId: string
-  legacyProjectId?: string
+  isInsert: boolean
   commentOutLegacyFields?: boolean
 }): Promise<void> {
   const relPath = relative(process.cwd(), projectConfigPath)
-  // We reparse the file this way to avoid losing comments, field ordering etc. when writing it back after adding
-  // the organizationId.
-  const fileContent = (await readFile(projectConfigPath)).toString()
-  try {
-    const updatedFileContent = rewriteProjectConfigYaml({
-      projectConfigYaml: fileContent,
-      projectConfigPath,
-      organizationId,
-      legacyProjectId,
-      commentOutLegacyFields,
-    })
-    await writeFile(projectConfigPath, updatedFileContent)
+  let content = (await readFile(projectConfigPath)).toString()
+  const originalContent = content
 
-    const changes: string[] = []
-    changes.push(`${styles.highlight("organizationId")} set to ${organizationId}`)
-    if (commentOutLegacyFields) {
-      changes.push(`legacy fields ${styles.highlight("id")} and ${styles.highlight("domain")} commented out`)
-    }
+  // Step 1: Insert or replace organizationId
+  content = isInsert
+    ? insertOrganizationIdInYaml(content, organizationId)
+    : replaceOrganizationIdInYaml(content, organizationId)
 
-    log.info(
-      `
-Welcome to the new Garden Cloud! Your project configuration has been updated:
+  // Step 2: Comment out legacy fields if requested
+  if (commentOutLegacyFields) {
+    content = commentOutFieldInYaml(content, "id")
+    content = commentOutFieldInYaml(content, "domain")
+  }
+
+  if (content === originalContent) {
+    // Nothing changed - provide manual instructions
+    log.warn(`Could not update organizationId in ${relPath}`)
+    log.info(dedent`
+      Please manually update your project configuration:
+
+        kind: Project
+        name: your-project
+        organizationId: ${organizationId}  # <---- add this line
+        ...
+    `)
+    return
+  }
+
+  await writeFile(projectConfigPath, content)
+
+  const changes: string[] = []
+  changes.push(`${styles.highlight("organizationId")} ${isInsert ? "added" : "updated"} to ${organizationId}`)
+  if (commentOutLegacyFields) {
+    changes.push(`legacy fields ${styles.highlight("id")} and ${styles.highlight("domain")} commented out`)
+  }
+
+  log.info(
+    `
+Your project configuration has been updated:
 ${changes.map((c) => `  - ${c}`).join("\n")}
 
 Make sure to commit the updated ${styles.highlight(relPath)} to source control.
-      `
-    )
-  } catch (err) {
-    // If the above fails for any reason, we log a helpful message to guide the user to setting the
-    // organizationId in their project config manually.
-    log.debug(
-      `An error occurred while automatically updating project config at path ${relPath}: ${err instanceof Error ? err.stack : err}`
-    )
-    log.info(dedent`
-        Please manually update your project configuration:
-
-          kind: Project
-          organizationId: ${organizationId} # <----
-          ...
-      `)
-    return
-  }
-}
-
-export function rewriteProjectConfigYaml({
-  projectConfigYaml,
-  projectConfigPath,
-  organizationId,
-  legacyProjectId,
-  commentOutLegacyFields = false,
-}: {
-  projectConfigYaml: string
-  projectConfigPath: string
-  organizationId: string
-  legacyProjectId?: string
-  commentOutLegacyFields?: boolean
-}): string {
-  const docsInFile = parseAllDocuments(projectConfigYaml)
-
-  // We throw below if there isn't exactly one project config in the file, so we don't need
-  // an array of indices here.
-  let projectDocIndex: number = -1
-  const projectConfigMatches = docsInFile.filter((doc, index) => {
-    if (doc.contents instanceof YAMLMap) {
-      const kind = doc.get("kind") as string
-      if (kind === "Project") {
-        projectDocIndex = index
-        return true
-      } else {
-        return false
-      }
-    } else {
-      return false
-    }
-  })
-  if (projectConfigMatches.length === 0) {
-    throw new ConfigurationError({
-      message: `An error occurred while setting organizationId in project config: Project config not found at ${projectConfigPath}`,
-    })
-  }
-  if (projectConfigMatches.length > 1) {
-    throw new ConfigurationError({
-      message: deline`
-        An error occurred while setting organizationId in project config: Multiple project configs found
-        at ${projectConfigPath}. Only one project config is allowed in a Garden project.
-      `,
-    })
-  }
-  const projectDoc = projectConfigMatches[0]
-  // We go through a bit of extra effort here to insert the `organizationId` below the name field (since we don't want
-  // it to appear in a visually ugly position).
-  // TODO: If there is a comment below the name field in the project config, it will be lost during this process.
-  // Probably a minor issue/limitation, but worth noting here.
-  if (projectDoc.contents instanceof YAMLMap) {
-    const map = projectDoc.contents
-
-    // Step 1: Set or update organizationId
-    const existingOrgIdIndex = map.items.findIndex(
-      (item) => item.key instanceof Scalar && item.key.value === "organizationId"
-    )
-
-    if (existingOrgIdIndex !== -1) {
-      // Update existing organizationId
-      const existingPair = map.items[existingOrgIdIndex]
-      if (existingPair.value instanceof Scalar) {
-        existingPair.value.value = organizationId
-      } else {
-        // Replace with a new scalar
-        const valueNode = projectDoc.createNode(organizationId) as unknown as ParsedNode
-        existingPair.value = valueNode
-      }
-    } else {
-      // Add new organizationId field
-      // We need to cast to unknown because the node we create here doesn't have all the metadata that would be there
-      // if it had been parsed from disk.
-      const keyNode = projectDoc.createNode("organizationId") as unknown as ParsedNode
-      const valueNode = projectDoc.createNode(organizationId) as unknown as ParsedNode
-      const newPair = new Pair(keyNode, valueNode)
-
-      // Find the index of the `name` field (i.e. the project name).
-      const insertIndex = map.items.findIndex((item) => item.key instanceof Scalar && item.key.value === "name")
-
-      // If found, insert after that key; if not, just add it at the end.
-      if (insertIndex !== -1) {
-        // Insert after the found index
-        map.items.splice(insertIndex + 1, 0, newPair)
-      } else {
-        // Fallback: simply set it (which typically adds it at the end)
-        projectDoc.set("organizationId", organizationId)
-      }
-    }
-
-    // Step 2: Comment out legacy fields if requested
-    if (commentOutLegacyFields) {
-      // Collect fields to comment out with their values
-      const fieldsToComment: Array<{ field: string; value: string; index: number }> = []
-
-      const idIndex = map.items.findIndex((item) => item.key instanceof Scalar && item.key.value === "id")
-      if (idIndex !== -1) {
-        const idPair = map.items[idIndex]
-        const idValue = idPair.value instanceof Scalar ? idPair.value.value : legacyProjectId || "<legacy-id>"
-        fieldsToComment.push({ field: "id", value: String(idValue), index: idIndex })
-      }
-
-      const domainIndex = map.items.findIndex((item) => item.key instanceof Scalar && item.key.value === "domain")
-      if (domainIndex !== -1) {
-        const domainPair = map.items[domainIndex]
-        const domainValue = domainPair.value instanceof Scalar ? domainPair.value.value : "<legacy-domain>"
-        fieldsToComment.push({ field: "domain", value: String(domainValue), index: domainIndex })
-      }
-
-      // Sort by index in descending order so we can remove from the end first
-      // This prevents index shifting issues
-      fieldsToComment.sort((a, b) => b.index - a.index)
-
-      // Process each field to comment out
-      for (const { field, value, index } of fieldsToComment) {
-        // Remove the item from the map
-        map.items.splice(index, 1)
-
-        // Add as a comment to the next item's key commentBefore
-        if (index < map.items.length) {
-          const nextItem = map.items[index]
-          if (nextItem.key) {
-            const existingComment = nextItem.key.commentBefore || ""
-            // Add space at start for "# field: value" format, no trailing newline to avoid blank lines
-            const commentLine = `${field}: ${value}  # Legacy field, no longer needed`
-            nextItem.key.commentBefore = existingComment ? `${existingComment} ${commentLine}\n` : ` ${commentLine}\n`
-          }
-        }
-      }
-    }
-  } else {
-    throw new InternalError({
-      message: "Unexpected YAML structure: Expected a map at the document root.",
-    })
-  }
-  docsInFile[projectDocIndex] = projectDoc
-
-  // Use lineWidth: 0 to disable line folding (prevents URLs from being split mid-word)
-  // Use flowCollectionPadding: false to keep compact arrays like ["a", "b"] instead of [ "a", "b" ]
-  return docsInFile
-    .map((doc: Document.Parsed<ParsedNode, true>) => doc.toString({ lineWidth: 0, flowCollectionPadding: false }))
-    .join("")
+    `
+  )
 }
