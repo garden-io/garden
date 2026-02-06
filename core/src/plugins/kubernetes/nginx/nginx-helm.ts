@@ -34,18 +34,14 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
   private readonly defaultBackend = new GardenDefaultBackend()
 
   override async ensure(ctx: KubernetesPluginContext, log: Log): Promise<void> {
-    const ingressControllerReady = await this.ready(ctx, log)
-    if (ingressControllerReady) {
-      return
-    }
-
     const provider = ctx.provider
     const config = provider.config
     const namespace = config.gardenSystemNamespace
     const api = await KubeApi.factory(log, ctx, provider)
 
-    // Clean up any webhook configurations that might interfere with Ingress creation.
-    // This handles stale webhooks from previous installs or when values weren't applied correctly.
+    // Always clean up stale webhook configurations, even if nginx appears ready.
+    // This handles upgrades from old Garden versions that created webhooks due to a bug
+    // where Helm values weren't applied correctly.
     const webhookName = `${HELM_INGRESS_NGINX_RELEASE_NAME}-ingress-nginx-admission`
     const staleWebhookManifest = {
       apiVersion: "admissionregistration.k8s.io/v1",
@@ -53,6 +49,11 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       metadata: { name: webhookName },
     }
     await api.deleteBySpec({ namespace, manifest: staleWebhookManifest, log })
+
+    const ingressControllerReady = await this.ready(ctx, log)
+    if (ingressControllerReady) {
+      return
+    }
 
     const systemVars: SystemVars = getKubernetesSystemVariables(config)
     const values = this.getNginxHelmValues(systemVars)
