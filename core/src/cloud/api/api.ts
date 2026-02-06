@@ -18,6 +18,7 @@ import type {
   GetActionResultResponse,
   RegisterCloudBuildRequest,
   RegisterCloudBuildResponse,
+  RouterOutput,
 } from "./trpc.js"
 import { describeTRPCClientError, getAuthenticatedApiClient } from "./trpc.js"
 import type { GardenErrorParams } from "../../exceptions.js"
@@ -104,6 +105,64 @@ async function resolveOrganizationIdForLegacyProject({
     // Fall back to provided organizationId if resolution fails
     return organizationId
   }
+}
+
+/**
+ * Validates that the current user has access to the specified org.
+ * Throws a CloudApiError with a helpful message if the user isn't a member of the org.
+ */
+async function validateOrganizationAccess({
+  cloudDomain,
+  authToken,
+  organizationId,
+  log,
+  __trpcClientOverrideForTesting,
+}: {
+  cloudDomain: string
+  authToken: string
+  organizationId: string
+  log: Log
+  __trpcClientOverrideForTesting?: ApiTrpcClient
+}): Promise<void> {
+  const trpc =
+    __trpcClientOverrideForTesting ?? getAuthenticatedApiClient({ hostUrl: cloudDomain, tokenGetter: () => authToken })
+
+  let currentAccount: RouterOutput["account"]["getCurrentAccount"]
+  try {
+    currentAccount = await trpc.account.getCurrentAccount.query()
+  } catch (err) {
+    if (err instanceof TRPCClientError) {
+      throw GardenCloudTRPCError.wrapTRPCClientError(err)
+    }
+    throw err
+  }
+
+  if (!currentAccount) {
+    throw new CloudApiError({
+      message: `Unable to verify your account. Please try running "garden logout" followed by "garden login".`,
+    })
+  }
+
+  const userOrgs = currentAccount.organizations
+  const hasAccess = userOrgs.some((org) => org.id === organizationId)
+
+  if (!hasAccess) {
+    const orgListStr =
+      userOrgs.length > 0 ? userOrgs.map((org) => `- ${org.name} (id: ${org.id})`).join("\n") : "(none)"
+
+    throw new CloudApiError({
+      // We don't use dedent here, because that doesn't play nice with the newlines in orgListStr.
+      message:
+        `You do not have access to the organization specified in your project configuration (id: ${organizationId}).\n\n` +
+        `Your account has access to the following organizations:\n${orgListStr}\n\n` +
+        `To fix this, you can:\n` +
+        `  1. Ask an administrator of the organization to invite you (if you believe the organizationId in the project configuration is the right one)\n\n` +
+        `  2. Update the organizationId in your project configuration to one you have access to\n` +
+        `If you believe this is an error, try running "garden logout" followed by "garden login".`,
+    })
+  }
+
+  log.debug({ msg: `Validated access to organization ${organizationId}` })
 }
 
 export type GardenCloudApiFactory = (params: GardenCloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
@@ -294,6 +353,15 @@ export class GardenCloudApi {
         `,
       })
     }
+
+    // Validate user has access to the organization
+    await validateOrganizationAccess({
+      cloudDomain,
+      authToken,
+      organizationId,
+      log: cloudFactoryLog,
+      __trpcClientOverrideForTesting,
+    })
 
     // Start refresh interval if using JWT
     const api = new GardenCloudApi({
