@@ -3,6 +3,7 @@ type: pulumi
 name: k8s-namespace-new
 description: Creates a Namespace
 spec:
+  stack: k8s-namespace-new-local
   useNewPulumiVarfileSchema: true
   pulumiVarfiles: [varfile-new-schema.yaml]
   createStack: true
