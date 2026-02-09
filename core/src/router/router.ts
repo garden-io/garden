@@ -154,14 +154,27 @@ export class ActionRouter extends BaseRouter {
     log,
     names,
     dependantsFirst,
+    force,
   }: {
     graph: ConfigGraph
     log: Log
     dependantsFirst?: boolean
     names?: string[]
+    force?: boolean
   }): Promise<DeployStatusMap> {
     const servicesLog = log.createLog({}).info("Deleting deployments...")
-    const deploys = graph.getDeploys({ names })
+    let deploys = graph.getDeploys({ names })
+
+    // Filter out actions with removeOnCleanup = false, unless force is set
+    if (!force) {
+      const skippedDeploys = deploys.filter((a) => a.getConfig("removeOnCleanup") === false)
+      if (skippedDeploys.length > 0) {
+        servicesLog.info(
+          `Skipping cleanup for ${skippedDeploys.map((a) => a.name).join(", ")} (removeOnCleanup = false)`
+        )
+        deploys = deploys.filter((a) => a.getConfig("removeOnCleanup") !== false)
+      }
+    }
 
     const tasks = deploys.map((action) => {
       return new DeleteDeployTask({

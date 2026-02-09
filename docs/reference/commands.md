@@ -813,6 +813,9 @@ and reset it. When you then run `garden deploy` after, the namespace will be rec
 
 This can be useful if you find the namespace to be in an inconsistent state, or need/want to free up resources.
 
+Deploys with `removeOnCleanup: false` set in their configuration are skipped by default. Use the `--force` flag to
+override this and clean up all deploys regardless.
+
 #### Usage
 
     garden cleanup namespace [options]
@@ -824,6 +827,7 @@ This can be useful if you find the namespace to be in an inconsistent state, or 
   | `--dependants-first` |  | boolean | Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
 
 When this flag is not used, all services in the project are cleaned up simultaneously.
+  | `--force` |  | boolean | Force cleanup/deletion of Deploy(s) that have &#x60;removeOnCleanup: false&#x60; set in their configuration. By default, such deploys are skipped during cleanup.
 
 #### Outputs
 
@@ -942,10 +946,14 @@ Cleans up (i.e. un-deploys) the specified actions. Cleans up all deploys/service
 Note that this command does not take into account any deploys depending on the cleaned up actions, and might
 therefore leave the project in an unstable state. Running `garden deploy` after will re-deploy anything missing.
 
+Deploys with `removeOnCleanup: false` set in their configuration are skipped by default. Use the `--force` flag to
+override this and clean up all deploys/services regardless.
+
 Examples:
 
     garden cleanup deploy my-service # deletes my-service
     garden cleanup deploy            # deletes all deployed services in the project
+    garden cleanup deploy --force    # deletes all deployed services, including those with removeOnCleanup: false
 
 #### Usage
 
@@ -964,6 +972,7 @@ Examples:
   | `--dependants-first` |  | boolean | Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
 
 When this flag is not used, all services in the project are cleaned up simultaneously.
+  | `--force` |  | boolean | Force cleanup/deletion of Deploy(s) that have &#x60;removeOnCleanup: false&#x60; set in their configuration. By default, such deploys are skipped during cleanup.
   | `--with-dependants` |  | boolean | Also clean up deployments/services that have dependencies on one of the deployments/services specified as CLI arguments (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list of names is specified as CLI arguments (since then, every deploy/service in the project will be deleted).
 
 #### Outputs
@@ -2508,6 +2517,13 @@ actionConfigs:
 
       # Timeout for the deploy to complete, in seconds.
       timeout:
+
+      # Set this to `false` to prevent this Deploy from being removed during `garden cleanup deploy` or `garden
+      # cleanup namespace` commands. This is useful for preventing the cleanup of persistent resources like PVCs or
+      # databases during cleanup operations.
+      #
+      # Use the `--force` flag on the cleanup commands to override this and clean up deploys regardless of this flag.
+      removeOnCleanup:
 
   # Run action configs in the project.
   Run:

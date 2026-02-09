@@ -389,6 +389,16 @@ Timeout for the deploy to complete, in seconds.
 | -------- | ------- | -------- |
 | `number` | `300`   | No       |
 
+### `removeOnCleanup`
+
+Set this to `false` to prevent this Deploy from being removed during `garden cleanup deploy` or `garden cleanup namespace` commands. This is useful for preventing the cleanup of persistent resources like PVCs or databases during cleanup operations.
+
+Use the `--force` flag on the cleanup commands to override this and clean up deploys regardless of this flag.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
+
 ### `spec`
 
 | Type     | Required |

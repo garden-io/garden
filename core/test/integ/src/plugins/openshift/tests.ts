@@ -118,7 +118,7 @@ describe.skip("OpenShift", () => {
       garden,
       log,
       args: {},
-      opts: withDefaultGlobalOpts({ "dependants-first": false }),
+      opts: withDefaultGlobalOpts({ "dependants-first": false, "force": false }),
     })
     expect(result!.deployStatuses["openshift-nginx-hello"].state).eql("ready")
   })

@@ -7,6 +7,7 @@
  */
 
 import { memoize } from "lodash-es"
+import { dedent } from "../util/string.js"
 import { joi } from "../config/common.js"
 import type { BaseRuntimeActionConfig } from "./base.js"
 import { baseRuntimeActionConfigSchema, ExecutedRuntimeAction, ResolvedRuntimeAction, RuntimeAction } from "./base.js"
@@ -15,8 +16,12 @@ import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../constants.js"
 import { createDeployTask } from "../tasks/deploy.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
+import { ActionConfigContext } from "../config/template-contexts/actions.js"
 
-export type DeployActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Deploy", N, S>
+export interface DeployActionConfig<N extends string = any, S extends object = any>
+  extends BaseRuntimeActionConfig<"Deploy", N, S> {
+  removeOnCleanup?: boolean
+}
 
 export const deployActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({
@@ -27,6 +32,17 @@ export const deployActionConfigSchema = memoize(() =>
       .min(1)
       .default(DEFAULT_DEPLOY_TIMEOUT_SEC)
       .description("Timeout for the deploy to complete, in seconds."),
+    removeOnCleanup: joi
+      .boolean()
+      .default(true)
+      .description(
+        dedent`
+        Set this to \`false\` to prevent this Deploy from being removed during \`garden cleanup deploy\` or \`garden cleanup namespace\` commands. This is useful for preventing the cleanup of persistent resources like PVCs or databases during cleanup operations.
+
+        Use the \`--force\` flag on the cleanup commands to override this and clean up deploys regardless of this flag.
+        `
+      )
+      .meta({ templateContext: ActionConfigContext }),
   })
 )
 
