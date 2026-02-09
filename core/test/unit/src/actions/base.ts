@@ -17,7 +17,7 @@ import {
   getFullActionVersion,
   replaceExcludeValues,
 } from "../../../../src/actions/base.js"
-import { getRootLogger } from "../../../../src/logger/logger.js"
+import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
 import { createActionLog } from "../../../../src/logger/log-entry.js"
 import type { TestGarden } from "../../../helpers.js"
 import { makeTempGarden } from "../../../helpers.js"
@@ -457,5 +457,92 @@ describe("actionIsDisabled", () => {
       spec: {},
     }
     expect(actionIsDisabled(config, "no")).to.eql(true)
+  })
+})
+
+describe("action logLevel", () => {
+  let garden: TestGarden
+  let tmpDir: tmp.DirectoryResult
+
+  beforeEach(async () => {
+    const res = await makeTempGarden()
+    garden = res.garden
+    tmpDir = res.tmpDir
+  })
+
+  afterEach(async () => {
+    await tmpDir.cleanup()
+  })
+
+  it("returns undefined when logLevel is not configured", async () => {
+    const log = garden.log
+
+    garden.setPartialActionConfigs([
+      {
+        kind: "Build",
+        name: "foo",
+        type: "test",
+        // no logLevel set
+      },
+    ])
+
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const action = graph.getBuild("foo")
+
+    expect(action.logLevel).to.be.undefined
+  })
+
+  it("returns LogLevel.info when logLevel is 'info'", async () => {
+    const log = garden.log
+
+    garden.setPartialActionConfigs([
+      {
+        kind: "Build",
+        name: "foo",
+        type: "test",
+        logLevel: "info",
+      },
+    ])
+
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const action = graph.getBuild("foo")
+
+    expect(action.logLevel).to.equal(LogLevel.info)
+  })
+
+  it("returns LogLevel.verbose when logLevel is 'verbose'", async () => {
+    const log = garden.log
+
+    garden.setPartialActionConfigs([
+      {
+        kind: "Build",
+        name: "foo",
+        type: "test",
+        logLevel: "verbose",
+      },
+    ])
+
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const action = graph.getBuild("foo")
+
+    expect(action.logLevel).to.equal(LogLevel.verbose)
+  })
+
+  it("returns LogLevel.error when logLevel is 'silent'", async () => {
+    const log = garden.log
+
+    garden.setPartialActionConfigs([
+      {
+        kind: "Build",
+        name: "foo",
+        type: "test",
+        logLevel: "silent",
+      },
+    ])
+
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const action = graph.getBuild("foo")
+
+    expect(action.logLevel).to.equal(LogLevel.error)
   })
 })
