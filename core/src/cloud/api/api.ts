@@ -570,9 +570,43 @@ export class GardenCloudApi {
 
   @Memoize(() => true)
   async getOrganization() {
-    return await this.trpc.organization.getById.query({
-      organizationId: this.organizationId,
-    })
+    try {
+      return await this.trpc.organization.getById.query({
+        organizationId: this.organizationId,
+      })
+    } catch (err) {
+      if (!(err instanceof TRPCClientError)) {
+        throw err
+      }
+
+      const errorMessage = err.message.toLowerCase()
+
+      // Handle common authorization errors with user-friendly messages
+      if (errorMessage.includes("does not have access") || errorMessage.includes("not authorized")) {
+        throw new CloudApiError({
+          message: deline`
+            You do not have access to the organization with ID ${styles.primary(this.organizationId)}.
+            Please check that you are logged in with the correct account and that your organizationId is correct.
+            You can find your organization ID at ${styles.link("app.garden.io")} under Settings > Organization.
+            To log in with a different account, run ${styles.command("garden logout && garden login")}
+          `,
+        })
+      }
+
+      // Handle invalid UUID format
+      if (errorMessage.includes("invalid uuid")) {
+        throw new ParameterError({
+          message: deline`
+            The organizationId ${styles.primary(this.organizationId)} in your project configuration is not a valid UUID.
+            You can find your organization ID at ${styles.link("app.garden.io")} under Settings > Organization,
+            or run ${styles.command("garden logout && garden login")} to have it resolved automatically.
+          `,
+        })
+      }
+
+      // For other TRPC errors, wrap them properly
+      throw GardenCloudTRPCError.wrapTRPCClientError(err)
+    }
   }
 
   async getOrCreatServiceAccountAndToken({ accountId, name }: { accountId: string; name: string }) {
