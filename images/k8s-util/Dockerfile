@@ -1,6 +1,9 @@
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
+# Upgrade packages to pick up security fixes (rsync, libcrypto3, libssl3)
+RUN apk upgrade --no-cache
+
 RUN apk add --no-cache rsync skopeo
 
 ARG TARGETARCH
