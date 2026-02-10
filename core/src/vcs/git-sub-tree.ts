@@ -15,7 +15,6 @@ import PQueue from "p-queue"
 import { defer } from "../util/util.js"
 import { execa, type ExecaError } from "execa"
 import split2 from "split2"
-import { renderDuration } from "../logger/util.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import { AbstractGitHandler, augmentGlobs, GitCli, hashObject } from "./git.js"
 import type {
@@ -30,6 +29,7 @@ import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
 import { gardenEnv } from "../constants.js"
 import { parse as parseIni } from "ini"
+import { renderDuration } from "../logger/util.js"
 
 const { pathExists, readFile, readlink, lstat } = fsExtra
 
@@ -167,13 +167,13 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
     const { log, path, pathDescription = "directory", filter, failOnPrompt = false, hashUntrackedFiles = true } = params
 
-    const gitLog = log
-      .createLog({ name: "git" })
-      .verbose(
-        `Scanning ${pathDescription} at ${path}\n  → Includes: ${params.include || "(none)"}\n  → Excludes: ${
-          params.exclude || "(none)"
-        }`
-      )
+    const gitLog = log.createLog({ name: "git" }).verbose(`Scanning ${pathDescription} at ${path}`)
+
+    gitLog.debug(
+      `Include/exclude configuration:\n  → Includes: ${params.include || "(none)"}\n  → Excludes: ${
+        params.exclude || "(none)"
+      }`
+    )
 
     const isPathDirectory = await isDirectory(path, gitLog)
     if (!isPathDirectory) {
@@ -313,14 +313,14 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
           // Make sure symlink is relative and points within `path`
           if (isAbsolute(target)) {
-            gitLog.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
+            gitLog.debug(`Ignoring symlink with absolute target at ${resolvedPath}`)
             return
           } else {
             const realTarget = resolve(dirname(resolvedPath), target)
             const relPath = relative(path, realTarget)
 
             if (relPath.startsWith("..")) {
-              gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
+              gitLog.debug(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
               return
             }
             return ensureHash({
@@ -399,10 +399,6 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     await processEnded.promise
     await queue.onIdle()
 
-    gitLog.verbose(
-      `Found ${scannedFiles.length} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`
-    )
-
     if (gardenEnv.GARDEN_GIT_LOG_UNTRACKED_FILES) {
       gitLog.debug(
         dedent`
@@ -411,6 +407,10 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         `
       )
     }
+
+    gitLog.verbose(
+      `Found ${scannedFiles.length} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`
+    )
 
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well

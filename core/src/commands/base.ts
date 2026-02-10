@@ -328,7 +328,7 @@ export abstract class Command<
               ? getCloudLogSectionName("Garden Enterprise")
               : getCloudLogSectionName("Garden Cloud"),
           })
-          cloudLog.info(`View command results at: ${styles.link(commandRunUrl.href)}`)
+          cloudLog.info({ msg: `View live results at: ${styles.link(commandRunUrl.href)}`, skipEmit: true })
         }
 
         let analytics: AnalyticsHandler | undefined
@@ -394,6 +394,12 @@ export abstract class Command<
               garden.events.emit("commandHeartbeat", { sentAt: new Date().toISOString() })
             }, 5_000) // Emit a heartbeat event every 5 seconds
           }, 5_000)
+
+          log
+            .createLog({ name: "garden" })
+            .info(
+              `Starting command run in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)} in project ${styles.highlight(garden.projectName)}`
+            )
 
           // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
           if (await this.isAllowedToRun(garden, log, allOpts)) {
@@ -473,7 +479,7 @@ export abstract class Command<
           const msg = `View command results at: \n\n${printEmoji("👉", log)}${styles.link(
             commandResultUrl
           )} ${printEmoji("👈", log)}\n`
-          log.info("\n" + msg)
+          log.info({ msg: "\n" + msg, skipEmit: true })
         }
 
         return result

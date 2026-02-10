@@ -231,7 +231,6 @@ ${renderCommands(commands)}
     const sessionId = uuidv4()
 
     return withSessionContext({ sessionId }, async () => {
-      const gardenLog = log.createLog({ name: "garden", showDuration: true })
       // Log context for printing the start and finish of Garden initialization when not using the dev console
       const gardenInitLog =
         !command.noProject && command.getFullName() !== "dev" && command.getFullName() !== "serve"
@@ -247,6 +246,7 @@ ${renderCommands(commands)}
         isCustomCommand: command.isCustom,
       }
 
+      const isOfflineModeEnabled = parsedOpts.offline || gardenEnv.GARDEN_OFFLINE
       const contextOpts: GardenOpts = {
         sessionId,
         parentSessionId: undefined,
@@ -258,7 +258,7 @@ ${renderCommands(commands)}
         forceRefresh,
         variableOverrides: parsedCliVars,
         plugins: this.plugins,
-        skipCloudConnect: command.noProject,
+        skipCloudConnect: isOfflineModeEnabled || command.noProject,
       }
 
       let garden: Garden
@@ -289,12 +289,8 @@ ${renderCommands(commands)}
           enforceLogin({
             garden,
             log,
-            isOfflineModeEnabled: parsedOpts.offline || gardenEnv.GARDEN_OFFLINE,
+            isOfflineModeEnabled,
           })
-
-          gardenLog.info(
-            `Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)} in project ${styles.highlight(garden.projectName)}`
-          )
 
           if (processRecord) {
             // Update the db record for the process

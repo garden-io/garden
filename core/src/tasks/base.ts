@@ -47,6 +47,8 @@ export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
 }
 
+const errorLogLinesToPrintIfLogUrl = 20
+
 export interface CommonTaskParams {
   garden: Garden
   log: Log
@@ -700,12 +702,27 @@ export abstract class ExecuteActionTask<
         })
       : null
 
-    // If a log link is available we don't append the output to the error but rather just show the link.
-    // The link is printed elsewhere for better log readability.
+    // If no log URL is available we dump the entire output. If the log URL is available
+    // we only show the last N lines and print a link to the full output since that's
+    // a lot more readable for large outputs.
+    // The link itself is printed elsewhere for better log readability.
     if (logOutput && !logUrl) {
       errorMsg = renderMessageWithDivider({
         prefix: `${errorMsgBase}${errorMsgBase.endsWith(".") ? "" : "."} Here's the output until the error occurred:`,
         msg: logOutput,
+        isError: true,
+        color: styles.error,
+      }).msg
+    } else if (logOutput) {
+      const output = logOutput.split("\n")
+      const errorMsgPrefix =
+        output.length > errorLogLinesToPrintIfLogUrl
+          ? `Here's the last ${errorLogLinesToPrintIfLogUrl} log lines until the error occurred:`
+          : `Here's output until the error occurred:`
+
+      errorMsg = renderMessageWithDivider({
+        prefix: `${errorMsgBase}${errorMsgBase.endsWith(".") ? "" : "."} ${errorMsgPrefix}`,
+        msg: output.slice(-errorLogLinesToPrintIfLogUrl).join("\n"),
         isError: true,
         color: styles.error,
       }).msg
