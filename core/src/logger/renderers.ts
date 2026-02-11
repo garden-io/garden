@@ -93,7 +93,7 @@ export function getStyle(level: LogLevel) {
     style = styles.error
   } else if (level === LogLevel.warn) {
     style = styles.warning
-  } else if (level === LogLevel.info) {
+  } else if (level === LogLevel.info || level === LogLevel.verbose) {
     style = styles.primary
   } else {
     style = styles.secondary

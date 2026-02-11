@@ -652,7 +652,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         : null
 
       if (logUrl) {
-        log.error({ msg: `View full logs: ${styles.link(logUrl.href)}`, showDuration: false })
+        log.error({ msg: `View full logs: ${styles.link(logUrl.href)}`, showDuration: false, skipEmit: true })
       }
     }
   }
