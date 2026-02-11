@@ -241,7 +241,7 @@ function findAction(graph: ConfigGraph, name: string): TerraformDeploy {
 }
 
 function getCommandNameArgs(commandName: string): string[] {
-  if (commandName.includes("-")) {
+  if (commandName.includes("-") && commandName !== "force-unlock") {
     return commandName.split("-")
   }
   return [commandName]
