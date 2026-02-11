@@ -230,7 +230,7 @@ spec:
 
 With this approach, you can add the Garden action to your project without making any changes to existing config.
 
-Here's a [complete example project](https://github.com/garden-io/garden/tree/0.14.16/examples/k8s-deploy-patch-resources) using this approach.
+Here's a [complete example project](https://github.com/garden-io/garden/tree/0.14.17/examples/k8s-deploy-patch-resources) using this approach.
 
 ### Option 2: Using Garden template strings
 

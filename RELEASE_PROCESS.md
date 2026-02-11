@@ -54,7 +54,7 @@ Once the release CI job is done, a draft release will appear in GitHub. That dra
   - Open the draft file (it's named `release-notes-${version}-draft.md`, e.g. `release-notes-0.12.38-draft.md`) and resolve all suggested TODO items
 3. Click the **Publish release** button.
 4. Check out the branch created by the release script (will be called `release-<version>`).
-5. Update the [`CHANGELOG.md`](./CHANGELOG.md) if manual changes in the release nodes were necessary (e.g. removing commits that were reverted).
+5. Update the [`CHANGELOG.md`](./CHANGELOG.md) if manual changes in the release notes were necessary (e.g. removing commits that were reverted).
 6. Run `npm install` and commit the updated `package-lock.json`.
 7. Push the changes from steps 5 and 6 into the release branch. Make a pull request for the branch that was pushed by the script and make sure it's merged as soon as possible.
 8. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
