@@ -60,6 +60,42 @@ If you're using the `kubernetes` provider, the image will be pushed to the confi
 
 You can then check out the results in the [new Builds UI](https://app.garden.io).
 
+## Known Limitations
+
+### Base images from other Build actions require a remote registry
+
+When one Build action uses another Build action's output as a base image (via a `FROM` instruction referencing a build arg), a remote container registry must be configured for the Remote Container Builder to work.
+
+For example, given a config like this:
+
+```yaml
+kind: Build
+type: container
+name: main
+dependencies: [build.base]
+spec:
+  dockerfile: main.Dockerfile
+  buildArgs:
+    BASE_IMAGE: ${actions.build.base.outputs.deploymentImageId}
+```
+
+Where `main.Dockerfile` contains:
+
+```Dockerfile
+ARG BASE_IMAGE
+FROM $BASE_IMAGE
+```
+
+The Remote Container Builder will build the `base` image remotely and download it to your local Docker daemon. However, when it then builds `main`, the remote builder cannot resolve the `base` image because it only exists locally—not in any registry the remote builder can pull from.
+
+Without a registry, the build will fail with an error like:
+
+```
+failed to resolve source metadata for docker.io/library/base:v-<hash>: not found
+```
+
+**Workaround:** Configure a `deploymentRegistry` in your `kubernetes` provider so that built images are pushed to a registry that the remote builder can access. Alternatively, you can disable the Remote Container Builder for environments that use this pattern.
+
 ## Next steps
 
 If you haven't already, check out our docs on [building containers](./building-containers.md) to learn how to add `container` Build actions to your project. Note that the Remote Container Builder also supports [multi-platform builds](./building-containers.md#doing-multi-platform-builds)!
