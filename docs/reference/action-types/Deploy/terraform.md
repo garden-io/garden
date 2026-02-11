@@ -145,6 +145,18 @@ If set, the action is only enabled for the listed environment types. This is eff
 | --------------- | -------- |
 | `array[string]` | No       |
 
+### `logLevel`
+
+Set the log level for this action. If not set, the action inherits the log level set for the command being executed.
+
+Setting this can be useful for actions that produce a lot of log output that is not relevant to the user, or when debugging a specific action.
+
+The `silent` level effectively suppresses log output from this action, except for errors.
+
+| Type     | Allowed Values                                                 | Required |
+| -------- | -------------------------------------------------------------- | -------- |
+| `string` | "error", "warn", "info", "verbose", "debug", "silly", "silent" | Yes      |
+
 ### `include[]`
 
 Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus will affect the computed _version_ of the action.

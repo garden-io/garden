@@ -67,6 +67,7 @@ import { joinWithPosix } from "../util/fs.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { styles } from "../logger/styles.js"
+import { LogLevel, type StringLogLevel } from "../logger/logger.js"
 import { dirname } from "node:path"
 import type { ResolvedTemplate } from "../template/types.js"
 import type { WorkflowConfig } from "../config/workflow.js"
@@ -192,6 +193,20 @@ export const baseActionConfigSchema = createSchema({
         If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand for the \`disabled\` field with an expression for environments. For example, \`environments: ["prod"]\` is equivalent to \`disabled: \${environment.name != "prod"}\`.
         `
       ),
+    logLevel: joi
+      .string()
+      .allow("error", "warn", "info", "verbose", "debug", "silly", "silent")
+      .only()
+      .description(
+        dedent`
+        Set the log level for this action. If not set, the action inherits the log level set for the command being executed.
+
+        Setting this can be useful for actions that produce a lot of log output that is not relevant to the user, or when debugging a specific action.
+
+        The \`silent\` level effectively suppresses log output from this action, except for errors.
+        `
+      )
+      .meta({ templateContext: ActionConfigContext }),
 
     // Version/file handling (Note: Descriptions and behaviors are different on Build actions!)
     include: includeExcludeSchema()
@@ -785,6 +800,22 @@ export abstract class BaseAction<
 
   get executeConcurrencyLimit(): number | undefined {
     return this._config.internal.executeConcurrencyLimit
+  }
+
+  /**
+   * Returns the configured log level for this action, converted to a LogLevel enum value.
+   * Returns undefined if not configured.
+   */
+  get logLevel(): LogLevel | undefined {
+    const configLevel = this._config.logLevel
+    if (!configLevel) {
+      return undefined
+    }
+    // Handle "silent" as a special case - map to error level
+    if (configLevel === "silent") {
+      return LogLevel.error
+    }
+    return LogLevel[configLevel as StringLogLevel]
   }
 
   abstract getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask

@@ -209,7 +209,7 @@ export function createActionLog({
     parentConfigs: [...log.parentConfigs, log.getConfig()],
     metadata: log.metadata,
     root: log.root,
-    fixLevel: fixLevel || log.fixLevel,
+    fixLevel: fixLevel ?? log.fixLevel,
     context: {
       ...omitUndefined(log.context),
       type: "actionLog",
