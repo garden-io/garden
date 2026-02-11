@@ -1,4 +1,27 @@
 
+<a name="0.14.17"></a>
+## [0.14.17](https://github.com/garden-io/garden/compare/0.14.16...0.14.17) (2026-02-11)
+
+### Bug Fixes
+
+* **cloud:** throw if user doesn't have access to org ([#7953](https://github.com/garden-io/garden/issues/7953)) ([7a4207a3c](https://github.com/garden-io/garden/commit/7a4207a3c))
+* **cloud:** better error around invalid org IDs ([5d450dae4](https://github.com/garden-io/garden/commit/5d450dae4))
+* **cloud:** more fixes to project config rewriting ([f801065d6](https://github.com/garden-io/garden/commit/f801065d6))
+* **core:** fixes to project config rewriting logic ([440994221](https://github.com/garden-io/garden/commit/440994221))
+* **k8s:** clean up webhooks for bundled ingress ([#7962](https://github.com/garden-io/garden/issues/7962)) ([3f77ac467](https://github.com/garden-io/garden/commit/3f77ac467))
+* **plugins:** add retry to tool fetching ([ad0682098](https://github.com/garden-io/garden/commit/ad0682098))
+* **terraform:** fix force-unlock plugin command ([e95112913](https://github.com/garden-io/garden/commit/e95112913))
+
+### Features
+
+* experimental `garden plan` command and `deploy --plan` ([f086c3fba](https://github.com/garden-io/garden/commit/f086c3fba))
+* **core:** add removeOnCleanup flag to Deploys ([#7967](https://github.com/garden-io/garden/issues/7967)) ([402051d16](https://github.com/garden-io/garden/commit/402051d16))
+* **core:** action-specific log level override ([#7965](https://github.com/garden-io/garden/issues/7965)) ([025cf5e41](https://github.com/garden-io/garden/commit/025cf5e41))
+
+### Improvements
+
+* **logger:** mix logger fixes ([#7975](https://github.com/garden-io/garden/issues/7975)) ([872b3bf0c](https://github.com/garden-io/garden/commit/872b3bf0c))
+
 <a name="0.14.16"></a>
 ## [0.14.16](https://github.com/garden-io/garden/compare/0.14.15...0.14.16) (2026-02-02)
 
