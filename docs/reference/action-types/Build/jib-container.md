@@ -149,6 +149,18 @@ If set, the action is only enabled for the listed environment types. This is eff
 | --------------- | -------- |
 | `array[string]` | No       |
 
+### `logLevel`
+
+Set the log level for this action. If not set, the action inherits the log level set for the command being executed.
+
+Setting this can be useful for actions that produce a lot of log output that is not relevant to the user, or when debugging a specific action.
+
+The `silent` level effectively suppresses log output from this action, except for errors.
+
+| Type     | Allowed Values                                                 | Required |
+| -------- | -------------------------------------------------------------- | -------- |
+| `string` | "error", "warn", "info", "verbose", "debug", "silly", "silent" | Yes      |
+
 ### `variables`
 
 A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.

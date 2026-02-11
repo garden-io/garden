@@ -10,6 +10,7 @@ import { expect } from "chai"
 import type { TestGarden } from "../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../helpers.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
+import { LogLevel } from "../../../../src/logger/logger.js"
 import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
 import type { ValidResultType } from "../../../../src/tasks/base.js"
 import { BaseActionTask } from "../../../../src/tasks/base.js"
@@ -248,6 +249,107 @@ describe("BaseActionTask", () => {
           // "test.module-a-integ", <----
         ])
       })
+    })
+  })
+
+  describe("action logLevel", () => {
+    it("sets task log fixLevel from action's logLevel config", async () => {
+      garden.addAction({
+        kind: "Test",
+        name: "with-log-level",
+        type: "test",
+        timeout: DEFAULT_TEST_TIMEOUT_SEC,
+        logLevel: "debug",
+        internal: {
+          basePath: projectRoot,
+        },
+        spec: {
+          command: ["echo", "test"],
+        },
+      })
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const action = graph.getTest("with-log-level")
+
+      const task = new TestTask({
+        garden,
+        log,
+        graph,
+        action,
+        force: true,
+        forceBuild: false,
+      })
+
+      // The action's logLevel should be applied as fixLevel on the task's log
+      expect(task.log.fixLevel).to.equal(LogLevel.debug)
+    })
+
+    it("action's logLevel takes precedence over parent log's level", async () => {
+      // Create a parent log with verbose fixLevel
+      const parentLogWithFixLevel = garden.log.createLog({ fixLevel: LogLevel.verbose })
+
+      garden.addAction({
+        kind: "Test",
+        name: "with-silent-log",
+        type: "test",
+        timeout: DEFAULT_TEST_TIMEOUT_SEC,
+        logLevel: "silent", // This should override the parent's verbose level
+        internal: {
+          basePath: projectRoot,
+        },
+        spec: {
+          command: ["echo", "test"],
+        },
+      })
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const action = graph.getTest("with-silent-log")
+
+      const task = new TestTask({
+        garden,
+        log: parentLogWithFixLevel,
+        graph,
+        action,
+        force: true,
+        forceBuild: false,
+      })
+
+      // The action's logLevel (silent -> error) should take precedence over parent's verbose
+      expect(task.log.fixLevel).to.equal(LogLevel.error)
+    })
+
+    it("inherits parent log's fixLevel when action has no logLevel", async () => {
+      // Create a parent log with verbose fixLevel
+      const parentLogWithFixLevel = garden.log.createLog({ fixLevel: LogLevel.verbose })
+
+      garden.addAction({
+        kind: "Test",
+        name: "without-log-level",
+        type: "test",
+        timeout: DEFAULT_TEST_TIMEOUT_SEC,
+        // No logLevel set
+        internal: {
+          basePath: projectRoot,
+        },
+        spec: {
+          command: ["echo", "test"],
+        },
+      })
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const action = graph.getTest("without-log-level")
+
+      const task = new TestTask({
+        garden,
+        log: parentLogWithFixLevel,
+        graph,
+        action,
+        force: true,
+        forceBuild: false,
+      })
+
+      // Should inherit parent's fixLevel since action has no logLevel
+      expect(task.log.fixLevel).to.equal(LogLevel.verbose)
     })
   })
 })

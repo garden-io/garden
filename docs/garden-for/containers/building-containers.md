@@ -83,6 +83,10 @@ spec:
     baseImageVersion: ${actions.build.base-image.version}
 ```
 
+{% hint style="warning" %}
+When using the Remote Container Builder, builds that reference other Build actions as base images (via build args used in `FROM` instructions) require a remote container registry to be configured. Without one, the remote builder cannot resolve the locally-built base image. See [Known Limitations](./using-remote-container-builder.md#known-limitations) for details.
+{% endhint %}
+
 Additionally, Garden automatically sets `GARDEN_ACTION_VERSION` as a build argument, which you can use to reference the
 version of action being built. You use it internally as
 a [Docker buildArg](https://docs.docker.com/engine/reference/commandline/build/#build-arg). For instance, to set

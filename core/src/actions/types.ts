@@ -21,6 +21,7 @@ import type { ValidResultType } from "../tasks/base.js"
 import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { GardenApiVersion } from "../constants.js"
+import type { StringLogLevel } from "../logger/logger.js"
 import type { ResolvedTemplate } from "../template/types.js"
 import type { VariablesContext } from "../config/template-contexts/variables.js"
 import { naturalList } from "../util/string.js"
@@ -91,6 +92,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   dependencies?: ActionReference[]
   disabled?: boolean
   environments?: string[]
+  logLevel?: StringLogLevel | "silent"
 
   // Version/file handling
   // -> Templating with ActionConfigContext allowed

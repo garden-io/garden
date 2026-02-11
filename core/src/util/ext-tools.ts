@@ -403,6 +403,14 @@ export class PluginTool extends CliWrapper {
         : got.stream({
             method: "GET",
             url: this.buildSpec.url,
+            retry: {
+              limit: 3,
+              statusCodes: [408, 429, 502, 503, 504, 521, 522, 524],
+              errorCodes: ["ETIMEDOUT", "ECONNRESET", "ENOTFOUND", "ECONNREFUSED", "EAI_AGAIN"],
+            },
+            timeout: {
+              request: 300000, // 5 minutes for large archives
+            },
           })
 
     // compute the sha256 checksum

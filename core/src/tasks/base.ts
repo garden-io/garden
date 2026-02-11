@@ -248,7 +248,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
     const { action } = params
 
     super({ ...params })
-    this.log = createActionLog({ log: params.log, action })
+    this.log = createActionLog({ log: params.log, action, fixLevel: action.logLevel })
     this.action = action
     this.graph = params.graph
     this.forceActions = params.forceActions || []
