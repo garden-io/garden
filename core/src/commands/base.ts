@@ -395,12 +395,6 @@ export abstract class Command<
             }, 5_000) // Emit a heartbeat event every 5 seconds
           }, 5_000)
 
-          log
-            .createLog({ name: "garden" })
-            .info(
-              `Starting command run in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)} in project ${styles.highlight(garden.projectName)}`
-            )
-
           // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
           if (await this.isAllowedToRun(garden, log, allOpts)) {
             // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
@@ -408,6 +402,14 @@ export abstract class Command<
             garden.treeCache.invalidateDown(log, ["path"])
             // also clear the cached varfiles
             clearVarfileCache()
+
+            if (!this.noProject) {
+              log
+                .createLog({ name: "garden" })
+                .info(
+                  `Starting command run in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)} in project ${styles.highlight(garden.projectName)}`
+                )
+            }
 
             log.silly(() => `Starting command '${this.getFullName()}' action`)
             result = await this.action({
