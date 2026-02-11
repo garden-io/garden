@@ -29,7 +29,12 @@
             <plugin>
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
-                <version>3.1.4</version>
+                <version>3.4.4</version>
+                <configuration>
+                    <from>
+                        <image>public.ecr.aws/docker/library/eclipse-temurin:8-jre</image>
+                    </from>
+                </configuration>
             </plugin>
         </plugins>
     </build>
