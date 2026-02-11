@@ -5,7 +5,7 @@ description: Used by the kubernetes provider for build-related activities
 dependencies: [build.k8s-sync]
 variables:
   image-name: gardendev/k8s-util
-  release-tag: 0.6.5-1 # Starting from version 0.6.0 k8s-util uses k8s-sync 0.2.x.
+  release-tag: 0.6.6-1 # Starting from version 0.6.0 k8s-util uses k8s-sync 0.2.x.
 spec:
   publishId: ${var.image-name}:${var.release-tag}
   localId: ${var.image-name}
