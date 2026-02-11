@@ -133,7 +133,7 @@ describe("DeleteEnvironmentCommand", () => {
       garden,
       log,
       args: {},
-      opts: withDefaultGlobalOpts({ "dependants-first": false }),
+      opts: withDefaultGlobalOpts({ "dependants-first": false, "force": false }),
     })
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
@@ -157,7 +157,7 @@ describe("DeleteEnvironmentCommand", () => {
         garden,
         log,
         args: {},
-        opts: withDefaultGlobalOpts({ "dependants-first": true }),
+        opts: withDefaultGlobalOpts({ "dependants-first": true, "force": false }),
       })
 
       expect(command.outputsSchema().validate(result).error).to.be.undefined
@@ -178,6 +178,70 @@ describe("DeleteEnvironmentCommand", () => {
 
   it("should be protected", async () => {
     expect(command.protected).to.be.true
+  })
+
+  context("when an action has removeOnCleanup = false", () => {
+    it("should skip that action during cleanup", async () => {
+      garden.setPartialActionConfigs([
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "persistent-db",
+          removeOnCleanup: false,
+          spec: { deployCommand: ["echo", "ok"], cleanupCommand: ["echo", "ok"] },
+        },
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "ephemeral-app",
+          spec: { deployCommand: ["echo", "ok"], cleanupCommand: ["echo", "ok"] },
+        },
+      ])
+
+      const { result } = await command.action({
+        garden,
+        log,
+        args: {},
+        opts: withDefaultGlobalOpts({ "dependants-first": false, "force": false }),
+      })
+
+      // persistent-db should not have been deleted
+      expect(deletedServices).to.not.include("persistent-db")
+      // ephemeral-app should have been deleted
+      expect(deletedServices).to.include("ephemeral-app")
+      expect(result!.deployStatuses["ephemeral-app"]?.state).to.equal("not-ready")
+      expect(result!.deployStatuses["persistent-db"]).to.be.undefined
+    })
+
+    it("should delete the action when --force is set", async () => {
+      garden.setPartialActionConfigs([
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "persistent-db",
+          removeOnCleanup: false,
+          spec: { deployCommand: ["echo", "ok"], cleanupCommand: ["echo", "ok"] },
+        },
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "ephemeral-app",
+          spec: { deployCommand: ["echo", "ok"], cleanupCommand: ["echo", "ok"] },
+        },
+      ])
+
+      const { result } = await command.action({
+        garden,
+        log,
+        args: {},
+        opts: withDefaultGlobalOpts({ "dependants-first": false, "force": true }),
+      })
+
+      expect(deletedServices).to.include("persistent-db")
+      expect(deletedServices).to.include("ephemeral-app")
+      expect(result!.deployStatuses["persistent-db"]).to.exist
+      expect(result!.deployStatuses["ephemeral-app"]).to.exist
+    })
   })
 })
 
@@ -234,7 +298,7 @@ describe("DeleteDeployCommand", () => {
       garden,
       log,
       args: { names: ["service-a"] },
-      opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false }),
+      opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false, "force": false }),
     })
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
@@ -249,7 +313,7 @@ describe("DeleteDeployCommand", () => {
       garden,
       log,
       args: { names: ["service-a", "service-b", "service-c"] },
-      opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false }),
+      opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false, "force": false }),
     })
 
     expect(result).to.eql({
@@ -265,7 +329,7 @@ describe("DeleteDeployCommand", () => {
         garden,
         log,
         args: { names: ["service-a", "service-b", "service-c"] },
-        opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true }),
+        opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true, "force": false }),
       })
       expect(deleteOrder).to.eql(["service-c", "service-b", "service-a"])
       expect(result).to.eql({
@@ -282,7 +346,7 @@ describe("DeleteDeployCommand", () => {
         garden,
         log,
         args: { names: ["service-a"] },
-        opts: withDefaultGlobalOpts({ "with-dependants": true, "dependants-first": false }),
+        opts: withDefaultGlobalOpts({ "with-dependants": true, "dependants-first": false, "force": false }),
       })
       expect(deleteOrder).to.eql(["service-d", "service-c", "service-b", "service-a"])
       expect(result).to.eql({
@@ -299,7 +363,7 @@ describe("DeleteDeployCommand", () => {
       garden,
       log,
       args: { names: undefined },
-      opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true }),
+      opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true, "force": false }),
     })
     expect(result).to.eql({
       "service-a": missingDeployStatus,
@@ -311,5 +375,100 @@ describe("DeleteDeployCommand", () => {
 
   it("should be protected", async () => {
     expect(command.protected).to.be.true
+  })
+
+  context("when an action has removeOnCleanup = false", () => {
+    it("should skip that action during cleanup", async () => {
+      garden.setRawModuleConfigs([])
+      garden.setPartialActionConfigs([
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "persistent-db",
+          removeOnCleanup: false,
+          spec: { deployCommand: ["echo", "ok"], cleanupCommand: ["echo", "ok"] },
+        },
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "ephemeral-app",
+          spec: { deployCommand: ["echo", "ok"], cleanupCommand: ["echo", "ok"] },
+        },
+      ])
+
+      const { result } = await command.action({
+        garden,
+        log,
+        args: { names: undefined },
+        opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false, "force": false }),
+      })
+
+      expect(deleteOrder).to.not.include("persistent-db")
+      expect(deleteOrder).to.include("ephemeral-app")
+      expect(result!["persistent-db"]).to.be.undefined
+      expect(result!["ephemeral-app"]).to.exist
+    })
+
+    it("should skip the action even when explicitly named", async () => {
+      garden.setRawModuleConfigs([])
+      garden.setPartialActionConfigs([
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "persistent-db",
+          removeOnCleanup: false,
+          spec: { deployCommand: ["echo", "ok"], cleanupCommand: ["echo", "ok"] },
+        },
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "ephemeral-app",
+          spec: { deployCommand: ["echo", "ok"], cleanupCommand: ["echo", "ok"] },
+        },
+      ])
+
+      const { result } = await command.action({
+        garden,
+        log,
+        args: { names: ["persistent-db", "ephemeral-app"] },
+        opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false, "force": false }),
+      })
+
+      expect(deleteOrder).to.not.include("persistent-db")
+      expect(deleteOrder).to.include("ephemeral-app")
+      expect(result!["persistent-db"]).to.be.undefined
+      expect(result!["ephemeral-app"]).to.exist
+    })
+
+    it("should delete the action when --force is set", async () => {
+      garden.setRawModuleConfigs([])
+      garden.setPartialActionConfigs([
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "persistent-db",
+          removeOnCleanup: false,
+          spec: { deployCommand: ["echo", "ok"], cleanupCommand: ["echo", "ok"] },
+        },
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "ephemeral-app",
+          spec: { deployCommand: ["echo", "ok"], cleanupCommand: ["echo", "ok"] },
+        },
+      ])
+
+      const { result } = await command.action({
+        garden,
+        log,
+        args: { names: undefined },
+        opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false, "force": true }),
+      })
+
+      expect(deleteOrder).to.include("persistent-db")
+      expect(deleteOrder).to.include("ephemeral-app")
+      expect(result!["persistent-db"]).to.exist
+      expect(result!["ephemeral-app"]).to.exist
+    })
   })
 })

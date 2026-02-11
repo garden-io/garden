@@ -47,9 +47,21 @@ const dependantsFirstOpt = {
   }),
 }
 
-const deleteEnvironmentOpts = dependantsFirstOpt
+const forceOpt = {
+  force: new BooleanParameter({
+    help: deline`
+      Force cleanup/deletion of Deploy(s) that have \`removeOnCleanup: false\` set in their configuration.
+      By default, such deploys are skipped during cleanup.
+    `,
+  }),
+}
 
-type DeleteEnvironmentOpts = typeof dependantsFirstOpt
+const deleteEnvironmentOpts = {
+  ...dependantsFirstOpt,
+  ...forceOpt,
+}
+
+type DeleteEnvironmentOpts = typeof deleteEnvironmentOpts
 
 interface DeleteEnvironmentResult {
   providerStatuses: EnvironmentStatusMap
@@ -74,6 +86,9 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
     and reset it. When you then run \`garden deploy\` after, the namespace will be reconfigured.
 
     This can be useful if you find the namespace to be in an inconsistent state, or need/want to free up resources.
+
+    Deploys with \`removeOnCleanup: false\` set in their configuration are skipped by default. Use the \`--force\` flag to
+    override this and clean up all deploys regardless.
   `
 
   override outputsSchema = () =>
@@ -101,6 +116,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
       graph,
       log,
       dependantsFirst: opts["dependants-first"],
+      force: opts["force"],
     })
 
     log.info("")
@@ -131,6 +147,7 @@ type DeleteDeployArgs = typeof deleteDeployArgs
 
 const deleteDeployOpts = {
   ...dependantsFirstOpt,
+  ...forceOpt,
   "with-dependants": new BooleanParameter({
     help: deline`
       Also clean up deployments/services that have dependencies on one of the deployments/services specified as CLI arguments
@@ -159,10 +176,14 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
     Note that this command does not take into account any deploys depending on the cleaned up actions, and might
     therefore leave the project in an unstable state. Running \`garden deploy\` after will re-deploy anything missing.
 
+    Deploys with \`removeOnCleanup: false\` set in their configuration are skipped by default. Use the \`--force\` flag to
+    override this and clean up all deploys/services regardless.
+
     Examples:
 
         garden cleanup deploy my-service # deletes my-service
         garden cleanup deploy            # deletes all deployed services in the project
+        garden cleanup deploy --force    # deletes all deployed services, including those with removeOnCleanup: false
   `
 
   override outputsSchema = () =>
@@ -183,6 +204,20 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
     if (actions.length === 0) {
       log.warn({ msg: "No deploys found. Aborting." })
       return { result: {} }
+    }
+
+    // Filter out actions with removeOnCleanup = false, unless --force is set
+    if (!opts["force"]) {
+      const skippedActions = actions.filter((a) => a.getConfig("removeOnCleanup") === false)
+      if (skippedActions.length > 0) {
+        log.info(`Skipping cleanup for ${skippedActions.map((a) => a.name).join(", ")} (removeOnCleanup = false)`)
+        actions = actions.filter((a) => a.getConfig("removeOnCleanup") !== false)
+      }
+
+      if (actions.length === 0) {
+        log.warn({ msg: "No deploys to clean up after filtering. Aborting." })
+        return { result: {} }
+      }
     }
 
     if (opts["with-dependants"]) {
