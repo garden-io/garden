@@ -111,6 +111,6 @@ If you'd like to better understand how a Garden project is configured, we recomm
 through our [first project tutorial](../tutorials/your-first-project/README.md) which walks you through configuring a Garden project step-by-step.
 
 If you like to dive right in and configure your own project for Garden, we recommend referencing our [example
-projects on GitHub](https://github.com/garden-io/garden/tree/0.13.62/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
+projects on GitHub](https://github.com/garden-io/garden/tree/0.13.63/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
 
 If you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://go.garden.io/discord)!

@@ -1,4 +1,29 @@
 
+<a name="0.13.63"></a>
+## [0.13.63](https://github.com/garden-io/garden/compare/0.14.17...0.13.63) (2026-02-11)
+
+### Bug Fixes
+
+* deal with Bitnami's infuriating rug-pull (0.13 edition) ([#7755](https://github.com/garden-io/garden/issues/7755)) ([abca1fc62](https://github.com/garden-io/garden/commit/abca1fc62))
+* do not throw on unknown action types for disabled actions ([#7177](https://github.com/garden-io/garden/issues/7177)) ([5bad9b748](https://github.com/garden-io/garden/commit/5bad9b748))
+* prevent unnecessary execution of builds referenced in runtime actions ([#7176](https://github.com/garden-io/garden/issues/7176)) ([fffcdb245](https://github.com/garden-io/garden/commit/fffcdb245))
+* **container:** always respect env vars to control remote builder ([#7168](https://github.com/garden-io/garden/issues/7168)) ([96241e5d9](https://github.com/garden-io/garden/commit/96241e5d9))
+* **docs:** correct config formatting in terraform examples ([#7232](https://github.com/garden-io/garden/issues/7232)) ([37b464611](https://github.com/garden-io/garden/commit/37b464611))
+* **git:** replace vulnerable parse-git-config with ini file parser ([#7094](https://github.com/garden-io/garden/issues/7094)) ([16c66f3c1](https://github.com/garden-io/garden/commit/16c66f3c1))
+* **k8s:** update to nginx ingress controller 1.12.1 that is not affected by RCE vulnerability ([#7031](https://github.com/garden-io/garden/issues/7031)) ([5843370e1](https://github.com/garden-io/garden/commit/5843370e1))
+* **module-k8s:** fix `deploymentImageId` in module conversion ([#7029](https://github.com/garden-io/garden/issues/7029)) ([00d156de8](https://github.com/garden-io/garden/commit/00d156de8))
+* **plugins:** add retry to tool fetching ([db2aba80e](https://github.com/garden-io/garden/commit/db2aba80e))
+* **solver:** throw if a dependency failed and `throwOnError` is true ([#7175](https://github.com/garden-io/garden/issues/7175)) ([7780b56ea](https://github.com/garden-io/garden/commit/7780b56ea))
+* **sync:** await monitors stop on `sync stop` completion ([#7061](https://github.com/garden-io/garden/issues/7061)) ([ad92dbe4f](https://github.com/garden-io/garden/commit/ad92dbe4f))
+* **template:** do not throw circular reference error when resolving cross-references in the same scope ([#7595](https://github.com/garden-io/garden/issues/7595)) ([c295f7c7c](https://github.com/garden-io/garden/commit/c295f7c7c))
+* **terraform:** use backendConfig with plugin commands ([#7249](https://github.com/garden-io/garden/issues/7249)) ([#7252](https://github.com/garden-io/garden/issues/7252)) ([c7504014a](https://github.com/garden-io/garden/commit/c7504014a))
+
+### Bundled Tool Version Updates
+
+* **helm:** update version to 3.17.2 ([#7119](https://github.com/garden-io/garden/issues/7119)) ([927116a65](https://github.com/garden-io/garden/commit/927116a65))
+* **kubectl:** update version to 1.32.3 ([#7120](https://github.com/garden-io/garden/issues/7120)) ([f9d7adba9](https://github.com/garden-io/garden/commit/f9d7adba9))
+* **mutagen:** update mutagen to 0.18.1 and base alpine image to 3.21.3 ([#7161](https://github.com/garden-io/garden/issues/7161)) ([78fc32e13](https://github.com/garden-io/garden/commit/78fc32e13))
+
 <a name="0.13.62"></a>
 ## [0.13.62](https://github.com/garden-io/garden/compare/0.14.7...0.13.62) (2025-08-13)
 
