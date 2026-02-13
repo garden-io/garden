@@ -123,6 +123,9 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
 
     log.debug(`Syncing from ${sourcePath} to ${resourceName}`)
 
+    // Get the sync mode from provider config, defaulting to "one-way-replica" for backward compatibility
+    const syncMode = ctx.provider.config.buildSyncMode || "one-way-replica"
+
     // -> Create the sync
     await mutagen.ensureSync({
       log,
@@ -140,7 +143,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
           resourceName,
           targetPath,
         }),
-        mode: "one-way-replica",
+        mode: syncMode,
         // make files world and group readable by default. This is also the default for git.
         defaultFileMode: 0o644,
         defaultDirectoryMode: 0o755,
