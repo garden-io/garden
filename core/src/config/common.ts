@@ -70,7 +70,7 @@ export interface VarfileMap {
 export type Varfile = VarfileMap | string
 
 export const includeGuideLink = makeDocsLinkPlain(
-  "using-garden/configuration-overview",
+  "guides/configuration-overview",
   "#including-excluding-files-and-directories"
 )
 

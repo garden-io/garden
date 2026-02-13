@@ -159,7 +159,7 @@ For actions other than _Build_ actions, this is usually not necessary to specify
 
 _Build_ actions have a different behavior, since they generally are based on some files in the source tree, so please reference the docs for more information on those.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories) for details.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -177,7 +177,7 @@ include:
 
 Specify a list of POSIX-style paths or glob patterns that should be explicitly excluded from the action's version.
 
-For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred. For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set `include` paths, or such paths inferred by providers. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred. For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set `include` paths, or such paths inferred by providers. See the [Configuration Files guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories) for details.
 
 Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes when watching is enabled. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 

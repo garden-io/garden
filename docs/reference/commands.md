@@ -1760,7 +1760,7 @@ providers:
         #
         # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
         # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-        # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Also note that specifying an empty list here means _no sources_ should be included.
@@ -1773,7 +1773,7 @@ providers:
         # Note that you can also explicitly _include_ files using the `include` field. If you also specify the
         # `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
         # [Configuration Files
-        # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2260,7 +2260,7 @@ actionConfigs:
       #
       # You can _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree,
       # which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2369,7 +2369,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2379,7 +2379,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2632,7 +2632,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2642,7 +2642,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2888,7 +2888,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -2898,7 +2898,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -3119,7 +3119,7 @@ moduleConfigs:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
     # for details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
@@ -3132,7 +3132,7 @@ moduleConfigs:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
     # for details.
     #
     # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -3678,7 +3678,7 @@ modules:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
     # for details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
@@ -3691,7 +3691,7 @@ modules:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/cedar-0.14/using-garden/configuration-overview#including-excluding-files-and-directories)
+    # guide](https://docs.garden.io/cedar-0.14/guides/configuration-overview#including-excluding-files-and-directories)
     # for details.
     #
     # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and

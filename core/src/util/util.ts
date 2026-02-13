@@ -225,7 +225,7 @@ export async function exec(cmd: string, args: MaybeSecret[], opts: ExecOpts = {}
         message: dedent`
         Received EMFILE (Too many open files) error when running ${cmd}.
 
-        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see ${makeDocsLinkStyled("using-garden/configuration-overview", "#including-excluding-files-and-directories")} for information on how to do that.
+        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see ${makeDocsLinkStyled("guides/configuration-overview", "#including-excluding-files-and-directories")} for information on how to do that.
 
         This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html
         `,

@@ -456,7 +456,7 @@ export const projectSchema = createSchema({
 
       Note that this take precedence over the project \`scan.include\` field, and action \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 
-      See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+      See the [Configuration Files guide](${DOCS_BASE_URL}/guides/configuration-overview#including-excluding-files-and-directories) for details.
     `
       )
       .example(".gitignore"),

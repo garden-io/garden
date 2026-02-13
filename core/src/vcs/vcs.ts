@@ -276,7 +276,7 @@ export abstract class VcsHandler {
               Large number of files (${
                 files.length
               }) found in ${description}. You may need to configure file exclusions.
-              See ${makeDocsLinkStyled("using-garden/configuration-overview", "#including-excluding-files-and-directories")} for details.
+              See ${makeDocsLinkStyled("guides/configuration-overview", "#including-excluding-files-and-directories")} for details.
             `,
           })
         }
