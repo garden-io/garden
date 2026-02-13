@@ -10,7 +10,7 @@ import { execa } from "execa"
 import { expect } from "chai"
 import { afterEach, beforeEach } from "mocha"
 import type tmp from "tmp-promise"
-import fsExtra from "fs-extra"
+import fsExtra, { ensureDir } from "fs-extra"
 import { basename, dirname, join, relative, resolve } from "path"
 
 import {
@@ -41,6 +41,7 @@ import { ChildProcessError, GardenError, RuntimeError } from "../../../../src/ex
 import type { GitScanMode } from "../../../../src/constants.js"
 import type { Garden } from "../../../../src/index.js"
 import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import { getChildDirNames } from "../../../../src/util/fs.js"
 
 const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, rename, symlink, writeFile } = fsExtra
 
@@ -1298,8 +1299,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
     let clonePath: string
 
     afterEach(async () => {
-      await tmpRepoA.cleanup()
-      await tmpRepoB.cleanup()
+      await tmpRepoA?.cleanup()
+      await tmpRepoB?.cleanup()
     })
 
     async function createRepo(repoUrlMethod: "commit" | "branch" | "tag", withSubmodule = false) {
@@ -1377,6 +1378,28 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
           it("should not error if source already cloned", async () => {
             await createRepo(repoUrlMethod)
             await handler.ensureRemoteSource({
+              url: `file://${tmpRepoPathA}#main`,
+              name: "foo",
+              sourceType: "module",
+              log,
+            })
+
+            expect(
+              await handler.ensureRemoteSource({
+                url: repoUrl,
+                name: "foo",
+                sourceType: "module",
+                log,
+              })
+            ).to.not.throw
+          })
+          it("should not error if cloning into an existing dir that's not a git dir", async () => {
+            await createRepo(repoUrlMethod)
+
+            await ensureDir(clonePath)
+            await writeFile(join(clonePath, "dirty.txt"), "the clone target dir is dirty")
+
+            await handler.ensureRemoteSource({
               url: repoUrl,
               name: "foo",
               sourceType: "module",
@@ -1409,6 +1432,21 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
           })
         })
       }
+      it("should not leave empty remote source dirs if clone fails", async () => {
+        try {
+          await handler.ensureRemoteSource({
+            url: `file://repo-that-does-not-exist#main`,
+            name: "foo",
+            sourceType: "module",
+            log,
+          })
+        } catch (_err) {}
+
+        const sourcesPath = join(tmpPath, ".garden", "sources", "module")
+        const childDirs = await getChildDirNames(sourcesPath)
+
+        expect(childDirs.length).to.eql(0)
+      })
     })
 
     describe("updateRemoteSource", () => {
