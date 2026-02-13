@@ -11,7 +11,7 @@
   "author": "garden.io <info@garden.io>",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "^4.22.1",
     "p-defer": "^3.0.0"
   },
   "devDependencies": {
