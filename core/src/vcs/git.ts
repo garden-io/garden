@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { posix } from "path"
-import fsExtra from "fs-extra"
+import { join, posix } from "path"
+import fsExtra, { remove } from "fs-extra"
 import { PassThrough } from "stream"
 import type { RemoteSourceParams, VcsHandlerParams, VcsInfo } from "./vcs.js"
 import { VcsHandler } from "./vcs.js"
@@ -248,16 +248,21 @@ export abstract class AbstractGitHandler extends VcsHandler {
       await ensureDir(remoteSourcesPath)
 
       const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
-      const isCloned = await pathExists(absPath)
+      const isCloned = await pathExists(join(absPath, ".git"))
 
       if (!isCloned) {
         const gitLog = log.createLog({ name, showDuration: true }).info(`Fetching from ${url}`)
         const { repositoryUrl, hash } = parseGitUrl(url)
 
         try {
+          // Ensure dir is clean before cloning
+          await remove(absPath)
+          await ensureDir(absPath)
           await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
         } catch (err) {
           gitLog.error(`Failed fetching from ${url}`)
+          // Cleanup the remote source dir if cloning fails
+          await remove(absPath)
           throw new RuntimeError({
             message: `Downloading remote ${sourceType} (from ${url}) failed with error: \n\n${err}`,
           })
