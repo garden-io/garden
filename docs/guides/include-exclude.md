@@ -43,7 +43,7 @@ Generally, using `.gardenignore` files is far more performant than exclude confi
 
 By default, Garden respects `.gardenignore` files and excludes any patterns matched in those files. You can place the ignore files anywhere in your repository, much like `.gitignore` files, and they will follow the same semantics.
 
-You can use those to exclude files and directories across the project, _both from being scanned for Garden modules and when selecting source files for individual modules_. For example, you might put this `.gardenignore` file in your project root directory:
+You can use those to exclude files and directories across the project, _both from being scanned for Garden modules and when selecting source files for individual actions_. For example, you might put this `.gardenignore` file in your project root directory:
 
 ```gitignore
 node_modules

@@ -28,10 +28,7 @@ const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
 # Add paths here that you would like Garden to ignore when building modules and computing versions,
 # using the same syntax as .gitignore files.
-# For more info, see ${makeDocsLinkPlain(
-  "using-garden/configuration-overview",
-  "#including-excluding-files-and-directories"
-)}
+# For more info, see ${makeDocsLinkPlain("guides/configuration-overview", "#including-excluding-files-and-directories")}
 `
 
 export const defaultProjectConfigFilename = "project.garden.yml"
@@ -237,7 +234,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     log.info("")
 
     // This is to avoid `prettier` messing with the string formatting...
-    const configFilesUrl = styles.highlight.underline(`${DOCS_BASE_URL}/using-garden/configuration-overview`)
+    const configFilesUrl = styles.highlight.underline(`${DOCS_BASE_URL}/guides/configuration-overview`)
     const referenceUrl = styles.highlight.underline(projectReferenceUrl)
 
     log.info(

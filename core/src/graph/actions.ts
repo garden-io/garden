@@ -478,7 +478,7 @@ export const processActionConfig = profileAsync(async function processActionConf
         message: deline`Action ${config.kind}.${config.name} (defined at ${configPath})
         tries to include files but excludes all files via "**/*".
         Read about including and excluding files and directories here:
-        https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories`,
+        https://docs.garden.io/guides/configuration-overview#including-excluding-files-and-directories`,
       })
     }
     config.include = []
