@@ -5,6 +5,7 @@ dependencies:
   - build.build-a
   - run.run-a
 spec:
+  stack: service-a-${uuidv4()}
   createStack: true
 
 ---

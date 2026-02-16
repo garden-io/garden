@@ -53,7 +53,7 @@ describe("pulumi plugin handlers", () => {
 
   after(async () => {
     const destroyCmd = getPulumiCommands().find((cmd) => cmd.name === "destroy")!
-    // // We don't want to wait for the stacks to be deleted (since it takes a while)
+    // Stack name collisions between concurrent runs are avoided by using ${uuidv4()} in the stack names.
     void destroyCmd.handler({ garden, ctx, args: [], graph, log })
   })
 
