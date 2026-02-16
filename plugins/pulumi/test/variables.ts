@@ -55,7 +55,7 @@ describe("pulumi action variables and varfiles", () => {
 
   after(async () => {
     const destroyCmd = getPulumiCommands().find((cmd) => cmd.name === "destroy")!
-    // // We don't want to wait for the stacks to be deleted (since it takes a while)
+    // Stack name collisions between concurrent runs are avoided by using ${uuidv4()} in the stack names.
     void destroyCmd.handler({ garden, ctx, args: [], graph, log })
   })
 
@@ -69,7 +69,8 @@ describe("pulumi action variables and varfiles", () => {
         action,
         force: false,
       })
-      const configFile = await loadYamlFile(join(nsActionRoot, "Pulumi.k8s-namespace-local.yaml"))
+      const stackName = action.getSpec().stack
+      const configFile = await loadYamlFile(join(nsActionRoot, `Pulumi.${stackName}.yaml`))
       expect(configFile.backend).to.eql({
         url: "https://api.pulumi.com",
       })
@@ -85,7 +86,6 @@ describe("pulumi action variables and varfiles", () => {
         it("uses a varfile with the new schema and merges varfiles and action variables correctly", async () => {
           const actionName = configType === "action" ? "k8s-namespace-new" : "k8s-namespace-new-module"
           const configRoot = configType === "action" ? nsNewActionRoot : nsNewModuleRoot
-          const stackName = configType === "action" ? "k8s-namespace-new-local" : "k8s-namespace-new-module-local"
           const action = graph.getDeploy(actionName)
           const actionLog = action.createLog(log)
           await deployPulumi!({
@@ -94,6 +94,7 @@ describe("pulumi action variables and varfiles", () => {
             action,
             force: false,
           })
+          const stackName = action.getSpec().stack
           const configFile = await loadYamlFile(join(configRoot, `Pulumi.${stackName}.yaml`))
           expect(configFile.backend).to.eql({
             url: "https://api.pulumi.com",
