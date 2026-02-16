@@ -6,6 +6,7 @@ dependencies:
   - build.build-b
   - run.run-b
 spec:
+  stack: service-b-${uuidv4()}
   createStack: true
 
 ---
