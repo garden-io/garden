@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isEqual, isString, mapValues, omit } from "lodash-es"
+import { isEqual, mapValues, omit } from "lodash-es"
 import type {
   Action,
   ActionConfig,
@@ -855,6 +855,60 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   }
 })
 
+/**
+ * Determines whether an action reference's template usage requires that action to be fully executed,
+ * or if resolution alone is sufficient. Execution is only needed when the template references
+ * non-static output keys (e.g. runtime outputs that are only available after the action runs).
+ *
+ * @param refKeyPath - The keyPath from the action reference (the part after `actions.<kind>.<name>`)
+ * @param refActionKind - The kind of the referenced action (Build, Deploy, Run, Test)
+ * @param refStaticOutputKeys - The static output keys of the referenced action type
+ */
+export function actionRefNeedsExecution({
+  refKeyPath,
+  refActionKind,
+  refStaticOutputKeys,
+}: {
+  refKeyPath: (string | number | { getError: () => Error })[]
+  refActionKind?: ActionKind
+  refStaticOutputKeys: string[]
+}): { needsExecuted: boolean; isExplicit: boolean } {
+  let needsExecuted = false
+  let isExplicit = false
+
+  const outputType = refKeyPath[0]
+
+  if (typeof outputType !== "string") {
+    // Unresolvable or non-string key -- assume execution needed
+    return { needsExecuted: true, isExplicit: false }
+  }
+
+  if (outputType === "outputs") {
+    // Builds are always treated as explicit (they should be executed before referencing)
+    if (refActionKind === "Build") {
+      isExplicit = true
+    }
+
+    const outputKey = refKeyPath[1]
+    if (typeof outputKey !== "string") {
+      // Unresolvable output key -- assume execution needed
+      needsExecuted = true
+    } else {
+      needsExecuted = !refStaticOutputKeys.includes(outputKey)
+    }
+  }
+
+  return { needsExecuted, isExplicit }
+}
+
+/**
+ * Returns the static output keys for a given action kind+type, using the action type definitions.
+ */
+export function getStaticOutputKeys(actionTypes: ActionDefinitionMap, kind: ActionKind, type: string): string[] {
+  const spec = actionTypes[kind][type]?.spec
+  return spec?.staticOutputsSchema ? describeSchema(spec.staticOutputsSchema).keys : []
+}
+
 function dependenciesFromActionConfig({
   config,
   configsByKey,
@@ -946,9 +1000,6 @@ function dependenciesFromActionConfig({
   const staticOutputKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
 
   for (const ref of getActionTemplateReferences(config, templateContext)) {
-    let needsExecuted = false
-    let isExplicit = false
-
     const outputType = ref.keyPath[0]
 
     if (isUnresolvableValue(outputType)) {
@@ -958,45 +1009,19 @@ function dependenciesFromActionConfig({
       })
     }
 
-    const outputKey = ref.keyPath[1]
-
     const refActionKey = actionReferenceToString(ref)
     const { type: refActionType, kind: refActionKind } = configsByKey[refActionKey] || {}
 
-    if (outputType === "outputs") {
-      let refStaticOutputKeys: string[] = []
-      if (refActionType) {
-        const refActionSpec = actionTypes[ref.kind][refActionType]?.spec
-        refStaticOutputKeys = refActionSpec?.staticOutputsSchema
-          ? describeSchema(refActionSpec.staticOutputsSchema).keys
-          : []
-      }
+    const refStaticOutputKeys = [
+      ...staticOutputKeys,
+      ...(refActionType ? getStaticOutputKeys(actionTypes, ref.kind, refActionType) : []),
+    ]
 
-      /*
-        If a referenced dependency is a Build, then we re-mark it as explicit dependency.
-        It will have the same effect as if it was explicitly referenced in the configuration.
-
-        This is safe, because Builds generally don't have side-effects other than producing artifacts,
-        whereas Deploys and Runs often do.
-
-        This improves the user experience for the common use-case of referencing a container image in a runtime
-        resource (like a `helm` Deploy), where the user intent is almost always that the referenced build should exist
-        (i.e. the dependency should be processed) before the runtime resource is processed (i.e. deployed or run).
-
-        Note: We could also always execute Test actions that are referenced, but we'll stick with only Builds for now.
-       */
-      if (refActionKind === "Build") {
-        isExplicit = true
-      }
-
-      if (!isString(outputKey)) {
-        // If the output key is not resolved yet, we just mark at as needing execution.
-        needsExecuted = true
-      } else {
-        // Otherwise, we avoid execution when referencing the static output keys of the ref's action type.
-        needsExecuted = !staticOutputKeys.includes(outputKey) && !refStaticOutputKeys.includes(outputKey)
-      }
-    }
+    const { needsExecuted, isExplicit } = actionRefNeedsExecution({
+      refKeyPath: ref.keyPath,
+      refActionKind,
+      refStaticOutputKeys,
+    })
 
     const refWithType = {
       ...ref,

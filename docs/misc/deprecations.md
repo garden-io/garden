@@ -64,19 +64,6 @@ and use only the latter pair of fields. Otherwise, the values from the old field
 See [`spec.cpu`](../reference/action-types/Deploy/container.md#spec.cpu)
 and [`spec.memory`](../reference/action-types/Deploy/container.md#spec.memory) for the new syntax details.
 
-<h2 id="workflowlimits"><code>limits</code> configuration field in workflows</h2>
-
-Please use the `resources.limits` configuration field instead.
-
-Note! If the deprecated field [`limits`](../reference/workflow-config.md#limits) is defined in the workflow config,
-Garden 0.14 automatically copies the field's contents to the `resources.limits`,
-even if the latter is defined explicitly.
-
-Please do not use both `limits` and `resources.limits` simultaneously,
-and use only `resources.limits`. Otherwise, the values from the old field `limits` will be used.
-
-See [`resources.limits`](../reference/workflow-config.md#resources.limits) for the new syntax details.
-
 # Unsupported commands
 
 <h2 id="kubernetesplugincleanupclusterregistrycommand"><code>cleanup-cluster-registry</code></h2>
@@ -99,3 +86,7 @@ For `helm` Deploy actions see [`spec.sync.overrides[].target`](../reference/acti
 <h2 id="containerdeployactionhostport"><code>spec.ports[].hostPort</code> configuration field in <code>container</code> Deploy action</h2>
 
 It's generally not recommended to use the `hostPort` field of the `V1ContainerPort` spec. You can learn more about Kubernetes best practices at: https://kubernetes.io/docs/concepts/configuration/overview/
+
+<h2 id="remoteworkflows">Remote workflow configuration fields in Workflow configs</h2>
+
+The remote workflows feature is deprecated and will be removed in a future release.

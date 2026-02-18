@@ -150,22 +150,13 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         and [${style("spec.memory")}](../reference/action-types/Deploy/container.md#spec.memory) for the new syntax details.
       `,
     },
-    workflowLimits: {
-      docsSection: "Old configuration syntax",
-      docsHeadline: `${style("limits")} configuration field in workflows`,
+    remoteWorkflows: {
+      docsSection: "Deprecated configuration",
+      docsHeadline: `Remote workflow configuration fields in Workflow configs`,
       warnHint: deline`
-        Please use the ${style("resources.limits")} configuration field instead.
+        The remote workflows feature is deprecated and will be removed in a future release.
       `,
-      docs: dedent`
-        Note! If the deprecated field [${style("limits")}](../reference/workflow-config.md#limits) is defined in the workflow config,
-        Garden 0.14 automatically copies the field's contents to the ${style("resources.limits")},
-        even if the latter is defined explicitly.
-
-        Please do not use both ${style("limits")} and ${style("resources.limits")} simultaneously,
-        and use only ${style("resources.limits")}. Otherwise, the values from the old field ${style("limits")} will be used.
-
-        See [${style("resources.limits")}](../reference/workflow-config.md#resources.limits) for the new syntax details.
-      `,
+      docs: null,
     },
   } as const
 }

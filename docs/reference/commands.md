@@ -3372,9 +3372,6 @@ workflowConfigs:
 
         # A Garden command this step should run, followed by any required or optional arguments and flags.
         #
-        # Note that commands that are _persistent_—e.g. the dev command, commands with a watch flag set, the logs
-        # command with following enabled etc.—are not supported. In general, workflow steps should run to completion.
-        #
         # Global options like --env, --log-level etc. are currently not supported for built-in commands, since they
         # are handled before the individual steps are run.
         command:

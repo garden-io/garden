@@ -167,7 +167,7 @@ const _actionResultContextSchema = joiIdentifierMap(ActionResultContext.getSchem
 const actionResultContextSchema = (kind: string) =>
   _actionResultContextSchema.description(`Information about a ${kind} action dependency, including its outputs.`)
 
-class ActionReferencesContext extends ContextWithSchema {
+export class ActionReferencesContext extends ContextWithSchema {
   @schema(actionResultContextSchema("Build"))
   public readonly build: Map<string, ActionResultContext>
 

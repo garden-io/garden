@@ -10,13 +10,8 @@ import type { Garden } from "./garden.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import type { Log } from "./logger/log-entry.js"
 import type { OutputSpec } from "./config/project.js"
-import type { ActionReference } from "./config/common.js"
-import { GraphResults } from "./graph/results.js"
-import { defaultVisitorOpts, getContextLookupReferences, visitAll } from "./template/analysis.js"
-import { isString } from "lodash-es"
-import type { ObjectWithName } from "./util/util.js"
-import { extractActionReference, extractRuntimeReference } from "./config/references.js"
 import { deepEvaluate } from "./template/evaluate.js"
+import { scanTemplateReferences, resolveTemplateNeeds } from "./template/lazy-resolve.js"
 
 /**
  * Resolves all declared project outputs. If necessary, this will resolve providers and modules, and ensure services
@@ -27,84 +22,25 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
     return []
   }
 
-  // Check for template references to figure out what needs to be resolved
-  const needProviders: string[] = []
-  const needModules: string[] = []
-  const needActions: ActionReference[] = []
+  const dummyContext = new OutputConfigContext({
+    garden,
+    resolvedProviders: {},
+    variables: garden.variables,
+    modules: [],
+  })
 
-  const generator = getContextLookupReferences(
-    visitAll({
-      value: garden.rawOutputs as ObjectWithName[],
-      opts: defaultVisitorOpts,
-    }),
-    new OutputConfigContext({
-      garden,
-      resolvedProviders: {},
-      variables: garden.variables,
-      modules: [],
-    }),
-    {}
-  )
-  for (const finding of generator) {
-    const keyPath = finding.keyPath
-    const refName = keyPath[1]
-    if (!refName || !isString(refName)) {
-      continue
-    }
+  const needs = scanTemplateReferences(garden.rawOutputs, dummyContext)
 
-    const refType = keyPath[0]
-    if (refType === "providers" && isString(refName)) {
-      needProviders.push(refName)
-    } else if (refType === "modules" && isString(refName)) {
-      needModules.push(refName)
-    } else if (refType === "runtime") {
-      const runtimeRef = extractRuntimeReference(finding)
-      needActions.push(runtimeRef)
-    } else if (refType === "actions") {
-      const actionRef = extractActionReference(finding)
-      needActions.push(actionRef)
-    }
-  }
-
-  const allRefs = [...needProviders, ...needModules, ...needActions]
-
-  if (allRefs.length === 0) {
+  if (!needs.hasReferences) {
     // @ts-expect-error todo: correct types for unresolved configs
     return deepEvaluate(garden.rawOutputs, {
-      context: new OutputConfigContext({
-        garden,
-        resolvedProviders: {},
-        variables: garden.variables,
-        modules: [],
-      }),
+      context: dummyContext,
       opts: {},
     })
   }
 
-  // Make sure all referenced services and tasks are ready and collect their outputs for the runtime context
-  const graph = await garden.getConfigGraph({ log, emit: false })
-  const modules = graph.getModules({ names: needModules })
-
-  const baseParams = {
-    garden,
-    log,
-    graph,
-    forceActions: [],
-    force: false,
-  }
-
-  const graphTasks = needActions.map((ref) => {
-    // TODO: we may not need full execution for all these actions
-    const action = graph.getActionByRef(ref)
-    return action.getExecuteTask(baseParams)
-  })
-
-  const { results } =
-    graphTasks.length > 0
-      ? await garden.processTasks({ tasks: graphTasks, throwOnError: true })
-      : { results: new GraphResults([]) }
-
-  const configContext = await garden.getOutputConfigContext(log, modules, results)
+  const resolved = await resolveTemplateNeeds(garden, log, needs)
+  const configContext = await garden.getOutputConfigContext(log, resolved.modules, resolved.results)
 
   // @ts-expect-error todo: correct types for unresolved configs
   return deepEvaluate(garden.rawOutputs, {
