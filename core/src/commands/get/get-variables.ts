@@ -69,7 +69,7 @@ type VarsMetadata = {
   action?: `${ActionKind}.${string}`
 }
 
-type RemoteVariable = RouterOutput["variable"]["list"]["items"][0] & {
+type RemoteVariable = Omit<RouterOutput["variable"]["list"]["items"][0], "variableListId"> & {
   variableListId: string
 }
 
