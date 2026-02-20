@@ -38,6 +38,12 @@ import { isTruthy, sleep } from "../../../util/util.js"
 import { styles } from "../../../logger/styles.js"
 import type { ActionLog } from "../../../logger/log-entry.js"
 import { prepareSecrets } from "../secrets.js"
+import {
+  configureLocalVolumes,
+  isLocalVolumesEnabled,
+  validateLocalMounts,
+  validateLocalVolumeMountsPostDeploy,
+} from "../local-volumes.js"
 import type { ResolvedDeployAction } from "../../../actions/deploy.js"
 
 type WrappedInstallError = { source: "helm" | "waitForResources"; error: unknown }
@@ -239,17 +245,62 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     data: gardenMetadata,
   })
 
-  // Configure sync mode and wait for resources if needed
-  await configureSyncModeAndWait({
-    ctx: k8sCtx,
-    log,
-    provider,
-    action,
-    api,
-    namespace,
-    manifests,
-    timeout,
-  })
+  // Apply local volume mounts if enabled (same pattern as sync mode: modify + re-apply)
+  const localVolumesActive = spec.localVolumes?.volumes?.length && isLocalVolumesEnabled(spec.localVolumes)
+  if (localVolumesActive) {
+    await validateLocalMounts({ provider, log, projectPath: action.sourcePath() })
+    const { updated: localVolUpdated } = await configureLocalVolumes({
+      provider,
+      action,
+      defaultTarget: spec.defaultTarget,
+      manifests,
+      log,
+    })
+    if (localVolUpdated.length) {
+      await apply({ log, ctx, api, provider, manifests: localVolUpdated, namespace })
+      await waitForResources({
+        namespace,
+        ctx,
+        provider,
+        logContext: action.key(),
+        resources: localVolUpdated,
+        log,
+        timeoutSec: timeout,
+        waitForJobs: false,
+      })
+    }
+  }
+
+  // Configure sync mode and wait for resources if needed (skipped when local volumes are active)
+  if (localVolumesActive) {
+    const mode = action.mode()
+    if (mode === "sync" && spec.sync) {
+      log.warn("Local volume mounting is active for this action, skipping code syncing.")
+    }
+  } else {
+    await configureSyncModeAndWait({
+      ctx: k8sCtx,
+      log,
+      provider,
+      action,
+      api,
+      namespace,
+      manifests,
+      timeout,
+    })
+  }
+
+  // Validate local volume mounts are visible inside pods
+  if (localVolumesActive) {
+    await validateLocalVolumeMountsPostDeploy({
+      api,
+      namespace,
+      action,
+      defaultTarget: spec.defaultTarget,
+      updatedResources: manifests,
+      log,
+    })
+  }
 
   // Update the namespace AEC annotations
   await updateNamespaceAecAnnotations({ ctx: k8sCtx, api, namespace, status: "none" })

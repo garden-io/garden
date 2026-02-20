@@ -1,0 +1,14 @@
+apiVersion: garden.io/v2
+kind: Project
+name: local-volume-mounts
+defaultEnvironment: local
+
+environments:
+  - name: local
+
+providers:
+  - name: local-kubernetes
+    environments: [local]
+    # Enable local volume mounts globally. This can be overridden per-action.
+    localVolumes:
+      enabled: true

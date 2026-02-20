@@ -46,6 +46,12 @@ import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-st
 import type { ResolvedDeployAction } from "../../../actions/deploy.js"
 import { isSha256 } from "../../../util/hashing.js"
 import { prepareSecrets } from "../secrets.js"
+import {
+  configureLocalVolumes,
+  isLocalVolumesEnabled,
+  validateLocalMounts,
+  validateLocalVolumeMountsPostDeploy,
+} from "../local-volumes.js"
 import { styles } from "../../../logger/styles.js"
 import type { KubernetesPodRunActionConfig } from "./kubernetes-pod.js"
 
@@ -424,14 +430,32 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
   const pruneLabels = { [gardenAnnotationKey("service")]: action.name }
 
   if (otherManifests.length > 0) {
-    if (mode === "sync" && spec.sync) {
-      const configured = await configureSpecialModesForManifests({
-        ctx: k8sCtx,
-        log,
+    // Inject local volume mounts if enabled
+    const localVolumesActive = spec.localVolumes?.volumes?.length && isLocalVolumesEnabled(spec.localVolumes)
+    if (localVolumesActive) {
+      await validateLocalMounts({ provider, log, projectPath: action.sourcePath() })
+      const localVolResult = await configureLocalVolumes({
+        provider,
         action,
-        manifests,
+        defaultTarget: spec.defaultTarget,
+        manifests: preparedManifests,
+        log,
       })
-      preparedManifests = configured.manifests
+      preparedManifests = localVolResult.manifests
+    }
+
+    if (mode === "sync" && spec.sync) {
+      if (localVolumesActive) {
+        log.warn("Local volume mounting is active for this action, skipping code syncing.")
+      } else {
+        const configured = await configureSpecialModesForManifests({
+          ctx: k8sCtx,
+          log,
+          action,
+          manifests: preparedManifests,
+        })
+        preparedManifests = configured.manifests
+      }
     }
 
     // TODO: Similarly to `container` deployments, check if immutable fields have changed (and delete before
@@ -455,6 +479,18 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       timeoutSec: action.getConfig("timeout"),
       waitForJobs: spec.waitForJobs,
     })
+
+    // Validate local volume mounts are visible inside pods
+    if (localVolumesActive) {
+      await validateLocalVolumeMountsPostDeploy({
+        api,
+        namespace,
+        action,
+        defaultTarget: spec.defaultTarget,
+        updatedResources: preparedManifests,
+        log,
+      })
+    }
   }
   const status = await getKubernetesDeployStatus(<any>params)
 

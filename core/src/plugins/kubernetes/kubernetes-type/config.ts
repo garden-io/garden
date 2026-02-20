@@ -23,6 +23,8 @@ import type {
   KubernetesPodTestActionConfig,
 } from "./kubernetes-pod.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
+import type { LocalVolumesActionSpec } from "../local-volumes.js"
+import { localVolumesActionSchema } from "../local-volumes.js"
 import type { ContainerRunOutputs } from "../../container/config.js"
 import { containerRunOutputSchema } from "../../container/config.js"
 import type {
@@ -47,6 +49,7 @@ export interface KubernetesTypeCommonDeploySpec {
 export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
+  localVolumes?: LocalVolumesActionSpec
   waitForJobs: boolean
   manifestFiles: string[]
   manifestTemplates: string[]
@@ -153,6 +156,7 @@ export const kubernetesDeploySchema = () =>
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
       localMode: kubernetesLocalModeSchema(),
+      localVolumes: localVolumesActionSchema().allow(null),
       manifestFiles: kubernetesManifestFilesSchema(),
       manifestTemplates: kubernetesManifestTemplatesSchema(),
     })

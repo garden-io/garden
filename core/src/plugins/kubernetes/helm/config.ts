@@ -21,6 +21,8 @@ import { kubernetesDeploySyncSchema } from "../sync.js"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy.js"
 import { dedent, deline } from "../../../util/string.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
+import type { LocalVolumesActionSpec } from "../local-volumes.js"
+import { localVolumesActionSchema } from "../local-volumes.js"
 import type { RunAction, RunActionConfig } from "../../../actions/run.js"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
 import type { ObjectSchema } from "@hapi/joi"
@@ -46,6 +48,7 @@ interface HelmDeployActionSpec {
   chart?: HelmChartSpec
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
+  localVolumes?: LocalVolumesActionSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string
@@ -195,6 +198,7 @@ export const helmDeploySchema = () =>
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
       localMode: kubernetesLocalModeSchema(),
+      localVolumes: localVolumesActionSchema().allow(null),
     })
     .rename("devMode", "sync")
 

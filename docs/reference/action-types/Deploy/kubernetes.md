@@ -1072,6 +1072,129 @@ Override the image of the matched container.
 | -------- | -------- |
 | `string` | No       |
 
+### `spec.localVolumes`
+
+[spec](#spec) > localVolumes
+
+**Experimental**: Configure local host volume mounts for development. When enabled, Garden
+injects hostPath volumes into the target workloads, mapping local directories into containers.
+This is useful for local development where you want to mount source code directly instead of
+using file sync.
+
+Garden automatically converts host paths to the correct format based on the local Kubernetes
+cluster type (Docker Desktop, kind, minikube, Orbstack) and OS (macOS, Linux, Windows).
+
+Note: This feature is still experimental and its configuration format may change in future
+releases.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `spec.localVolumes.enabled`
+
+[spec](#spec) > [localVolumes](#speclocalvolumes) > enabled
+
+Whether local volume mounts are enabled for this action. Defaults to true when volumes are defined.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `spec.localVolumes.volumes[]`
+
+[spec](#spec) > [localVolumes](#speclocalvolumes) > volumes
+
+List of local volumes to mount into the target resource(s).
+Each volume maps a host directory to a container path in the specified target workload.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `spec.localVolumes.volumes[].name`
+
+[spec](#spec) > [localVolumes](#speclocalvolumes) > [volumes](#speclocalvolumesvolumes) > name
+
+A unique name for this volume mount.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.localVolumes.volumes[].target`
+
+[spec](#spec) > [localVolumes](#speclocalvolumes) > [volumes](#speclocalvolumesvolumes) > target
+
+The target resource to mount this volume into. Overrides `spec.defaultTarget` if set.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `spec.localVolumes.volumes[].target.kind`
+
+[spec](#spec) > [localVolumes](#speclocalvolumes) > [volumes](#speclocalvolumesvolumes) > [target](#speclocalvolumesvolumestarget) > kind
+
+The kind of the target resource (e.g. Deployment, StatefulSet).
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.localVolumes.volumes[].target.name`
+
+[spec](#spec) > [localVolumes](#speclocalvolumes) > [volumes](#speclocalvolumesvolumes) > [target](#speclocalvolumesvolumestarget) > name
+
+The name of the target resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.localVolumes.volumes[].target.containerName`
+
+[spec](#spec) > [localVolumes](#speclocalvolumes) > [volumes](#speclocalvolumesvolumes) > [target](#speclocalvolumesvolumestarget) > containerName
+
+The name of the container to mount the volume into. Defaults to the first container.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `spec.localVolumes.volumes[].sourcePath`
+
+[spec](#spec) > [localVolumes](#speclocalvolumes) > [volumes](#speclocalvolumesvolumes) > sourcePath
+
+The path on the host, relative to the action source directory, to mount into the container.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+### `spec.localVolumes.volumes[].containerPath`
+
+[spec](#spec) > [localVolumes](#speclocalvolumes) > [volumes](#speclocalvolumesvolumes) > containerPath
+
+The absolute path inside the container where the volume should be mounted.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.localVolumes.volumes[].excludes[]`
+
+[spec](#spec) > [localVolumes](#speclocalvolumes) > [volumes](#speclocalvolumesvolumes) > excludes
+
+A list of subdirectories to mask with emptyDir volumes. Each entry is a path relative to
+`containerPath`. This is useful when the host mount would overlay directories that were
+populated during the image build (e.g. `node_modules`, Python virtualenvs). The container
+sees an initially empty directory at each excluded path and can repopulate it at startup.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `spec.manifestFiles[]`
 
 [spec](#spec) > manifestFiles

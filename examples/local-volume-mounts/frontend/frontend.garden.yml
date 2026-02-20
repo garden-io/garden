@@ -1,0 +1,44 @@
+kind: Build
+name: frontend
+description: Frontend service container image
+type: container
+
+---
+kind: Deploy
+name: frontend
+description: Frontend service with local volume mounts for development
+type: kubernetes
+dependencies:
+  - build.frontend
+  - deploy.backend
+spec:
+  manifestFiles: [./manifests/**/*]
+
+  # Patch the Deployment to use the built image
+  patchResources:
+    - name: frontend
+      kind: Deployment
+      patch:
+        spec:
+          template:
+            spec:
+              containers:
+                - name: frontend
+                  image: ${actions.build.frontend.outputs.deploymentImageId}
+
+  # The defaultTarget is used for syncs, exec, and as the fallback target for local volumes.
+  defaultTarget:
+    kind: Deployment
+    name: frontend
+    containerName: frontend
+
+  # Local volume mounts for development.
+  # Garden automatically converts host paths to the correct format based on
+  # the local cluster type (Docker Desktop, Orbstack, kind, minikube) and OS.
+  localVolumes:
+    volumes:
+      # Mount the frontend source code into the container.
+      # sourcePath is relative to this action's source directory.
+      - name: frontend-src
+        sourcePath: .
+        containerPath: /app
