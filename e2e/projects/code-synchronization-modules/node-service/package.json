@@ -11,9 +11,9 @@
   "author": "garden.io <info@garden.io>",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.22.1"
   },
   "devDependencies": {
-    "nodemon": "^2.0.20"
+    "nodemon": "^3.1.14"
   }
 }
