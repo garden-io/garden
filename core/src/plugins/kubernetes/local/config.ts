@@ -47,9 +47,13 @@ export const configSchema = () =>
       ),
       setupIngressController: joi
         .string()
-        .allow("nginx", false, null)
+        .allow("traefik", "nginx", false, null)
         .default("nginx")
-        .description("Set this to null or false to skip installing/enabling the `nginx` ingress controller."),
+        .description(
+          "Set this to `nginx` or `traefik` to install the respective ingress controller, " +
+            "or to `null`/`false` to skip. The nginx controller is deprecated and will be removed in a future " +
+            "version — we recommend switching to `traefik`."
+        ),
     })
     .description("The provider configuration for the local-kubernetes plugin.")
 

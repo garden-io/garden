@@ -25,7 +25,6 @@ import { resolve } from "path"
 import { dedent } from "../../util/string.js"
 import { kubernetesModuleSpecSchema } from "./kubernetes-type/module-config.js"
 import { helmModuleOutputsSchema, helmModuleSpecSchema } from "./helm/module-config.js"
-import { defaultIngressClass } from "./constants.js"
 import { helmSpec } from "./helm/helm-cli.js"
 import { isString } from "lodash-es"
 import { mutagenCliSpec } from "../../mutagen.js"
@@ -46,11 +45,13 @@ import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kub
 import { makeDocsLinkPlain, makeDocsLinkStyled } from "../../docs/common.js"
 import { cleanupUtilDeployment } from "./commands/cleanup-garden-util.js"
 import { reportDeprecatedFeatureUsage } from "../../util/deprecations.js"
+import { styles } from "../../logger/styles.js"
 import { pauseCommand } from "./commands/pause.js"
 import { keepAliveCommand } from "./commands/keep-alive.js"
 import { aecAgentCommand } from "./commands/aec-agent.js"
 import { setupAecCommand } from "./commands/setup-aec.js"
 import { aecLogsCommand } from "./commands/aec-logs.js"
+import { migrateIngressController } from "./commands/migrate-ingress-controller.js"
 
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 5
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 20
@@ -75,10 +76,20 @@ export async function configureProvider({
     config.namespace = { name: `${projectName}-${namespace}` }
   }
 
-  if (config.setupIngressController === "nginx") {
+  if (config.setupIngressController === "traefik") {
     if (!config.ingressClass) {
-      config.ingressClass = defaultIngressClass
+      config.ingressClass = "traefik"
     }
+  } else if (config.setupIngressController === "nginx") {
+    if (!config.ingressClass) {
+      config.ingressClass = "nginx"
+    }
+    log.warn(
+      `The bundled nginx ingress controller is deprecated and will be removed in a future release. ` +
+        `We recommend switching to Traefik. ` +
+        `Run ${styles.command("garden plugins kubernetes migrate-ingress-controller")} to migrate, ` +
+        `then set ${styles.highlight("setupIngressController: traefik")} in your provider configuration.`
+    )
   }
 
   if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
@@ -162,6 +173,7 @@ export const gardenPlugin = () => {
       aecLogsCommand,
       cleanupClusterRegistry,
       cleanupUtilDeployment,
+      migrateIngressController,
       uninstallGardenServices,
       pauseCommand,
       keepAliveCommand,

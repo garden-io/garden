@@ -90,3 +90,14 @@ It's generally not recommended to use the `hostPort` field of the `V1ContainerPo
 <h2 id="remoteworkflows">Remote workflow configuration fields in Workflow configs</h2>
 
 The remote workflows feature is deprecated and will be removed in a future release.
+
+<h2 id="nginxingresscontroller"><code>setupIngressController: nginx</code> in the <code>kubernetes</code> and <code>local-kubernetes</code> providers</h2>
+
+The bundled nginx ingress controller is deprecated and will be removed in a future release. Garden now ships a Traefik ingress controller as a replacement. To migrate, run `garden plugins kubernetes migrate-ingress-controller` and set `setupIngressController: traefik` in your provider configuration.
+
+The bundled nginx ingress controller is deprecated. Garden now ships Traefik as a replacement. To migrate:
+
+1. Run `garden plugins kubernetes migrate-ingress-controller` to uninstall nginx and install Traefik.
+2. Update your provider configuration to set `setupIngressController: traefik`.
+3. Update `ingressClass` from `nginx` to `traefik` if explicitly set.
+4. If you use any nginx-specific ingress annotations, you will need to migrate those manually.
