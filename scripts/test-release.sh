@@ -1,15 +1,44 @@
 #!/bin/bash
 
 # Script that downloads a release based on the version argument, and runs some simple tests to sanity check it.
+#
+# Usage: ./scripts/test-release.sh <version> [--ci] [--binary-path <path>]
+#
+# --ci: Run in CI mode (skip interactive tests, exit with proper status codes)
+# --binary-path: Path to the garden binary (skip download, use this binary instead)
 
 garden_root=$(cd `dirname $0` && cd .. && pwd)
-version=$1
+
+# Parse arguments
+ci_mode=false
+binary_path=""
+version=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --ci)
+      ci_mode=true
+      shift
+      ;;
+    --binary-path)
+      binary_path="$2"
+      shift 2
+      ;;
+    *)
+      if [ -z "$version" ]; then
+        version="$1"
+      fi
+      shift
+      ;;
+  esac
+done
 
 # For pre-releases, trim the -N suffix for use in the downloaded file name and for version comparisons.
 base_version=$(echo ${version} | sed -e "s/-.*//")
 
 if [ ! "$version" ]; then
   echo "Version is missing"
+  echo "Usage: $0 <version> [--ci] [--binary-path <path>]"
   exit 1
 fi
 
@@ -47,7 +76,11 @@ test_release() {
     return 1
   fi
 
-  garden_release=${HOME}/.garden-release/bin/garden
+  if [ -n "$binary_path" ]; then
+    garden_release="$binary_path"
+  else
+    garden_release=${HOME}/.garden-release/bin/garden
+  fi
 
   echo "→ Verify version"
   release_version=$(${garden_release} --version)
@@ -64,6 +97,20 @@ test_release() {
   echo "→ Running 'garden build' in demo project"
   echo ""
   ${garden_release} build
+  if [ $? -ne 0 ]; then
+    echo "ERROR: 'garden build' failed"
+    cd $garden_root
+    return 1
+  fi
+
+  if [ "$ci_mode" = true ]; then
+    echo ""
+    echo "→ CI mode: skipping interactive tests (exec, deploy --sync)"
+    echo "→ Smoke test passed!"
+    cd $garden_root
+    return 0
+  fi
+
   echo ""
   echo "→ Running 'garden deploy' in demo project"
   echo ""
@@ -98,7 +145,14 @@ revert_git_changes() {
   echo "Done!"
 }
 
-download_release
+# If using a provided binary path, skip download
+if [ -z "$binary_path" ]; then
+  download_release
+fi
 test_release
+exit_code=$?
+
 # to ensure that any possible intermediate changes would be reverted too
 revert_git_changes
+
+exit $exit_code
