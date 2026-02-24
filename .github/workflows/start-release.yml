@@ -1,0 +1,108 @@
+name: Start Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-type:
+        description: "Release type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - preminor
+          - prepatch
+          - prerelease
+      base-branch:
+        description: "Base branch to release from (default: main, use e.g. '0.13' for older versions)"
+        required: false
+        default: "main"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine release branch
+        id: branch
+        env:
+          BASE_BRANCH: ${{ inputs.base-branch }}
+        run: |
+          if [ "$BASE_BRANCH" = "main" ]; then
+            echo "release-branch=latest-release" >> "$GITHUB_OUTPUT"
+          else
+            echo "release-branch=latest-release-${BASE_BRANCH}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout release branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ steps.branch.outputs.release-branch }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Reset release branch to base
+        env:
+          BASE_BRANCH: ${{ inputs.base-branch }}
+          RELEASE_BRANCH: ${{ steps.branch.outputs.release-branch }}
+        run: |
+          git fetch origin "$BASE_BRANCH"
+          git reset --hard "origin/$BASE_BRANCH"
+
+      - name: Verify latest commit
+        env:
+          BASE_BRANCH: ${{ inputs.base-branch }}
+          RELEASE_BRANCH: ${{ steps.branch.outputs.release-branch }}
+        run: |
+          echo "Latest commit on ${BASE_BRANCH}:"
+          git log --oneline -5
+          echo ""
+          echo "Release branch '${RELEASE_BRANCH}' has been reset to 'origin/${BASE_BRANCH}'."
+
+      - name: Push reset release branch
+        env:
+          RELEASE_BRANCH: ${{ steps.branch.outputs.release-branch }}
+        run: git push origin "$RELEASE_BRANCH" --force
+
+      - name: Use Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install git-chglog
+        run: |
+          curl -sL https://github.com/git-chglog/git-chglog/releases/download/v0.15.4/git-chglog_0.15.4_linux_amd64.tar.gz | tar xz -C /usr/local/bin git-chglog
+
+      - name: Run release script
+        env:
+          RELEASE_TYPE: ${{ inputs.release-type }}
+        run: ./scripts/release.ts "$RELEASE_TYPE" --yes
+
+      - name: Post summary
+        env:
+          RELEASE_TYPE: ${{ inputs.release-type }}
+          BASE_BRANCH: ${{ inputs.base-branch }}
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          {
+            echo "## Release Started :rocket:"
+            echo ""
+            echo "**Version**: \`${VERSION}\`"
+            echo "**Type**: \`${RELEASE_TYPE}\`"
+            echo "**Base branch**: \`${BASE_BRANCH}\`"
+            echo ""
+            echo "The release tag has been pushed. CircleCI will now build the release artifacts."
+            echo ""
+            echo "[View CircleCI builds](https://circleci.com/gh/garden-io/garden)"
+          } >> "$GITHUB_STEP_SUMMARY"

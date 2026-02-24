@@ -1,71 +1,156 @@
 # Release process
 
-We have a dedicated release branches, `latest-release` and `latest-release-0.13` etc. off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/main/scripts/release.ts). Once we're ready to release, we reset the `latest-release` branch to `main` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `main` and cherry-pick them to the `latest-release` branch. We repeat this process until all issues have been resolved and we can make a proper release.
+## Overview
 
-This procedure allows us to continue merging features into `main` without them being included in the release.
+The release process is fully automated via GitHub Actions. A maintainer triggers the **Start Release** workflow, and everything else happens automatically: branch preparation, version bumping, CI builds, smoke testing, release notes generation, GitHub release publishing, Homebrew formula update, and post-release PR creation.
 
-On every merge to `main` we also publish an **unstable** release with the version `edge-cedar` that is always flagged as a pre-release.
+### Automated flow
 
-## Releasing older versions of Garden
-
-If we're creating a release for older versions of Garden, for example `0.13`, we use `latest-release-0.13` and use the `0.13` branch instead of `main`.
-
-On every merge to the `0.13` branch, we also publish an **unstable** release with the version `edge-bonsai` that is always flagged as a pre-release.
-
-## Release script
-
-The [release script](https://github.com/garden-io/garden/blob/main/scripts/release.ts) has the signature:
-
-```sh
-./scripts/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
+```
+Start Release workflow (triggered by maintainer)
+  │
+  ├─ Resets latest-release → main
+  ├─ Runs release.ts (version bump, changelog, tag push)
+  │
+  ▼
+CircleCI tags workflow (triggered by tag push)
+  │
+  ├─ Builds binaries (macOS, Linux, Windows, Alpine)
+  ├─ Signs Windows binary
+  ├─ Creates draft GitHub release with artifacts
+  │
+  ▼
+Post-release workflow (triggered by draft release)
+  │
+  ├─ Downloads binary, runs smoke test
+  ├─ Generates release notes from changelog
+  ├─ Publishes the release (draft → published)
+  │
+  ▼
+Publish release workflow (triggered by release publish)
+  │
+  ├─ Creates and merges Homebrew PR
+  ├─ Creates PR for release branch → main (auto-merged)
+  └─ Updates latest-release branch (used for docs)
 ```
 
-and does the following:
+## How to release
 
-- Checks out a branch named `release-<version>`.
-- Updates `core/package.json`, `core/package-lock.json` and `CHANGELOG.md`.
-- Commits the changes, tags the commit, and pushes the tag and branch.
-- Pushing the tag triggers a CI process that creates the release artifacts and publishes them to GitHub. If the release is not a pre-release, we create a draft instead of actually publishing.
+### One-click release (recommended)
 
-## Release steps
+1. Go to the [Start Release](../../actions/workflows/start-release.yml) workflow in GitHub Actions.
+2. Click **Run workflow**.
+3. Select the release type (`patch`, `minor`, etc.) and base branch (default: `main`).
+4. Click **Run workflow** and wait for the full pipeline to complete.
 
-To make a new release, set your current working directory to the garden root directory and follow the steps below.
+That's it. The changelog-based release notes, Homebrew update, and post-release cleanup are all handled automatically.
 
-### 1. Prepare release
+After the release is published, you can edit the release notes on the [Releases page](https://github.com/garden-io/garden/releases) if any manual adjustments are needed (e.g. adding a summary, highlighting key changes).
 
-First, you need to prepare the release binaries and run some manual tests:
+### Editing release notes
+
+The automated pipeline generates release notes from the changelog. To replace or supplement them with a hand-written summary (e.g. for a feature-heavy release), find the release here https://github.com/garden-io/garden/releases and edit the release notes.
+
+### Manual release (fallback)
+
+If the automated flow fails or you need more control, you can still release manually. The post-release automation detects manual releases (by checking the commit author) and skips auto-publishing, so you can safely edit the draft before publishing.
 
 1. **Checkout to the `latest-release` branch**.
 2. Reset `latest-release` to `main` with `git reset --hard origin/main`
-3. Run `git log` to make sure that the latest commit is the expected one and there are no unwanted changes from `main` included in the release.
-4. Run `./scripts/release.ts patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
+3. Run `git log` to make sure the latest commit is the expected one.
+4. Run `./scripts/release.ts patch` (or `minor`, etc.).
 5. Wait for the CI build job to get the binaries from the [GitHub Releases page](https://github.com/garden-io/garden/releases).
 6. Run the `dev` command in `examples/demo-project` and verify that no errors come up immediately.
-  * We don't have an end-to-end test that tests the interactive dev console. This would be a bit tricky to implement, since some regressions don't cause the console to crash, but to log an error message and then stay running but unresponsive.
-  * Until we implement such an automated test, this is a simple step to perform before a release.
+7. Go to the [Releases page](https://github.com/garden-io/garden/releases) and edit the draft release.
+8. Run `./scripts/draft-release-notes.ts <previous-tag> <current-tag>` to generate release notes.
+   - Add `--manual` to get TODO placeholders to help with manual editing.
+   - Without `--manual`, the notes are publish-ready with a default description.
+9. Click **Publish release**.
 
-### 2. Publish and announce
+Once you publish, the following automation kicks in automatically:
+- Homebrew PR is created and merged
+- Release branch → main PR is created with auto-merge enabled
+- `latest-release` branch is updated to the released tag
 
-Once the release CI job is done, a draft release will appear in GitHub. That draft release should be published and announced:
+## Release branches
 
-1. Go to our GitHub [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
-2. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
-  - Run `./scripts/draft-release-notes.ts <previous-tag> <current-tag>`, the filename with the draft notes will be printed in the console
-  - Open the draft file (it's named `release-notes-${version}-draft.md`, e.g. `release-notes-0.12.38-draft.md`) and resolve all suggested TODO items
-3. Click the **Publish release** button.
-4. Check out the branch created by the release script (will be called `release-<version>`).
-5. Update the [`CHANGELOG.md`](./CHANGELOG.md) if manual changes in the release notes were necessary (e.g. removing commits that were reverted).
-6. Run `npm install` and commit the updated `package-lock.json`.
-7. Push the changes from steps 5 and 6 into the release branch. Make a pull request for the branch that was pushed by the script and make sure it's merged as soon as possible.
-8. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
-9. Check the `update-homebrew` GitHub Action run successfully and merge the relevant PR in the [homebrew repo](https://github.com/garden-io/homebrew-garden/pulls). **Use regular merge with the merge commit.**
-10. Install the Homebrew package and make sure it works okay:
-    - `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
-    - Run `$(brew --prefix garden-cli)/bin/garden dev` and run the `version` command in the console (to make sure you're using the packaged release). Do a quick manual test in an example project and see if all looks OK.
+We have dedicated release branches, `latest-release` and `latest-release-0.13`. These are the base branches for our releases. The `latest-release` branch is also used for deploying our documentation, so it must always point to the latest stable release.
+
+On every merge to `main` we publish an **unstable** release with the version `edge-cedar` that is always flagged as a pre-release.
+
+### Releasing 0.13
+
+For `0.13`, use the `0.13` branch as the base branch in the Start Release workflow. This will use the `latest-release-0.13` branch.
+
+On every merge to the `0.13` branch, we publish an **unstable** release with the version `edge-bonsai`.
+
+## Release script
+
+The [release script](scripts/release.ts) has the following signature:
+
+```sh
+./scripts/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run] [--yes]
+```
+
+Flags:
+- `--force`: Override existing tags
+- `--dry-run`: Perform all steps except pushing tags/branches
+- `--yes` / `-y`: Skip the interactive confirmation prompt (used by CI)
+
+The script:
+- Checks out a branch named `release-<version>`.
+- Updates `package.json` versions and `CHANGELOG.md`.
+- Commits the changes, tags the commit, and pushes the tag and branch.
+- Pushing the tag triggers CircleCI to build artifacts and create a draft GitHub release.
+
+## Release notes
+
+Release notes are generated automatically by `scripts/draft-release-notes.ts`:
+
+```sh
+./scripts/draft-release-notes.ts <previous-tag> <current-tag> [--output-stdout] [--manual]
+```
+
+Features:
+- Auto-detects external contributors via the GitHub API
+- Extracts fixed issues from commit messages (`fixes #123`, `closes #123`)
+- `--output-stdout`: Print notes to stdout instead of writing a file
+- `--manual`: Include TODO placeholders for hand-editing (legacy behavior)
+
+## GitHub Actions secrets
+
+The following secrets are used by the release workflows:
+
+| Secret | Purpose |
+|--------|---------|
+| `GITHUB_TOKEN` | Default token for GitHub API operations |
+| `COMMITTER_TOKEN` | PAT (gordon-garden-bot) for Homebrew repo operations |
+
+## Prerequisites
+
+- **Allow auto-merge** must be enabled in the Garden repo settings (Settings > General) for the release PR auto-merge to work.
+- **Branch protection on homebrew-garden** must allow the `COMMITTER_TOKEN` bot to merge without review approvals.
 
 ## Misc
 
-### Homebrew PR creation
+### Homebrew
 
-The `release-homebrew` job triggered on a new release (see [publish-release.yaml](.github/workflows/publish-release.yml)) will create a PR on the [Homebrew repository](https://www.github.com/garden-io/homebrew-garden). The token used to do so is stored as a secret in the Garden repository's [Action Secrets](https://github.com/garden-io/garden/settings/secrets/actions) section, under the name `COMMITTER_TOKEN`.
-Currently the owner of the token is the [gordon-garden-bot](https://github.com/gordon-garden-bot) account.
+The `release-homebrew` job triggered on a new release (see [publish-release.yaml](.github/workflows/publish-release.yml)) creates and directly merges a PR on the [Homebrew repository](https://www.github.com/garden-io/homebrew-garden). The token used is stored as a secret under the name `COMMITTER_TOKEN`, owned by the [gordon-garden-bot](https://github.com/gordon-garden-bot) account.
+
+### Pre-releases
+
+Pre-releases are supported by the Start Release workflow (select `prerelease`, `preminor`, or `prepatch` as the release type). For pre-releases, CircleCI publishes the release directly (not as a draft), so the post-release automation (smoke test, release notes, Homebrew, release PR) is skipped — which is the desired behavior.
+
+### Testing the full pipeline
+
+To test the full post-release pipeline (smoke test → release notes → publish → Homebrew → release PR) without doing a real stable release, you can manually trigger the `post-release.yml` workflow:
+
+1. Create a pre-release using the Start Release workflow
+2. Manually convert it to a draft on the GitHub Releases page (Edit → check "Set as a pre-release", uncheck, then check "Set as draft")
+3. Go to the [Post-release automation](../../actions/workflows/post-release.yml) workflow and trigger it manually with the tag name
+
+Alternatively, the `post-release.yml` workflow can be triggered via `workflow_dispatch` at any time against an existing draft release for recovery or testing purposes.
+
+### Edge releases
+
+On every merge to `main`, CircleCI builds and publishes an edge release tagged `edge-cedar`. This is always marked as a pre-release and is useful for testing the latest changes before a stable release.
