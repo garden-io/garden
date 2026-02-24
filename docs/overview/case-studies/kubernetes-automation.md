@@ -1,6 +1,6 @@
 ---
 order: 3
-title: "Case Study: How OEM Used Garden to Empower Developers on Kubernetes"
+title: "How OEM Used Garden to Empower Developers on Kubernetes"
 ---
 
 # Case Study: How OEM Used Garden to Empower Developers on Kubernetes

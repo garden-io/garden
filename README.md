@@ -12,13 +12,11 @@ _If you love Garden, please ★ star this repository to show your support :green
 <div align="center">
   <a href="https://docs.garden.io/getting-started/quickstart/?utm_source=github">Quickstart</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://garden.io/?utm_source=github">Website</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://docs.garden.io/?utm_source=github">Docs</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/garden-io/garden/tree/0.14.19/examples">Examples</a>
+  <a href="https://app.garden.io/?utm_source=github">Garden Cloud</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://garden.io/blog/?utm_source=github">Blog</a>
+  <a href="https://github.com/garden-io/garden/tree/0.14.19/examples">Examples</a>
 </div>
 
 ## Welcome to Garden!

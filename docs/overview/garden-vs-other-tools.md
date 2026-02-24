@@ -86,8 +86,6 @@ The process is usually something like this (using ArgoCD as an example):
 
 4. ArgoCD then triggers the production deployment process and takes things from there.
 
-See our [blog post on using Garden with ArgoCD and Helm](https://garden.io/blog/argo-cd-helm-charts) for a full example of this.
-
 ## Custom deployment scripts
 
 While custom scripts and other in-house tooling gives you complete control, it also means a lot more work for your team down the line. Scripts also tend to be brittle, and are hard to maintain and test when new components are introduced, or dependencies change.

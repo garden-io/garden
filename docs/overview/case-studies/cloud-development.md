@@ -1,6 +1,6 @@
 ---
 order: 4
-title: "Case study: How Obligate relies on Garden's cloud dev environments"
+title: "How Obligate relies on Garden's cloud dev environments"
 ---
 
 # Case study: How Obligate relies on Garden's cloud dev environments

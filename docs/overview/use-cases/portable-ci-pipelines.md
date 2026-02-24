@@ -16,7 +16,7 @@ Simply by adding extra environments to your Garden project, you can use Garden f
 ## Key features
 
 - **Cached builds and tests**: Garden caches your tests and builds so you **only run what has changed**. The result is dramatic reductions for CI run-times, typically *twenty minutes* to an *hour*.
-- **Automatic environment cleanup**, **deep Insights into CI test, builds and deploys**, and **triggered CI runs** with [Garden Enterprise](https://garden.io/plans)
+- **Automatic environment cleanup**, **deep Insights into CI test, builds and deploys**, and **triggered CI runs** with [Garden Cloud](https://app.garden.io/plans)
 - **Encode once, run anywhere**: [Garden's Workflows](../../features/workflows.md) can be run from any environment, including local machines, CI servers, and cloud environments.
 - **Visualize your CI/CD flow**: Use the [Garden dashboard](https://app.garden.io) to visualize your CI/CD pipeline, view logs, and track command history.
 - **Accelerate build times**: With remote image builds, you can speed up your image build times significantly.

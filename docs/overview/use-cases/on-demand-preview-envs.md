@@ -16,7 +16,7 @@ Garden lets them re-use these resources to create isolated preview environments 
 If your staging environment is a bottleneck where changes get queued up, isolated preview environments might be the solution.
 
 {% hint style="info" %}
-Check out [how Slite uses Garden](https://garden.io/blog/garden-is-the-best-companion-for-a-kubernetes-dev-from-local-envs-to-cd) to clear up their once congested staging environment.
+Check out [how Slite uses Garden](../case-studies/slite.md) to clear up their once congested staging environment.
 {% endhint %}
 
 ## How does it work?

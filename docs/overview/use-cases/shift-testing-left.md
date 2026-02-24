@@ -17,7 +17,7 @@ Garden lets them re-use these resources so that developers can test in remote pr
 If your team is stuck in a commit, push, pray cycle, shifting tests all the way left can help break it.
 
 {% hint style="info" %}
-Check out [how Podium use Garden](https://garden.io/blog/testing-microservices) to end-to-end test 130 services, hundreds of times per day.
+Check out [how Podium use Garden](../case-studies/testing-microservices.md) to end-to-end test 130 services, hundreds of times per day.
 {% endhint %}
 
 ## How does it work?

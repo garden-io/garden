@@ -9,7 +9,7 @@ This is an early draft that we're sharing with our community. We'll also publish
 
 On **March 24th**, we’re rolling out a brand-new version of **Garden Cloud** on [app.garden.io](http://app.garden.io/)!
 
-This update brings access to our **Remote Container Builder**, which can [dramatically accelerate container builds](https://garden.io/blog/oem-cloud-builder). Until now, this feature has only been available on our Enterprise tier—now, everyone can take advantage of its power and get faster builds.
+This update brings access to our **Remote Container Builder**, which can [dramatically accelerate container builds](../overview/case-studies/oem-cloud-builder.md). Until now, this feature has only been available on our Enterprise tier—now, everyone can take advantage of its power and get faster builds.
 
 We’re also introducing the **new Garden Team Tier** which replaces the current single-user dashboard and enables you to easily collaborate with your team and share test caches across environments.
 

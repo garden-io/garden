@@ -18,7 +18,7 @@ Garden lets them shift these resources left, without introducing friction or cog
 If you worry your laptop may catch fire next time you run docker compose up, remote environments might be for you.
 
 {% hint style="info" %}
-Check out [how Open Energy Market use Garden](https://garden.io/blog/kubernetes-automation) to empower developers on K8s and reduce onboarding time by a whopping 500%.
+Check out [how Open Energy Market use Garden](../case-studies/kubernetes-automation.md) to empower developers on K8s and reduce onboarding time by a whopping 500%.
 {% endhint %}
 
 ## How does it work?

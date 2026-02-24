@@ -5,7 +5,7 @@ order: 1
 
 The [Remote Container Builder](../../features/remote-container-builder.md) enables you to build container images using **blazing-fast, remote build compute instances** managed by Garden and to share build caches with your team.
 
-Our free-tier includes a certain amount of build minutes and layer caching per month and you get more by switching to our team or enterprise tiers. You can learn more about the [different tiers here](https://garden.io/plans).
+Our free-tier includes a certain amount of build minutes and layer caching per month and you get more by switching to our team or enterprise tiers. You can learn more about the [different tiers here](https://app.garden.io/plans).
 
 If you run out of build minutes, Garden will simply fallback to local builds without any disruption.
 

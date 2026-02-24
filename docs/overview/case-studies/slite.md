@@ -1,6 +1,6 @@
 ---
 order: 5
-title: "Case Study: Slite - \"Garden is the best companion for a Kubernetes dev, from local envs to CD.\""
+title: "Slite - \"Garden is the best companion for a Kubernetes dev, from local envs to CD.\""
 ---
 
 # Case Study: "Garden is the best companion for a Kubernetes dev, from local envs to CD."

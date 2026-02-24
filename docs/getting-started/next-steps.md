@@ -202,7 +202,7 @@ garden deploy --env ci
 ```
 
 {% hint style="info" %}
-[Garden Enterprise](https://garden.io/plans), our commercial offering, includes secrets management and RBAC to ensure you don’t need to add any secrets to your CI provider or setup secrets for development. This ensures 100% portability across all your environments.
+[Garden Enterprise](https://app.garden.io/plans), our commercial offering, includes secrets management and RBAC to ensure you don’t need to add any secrets to your CI provider or setup secrets for development. This ensures 100% portability across all your environments.
 {% endhint %}
 
 Checkout our guide [in-depth guide on configuring environments](../guides/namespaces.md) for more details.

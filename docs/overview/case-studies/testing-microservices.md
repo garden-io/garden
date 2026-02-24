@@ -1,6 +1,6 @@
 ---
 order: 2
-title: "Case Study: How Podium End-to-End Tests Hundreds of Services a Day"
+title: "How Podium End-to-End Tests Hundreds of Services a Day"
 ---
 
 # How Podium End-to-End Tests Hundreds of Services a Day

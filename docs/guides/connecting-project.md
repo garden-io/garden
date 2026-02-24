@@ -80,5 +80,5 @@ See also the section above about [creating access tokens](#creating-personal-acc
 
 ## Limits
 
-Our free-tier includes a certain amount of build minutes and cache hits/cache retention and you can get more by upgrading to our team or enterprise tiers. You can learn more about the different tiers on our [plans page](https://garden.io/plans).
+Our free-tier includes a certain amount of build minutes and cache hits/cache retention and you can get more by upgrading to our team or enterprise tiers. You can learn more about the different tiers on our [plans page](https://app.garden.io/plans).
 

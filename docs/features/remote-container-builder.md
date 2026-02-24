@@ -3,9 +3,9 @@ title: Remote Container Builder
 order: 1
 ---
 
-The Remote Container Builder enables you to build container images using **blazing-fast, remote build compute instances** managed by Garden. Each built layer of your Dockerfile is stored on low-latency, high-throughput NVMe storage so that your entire team can benefit from shared build caches. This can result in [significantly faster builds](https://garden.io/blog/oem-cloud-builder).
+The Remote Container Builder enables you to build container images using **blazing-fast, remote build compute instances** managed by Garden. Each built layer of your Dockerfile is stored on low-latency, high-throughput NVMe storage so that your entire team can benefit from shared build caches. This can result in [significantly faster builds](../overview/case-studies/oem-cloud-builder.md).
 
-Our free-tier includes a certain amount of build minutes and GBs of layer caching per month and you get more by switching to our team or enterprise tiers. You can learn more about the [different tiers here](https://garden.io/plans).
+Our free-tier includes a certain amount of build minutes and GBs of layer caching per month and you get more by switching to our team or enterprise tiers. You can learn more about the [different tiers here](https://app.garden.io/plans).
 
 You can also use the [Builds UI](https://app.garden.io) to view build logs and analyze bottlenecks in your builds.
 

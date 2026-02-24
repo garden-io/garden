@@ -19,10 +19,10 @@ Other people on your team will benefit from the same. All they need to do is ins
 
 And thanks to Garden's smart caching, these environments can be created lightning fast. For the very first preview environment created, Garden will build and deploy the project. For subsequent environments, Garden will only re-build the parts of the system that actually changed.
 
-A lot of teams have gone from having a single, congested staging environment to blazing fast isolated preview environments for every pull request by the end of this phase. See e.g. [this case study](https://garden.io/blog/garden-is-the-best-companion-for-a-kubernetes-dev-from-local-envs-to-cd).
+A lot of teams have gone from having a single, congested staging environment to blazing fast isolated preview environments for every pull request by the end of this phase. See e.g. [this case study](../overview/case-studies/slite.md).
 
 {% hint style="info" %}
-[Garden Enterprise](https://garden.io/plans), our commercial offering, includes secrets management and RBAC to ensure you don’t need to add any secrets to your CI provider or setup secrets or local variables for development. This ensures 100% portability across all your environments.
+[Garden Enterprise](https://app.garden.io/plans), our commercial offering, includes secrets management and RBAC to ensure you don’t need to add any secrets to your CI provider or setup secrets or local variables for development. This ensures 100% portability across all your environments.
 {% endhint %}
 
 ## Phase 2 — Use Garden to test in CI and “as you code”
@@ -39,7 +39,7 @@ garden test --env ci
 
 Importantly, developers can run and debug these same tests from their laptops _as they code_, using the same command.
 
-And again, Garden's smart caching ensures only the parts of your system that actually changed are tested. This is how [one team using Garden](https://garden.io/blog/testing-microservices) is able to end-to-end test a system of 130 services, hundreds of times a day.
+And again, Garden's smart caching ensures only the parts of your system that actually changed are tested. This is how [one team using Garden](../overview/case-studies/testing-microservices.md) is able to end-to-end test a system of 130 services, hundreds of times a day.
 
 ## Phase 3 — Roll out production-like dev envs to your team
 
@@ -47,13 +47,13 @@ At this phase, your entire team should be able to spin up preview environments a
 
 Next step is typically to roll out production-like development environments to your team so they can do day-to-day development _in the cloud_.
 
-This means that each developer will have their own isolated namespace in a remote Kubernetes cluster where they're able to run their entire project without setting [their laptops on fire](https://garden.io/blog/you-dont-need-kubernetes-on-your-laptop).
+This means that each developer will have their own isolated namespace in a remote Kubernetes cluster where they're able to run their entire project without setting their laptops on fire.
 
 This also means that new developers can get up and running in a matter of minutes. Since the project runs remotely and Garden automates all the workflows, setting up a development environment from scratch is as simple as cloning the project repo and running `garden dev`.
 
 Thanks to Garden's [live reloading functionality](../features/code-synchronization.md), code changes stream directly to the running container in the remote cluster, ensuring blazing fast feedback. No need to wait for builds or deploys. This allows your team to develop in production-like environments that _feel_ just like local.
 
-For more, check out [this case study](https://garden.io/blog/cloud-development) on how one team is giving their developers all the power of the cloud with non of the cognitive overload.
+For more, check out [this case study](../overview/case-studies/cloud-development.md) on how one team is giving their developers all the power of the cloud with non of the cognitive overload.
 
 ## Phase 4 — Roll Garden out to more teams
 
@@ -64,8 +64,6 @@ Your team may also be developing in production-like environments and is able to 
 At this point, you can start using Garden to consolidate workflows and tooling across the entire organisation. You can e.g. create [templates](../features/config-templates.md) that allow you to author re-useable config that can be shared across teams to ensure consistency and compliance.
 
 Similarly you can add [custom commands](../features/custom-commands.md) to standarize workflows and add our [Pulumi](../garden-for/pulumi/README.md) or [Terraform](../garden-for/terraform/README.md) to truly codify your entire delivery process—including infrastructure provisioning.
-
-You can learn more in [this blog post](https://garden.io/blog/garden-linkerd) on building the perfect internal developer platform with Linkerd and Garden.
 
 ## Next Steps
 

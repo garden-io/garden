@@ -9,7 +9,7 @@ These versions are used by Garden to work out which actions need to be performed
 
 The version is stored in the [Garden Cloud backend](https://app.garden.io) and can be shared with your team and across CI runs. This means that if you open a pull request that triggers several Test actions to be run, then push a new commit that only changes files that belong to one of the tests, only that test will re-run.
 
-Our free-tier has limits on cache retention and number of cache hits that you can increase by switching to our team or enterprise tiers. You can learn more about the [different plans here](https://garden.io/plans).
+Our free-tier has limits on cache retention and number of cache hits that you can increase by switching to our team or enterprise tiers. You can learn more about the [different plans here](https://app.garden.io/plans).
 
 ![Run a test that passes then run it again. Note that the second time it's cached.](https://public-assets-for-docs-site.s3.eu-central-1.amazonaws.com/team-cache-gif.gif)
 

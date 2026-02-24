@@ -14,10 +14,10 @@
   * [Jumpstart your Internal Developer Platform](./overview/use-cases/jumpstart-idp.md)
 * [Case Studies](./overview/case-studies/README.md)
   * [85% Faster Builds: OEM's Boost with Garden Cloud Builder](./overview/case-studies/oem-cloud-builder.md)
-  * [Case Study: How Podium End-to-End Tests Hundreds of Services a Day](./overview/case-studies/testing-microservices.md)
-  * [Case Study: How OEM Used Garden to Empower Developers on Kubernetes](./overview/case-studies/kubernetes-automation.md)
-  * [Case study: How Obligate relies on Garden's cloud dev environments](./overview/case-studies/cloud-development.md)
-  * [Case Study: Slite - "Garden is the best companion for a Kubernetes dev, from local envs to CD."](./overview/case-studies/slite.md)
+  * [How Podium End-to-End Tests Hundreds of Services a Day](./overview/case-studies/testing-microservices.md)
+  * [How OEM Used Garden to Empower Developers on Kubernetes](./overview/case-studies/kubernetes-automation.md)
+  * [How Obligate relies on Garden's cloud dev environments](./overview/case-studies/cloud-development.md)
+  * [Slite - "Garden is the best companion for a Kubernetes dev, from local envs to CD."](./overview/case-studies/slite.md)
 
 ## Getting Started
 
