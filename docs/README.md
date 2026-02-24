@@ -5,13 +5,19 @@
 ## Overview
 
 * [What is Garden](./overview/what-is-garden.md)
+* [Garden vs Other Tools](./overview/garden-vs-other-tools.md)
 * [Use Cases](./overview/use-cases/README.md)
   * [Isolated On-Demand Preview Environments](./overview/use-cases/on-demand-preview-envs.md)
   * [Fast, Portable CI Pipelines that Run Anywhere](./overview/use-cases/portable-ci-pipelines.md)
   * [Shift Testing Left](./overview/use-cases/shift-testing-left.md)
   * [Local Development With Remote Clusters](./overview/use-cases/local-development-remote-clusters.md)
   * [Jumpstart your Internal Developer Platform](./overview/use-cases/jumpstart-idp.md)
-* [Garden vs Other Tools](./overview/garden-vs-other-tools.md)
+* [Case Studies](./overview/case-studies/README.md)
+  * [85% Faster Builds: OEM's Boost with Garden Cloud Builder](./overview/case-studies/oem-cloud-builder.md)
+  * [Case Study: How Podium End-to-End Tests Hundreds of Services a Day](./overview/case-studies/testing-microservices.md)
+  * [Case Study: How OEM Used Garden to Empower Developers on Kubernetes](./overview/case-studies/kubernetes-automation.md)
+  * [Case study: How Obligate relies on Garden's cloud dev environments](./overview/case-studies/cloud-development.md)
+  * [Case Study: Slite - "Garden is the best companion for a Kubernetes dev, from local envs to CD."](./overview/case-studies/slite.md)
 
 ## Getting Started
 
