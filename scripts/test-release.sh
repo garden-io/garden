@@ -83,13 +83,22 @@ test_release() {
   fi
 
   echo "→ Verify version"
-  release_version=$("${garden_release}" --version)
+  # `garden version` outputs "garden version: X.Y.Z" — extract just the version number
+  release_version=$("${garden_release}" version | sed 's/.*: //')
 
   echo "$release_version"
 
   if [ "$base_version" != "$release_version" ]; then
-    echo "Versions don't match, ${version} and ${release_version}"
+    echo "Versions don't match, ${base_version} and ${release_version}"
     return 1
+  fi
+
+  if [ "$ci_mode" = true ]; then
+    echo ""
+    echo "→ CI mode: skipping project tests (no k8s cluster available)"
+    echo "→ Smoke test passed!"
+    cd "$garden_root"
+    return 0
   fi
 
   cd examples/demo-project
@@ -101,14 +110,6 @@ test_release() {
     echo "ERROR: 'garden build' failed"
     cd "$garden_root"
     return 1
-  fi
-
-  if [ "$ci_mode" = true ]; then
-    echo ""
-    echo "→ CI mode: skipping interactive tests (exec, deploy --sync)"
-    echo "→ Smoke test passed!"
-    cd "$garden_root"
-    return 0
   fi
 
   echo ""
