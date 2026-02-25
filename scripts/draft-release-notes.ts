@@ -22,11 +22,28 @@ const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 const gardenRoot = resolve(moduleDirName, "..")
 
-const GARDEN_IO_ORG = "garden-io"
+/**
+ * Fetch the list of repo collaborators (works with the default GITHUB_TOKEN).
+ * Falls back to an empty set if the API is unavailable.
+ */
+function getRepoCollaborators(): Set<string> {
+  try {
+    const result = execSync(
+      `gh api "repos/garden-io/garden/collaborators" --paginate --jq '.[].login'`,
+      { timeout: 30000 }
+    )
+      .toString()
+      .trim()
+    return new Set(result.split("\n").filter(Boolean).map((login) => login.toLowerCase()))
+  } catch {
+    return new Set()
+  }
+}
 
 /**
- * Extract GitHub usernames from git log and check which are external to the garden-io org.
- * Falls back to listing all contributors if the GitHub API is unavailable.
+ * Extract GitHub usernames from git log and check which are external contributors.
+ * Uses the repo collaborators list (which the default GITHUB_TOKEN can access)
+ * rather than org membership (which requires the `user` scope).
  */
 async function getExternalContributors(prevReleaseTag: string, curReleaseTag: string): Promise<string[]> {
   // Extract unique email/name pairs from git log
@@ -41,7 +58,9 @@ async function getExternalContributors(prevReleaseTag: string, curReleaseTag: st
 
   const authorLines = authors.trim().split("\n").filter(Boolean)
 
-  // Try to resolve GitHub usernames and check org membership
+  // Fetch repo collaborators once (more efficient and reliable than per-user org checks)
+  const collaborators = getRepoCollaborators()
+
   const externalContributors: string[] = []
 
   for (const author of authorLines) {
@@ -68,12 +87,8 @@ async function getExternalContributors(prevReleaseTag: string, curReleaseTag: st
         continue
       }
 
-      // Check if user is a member of the garden-io org
-      try {
-        execSync(`gh api "orgs/${GARDEN_IO_ORG}/members/${searchResult}" --silent`, { timeout: 10000 })
-        // If this succeeds, the user is an org member — skip them
-      } catch {
-        // Not an org member — this is an external contributor
+      // Check if user is a repo collaborator — if not, they're an external contributor
+      if (collaborators.size > 0 && !collaborators.has(searchResult.toLowerCase())) {
         externalContributors.push(`@${searchResult}`)
       }
     } catch {
@@ -181,7 +196,7 @@ async function draftReleaseNotes() {
 
   // Resolve the release description.
   const defaultDescription = dedent(`
-    Garden ${curReleaseTag} is out! :tada:
+    ## Garden ${curReleaseTag} is out! :tada:
 
     Please see the changelog below for a detailed list of changes in this release.
   `)

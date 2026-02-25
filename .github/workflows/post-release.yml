@@ -154,7 +154,10 @@ jobs:
 
       - name: Update release body and publish
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use COMMITTER_TOKEN (PAT) instead of GITHUB_TOKEN so that the
+          # `released` event triggers downstream workflows (publish-release.yml).
+          # Actions performed with GITHUB_TOKEN do not trigger other workflows.
+          GH_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
         run: |
           gh release edit "${{ env.RELEASE_TAG }}" \
             --notes-file /tmp/release-notes.md \
