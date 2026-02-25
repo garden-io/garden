@@ -54,7 +54,12 @@ describe("Watcher", () => {
 
   it("should emit a configChanged changed event when a config is changed", async () => {
     const path = getConfigFilePath(modulePath)
-    await Promise.all([touch(path), pEvent(garden.events, "configChanged", (e) => e.path === path)])
+    await Promise.all([
+      touch(path),
+      pEvent(garden.events, "configChanged", {
+        filter: (e) => (e as { path: string }).path === path,
+      }),
+    ])
   })
 
   describe("subscribe", () => {

@@ -18,8 +18,11 @@ import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
 
-export interface DeployActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"Deploy", N, S> {
+export interface DeployActionConfig<N extends string = any, S extends object = any> extends BaseRuntimeActionConfig<
+  "Deploy",
+  N,
+  S
+> {
   removeOnCleanup?: boolean
 }
 

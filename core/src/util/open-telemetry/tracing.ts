@@ -76,8 +76,8 @@ export function initTracing(): opentelemetry.NodeSDK {
         ignoreOutgoingRequestHook: (request) => {
           return Boolean(
             request.hostname?.includes("segment.io") ||
-              (request.hostname?.includes("garden.io") &&
-                (request.path?.includes("/events") || request.path?.includes("/version")))
+            (request.hostname?.includes("garden.io") &&
+              (request.path?.includes("/events") || request.path?.includes("/version")))
           )
         },
       }),

@@ -40,8 +40,11 @@ export interface BuildCopyFrom {
   targetPath: string
 }
 
-export interface BuildActionConfig<T extends string = string, S extends object = any>
-  extends BaseActionConfig<"Build", T, S> {
+export interface BuildActionConfig<T extends string = string, S extends object = any> extends BaseActionConfig<
+  "Build",
+  T,
+  S
+> {
   type: T
   allowPublish?: boolean
   buildAtSource?: boolean
@@ -195,10 +198,10 @@ export class BuildAction<
 
 // TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
 export class ResolvedBuildAction<
-    C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
-    StaticOutputs extends Record<string, unknown> = any,
-    RuntimeOutputs extends Record<string, unknown> = any,
-  >
+  C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
+>
   extends BuildAction<C, StaticOutputs, RuntimeOutputs>
   implements ResolvedActionExtension<C, StaticOutputs, RuntimeOutputs>
 {
@@ -256,10 +259,10 @@ export class ResolvedBuildAction<
 }
 
 export class ExecutedBuildAction<
-    C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
-    StaticOutputs extends Record<string, unknown> = any,
-    RuntimeOutputs extends Record<string, unknown> = any,
-  >
+  C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
+>
   extends ResolvedBuildAction<C, StaticOutputs, RuntimeOutputs>
   implements ExecutedActionExtension<C, StaticOutputs, RuntimeOutputs>
 {

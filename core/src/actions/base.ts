@@ -382,8 +382,11 @@ export const baseActionConfigSchema = createSchema({
   }),
 })
 
-export interface BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = string, S = any>
-  extends BaseActionConfig<K, N, S> {
+export interface BaseRuntimeActionConfig<
+  K extends ActionKind = ActionKind,
+  N = string,
+  S = any,
+> extends BaseActionConfig<K, N, S> {
   build?: string
 }
 
@@ -877,10 +880,10 @@ export interface ResolvedActionExtension<
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ResolvedRuntimeAction<
-    Config extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-    StaticOutputs extends Record<string, unknown> = any,
-    RuntimeOutputs extends Record<string, unknown> = any,
-  >
+  Config extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
+>
   extends RuntimeAction<Config, StaticOutputs, RuntimeOutputs>
   implements ResolvedActionExtension<Config, StaticOutputs, RuntimeOutputs>
 {
@@ -980,10 +983,10 @@ export interface ExecutedActionExtension<
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ExecutedRuntimeAction<
-    C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-    StaticOutputs extends Record<string, unknown> = any,
-    RuntimeOutputs extends Record<string, unknown> = any,
-  >
+  C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
+>
   extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs>
   implements ExecutedActionExtension<C, StaticOutputs, RuntimeOutputs>
 {

@@ -10,7 +10,7 @@ import fsExtra from "fs-extra"
 
 const { mkdirp } = fsExtra
 import { resolve } from "path"
-import tar from "tar"
+import * as tar from "tar"
 import { ConfigurationError, PluginError } from "../../exceptions.js"
 import type { ModuleActionHandlers } from "../../plugin/plugin.js"
 import { makeTempDir } from "../../util/fs.js"

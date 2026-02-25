@@ -126,11 +126,11 @@ interface LogConstructor<C extends BaseContext> extends Omit<LogConfig<C>, "key"
 }
 
 interface CreateLogParams
-  extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "showDuration">,
-    Pick<LogContext, "origin"> {}
+  extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "showDuration">, Pick<LogContext, "origin"> {}
 
 interface CreateCoreLogParams
-  extends Pick<LogConfig<CoreLogContext>, "metadata" | "fixLevel" | "showDuration">,
+  extends
+    Pick<LogConfig<CoreLogContext>, "metadata" | "fixLevel" | "showDuration">,
     Pick<CoreLogContext, "name" | "origin"> {
   name?: string
   origin?: string
@@ -149,8 +149,10 @@ export function transformMsg(msg: Msg, transformer: (input: string) => string): 
   return transformer(msg)
 }
 
-export interface LogEntry<C extends BaseContext = LogContext>
-  extends Pick<LogConfig<C>, "key" | "timestamp" | "metadata" | "context"> {
+export interface LogEntry<C extends BaseContext = LogContext> extends Pick<
+  LogConfig<C>,
+  "key" | "timestamp" | "metadata" | "context"
+> {
   /**
    * The unique ID of the log context that created the log entry.
    */
@@ -179,7 +181,8 @@ export interface LogEntry<C extends BaseContext = LogContext>
 }
 
 export interface LogParams
-  extends Pick<LogEntry, "metadata" | "msg" | "rawMsg" | "symbol" | "data" | "dataFormat" | "error" | "skipEmit">,
+  extends
+    Pick<LogEntry, "metadata" | "msg" | "rawMsg" | "symbol" | "data" | "dataFormat" | "error" | "skipEmit">,
     Pick<LogContext, "origin">,
     Pick<LogConfig<LogContext>, "showDuration"> {}
 

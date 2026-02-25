@@ -127,8 +127,8 @@ export default {
         for (const file of Object.values(bundle)) {
           if (file.type === "chunk") {
             file.code = file.code.replace(/^#!(.*)/m, `#!$1
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
+import { createRequire as _createRequire } from 'module';
+const require = _createRequire(import.meta.url);
 `)
           }
         }

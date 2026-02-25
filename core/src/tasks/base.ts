@@ -234,8 +234,10 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
 
 export type ActionTaskStatusParams<_ extends Action> = TaskProcessParams
 
-export interface ActionTaskProcessParams<T extends Action, S extends ValidResultType>
-  extends ActionTaskStatusParams<T> {
+export interface ActionTaskProcessParams<
+  T extends Action,
+  S extends ValidResultType,
+> extends ActionTaskStatusParams<T> {
   status: S | null
 }
 

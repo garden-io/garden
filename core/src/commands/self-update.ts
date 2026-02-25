@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tar from "tar"
+import * as tar from "tar"
 import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
