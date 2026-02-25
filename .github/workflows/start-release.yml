@@ -87,7 +87,7 @@ jobs:
       - name: Run release script
         env:
           RELEASE_TYPE: ${{ inputs.release-type }}
-        run: ./scripts/release.ts "$RELEASE_TYPE" --yes
+        run: npx tsx scripts/release.ts "$RELEASE_TYPE" --yes
 
       - name: Post summary
         env:

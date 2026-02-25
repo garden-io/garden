@@ -150,7 +150,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./scripts/draft-release-notes.ts \
+          npx tsx scripts/draft-release-notes.ts \
             "${{ steps.prev-tag.outputs.tag }}" \
             "${{ env.RELEASE_TAG }}" \
             --output-stdout > /tmp/release-notes.md
