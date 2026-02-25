@@ -160,7 +160,7 @@ jobs:
             --notes-file /tmp/release-notes.md \
             --draft=false
 
-      - name: Trigger publish-release workflow
+      - name: Trigger downstream workflows
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -168,6 +168,9 @@ jobs:
           # but repository_dispatch is an exception to this rule.
           gh api repos/${{ github.repository }}/dispatches \
             -f event_type=publish-release \
+            -f "client_payload[tag-name]=${{ env.RELEASE_TAG }}"
+          gh api repos/${{ github.repository }}/dispatches \
+            -f event_type=auto-merge-release-pr \
             -f "client_payload[tag-name]=${{ env.RELEASE_TAG }}"
 
       - name: Post summary

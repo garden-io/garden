@@ -9,10 +9,19 @@ name: Auto-merge release PR
 on:
   release:
     types: [released]
+  repository_dispatch:
+    # Triggered by post-release.yml after publishing a draft release.
+    # GITHUB_TOKEN events don't trigger release-based workflows, but
+    # repository_dispatch is an exception to this rule.
+    types: [auto-merge-release-pr]
 
 permissions:
   contents: write
   pull-requests: write
+
+env:
+  # Normalize the tag name across trigger types:
+  RELEASE_TAG: ${{ github.event.release.tag_name || github.event.client_payload.tag-name }}
 
 jobs:
   create-release-pr:
@@ -21,7 +30,7 @@ jobs:
       - name: Checkout release branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: release-${{ github.event.release.tag_name }} # tag_name is from a trusted GitHub release event
+          ref: release-${{ env.RELEASE_TAG }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -37,7 +46,7 @@ jobs:
 
       - name: Clean up and update lock file
         env:
-          TAG_NAME: ${{ github.event.release.tag_name }}
+          TAG_NAME: ${{ env.RELEASE_TAG }}
         run: |
           npm install
 
@@ -57,7 +66,7 @@ jobs:
       - name: Create PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ github.event.release.tag_name }}
+          VERSION: ${{ env.RELEASE_TAG }}
         run: |
 
           # Determine the target branch based on the version.
@@ -110,7 +119,7 @@ jobs:
 
       - name: Update latest-release branch
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ env.RELEASE_TAG }}
         run: |
 
           # Determine the release branch based on the version.
@@ -130,7 +139,7 @@ jobs:
 
       - name: Post summary
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ env.RELEASE_TAG }}
         run: |
           MAJOR_MINOR=$(echo "${TAG}" | grep -oE '^[0-9]+\.[0-9]+')
           if [ "${MAJOR_MINOR}" = "0.13" ]; then
