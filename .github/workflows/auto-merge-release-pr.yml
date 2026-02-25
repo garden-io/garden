@@ -1,108 +1,25 @@
-name: Auto-merge release PR
+name: Post-release branch update
 
-# Triggered when a release is published (draft=false).
-# Handles post-release cleanup:
-# 1. Creates a PR for the release branch → main
-# 2. Enables auto-merge on the PR
-# 3. Updates the latest-release branch to the released tag
+# Triggered after a release is published.
+# Updates the latest-release branch to point to the released tag.
+# (Used for docs deployment.)
+#
+# The release PR (release branch → main) is created manually by the maintainer.
+# See RELEASE_PROCESS.md for details.
 
 on:
   release:
     types: [released]
   repository_dispatch:
-    # Triggered by post-release.yml after publishing a draft release.
-    # GITHUB_TOKEN events don't trigger release-based workflows, but
-    # repository_dispatch is an exception to this rule.
     types: [auto-merge-release-pr]
 
 permissions:
   contents: write
-  pull-requests: write
 
 env:
-  # Normalize the tag name across trigger types:
   RELEASE_TAG: ${{ github.event.release.tag_name || github.event.client_payload.tag-name }}
 
 jobs:
-  create-release-pr:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout release branch
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          ref: release-${{ env.RELEASE_TAG }}
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Use Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: "22"
-
-      - name: Clean up and update lock file
-        env:
-          TAG_NAME: ${{ env.RELEASE_TAG }}
-        run: |
-          npm install
-
-          # Stage package-lock.json if it changed
-          if ! git diff --quiet package-lock.json; then
-            git add package-lock.json
-          fi
-
-          # Commit if there are staged changes
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(release): post-release cleanup for ${TAG_NAME}"
-            git push origin "release-${TAG_NAME}"
-          else
-            echo "No post-release changes needed"
-          fi
-
-      - name: Create PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ env.RELEASE_TAG }}
-        run: |
-
-          # Determine the target branch based on the version.
-          # 0.13.x releases target the 0.13 branch, everything else targets main.
-          MAJOR_MINOR=$(echo "${VERSION}" | grep -oE '^[0-9]+\.[0-9]+')
-          if [ "${MAJOR_MINOR}" = "0.13" ]; then
-            BASE_BRANCH="0.13"
-          else
-            BASE_BRANCH="main"
-          fi
-
-          # Create the PR
-          read -r -d '' BODY <<PREOF || true
-          Automated PR to merge release branch \`release-${VERSION}\` back into \`${BASE_BRANCH}\`.
-
-          This PR was created automatically after publishing release ${VERSION}.
-
-          **Changes:**
-          - Version bump to ${VERSION}
-          - Changelog update
-          - Updated example links (if applicable)
-          - Updated package-lock.json
-          PREOF
-
-          PR_URL=$(gh pr create \
-            --base "${BASE_BRANCH}" \
-            --head "release-${VERSION}" \
-            --title "chore(release): merge release ${VERSION} into ${BASE_BRANCH}" \
-            --body "${BODY}")
-
-          echo "Created PR: ${PR_URL}"
-          echo "pr-url=${PR_URL}" >> "$GITHUB_OUTPUT"
-
-          # Enable auto-merge
-          gh pr merge "${PR_URL}" --auto --squash
-
   update-release-branch:
     runs-on: ubuntu-latest
     steps:
@@ -152,4 +69,11 @@ jobs:
             echo "## Release branch updated :white_check_mark:"
             echo ""
             echo "Updated \`${BRANCH}\` branch to \`${TAG}\`"
+            echo ""
+            echo "### Manual step required"
+            echo ""
+            echo "Create a PR to merge \`release-${TAG}\` into \`main\`:"
+            echo '```'
+            echo "gh pr create --base main --head release-${TAG} --title \"chore(release): merge release ${TAG} into main\""
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

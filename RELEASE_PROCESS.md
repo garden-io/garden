@@ -2,9 +2,9 @@
 
 ## Overview
 
-The release process is fully automated via GitHub Actions. A maintainer triggers the **Start Release** workflow, and everything else happens automatically: branch preparation, version bumping, CI builds, smoke testing, release notes generation, GitHub release publishing, Homebrew formula update, and post-release PR creation.
+The release process is mostly automated via GitHub Actions. A maintainer triggers the **Start Release** workflow, and the pipeline handles branch preparation, version bumping, CI builds, smoke testing, release notes generation, GitHub release publishing, Homebrew formula update, and `latest-release` branch update. The one manual step is creating a PR to merge the release branch back into `main`.
 
-### Automated flow
+### Flow
 
 ```
 Start Release workflow (triggered by maintainer)
@@ -26,13 +26,23 @@ Post-release workflow (triggered by CircleCI)
   ├─ Downloads binary, runs smoke test
   ├─ Generates release notes from changelog
   ├─ Publishes the release (draft → published)
+  ├─ Triggers downstream workflows via repository_dispatch
   │
   ▼
-Publish release workflow (triggered by release publish)
-  │
-  ├─ Creates and merges Homebrew PR
-  ├─ Creates PR for release branch → main (auto-merged)
-  └─ Updates latest-release branch (used for docs)
+Publish release workflow          Post-release branch update
+  │                                 │
+  ├─ Creates and merges             ├─ Updates latest-release branch
+  │  Homebrew PR                    │  (used for docs)
+  │                                 │
+  ▼                                 ▼
+Done                              Done
+
+                ┌──────────────────────────┐
+                │  MANUAL STEP             │
+                │  Create PR to merge      │
+                │  release branch → main   │
+                │  (see instructions below)│
+                └──────────────────────────┘
 ```
 
 ## How to release
@@ -44,9 +54,14 @@ Publish release workflow (triggered by release publish)
 3. Select the release type (`patch`, `minor`, etc.) and base branch (default: `main`).
 4. Click **Run workflow** and wait for the full pipeline to complete.
 
-That's it. The changelog-based release notes, Homebrew update, and post-release cleanup are all handled automatically.
+That's it. The changelog-based release notes, Homebrew update, and `latest-release` branch update are all handled automatically.
 
-**Note:** After the release is published, a PR is created to merge the release branch back into `main`. This PR only contains version bumps, changelog updates, and lock file changes. Auto-merge is enabled, but if flaky tests block it, manually merge the PR — the release branch does not introduce new code, so test failures are unrelated to the release.
+5. **After the pipeline completes**, create a PR to merge the release branch back into `main`:
+   ```sh
+   gh pr create --base main --head release-<version> \
+     --title "chore(release): merge release <version> into main"
+   ```
+   This PR only contains version bumps, changelog updates, and lock file changes. If flaky tests block merging, merge manually — the release branch does not introduce new code, so test failures are unrelated to the release.
 
 After the release is published, you can edit the release notes on the [Releases page](https://github.com/garden-io/garden/releases) if any manual adjustments are needed (e.g. adding a summary, highlighting key changes).
 
@@ -72,8 +87,9 @@ If the automated flow fails or you need more control, you can still release manu
 
 Once you publish, the following automation kicks in automatically:
 - Homebrew PR is created and merged
-- Release branch → main PR is created with auto-merge enabled
 - `latest-release` branch is updated to the released tag
+
+You still need to manually create the release PR (see step 5 in "One-click release" above).
 
 ## Release branches
 
@@ -131,7 +147,6 @@ The following secrets are used by the release workflows:
 
 ## Prerequisites
 
-- **Allow auto-merge** must be enabled in the Garden repo settings (Settings > General) for the release PR auto-merge to work.
 - **Branch protection on homebrew-garden** must allow the `COMMITTER_TOKEN` bot to merge without review approvals.
 
 ## Misc
