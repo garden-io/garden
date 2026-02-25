@@ -1,4 +1,21 @@
 
+<a name="0.14.18"></a>
+## [0.14.18](https://github.com/garden-io/garden/compare/0.14.17...0.14.18) (2026-02-25)
+
+### Bug Fixes
+
+* **core:** do not leave dangling remote source dirs if clone fails ([#7984](https://github.com/garden-io/garden/issues/7984)) ([7365dbb55](https://github.com/garden-io/garden/commit/7365dbb55))
+* **logger:** minor fix ([c0519a460](https://github.com/garden-io/garden/commit/c0519a460))
+
+### Features
+
+* **commands:** major improvements to custom commands ([1ee512f47](https://github.com/garden-io/garden/commit/1ee512f47))
+* **k8s:** support Traefik as bundled ingress controller ([8b1fa1a8f](https://github.com/garden-io/garden/commit/8b1fa1a8f))
+
+### Improvements
+
+* **core:** show if var is superseded in get remote-vars command ([a866eb284](https://github.com/garden-io/garden/commit/a866eb284))
+
 <a name="0.14.17"></a>
 ## [0.14.17](https://github.com/garden-io/garden/compare/0.14.16...0.14.17) (2026-02-11)
 

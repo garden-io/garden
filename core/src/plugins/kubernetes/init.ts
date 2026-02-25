@@ -38,7 +38,12 @@ import type { KubernetesResource } from "./types.js"
 import type { PrimitiveMap } from "../../config/common.js"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress.js"
 import type { Log } from "../../logger/log-entry.js"
-import { ensureIngressController, ingressControllerReady } from "./nginx/ingress-controller.js"
+import {
+  ensureIngressController as ensureNginxIngressController,
+  ingressControllerReady as nginxIngressControllerReady,
+  getGardenIngressController as getNginxIngressController,
+} from "./nginx/ingress-controller.js"
+import { ensureTraefikIngressController, traefikIngressControllerReady } from "./traefik/ingress-controller.js"
 import { styles } from "../../logger/styles.js"
 import { isTruthy } from "../../util/util.js"
 
@@ -92,8 +97,15 @@ export async function getEnvironmentStatus({
     },
   }
 
-  if (provider.config.setupIngressController === "nginx") {
-    const ingressControllerReadiness = await ingressControllerReady(ctx, log)
+  if (provider.config.setupIngressController === "traefik") {
+    const ingressControllerReadiness = await traefikIngressControllerReady(ctx, log)
+    result.ready = ingressControllerReadiness && namespaceReady
+    detail.systemReady = ingressControllerReadiness
+    log.info(
+      `${styles.highlight("Traefik")} Ingress Controller ${ingressControllerReadiness ? "is ready" : "is not ready"}`
+    )
+  } else if (provider.config.setupIngressController === "nginx") {
+    const ingressControllerReadiness = await nginxIngressControllerReady(ctx, log)
     result.ready = ingressControllerReadiness && namespaceReady
     detail.systemReady = ingressControllerReadiness
     log.info(
@@ -154,11 +166,22 @@ export async function prepareEnvironment(
   // make sure that the system namespace exists
   await getSystemNamespace(ctx, ctx.provider, log)
 
-  // TODO-0.15: remove this option for remote kubernetes clusters?
-  if (config.setupIngressController === "nginx") {
-    await ensureIngressController(k8sCtx, log)
+  if (config.setupIngressController === "traefik") {
+    // Detect if a stale Garden-installed nginx is present and warn the user
+    const nginxController = getNginxIngressController(k8sCtx)
+    const nginxStatus = await nginxController.getStatus(k8sCtx, log)
+    if (nginxStatus !== "missing") {
+      log.warn(
+        `A Garden-installed nginx ingress controller was detected. ` +
+          `Run ${styles.command("garden plugins kubernetes migrate-ingress-controller")} to remove it.`
+      )
+    }
+
+    await ensureTraefikIngressController(k8sCtx, log)
+  } else if (config.setupIngressController === "nginx") {
+    await ensureNginxIngressController(k8sCtx, log)
   } else {
-    // We only need to warn about missing ingress classes if we're not using Garden installed nginx
+    // We only need to warn about missing ingress classes if we're not using a Garden-installed controller
     const ingressApiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
     const ingressWarnings = await getIngressMisconfigurationWarnings(
       provider.config.ingressClass,

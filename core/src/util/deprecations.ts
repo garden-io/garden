@@ -158,6 +158,24 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       `,
       docs: null,
     },
+    nginxIngressController: {
+      docsSection: "Deprecated configuration",
+      docsHeadline: `${style("setupIngressController: nginx")} in the ${style("kubernetes")} and ${style("local-kubernetes")} providers`,
+      warnHint: deline`
+        The bundled nginx ingress controller is deprecated and will be removed in a future release.
+        Garden now ships a Traefik ingress controller as a replacement.
+        To migrate, run ${style("garden plugins kubernetes migrate-ingress-controller")}
+        and set ${style("setupIngressController: traefik")} in your provider configuration.
+      `,
+      docs: dedent`
+        The bundled nginx ingress controller is deprecated. Garden now ships Traefik as a replacement. To migrate:
+
+        1. Run ${style("garden plugins kubernetes migrate-ingress-controller")} to uninstall nginx and install Traefik.
+        2. Update your provider configuration to set ${style("setupIngressController: traefik")}.
+        3. Update ${style("ingressClass")} from ${style("nginx")} to ${style("traefik")} if explicitly set.
+        4. If you use any nginx-specific ingress annotations, you will need to migrate those manually.
+      `,
+    },
   } as const
 }
 
