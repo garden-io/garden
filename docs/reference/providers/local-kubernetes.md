@@ -489,7 +489,8 @@ providers:
       # Map of labels to apply to the namespace when creating it.
       labels:
 
-    # Set this to null or false to skip installing/enabling the `nginx` ingress controller.
+    # Set this to `nginx` or `traefik` to install the respective ingress controller, or to `null`/`false` to skip. The
+    # nginx controller is deprecated and will be removed in a future version — we recommend switching to `traefik`.
     setupIngressController: nginx
 ```
 ## Configuration Keys
@@ -1980,7 +1981,7 @@ Map of labels to apply to the namespace when creating it.
 
 [providers](#providers) > setupIngressController
 
-Set this to null or false to skip installing/enabling the `nginx` ingress controller.
+Set this to `nginx` or `traefik` to install the respective ingress controller, or to `null`/`false` to skip. The nginx controller is deprecated and will be removed in a future version — we recommend switching to `traefik`.
 
 | Type     | Default   | Required |
 | -------- | --------- | -------- |

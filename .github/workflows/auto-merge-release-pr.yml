@@ -1,0 +1,79 @@
+name: Post-release branch update
+
+# Triggered after a release is published.
+# Updates the latest-release branch to point to the released tag.
+# (Used for docs deployment.)
+#
+# The release PR (release branch → main) is created manually by the maintainer.
+# See RELEASE_PROCESS.md for details.
+
+on:
+  release:
+    types: [released]
+  repository_dispatch:
+    types: [auto-merge-release-pr]
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || github.event.client_payload.tag-name }}
+
+jobs:
+  update-release-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update latest-release branch
+        env:
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+
+          # Determine the release branch based on the version.
+          MAJOR_MINOR=$(echo "${TAG}" | grep -oE '^[0-9]+\.[0-9]+')
+          if [ "${MAJOR_MINOR}" = "0.13" ]; then
+            RELEASE_BRANCH="latest-release-0.13"
+          else
+            RELEASE_BRANCH="latest-release"
+          fi
+
+          # Update the release branch to point to the released tag
+          git checkout "${RELEASE_BRANCH}" 2>/dev/null || git checkout -b "${RELEASE_BRANCH}"
+          git reset --hard "${TAG}"
+          git push origin "${RELEASE_BRANCH}" --force
+
+          echo "Updated ${RELEASE_BRANCH} branch to ${TAG}"
+
+      - name: Post summary
+        env:
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          MAJOR_MINOR=$(echo "${TAG}" | grep -oE '^[0-9]+\.[0-9]+')
+          if [ "${MAJOR_MINOR}" = "0.13" ]; then
+            BRANCH="latest-release-0.13"
+          else
+            BRANCH="latest-release"
+          fi
+
+          {
+            echo "## Release branch updated :white_check_mark:"
+            echo ""
+            echo "Updated \`${BRANCH}\` branch to \`${TAG}\`"
+            echo ""
+            echo "### Manual step required"
+            echo ""
+            echo "Create a PR to merge \`release-${TAG}\` into \`main\`:"
+            echo '```'
+            echo "gh pr create --base main --head release-${TAG} --title \"chore(release): merge release ${TAG} into main\""
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

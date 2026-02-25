@@ -21,7 +21,7 @@ import type { WorkflowConfig } from "../workflow.js"
  */
 export class WorkflowConfigContext extends RemoteSourceConfigContext {}
 
-class WorkflowStepContext extends ContextWithSchema {
+export class WorkflowStepContext extends ContextWithSchema {
   @schema(joi.string().description("The full output log from the step."))
   public readonly log: string
 

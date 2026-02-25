@@ -66,8 +66,8 @@ kind: Deploy
 name: web-local
 type: exec
 dependencies: [build.lib-local] # <--- Build lib before starting local dev server
-persistent: true
 spec:
+  persistent: true
   deployCommand: [npm, run, dev]
 ```
 

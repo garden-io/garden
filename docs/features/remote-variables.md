@@ -167,6 +167,27 @@ Note that anyone with admin privileges can create an access token for a given se
 
 The examples below assume you've read the Quickstart section above and that the `importVariables` field is already set in your Project configuration.
 
+### Importing variables from multiple lists
+
+You can import variables from multiple variable lists in a single project. You might e.g. have a list with global variables that are shared across multiple projects and a list with project specific variables.
+
+Variables are merged in the order specified, with later lists taking precedence over earlier ones.
+
+For example:
+
+```
+# In your project configuration
+kind: Project
+name: my-project
+importVariables:
+  - from: garden-cloud
+    list: varlist_<varlist-id>
+    description: Global variables shared across multiple projects.
+  - from: garden-cloud
+    list: varlist_<varlist-id> # <--- In case of conflicts, this takes precedence
+    description: The "my-project" variable list.
+```
+
 ### Using remote variables in K8s manifests
 
 We generally recommend using the `patchResources` field to override your K8s manifests as needed and this same pattern applies for remote variables. For example, this is how you'd set a remote variable as an environment variable:

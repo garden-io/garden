@@ -12,21 +12,24 @@ kind: Command
 name: api-dev
 description:
   short: Start garden with preconfigured options for API development
-exec:
-  command:
-    - sh
-    - -c
-    - git submodule update --recursive --remote  # Because we keep forgetting to update these, amirite?
-gardenCommand:
-  - deploy
-  - --sync
-  - api,worker
-  - --log-level
-  - debug
-  - $concat: ${args.$all}  # Allow any arguments/options on top of the fixed ones above
+steps:
+  - name: update-submodules
+    exec:
+      command:
+        - sh
+        - -c
+        - git submodule update --recursive --remote
+  - name: deploy
+    gardenCommand:
+      - deploy
+      - --sync
+      - api,worker
+      - --log-level
+      - debug
+      - $concat: ${args.$all}
 ```
 
-Here we imagine a basic day-to-day workflow for a certain group of developers. The user simply runs `garden api-dev`. Before the Garden command starts, we update the submodules in the repo, and then we start `garden deploy` with some parameters that we tend to use or prefer.
+Here we imagine a basic day-to-day workflow for a certain group of developers. The user simply runs `garden api-dev`. The first step updates the submodules in the repo, and then we start `garden deploy` with some parameters that we tend to use or prefer.
 
 Of course this is just an example, but no doubt you can imagine some commands, parameters etc. that you use a lot and which would be nice to codify for you and your team. And this example only uses a fraction of what's possible! Read on for more and see what ideas come up.
 
@@ -38,9 +41,7 @@ Before diving in, there are a few constraints and caveats to be aware of when de
 
 * Commands cannot have the same name as other Garden commands. This is by design, to avoid any potential confusion for users.
 
-* Only the `exec` and `gardenCommand` fields can be templated. Other fields need to be statically defined.
-
-* Project and environment variables cannot be referenced in command templates at this time, because the project configuration is by design not resolved before executing the command.
+* Only the `exec`, `gardenCommand`, `steps`, and `variables` fields can be templated. Other fields need to be statically defined.
 
 We may later lift some of these limitations. Please post a [GitHub issue](https://github.com/garden-io/garden/issues) if any of the above is getting in your way!
 
@@ -60,17 +61,86 @@ description:
 ...
 ```
 
-Then, you must define `exec`, `gardenCommand`, or both. The former simply executes some command on your system, e.g. a shell command. The latter, as you might have guessed, runs a Garden command.
+Then, you must define `steps`, or alternatively `exec` and/or `gardenCommand` for simpler commands.
 
-If you specify both `exec` and `gardenCommand`, the `exec` part is run before the `gardenCommand`.
+### Steps
 
-For the `exec` field, you must specify `exec.command` and can optionally set `exec.env` as well, to set any environment variables for the command execution.
+The `steps` field lets you define a sequence of steps to run, much like Workflow steps. Each step must specify exactly one of `gardenCommand`, `exec`, or `script`:
 
-The `gardenCommand` field is a simple array, which normally should start with the command name to run, and then any flags and arguments you want to pass on.
+- **`gardenCommand`**: Runs a Garden command with the given arguments.
+- **`exec`**: Runs an external command. Specify `exec.command` and optionally `exec.env`.
+- **`script`**: Runs a bash script inline.
+
+Steps run sequentially. If a step fails, subsequent steps are skipped (unless they have `when: onError` or `when: always`). Each step can have a `name` for referencing its outputs in later steps.
+
+### Legacy: exec and gardenCommand
+
+For simple commands, you can use `exec` and/or `gardenCommand` at the top level. If you specify both, `exec` runs before `gardenCommand`. These fields still work as before, but `steps` is recommended for new commands.
+
+## Referencing outputs between steps
+
+Steps can reference the outputs and logs of previous steps using template strings. Give each step a `name`, then use `${steps.<name>.outputs.*}` or `${steps.<name>.log}` in subsequent steps.
+
+Script steps always produce `stdout`, `stderr`, and `exitCode` outputs. Garden command steps return the command's result object as outputs.
+
+Here's an example that chains steps together:
+
+```yaml
+kind: Command
+name: preflight
+description:
+  short: Run preflight checks and deploy if everything passes
+steps:
+  - name: check-env
+    script: |
+      if [ -z "$CI" ]; then
+        echo "local"
+      else
+        echo "ci"
+      fi
+  - name: lint
+    exec:
+      command: ["npm", "run", "lint"]
+  - name: deploy
+    gardenCommand:
+      - deploy
+      - --var
+      - environment=${steps.check-env.outputs.stdout}
+  - name: notify
+    script: echo "Deployed in ${steps.check-env.outputs.stdout} mode"
+```
+
+In this example, the `check-env` step detects the environment, `lint` runs a lint check, `deploy` references the detected environment from the first step, and `notify` uses it again to print a message.
+
+### Error handling
+
+Steps support the same error handling options as Workflow steps:
+
+- **`continueOnError`**: Set to `true` to continue even if the step fails.
+- **`when`**: Control when the step runs: `onSuccess` (default), `onError`, `always`, or `never`.
+- **`skip`**: Set to `true` (or a template expression) to skip the step entirely.
+
+```yaml
+kind: Command
+name: safe-deploy
+description:
+  short: Deploy with rollback on failure
+steps:
+  - name: deploy
+    gardenCommand: ["deploy"]
+  - name: rollback
+    when: onError
+    script: echo "Deploy failed, rolling back..."
+  - name: cleanup
+    when: always
+    script: echo "Cleaning up temporary files..."
+```
 
 ## Templating
 
-The `exec` and `gardenCommand` fields can be templated with many of the fields available for project and environment configuration. See [the reference](../reference/template-strings/custom-commands.md) for all the fields available.
+The `exec`, `gardenCommand`, `steps`, and `variables` fields can be templated with many of the fields available for project and environment configuration. See [the reference](../reference/template-strings/custom-commands.md) for all the fields available.
+
+When your templates reference providers, actions, or modules (e.g. `${actions.deploy.my-service.outputs.*}` or `${providers.kubernetes.outputs.*}`), Garden lazily resolves only what's needed. This means simple commands that don't reference these remain fast, while commands that do can access the full range of runtime data.
 
 Of special note are the `${args.*}` and `${opts.*}` variables. You can [see below](#defining-arguments-and-option-flags) how to explicitly define both positional arguments and option flags, but you can also use the following predefined variables:
 
@@ -89,11 +159,8 @@ kind: Command
 name: my-script
 description:
   short: Run that script we keep using
-exec:
-  command:
-    - sh
-    - -c
-    - |
+steps:
+  - script: |
       echo "I'm a super important script, here we go!"
       echo "We're in the ${project.name} project and you are ${local.username}, in case you forgot..."
       ./scripts/foo.sh ${join(args.$rest, ' ')}
@@ -118,11 +185,12 @@ opts:
   - name: db
     description: Override the database hostname
     type: string
-gardenCommand:
-  - run
-  - ${args.action-name}
-  - --var
-  - dbHostname=${opts.db || "db"}
+steps:
+  - gardenCommand:
+      - run
+      - ${args.action-name}
+      - --var
+      - dbHostname=${opts.db || "db"}
 ```
 
 Here we've made a wrapper command for executing `Run` actions in your project. We require one positional argument for the name of the action to run. Then we define an option for overriding a project variable. For the example, we imagine there's a project variable that's templated into the `Run` actions that controls the hostname of a database they need to connect to. The last lines in the example override the variable and default to `"db"` if the option flag isn't set. To run this command, you could run e.g. `garden wrapped my-action --db test`, which would run `my-action` with the `dbHostname` variable set to `test`.
@@ -131,12 +199,13 @@ You might want to augment this example to further accept any additional argument
 
 ```yaml
 ...
-gardenCommand:
-  - run
-  - ${args.action-name}
-  - --var
-  - dbHostname=${opts.db || "db"}
-  - $concat: ${args.$rest}  # <- pass any additional parameters through to the command without validation
+steps:
+  - gardenCommand:
+      - run
+      - ${args.action-name}
+      - --var
+      - dbHostname=${opts.db || "db"}
+      - $concat: ${args.$rest}  # <- pass any additional parameters through to the command without validation
 ```
 
 Now you could, for example, run `garden wrapped my-action --db test --force` and the additional `--force` parameter gets passed to the underlying Garden command.
@@ -145,4 +214,4 @@ As you can see, you can do a whole lot here! Read on for more examples.
 
 ## Using variables
 
-You can specify a `variables` field, and reference those in the `exec` and `gardenCommand` fields using `${var.*}`, similar to action variables. Note that _project variables_ are not available, since the Garden project is not resolved ahead of resolving the custom command.
+You can specify a `variables` field, and reference those in the `exec`, `gardenCommand`, and `steps` fields using `${var.*}`, similar to action variables. Note that _project variables_ are not available, since the Garden project is not resolved ahead of resolving the custom command.

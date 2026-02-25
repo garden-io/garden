@@ -150,21 +150,30 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
         and [${style("spec.memory")}](../reference/action-types/Deploy/container.md#spec.memory) for the new syntax details.
       `,
     },
-    workflowLimits: {
-      docsSection: "Old configuration syntax",
-      docsHeadline: `${style("limits")} configuration field in workflows`,
+    remoteWorkflows: {
+      docsSection: "Deprecated configuration",
+      docsHeadline: `Remote workflow configuration fields in Workflow configs`,
       warnHint: deline`
-        Please use the ${style("resources.limits")} configuration field instead.
+        The remote workflows feature is deprecated and will be removed in a future release.
+      `,
+      docs: null,
+    },
+    nginxIngressController: {
+      docsSection: "Deprecated configuration",
+      docsHeadline: `${style("setupIngressController: nginx")} in the ${style("kubernetes")} and ${style("local-kubernetes")} providers`,
+      warnHint: deline`
+        The bundled nginx ingress controller is deprecated and will be removed in a future release.
+        Garden now ships a Traefik ingress controller as a replacement.
+        To migrate, run ${style("garden plugins kubernetes migrate-ingress-controller")}
+        and set ${style("setupIngressController: traefik")} in your provider configuration.
       `,
       docs: dedent`
-        Note! If the deprecated field [${style("limits")}](../reference/workflow-config.md#limits) is defined in the workflow config,
-        Garden 0.14 automatically copies the field's contents to the ${style("resources.limits")},
-        even if the latter is defined explicitly.
+        The bundled nginx ingress controller is deprecated. Garden now ships Traefik as a replacement. To migrate:
 
-        Please do not use both ${style("limits")} and ${style("resources.limits")} simultaneously,
-        and use only ${style("resources.limits")}. Otherwise, the values from the old field ${style("limits")} will be used.
-
-        See [${style("resources.limits")}](../reference/workflow-config.md#resources.limits) for the new syntax details.
+        1. Run ${style("garden plugins kubernetes migrate-ingress-controller")} to uninstall nginx and install Traefik.
+        2. Update your provider configuration to set ${style("setupIngressController: traefik")}.
+        3. Update ${style("ingressClass")} from ${style("nginx")} to ${style("traefik")} if explicitly set.
+        4. If you use any nginx-specific ingress annotations, you will need to migrate those manually.
       `,
     },
   } as const

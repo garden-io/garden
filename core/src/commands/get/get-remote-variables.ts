@@ -27,6 +27,7 @@ interface RemoteVariable {
   id: string
   value: string
   isSecret: boolean
+  supersededBy: string | null
   variableListName: string
   scopedToEnvironment: string
   scopedToUser: string
@@ -72,11 +73,15 @@ export class GetRemoteVariablesCommand extends Command<EmptyObject, Opts> {
           id: joi.string(),
           value: joi.string(),
           isSecret: joi.boolean(),
+          supersededBy: joi.string().allow(null),
+          variableListId: joi.string(),
           variableListName: joi.string(),
-          environmentScope: joi.string(),
-          userScope: joi.string(),
+          scopedToEnvironment: joi.string(),
+          scopedToUser: joi.string(),
           expiresAt: joi.string().allow(null, ""),
-          description: joi.string(),
+          description: joi.string().allow(""),
+          scopedAccountId: joi.string().allow(null),
+          scopedEnvironmentId: joi.string().allow(null),
         })
       ).description("A list of remote variables"),
     })
@@ -120,41 +125,70 @@ export class GetRemoteVariablesCommand extends Command<EmptyObject, Opts> {
       } while (cursor)
     }
 
-    const variables: RemoteVariable[] = allVariables.map((v) => ({
-      name: v.name,
-      id: v.id,
-      value: v.isSecret ? "<secret>" : v.value,
-      isSecret: v.isSecret,
-      variableListName: v.variableListName || "N/A",
-      scopedToEnvironment: v.scopedGardenEnvironmentName || "None",
-      scopedToUser: v.scopedAccountName || "None",
-      expiresAt: v.expiresAt ? new Date(v.expiresAt).toISOString() : null,
-      description: v.description || "",
-      scopedAccountId: v.scopedAccountId,
-      scopedEnvironmentId: v.scopedGardenEnvironmentId,
-    }))
+    // Sort variables by the order of their variable list in variableListIds, then by name within each list.
+    const listOrder = new Map(variableListIds.map((id, index) => [id, index]))
+    const variables: RemoteVariable[] = allVariables
+      .sort((a, b) => {
+        const aListOrder = listOrder.get(a.variableListId ?? "") ?? Number.MAX_SAFE_INTEGER
+        const bListOrder = listOrder.get(b.variableListId ?? "") ?? Number.MAX_SAFE_INTEGER
+        if (aListOrder !== bListOrder) {
+          return aListOrder - bListOrder
+        }
+        return a.name.localeCompare(b.name)
+      })
+      .map((v) => ({
+        name: v.name,
+        id: v.id,
+        value: v.isSecret ? "<secret>" : v.value,
+        isSecret: v.isSecret,
+        supersededBy: null,
+        variableListId: v.variableListId || "N/A",
+        variableListName: v.variableListName || "N/A",
+        scopedToEnvironment: v.scopedGardenEnvironmentName || "None",
+        scopedToUser: v.scopedAccountName || "None",
+        expiresAt: v.expiresAt ? new Date(v.expiresAt).toISOString() : null,
+        description: v.description || "",
+        scopedAccountId: v.scopedAccountId,
+        scopedEnvironmentId: v.scopedGardenEnvironmentId,
+      }))
+
+    // Mark variables as superseded if a later list defines a variable with the same name.
+    // The last occurrence wins, so all earlier occurrences are superseded by that list.
+    const lastIndexByName = new Map<string, number>()
+    for (let i = 0; i < variables.length; i++) {
+      lastIndexByName.set(variables[i].name, i)
+    }
+    for (let i = 0; i < variables.length; i++) {
+      const lastIdx = lastIndexByName.get(variables[i].name)!
+      if (lastIdx !== i) {
+        variables[i].supersededBy = variables[lastIdx].variableListName
+      }
+    }
 
     const heading = [
       "Name",
-      "ID",
       "Value",
       "Variable List",
+      "ID",
       "Environment Scope",
       "User Scope",
       "Expires At",
       "Secret",
+      "Superseded By",
     ].map((s) => styles.bold(s))
 
     const rows: string[][] = variables.map((v) => {
+      const isSuperseded = v.supersededBy !== null
       return [
-        styles.highlight.bold(v.name),
-        v.id,
-        v.value,
+        isSuperseded ? styles.highlight.bold.strikethrough(v.name) : styles.highlight.bold(v.name),
+        isSuperseded ? styles.primary.strikethrough(v.value) : v.value,
         v.variableListName,
+        v.id,
         v.scopedToEnvironment,
         v.scopedToUser,
         v.expiresAt === null ? "Never" : v.expiresAt,
         v.isSecret ? "Yes" : "No",
+        v.supersededBy ?? "",
       ]
     })
 
