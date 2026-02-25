@@ -13,7 +13,7 @@ import fsExtra from "fs-extra"
 const { writeFile } = fsExtra
 import { execSync } from "node:child_process"
 import { dirname, resolve } from "node:path"
-import { dedent } from "@garden-io/sdk/build/src/util/string.js"
+import dedent from "dedent"
 import { getChangelog } from "./changelog.js"
 import parseArgs from "minimist"
 import { fileURLToPath } from "node:url"
