@@ -43,7 +43,7 @@ const rootPackageJsonPath = resolve(gardenRoot, "package.json")
  * 9. If we're making a minor release, update links to examples and re-push the tag.
  * 10. If this is not a pre-release, pushes the release branch to Github.
  *
- * Usage: ./scripts/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
+ * Usage: ./scripts/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run] [--yes]
  */
 async function release() {
   // Parse arguments
@@ -51,6 +51,7 @@ async function release() {
   const releaseType = <ReleaseType>argv._[0]
   const force = !!argv.force
   const dryRun = !!argv["dry-run"]
+  const skipPrompt = !!argv.yes || !!argv.y
 
   // Check if branch is clean
   try {
@@ -119,11 +120,15 @@ async function release() {
     }
   }
 
-  // Check if user wants to continue
-  const proceed = await prompt(version)
-  if (!proceed) {
-    await rollBack()
-    return
+  // Check if user wants to continue (skipped with --yes/-y for CI usage)
+  if (!skipPrompt) {
+    const proceed = await prompt(version)
+    if (!proceed) {
+      await rollBack()
+      return
+    }
+  } else {
+    console.log(`Skipping confirmation prompt (--yes flag set). Releasing ${version}...`)
   }
 
   // Pull remote tags
@@ -150,11 +155,9 @@ async function release() {
 
   // Add and commit changes
   console.log("Committing changes...")
-  await execa(
-    "git",
-    ["add", "CHANGELOG.md", rootPackageJsonPath, ...packageJsonPaths.map((p) => relative(gardenRoot, p))],
-    { cwd: gardenRoot }
-  )
+  const filesToAdd = ["CHANGELOG.md", rootPackageJsonPath, ...packageJsonPaths.map((p) => relative(gardenRoot, p))]
+
+  await execa("git", ["add", ...filesToAdd], { cwd: gardenRoot })
 
   await execa("git", ["commit", "-m", `chore(release): bump version to ${version}`], { cwd: gardenRoot })
 

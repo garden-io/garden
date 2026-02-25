@@ -15,7 +15,8 @@ import { loadConfigResources } from "../config/base.js"
 import type { CommandResource, CustomCommandOption } from "../config/command.js"
 import { customCommandExecSchema, customCommandGardenCommandSchema, customCommandSchema } from "../config/command.js"
 import { joi } from "../config/common.js"
-import { CustomCommandContext } from "../config/template-contexts/custom-command.js"
+import { CustomCommandContext, CustomCommandStepContext } from "../config/template-contexts/custom-command.js"
+import type { CustomCommandContextParams } from "../config/template-contexts/custom-command.js"
 import { validateWithPath } from "../config/validation.js"
 import type { GardenError } from "../exceptions.js"
 import { ConfigurationError, RuntimeError, InternalError, toGardenError } from "../exceptions.js"
@@ -31,6 +32,13 @@ import { getTracePropagationEnvVars } from "../util/open-telemetry/propagation.j
 import { styles } from "../logger/styles.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import { VariablesContext } from "../config/template-contexts/variables.js"
+import { EnvironmentContext } from "../config/template-contexts/base.js"
+import type { Garden } from "../garden.js"
+import { isPlainObject } from "../util/objects.js"
+import { scanTemplateReferences, resolveTemplateNeeds } from "../template/lazy-resolve.js"
+import { OutputConfigContext } from "../config/template-contexts/module.js"
+import { executeSteps, getStepSeparatorBar } from "./helpers/steps.js"
+import type { StepSpec, StepResult } from "./helpers/steps.js"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -62,9 +70,10 @@ interface CustomCommandResult {
     startedAt: Date
     completedAt: Date
     command: string[]
-    result: any
+    result: unknown
     errors: (Error | GardenError)[]
   }
+  steps?: Record<string, StepResult>
 }
 
 export class CustomCommandWrapper extends Command {
@@ -111,23 +120,72 @@ export class CustomCommandWrapper extends Command {
     // Strip the command name and any specified arguments off the $rest variable
     const rest = removeSlice(parsed._unknown, this.getPath()).slice(Object.keys(this.arguments || {}).length)
 
-    // Render the command variables
+    // Collect the raw templateable fields to scan for references
+    const templateableFields = {
+      exec: this.spec.exec,
+      gardenCommand: this.spec.gardenCommand,
+      steps: this.spec.steps,
+      variables: this.spec.variables,
+    }
 
-    const variableContext = new CustomCommandContext({ ...garden, args, opts, variables: garden.variables, rest })
+    // Scan for template references to determine if we need lazy resolution
+    const expandedContextParams = await this.resolveExpandedContext(garden, log, templateableFields)
 
-    // Make a new template context with the resolved variables
-    const commandContext = new CustomCommandContext({
+    // Build base context params
+    const baseContextParams: CustomCommandContextParams = {
       ...garden,
       args,
       opts,
-      variables: VariablesContext.forCustomCommand(garden, this.spec, variableContext),
       rest,
-    })
+      variables: garden.variables,
+      ...expandedContextParams,
+    }
+
+    // Validate that variables is a map (it was deferred during loading to allow template strings)
+    if (this.spec.variables !== undefined && this.spec.variables !== null && !isPlainObject(this.spec.variables)) {
+      throw new ConfigurationError({
+        message: `The \`variables\` field in custom Command '${this.name}' must be a map of key/value pairs, got ${typeof this.spec.variables}`,
+      })
+    }
+
+    // Render the command variables
+    const variableContext = new CustomCommandContext(baseContextParams)
+
+    // Make a new template context with the resolved variables
+    const commandContextParams: CustomCommandContextParams = {
+      ...baseContextParams,
+      variables: VariablesContext.forCustomCommand(garden, this.spec, variableContext),
+    }
+
+    const commandContext = new CustomCommandContext(commandContextParams)
 
     const result: CustomCommandResult = {}
     const errors: GardenError[] = []
 
-    // Run exec command
+    // Run steps if specified
+    if (this.spec.steps && this.spec.steps.length > 0) {
+      const steps: StepSpec[] = this.spec.steps
+      const stepsResult = await executeSteps({
+        steps,
+        garden,
+        cli,
+        log,
+        inheritedOpts: opts,
+        createStepContext: ({ stepName, allStepNames, resolvedSteps }) => {
+          return new CustomCommandStepContext({
+            ...commandContextParams,
+            allStepNames,
+            resolvedSteps,
+            stepName,
+          })
+        },
+      })
+
+      result.steps = stepsResult.steps
+      return { result, errors }
+    }
+
+    // Legacy: run exec command
     if (this.spec.exec) {
       const startedAt = new Date()
 
@@ -144,6 +202,7 @@ export class CustomCommandWrapper extends Command {
       })!
 
       const command = exec.command
+      log.info("\n" + getStepSeparatorBar())
       log.debug(`Running exec command: ${command.join(" ")}`)
 
       const res = await execa(command[0], command.slice(1), {
@@ -178,7 +237,7 @@ export class CustomCommandWrapper extends Command {
       }
     }
 
-    // Run Garden command
+    // Legacy: run Garden command
     if (this.spec.gardenCommand) {
       const startedAt = new Date()
 
@@ -194,9 +253,9 @@ export class CustomCommandWrapper extends Command {
         source: undefined,
       })!
 
+      log.info("\n" + getStepSeparatorBar())
       log.debug(`Running Garden command: ${gardenCommand.join(" ")}`)
 
-      // Doing runtime check to avoid updating hundreds of test invocations with a new required param, sorry. - JE
       if (!cli) {
         throw new InternalError({ message: `Missing cli argument in custom command wrapper.` })
       }
@@ -246,6 +305,43 @@ export class CustomCommandWrapper extends Command {
 
     return { result, errors }
   }
+
+  /**
+   * Scans template references in the command's templateable fields to determine if we need
+   * to lazily resolve providers, modules, or actions. Returns expanded context params.
+   */
+  private async resolveExpandedContext(
+    garden: Garden,
+    log: Log,
+    templateableFields: Pick<CommandResource, "exec" | "gardenCommand" | "steps" | "variables">
+  ): Promise<Partial<CustomCommandContextParams>> {
+    // Build a dummy context that has the richer fields, so the scanner can detect references to them
+    const dummyContext = new OutputConfigContext({
+      garden,
+      resolvedProviders: {},
+      variables: garden.variables,
+      modules: [],
+    })
+
+    const needs = scanTemplateReferences(templateableFields, dummyContext)
+
+    if (!needs.hasReferences) {
+      return {}
+    }
+
+    const resolved = await resolveTemplateNeeds(garden, log, needs)
+
+    const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
+
+    return {
+      environment: new EnvironmentContext(garden.environmentName, fullEnvName, garden.namespace),
+      resolvedProviders: resolved.providers,
+      modules: resolved.modules,
+      executedActions: resolved.executedActions,
+      graphResults: resolved.results,
+      log,
+    }
+  }
 }
 
 export async function getCustomCommands(log: Log, projectRoot: string) {
@@ -283,6 +379,8 @@ export async function getCustomCommands(log: Log, projectRoot: string) {
           // Allowing any values here because they're fully resolved later
           exec: joi.any(),
           gardenCommand: joi.any(),
+          steps: joi.any(),
+          variables: joi.any(),
         }),
         path: (<CommandResource>config).internal.basePath,
         projectRoot,

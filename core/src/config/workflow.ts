@@ -31,8 +31,6 @@ import type { GardenApiVersion } from "../constants.js"
 import { DOCS_BASE_URL } from "../constants.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import { reportDeprecatedFeatureUsage } from "../util/deprecations.js"
-import { emitNonRepeatableWarning } from "../warnings.js"
-import { styles } from "../logger/styles.js"
 
 export interface WorkflowLimitSpec {
   cpu: number
@@ -143,17 +141,18 @@ export const workflowConfigSchema = createSchema({
     keepAliveHours: joi
       .number()
       .default(48)
-      .description("The number of hours to keep the workflow pod running after completion."),
+      .description("The number of hours to keep the workflow pod running after completion.")
+      .meta({ enterprise: true, deprecation: "remoteWorkflows" }),
     resources: joi
       .object()
       .keys({
         requests: workflowResourceRequestsSchema().default(defaultWorkflowRequests),
         limits: workflowResourceLimitsSchema().default(defaultWorkflowLimits),
       })
-      .meta({ enterprise: true }),
+      .meta({ enterprise: true, deprecation: "remoteWorkflows" }),
     limits: workflowResourceLimitsSchema().meta({
       enterprise: true,
-      deprecation: "workflowLimits",
+      deprecation: "remoteWorkflows",
     }),
     steps: joiSparseArray(workflowStepSchema()).required().min(1).description(deline`
         The steps the workflow should run. At least one step is required. Steps are run sequentially.
@@ -165,7 +164,7 @@ export const workflowConfigSchema = createSchema({
       .description(
         `A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Cloud only).`
       )
-      .meta({ enterprise: true }),
+      .meta({ enterprise: true, deprecation: "remoteWorkflows" }),
   }),
   allowUnknown: true,
 })
@@ -231,8 +230,6 @@ export const workflowStepSchema = createSchema({
       .description(
         dedent`
         A Garden command this step should run, followed by any required or optional arguments and flags.
-
-        Note that commands that are _persistent_—e.g. the dev command, commands with a watch flag set, the logs command with following enabled etc.—are not supported. In general, workflow steps should run to completion.
 
         Global options like --env, --log-level etc. are currently not supported for built-in commands, since they are handled before the individual steps are run.
         `
@@ -404,23 +401,13 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
     ),
   }
 
-  if (resolvedConfig.limits) {
-    reportDeprecatedFeatureUsage({ deprecation: "workflowLimits", log })
-
-    if (resolvedConfig.resources.limits) {
-      emitNonRepeatableWarning(
-        log,
-        deline`
-          You have specified both ${styles.highlight("resources.limits")} and ${styles.bold("deprecated")} ${styles.highlight("limits")}
-          in your workload config at ${styles.highlight(config.internal.configFilePath || config.internal.basePath)}.
-
-          ${styles.bold(`Garden will use the values defined in the deprecated ${styles.highlight("limits")}!!!`)}.
-          Please use only ${styles.highlight("resources.limits")} field in your workflow configuration.
-      `
-      )
-    }
-
-    resolvedConfig.resources.limits = resolvedConfig.limits
+  if (
+    resolvedConfig.keepAliveHours ||
+    resolvedConfig.limits ||
+    resolvedConfig.resources.limits ||
+    resolvedConfig.triggers
+  ) {
+    reportDeprecatedFeatureUsage({ deprecation: "remoteWorkflows", log })
   }
 
   const environmentConfigs = garden.getProjectConfig().environments

@@ -25,7 +25,7 @@ import type { ObjectWithName } from "../util/util.js"
 import type { ModuleConfig } from "./module.js"
 import type { ModuleConfigContext } from "./template-contexts/module.js"
 
-interface ActionTemplateReference extends ActionReference {
+export interface ActionTemplateReference extends ActionReference {
   keyPath: (ContextKeySegment | UnresolvableValue)[]
 }
 

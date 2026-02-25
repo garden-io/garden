@@ -1,0 +1,182 @@
+name: Post-release automation
+
+# Triggered by CircleCI's github-release-tag job via repository_dispatch after creating a draft release.
+# (GitHub does not fire release events for draft releases, and workflow_dispatch requires the
+# `actions:write` scope which the CircleCI token doesn't have.)
+#
+# Can also be triggered manually from the Actions UI via workflow_dispatch.
+#
+# This workflow:
+# 1. Checks if this is an automated release (commit authored by github-actions[bot])
+# 2. Runs a smoke test on the release binary
+# 3. Generates release notes from the changelog
+# 4. Publishes the draft release
+#
+# Manual releases (where a human ran release.ts directly) are detected and skipped,
+# allowing the maintainer to edit the draft and publish it manually.
+#
+# Publishing then triggers publish-release.yml (Homebrew) and auto-merge-release-pr.yml.
+
+on:
+  repository_dispatch:
+    types: [post-release]
+  workflow_dispatch:
+    inputs:
+      tag-name:
+        description: "Release tag to process (e.g. 0.14.18). Must be an existing draft release."
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  # Normalize the tag name across trigger types:
+  # - workflow_dispatch: from inputs
+  # - repository_dispatch: from client_payload
+  RELEASE_TAG: ${{ inputs.tag-name || github.event.client_payload.tag-name }}
+
+jobs:
+  check-automated:
+    runs-on: ubuntu-latest
+    outputs:
+      is-automated: ${{ steps.check.outputs.is-automated }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Check if release was created by automation
+        id: check
+        env:
+          TAG: ${{ env.RELEASE_TAG }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          AUTHOR=$(git log -1 --format='%an' "${TAG}")
+          echo "Commit author: ${AUTHOR}"
+
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            echo "Manual workflow_dispatch trigger — proceeding."
+            echo "is-automated=true" >> "$GITHUB_OUTPUT"
+          elif [ "${AUTHOR}" = "github-actions[bot]" ]; then
+            echo "Automated release detected — proceeding."
+            echo "is-automated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Manual release detected (author: ${AUTHOR}) — skipping auto-publish."
+            echo "The maintainer should edit and publish the draft release manually."
+            echo "is-automated=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  smoke-test:
+    needs: check-automated
+    if: needs.check-automated.outputs.is-automated == 'true'
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Download release binary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ env.RELEASE_TAG }}
+        run: |
+          BASE_VERSION="${VERSION%%-*}"
+
+          # Detect architecture
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "arm64" ]; then
+            PLATFORM="macos-arm64"
+          else
+            PLATFORM="macos-amd64"
+          fi
+
+          FILENAME="garden-${BASE_VERSION}-${PLATFORM}.tar.gz"
+
+          echo "Downloading ${FILENAME} from draft release ${VERSION}..."
+          mkdir -p "$HOME/.garden-release/bin"
+          cd "$HOME/.garden-release"
+
+          # Download from GitHub release (works for drafts, unlike the CDN)
+          gh release download "${VERSION}" \
+            --repo garden-io/garden \
+            --pattern "${FILENAME}"
+
+          tar -xzf "$FILENAME"
+          cp -r "${PLATFORM}"/* bin/
+          chmod +x bin/garden
+          rm -rf "${PLATFORM}" "$FILENAME"
+
+      - name: Run smoke test
+        run: |
+          ./scripts/test-release.sh "${{ env.RELEASE_TAG }}" \
+            --ci \
+            --binary-path "$HOME/.garden-release/bin/garden"
+
+  generate-notes-and-publish:
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install git-chglog
+        run: |
+          curl -sL https://github.com/git-chglog/git-chglog/releases/download/v0.15.4/git-chglog_0.15.4_linux_amd64.tar.gz | tar xz -C /usr/local/bin git-chglog
+
+      - name: Determine previous tag
+        id: prev-tag
+        run: |
+          CURRENT_TAG="${{ env.RELEASE_TAG }}"
+          # Get the tag before the current one (sorted by semver)
+          PREV_TAG=$(git tag --sort=-version:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^${CURRENT_TAG}$" | head -1)
+          echo "tag=${PREV_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Previous tag: ${PREV_TAG}"
+
+      - name: Generate release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx tsx scripts/draft-release-notes.ts \
+            "${{ steps.prev-tag.outputs.tag }}" \
+            "${{ env.RELEASE_TAG }}" \
+            --output-stdout > /tmp/release-notes.md
+
+      - name: Update release body and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ env.RELEASE_TAG }}" \
+            --notes-file /tmp/release-notes.md \
+            --draft=false
+
+      - name: Trigger publish-release workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # GITHUB_TOKEN events don't trigger other workflows via release events,
+          # but repository_dispatch is an exception to this rule.
+          gh api repos/${{ github.repository }}/dispatches \
+            -f event_type=publish-release \
+            -f "client_payload[tag-name]=${{ env.RELEASE_TAG }}"
+
+      - name: Post summary
+        run: |
+          {
+            echo "## Release Published :tada:"
+            echo ""
+            echo "**Version**: \`${{ env.RELEASE_TAG }}\`"
+            echo ""
+            echo "The release has been published with auto-generated release notes."
+            echo "Downstream workflows (Homebrew, release PR) have been triggered."
+          } >> "$GITHUB_STEP_SUMMARY"

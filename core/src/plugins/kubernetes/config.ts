@@ -716,9 +716,12 @@ export const configSchema = () =>
       namespace: namespaceSchema(),
       setupIngressController: joi
         .string()
-        .allow("nginx", false, null)
+        .allow("traefik", "nginx", false, null)
         .default(false)
-        .description("Set this to `nginx` to install/enable the NGINX ingress controller."),
+        .description(
+          "Set this to `traefik` or `nginx` to install the respective ingress controller. " +
+            "The nginx controller is deprecated and will be removed in a future version — we recommend using `traefik`."
+        ),
     })
     .unknown(false)
 

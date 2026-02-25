@@ -88,9 +88,6 @@ steps:
 
     # A Garden command this step should run, followed by any required or optional arguments and flags.
     #
-    # Note that commands that are _persistent_—e.g. the dev command, commands with a watch flag set, the logs command
-    # with following enabled etc.—are not supported. In general, workflow steps should run to completion.
-    #
     # Global options like --env, --log-level etc. are currently not supported for built-in commands, since they are
     # handled before the individual steps are run.
     command:
@@ -269,6 +266,10 @@ The name of a Garden secret to copy the file data from (Garden Cloud only).
 
 ### `keepAliveHours`
 
+{% hint style="warning" %}
+**Deprecated**: The remote workflows feature is deprecated and will be removed in a future release.
+{% endhint %}
+
 The number of hours to keep the workflow pod running after completion.
 
 | Type     | Default | Required |
@@ -276,6 +277,10 @@ The number of hours to keep the workflow pod running after completion.
 | `number` | `48`    | No       |
 
 ### `resources`
+
+{% hint style="warning" %}
+**Deprecated**: The remote workflows feature is deprecated and will be removed in a future release.
+{% endhint %}
 
 | Type     | Required |
 | -------- | -------- |
@@ -285,6 +290,10 @@ The number of hours to keep the workflow pod running after completion.
 
 [resources](#resources) > requests
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 | Type     | Default                  | Required |
 | -------- | ------------------------ | -------- |
 | `object` | `{"cpu":50,"memory":64}` | No       |
@@ -292,6 +301,10 @@ The number of hours to keep the workflow pod running after completion.
 ### `resources.requests.cpu`
 
 [resources](#resources) > [requests](#resourcesrequests) > cpu
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The minimum amount of CPU the workflow needs in order to be scheduled, in millicpus (i.e. 1000 = 1 CPU).
 
@@ -303,6 +316,10 @@ The minimum amount of CPU the workflow needs in order to be scheduled, in millic
 
 [resources](#resources) > [requests](#resourcesrequests) > memory
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The minimum amount of RAM the workflow needs in order to be scheduled, in megabytes (i.e. 1024 = 1 GB).
 
 | Type     | Required |
@@ -313,6 +330,10 @@ The minimum amount of RAM the workflow needs in order to be scheduled, in megaby
 
 [resources](#resources) > limits
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 | Type     | Default                      | Required |
 | -------- | ---------------------------- | -------- |
 | `object` | `{"cpu":1000,"memory":1024}` | No       |
@@ -320,6 +341,10 @@ The minimum amount of RAM the workflow needs in order to be scheduled, in megaby
 ### `resources.limits.cpu`
 
 [resources](#resources) > [limits](#resourceslimits) > cpu
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
 
@@ -331,6 +356,10 @@ The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 
 
 [resources](#resources) > [limits](#resourceslimits) > memory
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
 
 | Type     | Required |
@@ -340,7 +369,7 @@ The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 
 ### `limits`
 
 {% hint style="warning" %}
-**Deprecated**: Please use the `resources.limits` configuration field instead.
+**Deprecated**: The remote workflows feature is deprecated and will be removed in a future release.
 {% endhint %}
 
 | Type     | Required |
@@ -403,8 +432,6 @@ fields.
 [steps](#steps) > command
 
 A Garden command this step should run, followed by any required or optional arguments and flags.
-
-Note that commands that are _persistent_—e.g. the dev command, commands with a watch flag set, the logs command with following enabled etc.—are not supported. In general, workflow steps should run to completion.
 
 Global options like --env, --log-level etc. are currently not supported for built-in commands, since they are handled before the individual steps are run.
 
@@ -509,6 +536,10 @@ Set to true to continue if the step errors.
 
 ### `triggers[]`
 
+{% hint style="warning" %}
+**Deprecated**: The remote workflows feature is deprecated and will be removed in a future release.
+{% endhint %}
+
 A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Cloud only).
 
 | Type            | Required |
@@ -518,6 +549,10 @@ A list of triggers that determine when the workflow should be run, and which env
 ### `triggers[].environment`
 
 [triggers](#triggers) > environment
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The environment name (from your project configuration) to use for the workflow when matched by this trigger.
 
@@ -529,6 +564,10 @@ The environment name (from your project configuration) to use for the workflow w
 
 [triggers](#triggers) > namespace
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The namespace to use for the workflow when matched by this trigger. Follows the namespacing setting used for this trigger's environment, as defined in your project's environment configs.
 
 | Type     | Required |
@@ -538,6 +577,10 @@ The namespace to use for the workflow when matched by this trigger. Follows the 
 ### `triggers[].events[]`
 
 [triggers](#triggers) > events
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 A list of [GitHub events](https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads) that should trigger this workflow.
 
@@ -557,6 +600,10 @@ Supported events:
 
 [triggers](#triggers) > branches
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 If specified, only run the workflow for branches matching one of these filters. These filters refer to the pull/merge request's head branch (e.g. `my-feature-branch`), not the base branch that the pull/merge request would be merged into if approved (e.g. `main`).
 
 | Type            | Required |
@@ -566,6 +613,10 @@ If specified, only run the workflow for branches matching one of these filters. 
 ### `triggers[].baseBranches[]`
 
 [triggers](#triggers) > baseBranches
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 If specified, only run the workflow for pull/merge requests whose base branch matches one of these filters.
 
@@ -577,6 +628,10 @@ If specified, only run the workflow for pull/merge requests whose base branch ma
 
 [triggers](#triggers) > ignoreBranches
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 If specified, do not run the workflow for branches matching one of these filters. These filters refer to the pull/merge request's head branch (e.g. `my-feature-branch`), not the base branch that the pull/merge request would be merged into if approved (e.g. `main`).
 
 | Type            | Required |
@@ -586,6 +641,10 @@ If specified, do not run the workflow for branches matching one of these filters
 ### `triggers[].ignoreBaseBranches[]`
 
 [triggers](#triggers) > ignoreBaseBranches
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 If specified, do not run the workflow for pull/merge requests whose base branch matches one of these filters.
 

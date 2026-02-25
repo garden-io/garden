@@ -1542,6 +1542,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
             variableId: string
           }
           output: {
+            variableListId: `varlist_${string}`
             description: string | null
             name: string
             organizationId: string
@@ -1597,6 +1598,7 @@ export declare const appRouter: import("@trpc/server").TRPCBuiltRouter<
               scopedGardenEnvironmentName: string | null
               scopedGardenEnvironmentAdminOnly: boolean | null
               scopedAccountName: string | null
+              variableListId: `varlist_${string}` | null
               variableListName: string | null
               variableListDescription: string | null
               variableListAdminOnly: boolean | null

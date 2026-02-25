@@ -1,0 +1,146 @@
+name: Auto-merge release PR
+
+# Triggered when a release is published (draft=false).
+# Handles post-release cleanup:
+# 1. Creates a PR for the release branch → main
+# 2. Enables auto-merge on the PR
+# 3. Updates the latest-release branch to the released tag
+
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-release-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: release-${{ github.event.release.tag_name }} # tag_name is from a trusted GitHub release event
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Use Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Clean up and update lock file
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          npm install
+
+          # Stage package-lock.json if it changed
+          if ! git diff --quiet package-lock.json; then
+            git add package-lock.json
+          fi
+
+          # Commit if there are staged changes
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): post-release cleanup for ${TAG_NAME}"
+            git push origin "release-${TAG_NAME}"
+          else
+            echo "No post-release changes needed"
+          fi
+
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+
+          # Determine the target branch based on the version.
+          # 0.13.x releases target the 0.13 branch, everything else targets main.
+          MAJOR_MINOR=$(echo "${VERSION}" | grep -oE '^[0-9]+\.[0-9]+')
+          if [ "${MAJOR_MINOR}" = "0.13" ]; then
+            BASE_BRANCH="0.13"
+          else
+            BASE_BRANCH="main"
+          fi
+
+          # Create the PR
+          read -r -d '' BODY <<PREOF || true
+          Automated PR to merge release branch \`release-${VERSION}\` back into \`${BASE_BRANCH}\`.
+
+          This PR was created automatically after publishing release ${VERSION}.
+
+          **Changes:**
+          - Version bump to ${VERSION}
+          - Changelog update
+          - Updated example links (if applicable)
+          - Updated package-lock.json
+          PREOF
+
+          PR_URL=$(gh pr create \
+            --base "${BASE_BRANCH}" \
+            --head "release-${VERSION}" \
+            --title "chore(release): merge release ${VERSION} into ${BASE_BRANCH}" \
+            --body "${BODY}")
+
+          echo "Created PR: ${PR_URL}"
+          echo "pr-url=${PR_URL}" >> "$GITHUB_OUTPUT"
+
+          # Enable auto-merge
+          gh pr merge "${PR_URL}" --auto --squash
+
+  update-release-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update latest-release branch
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+
+          # Determine the release branch based on the version.
+          MAJOR_MINOR=$(echo "${TAG}" | grep -oE '^[0-9]+\.[0-9]+')
+          if [ "${MAJOR_MINOR}" = "0.13" ]; then
+            RELEASE_BRANCH="latest-release-0.13"
+          else
+            RELEASE_BRANCH="latest-release"
+          fi
+
+          # Update the release branch to point to the released tag
+          git checkout "${RELEASE_BRANCH}" 2>/dev/null || git checkout -b "${RELEASE_BRANCH}"
+          git reset --hard "${TAG}"
+          git push origin "${RELEASE_BRANCH}" --force
+
+          echo "Updated ${RELEASE_BRANCH} branch to ${TAG}"
+
+      - name: Post summary
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          MAJOR_MINOR=$(echo "${TAG}" | grep -oE '^[0-9]+\.[0-9]+')
+          if [ "${MAJOR_MINOR}" = "0.13" ]; then
+            BRANCH="latest-release-0.13"
+          else
+            BRANCH="latest-release"
+          fi
+
+          {
+            echo "## Release branch updated :white_check_mark:"
+            echo ""
+            echo "Updated \`${BRANCH}\` branch to \`${TAG}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

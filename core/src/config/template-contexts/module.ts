@@ -152,7 +152,7 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
   }
 }
 
-class RuntimeConfigContext extends ContextWithSchema {
+export class RuntimeConfigContext extends ContextWithSchema {
   @schema(
     joiIdentifierMap(ServiceRuntimeContext.getSchema())
       .required()

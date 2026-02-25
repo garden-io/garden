@@ -13,7 +13,6 @@ import type { WorkflowConfig, WorkflowStepSpec, TriggerSpec } from "../../../../
 import {
   resolveWorkflowConfig,
   populateNamespaceForTriggers,
-  minimumWorkflowLimits,
   defaultWorkflowRequests,
   defaultWorkflowLimits,
   defaultWorkflowResources,
@@ -87,47 +86,6 @@ describe("resolveWorkflowConfig", () => {
 
     expect(resolveWorkflowConfig(garden, config)).to.eql({
       ...config,
-    })
-  })
-
-  it("should set workflow.resources.limits to workflow.limits if workflow.limits is specified", async () => {
-    const config: WorkflowConfig = {
-      ...defaults,
-      apiVersion: GardenApiVersion.v0,
-      kind: "Workflow",
-      name: "workflow-a",
-
-      description: "Sample workflow",
-      envVars: {},
-      limits: minimumWorkflowLimits, // <----
-      steps: [
-        {
-          ...defaultWorkflowStep,
-          description: "Deploy the stack",
-          command: ["deploy"],
-          skip: false,
-          when: "onSuccess",
-          envVars: {},
-        },
-        { ...defaultWorkflowStep, command: ["test"], skip: false, when: "onSuccess", envVars: {} },
-      ],
-      triggers: [
-        {
-          environment: "local",
-          namespace: "default",
-          events: ["pull-request"],
-          branches: ["feature*"],
-          ignoreBranches: ["feature-ignored*"],
-        },
-      ],
-    }
-
-    expect(resolveWorkflowConfig(garden, config)).to.eql({
-      ...config,
-      resources: {
-        requests: defaultWorkflowRequests,
-        limits: minimumWorkflowLimits, // <-----
-      },
     })
   })
 

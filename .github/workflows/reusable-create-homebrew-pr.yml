@@ -15,6 +15,11 @@ on:
         description: "Commit message for homebrew repository."
         default: |
           For more info: https://github.com/garden-io/garden
+      auto-merge:
+        type: boolean
+        required: false
+        default: true
+        description: "Whether to automatically merge the PR after creation. Set to false for test runs."
 
 permissions:
   contents: read
@@ -114,8 +119,26 @@ jobs:
           branch: garden-cli-${{ inputs.release-version }}
           reviewers: ${{ github.triggering_actor }}
 
+      - name: Merge Homebrew PR
+        if: inputs.release-condition != 'false' && inputs.auto-merge != false
+        env:
+          GH_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
+        run: |
+          PR_BRANCH="garden-cli-${{ inputs.release-version }}"
+          echo "Merging Homebrew PR from branch ${PR_BRANCH}..."
+          gh pr merge "${PR_BRANCH}" \
+            --repo garden-io/homebrew-garden \
+            --admin \
+            --merge \
+            --delete-branch
+
       - name: Adding markdown summary
         if: inputs.release-condition != 'false'
         run: |
-          echo '### Manual Steps required to finish publishing to Homebrew' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Please review the new PR in https://github.com/garden-io/homebrew-garden/pulls' >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ inputs.auto-merge }}" = "true" ]; then
+            echo '### Homebrew release complete :white_check_mark:' >> "$GITHUB_STEP_SUMMARY"
+            echo "The Homebrew PR for ${{ inputs.release-version }} has been created and merged." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '### Homebrew PR created :white_check_mark:' >> "$GITHUB_STEP_SUMMARY"
+            echo "The Homebrew PR for ${{ inputs.release-version }} has been created (auto-merge disabled)." >> "$GITHUB_STEP_SUMMARY"
+          fi

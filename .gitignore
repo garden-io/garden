@@ -1,5 +1,6 @@
-# OS
+# Misc
 .DS_STORE
+.claude/settings.local.json
 
 # Logs
 *.log
@@ -56,3 +57,4 @@ static/**/.garden-version
 debug-info-*
 
 /yarn.lock
+

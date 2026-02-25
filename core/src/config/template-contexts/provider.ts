@@ -18,7 +18,7 @@ import { ContextWithSchema, schema } from "./base.js"
 import { WorkflowConfigContext } from "./workflow.js"
 import type { VariablesContext } from "./variables.js"
 
-class ProviderContext extends ContextWithSchema {
+export class ProviderContext extends ContextWithSchema {
   @schema(
     joi
       .object()
