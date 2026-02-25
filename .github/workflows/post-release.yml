@@ -79,8 +79,10 @@ jobs:
           ref: ${{ env.RELEASE_TAG }}
 
       - name: Download release binary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ env.RELEASE_TAG }}
         run: |
-          VERSION="${{ env.RELEASE_TAG }}"
           BASE_VERSION="${VERSION%%-*}"
 
           # Detect architecture
@@ -92,20 +94,16 @@ jobs:
           fi
 
           FILENAME="garden-${BASE_VERSION}-${PLATFORM}.tar.gz"
-          URL="https://download.garden.io/core/${VERSION}/${FILENAME}"
 
-          echo "Downloading ${URL}..."
+          echo "Downloading ${FILENAME} from draft release ${VERSION}..."
           mkdir -p "$HOME/.garden-release/bin"
           cd "$HOME/.garden-release"
 
-          # Retry download — the binary may not be on the CDN immediately after the release is created
-          for attempt in 1 2 3 4 5; do
-            if curl -sfLO "$URL"; then
-              break
-            fi
-            echo "Download attempt ${attempt} failed, retrying in 60s..."
-            sleep 60
-          done
+          # Download from GitHub release (works for drafts, unlike the CDN)
+          gh release download "${VERSION}" \
+            --repo garden-io/garden \
+            --pattern "${FILENAME}"
+
           tar -xzf "$FILENAME"
           cp -r "${PLATFORM}"/* bin/
           chmod +x bin/garden
