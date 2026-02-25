@@ -18,9 +18,10 @@ CircleCI tags workflow (triggered by tag push)
   ├─ Builds binaries (macOS, Linux, Windows, Alpine)
   ├─ Signs Windows binary
   ├─ Creates draft GitHub release with artifacts
+  ├─ Triggers post-release workflow via workflow_dispatch
   │
   ▼
-Post-release workflow (triggered by draft release)
+Post-release workflow (triggered by CircleCI)
   │
   ├─ Downloads binary, runs smoke test
   ├─ Generates release notes from changelog
@@ -44,6 +45,8 @@ Publish release workflow (triggered by release publish)
 4. Click **Run workflow** and wait for the full pipeline to complete.
 
 That's it. The changelog-based release notes, Homebrew update, and post-release cleanup are all handled automatically.
+
+**Note:** After the release is published, a PR is created to merge the release branch back into `main`. This PR only contains version bumps, changelog updates, and lock file changes. Auto-merge is enabled, but if flaky tests block it, manually merge the PR — the release branch does not introduce new code, so test failures are unrelated to the release.
 
 After the release is published, you can edit the release notes on the [Releases page](https://github.com/garden-io/garden/releases) if any manual adjustments are needed (e.g. adding a summary, highlighting key changes).
 

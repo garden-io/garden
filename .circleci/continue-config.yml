@@ -715,6 +715,13 @@ jobs:
             DRAFT=-draft
             # If pre-release, we flag it as pre-release and not as a draft
             if [[ $VERSION == *"-"* ]]; then DRAFT=""; PRERELEASE=-prerelease; fi
+
+            # Guard against duplicate releases from concurrent pipelines
+            if gh release view "${VERSION}" --repo "${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}" &>/dev/null; then
+              echo "Release ${VERSION} already exists — skipping creation."
+              exit 0
+            fi
+
             ghr \
               -t ${GITHUB_TOKEN} \
               -u ${CIRCLE_PROJECT_USERNAME} \
@@ -725,6 +732,19 @@ jobs:
               ${PRERELEASE} \
               ${DRAFT} \
               ${VERSION} ./dist
+      - run:
+          name: Trigger post-release workflow for draft releases
+          command: |
+            VERSION="$(cat package.json | jq -r .version)"
+            # Only trigger for stable (draft) releases, not pre-releases
+            if [[ $VERSION != *"-"* ]]; then
+              echo "Triggering post-release workflow for ${VERSION}..."
+              gh workflow run post-release.yml \
+                --repo "${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}" \
+                -f tag-name="${VERSION}"
+            else
+              echo "Pre-release — skipping post-release trigger."
+            fi
       - fail_fast
 
   github-edge-prerelease:
