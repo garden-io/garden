@@ -154,14 +154,21 @@ jobs:
 
       - name: Update release body and publish
         env:
-          # Use COMMITTER_TOKEN (PAT) instead of GITHUB_TOKEN so that the
-          # `released` event triggers downstream workflows (publish-release.yml).
-          # Actions performed with GITHUB_TOKEN do not trigger other workflows.
-          GH_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release edit "${{ env.RELEASE_TAG }}" \
             --notes-file /tmp/release-notes.md \
             --draft=false
+
+      - name: Trigger publish-release workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # GITHUB_TOKEN events don't trigger other workflows via release events,
+          # but repository_dispatch is an exception to this rule.
+          gh api repos/${{ github.repository }}/dispatches \
+            -f event_type=publish-release \
+            -f "client_payload[tag-name]=${{ env.RELEASE_TAG }}"
 
       - name: Post summary
         run: |
