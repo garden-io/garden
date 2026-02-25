@@ -739,9 +739,11 @@ jobs:
             # Only trigger for stable (draft) releases, not pre-releases
             if [[ $VERSION != *"-"* ]]; then
               echo "Triggering post-release workflow for ${VERSION}..."
-              gh workflow run post-release.yml \
-                --repo "${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}" \
-                -f tag-name="${VERSION}"
+              # Use repository_dispatch (requires contents:write) instead of
+              # workflow_dispatch (requires actions:write which the token lacks)
+              gh api repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/dispatches \
+                -f event_type=post-release \
+                -f "client_payload[tag-name]=${VERSION}"
             else
               echo "Pre-release — skipping post-release trigger."
             fi

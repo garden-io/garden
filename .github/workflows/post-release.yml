@@ -1,9 +1,10 @@
 name: Post-release automation
 
-# Triggered by CircleCI's github-release-tag job via workflow_dispatch after creating a draft release.
-# (GitHub does not fire release events for draft releases, so we use workflow_dispatch instead.)
+# Triggered by CircleCI's github-release-tag job via repository_dispatch after creating a draft release.
+# (GitHub does not fire release events for draft releases, and workflow_dispatch requires the
+# `actions:write` scope which the CircleCI token doesn't have.)
 #
-# Can also be triggered manually from the Actions UI to re-run or test the pipeline.
+# Can also be triggered manually from the Actions UI via workflow_dispatch.
 #
 # This workflow:
 # 1. Checks if this is an automated release (commit authored by github-actions[bot])
@@ -17,6 +18,8 @@ name: Post-release automation
 # Publishing then triggers publish-release.yml (Homebrew) and auto-merge-release-pr.yml.
 
 on:
+  repository_dispatch:
+    types: [post-release]
   workflow_dispatch:
     inputs:
       tag-name:
@@ -28,7 +31,10 @@ permissions:
   contents: write
 
 env:
-  RELEASE_TAG: ${{ inputs.tag-name }}
+  # Normalize the tag name across trigger types:
+  # - workflow_dispatch: from inputs
+  # - repository_dispatch: from client_payload
+  RELEASE_TAG: ${{ inputs.tag-name || github.event.client_payload.tag-name }}
 
 jobs:
   check-automated:

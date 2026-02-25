@@ -18,7 +18,7 @@ CircleCI tags workflow (triggered by tag push)
   ├─ Builds binaries (macOS, Linux, Windows, Alpine)
   ├─ Signs Windows binary
   ├─ Creates draft GitHub release with artifacts
-  ├─ Triggers post-release workflow via workflow_dispatch
+  ├─ Triggers post-release workflow via repository_dispatch
   │
   ▼
 Post-release workflow (triggered by CircleCI)
