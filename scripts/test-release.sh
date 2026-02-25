@@ -83,12 +83,13 @@ test_release() {
   fi
 
   echo "→ Verify version"
-  release_version=$("${garden_release}" --version)
+  # `garden version` outputs "garden version: X.Y.Z" — extract just the version number
+  release_version=$("${garden_release}" version | sed 's/.*: //')
 
   echo "$release_version"
 
   if [ "$base_version" != "$release_version" ]; then
-    echo "Versions don't match, ${version} and ${release_version}"
+    echo "Versions don't match, ${base_version} and ${release_version}"
     return 1
   fi
 
