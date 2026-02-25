@@ -93,6 +93,14 @@ test_release() {
     return 1
   fi
 
+  if [ "$ci_mode" = true ]; then
+    echo ""
+    echo "→ CI mode: skipping project tests (no k8s cluster available)"
+    echo "→ Smoke test passed!"
+    cd "$garden_root"
+    return 0
+  fi
+
   cd examples/demo-project
   echo ""
   echo "→ Running 'garden build' in demo project"
@@ -102,14 +110,6 @@ test_release() {
     echo "ERROR: 'garden build' failed"
     cd "$garden_root"
     return 1
-  fi
-
-  if [ "$ci_mode" = true ]; then
-    echo ""
-    echo "→ CI mode: skipping interactive tests (exec, deploy --sync)"
-    echo "→ Smoke test passed!"
-    cd "$garden_root"
-    return 0
   fi
 
   echo ""
