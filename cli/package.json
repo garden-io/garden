@@ -29,7 +29,7 @@
     "@garden-io/garden-terraform": "*",
     "@scg82/exit-hook": "^3.4.1",
     "chalk": "^5.5.0",
-    "tar": "^6.2.1",
+    "tar": "^7.5.8",
     "undici": "^7.18.2",
     "unzipper": "^0.12.3"
   },
@@ -41,7 +41,7 @@
     "@types/unzipper": "^0.10.11",
     "chai": "^5.2.0",
     "fs-extra": "^11.3.0",
-    "lodash-es": "^4.17.21",
+    "lodash-es": "^4.17.23",
     "minimist": "^1.2.8",
     "mocha": "^11.7.1",
     "typescript": "^5.9.2"
