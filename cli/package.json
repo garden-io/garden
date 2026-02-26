@@ -28,23 +28,23 @@
     "@garden-io/garden-pulumi": "*",
     "@garden-io/garden-terraform": "*",
     "@scg82/exit-hook": "^3.4.1",
-    "chalk": "^5.5.0",
-    "tar": "^6.2.1",
-    "undici": "^7.18.2",
+    "chalk": "^5.6.2",
+    "tar": "^7.5.9",
+    "undici": "^7.22.0",
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
-    "@types/chai": "^5.2.2",
+    "@types/chai": "^5.2.3",
     "@types/fs-extra": "^11.0.4",
     "@types/mocha": "^10.0.10",
-    "@types/tar": "^6.1.13",
+    "@types/tar": "^7.0.87",
     "@types/unzipper": "^0.10.11",
-    "chai": "^5.2.0",
-    "fs-extra": "^11.3.0",
-    "lodash-es": "^4.17.21",
+    "chai": "^6.2.2",
+    "fs-extra": "^11.3.3",
+    "lodash-es": "^4.17.23",
     "minimist": "^1.2.8",
-    "mocha": "^11.7.1",
-    "typescript": "^5.9.2"
+    "mocha": "^11.7.5",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "build": "tsc --build . --verbose && npm run generate-docs",

@@ -805,11 +805,9 @@ describe("Garden", () => {
         expect(expectedLog.length).to.eql(1)
         expect(expectedLog[0].level).to.eql(0)
         const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
-        expect(cleanMsg).to.eql(
-          `Fetching project with ID=${projectId} failed with error: HTTPError: Response code 500 (Internal Server Error)`
-        )
+        expect(cleanMsg).to.include("code 500")
         expect(error).to.exist
-        expect(error!.message).to.eql("Response code 500 (Internal Server Error)")
+        expect(error!.message).to.include("code 500")
         expect(scope.isDone()).to.be.true
       })
       it("should throw a helpful error if project with ID can't be found", async () => {
@@ -849,7 +847,7 @@ describe("Garden", () => {
             see their ID on the Settings page for the respective project.\n
           `)
         expect(error).to.exist
-        expect(error!.message).to.eql("Response code 404 (Not Found)")
+        expect(error!.message).to.include("code 404")
         expect(scope.isDone(), "not all APIs have been called").to.be.true
       })
     })

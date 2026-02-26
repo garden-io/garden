@@ -26,7 +26,7 @@ import unzipper from "unzipper"
 // See https://github.com/DefinitelyTyped/DefinitelyTyped/issues/60924
 import { fetch } from "undici"
 
-import tar from "tar"
+import * as tar from "tar"
 
 const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const gardenSeaDir = resolve(repoRoot, "garden-sea")

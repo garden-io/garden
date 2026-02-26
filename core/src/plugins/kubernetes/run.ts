@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tar from "tar"
+import * as tar from "tar"
 import tmp from "tmp-promise"
 import cloneDeep from "fast-copy"
 import { max, omit, pick, some } from "lodash-es"
@@ -652,7 +652,7 @@ async function runWithArtifacts({
             command: ["sh", "-c", getArtifactsTarScript(artifacts)],
             containerName: mainContainerName,
             log,
-            stdout: extractor,
+            stdout: extractor as unknown as Writable,
             timeoutSec,
             buffer: false,
           })

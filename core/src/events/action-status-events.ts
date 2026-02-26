@@ -152,8 +152,9 @@ export interface ActionFailedStatusPayload extends ActionCompleteStatusPayloadBa
   status: { state: "unknown" }
 }
 
-export interface ActionCompleteStatusPayload<S = { state: ActionStatusDetailedState }>
-  extends ActionCompleteStatusPayloadBase {
+export interface ActionCompleteStatusPayload<
+  S = { state: ActionStatusDetailedState },
+> extends ActionCompleteStatusPayloadBase {
   state: ActionCompleteState
   status: S
 }

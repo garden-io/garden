@@ -284,8 +284,12 @@ export const baseModuleSpecSchema = createSchema({
   keys: baseModuleSpecKeys,
 })
 
-export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends {} = any, W extends {} = any>
-  extends BaseModuleSpec {
+export interface ModuleConfig<
+  M extends {} = any,
+  S extends {} = any,
+  T extends {} = any,
+  W extends {} = any,
+> extends BaseModuleSpec {
   path: string
   configPath?: string
   basePath?: string // The directory of the config. Disambiguates `path` when the module has a remote source.

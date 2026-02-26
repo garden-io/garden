@@ -73,16 +73,20 @@ export interface PrintHeaderParams<
   log: Log
 }
 
-export interface PrepareParams<T extends ParameterObject = ParameterObject, U extends ParameterObject = ParameterObject>
-  extends CommandParamsBase<T, U> {
+export interface PrepareParams<
+  T extends ParameterObject = ParameterObject,
+  U extends ParameterObject = ParameterObject,
+> extends CommandParamsBase<T, U> {
   log: Log
   commandLine?: CommandLine
   // The ServeCommand or DevCommand when applicable
   parentCommand?: Command
 }
 
-export interface CommandParams<T extends ParameterObject = ParameterObject, U extends ParameterObject = ParameterObject>
-  extends PrepareParams<T, U> {
+export interface CommandParams<
+  T extends ParameterObject = ParameterObject,
+  U extends ParameterObject = ParameterObject,
+> extends PrepareParams<T, U> {
   cli?: GardenCli
   garden: Garden
 }

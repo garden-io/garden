@@ -59,8 +59,11 @@ export interface ActionVersionConfig {
  *
  * See inline comments below for information on what templating is allowed on different fields.
  */
-export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any>
-  extends BaseGardenResource {
+export interface BaseActionConfig<
+  K extends ActionKind = ActionKind,
+  T = string,
+  Spec = any,
+> extends BaseGardenResource {
   // Basics
   // -> No templating is allowed on these.
   apiVersion?: GardenApiVersion

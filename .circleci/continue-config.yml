@@ -1334,7 +1334,8 @@ workflows:
   version: 2
 
   commit:
-    max_auto_reruns: 3
+    # This is disabled because it's quite expensive
+    # max_auto_reruns: 3
     jobs:
       ### ALL BRANCHES ###
 
