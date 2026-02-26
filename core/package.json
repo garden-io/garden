@@ -57,7 +57,7 @@
     "chokidar": "^4.0.3",
     "ci-info": "^4.4.0",
     "cli-table3": "^0.6.5",
-    "cli-truncate": "^4.0.0",
+    "cli-truncate": "^5.1.1",
     "cpy": "^13.2.1",
     "cross-spawn": "^7.0.6",
     "crypto-random-string": "^5.0.0",
