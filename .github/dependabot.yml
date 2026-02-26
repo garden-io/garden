@@ -1,28 +1,14 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# Configuration for Dependabot version updates.
+# Version updates are disabled (open-pull-requests-limit: 0) — we rely on
+# Dependabot security updates only, which are configured in repo settings.
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
 updates:
-  ### main branch
-
-  # Automatically update GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    open-pull-requests-limit: 5
-    schedule:
-      interval: "weekly"
-  # Automatically update Dockerfile FROM images
-  - package-ecosystem: "docker"
-    directory: "/support/"
-    open-pull-requests-limit: 5
-    schedule:
-      interval: "weekly"
-  # Automatically update NPM packages
+  # Keep the npm entry so its ignore/exclude-paths rules apply to security update PRs.
   - package-ecosystem: "npm"
     directory: "/"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     schedule:
       interval: "weekly"
     exclude-paths:
@@ -30,6 +16,5 @@ updates:
       - "examples/**"
       - "core/test/data/**"
       - "plugins/**/test/**"
-    # Pinned manually to current version to be consistent with @buf/garden_grow-platform.bufbuild_es
     ignore:
       - dependency-name: "@bufbuild/protobuf"
