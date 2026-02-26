@@ -5,7 +5,7 @@ order: 3
 
 # 3. Set Up Ingress, TLS and DNS
 
-By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../../reference/providers/kubernetes.md#providerssetupingresscontroller) to `traefik` or `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/). You can find an example for [using Garden with Istio](https://github.com/garden-io/garden/tree/0.14.18/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/0.14.18/examples).
+By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../../reference/providers/kubernetes.md#providerssetupingresscontroller) to `traefik` or `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/). You can find an example for [using Garden with Istio](https://github.com/garden-io/garden/tree/0.14.19/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/0.14.19/examples).
 
 {% hint style="warning" %}
 The bundled nginx ingress controller is deprecated and will be removed in a future release. We recommend switching to Traefik by running `garden plugins kubernetes migrate-ingress-controller` and setting `setupIngressController: "traefik"` in your provider config.
