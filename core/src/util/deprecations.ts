@@ -119,8 +119,8 @@ export function getDeprecations(style: (s: string) => string = styles.highlight)
       Instead, a pair of ${style("kind")} and ${style("name")} should be used with one of the following kinds: ${style("Deployment")}, ${style("DaemonSet")} or ${style("StatefulSet")}.
       Garden ensures that each kind of these resources has exactly 1 Pod when running in sync mode.
 
-      For ${style("kubernetes")} Deploy actions see [${style("spec.sync.overrides[].target")}](../reference/action-types/Deploy/kubernetes#spec.sync.overrides-.target) and [${style("spec.sync.paths[].target")}](../reference/action-types/Deploy/kubernetes#spec.sync.paths-.target).
-      For ${style("helm")} Deploy actions see [${style("spec.sync.overrides[].target")}](../reference/action-types/Deploy/helm#spec.sync.overrides-.target) and [${style("spec.sync.paths[].target")}](../reference/action-types/Deploy/helm#spec.sync.paths-.target).
+      For ${style("kubernetes")} Deploy actions see [${style("spec.sync.overrides[].target")}](../reference/action-types/Deploy/kubernetes.md#specsyncoverridestarget) and [${style("spec.sync.paths[].target")}](../reference/action-types/Deploy/kubernetes.md#specsyncpathstarget).
+      For ${style("helm")} Deploy actions see [${style("spec.sync.overrides[].target")}](../reference/action-types/Deploy/helm.md#specsyncoverridestarget) and [${style("spec.sync.paths[].target")}](../reference/action-types/Deploy/helm.md#specsyncpathstarget).
       `,
     },
     containerDeployActionHostPort: {

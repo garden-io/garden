@@ -74,7 +74,7 @@ export const renderTemplateConfigSchema = createSchema({
 
         If the \`inputs\` is also provided, the values in the \`matrix\` will be overridden by the values in the \`inputs\` field. You can combine the two fields if there are more inputs than just the ones specified in the \`matrix\` field, and you want to specify some inputs that should not be overridden.
 
-        See the [Matrix templates guide](${makeDocsLinkPlain("features/matrix-templates.md")}) for more information.
+        See the [Matrix templates guide](${makeDocsLinkPlain("features/matrix-templates")}) for more information.
 
         ${templateCautionMessage}
         `

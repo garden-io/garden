@@ -195,7 +195,8 @@ export async function writeConfigReferenceDocs(
   writeFileSync(resolve(moduleTypeDir, `README.md`), moduleReadme.join("\n"))
   pMemoizeClearAll()
 
-  // Render other config file references
+  // Render other config file references (output to docs/reference/, one level deep)
+  makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = "../"
   async function renderConfigTemplate(configType: string, context: any) {
     const templateData = await readFile(resolve(TEMPLATES_DIR, configType + "-config.hbs"))
     const template = handlebars.compile(templateData.toString())

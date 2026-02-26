@@ -80,8 +80,8 @@ Usage of the `podSelector` as a target sync resource can cause unpredicted behav
 Instead, a pair of `kind` and `name` should be used with one of the following kinds: `Deployment`, `DaemonSet` or `StatefulSet`.
 Garden ensures that each kind of these resources has exactly 1 Pod when running in sync mode.
 
-For `kubernetes` Deploy actions see [`spec.sync.overrides[].target`](../reference/action-types/Deploy/kubernetes#spec.sync.overrides-.target) and [`spec.sync.paths[].target`](../reference/action-types/Deploy/kubernetes#spec.sync.paths-.target).
-For `helm` Deploy actions see [`spec.sync.overrides[].target`](../reference/action-types/Deploy/helm#spec.sync.overrides-.target) and [`spec.sync.paths[].target`](../reference/action-types/Deploy/helm#spec.sync.paths-.target).
+For `kubernetes` Deploy actions see [`spec.sync.overrides[].target`](../reference/action-types/Deploy/kubernetes.md#specsyncoverridestarget) and [`spec.sync.paths[].target`](../reference/action-types/Deploy/kubernetes.md#specsyncpathstarget).
+For `helm` Deploy actions see [`spec.sync.overrides[].target`](../reference/action-types/Deploy/helm.md#specsyncoverridestarget) and [`spec.sync.paths[].target`](../reference/action-types/Deploy/helm.md#specsyncpathstarget).
 
 <h2 id="containerdeployactionhostport"><code>spec.ports[].hostPort</code> configuration field in <code>container</code> Deploy action</h2>
 
