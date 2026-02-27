@@ -61,7 +61,7 @@
     "husky": "^9.1.7",
     "lodash-es": "^4.17.23",
     "markdown-link-check": "^3.14.2",
-    "minimatch": "^10.2.3",
+    "minimatch": "^10.2.4",
     "minimist": "^1.2.8",
     "node-jsonl": "^0.1.0",
     "nodemon": "^3.1.14",
