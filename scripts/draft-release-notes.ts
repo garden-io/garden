@@ -23,6 +23,13 @@ const moduleDirName = dirname(fileURLToPath(import.meta.url))
 const gardenRoot = resolve(moduleDirName, "..")
 
 /**
+ * Check if the changelog output is empty (no commit group headings like ### Features).
+ */
+function isChangelogEmpty(changelog: string): boolean {
+  return !changelog.includes("### ")
+}
+
+/**
  * Fetch the list of repo collaborators (works with the default GITHUB_TOKEN).
  * Falls back to an empty set if the API is unavailable.
  */
@@ -122,11 +129,12 @@ function buildReleaseNotes(opts: {
   version: string
   description: string
   changelog: string
+  changelogEmpty: boolean
   externalContributors: string[]
   fixedIssues: string[]
   manualMode: boolean
 }): string {
-  const { version, description, changelog, externalContributors, fixedIssues, manualMode } = opts
+  const { version, description, changelog, changelogEmpty, externalContributors, fixedIssues, manualMode } = opts
 
   const contributorSection =
     externalContributors.length > 0
@@ -140,9 +148,11 @@ function buildReleaseNotes(opts: {
         ? "* [TODO: compose the list of the fixed issues here.]"
         : ""
 
-  const changelogHeader = manualMode
-    ? `## Changelog\n[TODO: Review the changelog and remember to put the list of features on top of the list of bug fixes.]\n${changelog}`
-    : `## Changelog\n${changelog}`
+  const changelogSection = changelogEmpty
+    ? ""
+    : manualMode
+      ? `## Changelog\n[TODO: Review the changelog and remember to put the list of features on top of the list of bug fixes.]\n${changelog}`
+      : `## Changelog\n${changelog}`
 
   return dedent(`
 ${description}
@@ -160,7 +170,7 @@ Download the Garden binary for your platform from below or simply run \`garden s
 * [Garden v${version} for MacOS ARM64 (tar.gz)](https://download.garden.io/core/${version}/garden-${version}-macos-arm64.tar.gz)
 * [Garden v${version} for Windows AMD64 (.zip)](https://download.garden.io/core/${version}/garden-${version}-windows-amd64.zip)
 
-${changelogHeader}
+${changelogSection}
 ${issueSection ? `\n## Fixed Issues\n\n${issueSection}` : ""}
 `)
 }
@@ -195,11 +205,19 @@ async function draftReleaseNotes() {
   const fixedIssues = getFixedIssues(prevReleaseTag, curReleaseTag)
 
   // Resolve the release description.
-  const defaultDescription = dedent(`
-    ## Garden ${curReleaseTag} is out! :tada:
+  const changelogEmpty = isChangelogEmpty(changelog)
 
-    Please see the changelog below for a detailed list of changes in this release.
-  `)
+  const defaultDescription = changelogEmpty
+    ? dedent(`
+        ## Garden ${curReleaseTag} is out! :tada:
+
+        This is a maintenance release with no user-facing changes.
+      `)
+    : dedent(`
+        ## Garden ${curReleaseTag} is out! :tada:
+
+        Please see the changelog below for a detailed list of changes in this release.
+      `)
 
   const description = manualMode
     ? `[TODO: amend the release description below if necessary.]\n${defaultDescription}`
@@ -209,6 +227,7 @@ async function draftReleaseNotes() {
     version: curReleaseTag,
     description,
     changelog,
+    changelogEmpty,
     externalContributors,
     fixedIssues,
     manualMode,
