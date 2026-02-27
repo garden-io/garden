@@ -16,7 +16,7 @@ _If you love Garden, please ★ star this repository to show your support :green
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://app.garden.io/?utm_source=github">Garden Cloud</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/garden-io/garden/tree/0.14.19/examples">Examples</a>
+  <a href="https://github.com/garden-io/garden/tree/0.14.20/examples">Examples</a>
 </div>
 
 ## Welcome to Garden!

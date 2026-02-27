@@ -201,4 +201,4 @@ The `sourcePath` must be a relative POSIX path within the action's source direct
 
 ## Example project
 
-A complete example project is available in the Garden repository under [`examples/local-volume-mounts`](https://github.com/garden-io/garden/tree/main/examples/local-volume-mounts). It demonstrates a multi-service setup with a frontend using local volume mounts and a backend without.
+A complete example project is available in the Garden repository under [`examples/local-volume-mounts`](https://github.com/garden-io/garden/tree/0.14.20/examples/local-volume-mounts). It demonstrates a multi-service setup with a frontend using local volume mounts and a backend without.
