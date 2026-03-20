@@ -16,5 +16,5 @@ nix = "0.27.1"
 process_path = "0.1.4"
 rand = "0.8.5"
 sysinfo = "0.29.10"
-tar = "0.4.40"
+tar = "0.4.45"
 windows = { version = "0.51.1", features = ["Win32_System_Console", "Win32_Foundation"] }
