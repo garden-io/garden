@@ -85,6 +85,7 @@ export const gardenEnv = {
   GARDEN_DISABLE_VERSION_CHECK: env.get("GARDEN_DISABLE_VERSION_CHECK").required(false).asBool(),
   GARDEN_ENABLE_PROFILING: env.get("GARDEN_ENABLE_PROFILING").required(false).default("false").asBool(),
   GARDEN_ENVIRONMENT: env.get("GARDEN_ENVIRONMENT").required(false).asString(),
+  GARDEN_EXECUTE_CONCURRENCY_LIMIT: env.get("GARDEN_EXECUTE_CONCURRENCY_LIMIT").required(false).asInt(),
   GARDEN_GE_SCHEDULED: env.get("GARDEN_GE_SCHEDULED").required(false).asBool(),
   GARDEN_GIT_SCAN_MODE: env
     .get("GARDEN_GIT_SCAN_MODE")
@@ -99,6 +100,7 @@ export const gardenEnv = {
   GARDEN_SERVER_PORT: env.get("GARDEN_SERVER_PORT").required(false).asPortNumber(),
   GARDEN_SERVER_HOSTNAME: env.get("GARDEN_SERVER_HOSTNAME").required(false).asUrlString(),
   GARDEN_SKIP_TESTS: env.get("GARDEN_SKIP_TESTS").required(false).default("").asString(),
+  GARDEN_STATUS_CONCURRENCY_LIMIT: env.get("GARDEN_STATUS_CONCURRENCY_LIMIT").required(false).asInt(),
   GARDEN_HARD_CONCURRENCY_LIMIT: env.get("GARDEN_HARD_CONCURRENCY_LIMIT").required(false).default(50).asInt(),
   GARDEN_WORKFLOW_RUN_UID: env.get("GARDEN_WORKFLOW_RUN_UID").required(false).asString(),
   GARDEN_CLOUD_DOMAIN: env.get("GARDEN_CLOUD_DOMAIN").required(false).asUrlString(),
