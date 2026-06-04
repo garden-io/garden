@@ -680,6 +680,161 @@ jobs:
             docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
       - fail_fast
 
+  # Security refresh for the digest-pinned Kubernetes utility images.
+  # Triggered by a `rebuild-utility-images-*` tag pushed by the GitHub
+  # "Rebuild utility images" workflow, which records the requested inputs in
+  # .circleci/rebuild-request.json on the tagged commit. This job builds +
+  # pushes the images multi-arch, then sends the resulting digests back to
+  # GitHub (repository_dispatch) so a PR updating constants.ts is opened there.
+  rebuild-utility-images:
+    machine:
+      <<: *ubuntu-vm-runner
+    resource_class: large
+    steps:
+      - checkout
+      - run:
+          name: Read rebuild request
+          command: |
+            set -euo pipefail
+            REQ=.circleci/rebuild-request.json
+            if [ ! -f "$REQ" ]; then
+              echo "Missing $REQ on the tagged commit"; exit 1
+            fi
+            cat "$REQ"
+            {
+              echo "export REBUILD_K8S=$(jq -r '.rebuild_k8s' "$REQ")"
+              echo "export REBUILD_BUILDKIT=$(jq -r '.rebuild_buildkit' "$REQ")"
+              echo "export TAG_SUFFIX=$(jq -r '.tag_suffix // ""' "$REQ")"
+              echo "export BUILDKIT_BASE=$(jq -r '.buildkit_base // ""' "$REQ")"
+              echo "export DRY_RUN=$(jq -r '.dry_run' "$REQ")"
+              echo "export TRIGGER_ACTOR=$(jq -r '.actor // ""' "$REQ")"
+            } >> "$BASH_ENV"
+      - run:
+          name: Compute new image tags
+          command: |
+            set -euo pipefail
+            read_tag() {
+              grep -E 'release-tag:' "$1" \
+                | sed -E 's/.*release-tag:[[:space:]]*([^[:space:]#]+).*/\1/'
+            }
+            # Increment the trailing numeric suffix, or append "-1" when there is
+            # none. A non-empty TAG_SUFFIX overrides the number.
+            next_tag() {
+              local cur="$1"
+              local last="${cur##*-}"
+              local base newnum
+              if [[ "$last" =~ ^[0-9]+$ ]]; then
+                base="${cur%-*}"
+                newnum=$((last + 1))
+              else
+                base="$cur"
+                newnum=1
+              fi
+              if [ -n "${TAG_SUFFIX}" ]; then
+                newnum="${TAG_SUFFIX}"
+              fi
+              printf '%s-%s' "$base" "$newnum"
+            }
+            sync_cur="$(read_tag images/k8s-sync/garden.yml | head -1)"
+            util_cur="$(read_tag images/k8s-util/garden.yml | head -1)"
+            bk_cur="$(read_tag images/buildkit/garden.yml | grep -v -- '-rootless' | head -1)"
+            bkr_cur="$(read_tag images/buildkit/garden.yml | grep -- '-rootless' | head -1)"
+            {
+              echo "export SYNC_CUR=${sync_cur}"
+              echo "export SYNC_NEW=$(next_tag "$sync_cur")"
+              echo "export UTIL_NEW=$(next_tag "$util_cur")"
+              echo "export BK_NEW=$(next_tag "$bk_cur")"
+              echo "export BKR_NEW=$(next_tag "$bkr_cur")"
+            } >> "$BASH_ENV"
+      - run:
+          name: Override buildkit base image
+          command: |
+            set -euo pipefail
+            if [ "${REBUILD_BUILDKIT}" != "true" ] || [ -z "${BUILDKIT_BASE}" ]; then
+              echo "No buildkit base override."; exit 0
+            fi
+            ver="${BUILDKIT_BASE#moby/buildkit:}"
+            ver="${ver%@*}"
+            sed -i -E "s#^FROM moby/buildkit:[^ ]+ as buildkit\$#FROM ${BUILDKIT_BASE} as buildkit#" images/buildkit/Dockerfile
+            sed -i -E "s#^FROM moby/buildkit:[^ ]+ as buildkit-rootless\$#FROM moby/buildkit:${ver}-rootless as buildkit-rootless#" images/buildkit/Dockerfile
+            grep -E '^FROM moby/buildkit' images/buildkit/Dockerfile
+      - update_buildx
+      - run:
+          name: Enable multi-arch builds
+          command: |
+            set -euo pipefail
+            docker run --privileged --rm tonistiigi/binfmt --install all
+            docker buildx create --name garden-rebuild --driver docker-container --use
+            docker buildx inspect --bootstrap
+      - run:
+          name: Build and push utility images
+          command: |
+            set -euo pipefail
+            PUSH_FLAG="--push"
+            if [ "${DRY_RUN}" = "true" ]; then
+              PUSH_FLAG=""
+            else
+              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+            fi
+
+            build() { # <dir> <tag> <metadata-file> [extra buildx args...]
+              local dir="$1" tag="$2" meta="$3"; shift 3
+              docker buildx build --platform linux/amd64,linux/arm64 ${PUSH_FLAG} \
+                --metadata-file "$meta" -f "$dir/Dockerfile" -t "$tag" "$@" "$dir"
+            }
+            digest() { jq -r '.["containerimage.digest"]' "$1"; }
+
+            if [ "${REBUILD_K8S}" = "true" ]; then
+              build images/k8s-sync "docker.io/gardendev/k8s-sync:${SYNC_NEW}" /tmp/sync.json
+              if [ "${DRY_RUN}" = "true" ]; then
+                BASE="docker.io/gardendev/k8s-sync:${SYNC_CUR}"
+              else
+                BASE="docker.io/gardendev/k8s-sync:${SYNC_NEW}@$(digest /tmp/sync.json)"
+              fi
+              build images/k8s-util "docker.io/gardendev/k8s-util:${UTIL_NEW}" /tmp/util.json \
+                --build-arg "BASE_IMAGE=${BASE}"
+            fi
+            if [ "${REBUILD_BUILDKIT}" = "true" ]; then
+              build images/buildkit "docker.io/gardendev/buildkit:${BK_NEW}" /tmp/bk.json --target buildkit
+              build images/buildkit "docker.io/gardendev/buildkit:${BKR_NEW}" /tmp/bkr.json --target buildkit-rootless
+            fi
+      - run:
+          name: Dispatch digests to GitHub
+          command: |
+            set -euo pipefail
+            if [ "${DRY_RUN}" = "true" ]; then
+              echo "Dry run; built without pushing. Skipping GitHub dispatch."
+              exit 0
+            fi
+            digest() { jq -r '.["containerimage.digest"]' "$1"; }
+            refs='{}'
+            if [ "${REBUILD_K8S}" = "true" ]; then
+              refs="$(jq -n --argjson r "$refs" \
+                --arg sync "gardendev/k8s-sync:${SYNC_NEW}@$(digest /tmp/sync.json)" \
+                --arg util "gardendev/k8s-util:${UTIL_NEW}@$(digest /tmp/util.json)" \
+                '$r + {"k8s-sync": $sync, "k8s-util": $util}')"
+            fi
+            if [ "${REBUILD_BUILDKIT}" = "true" ]; then
+              refs="$(jq -n --argjson r "$refs" \
+                --arg bk "gardendev/buildkit:${BK_NEW}@$(digest /tmp/bk.json)" \
+                --arg bkr "gardendev/buildkit:${BKR_NEW}@$(digest /tmp/bkr.json)" \
+                '$r + {"buildkit": $bk, "buildkit-rootless": $bkr}')"
+            fi
+            payload="$(jq -n \
+              --argjson refs "$refs" \
+              --arg bkbase "${BUILDKIT_BASE}" \
+              --arg actor "${TRIGGER_ACTOR}" \
+              --arg k8s "${REBUILD_K8S}" \
+              --arg buildkit "${REBUILD_BUILDKIT}" \
+              '{event_type: "util-images-rebuilt", client_payload: {refs: $refs, buildkit_base: $bkbase, actor: $actor, rebuild_k8s: $k8s, rebuild_buildkit: $buildkit}}')"
+            curl -sSf -X POST \
+              -H "Authorization: token ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/dispatches" \
+              -d "$payload"
+            echo "Dispatched util-images-rebuilt to GitHub; a PR will be opened there."
+      - fail_fast
+
   test-docker-aws:
     docker:
       # We do not use a specific digest here on purpose, to use the latest build from the previous job
@@ -1559,3 +1714,18 @@ workflows:
       - github-release-tag:
           <<: *only-tags
           requires: [build-dist-macos, build-dist-linux-windows, sign-windows-binary]
+
+  # On-demand security rebuild of the digest-pinned utility images. Triggered by
+  # the GitHub "Rebuild utility images" workflow, which pushes a throwaway
+  # `rebuild-utility-images-<run_id>` tag carrying the inputs. The non-semver tag
+  # pattern means this is the only workflow that runs for these tags (the
+  # commit/main/tags workflows do not match), so no normal CI is wasted.
+  rebuild-utility-images:
+    jobs:
+      - rebuild-utility-images:
+          context: docker
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^rebuild-utility-images-.*/

@@ -1,9 +1,20 @@
 name: Rebuild utility images
 
 # Manually-triggered security refresh for the digest-pinned Kubernetes utility
-# images that Garden injects into clusters. It rebuilds the images multi-arch,
-# pushes them to Docker Hub, and opens a PR that updates the pinned
-# tag@sha256 references in core/src/plugins/kubernetes/constants.ts.
+# images that Garden injects into clusters.
+#
+# Hybrid CI/CD: the actual multi-arch build + push to Docker Hub runs on
+# CircleCI (where the Docker Hub credentials and bot PAT already live). This
+# workflow is the human entry point and the PR opener:
+#
+#   1. workflow_dispatch (the "trigger" job): records the requested inputs in
+#      .circleci/rebuild-request.json and pushes a throwaway tag
+#      (rebuild-utility-images-<run_id>). That tag starts the CircleCI
+#      "rebuild-utility-images" job, which builds + pushes the images and then
+#      sends a repository_dispatch back here with the freshly pushed digests.
+#   2. repository_dispatch / util-images-rebuilt (the "open-pr" job): rewrites
+#      the pinned tag@sha256 references in
+#      core/src/plugins/kubernetes/constants.ts and opens a PR.
 #
 # A human only needs to review/merge the PR; the new digests then ship with the
 # next normal Garden release. No local tooling required.
@@ -36,9 +47,11 @@ on:
         required: false
         default: ""
       dry_run:
-        description: "Build only (no push, no PR)"
+        description: "Build only on CircleCI (no push, no PR)"
         type: boolean
         default: false
+  repository_dispatch:
+    types: [util-images-rebuilt]
 
 permissions:
   contents: write
@@ -49,7 +62,69 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-pr:
+  # Phase 1: hand the request off to CircleCI by pushing a throwaway tag that
+  # carries the inputs in .circleci/rebuild-request.json.
+  trigger:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Write rebuild request
+        env:
+          REBUILD_K8S: ${{ inputs.rebuild_k8s }}
+          REBUILD_BUILDKIT: ${{ inputs.rebuild_buildkit }}
+          TAG_SUFFIX: ${{ inputs.tag_suffix }}
+          BUILDKIT_BASE: ${{ inputs.buildkit_base }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --argjson k8s "${REBUILD_K8S}" \
+            --argjson bk "${REBUILD_BUILDKIT}" \
+            --arg suffix "${TAG_SUFFIX}" \
+            --arg bkbase "${BUILDKIT_BASE}" \
+            --argjson dry "${DRY_RUN}" \
+            --arg actor "${ACTOR}" \
+            '{rebuild_k8s: $k8s, rebuild_buildkit: $bk, tag_suffix: $suffix, buildkit_base: $bkbase, dry_run: $dry, actor: $actor}' \
+            > .circleci/rebuild-request.json
+          echo "Rebuild request:"
+          cat .circleci/rebuild-request.json
+
+      - name: Push trigger tag for CircleCI
+        env:
+          TRIGGER_TAG: rebuild-utility-images-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          git config user.name "garden-ci"
+          git config user.email "garden-ci@users.noreply.github.com"
+          git add .circleci/rebuild-request.json
+          git commit -m "ci: rebuild utility images request (${TRIGGER_TAG})"
+          git tag "${TRIGGER_TAG}"
+          # Push only the tag; the commit is reachable via the tag and is not
+          # added to any branch. CircleCI runs its rebuild job on this tag.
+          git push origin "refs/tags/${TRIGGER_TAG}"
+          {
+            echo "## Utility-image rebuild dispatched to CircleCI"
+            echo ""
+            echo "- trigger tag: \`${TRIGGER_TAG}\`"
+            echo "- dry run: \`${{ inputs.dry_run }}\`"
+            echo ""
+            echo "Watch the CircleCI \`rebuild-utility-images\` workflow for the build."
+            echo "On success (non dry-run) it sends the digests back here and a PR is opened automatically."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Phase 2: CircleCI finished the build/push and sent us the new digests.
+  # Rewrite the pinned references and open the PR.
+  open-pr:
+    if: ${{ github.event_name == 'repository_dispatch' }}
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
@@ -65,54 +140,10 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Compute new image tags
-        id: tags
-        env:
-          TAG_SUFFIX: ${{ inputs.tag_suffix }}
-        run: |
-          set -euo pipefail
-
-          read_tag() {
-            grep -E 'release-tag:' "$1" \
-              | sed -E 's/.*release-tag:[[:space:]]*([^[:space:]#]+).*/\1/'
-          }
-
-          # Increment the trailing numeric suffix, or append "-1" when there is
-          # none. A non-empty TAG_SUFFIX overrides the number.
-          next_tag() {
-            local cur="$1"
-            local last="${cur##*-}"
-            local base newnum
-            if [[ "$last" =~ ^[0-9]+$ ]]; then
-              base="${cur%-*}"
-              newnum=$((last + 1))
-            else
-              base="$cur"
-              newnum=1
-            fi
-            if [ -n "${TAG_SUFFIX}" ]; then
-              newnum="${TAG_SUFFIX}"
-            fi
-            printf '%s-%s' "$base" "$newnum"
-          }
-
-          sync_cur="$(read_tag images/k8s-sync/garden.yml | head -1)"
-          util_cur="$(read_tag images/k8s-util/garden.yml | head -1)"
-          bk_cur="$(read_tag images/buildkit/garden.yml | grep -v -- '-rootless' | head -1)"
-          bkr_cur="$(read_tag images/buildkit/garden.yml | grep -- '-rootless' | head -1)"
-
-          {
-            echo "sync_cur=${sync_cur}"
-            echo "sync_new=$(next_tag "$sync_cur")"
-            echo "util_new=$(next_tag "$util_cur")"
-            echo "bk_new=$(next_tag "$bk_cur")"
-            echo "bkr_new=$(next_tag "$bkr_cur")"
-          } >> "$GITHUB_OUTPUT"
-
       - name: Override buildkit base image
-        if: ${{ inputs.rebuild_buildkit && inputs.buildkit_base != '' }}
+        if: ${{ github.event.client_payload.buildkit_base != '' }}
         env:
-          BUILDKIT_BASE: ${{ inputs.buildkit_base }}
+          BUILDKIT_BASE: ${{ github.event.client_payload.buildkit_base }}
         run: |
           set -euo pipefail
           ver="${BUILDKIT_BASE#moby/buildkit:}"
@@ -123,112 +154,22 @@ jobs:
           grep -E '^FROM moby/buildkit' images/buildkit/Dockerfile
           echo "NOTE: the rootless base is pinned by tag only (no digest); review before merge."
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        if: ${{ !inputs.dry_run }}
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push k8s-sync
-        id: sync
-        if: ${{ inputs.rebuild_k8s }}
-        uses: docker/build-push-action@v6
-        with:
-          context: images/k8s-sync
-          file: images/k8s-sync/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: ${{ !inputs.dry_run }}
-          tags: docker.io/gardendev/k8s-sync:${{ steps.tags.outputs.sync_new }}
-
-      - name: Resolve k8s-util base image
-        id: base
-        if: ${{ inputs.rebuild_k8s }}
-        env:
-          DRY_RUN: ${{ inputs.dry_run }}
-          SYNC_NEW: ${{ steps.tags.outputs.sync_new }}
-          SYNC_CUR: ${{ steps.tags.outputs.sync_cur }}
-          SYNC_DIGEST: ${{ steps.sync.outputs.digest }}
-        run: |
-          set -euo pipefail
-          if [ "${DRY_RUN}" = "true" ]; then
-            # No image was pushed; validate the util build against the current base.
-            echo "base=docker.io/gardendev/k8s-sync:${SYNC_CUR}" >> "$GITHUB_OUTPUT"
-          else
-            echo "base=docker.io/gardendev/k8s-sync:${SYNC_NEW}@${SYNC_DIGEST}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Build and push k8s-util
-        id: util
-        if: ${{ inputs.rebuild_k8s }}
-        uses: docker/build-push-action@v6
-        with:
-          context: images/k8s-util
-          file: images/k8s-util/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: ${{ !inputs.dry_run }}
-          build-args: |
-            BASE_IMAGE=${{ steps.base.outputs.base }}
-          tags: docker.io/gardendev/k8s-util:${{ steps.tags.outputs.util_new }}
-
-      - name: Build and push buildkit
-        id: bk
-        if: ${{ inputs.rebuild_buildkit }}
-        uses: docker/build-push-action@v6
-        with:
-          context: images/buildkit
-          file: images/buildkit/Dockerfile
-          target: buildkit
-          platforms: linux/amd64,linux/arm64
-          push: ${{ !inputs.dry_run }}
-          tags: docker.io/gardendev/buildkit:${{ steps.tags.outputs.bk_new }}
-
-      - name: Build and push buildkit-rootless
-        id: bkr
-        if: ${{ inputs.rebuild_buildkit }}
-        uses: docker/build-push-action@v6
-        with:
-          context: images/buildkit
-          file: images/buildkit/Dockerfile
-          target: buildkit-rootless
-          platforms: linux/amd64,linux/arm64
-          push: ${{ !inputs.dry_run }}
-          tags: docker.io/gardendev/buildkit:${{ steps.tags.outputs.bkr_new }}
-
       - name: Update pinned digests in constants.ts
-        if: ${{ !inputs.dry_run }}
         env:
-          REBUILD_K8S: ${{ inputs.rebuild_k8s }}
-          REBUILD_BUILDKIT: ${{ inputs.rebuild_buildkit }}
-          SYNC_NEW: ${{ steps.tags.outputs.sync_new }}
-          UTIL_NEW: ${{ steps.tags.outputs.util_new }}
-          BK_NEW: ${{ steps.tags.outputs.bk_new }}
-          BKR_NEW: ${{ steps.tags.outputs.bkr_new }}
-          SYNC_DIGEST: ${{ steps.sync.outputs.digest }}
-          UTIL_DIGEST: ${{ steps.util.outputs.digest }}
-          BK_DIGEST: ${{ steps.bk.outputs.digest }}
-          BKR_DIGEST: ${{ steps.bkr.outputs.digest }}
+          REFS_JSON: ${{ toJSON(github.event.client_payload.refs) }}
         run: |
           set -euo pipefail
           args=()
-          if [ "${REBUILD_K8S}" = "true" ]; then
-            args+=("k8s-sync=gardendev/k8s-sync:${SYNC_NEW}@${SYNC_DIGEST}")
-            args+=("k8s-util=gardendev/k8s-util:${UTIL_NEW}@${UTIL_DIGEST}")
-          fi
-          if [ "${REBUILD_BUILDKIT}" = "true" ]; then
-            args+=("buildkit=gardendev/buildkit:${BK_NEW}@${BK_DIGEST}")
-            args+=("buildkit-rootless=gardendev/buildkit:${BKR_NEW}@${BKR_DIGEST}")
+          while IFS= read -r line; do
+            [ -n "$line" ] && args+=("$line")
+          done < <(jq -r 'to_entries[] | "\(.key)=\(.value)"' <<< "$REFS_JSON")
+          if [ "${#args[@]}" -eq 0 ]; then
+            echo "No image references in dispatch payload; nothing to update."
+            exit 1
           fi
           node support/update-util-image-digests.mjs "${args[@]}"
 
       - name: Open pull request
-        if: ${{ !inputs.dry_run }}
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -243,33 +184,14 @@ jobs:
           body: |
             Automated security rebuild of the Kubernetes utility images.
 
-            This PR updates the pinned `tag@sha256` references in
-            `core/src/plugins/kubernetes/constants.ts` to the freshly built and
-            pushed images. Review the digests, then merge to ship them with the
-            next release.
+            The images were rebuilt and pushed by CircleCI; this PR updates the
+            pinned `tag@sha256` references in
+            `core/src/plugins/kubernetes/constants.ts`. Review the digests, then
+            merge to ship them with the next release.
 
-            - k8s rebuilt: ${{ inputs.rebuild_k8s }}
-            - buildkit rebuilt: ${{ inputs.rebuild_buildkit }}
-            - triggered by: @${{ github.actor }}
+            - k8s rebuilt: ${{ github.event.client_payload.rebuild_k8s }}
+            - buildkit rebuilt: ${{ github.event.client_payload.rebuild_buildkit }}
+            - triggered by: @${{ github.event.client_payload.actor }}
 
             Note: the `release-tag` values in `images/*/garden.yml` are not bumped
             by this workflow and may lag the published tags.
-
-      - name: Dry-run summary
-        if: ${{ inputs.dry_run }}
-        env:
-          SYNC_NEW: ${{ steps.tags.outputs.sync_new }}
-          UTIL_NEW: ${{ steps.tags.outputs.util_new }}
-          BK_NEW: ${{ steps.tags.outputs.bk_new }}
-          BKR_NEW: ${{ steps.tags.outputs.bkr_new }}
-        run: |
-          set -euo pipefail
-          {
-            echo "## Dry run (no push, no PR)"
-            echo ""
-            echo "Computed tags:"
-            echo "- k8s-sync: \`${SYNC_NEW}\`"
-            echo "- k8s-util: \`${UTIL_NEW}\`"
-            echo "- buildkit: \`${BK_NEW}\`"
-            echo "- buildkit-rootless: \`${BKR_NEW}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
