@@ -1,0 +1,8 @@
+{
+  "rebuild_k8s": true,
+  "rebuild_buildkit": false,
+  "tag_suffix": "",
+  "buildkit_base": "",
+  "dry_run": false,
+  "actor": "hoshearose"
+}
