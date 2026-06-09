@@ -143,7 +143,27 @@ commands:
               exit 1
             fi
 
-      - run: npm ci --prefer-offline --cache ~/.npm --no-audit
+      - run:
+          name: npm ci
+          # The @buf/* deps resolve from buf.build, whose large packument
+          # endpoint intermittently stalls and trips npm's idle timeout
+          # (EIDLETIMEOUT). Raise fetch retries/timeouts and retry the whole
+          # install a few times so a single slow response doesn't fail the job.
+          command: |
+            npm config set fetch-retries 5
+            npm config set fetch-retry-factor 2
+            npm config set fetch-retry-mintimeout 20000
+            npm config set fetch-retry-maxtimeout 120000
+            npm config set fetch-timeout 600000
+            n=0
+            until [ "$n" -ge 3 ]; do
+              npm ci --prefer-offline --cache ~/.npm --no-audit && exit 0
+              n=$((n + 1))
+              echo "npm ci failed (attempt ${n}/3); retrying in 15s..."
+              sleep 15
+            done
+            echo "npm ci failed after ${n} attempts"
+            exit 1
 
       - save_cache:
           key: npm-v7-<<parameters.context>>-{{ checksum "package-lock.json" }}
