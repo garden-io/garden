@@ -9,7 +9,7 @@
 import { defineConfig, globalIgnores } from "eslint/config"
 import unusedImports from "eslint-plugin-unused-imports"
 import mocha from "eslint-plugin-mocha"
-import header from "eslint-plugin-header"
+import header from "@tony.ganchev/eslint-plugin-header"
 import chaiExpect from "eslint-plugin-chai-expect"
 import chaiFriendly from "eslint-plugin-chai-friendly"
 import path from "node:path"
@@ -17,12 +17,6 @@ import { fileURLToPath } from "node:url"
 import js from "@eslint/js"
 import { FlatCompat } from "@eslint/eslintrc"
 import stylistic from "@stylistic/eslint-plugin"
-
-/**
- * Set this to avoid error like "Error: Key "rules": Key "header/header": should NOT have more than 0 items."
- * See https://github.com/Stuk/eslint-plugin-header/issues/57#issuecomment-2566346001
- */
-header.rules.header.meta.schema = false
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __filename = fileURLToPath(import.meta.url)
