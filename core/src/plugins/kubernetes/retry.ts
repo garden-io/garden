@@ -213,4 +213,12 @@ const errorMessageRegexesForRetry = [
 
   // We get WebsocketError without HTTP status code on some API operations, e.g. exec in a pod
   /WebsocketError/,
+
+  // Seen on GKE (and other providers using a Konnectivity-style apiserver<->node proxy tunnel):
+  // the tunnel silently drops long-idle exec/portForward/watch connections, e.g. because of an
+  // intermediate load balancer's idle-connection timeout. The client only finds out on the next
+  // request over the same (now-dead) tunnel, which fails immediately with this error and no
+  // retry today, even though a fresh request over a new tunnel succeeds right away.
+  // See https://github.com/kubernetes/kubernetes/issues/110225
+  /error dialing backend/,
 ]
