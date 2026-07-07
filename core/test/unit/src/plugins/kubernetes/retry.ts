@@ -21,6 +21,7 @@ const websocketError: ErrorEvent = {
 }
 const plainError = new Error("failed to refresh token")
 const syntaxError = new SyntaxError("invalid syntax")
+const dialBackendError = new Error("error dialing backend: dial tcp 10.0.0.5:10250: i/o timeout")
 
 describe("toKubernetesError", () => {
   it("should handle WebsocketError", () => {
@@ -61,5 +62,9 @@ describe("toKubernetesError", () => {
 describe("shouldRetry", () => {
   it("should retry WebsocketError", () => {
     expect(shouldRetry(websocketError, testKubeOp)).to.be.true
+  })
+
+  it("should retry Konnectivity tunnel 'error dialing backend' errors", () => {
+    expect(shouldRetry(dialBackendError, testKubeOp)).to.be.true
   })
 })
