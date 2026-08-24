@@ -48,14 +48,14 @@ function makeImagePath({
 
 export function getK8sUtilImagePath(registryDomain: string): DockerImageWithDigest {
   const k8sUtilImageName: DockerImageWithDigest =
-    "gardendev/k8s-util:0.6.6-2@sha256:851168cc038583932e5af3fa6b9965f54fb8df81d55884e4a4484d44001dc165"
+    "gardendev/k8s-util:0.6.6-3@sha256:4f5dff114b584a5ef8654b0e62dd1a1f9351245c1e178bf8f347d03c79e696a4"
 
   return makeImagePath({ imageName: k8sUtilImageName, registryDomain })
 }
 
 export function getK8sSyncUtilImagePath(registryDomain: string): DockerImageWithDigest {
   const k8sSyncUtilImageName: DockerImageWithDigest =
-    "gardendev/k8s-sync:0.2.6-2@sha256:95e361564c2593483c3866436f36b7b2cecd8568fd6790a70e66023f780560e2"
+    "gardendev/k8s-sync:0.2.6-3@sha256:0917f6f248ea8c41243933400726ae4da0305a14e364b50dee67511c773b22a9"
 
   return makeImagePath({ imageName: k8sSyncUtilImageName, registryDomain })
 }
