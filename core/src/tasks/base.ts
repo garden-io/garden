@@ -37,6 +37,7 @@ import {
 import { styles } from "../logger/styles.js"
 import type { ActionRuntime } from "../plugin/base.js"
 import { deline } from "../util/string.js"
+import { gardenEnv } from "../constants.js"
 
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
@@ -659,11 +660,19 @@ export abstract class ExecuteActionTask<
   protected defaultStatusConcurrencyLimit = 10
 
   override get executeConcurrencyLimit(): number {
-    return this.action.executeConcurrencyLimit || this.defaultExecuteConcurrencyLimit
+    return (
+      gardenEnv.GARDEN_EXECUTE_CONCURRENCY_LIMIT ||
+      this.action.executeConcurrencyLimit ||
+      this.defaultExecuteConcurrencyLimit
+    )
   }
 
   override get statusConcurrencyLimit(): number {
-    return this.action.statusConcurrencyLimit || this.defaultStatusConcurrencyLimit
+    return (
+      gardenEnv.GARDEN_STATUS_CONCURRENCY_LIMIT ||
+      this.action.statusConcurrencyLimit ||
+      this.defaultStatusConcurrencyLimit
+    )
   }
 
   abstract override readonly type: Lowercase<T["kind"]>
