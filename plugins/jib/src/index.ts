@@ -31,7 +31,7 @@ import cloneDeep from "fast-copy"
 import { pick } from "lodash-es"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger.js"
 import type { JibBuildActionSpec, JibBuildConfig, JibContainerModule } from "./util.js"
-import { detectProjectType, getBuildFlags } from "./util.js"
+import { getBuildFlags, resolveProjectType } from "./util.js"
 import type {
   ConvertModuleParams,
   ConvertModuleResult,
@@ -209,10 +209,8 @@ export const gardenPlugin = () =>
 
               const statusLine = log.createLog({ fixLevel: LogLevel.verbose })
 
-              let projectType = spec.projectType
-
-              if (!projectType) {
-                projectType = await detectProjectType(action)
+              const projectType = await resolveProjectType(action, spec.projectType)
+              if (!spec.projectType || spec.projectType === "auto") {
                 statusLine.info(`Detected project type ${projectType}`)
               }
 
