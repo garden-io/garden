@@ -10,7 +10,7 @@ import type { TestGarden } from "@garden-io/sdk/build/src/testing.js"
 import { expectError, makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
 import { expect } from "chai"
 import type { JibBuildAction } from "../src/util.js"
-import { detectProjectType, getBuildFlags } from "../src/util.js"
+import { detectProjectType, getBuildFlags, resolveProjectType } from "../src/util.js"
 import { dirname, join, resolve } from "node:path"
 import type { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph.js"
 import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
@@ -74,6 +74,36 @@ describe("util", function () {
       await expectError(() => detectProjectType(action), {
         contains: `Could not detect a gradle or maven project to build ${action.longDescription()}`,
       })
+    })
+  })
+
+  describe("resolveProjectType", () => {
+    afterEach(async () => {
+      try {
+        await rm(join(`${buildPath}/build.gradle`), { recursive: true })
+      } catch (e) {}
+    })
+
+    it("detects the project type when set to auto", async () => {
+      await createFile(resolve(buildPath, "build.gradle"))
+
+      expect(await resolveProjectType(action, "auto")).to.equal("gradle")
+    })
+
+    it("detects the project type when unset", async () => {
+      await createFile(resolve(buildPath, "build.gradle"))
+
+      expect(await resolveProjectType(action, undefined)).to.equal("gradle")
+    })
+
+    it("throws for auto if no maven or gradle config is found", async () => {
+      await expectError(() => resolveProjectType(action, "auto"), {
+        contains: `Could not detect a gradle or maven project to build ${action.longDescription()}`,
+      })
+    })
+
+    it("returns the explicitly configured project type without detecting", async () => {
+      expect(await resolveProjectType(action, "maven")).to.equal("maven")
     })
   })
 

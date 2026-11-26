@@ -91,6 +91,20 @@ export async function detectProjectType(action: ResolvedBuildAction): Promise<Ji
   })
 }
 
+/**
+ * Resolves the project type to build with. The `projectType` config field defaults to `"auto"`,
+ * which must trigger detection just like an unset value does.
+ */
+export async function resolveProjectType(
+  action: ResolvedBuildAction,
+  projectType: JibModuleBuildSpec["projectType"] | undefined
+): Promise<JibPluginType> {
+  if (!projectType || projectType === "auto") {
+    return detectProjectType(action)
+  }
+  return projectType
+}
+
 export function getBuildFlags(
   log: ActionLog,
   action: Resolved<JibBuildAction>,
